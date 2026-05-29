@@ -10,33 +10,219 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as StaffIndexRouteImport } from './routes/staff.index'
+import { Route as PatientIndexRouteImport } from './routes/patient.index'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as StaffVerifyRouteImport } from './routes/staff.verify'
+import { Route as StaffSignRouteImport } from './routes/staff.sign'
+import { Route as StaffPatientsRouteImport } from './routes/staff.patients'
+import { Route as PatientWalletRouteImport } from './routes/patient.wallet'
+import { Route as PatientQrRouteImport } from './routes/patient.qr'
+import { Route as PatientHistoryRouteImport } from './routes/patient.history'
+import { Route as PatientConsentRouteImport } from './routes/patient.consent'
+import { Route as AdminFraudRouteImport } from './routes/admin.fraud'
+import { Route as AdminDidsRouteImport } from './routes/admin.dids'
+import { Route as AdminComplianceRouteImport } from './routes/admin.compliance'
+import { Route as AdminAuditRouteImport } from './routes/admin.audit'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StaffIndexRoute = StaffIndexRouteImport.update({
+  id: '/staff/',
+  path: '/staff/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PatientIndexRoute = PatientIndexRouteImport.update({
+  id: '/patient/',
+  path: '/patient/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/admin/',
+  path: '/admin/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StaffVerifyRoute = StaffVerifyRouteImport.update({
+  id: '/staff/verify',
+  path: '/staff/verify',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StaffSignRoute = StaffSignRouteImport.update({
+  id: '/staff/sign',
+  path: '/staff/sign',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StaffPatientsRoute = StaffPatientsRouteImport.update({
+  id: '/staff/patients',
+  path: '/staff/patients',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PatientWalletRoute = PatientWalletRouteImport.update({
+  id: '/patient/wallet',
+  path: '/patient/wallet',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PatientQrRoute = PatientQrRouteImport.update({
+  id: '/patient/qr',
+  path: '/patient/qr',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PatientHistoryRoute = PatientHistoryRouteImport.update({
+  id: '/patient/history',
+  path: '/patient/history',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PatientConsentRoute = PatientConsentRouteImport.update({
+  id: '/patient/consent',
+  path: '/patient/consent',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminFraudRoute = AdminFraudRouteImport.update({
+  id: '/admin/fraud',
+  path: '/admin/fraud',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminDidsRoute = AdminDidsRouteImport.update({
+  id: '/admin/dids',
+  path: '/admin/dids',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminComplianceRoute = AdminComplianceRouteImport.update({
+  id: '/admin/compliance',
+  path: '/admin/compliance',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminAuditRoute = AdminAuditRouteImport.update({
+  id: '/admin/audit',
+  path: '/admin/audit',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin/audit': typeof AdminAuditRoute
+  '/admin/compliance': typeof AdminComplianceRoute
+  '/admin/dids': typeof AdminDidsRoute
+  '/admin/fraud': typeof AdminFraudRoute
+  '/patient/consent': typeof PatientConsentRoute
+  '/patient/history': typeof PatientHistoryRoute
+  '/patient/qr': typeof PatientQrRoute
+  '/patient/wallet': typeof PatientWalletRoute
+  '/staff/patients': typeof StaffPatientsRoute
+  '/staff/sign': typeof StaffSignRoute
+  '/staff/verify': typeof StaffVerifyRoute
+  '/admin/': typeof AdminIndexRoute
+  '/patient/': typeof PatientIndexRoute
+  '/staff/': typeof StaffIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin/audit': typeof AdminAuditRoute
+  '/admin/compliance': typeof AdminComplianceRoute
+  '/admin/dids': typeof AdminDidsRoute
+  '/admin/fraud': typeof AdminFraudRoute
+  '/patient/consent': typeof PatientConsentRoute
+  '/patient/history': typeof PatientHistoryRoute
+  '/patient/qr': typeof PatientQrRoute
+  '/patient/wallet': typeof PatientWalletRoute
+  '/staff/patients': typeof StaffPatientsRoute
+  '/staff/sign': typeof StaffSignRoute
+  '/staff/verify': typeof StaffVerifyRoute
+  '/admin': typeof AdminIndexRoute
+  '/patient': typeof PatientIndexRoute
+  '/staff': typeof StaffIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin/audit': typeof AdminAuditRoute
+  '/admin/compliance': typeof AdminComplianceRoute
+  '/admin/dids': typeof AdminDidsRoute
+  '/admin/fraud': typeof AdminFraudRoute
+  '/patient/consent': typeof PatientConsentRoute
+  '/patient/history': typeof PatientHistoryRoute
+  '/patient/qr': typeof PatientQrRoute
+  '/patient/wallet': typeof PatientWalletRoute
+  '/staff/patients': typeof StaffPatientsRoute
+  '/staff/sign': typeof StaffSignRoute
+  '/staff/verify': typeof StaffVerifyRoute
+  '/admin/': typeof AdminIndexRoute
+  '/patient/': typeof PatientIndexRoute
+  '/staff/': typeof StaffIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/admin/audit'
+    | '/admin/compliance'
+    | '/admin/dids'
+    | '/admin/fraud'
+    | '/patient/consent'
+    | '/patient/history'
+    | '/patient/qr'
+    | '/patient/wallet'
+    | '/staff/patients'
+    | '/staff/sign'
+    | '/staff/verify'
+    | '/admin/'
+    | '/patient/'
+    | '/staff/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/admin/audit'
+    | '/admin/compliance'
+    | '/admin/dids'
+    | '/admin/fraud'
+    | '/patient/consent'
+    | '/patient/history'
+    | '/patient/qr'
+    | '/patient/wallet'
+    | '/staff/patients'
+    | '/staff/sign'
+    | '/staff/verify'
+    | '/admin'
+    | '/patient'
+    | '/staff'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin/audit'
+    | '/admin/compliance'
+    | '/admin/dids'
+    | '/admin/fraud'
+    | '/patient/consent'
+    | '/patient/history'
+    | '/patient/qr'
+    | '/patient/wallet'
+    | '/staff/patients'
+    | '/staff/sign'
+    | '/staff/verify'
+    | '/admin/'
+    | '/patient/'
+    | '/staff/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminAuditRoute: typeof AdminAuditRoute
+  AdminComplianceRoute: typeof AdminComplianceRoute
+  AdminDidsRoute: typeof AdminDidsRoute
+  AdminFraudRoute: typeof AdminFraudRoute
+  PatientConsentRoute: typeof PatientConsentRoute
+  PatientHistoryRoute: typeof PatientHistoryRoute
+  PatientQrRoute: typeof PatientQrRoute
+  PatientWalletRoute: typeof PatientWalletRoute
+  StaffPatientsRoute: typeof StaffPatientsRoute
+  StaffSignRoute: typeof StaffSignRoute
+  StaffVerifyRoute: typeof StaffVerifyRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+  PatientIndexRoute: typeof PatientIndexRoute
+  StaffIndexRoute: typeof StaffIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,22 +234,124 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/staff/': {
+      id: '/staff/'
+      path: '/staff'
+      fullPath: '/staff/'
+      preLoaderRoute: typeof StaffIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/patient/': {
+      id: '/patient/'
+      path: '/patient'
+      fullPath: '/patient/'
+      preLoaderRoute: typeof PatientIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/admin'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/staff/verify': {
+      id: '/staff/verify'
+      path: '/staff/verify'
+      fullPath: '/staff/verify'
+      preLoaderRoute: typeof StaffVerifyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/staff/sign': {
+      id: '/staff/sign'
+      path: '/staff/sign'
+      fullPath: '/staff/sign'
+      preLoaderRoute: typeof StaffSignRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/staff/patients': {
+      id: '/staff/patients'
+      path: '/staff/patients'
+      fullPath: '/staff/patients'
+      preLoaderRoute: typeof StaffPatientsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/patient/wallet': {
+      id: '/patient/wallet'
+      path: '/patient/wallet'
+      fullPath: '/patient/wallet'
+      preLoaderRoute: typeof PatientWalletRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/patient/qr': {
+      id: '/patient/qr'
+      path: '/patient/qr'
+      fullPath: '/patient/qr'
+      preLoaderRoute: typeof PatientQrRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/patient/history': {
+      id: '/patient/history'
+      path: '/patient/history'
+      fullPath: '/patient/history'
+      preLoaderRoute: typeof PatientHistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/patient/consent': {
+      id: '/patient/consent'
+      path: '/patient/consent'
+      fullPath: '/patient/consent'
+      preLoaderRoute: typeof PatientConsentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/fraud': {
+      id: '/admin/fraud'
+      path: '/admin/fraud'
+      fullPath: '/admin/fraud'
+      preLoaderRoute: typeof AdminFraudRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/dids': {
+      id: '/admin/dids'
+      path: '/admin/dids'
+      fullPath: '/admin/dids'
+      preLoaderRoute: typeof AdminDidsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/compliance': {
+      id: '/admin/compliance'
+      path: '/admin/compliance'
+      fullPath: '/admin/compliance'
+      preLoaderRoute: typeof AdminComplianceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/audit': {
+      id: '/admin/audit'
+      path: '/admin/audit'
+      fullPath: '/admin/audit'
+      preLoaderRoute: typeof AdminAuditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminAuditRoute: AdminAuditRoute,
+  AdminComplianceRoute: AdminComplianceRoute,
+  AdminDidsRoute: AdminDidsRoute,
+  AdminFraudRoute: AdminFraudRoute,
+  PatientConsentRoute: PatientConsentRoute,
+  PatientHistoryRoute: PatientHistoryRoute,
+  PatientQrRoute: PatientQrRoute,
+  PatientWalletRoute: PatientWalletRoute,
+  StaffPatientsRoute: StaffPatientsRoute,
+  StaffSignRoute: StaffSignRoute,
+  StaffVerifyRoute: StaffVerifyRoute,
+  AdminIndexRoute: AdminIndexRoute,
+  PatientIndexRoute: PatientIndexRoute,
+  StaffIndexRoute: StaffIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
