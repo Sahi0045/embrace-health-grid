@@ -10,33 +10,102 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PatientIndexRouteImport } from './routes/patient.index'
+import { Route as PatientWalletRouteImport } from './routes/patient.wallet'
+import { Route as PatientQrRouteImport } from './routes/patient.qr'
+import { Route as PatientHistoryRouteImport } from './routes/patient.history'
+import { Route as PatientConsentRouteImport } from './routes/patient.consent'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PatientIndexRoute = PatientIndexRouteImport.update({
+  id: '/patient/',
+  path: '/patient/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PatientWalletRoute = PatientWalletRouteImport.update({
+  id: '/patient/wallet',
+  path: '/patient/wallet',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PatientQrRoute = PatientQrRouteImport.update({
+  id: '/patient/qr',
+  path: '/patient/qr',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PatientHistoryRoute = PatientHistoryRouteImport.update({
+  id: '/patient/history',
+  path: '/patient/history',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PatientConsentRoute = PatientConsentRouteImport.update({
+  id: '/patient/consent',
+  path: '/patient/consent',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/patient/consent': typeof PatientConsentRoute
+  '/patient/history': typeof PatientHistoryRoute
+  '/patient/qr': typeof PatientQrRoute
+  '/patient/wallet': typeof PatientWalletRoute
+  '/patient/': typeof PatientIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/patient/consent': typeof PatientConsentRoute
+  '/patient/history': typeof PatientHistoryRoute
+  '/patient/qr': typeof PatientQrRoute
+  '/patient/wallet': typeof PatientWalletRoute
+  '/patient': typeof PatientIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/patient/consent': typeof PatientConsentRoute
+  '/patient/history': typeof PatientHistoryRoute
+  '/patient/qr': typeof PatientQrRoute
+  '/patient/wallet': typeof PatientWalletRoute
+  '/patient/': typeof PatientIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/patient/consent'
+    | '/patient/history'
+    | '/patient/qr'
+    | '/patient/wallet'
+    | '/patient/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/patient/consent'
+    | '/patient/history'
+    | '/patient/qr'
+    | '/patient/wallet'
+    | '/patient'
+  id:
+    | '__root__'
+    | '/'
+    | '/patient/consent'
+    | '/patient/history'
+    | '/patient/qr'
+    | '/patient/wallet'
+    | '/patient/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  PatientConsentRoute: typeof PatientConsentRoute
+  PatientHistoryRoute: typeof PatientHistoryRoute
+  PatientQrRoute: typeof PatientQrRoute
+  PatientWalletRoute: typeof PatientWalletRoute
+  PatientIndexRoute: typeof PatientIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,12 +117,62 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/patient/': {
+      id: '/patient/'
+      path: '/patient'
+      fullPath: '/patient/'
+      preLoaderRoute: typeof PatientIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/patient/wallet': {
+      id: '/patient/wallet'
+      path: '/patient/wallet'
+      fullPath: '/patient/wallet'
+      preLoaderRoute: typeof PatientWalletRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/patient/qr': {
+      id: '/patient/qr'
+      path: '/patient/qr'
+      fullPath: '/patient/qr'
+      preLoaderRoute: typeof PatientQrRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/patient/history': {
+      id: '/patient/history'
+      path: '/patient/history'
+      fullPath: '/patient/history'
+      preLoaderRoute: typeof PatientHistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/patient/consent': {
+      id: '/patient/consent'
+      path: '/patient/consent'
+      fullPath: '/patient/consent'
+      preLoaderRoute: typeof PatientConsentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  PatientConsentRoute: PatientConsentRoute,
+  PatientHistoryRoute: PatientHistoryRoute,
+  PatientQrRoute: PatientQrRoute,
+  PatientWalletRoute: PatientWalletRoute,
+  PatientIndexRoute: PatientIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
