@@ -15,11 +15,14 @@ import { Route as PatientIndexRouteImport } from './routes/patient.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as StaffVerifyRouteImport } from './routes/staff.verify'
 import { Route as StaffSignRouteImport } from './routes/staff.sign'
+import { Route as StaffScheduleRouteImport } from './routes/staff.schedule'
 import { Route as StaffPatientsRouteImport } from './routes/staff.patients'
 import { Route as PatientWalletRouteImport } from './routes/patient.wallet'
 import { Route as PatientQrRouteImport } from './routes/patient.qr'
 import { Route as PatientHistoryRouteImport } from './routes/patient.history'
 import { Route as PatientConsentRouteImport } from './routes/patient.consent'
+import { Route as PatientAppointmentsRouteImport } from './routes/patient.appointments'
+import { Route as AdminPoliciesRouteImport } from './routes/admin.policies'
 import { Route as AdminFraudRouteImport } from './routes/admin.fraud'
 import { Route as AdminDidsRouteImport } from './routes/admin.dids'
 import { Route as AdminComplianceRouteImport } from './routes/admin.compliance'
@@ -55,6 +58,11 @@ const StaffSignRoute = StaffSignRouteImport.update({
   path: '/staff/sign',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StaffScheduleRoute = StaffScheduleRouteImport.update({
+  id: '/staff/schedule',
+  path: '/staff/schedule',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StaffPatientsRoute = StaffPatientsRouteImport.update({
   id: '/staff/patients',
   path: '/staff/patients',
@@ -78,6 +86,16 @@ const PatientHistoryRoute = PatientHistoryRouteImport.update({
 const PatientConsentRoute = PatientConsentRouteImport.update({
   id: '/patient/consent',
   path: '/patient/consent',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PatientAppointmentsRoute = PatientAppointmentsRouteImport.update({
+  id: '/patient/appointments',
+  path: '/patient/appointments',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminPoliciesRoute = AdminPoliciesRouteImport.update({
+  id: '/admin/policies',
+  path: '/admin/policies',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminFraudRoute = AdminFraudRouteImport.update({
@@ -107,11 +125,14 @@ export interface FileRoutesByFullPath {
   '/admin/compliance': typeof AdminComplianceRoute
   '/admin/dids': typeof AdminDidsRoute
   '/admin/fraud': typeof AdminFraudRoute
+  '/admin/policies': typeof AdminPoliciesRoute
+  '/patient/appointments': typeof PatientAppointmentsRoute
   '/patient/consent': typeof PatientConsentRoute
   '/patient/history': typeof PatientHistoryRoute
   '/patient/qr': typeof PatientQrRoute
   '/patient/wallet': typeof PatientWalletRoute
   '/staff/patients': typeof StaffPatientsRoute
+  '/staff/schedule': typeof StaffScheduleRoute
   '/staff/sign': typeof StaffSignRoute
   '/staff/verify': typeof StaffVerifyRoute
   '/admin/': typeof AdminIndexRoute
@@ -124,11 +145,14 @@ export interface FileRoutesByTo {
   '/admin/compliance': typeof AdminComplianceRoute
   '/admin/dids': typeof AdminDidsRoute
   '/admin/fraud': typeof AdminFraudRoute
+  '/admin/policies': typeof AdminPoliciesRoute
+  '/patient/appointments': typeof PatientAppointmentsRoute
   '/patient/consent': typeof PatientConsentRoute
   '/patient/history': typeof PatientHistoryRoute
   '/patient/qr': typeof PatientQrRoute
   '/patient/wallet': typeof PatientWalletRoute
   '/staff/patients': typeof StaffPatientsRoute
+  '/staff/schedule': typeof StaffScheduleRoute
   '/staff/sign': typeof StaffSignRoute
   '/staff/verify': typeof StaffVerifyRoute
   '/admin': typeof AdminIndexRoute
@@ -142,11 +166,14 @@ export interface FileRoutesById {
   '/admin/compliance': typeof AdminComplianceRoute
   '/admin/dids': typeof AdminDidsRoute
   '/admin/fraud': typeof AdminFraudRoute
+  '/admin/policies': typeof AdminPoliciesRoute
+  '/patient/appointments': typeof PatientAppointmentsRoute
   '/patient/consent': typeof PatientConsentRoute
   '/patient/history': typeof PatientHistoryRoute
   '/patient/qr': typeof PatientQrRoute
   '/patient/wallet': typeof PatientWalletRoute
   '/staff/patients': typeof StaffPatientsRoute
+  '/staff/schedule': typeof StaffScheduleRoute
   '/staff/sign': typeof StaffSignRoute
   '/staff/verify': typeof StaffVerifyRoute
   '/admin/': typeof AdminIndexRoute
@@ -161,11 +188,14 @@ export interface FileRouteTypes {
     | '/admin/compliance'
     | '/admin/dids'
     | '/admin/fraud'
+    | '/admin/policies'
+    | '/patient/appointments'
     | '/patient/consent'
     | '/patient/history'
     | '/patient/qr'
     | '/patient/wallet'
     | '/staff/patients'
+    | '/staff/schedule'
     | '/staff/sign'
     | '/staff/verify'
     | '/admin/'
@@ -178,11 +208,14 @@ export interface FileRouteTypes {
     | '/admin/compliance'
     | '/admin/dids'
     | '/admin/fraud'
+    | '/admin/policies'
+    | '/patient/appointments'
     | '/patient/consent'
     | '/patient/history'
     | '/patient/qr'
     | '/patient/wallet'
     | '/staff/patients'
+    | '/staff/schedule'
     | '/staff/sign'
     | '/staff/verify'
     | '/admin'
@@ -195,11 +228,14 @@ export interface FileRouteTypes {
     | '/admin/compliance'
     | '/admin/dids'
     | '/admin/fraud'
+    | '/admin/policies'
+    | '/patient/appointments'
     | '/patient/consent'
     | '/patient/history'
     | '/patient/qr'
     | '/patient/wallet'
     | '/staff/patients'
+    | '/staff/schedule'
     | '/staff/sign'
     | '/staff/verify'
     | '/admin/'
@@ -213,11 +249,14 @@ export interface RootRouteChildren {
   AdminComplianceRoute: typeof AdminComplianceRoute
   AdminDidsRoute: typeof AdminDidsRoute
   AdminFraudRoute: typeof AdminFraudRoute
+  AdminPoliciesRoute: typeof AdminPoliciesRoute
+  PatientAppointmentsRoute: typeof PatientAppointmentsRoute
   PatientConsentRoute: typeof PatientConsentRoute
   PatientHistoryRoute: typeof PatientHistoryRoute
   PatientQrRoute: typeof PatientQrRoute
   PatientWalletRoute: typeof PatientWalletRoute
   StaffPatientsRoute: typeof StaffPatientsRoute
+  StaffScheduleRoute: typeof StaffScheduleRoute
   StaffSignRoute: typeof StaffSignRoute
   StaffVerifyRoute: typeof StaffVerifyRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -269,6 +308,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StaffSignRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/staff/schedule': {
+      id: '/staff/schedule'
+      path: '/staff/schedule'
+      fullPath: '/staff/schedule'
+      preLoaderRoute: typeof StaffScheduleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/staff/patients': {
       id: '/staff/patients'
       path: '/staff/patients'
@@ -302,6 +348,20 @@ declare module '@tanstack/react-router' {
       path: '/patient/consent'
       fullPath: '/patient/consent'
       preLoaderRoute: typeof PatientConsentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/patient/appointments': {
+      id: '/patient/appointments'
+      path: '/patient/appointments'
+      fullPath: '/patient/appointments'
+      preLoaderRoute: typeof PatientAppointmentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/policies': {
+      id: '/admin/policies'
+      path: '/admin/policies'
+      fullPath: '/admin/policies'
+      preLoaderRoute: typeof AdminPoliciesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/fraud': {
@@ -341,11 +401,14 @@ const rootRouteChildren: RootRouteChildren = {
   AdminComplianceRoute: AdminComplianceRoute,
   AdminDidsRoute: AdminDidsRoute,
   AdminFraudRoute: AdminFraudRoute,
+  AdminPoliciesRoute: AdminPoliciesRoute,
+  PatientAppointmentsRoute: PatientAppointmentsRoute,
   PatientConsentRoute: PatientConsentRoute,
   PatientHistoryRoute: PatientHistoryRoute,
   PatientQrRoute: PatientQrRoute,
   PatientWalletRoute: PatientWalletRoute,
   StaffPatientsRoute: StaffPatientsRoute,
+  StaffScheduleRoute: StaffScheduleRoute,
   StaffSignRoute: StaffSignRoute,
   StaffVerifyRoute: StaffVerifyRoute,
   AdminIndexRoute: AdminIndexRoute,
