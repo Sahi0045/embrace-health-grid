@@ -121,3 +121,65 @@ export const systemStats = {
   blockchainNodes: { up: 7, total: 7 },
   apiLatencyMs: 84,
 };
+
+export type Appointment = {
+  id: string;
+  doctor: string;
+  specialty: string;
+  hospital: string;
+  date: string; // ISO date
+  time: string; // human
+  status: "upcoming" | "completed" | "cancelled";
+  mode: "in-person" | "tele";
+};
+
+export const appointments: Appointment[] = [
+  { id: "ap1", doctor: "Dr. Ravi Menon", specialty: "Cardiology", hospital: "Apollo Hospitals · OPD-3", date: "2026-06-04", time: "Thu · 10:30 AM", status: "upcoming", mode: "in-person" },
+  { id: "ap2", doctor: "Dr. Aanya Verma", specialty: "Radiology follow-up", hospital: "Telehealth", date: "2026-06-09", time: "Tue · 4:15 PM", status: "upcoming", mode: "tele" },
+  { id: "ap3", doctor: "Dr. Sameer Khan", specialty: "General physician", hospital: "Apollo Hospitals · OPD-1", date: "2026-05-18", time: "Mon · 9:00 AM", status: "completed", mode: "in-person" },
+];
+
+export const availableSlots = [
+  { id: "s1", date: "2026-06-02", day: "Tue", times: ["09:00", "09:30", "11:00", "14:30"] },
+  { id: "s2", date: "2026-06-03", day: "Wed", times: ["10:00", "10:30", "13:00", "15:30", "16:00"] },
+  { id: "s3", date: "2026-06-04", day: "Thu", times: ["09:30", "11:30", "14:00"] },
+  { id: "s4", date: "2026-06-05", day: "Fri", times: ["08:30", "10:00", "12:30", "15:00"] },
+];
+
+export type Shift = {
+  id: string;
+  day: string;          // "Mon"
+  date: string;         // "2026-06-01"
+  start: string;        // "08:00"
+  end: string;          // "16:00"
+  unit: string;
+  role: "On-call" | "OPD" | "Ward rounds" | "Surgery" | "Off";
+};
+
+export const staffSchedule: Shift[] = [
+  { id: "sh1", day: "Mon", date: "2026-06-01", start: "08:00", end: "16:00", unit: "Cardiology OPD", role: "OPD" },
+  { id: "sh2", day: "Tue", date: "2026-06-02", start: "08:00", end: "12:00", unit: "Ward 4B", role: "Ward rounds" },
+  { id: "sh3", day: "Tue", date: "2026-06-02", start: "13:00", end: "17:00", unit: "Cath Lab", role: "Surgery" },
+  { id: "sh4", day: "Wed", date: "2026-06-03", start: "—", end: "—", unit: "—", role: "Off" },
+  { id: "sh5", day: "Thu", date: "2026-06-04", start: "08:00", end: "16:00", unit: "Cardiology OPD", role: "OPD" },
+  { id: "sh6", day: "Fri", date: "2026-06-05", start: "20:00", end: "08:00", unit: "Emergency", role: "On-call" },
+];
+
+export type Policy = {
+  id: string;
+  name: string;
+  category: "Consent" | "Retention" | "Access control" | "Audit";
+  status: "active" | "draft" | "archived";
+  updatedAt: string;
+  description: string;
+};
+
+export const policies: Policy[] = [
+  { id: "p1", name: "Default consent expiry", category: "Consent", status: "active", updatedAt: "2026-04-12", description: "Patient consents auto-expire after 30 days unless renewed." },
+  { id: "p2", name: "Emergency override (break-glass)", category: "Access control", status: "active", updatedAt: "2026-03-02", description: "Clinicians may access records without consent in flagged emergencies; auto-audited." },
+  { id: "p3", name: "Record retention — minors", category: "Retention", status: "active", updatedAt: "2026-02-18", description: "Pediatric records retained until age 25 or 7 years post-discharge, whichever is later." },
+  { id: "p4", name: "Cross-hospital DID resolution", category: "Access control", status: "draft", updatedAt: "2026-05-20", description: "Allow verified partner hospitals to resolve DIDs via shared ledger." },
+  { id: "p5", name: "Audit log immutability window", category: "Audit", status: "active", updatedAt: "2025-12-08", description: "All audit events sealed to blockchain within 5 minutes; no in-place edits." },
+  { id: "p6", name: "Legacy CSV export endpoint", category: "Audit", status: "archived", updatedAt: "2025-08-01", description: "Deprecated in favor of signed JSON-LD bundles." },
+];
+
