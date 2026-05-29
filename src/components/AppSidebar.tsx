@@ -1,8 +1,8 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  Home, QrCode, Wallet, ShieldCheck, History,
-  LayoutDashboard, ScanLine, Users, FileSignature,
-  KeyRound, Activity, AlertTriangle, BarChart3, Settings, Hospital,
+  Home, QrCode, Wallet, ShieldCheck, History, CalendarDays,
+  LayoutDashboard, ScanLine, Users, FileSignature, Calendar,
+  KeyRound, Activity, AlertTriangle, BarChart3, Settings, Hospital, BookLock,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -15,6 +15,7 @@ type Item = { title: string; url: string; icon: React.ComponentType<{ className?
 const patientNav: Item[] = [
   { title: "Home", url: "/patient", icon: Home },
   { title: "My QR Code", url: "/patient/qr", icon: QrCode },
+  { title: "Appointments", url: "/patient/appointments", icon: CalendarDays },
   { title: "Credentials", url: "/patient/wallet", icon: Wallet },
   { title: "Consent", url: "/patient/consent", icon: ShieldCheck },
   { title: "Access history", url: "/patient/history", icon: History },
@@ -24,12 +25,14 @@ const staffNav: Item[] = [
   { title: "Dashboard", url: "/staff", icon: LayoutDashboard },
   { title: "Verify patient", url: "/staff/verify", icon: ScanLine },
   { title: "Patients", url: "/staff/patients", icon: Users },
+  { title: "Schedule", url: "/staff/schedule", icon: Calendar },
   { title: "Sign & prescribe", url: "/staff/sign", icon: FileSignature },
 ];
 
 const adminNav: Item[] = [
   { title: "Overview", url: "/admin", icon: LayoutDashboard },
   { title: "DID management", url: "/admin/dids", icon: KeyRound },
+  { title: "Policies", url: "/admin/policies", icon: BookLock },
   { title: "Audit logs", url: "/admin/audit", icon: Activity },
   { title: "Fraud detection", url: "/admin/fraud", icon: AlertTriangle },
   { title: "Compliance", url: "/admin/compliance", icon: BarChart3 },
