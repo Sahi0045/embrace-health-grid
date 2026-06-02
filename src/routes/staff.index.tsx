@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { PageHeader, StatCard } from "@/components/PageHeader";
 import { staffPatients, accessHistory } from "@/lib/mock-data";
 import { Users, ScanLine, CheckCircle2, Clock, ArrowRight, BellRing } from "lucide-react";
+import { RouteGuard } from "@/components/RouteGuard";
 
 export const Route = createFileRoute("/staff/")({
   head: () => ({ meta: [{ title: "Staff · Dashboard — DID Hospital" }] }),
@@ -10,6 +11,7 @@ export const Route = createFileRoute("/staff/")({
 
 function StaffDashboard() {
   return (
+    <RouteGuard requiredRole="staff">
     <>
       <PageHeader
         eyebrow="Staff portal"
@@ -74,5 +76,6 @@ function StaffDashboard() {
         </div>
       </div>
     </>
+    </RouteGuard>
   );
 }

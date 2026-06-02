@@ -1,19 +1,24 @@
 import { Link, useRouterState } from "@tanstack/react-router";
+import { useState, useEffect } from "react";
 import {
   Home, QrCode, Wallet, ShieldCheck, History, CalendarDays,
   LayoutDashboard, ScanLine, Users, FileSignature, Calendar,
-  KeyRound, Activity, AlertTriangle, BarChart3, Settings, Hospital, BookLock,
+  KeyRound, Activity, AlertTriangle, BarChart3, Settings, Hospital, BookLock, User, Receipt,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
   SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar,
 } from "@/components/ui/sidebar";
 import { RoleSwitcher } from "./RoleSwitcher";
+import { getCurrentUser, type AuthUser } from "@/lib/auth";
 
 type Item = { title: string; url: string; icon: React.ComponentType<{ className?: string }> };
 
 const patientNav: Item[] = [
   { title: "Home", url: "/patient", icon: Home },
+  { title: "My Profile", url: "/patient/profile", icon: User },
+  { title: "Inpatient Care", url: "/patient/inpatient", icon: Activity },
+  { title: "Billing & Charges", url: "/patient/billing", icon: Receipt },
   { title: "My QR Code", url: "/patient/qr", icon: QrCode },
   { title: "Appointments", url: "/patient/appointments", icon: CalendarDays },
   { title: "Credentials", url: "/patient/wallet", icon: Wallet },
@@ -23,6 +28,7 @@ const patientNav: Item[] = [
 
 const staffNav: Item[] = [
   { title: "Dashboard", url: "/staff", icon: LayoutDashboard },
+  { title: "My Profile", url: "/staff/profile", icon: User },
   { title: "Verify patient", url: "/staff/verify", icon: ScanLine },
   { title: "Patients", url: "/staff/patients", icon: Users },
   { title: "Schedule", url: "/staff/schedule", icon: Calendar },
@@ -31,6 +37,7 @@ const staffNav: Item[] = [
 
 const adminNav: Item[] = [
   { title: "Overview", url: "/admin", icon: LayoutDashboard },
+  { title: "My Profile", url: "/admin/profile", icon: User },
   { title: "DID management", url: "/admin/dids", icon: KeyRound },
   { title: "Policies", url: "/admin/policies", icon: BookLock },
   { title: "Audit logs", url: "/admin/audit", icon: Activity },
@@ -72,11 +79,21 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
 
+  // Defer localStorage read to client only to avoid SSR hydration mismatch
+  const [user, setUser] = useState<AuthUser | null>(null);
+  useEffect(() => {
+    setUser(getCurrentUser());
+  }, [pathname]);
+
   const role: "patient" | "staff" | "admin" | null =
     pathname.startsWith("/patient") ? "patient"
     : pathname.startsWith("/staff") ? "staff"
     : pathname.startsWith("/admin") ? "admin"
     : null;
+
+  const canSeePatient = user?.role === "admin" || user?.role === "patient";
+  const canSeeStaff = user?.role === "admin" || user?.role === "staff";
+  const canSeeAdmin = user?.role === "admin";
 
   return (
     <Sidebar collapsible="icon">
@@ -100,9 +117,9 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        {role === "patient" && <NavGroup label="Patient app" items={patientNav} />}
-        {role === "staff" && <NavGroup label="Staff portal" items={staffNav} />}
-        {role === "admin" && <NavGroup label="Admin console" items={adminNav} />}
+        {canSeePatient && role === "patient" && <NavGroup label="Patient app" items={patientNav} />}
+        {canSeeStaff && role === "staff" && <NavGroup label="Staff portal" items={staffNav} />}
+        {canSeeAdmin && role === "admin" && <NavGroup label="Admin console" items={adminNav} />}
 
         <SidebarGroup>
           {!collapsed && <SidebarGroupLabel>System</SidebarGroupLabel>}

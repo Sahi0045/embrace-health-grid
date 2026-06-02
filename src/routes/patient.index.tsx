@@ -2,8 +2,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { PhoneFrame } from "@/components/PhoneFrame";
 import { StaggerList, StaggerItem } from "@/components/Motion";
 import { currentPatient, consents, appointments } from "@/lib/mock-data";
-import { QrCode, Wallet, ShieldCheck, History, Heart, ChevronRight, BellRing, CalendarDays } from "lucide-react";
+import { QrCode, Wallet, ShieldCheck, History, Heart, ChevronRight, BellRing, CalendarDays, Activity } from "lucide-react";
 import { motion } from "framer-motion";
+import { RouteGuard } from "@/components/RouteGuard";
 
 export const Route = createFileRoute("/patient/")({
   head: () => ({ meta: [{ title: "Patient · Home — DID Hospital" }] }),
@@ -11,6 +12,7 @@ export const Route = createFileRoute("/patient/")({
 });
 
 const quickActions = [
+  { to: "/patient/inpatient" as const, label: "Inpatient", icon: Activity },
   { to: "/patient/qr" as const, label: "Show QR", icon: QrCode },
   { to: "/patient/appointments" as const, label: "Visits", icon: CalendarDays },
   { to: "/patient/wallet" as const, label: "Wallet", icon: Wallet },
@@ -23,6 +25,7 @@ function PatientHome() {
   const nextVisit = appointments.find((a) => a.status === "upcoming");
 
   return (
+    <RouteGuard requiredRole="patient">
     <PhoneFrame title="Home">
       <StaggerList className="space-y-5 p-5">
         <StaggerItem>
@@ -86,7 +89,7 @@ function PatientHome() {
         )}
 
         <StaggerItem>
-          <div className="grid grid-cols-5 gap-2">
+          <div className="grid grid-cols-6 gap-2">
             {quickActions.map((a) => {
               const Icon = a.icon;
               return (
@@ -128,5 +131,6 @@ function PatientHome() {
         </StaggerItem>
       </StaggerList>
     </PhoneFrame>
+    </RouteGuard>
   );
 }

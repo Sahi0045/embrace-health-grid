@@ -51,6 +51,16 @@ function Home() {
         shell so you can walk an end-to-end DID workflow — check-in, consent, audit — without
         switching apps.
       </p>
+      
+      <div className="mt-6">
+        <Link
+          to="/login"
+          className="inline-flex items-center justify-center rounded-md bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+        >
+          Sign In
+          <ArrowRight className="ml-2 h-4 w-4" />
+        </Link>
+      </div>
 
       <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {surfaces.map((s) => {

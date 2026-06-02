@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StaffIndexRouteImport } from './routes/staff.index'
 import { Route as PatientIndexRouteImport } from './routes/patient.index'
@@ -16,18 +17,28 @@ import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as StaffVerifyRouteImport } from './routes/staff.verify'
 import { Route as StaffSignRouteImport } from './routes/staff.sign'
 import { Route as StaffScheduleRouteImport } from './routes/staff.schedule'
+import { Route as StaffProfileRouteImport } from './routes/staff.profile'
 import { Route as StaffPatientsRouteImport } from './routes/staff.patients'
 import { Route as PatientWalletRouteImport } from './routes/patient.wallet'
 import { Route as PatientQrRouteImport } from './routes/patient.qr'
+import { Route as PatientProfileRouteImport } from './routes/patient.profile'
+import { Route as PatientInpatientRouteImport } from './routes/patient.inpatient'
 import { Route as PatientHistoryRouteImport } from './routes/patient.history'
 import { Route as PatientConsentRouteImport } from './routes/patient.consent'
+import { Route as PatientBillingRouteImport } from './routes/patient.billing'
 import { Route as PatientAppointmentsRouteImport } from './routes/patient.appointments'
+import { Route as AdminProfileRouteImport } from './routes/admin.profile'
 import { Route as AdminPoliciesRouteImport } from './routes/admin.policies'
 import { Route as AdminFraudRouteImport } from './routes/admin.fraud'
 import { Route as AdminDidsRouteImport } from './routes/admin.dids'
 import { Route as AdminComplianceRouteImport } from './routes/admin.compliance'
 import { Route as AdminAuditRouteImport } from './routes/admin.audit'
 
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -63,6 +74,11 @@ const StaffScheduleRoute = StaffScheduleRouteImport.update({
   path: '/staff/schedule',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StaffProfileRoute = StaffProfileRouteImport.update({
+  id: '/staff/profile',
+  path: '/staff/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StaffPatientsRoute = StaffPatientsRouteImport.update({
   id: '/staff/patients',
   path: '/staff/patients',
@@ -78,6 +94,16 @@ const PatientQrRoute = PatientQrRouteImport.update({
   path: '/patient/qr',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PatientProfileRoute = PatientProfileRouteImport.update({
+  id: '/patient/profile',
+  path: '/patient/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PatientInpatientRoute = PatientInpatientRouteImport.update({
+  id: '/patient/inpatient',
+  path: '/patient/inpatient',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PatientHistoryRoute = PatientHistoryRouteImport.update({
   id: '/patient/history',
   path: '/patient/history',
@@ -88,9 +114,19 @@ const PatientConsentRoute = PatientConsentRouteImport.update({
   path: '/patient/consent',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PatientBillingRoute = PatientBillingRouteImport.update({
+  id: '/patient/billing',
+  path: '/patient/billing',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PatientAppointmentsRoute = PatientAppointmentsRouteImport.update({
   id: '/patient/appointments',
   path: '/patient/appointments',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminProfileRoute = AdminProfileRouteImport.update({
+  id: '/admin/profile',
+  path: '/admin/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminPoliciesRoute = AdminPoliciesRouteImport.update({
@@ -121,17 +157,23 @@ const AdminAuditRoute = AdminAuditRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/compliance': typeof AdminComplianceRoute
   '/admin/dids': typeof AdminDidsRoute
   '/admin/fraud': typeof AdminFraudRoute
   '/admin/policies': typeof AdminPoliciesRoute
+  '/admin/profile': typeof AdminProfileRoute
   '/patient/appointments': typeof PatientAppointmentsRoute
+  '/patient/billing': typeof PatientBillingRoute
   '/patient/consent': typeof PatientConsentRoute
   '/patient/history': typeof PatientHistoryRoute
+  '/patient/inpatient': typeof PatientInpatientRoute
+  '/patient/profile': typeof PatientProfileRoute
   '/patient/qr': typeof PatientQrRoute
   '/patient/wallet': typeof PatientWalletRoute
   '/staff/patients': typeof StaffPatientsRoute
+  '/staff/profile': typeof StaffProfileRoute
   '/staff/schedule': typeof StaffScheduleRoute
   '/staff/sign': typeof StaffSignRoute
   '/staff/verify': typeof StaffVerifyRoute
@@ -141,17 +183,23 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/compliance': typeof AdminComplianceRoute
   '/admin/dids': typeof AdminDidsRoute
   '/admin/fraud': typeof AdminFraudRoute
   '/admin/policies': typeof AdminPoliciesRoute
+  '/admin/profile': typeof AdminProfileRoute
   '/patient/appointments': typeof PatientAppointmentsRoute
+  '/patient/billing': typeof PatientBillingRoute
   '/patient/consent': typeof PatientConsentRoute
   '/patient/history': typeof PatientHistoryRoute
+  '/patient/inpatient': typeof PatientInpatientRoute
+  '/patient/profile': typeof PatientProfileRoute
   '/patient/qr': typeof PatientQrRoute
   '/patient/wallet': typeof PatientWalletRoute
   '/staff/patients': typeof StaffPatientsRoute
+  '/staff/profile': typeof StaffProfileRoute
   '/staff/schedule': typeof StaffScheduleRoute
   '/staff/sign': typeof StaffSignRoute
   '/staff/verify': typeof StaffVerifyRoute
@@ -162,17 +210,23 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/compliance': typeof AdminComplianceRoute
   '/admin/dids': typeof AdminDidsRoute
   '/admin/fraud': typeof AdminFraudRoute
   '/admin/policies': typeof AdminPoliciesRoute
+  '/admin/profile': typeof AdminProfileRoute
   '/patient/appointments': typeof PatientAppointmentsRoute
+  '/patient/billing': typeof PatientBillingRoute
   '/patient/consent': typeof PatientConsentRoute
   '/patient/history': typeof PatientHistoryRoute
+  '/patient/inpatient': typeof PatientInpatientRoute
+  '/patient/profile': typeof PatientProfileRoute
   '/patient/qr': typeof PatientQrRoute
   '/patient/wallet': typeof PatientWalletRoute
   '/staff/patients': typeof StaffPatientsRoute
+  '/staff/profile': typeof StaffProfileRoute
   '/staff/schedule': typeof StaffScheduleRoute
   '/staff/sign': typeof StaffSignRoute
   '/staff/verify': typeof StaffVerifyRoute
@@ -184,17 +238,23 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/login'
     | '/admin/audit'
     | '/admin/compliance'
     | '/admin/dids'
     | '/admin/fraud'
     | '/admin/policies'
+    | '/admin/profile'
     | '/patient/appointments'
+    | '/patient/billing'
     | '/patient/consent'
     | '/patient/history'
+    | '/patient/inpatient'
+    | '/patient/profile'
     | '/patient/qr'
     | '/patient/wallet'
     | '/staff/patients'
+    | '/staff/profile'
     | '/staff/schedule'
     | '/staff/sign'
     | '/staff/verify'
@@ -204,17 +264,23 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/login'
     | '/admin/audit'
     | '/admin/compliance'
     | '/admin/dids'
     | '/admin/fraud'
     | '/admin/policies'
+    | '/admin/profile'
     | '/patient/appointments'
+    | '/patient/billing'
     | '/patient/consent'
     | '/patient/history'
+    | '/patient/inpatient'
+    | '/patient/profile'
     | '/patient/qr'
     | '/patient/wallet'
     | '/staff/patients'
+    | '/staff/profile'
     | '/staff/schedule'
     | '/staff/sign'
     | '/staff/verify'
@@ -224,17 +290,23 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/login'
     | '/admin/audit'
     | '/admin/compliance'
     | '/admin/dids'
     | '/admin/fraud'
     | '/admin/policies'
+    | '/admin/profile'
     | '/patient/appointments'
+    | '/patient/billing'
     | '/patient/consent'
     | '/patient/history'
+    | '/patient/inpatient'
+    | '/patient/profile'
     | '/patient/qr'
     | '/patient/wallet'
     | '/staff/patients'
+    | '/staff/profile'
     | '/staff/schedule'
     | '/staff/sign'
     | '/staff/verify'
@@ -245,17 +317,23 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  LoginRoute: typeof LoginRoute
   AdminAuditRoute: typeof AdminAuditRoute
   AdminComplianceRoute: typeof AdminComplianceRoute
   AdminDidsRoute: typeof AdminDidsRoute
   AdminFraudRoute: typeof AdminFraudRoute
   AdminPoliciesRoute: typeof AdminPoliciesRoute
+  AdminProfileRoute: typeof AdminProfileRoute
   PatientAppointmentsRoute: typeof PatientAppointmentsRoute
+  PatientBillingRoute: typeof PatientBillingRoute
   PatientConsentRoute: typeof PatientConsentRoute
   PatientHistoryRoute: typeof PatientHistoryRoute
+  PatientInpatientRoute: typeof PatientInpatientRoute
+  PatientProfileRoute: typeof PatientProfileRoute
   PatientQrRoute: typeof PatientQrRoute
   PatientWalletRoute: typeof PatientWalletRoute
   StaffPatientsRoute: typeof StaffPatientsRoute
+  StaffProfileRoute: typeof StaffProfileRoute
   StaffScheduleRoute: typeof StaffScheduleRoute
   StaffSignRoute: typeof StaffSignRoute
   StaffVerifyRoute: typeof StaffVerifyRoute
@@ -266,6 +344,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -315,6 +400,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StaffScheduleRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/staff/profile': {
+      id: '/staff/profile'
+      path: '/staff/profile'
+      fullPath: '/staff/profile'
+      preLoaderRoute: typeof StaffProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/staff/patients': {
       id: '/staff/patients'
       path: '/staff/patients'
@@ -336,6 +428,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PatientQrRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/patient/profile': {
+      id: '/patient/profile'
+      path: '/patient/profile'
+      fullPath: '/patient/profile'
+      preLoaderRoute: typeof PatientProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/patient/inpatient': {
+      id: '/patient/inpatient'
+      path: '/patient/inpatient'
+      fullPath: '/patient/inpatient'
+      preLoaderRoute: typeof PatientInpatientRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/patient/history': {
       id: '/patient/history'
       path: '/patient/history'
@@ -350,11 +456,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PatientConsentRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/patient/billing': {
+      id: '/patient/billing'
+      path: '/patient/billing'
+      fullPath: '/patient/billing'
+      preLoaderRoute: typeof PatientBillingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/patient/appointments': {
       id: '/patient/appointments'
       path: '/patient/appointments'
       fullPath: '/patient/appointments'
       preLoaderRoute: typeof PatientAppointmentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/profile': {
+      id: '/admin/profile'
+      path: '/admin/profile'
+      fullPath: '/admin/profile'
+      preLoaderRoute: typeof AdminProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/policies': {
@@ -397,17 +517,23 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  LoginRoute: LoginRoute,
   AdminAuditRoute: AdminAuditRoute,
   AdminComplianceRoute: AdminComplianceRoute,
   AdminDidsRoute: AdminDidsRoute,
   AdminFraudRoute: AdminFraudRoute,
   AdminPoliciesRoute: AdminPoliciesRoute,
+  AdminProfileRoute: AdminProfileRoute,
   PatientAppointmentsRoute: PatientAppointmentsRoute,
+  PatientBillingRoute: PatientBillingRoute,
   PatientConsentRoute: PatientConsentRoute,
   PatientHistoryRoute: PatientHistoryRoute,
+  PatientInpatientRoute: PatientInpatientRoute,
+  PatientProfileRoute: PatientProfileRoute,
   PatientQrRoute: PatientQrRoute,
   PatientWalletRoute: PatientWalletRoute,
   StaffPatientsRoute: StaffPatientsRoute,
+  StaffProfileRoute: StaffProfileRoute,
   StaffScheduleRoute: StaffScheduleRoute,
   StaffSignRoute: StaffSignRoute,
   StaffVerifyRoute: StaffVerifyRoute,
@@ -418,3 +544,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

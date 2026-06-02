@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader, StatCard } from "@/components/PageHeader";
 import { systemStats, fraudAlerts } from "@/lib/mock-data";
 import { KeyRound, Users, ShieldCheck, Timer, ServerCog, Gauge } from "lucide-react";
+import { RouteGuard } from "@/components/RouteGuard";
 
 export const Route = createFileRoute("/admin/")({
   head: () => ({ meta: [{ title: "Admin · Overview — DID Hospital" }] }),
@@ -11,6 +12,7 @@ export const Route = createFileRoute("/admin/")({
 function AdminOverview() {
   const s = systemStats;
   return (
+    <RouteGuard requiredRole="admin">
     <>
       <PageHeader
         eyebrow="Admin console"
@@ -84,6 +86,7 @@ function AdminOverview() {
         </div>
       </div>
     </>
+    </RouteGuard>
   );
 }
 
