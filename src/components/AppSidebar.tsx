@@ -4,6 +4,7 @@ import {
   Home, QrCode, Wallet, ShieldCheck, History, CalendarDays,
   LayoutDashboard, ScanLine, Users, FileSignature, Calendar,
   KeyRound, Activity, AlertTriangle, BarChart3, Settings, Hospital, BookLock, User, Receipt, Building2,
+  ClipboardList, Dumbbell, Clock, UserCheck,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -15,36 +16,39 @@ import { getCurrentUser, type AuthUser } from "@/lib/auth";
 type Item = { title: string; url: string; icon: React.ComponentType<{ className?: string }> };
 
 const patientNav: Item[] = [
-  { title: "Home", url: "/patient", icon: Home },
-  { title: "My Profile", url: "/patient/profile", icon: User },
-  { title: "Inpatient Care", url: "/patient/inpatient", icon: Activity },
-  { title: "Billing & Charges", url: "/patient/billing", icon: Receipt },
-  { title: "My QR Code", url: "/patient/qr", icon: QrCode },
-  { title: "Appointments", url: "/patient/appointments", icon: CalendarDays },
-  { title: "Credentials", url: "/patient/wallet", icon: Wallet },
-  { title: "Consent", url: "/patient/consent", icon: ShieldCheck },
-  { title: "Access history", url: "/patient/history", icon: History },
+  { title: "Home",             url: "/patient",              icon: Home },
+  { title: "My Profile",       url: "/patient/profile",      icon: User },
+  { title: "Inpatient Care",   url: "/patient/inpatient",    icon: Activity },
+  { title: "Billing & Charges",url: "/patient/billing",      icon: Receipt },
+  { title: "Medical Records",  url: "/patient/records",      icon: ClipboardList },
+  { title: "My QR Code",       url: "/patient/qr",           icon: QrCode },
+  { title: "Appointments",     url: "/patient/appointments", icon: CalendarDays },
+  { title: "Credentials",      url: "/patient/wallet",       icon: Wallet },
+  { title: "Consent",          url: "/patient/consent",      icon: ShieldCheck },
+  { title: "Access history",   url: "/patient/history",      icon: History },
 ];
 
 const staffNav: Item[] = [
-  { title: "Dashboard", url: "/staff", icon: LayoutDashboard },
-  { title: "My Profile", url: "/staff/profile", icon: User },
-  { title: "Verify patient", url: "/staff/verify", icon: ScanLine },
-  { title: "Patients", url: "/staff/patients", icon: Users },
-  { title: "Schedule", url: "/staff/schedule", icon: Calendar },
-  { title: "Sign & prescribe", url: "/staff/sign", icon: FileSignature },
+  { title: "Dashboard",        url: "/staff",                icon: LayoutDashboard },
+  { title: "My Profile",       url: "/staff/profile",        icon: User },
+  { title: "My Attendance",    url: "/staff/attendance",     icon: Clock },
+  { title: "Verify patient",   url: "/staff/verify",         icon: ScanLine },
+  { title: "Patients",         url: "/staff/patients",       icon: Users },
+  { title: "Schedule",         url: "/staff/schedule",       icon: Calendar },
+  { title: "Sign & prescribe", url: "/staff/sign",           icon: FileSignature },
 ];
 
 const adminNav: Item[] = [
-  { title: "Overview", url: "/admin", icon: LayoutDashboard },
-  { title: "My Profile", url: "/admin/profile", icon: User },
-  { title: "Infrastructure", url: "/admin/infrastructure", icon: Building2 },
-  { title: "People", url: "/admin/people", icon: Users },
-  { title: "DID management", url: "/admin/dids", icon: KeyRound },
-  { title: "Policies", url: "/admin/policies", icon: BookLock },
-  { title: "Audit logs", url: "/admin/audit", icon: Activity },
-  { title: "Fraud detection", url: "/admin/fraud", icon: AlertTriangle },
-  { title: "Compliance", url: "/admin/compliance", icon: BarChart3 },
+  { title: "Overview",         url: "/admin",                icon: LayoutDashboard },
+  { title: "My Profile",       url: "/admin/profile",        icon: User },
+  { title: "Infrastructure",   url: "/admin/infrastructure", icon: Building2 },
+  { title: "People",           url: "/admin/people",         icon: Users },
+  { title: "Attendance",       url: "/admin/attendance",     icon: UserCheck },
+  { title: "DID management",   url: "/admin/dids",           icon: KeyRound },
+  { title: "Policies",         url: "/admin/policies",       icon: BookLock },
+  { title: "Audit logs",       url: "/admin/audit",          icon: Activity },
+  { title: "Fraud detection",  url: "/admin/fraud",          icon: AlertTriangle },
+  { title: "Compliance",       url: "/admin/compliance",     icon: BarChart3 },
 ];
 
 function NavGroup({ label, items }: { label: string; items: Item[] }) {
