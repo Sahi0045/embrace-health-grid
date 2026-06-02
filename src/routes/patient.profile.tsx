@@ -27,7 +27,7 @@ function PatientProfile() {
 
   return (
     <RouteGuard requiredRole="patient">
-      <div className="container mx-auto max-w-4xl px-4 py-6">
+      <div className="mx-auto w-full max-w-2xl px-4 py-6 md:max-w-4xl">
       <PageHeader
         title="My Profile"
         description="View and manage your personal information"

@@ -1,12 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { PhoneFrame } from "@/components/PhoneFrame";
 import { StaggerList, StaggerItem } from "@/components/Motion";
 import { EmptyState } from "@/components/EmptyState";
+import { PageHeader } from "@/components/PageHeader";
 import { appointments, availableSlots } from "@/lib/mock-data";
 import { CalendarDays, Video, MapPin, Plus, ChevronRight, Check, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { RouteGuard } from "@/components/RouteGuard";
 
 export const Route = createFileRoute("/patient/appointments")({
   head: () => ({ meta: [{ title: "Patient · Appointments — DID Hospital" }] }),
@@ -48,20 +49,19 @@ function AppointmentsPage() {
   };
 
   return (
-    <PhoneFrame title="Appointments">
-      <div className="space-y-5 p-5">
+    <RouteGuard requiredRole="patient">
+      <div className="mx-auto w-full max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="flex items-end justify-between">
-          <div>
-            <div className="text-xs uppercase tracking-wider text-muted-foreground">Your visits</div>
-            <div className="text-lg font-semibold text-foreground">
-              {upcoming.length} upcoming
-            </div>
-          </div>
+          <PageHeader
+            eyebrow="Patient app"
+            title="Appointments"
+            description={`${upcoming.length} upcoming visit${upcoming.length !== 1 ? "s" : ""}`}
+          />
           <button
             onClick={() => setBooking(true)}
-            className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-clinical hover:bg-primary/90 active:scale-95 transition-transform"
+            className="mb-6 inline-flex items-center gap-1 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-clinical hover:bg-primary/90 active:scale-95 transition-transform"
           >
-            <Plus className="h-3.5 w-3.5" /> Book
+            <Plus className="h-4 w-4" /> Book
           </button>
         </div>
 
@@ -72,35 +72,35 @@ function AppointmentsPage() {
             description="Tap Book to schedule a consultation with one of your verified doctors."
           />
         ) : (
-          <StaggerList className="space-y-3">
+          <StaggerList className="grid gap-3 sm:grid-cols-2">
             {upcoming.map((a) => (
               <StaggerItem key={a.id}>
                 <div className="rounded-2xl border border-border bg-card p-4 shadow-clinical">
                   <div className="flex items-start justify-between">
                     <div>
-                      <div className="text-sm font-semibold text-foreground">{a.doctor}</div>
-                      <div className="text-xs text-muted-foreground">{a.specialty}</div>
+                      <div className="font-semibold text-foreground">{a.doctor}</div>
+                      <div className="text-sm text-muted-foreground">{a.specialty}</div>
                     </div>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
                       {a.mode === "tele" ? <Video className="h-3 w-3" /> : <MapPin className="h-3 w-3" />}
                       {a.mode === "tele" ? "Telehealth" : "In-person"}
                     </span>
                   </div>
-                  <div className="mt-3 flex items-center gap-2 text-xs text-foreground">
-                    <CalendarDays className="h-3.5 w-3.5 text-primary" />
+                  <div className="mt-3 flex items-center gap-2 text-sm text-foreground">
+                    <CalendarDays className="h-4 w-4 text-primary" />
                     <span className="font-medium">{a.time}</span>
                   </div>
-                  <div className="mt-1 text-[11px] text-muted-foreground">{a.hospital}</div>
+                  <div className="mt-1 text-xs text-muted-foreground">{a.hospital}</div>
                   <div className="mt-3 flex gap-2 border-t border-border pt-3">
                     <button
                       onClick={() => cancel(a.id)}
-                      className="flex-1 rounded-lg border border-border bg-card px-3 py-2 text-xs font-medium text-foreground hover:bg-muted"
+                      className="flex-1 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-muted"
                     >
                       Cancel
                     </button>
                     <Link
                       to="/patient/qr"
-                      className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+                      className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
                     >
                       Check-in QR <ChevronRight className="h-3 w-3" />
                     </Link>
@@ -112,16 +112,16 @@ function AppointmentsPage() {
         )}
 
         {past.length > 0 && (
-          <div>
+          <div className="mt-6">
             <div className="mb-2 text-xs uppercase tracking-wider text-muted-foreground">Past</div>
-            <ul className="space-y-2">
+            <ul className="grid gap-2 sm:grid-cols-2">
               {past.map((a) => (
-                <li key={a.id} className="flex items-center justify-between rounded-lg border border-border bg-card px-3 py-2">
+                <li key={a.id} className="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-3">
                   <div>
-                    <div className="text-sm font-medium text-foreground">{a.doctor}</div>
-                    <div className="text-[11px] text-muted-foreground">{a.time} · {a.specialty}</div>
+                    <div className="font-medium text-foreground">{a.doctor}</div>
+                    <div className="text-sm text-muted-foreground">{a.time} · {a.specialty}</div>
                   </div>
-                  <span className={`text-[10px] font-medium uppercase tracking-wider ${a.status === "cancelled" ? "text-destructive" : "text-success"}`}>
+                  <span className={`text-xs font-medium uppercase tracking-wider ${a.status === "cancelled" ? "text-destructive" : "text-success"}`}>
                     {a.status}
                   </span>
                 </li>
@@ -138,7 +138,7 @@ function AppointmentsPage() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setBooking(false)}
-            className="absolute inset-0 z-10 flex items-end bg-foreground/30 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-end bg-foreground/30 backdrop-blur-sm sm:items-center sm:justify-center"
           >
             <motion.div
               initial={{ y: "100%" }}
@@ -146,15 +146,15 @@ function AppointmentsPage() {
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 30, stiffness: 280 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full rounded-t-3xl border-t border-border bg-card p-5 shadow-clinical-md"
+              className="w-full rounded-t-3xl border-t border-border bg-card p-5 shadow-clinical-md sm:max-w-md sm:rounded-2xl sm:border"
             >
-              <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-border" />
-              <div className="text-sm font-semibold text-foreground">Pick a slot</div>
-              <div className="text-xs text-muted-foreground">Dr. Sameer Khan · General physician</div>
+              <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-border sm:hidden" />
+              <div className="font-semibold text-foreground">Pick a slot</div>
+              <div className="text-sm text-muted-foreground">Dr. Sameer Khan · General physician</div>
               <div className="mt-4 space-y-3 max-h-[360px] overflow-y-auto">
                 {availableSlots.map((s) => (
                   <div key={s.id}>
-                    <div className="mb-1.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                    <div className="mb-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
                       {s.day} · {s.date}
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -165,7 +165,7 @@ function AppointmentsPage() {
                             key={t}
                             onClick={() => setPicked({ date: s.date, time: t })}
                             className={[
-                              "rounded-lg px-3 py-1.5 text-xs font-medium transition-all active:scale-95",
+                              "rounded-lg px-3 py-1.5 text-sm font-medium transition-all active:scale-95",
                               active
                                 ? "bg-primary text-primary-foreground shadow-clinical"
                                 : "border border-border bg-card text-foreground hover:bg-muted",
@@ -184,20 +184,20 @@ function AppointmentsPage() {
                   onClick={() => setBooking(false)}
                   className="flex-1 rounded-lg border border-border bg-card px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted"
                 >
-                  <X className="mr-1 inline h-3.5 w-3.5" /> Close
+                  <X className="mr-1 inline h-4 w-4" /> Close
                 </button>
                 <button
                   onClick={confirm}
                   disabled={!picked}
                   className="flex-1 rounded-lg bg-primary px-3 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                 >
-                  <Check className="mr-1 inline h-3.5 w-3.5" /> Confirm
+                  <Check className="mr-1 inline h-4 w-4" /> Confirm
                 </button>
               </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
-    </PhoneFrame>
+    </RouteGuard>
   );
 }

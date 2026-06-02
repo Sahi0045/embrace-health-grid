@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import {
   Home, QrCode, Wallet, ShieldCheck, History, CalendarDays,
   LayoutDashboard, ScanLine, Users, FileSignature, Calendar,
-  KeyRound, Activity, AlertTriangle, BarChart3, Settings, Hospital, BookLock, User, Receipt,
+  KeyRound, Activity, AlertTriangle, BarChart3, Settings, Hospital, BookLock, User, Receipt, Building2,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -38,6 +38,8 @@ const staffNav: Item[] = [
 const adminNav: Item[] = [
   { title: "Overview", url: "/admin", icon: LayoutDashboard },
   { title: "My Profile", url: "/admin/profile", icon: User },
+  { title: "Infrastructure", url: "/admin/infrastructure", icon: Building2 },
+  { title: "People", url: "/admin/people", icon: Users },
   { title: "DID management", url: "/admin/dids", icon: KeyRound },
   { title: "Policies", url: "/admin/policies", icon: BookLock },
   { title: "Audit logs", url: "/admin/audit", icon: Activity },

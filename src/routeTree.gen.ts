@@ -29,6 +29,8 @@ import { Route as PatientBillingRouteImport } from './routes/patient.billing'
 import { Route as PatientAppointmentsRouteImport } from './routes/patient.appointments'
 import { Route as AdminProfileRouteImport } from './routes/admin.profile'
 import { Route as AdminPoliciesRouteImport } from './routes/admin.policies'
+import { Route as AdminPeopleRouteImport } from './routes/admin.people'
+import { Route as AdminInfrastructureRouteImport } from './routes/admin.infrastructure'
 import { Route as AdminFraudRouteImport } from './routes/admin.fraud'
 import { Route as AdminDidsRouteImport } from './routes/admin.dids'
 import { Route as AdminComplianceRouteImport } from './routes/admin.compliance'
@@ -134,6 +136,16 @@ const AdminPoliciesRoute = AdminPoliciesRouteImport.update({
   path: '/admin/policies',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminPeopleRoute = AdminPeopleRouteImport.update({
+  id: '/admin/people',
+  path: '/admin/people',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminInfrastructureRoute = AdminInfrastructureRouteImport.update({
+  id: '/admin/infrastructure',
+  path: '/admin/infrastructure',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminFraudRoute = AdminFraudRouteImport.update({
   id: '/admin/fraud',
   path: '/admin/fraud',
@@ -162,6 +174,8 @@ export interface FileRoutesByFullPath {
   '/admin/compliance': typeof AdminComplianceRoute
   '/admin/dids': typeof AdminDidsRoute
   '/admin/fraud': typeof AdminFraudRoute
+  '/admin/infrastructure': typeof AdminInfrastructureRoute
+  '/admin/people': typeof AdminPeopleRoute
   '/admin/policies': typeof AdminPoliciesRoute
   '/admin/profile': typeof AdminProfileRoute
   '/patient/appointments': typeof PatientAppointmentsRoute
@@ -188,6 +202,8 @@ export interface FileRoutesByTo {
   '/admin/compliance': typeof AdminComplianceRoute
   '/admin/dids': typeof AdminDidsRoute
   '/admin/fraud': typeof AdminFraudRoute
+  '/admin/infrastructure': typeof AdminInfrastructureRoute
+  '/admin/people': typeof AdminPeopleRoute
   '/admin/policies': typeof AdminPoliciesRoute
   '/admin/profile': typeof AdminProfileRoute
   '/patient/appointments': typeof PatientAppointmentsRoute
@@ -215,6 +231,8 @@ export interface FileRoutesById {
   '/admin/compliance': typeof AdminComplianceRoute
   '/admin/dids': typeof AdminDidsRoute
   '/admin/fraud': typeof AdminFraudRoute
+  '/admin/infrastructure': typeof AdminInfrastructureRoute
+  '/admin/people': typeof AdminPeopleRoute
   '/admin/policies': typeof AdminPoliciesRoute
   '/admin/profile': typeof AdminProfileRoute
   '/patient/appointments': typeof PatientAppointmentsRoute
@@ -243,6 +261,8 @@ export interface FileRouteTypes {
     | '/admin/compliance'
     | '/admin/dids'
     | '/admin/fraud'
+    | '/admin/infrastructure'
+    | '/admin/people'
     | '/admin/policies'
     | '/admin/profile'
     | '/patient/appointments'
@@ -269,6 +289,8 @@ export interface FileRouteTypes {
     | '/admin/compliance'
     | '/admin/dids'
     | '/admin/fraud'
+    | '/admin/infrastructure'
+    | '/admin/people'
     | '/admin/policies'
     | '/admin/profile'
     | '/patient/appointments'
@@ -295,6 +317,8 @@ export interface FileRouteTypes {
     | '/admin/compliance'
     | '/admin/dids'
     | '/admin/fraud'
+    | '/admin/infrastructure'
+    | '/admin/people'
     | '/admin/policies'
     | '/admin/profile'
     | '/patient/appointments'
@@ -322,6 +346,8 @@ export interface RootRouteChildren {
   AdminComplianceRoute: typeof AdminComplianceRoute
   AdminDidsRoute: typeof AdminDidsRoute
   AdminFraudRoute: typeof AdminFraudRoute
+  AdminInfrastructureRoute: typeof AdminInfrastructureRoute
+  AdminPeopleRoute: typeof AdminPeopleRoute
   AdminPoliciesRoute: typeof AdminPoliciesRoute
   AdminProfileRoute: typeof AdminProfileRoute
   PatientAppointmentsRoute: typeof PatientAppointmentsRoute
@@ -484,6 +510,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPoliciesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/people': {
+      id: '/admin/people'
+      path: '/admin/people'
+      fullPath: '/admin/people'
+      preLoaderRoute: typeof AdminPeopleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/infrastructure': {
+      id: '/admin/infrastructure'
+      path: '/admin/infrastructure'
+      fullPath: '/admin/infrastructure'
+      preLoaderRoute: typeof AdminInfrastructureRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/fraud': {
       id: '/admin/fraud'
       path: '/admin/fraud'
@@ -522,6 +562,8 @@ const rootRouteChildren: RootRouteChildren = {
   AdminComplianceRoute: AdminComplianceRoute,
   AdminDidsRoute: AdminDidsRoute,
   AdminFraudRoute: AdminFraudRoute,
+  AdminInfrastructureRoute: AdminInfrastructureRoute,
+  AdminPeopleRoute: AdminPeopleRoute,
   AdminPoliciesRoute: AdminPoliciesRoute,
   AdminProfileRoute: AdminProfileRoute,
   PatientAppointmentsRoute: PatientAppointmentsRoute,
