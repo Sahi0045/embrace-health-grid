@@ -12,6 +12,9 @@ import {
   Activity, AlertCircle, Clock
 } from "lucide-react";
 import { patients, doctors, nurses, supportStaff, peopleStats } from "@/lib/people-data";
+import { mockStaff } from "@/lib/mock-staff";
+import { DIDBadge } from "@/components/did/DIDBadge";
+import { DIDStatusChip } from "@/components/did/DIDStatusChip";
 import { useState } from "react";
 
 export const Route = createFileRoute("/admin/people")({
@@ -105,6 +108,7 @@ function PeopleManagement() {
               <TabsTrigger value="doctors">Doctors</TabsTrigger>
               <TabsTrigger value="nurses">Nurses</TabsTrigger>
               <TabsTrigger value="staff">Support Staff</TabsTrigger>
+              <TabsTrigger value="dids">Staff DIDs (100)</TabsTrigger>
             </TabsList>
 
             {/* Patients Tab */}
@@ -475,8 +479,7 @@ function PeopleManagement() {
             </TabsContent>
 
             {/* Support Staff Tab */}
-            <TabsContent value="staff" className="space-y-4 mt-4">
-              <div className="mb-4 grid gap-4 sm:grid-cols-3">
+            <TabsContent value="staff" className="space-y-4 mt-4">              <div className="mb-4 grid gap-4 sm:grid-cols-3">
                 <Card>
                   <CardContent className="p-4">
                     <div className="text-sm text-muted-foreground">Staff On Duty</div>
@@ -546,9 +549,125 @@ function PeopleManagement() {
                 </Card>
               ))}
             </TabsContent>
+
+            {/* Staff DIDs tab */}
+            <TabsContent value="dids" className="mt-4">
+              <StaffDIDsPanel searchTerm={searchTerm} />
+            </TabsContent>
           </Tabs>
+
         </div>
       </>
     </RouteGuard>
+  );
+}
+
+function StaffDIDsPanel({ searchTerm }: { searchTerm: string }) {
+  const [roleFilter, setRoleFilter] = useState("all");
+
+  const filtered = mockStaff.filter(s =>
+    (roleFilter === "all" || s.role === roleFilter) &&
+    (s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     s.employeeId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     s.department.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     s.did.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
+  const onDuty = mockStaff.filter(s => s.onDuty).length;
+  const roles = [...new Set(mockStaff.map(s => s.role))].sort();
+
+  return (
+    <div className="space-y-4">
+      {/* Summary */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {[
+          { label: "Total Staff", value: mockStaff.length, color: "text-primary bg-primary/10" },
+          { label: "On Duty", value: onDuty, color: "text-success bg-success/10" },
+          { label: "Doctors", value: mockStaff.filter(s => s.role === "Doctor" || s.role === "Surgeon").length, color: "text-chart-2 bg-chart-2/10" },
+          { label: "Nurses", value: mockStaff.filter(s => s.role === "Nurse").length, color: "text-chart-3 bg-chart-3/10" },
+        ].map(s => (
+          <div key={s.label} className={`rounded-xl p-3 text-center ${s.color}`}>
+            <div className="text-xl font-bold">{s.value}</div>
+            <div className="text-[10px] font-medium opacity-80">{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Filter */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-xs text-muted-foreground">Filter:</span>
+        <button
+          onClick={() => setRoleFilter("all")}
+          className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors ${roleFilter === "all" ? "bg-foreground text-background border-foreground" : "border-border text-muted-foreground hover:border-foreground"}`}
+        >
+          All ({mockStaff.length})
+        </button>
+        {roles.map(role => (
+          <button
+            key={role}
+            onClick={() => setRoleFilter(role)}
+            className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors ${roleFilter === role ? "bg-foreground text-background border-foreground" : "border-border text-muted-foreground hover:border-foreground"}`}
+          >
+            {role} ({mockStaff.filter(s => s.role === role).length})
+          </button>
+        ))}
+      </div>
+
+      {/* Staff DID table */}
+      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-clinical">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/50 text-left">
+            <tr>
+              {["Staff Member", "Role / Dept.", "DID", "Status", "Credentials", "Duty"].map(h => (
+                <th key={h} className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground hidden-when-small">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {filtered.map(s => (
+              <tr key={s.id} className="hover:bg-muted/30 transition-colors">
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold">
+                      {s.name.split(" ").map(w => w[0]).slice(0, 2).join("")}
+                    </div>
+                    <div>
+                      <div className="font-medium text-foreground">{s.name}</div>
+                      <div className="text-[10px] text-muted-foreground">{s.employeeId}</div>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-4 py-3">
+                  <div className="text-foreground">{s.role}</div>
+                  <div className="text-xs text-muted-foreground">{s.department}</div>
+                </td>
+                <td className="px-4 py-3">
+                  <DIDBadge did={s.did} />
+                </td>
+                <td className="px-4 py-3">
+                  <DIDStatusChip status={s.status === "active" ? "active" : s.status === "inactive" ? "revoked" : "suspended"} size="sm" />
+                </td>
+                <td className="px-4 py-3">
+                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">{s.credentials}</span>
+                </td>
+                <td className="px-4 py-3">
+                  <div className={`flex items-center gap-1.5 text-xs font-medium ${s.onDuty ? "text-success" : "text-muted-foreground"}`}>
+                    <div className={`h-1.5 w-1.5 rounded-full ${s.onDuty ? "bg-success" : "bg-muted-foreground"}`} />
+                    {s.onDuty ? "On duty" : "Off duty"}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {filtered.length === 0 && (
+          <div className="py-12 text-center text-sm text-muted-foreground">No staff match your search</div>
+        )}
+      </div>
+
+      <div className="text-xs text-muted-foreground">
+        Showing {filtered.length} of {mockStaff.length} staff members — each staff member has a unique hospital DID
+      </div>
+    </div>
   );
 }

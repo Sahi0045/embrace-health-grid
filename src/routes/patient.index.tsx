@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { StaggerList, StaggerItem } from "@/components/Motion";
 import { currentPatient, consents, appointments } from "@/lib/mock-data";
-import { QrCode, Wallet, ShieldCheck, History, Heart, ChevronRight, BellRing, CalendarDays, Activity, ClipboardList } from "lucide-react";
+import { QrCode, Wallet, ShieldCheck, History, Heart, ChevronRight, BellRing, CalendarDays, Activity, ClipboardList, Syringe, CreditCard, Video, Users2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { RouteGuard } from "@/components/RouteGuard";
 import { PageHeader } from "@/components/PageHeader";
@@ -11,14 +11,19 @@ export const Route = createFileRoute("/patient/")({
   component: PatientHome,
 });
 
-const quickActions = [
-  { to: "/patient/inpatient"    as const, label: "Inpatient",  icon: Activity },
-  { to: "/patient/records"      as const, label: "Records",    icon: ClipboardList },
-  { to: "/patient/qr"           as const, label: "Show QR",    icon: QrCode },
-  { to: "/patient/appointments" as const, label: "Visits",     icon: CalendarDays },
-  { to: "/patient/wallet"       as const, label: "Wallet",     icon: Wallet },
-  { to: "/patient/consent"      as const, label: "Consent",    icon: ShieldCheck },
-  { to: "/patient/history"      as const, label: "History",    icon: History },
+const quickActions: { to: string; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { to: "/patient/inpatient",    label: "Inpatient",  icon: Activity },
+  { to: "/patient/records",      label: "Records",    icon: ClipboardList },
+  { to: "/patient/qr",           label: "Show QR",    icon: QrCode },
+  { to: "/patient/appointments", label: "Visits",     icon: CalendarDays },
+  { to: "/patient/wallet",       label: "Wallet",     icon: Wallet },
+  { to: "/patient/consent",      label: "Consent",    icon: ShieldCheck },
+  { to: "/patient/history",      label: "History",    icon: History },
+  { to: "/patient/emergency",    label: "Emergency",  icon: Heart },
+  { to: "/patient/vaccines",     label: "Vaccines",   icon: Syringe },
+  { to: "/patient/insurance",    label: "Insurance",  icon: CreditCard },
+  { to: "/patient/telemedicine", label: "Tele",       icon: Video },
+  { to: "/patient/family",       label: "Family",     icon: Users2 },
 ];
 
 function PatientHome() {
@@ -116,20 +121,20 @@ function PatientHome() {
 
           {/* Quick actions grid */}
           <StaggerItem>
-            <div className="grid grid-cols-4 gap-3 sm:grid-cols-7">
+            <div className="grid grid-cols-4 gap-3 sm:grid-cols-6">
               {quickActions.map((a) => {
                 const Icon = a.icon;
                 return (
                   <motion.div key={a.to} whileTap={{ scale: 0.92 }}>
-                    <Link
-                      to={a.to}
+                    <a
+                      href={a.to}
                       className="flex flex-col items-center gap-1.5 rounded-xl border border-border bg-card p-3 text-center text-xs font-medium text-foreground transition-colors hover:bg-muted"
                     >
                       <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                         <Icon className="h-5 w-5" />
                       </div>
                       {a.label}
-                    </Link>
+                    </a>
                   </motion.div>
                 );
               })}

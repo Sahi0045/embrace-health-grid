@@ -1,65 +1,128 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { StaggerList, StaggerItem } from "@/components/Motion";
-import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
+import { CredentialCard } from "@/components/credentials/CredentialCard";
+import { CredentialPreview } from "@/components/credentials/CredentialPreview";
+import { CredentialTimeline } from "@/components/credentials/CredentialTimeline";
 import { credentials } from "@/lib/mock-data";
-import { BadgeCheck, CircleAlert, Wallet as WalletIcon } from "lucide-react";
 import { RouteGuard } from "@/components/RouteGuard";
+import { Wallet as WalletIcon, ShieldCheck, X } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 
 export const Route = createFileRoute("/patient/wallet")({
   head: () => ({ meta: [{ title: "Patient · Credentials Wallet — DID Hospital" }] }),
   component: Wallet,
 });
 
+const timelineEvents = [
+  { id: "t1", action: "issued" as const, label: "Patient Identity credential issued", issuer: "Apollo Hospitals", at: "2025-01-12" },
+  { id: "t2", action: "verified" as const, label: "Identity verified at OPD check-in", issuer: "Apollo Hospitals OPD Desk", at: "2025-06-02" },
+  { id: "t3", action: "issued" as const, label: "Health Insurance credential issued", issuer: "Star Health Insurance", at: "2025-04-02" },
+  { id: "t4", action: "verified" as const, label: "Insurance verified for cashless admission", issuer: "Apollo Billing Dept.", at: "2025-11-18" },
+  { id: "t5", action: "expired" as const, label: "Lab Report Access credential expired", issuer: "Apollo Diagnostics", at: "2025-09-21" },
+];
+
+const previewFields: Record<string, { label: string; value: string }[]> = {
+  c1: [
+    { label: "Full Name", value: "Anika Sharma" },
+    { label: "MRN", value: "MRN-204871" },
+    { label: "Blood Group", value: "O+" },
+    { label: "Date of Birth", value: "1992-03-14" },
+  ],
+  c2: [
+    { label: "Policy No.", value: "POL-2025-STAR-00881" },
+    { label: "Sum Insured", value: "₹10,00,000" },
+    { label: "Coverage Type", value: "Comprehensive" },
+  ],
+  c3: [
+    { label: "Vaccines", value: "COVID-19, Hep-B, Tetanus, OPV" },
+    { label: "Issuing Authority", value: "Govt. of India — NHM" },
+    { label: "Last Updated", value: "2024-03-10" },
+  ],
+  c4: [
+    { label: "Lab", value: "Apollo Diagnostics" },
+    { label: "Tests", value: "CBC, HbA1c, Lipid Panel" },
+    { label: "Report Date", value: "2025-03-21" },
+  ],
+};
+
 function Wallet() {
+  const [selected, setSelected] = useState<typeof credentials[0] | null>(null);
+
   return (
     <RouteGuard requiredRole="patient">
-      <div className="mx-auto w-full max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
-        <PageHeader
-          eyebrow="Patient app"
-          title="Credentials Wallet"
-          description={`${credentials.length} verifiable credentials stored`}
-        />
+      <PageHeader
+        eyebrow="Patient app"
+        title="Credentials Wallet"
+        description={`${credentials.length} verifiable credentials · secured by Ed25519`}
+        actions={
+          <div className="flex items-center gap-2 rounded-full bg-success/10 px-3 py-1.5 text-xs font-medium text-success">
+            <ShieldCheck className="h-3.5 w-3.5" />
+            All credentials verified
+          </div>
+        }
+      />
 
-        <div className="mt-6">
-          {credentials.length === 0 ? (
-            <EmptyState icon={WalletIcon} title="No credentials yet" description="Your hospital will issue verifiable credentials here." />
-          ) : (
-            <StaggerList className="grid gap-3 sm:grid-cols-2">
-              {credentials.map((c) => {
-                const expired = c.status === "expired";
-                return (
-                  <StaggerItem key={c.id}>
-                    <div className="rounded-2xl border border-border bg-card p-4 shadow-clinical transition-shadow hover:shadow-clinical-md">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <div className="font-semibold text-foreground">{c.type}</div>
-                          <div className="text-sm text-muted-foreground">Issued by {c.issuer}</div>
-                        </div>
-                        <span className={[
-                          "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
-                          expired ? "bg-destructive/10 text-destructive" : "bg-success/15 text-success",
-                        ].join(" ")}>
-                          {expired ? <CircleAlert className="h-3 w-3" /> : <BadgeCheck className="h-3 w-3" />}
-                          {expired ? "Expired" : "Active"}
-                        </span>
-                      </div>
-                      <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-                        <div>
-                          <div className="text-muted-foreground text-xs">Issued</div>
-                          <div className="font-medium">{c.issuedAt}</div>
-                        </div>
-                        <div>
-                          <div className="text-muted-foreground text-xs">Expires</div>
-                          <div className="font-medium">{c.expiresAt}</div>
-                        </div>
-                      </div>
-                    </div>
-                  </StaggerItem>
-                );
-              })}
-            </StaggerList>
+      <div className="mx-auto w-full max-w-4xl px-4 py-6 sm:px-8 space-y-6">
+        {/* Credential cards */}
+        <StaggerList className="grid gap-3 sm:grid-cols-2">
+          {credentials.map((c) => (
+            <StaggerItem key={c.id}>
+              <CredentialCard
+                id={c.id}
+                type={c.type}
+                issuer={c.issuer}
+                issuedAt={c.issuedAt}
+                expiresAt={c.expiresAt}
+                status={c.status}
+                onClick={() => setSelected(selected?.id === c.id ? null : c)}
+              />
+            </StaggerItem>
+          ))}
+        </StaggerList>
+
+        {/* Expanded credential preview */}
+        <AnimatePresence mode="wait">
+          {selected && (
+            <motion.div
+              key={selected.id}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="rounded-xl border border-border bg-muted/30 p-4"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-sm font-semibold text-foreground">Credential Preview</span>
+                <button
+                  onClick={() => setSelected(null)}
+                  className="flex h-7 w-7 items-center justify-center rounded-lg hover:bg-muted text-muted-foreground transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <CredentialPreview
+                type={selected.type}
+                issuer={selected.issuer}
+                holder="Anika Sharma"
+                issuedAt={selected.issuedAt}
+                expiresAt={selected.expiresAt}
+                status={selected.status}
+                credentialId={selected.id}
+                schema={`https://schema.did-hospital.in/v1/${selected.type.toLowerCase().replace(/\s/g, "-")}`}
+                fields={previewFields[selected.id]}
+              />
+            </motion.div>
           )}
+        </AnimatePresence>
+
+        {/* Timeline */}
+        <div className="rounded-xl border border-border bg-card p-5">
+          <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-foreground">
+            <WalletIcon className="h-4 w-4 text-primary" />
+            Credential Activity Timeline
+          </div>
+          <CredentialTimeline events={timelineEvents} />
         </div>
       </div>
     </RouteGuard>

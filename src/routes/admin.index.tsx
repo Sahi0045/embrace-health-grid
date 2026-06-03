@@ -1,91 +1,190 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { PageHeader, StatCard } from "@/components/PageHeader";
+import { StaggerList, StaggerItem } from "@/components/Motion";
 import { systemStats, fraudAlerts } from "@/lib/mock-data";
-import { KeyRound, Users, ShieldCheck, Timer, ServerCog, Gauge } from "lucide-react";
+import { infraStats } from "@/lib/mock-infrastructure";
+import { mockCredentials } from "@/lib/mock-credentials";
+import { mockAuditEvents } from "@/lib/mock-audit";
+import {
+  KeyRound, Users, ShieldCheck, Timer, ServerCog, Gauge,
+  Network, Bed, Award, Globe, Activity, AlertTriangle,
+  ArrowRight, Command, GitBranch,
+} from "lucide-react";
 import { RouteGuard } from "@/components/RouteGuard";
+import { motion } from "framer-motion";
 
 export const Route = createFileRoute("/admin/")({
   head: () => ({ meta: [{ title: "Admin · Overview — DID Hospital" }] }),
   component: AdminOverview,
 });
 
+const quickLinks = [
+  { to: "/admin/command" as const, label: "Command Center", icon: Command, color: "text-primary bg-primary/10" },
+  { to: "/admin/digital-twin" as const, label: "Digital Twin", icon: Network, color: "text-chart-2 bg-chart-2/10" },
+  { to: "/admin/resources" as const, label: "Resources", icon: Bed, color: "text-success bg-success/10" },
+  { to: "/admin/credentials" as const, label: "Credentials", icon: Award, color: "text-chart-3 bg-chart-3/10" },
+  { to: "/admin/federation" as const, label: "Federation", icon: Globe, color: "text-chart-4 bg-chart-4/10" },
+  { to: "/audit-timeline" as const, label: "Audit Timeline", icon: GitBranch, color: "text-muted-foreground bg-muted" },
+];
+
 function AdminOverview() {
   const s = systemStats;
+  const activeCredentials = mockCredentials.filter(c => c.status === "active").length;
+  const criticalEvents = mockAuditEvents.filter(e => e.severity === "critical").slice(0, 3);
+
   return (
     <RouteGuard requiredRole="admin">
-    <>
-      <PageHeader
-        eyebrow="Admin console"
-        title="System overview"
-        description="Real-time health of the DID infrastructure and identity operations."
-      />
+      <>
+        <PageHeader
+          eyebrow="Admin console"
+          title="System overview"
+          description="Real-time health of the DID infrastructure and identity operations."
+          actions={
+            <Link
+              to="/admin/command"
+              className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+            >
+              <Command className="h-4 w-4" />
+              Command Center
+            </Link>
+          }
+        />
 
-      <div className="space-y-6 p-8">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label="Total DIDs" value={s.totalDIDs.toLocaleString()} delta="+128 today" icon={KeyRound} />
-          <StatCard label="Active users" value={s.activeUsers.toLocaleString()} delta="last 24h" icon={Users} />
-          <StatCard label="Consents granted" value={s.consentsToday} delta="today" icon={ShieldCheck} tone="success" />
-          <StatCard label="Avg. check-in" value={`${s.avgCheckInSec}s`} delta="↓ 74% vs. paper" icon={Timer} tone="success" />
-        </div>
-
-        <div className="grid gap-6 lg:grid-cols-3">
-          <div className="rounded-xl border border-border bg-card p-6 shadow-clinical">
-            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-              <ServerCog className="h-4 w-4 text-primary" /> Infrastructure
-            </div>
-            <ul className="mt-4 space-y-3 text-sm">
-              <Row label="Blockchain nodes" value={`${s.blockchainNodes.up}/${s.blockchainNodes.total} healthy`} good />
-              <Row label="API latency" value={`${s.apiLatencyMs} ms p50`} good />
-              <Row label="Queue depth" value="0 backlog" good />
-              <Row label="Last backup" value="2h ago" good />
-            </ul>
+        <div className="space-y-6 p-6">
+          {/* KPI grid */}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <StatCard label="Total DIDs" value={s.totalDIDs.toLocaleString()} delta="+128 today" icon={KeyRound} />
+            <StatCard label="Active users" value={s.activeUsers.toLocaleString()} delta="last 24h" icon={Users} />
+            <StatCard label="Active credentials" value={activeCredentials.toLocaleString()} delta="1,000 total issued" icon={Award} tone="success" />
+            <StatCard label="Avg. check-in" value={`${s.avgCheckInSec}s`} delta="↓ 74% vs. paper" icon={Timer} tone="success" />
           </div>
 
-          <div className="rounded-xl border border-border bg-card p-6 shadow-clinical">
-            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-              <Gauge className="h-4 w-4 text-primary" /> Compliance score
-            </div>
-            <div className="mt-6 text-center">
-              <div className="text-5xl font-semibold text-foreground">{s.complianceScore}</div>
-              <div className="text-xs text-muted-foreground">out of 100</div>
-            </div>
-            <div className="mt-4 h-2 overflow-hidden rounded-full bg-muted">
-              <div className="h-full rounded-full bg-success" style={{ width: `${s.complianceScore}%` }} />
-            </div>
-            <div className="mt-3 grid grid-cols-3 gap-2 text-center text-[11px] text-muted-foreground">
-              <div>HIPAA<br /><span className="font-semibold text-foreground">98</span></div>
-              <div>GDPR<br /><span className="font-semibold text-foreground">95</span></div>
-              <div>DPDP<br /><span className="font-semibold text-foreground">97</span></div>
-            </div>
-          </div>
+          {/* Quick links */}
+          <StaggerList className="grid grid-cols-3 gap-3 sm:grid-cols-6">
+            {quickLinks.map(l => {
+              const Icon = l.icon;
+              return (
+                <StaggerItem key={l.to}>
+                  <Link
+                    to={l.to}
+                    className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card p-4 text-center hover:shadow-clinical-md hover:-translate-y-0.5 transition-all"
+                  >
+                    <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${l.color}`}>
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <span className="text-xs font-medium text-foreground">{l.label}</span>
+                  </Link>
+                </StaggerItem>
+              );
+            })}
+          </StaggerList>
 
-          <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-6">
-            <div className="text-sm font-semibold text-foreground">Active fraud alerts</div>
-            <ul className="mt-4 space-y-3 text-sm">
-              {fraudAlerts.map((a) => (
-                <li key={a.id} className="rounded-lg border border-border bg-card p-3">
-                  <div className="flex items-center justify-between">
-                    <span
-                      className={[
+          <div className="grid gap-6 lg:grid-cols-3">
+            {/* Infrastructure */}
+            <div className="rounded-xl border border-border bg-card p-6 shadow-clinical">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                  <ServerCog className="h-4 w-4 text-primary" /> Infrastructure
+                </div>
+                <Link to="/admin/resources" className="text-xs text-primary hover:underline flex items-center gap-1">
+                  Resources <ArrowRight className="h-3 w-3" />
+                </Link>
+              </div>
+              <ul className="space-y-3 text-sm">
+                <Row label="Blockchain nodes" value={`${s.blockchainNodes.up}/${s.blockchainNodes.total} healthy`} good />
+                <Row label="API latency" value={`${s.apiLatencyMs} ms p50`} good />
+                <Row label="Bed occupancy" value={`${infraStats.occupiedBeds}/${infraStats.totalBeds} (${Math.round(infraStats.occupiedBeds/infraStats.totalBeds*100)}%)`} good />
+                <Row label="Ambulances ready" value={`${infraStats.availableAmbulances}/${infraStats.totalAmbulances}`} good />
+                <Row label="Equipment operational" value={`${infraStats.operationalEquipment}/${infraStats.totalEquipment}`} good />
+              </ul>
+            </div>
+
+            {/* Compliance score */}
+            <div className="rounded-xl border border-border bg-card p-6 shadow-clinical">
+              <div className="flex items-center gap-2 text-sm font-semibold text-foreground mb-4">
+                <Gauge className="h-4 w-4 text-primary" /> Compliance score
+              </div>
+              <div className="mt-2 text-center">
+                <div className="text-5xl font-semibold text-foreground">{s.complianceScore}</div>
+                <div className="text-xs text-muted-foreground">out of 100</div>
+              </div>
+              <div className="mt-4 h-2 overflow-hidden rounded-full bg-muted">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${s.complianceScore}%` }}
+                  transition={{ duration: 1, ease: "easeOut" }}
+                  className="h-full rounded-full bg-success"
+                />
+              </div>
+              <div className="mt-4 grid grid-cols-3 gap-2 text-center text-[11px] text-muted-foreground">
+                <div>HIPAA<br /><span className="font-semibold text-foreground">98</span></div>
+                <div>GDPR<br /><span className="font-semibold text-foreground">95</span></div>
+                <div>DPDP<br /><span className="font-semibold text-foreground">97</span></div>
+              </div>
+              <Link to="/admin/compliance" className="mt-4 flex items-center justify-center gap-1 text-xs text-primary hover:underline">
+                View compliance report <ArrowRight className="h-3 w-3" />
+              </Link>
+            </div>
+
+            {/* Fraud + critical alerts */}
+            <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-destructive" />
+                  Active fraud alerts
+                </div>
+                <Link to="/admin/fraud" className="text-xs text-primary hover:underline flex items-center gap-1">
+                  All alerts <ArrowRight className="h-3 w-3" />
+                </Link>
+              </div>
+              <ul className="space-y-3 text-sm">
+                {fraudAlerts.map((a) => (
+                  <li key={a.id} className="rounded-lg border border-border bg-card p-3">
+                    <div className="flex items-center justify-between">
+                      <span className={[
                         "rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider",
                         a.severity === "high" ? "bg-destructive/15 text-destructive"
                         : a.severity === "medium" ? "bg-warning/20 text-warning-foreground"
                         : "bg-muted text-muted-foreground",
-                      ].join(" ")}
-                    >
-                      {a.severity}
-                    </span>
-                    <span className="text-[11px] text-muted-foreground">{a.at}</span>
+                      ].join(" ")}>
+                        {a.severity}
+                      </span>
+                      <span className="text-[11px] text-muted-foreground">{a.at}</span>
+                    </div>
+                    <div className="mt-2 text-xs text-foreground">{a.message}</div>
+                    <div className="mt-1 text-[11px] text-muted-foreground">{a.actor}</div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          {/* Recent critical audit events */}
+          <div className="rounded-xl border border-border bg-card p-5 shadow-clinical">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <Activity className="h-4 w-4 text-primary" />
+                Critical Audit Events
+              </div>
+              <Link to="/audit-timeline" className="text-xs text-primary hover:underline flex items-center gap-1">
+                Full timeline <ArrowRight className="h-3 w-3" />
+              </Link>
+            </div>
+            <div className="space-y-2">
+              {criticalEvents.map(e => (
+                <div key={e.id} className="flex items-center gap-3 rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2.5">
+                  <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-medium text-foreground truncate">{e.action}</div>
+                    <div className="text-[11px] text-muted-foreground">{e.actor} · {e.at}</div>
                   </div>
-                  <div className="mt-2 text-xs text-foreground">{a.message}</div>
-                  <div className="mt-1 text-[11px] text-muted-foreground">{a.actor}</div>
-                </li>
+                  <span className="text-[10px] font-semibold text-destructive bg-destructive/10 rounded-full px-2 py-0.5 shrink-0">critical</span>
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
         </div>
-      </div>
-    </>
+      </>
     </RouteGuard>
   );
 }

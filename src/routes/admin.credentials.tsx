@@ -1,0 +1,168 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { RouteGuard } from "@/components/RouteGuard";
+import { PageHeader, StatCard } from "@/components/PageHeader";
+import { CredentialCard } from "@/components/credentials/CredentialCard";
+import { CredentialIssuerBadge } from "@/components/credentials/CredentialIssuerBadge";
+import { mockCredentials } from "@/lib/mock-credentials";
+import { ShieldCheck, ShieldX, Search, TrendingUp, Eye, Award, AlertTriangle } from "lucide-react";
+import { useState } from "react";
+
+export const Route = createFileRoute("/admin/credentials")({
+  head: () => ({ meta: [{ title: "Credentials — Admin Console" }] }),
+  component: CredentialsPage,
+});
+
+const issuers = [
+  { name: "Apollo Hospitals", did: "did:hosp:issuer:apollo001", issued: 312, active: 298, revoked: 14 },
+  { name: "Govt. of India — NHA", did: "did:hosp:issuer:nha001", issued: 215, active: 209, revoked: 6 },
+  { name: "Star Health Insurance", did: "did:hosp:issuer:starh001", issued: 98, active: 89, revoked: 9 },
+  { name: "Apollo Diagnostics", did: "did:hosp:issuer:apollodx001", issued: 174, active: 154, revoked: 20 },
+];
+
+function CredentialsPage() {
+  const [tab, setTab] = useState<"issuance" | "revocation" | "analytics" | "issuers">("issuance");
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState("all");
+
+  const active = mockCredentials.filter(c => c.status === "active").length;
+  const expired = mockCredentials.filter(c => c.status === "expired").length;
+  const revoked = mockCredentials.filter(c => c.status === "revoked").length;
+  const totalVerifications = mockCredentials.reduce((s, c) => s + c.verificationCount, 0);
+
+  const filtered = mockCredentials.filter(c =>
+    (typeFilter === "all" || c.type === typeFilter) &&
+    (c.typeLabel.toLowerCase().includes(search.toLowerCase()) ||
+     c.holder.toLowerCase().includes(search.toLowerCase()) ||
+     c.issuer.toLowerCase().includes(search.toLowerCase()))
+  );
+
+  const typeOptions = [...new Set(mockCredentials.map(c => c.type))];
+
+  return (
+    <RouteGuard requiredRole="admin">
+      <PageHeader
+        eyebrow="Admin Console"
+        title="Credential Management"
+        description="Issue, revoke, and audit healthcare verifiable credentials"
+      />
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 px-6 pt-6">
+        <StatCard label="Total Credentials" value={mockCredentials.length.toLocaleString()} icon={Award} tone="default" delta="1,000 issued credentials" />
+        <StatCard label="Active" value={active} icon={ShieldCheck} tone="success" delta={`${Math.round(active / mockCredentials.length * 100)}% of total`} />
+        <StatCard label="Revoked" value={revoked} icon={ShieldX} tone="destructive" delta={`${expired} expired`} />
+        <StatCard label="Total Verifications" value={totalVerifications.toLocaleString()} icon={Eye} tone="default" delta="All-time credential checks" />
+      </div>
+
+      <div className="flex gap-1 border-b border-border px-6 mt-6 bg-card">
+        {(["issuance", "revocation", "analytics", "issuers"] as const).map(t => (
+          <button key={t} onClick={() => { setTab(t); setSearch(""); }}
+            className={`px-4 py-3 text-sm font-medium border-b-2 capitalize transition-colors ${tab === t ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+          >
+            {t}
+          </button>
+        ))}
+      </div>
+
+      <div className="p-6 space-y-4">
+        {(tab === "issuance" || tab === "revocation") && (
+          <>
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 flex-1 min-w-48">
+                <Search className="h-4 w-4 text-muted-foreground" />
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search credentials..."
+                  className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                />
+              </div>
+              <select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+                className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground outline-none"
+              >
+                <option value="all">All Types</option>
+                {typeOptions.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {filtered
+                .filter(c => tab === "revocation" ? c.status === "revoked" || c.status === "expired" : true)
+                .slice(0, 30)
+                .map(c => (
+                  <CredentialCard
+                    key={c.id}
+                    id={c.id}
+                    type={c.typeLabel}
+                    issuer={c.issuer}
+                    holder={c.holder}
+                    issuedAt={c.issuedAt}
+                    expiresAt={c.expiresAt}
+                    status={c.status}
+                  />
+                ))}
+            </div>
+          </>
+        )}
+
+        {tab === "analytics" && (
+          <div className="space-y-6">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {typeOptions.slice(0, 6).map(type => {
+                const count = mockCredentials.filter(c => c.type === type).length;
+                const activeCount = mockCredentials.filter(c => c.type === type && c.status === "active").length;
+                const verifications = mockCredentials.filter(c => c.type === type).reduce((s, c) => s + c.verificationCount, 0);
+                return (
+                  <div key={type} className="rounded-xl border border-border bg-card p-4 shadow-clinical">
+                    <div className="text-sm font-semibold text-foreground">{type}</div>
+                    <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                      <div>
+                        <div className="text-lg font-bold text-foreground">{count}</div>
+                        <div className="text-[10px] text-muted-foreground">Issued</div>
+                      </div>
+                      <div>
+                        <div className="text-lg font-bold text-success">{activeCount}</div>
+                        <div className="text-[10px] text-muted-foreground">Active</div>
+                      </div>
+                      <div>
+                        <div className="text-lg font-bold text-primary">{verifications}</div>
+                        <div className="text-[10px] text-muted-foreground">Verified</div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {tab === "issuers" && (
+          <div className="space-y-4">
+            {issuers.map((issuer) => (
+              <div key={issuer.did} className="rounded-xl border border-border bg-card p-5 shadow-clinical">
+                <div className="flex items-start justify-between gap-4 flex-wrap">
+                  <CredentialIssuerBadge issuer={issuer.name} did={issuer.did} />
+                  <div className="flex gap-6 text-center">
+                    <div>
+                      <div className="text-xl font-bold text-foreground">{issuer.issued}</div>
+                      <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Issued</div>
+                    </div>
+                    <div>
+                      <div className="text-xl font-bold text-success">{issuer.active}</div>
+                      <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Active</div>
+                    </div>
+                    <div>
+                      <div className="text-xl font-bold text-destructive">{issuer.revoked}</div>
+                      <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Revoked</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </RouteGuard>
+  );
+}

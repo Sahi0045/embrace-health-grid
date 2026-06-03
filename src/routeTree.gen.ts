@@ -10,38 +10,73 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as DidExplorerRouteImport } from './routes/did-explorer'
+import { Route as CredentialExplorerRouteImport } from './routes/credential-explorer'
+import { Route as AuditTimelineRouteImport } from './routes/audit-timeline'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StaffIndexRouteImport } from './routes/staff.index'
 import { Route as PatientIndexRouteImport } from './routes/patient.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as StaffVerifyRouteImport } from './routes/staff.verify'
+import { Route as StaffTrackerRouteImport } from './routes/staff.tracker'
+import { Route as StaffSurgeriesRouteImport } from './routes/staff.surgeries'
 import { Route as StaffSignRouteImport } from './routes/staff.sign'
 import { Route as StaffScheduleRouteImport } from './routes/staff.schedule'
 import { Route as StaffProfileRouteImport } from './routes/staff.profile'
+import { Route as StaffPrescriptionsRouteImport } from './routes/staff.prescriptions'
 import { Route as StaffPatientsRouteImport } from './routes/staff.patients'
+import { Route as StaffLabsRouteImport } from './routes/staff.labs'
+import { Route as StaffEmergencyRouteImport } from './routes/staff.emergency'
+import { Route as StaffCommandRouteImport } from './routes/staff.command'
 import { Route as StaffAttendanceRouteImport } from './routes/staff.attendance'
 import { Route as PatientWalletRouteImport } from './routes/patient.wallet'
+import { Route as PatientVaccinesRouteImport } from './routes/patient.vaccines'
+import { Route as PatientTelemedicineRouteImport } from './routes/patient.telemedicine'
 import { Route as PatientRecordsRouteImport } from './routes/patient.records'
 import { Route as PatientQrRouteImport } from './routes/patient.qr'
 import { Route as PatientProfileRouteImport } from './routes/patient.profile'
+import { Route as PatientInsuranceRouteImport } from './routes/patient.insurance'
 import { Route as PatientInpatientRouteImport } from './routes/patient.inpatient'
 import { Route as PatientHistoryRouteImport } from './routes/patient.history'
+import { Route as PatientFamilyRouteImport } from './routes/patient.family'
+import { Route as PatientEmergencyRouteImport } from './routes/patient.emergency'
 import { Route as PatientConsentRouteImport } from './routes/patient.consent'
 import { Route as PatientBillingRouteImport } from './routes/patient.billing'
 import { Route as PatientAppointmentsRouteImport } from './routes/patient.appointments'
+import { Route as AdminResourcesRouteImport } from './routes/admin.resources'
 import { Route as AdminProfileRouteImport } from './routes/admin.profile'
 import { Route as AdminPoliciesRouteImport } from './routes/admin.policies'
 import { Route as AdminPeopleRouteImport } from './routes/admin.people'
 import { Route as AdminInfrastructureRouteImport } from './routes/admin.infrastructure'
 import { Route as AdminFraudRouteImport } from './routes/admin.fraud'
+import { Route as AdminFinancialRouteImport } from './routes/admin.financial'
+import { Route as AdminFederationRouteImport } from './routes/admin.federation'
+import { Route as AdminDigitalTwinRouteImport } from './routes/admin.digital-twin'
 import { Route as AdminDidsRouteImport } from './routes/admin.dids'
+import { Route as AdminCredentialsRouteImport } from './routes/admin.credentials'
 import { Route as AdminComplianceRouteImport } from './routes/admin.compliance'
+import { Route as AdminCommandRouteImport } from './routes/admin.command'
 import { Route as AdminAuditRouteImport } from './routes/admin.audit'
 import { Route as AdminAttendanceRouteImport } from './routes/admin.attendance'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DidExplorerRoute = DidExplorerRouteImport.update({
+  id: '/did-explorer',
+  path: '/did-explorer',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CredentialExplorerRoute = CredentialExplorerRouteImport.update({
+  id: '/credential-explorer',
+  path: '/credential-explorer',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuditTimelineRoute = AuditTimelineRouteImport.update({
+  id: '/audit-timeline',
+  path: '/audit-timeline',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -69,6 +104,16 @@ const StaffVerifyRoute = StaffVerifyRouteImport.update({
   path: '/staff/verify',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StaffTrackerRoute = StaffTrackerRouteImport.update({
+  id: '/staff/tracker',
+  path: '/staff/tracker',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StaffSurgeriesRoute = StaffSurgeriesRouteImport.update({
+  id: '/staff/surgeries',
+  path: '/staff/surgeries',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StaffSignRoute = StaffSignRouteImport.update({
   id: '/staff/sign',
   path: '/staff/sign',
@@ -84,9 +129,29 @@ const StaffProfileRoute = StaffProfileRouteImport.update({
   path: '/staff/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StaffPrescriptionsRoute = StaffPrescriptionsRouteImport.update({
+  id: '/staff/prescriptions',
+  path: '/staff/prescriptions',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StaffPatientsRoute = StaffPatientsRouteImport.update({
   id: '/staff/patients',
   path: '/staff/patients',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StaffLabsRoute = StaffLabsRouteImport.update({
+  id: '/staff/labs',
+  path: '/staff/labs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StaffEmergencyRoute = StaffEmergencyRouteImport.update({
+  id: '/staff/emergency',
+  path: '/staff/emergency',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StaffCommandRoute = StaffCommandRouteImport.update({
+  id: '/staff/command',
+  path: '/staff/command',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StaffAttendanceRoute = StaffAttendanceRouteImport.update({
@@ -97,6 +162,16 @@ const StaffAttendanceRoute = StaffAttendanceRouteImport.update({
 const PatientWalletRoute = PatientWalletRouteImport.update({
   id: '/patient/wallet',
   path: '/patient/wallet',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PatientVaccinesRoute = PatientVaccinesRouteImport.update({
+  id: '/patient/vaccines',
+  path: '/patient/vaccines',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PatientTelemedicineRoute = PatientTelemedicineRouteImport.update({
+  id: '/patient/telemedicine',
+  path: '/patient/telemedicine',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PatientRecordsRoute = PatientRecordsRouteImport.update({
@@ -114,6 +189,11 @@ const PatientProfileRoute = PatientProfileRouteImport.update({
   path: '/patient/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PatientInsuranceRoute = PatientInsuranceRouteImport.update({
+  id: '/patient/insurance',
+  path: '/patient/insurance',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PatientInpatientRoute = PatientInpatientRouteImport.update({
   id: '/patient/inpatient',
   path: '/patient/inpatient',
@@ -122,6 +202,16 @@ const PatientInpatientRoute = PatientInpatientRouteImport.update({
 const PatientHistoryRoute = PatientHistoryRouteImport.update({
   id: '/patient/history',
   path: '/patient/history',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PatientFamilyRoute = PatientFamilyRouteImport.update({
+  id: '/patient/family',
+  path: '/patient/family',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PatientEmergencyRoute = PatientEmergencyRouteImport.update({
+  id: '/patient/emergency',
+  path: '/patient/emergency',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PatientConsentRoute = PatientConsentRouteImport.update({
@@ -137,6 +227,11 @@ const PatientBillingRoute = PatientBillingRouteImport.update({
 const PatientAppointmentsRoute = PatientAppointmentsRouteImport.update({
   id: '/patient/appointments',
   path: '/patient/appointments',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminResourcesRoute = AdminResourcesRouteImport.update({
+  id: '/admin/resources',
+  path: '/admin/resources',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminProfileRoute = AdminProfileRouteImport.update({
@@ -164,14 +259,39 @@ const AdminFraudRoute = AdminFraudRouteImport.update({
   path: '/admin/fraud',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminFinancialRoute = AdminFinancialRouteImport.update({
+  id: '/admin/financial',
+  path: '/admin/financial',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminFederationRoute = AdminFederationRouteImport.update({
+  id: '/admin/federation',
+  path: '/admin/federation',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminDigitalTwinRoute = AdminDigitalTwinRouteImport.update({
+  id: '/admin/digital-twin',
+  path: '/admin/digital-twin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminDidsRoute = AdminDidsRouteImport.update({
   id: '/admin/dids',
   path: '/admin/dids',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminCredentialsRoute = AdminCredentialsRouteImport.update({
+  id: '/admin/credentials',
+  path: '/admin/credentials',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminComplianceRoute = AdminComplianceRouteImport.update({
   id: '/admin/compliance',
   path: '/admin/compliance',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminCommandRoute = AdminCommandRouteImport.update({
+  id: '/admin/command',
+  path: '/admin/command',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminAuditRoute = AdminAuditRouteImport.update({
@@ -187,30 +307,50 @@ const AdminAttendanceRoute = AdminAttendanceRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/audit-timeline': typeof AuditTimelineRoute
+  '/credential-explorer': typeof CredentialExplorerRoute
+  '/did-explorer': typeof DidExplorerRoute
   '/login': typeof LoginRoute
   '/admin/attendance': typeof AdminAttendanceRoute
   '/admin/audit': typeof AdminAuditRoute
+  '/admin/command': typeof AdminCommandRoute
   '/admin/compliance': typeof AdminComplianceRoute
+  '/admin/credentials': typeof AdminCredentialsRoute
   '/admin/dids': typeof AdminDidsRoute
+  '/admin/digital-twin': typeof AdminDigitalTwinRoute
+  '/admin/federation': typeof AdminFederationRoute
+  '/admin/financial': typeof AdminFinancialRoute
   '/admin/fraud': typeof AdminFraudRoute
   '/admin/infrastructure': typeof AdminInfrastructureRoute
   '/admin/people': typeof AdminPeopleRoute
   '/admin/policies': typeof AdminPoliciesRoute
   '/admin/profile': typeof AdminProfileRoute
+  '/admin/resources': typeof AdminResourcesRoute
   '/patient/appointments': typeof PatientAppointmentsRoute
   '/patient/billing': typeof PatientBillingRoute
   '/patient/consent': typeof PatientConsentRoute
+  '/patient/emergency': typeof PatientEmergencyRoute
+  '/patient/family': typeof PatientFamilyRoute
   '/patient/history': typeof PatientHistoryRoute
   '/patient/inpatient': typeof PatientInpatientRoute
+  '/patient/insurance': typeof PatientInsuranceRoute
   '/patient/profile': typeof PatientProfileRoute
   '/patient/qr': typeof PatientQrRoute
   '/patient/records': typeof PatientRecordsRoute
+  '/patient/telemedicine': typeof PatientTelemedicineRoute
+  '/patient/vaccines': typeof PatientVaccinesRoute
   '/patient/wallet': typeof PatientWalletRoute
   '/staff/attendance': typeof StaffAttendanceRoute
+  '/staff/command': typeof StaffCommandRoute
+  '/staff/emergency': typeof StaffEmergencyRoute
+  '/staff/labs': typeof StaffLabsRoute
   '/staff/patients': typeof StaffPatientsRoute
+  '/staff/prescriptions': typeof StaffPrescriptionsRoute
   '/staff/profile': typeof StaffProfileRoute
   '/staff/schedule': typeof StaffScheduleRoute
   '/staff/sign': typeof StaffSignRoute
+  '/staff/surgeries': typeof StaffSurgeriesRoute
+  '/staff/tracker': typeof StaffTrackerRoute
   '/staff/verify': typeof StaffVerifyRoute
   '/admin/': typeof AdminIndexRoute
   '/patient/': typeof PatientIndexRoute
@@ -218,30 +358,50 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/audit-timeline': typeof AuditTimelineRoute
+  '/credential-explorer': typeof CredentialExplorerRoute
+  '/did-explorer': typeof DidExplorerRoute
   '/login': typeof LoginRoute
   '/admin/attendance': typeof AdminAttendanceRoute
   '/admin/audit': typeof AdminAuditRoute
+  '/admin/command': typeof AdminCommandRoute
   '/admin/compliance': typeof AdminComplianceRoute
+  '/admin/credentials': typeof AdminCredentialsRoute
   '/admin/dids': typeof AdminDidsRoute
+  '/admin/digital-twin': typeof AdminDigitalTwinRoute
+  '/admin/federation': typeof AdminFederationRoute
+  '/admin/financial': typeof AdminFinancialRoute
   '/admin/fraud': typeof AdminFraudRoute
   '/admin/infrastructure': typeof AdminInfrastructureRoute
   '/admin/people': typeof AdminPeopleRoute
   '/admin/policies': typeof AdminPoliciesRoute
   '/admin/profile': typeof AdminProfileRoute
+  '/admin/resources': typeof AdminResourcesRoute
   '/patient/appointments': typeof PatientAppointmentsRoute
   '/patient/billing': typeof PatientBillingRoute
   '/patient/consent': typeof PatientConsentRoute
+  '/patient/emergency': typeof PatientEmergencyRoute
+  '/patient/family': typeof PatientFamilyRoute
   '/patient/history': typeof PatientHistoryRoute
   '/patient/inpatient': typeof PatientInpatientRoute
+  '/patient/insurance': typeof PatientInsuranceRoute
   '/patient/profile': typeof PatientProfileRoute
   '/patient/qr': typeof PatientQrRoute
   '/patient/records': typeof PatientRecordsRoute
+  '/patient/telemedicine': typeof PatientTelemedicineRoute
+  '/patient/vaccines': typeof PatientVaccinesRoute
   '/patient/wallet': typeof PatientWalletRoute
   '/staff/attendance': typeof StaffAttendanceRoute
+  '/staff/command': typeof StaffCommandRoute
+  '/staff/emergency': typeof StaffEmergencyRoute
+  '/staff/labs': typeof StaffLabsRoute
   '/staff/patients': typeof StaffPatientsRoute
+  '/staff/prescriptions': typeof StaffPrescriptionsRoute
   '/staff/profile': typeof StaffProfileRoute
   '/staff/schedule': typeof StaffScheduleRoute
   '/staff/sign': typeof StaffSignRoute
+  '/staff/surgeries': typeof StaffSurgeriesRoute
+  '/staff/tracker': typeof StaffTrackerRoute
   '/staff/verify': typeof StaffVerifyRoute
   '/admin': typeof AdminIndexRoute
   '/patient': typeof PatientIndexRoute
@@ -250,30 +410,50 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/audit-timeline': typeof AuditTimelineRoute
+  '/credential-explorer': typeof CredentialExplorerRoute
+  '/did-explorer': typeof DidExplorerRoute
   '/login': typeof LoginRoute
   '/admin/attendance': typeof AdminAttendanceRoute
   '/admin/audit': typeof AdminAuditRoute
+  '/admin/command': typeof AdminCommandRoute
   '/admin/compliance': typeof AdminComplianceRoute
+  '/admin/credentials': typeof AdminCredentialsRoute
   '/admin/dids': typeof AdminDidsRoute
+  '/admin/digital-twin': typeof AdminDigitalTwinRoute
+  '/admin/federation': typeof AdminFederationRoute
+  '/admin/financial': typeof AdminFinancialRoute
   '/admin/fraud': typeof AdminFraudRoute
   '/admin/infrastructure': typeof AdminInfrastructureRoute
   '/admin/people': typeof AdminPeopleRoute
   '/admin/policies': typeof AdminPoliciesRoute
   '/admin/profile': typeof AdminProfileRoute
+  '/admin/resources': typeof AdminResourcesRoute
   '/patient/appointments': typeof PatientAppointmentsRoute
   '/patient/billing': typeof PatientBillingRoute
   '/patient/consent': typeof PatientConsentRoute
+  '/patient/emergency': typeof PatientEmergencyRoute
+  '/patient/family': typeof PatientFamilyRoute
   '/patient/history': typeof PatientHistoryRoute
   '/patient/inpatient': typeof PatientInpatientRoute
+  '/patient/insurance': typeof PatientInsuranceRoute
   '/patient/profile': typeof PatientProfileRoute
   '/patient/qr': typeof PatientQrRoute
   '/patient/records': typeof PatientRecordsRoute
+  '/patient/telemedicine': typeof PatientTelemedicineRoute
+  '/patient/vaccines': typeof PatientVaccinesRoute
   '/patient/wallet': typeof PatientWalletRoute
   '/staff/attendance': typeof StaffAttendanceRoute
+  '/staff/command': typeof StaffCommandRoute
+  '/staff/emergency': typeof StaffEmergencyRoute
+  '/staff/labs': typeof StaffLabsRoute
   '/staff/patients': typeof StaffPatientsRoute
+  '/staff/prescriptions': typeof StaffPrescriptionsRoute
   '/staff/profile': typeof StaffProfileRoute
   '/staff/schedule': typeof StaffScheduleRoute
   '/staff/sign': typeof StaffSignRoute
+  '/staff/surgeries': typeof StaffSurgeriesRoute
+  '/staff/tracker': typeof StaffTrackerRoute
   '/staff/verify': typeof StaffVerifyRoute
   '/admin/': typeof AdminIndexRoute
   '/patient/': typeof PatientIndexRoute
@@ -283,30 +463,50 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/audit-timeline'
+    | '/credential-explorer'
+    | '/did-explorer'
     | '/login'
     | '/admin/attendance'
     | '/admin/audit'
+    | '/admin/command'
     | '/admin/compliance'
+    | '/admin/credentials'
     | '/admin/dids'
+    | '/admin/digital-twin'
+    | '/admin/federation'
+    | '/admin/financial'
     | '/admin/fraud'
     | '/admin/infrastructure'
     | '/admin/people'
     | '/admin/policies'
     | '/admin/profile'
+    | '/admin/resources'
     | '/patient/appointments'
     | '/patient/billing'
     | '/patient/consent'
+    | '/patient/emergency'
+    | '/patient/family'
     | '/patient/history'
     | '/patient/inpatient'
+    | '/patient/insurance'
     | '/patient/profile'
     | '/patient/qr'
     | '/patient/records'
+    | '/patient/telemedicine'
+    | '/patient/vaccines'
     | '/patient/wallet'
     | '/staff/attendance'
+    | '/staff/command'
+    | '/staff/emergency'
+    | '/staff/labs'
     | '/staff/patients'
+    | '/staff/prescriptions'
     | '/staff/profile'
     | '/staff/schedule'
     | '/staff/sign'
+    | '/staff/surgeries'
+    | '/staff/tracker'
     | '/staff/verify'
     | '/admin/'
     | '/patient/'
@@ -314,30 +514,50 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/audit-timeline'
+    | '/credential-explorer'
+    | '/did-explorer'
     | '/login'
     | '/admin/attendance'
     | '/admin/audit'
+    | '/admin/command'
     | '/admin/compliance'
+    | '/admin/credentials'
     | '/admin/dids'
+    | '/admin/digital-twin'
+    | '/admin/federation'
+    | '/admin/financial'
     | '/admin/fraud'
     | '/admin/infrastructure'
     | '/admin/people'
     | '/admin/policies'
     | '/admin/profile'
+    | '/admin/resources'
     | '/patient/appointments'
     | '/patient/billing'
     | '/patient/consent'
+    | '/patient/emergency'
+    | '/patient/family'
     | '/patient/history'
     | '/patient/inpatient'
+    | '/patient/insurance'
     | '/patient/profile'
     | '/patient/qr'
     | '/patient/records'
+    | '/patient/telemedicine'
+    | '/patient/vaccines'
     | '/patient/wallet'
     | '/staff/attendance'
+    | '/staff/command'
+    | '/staff/emergency'
+    | '/staff/labs'
     | '/staff/patients'
+    | '/staff/prescriptions'
     | '/staff/profile'
     | '/staff/schedule'
     | '/staff/sign'
+    | '/staff/surgeries'
+    | '/staff/tracker'
     | '/staff/verify'
     | '/admin'
     | '/patient'
@@ -345,30 +565,50 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/audit-timeline'
+    | '/credential-explorer'
+    | '/did-explorer'
     | '/login'
     | '/admin/attendance'
     | '/admin/audit'
+    | '/admin/command'
     | '/admin/compliance'
+    | '/admin/credentials'
     | '/admin/dids'
+    | '/admin/digital-twin'
+    | '/admin/federation'
+    | '/admin/financial'
     | '/admin/fraud'
     | '/admin/infrastructure'
     | '/admin/people'
     | '/admin/policies'
     | '/admin/profile'
+    | '/admin/resources'
     | '/patient/appointments'
     | '/patient/billing'
     | '/patient/consent'
+    | '/patient/emergency'
+    | '/patient/family'
     | '/patient/history'
     | '/patient/inpatient'
+    | '/patient/insurance'
     | '/patient/profile'
     | '/patient/qr'
     | '/patient/records'
+    | '/patient/telemedicine'
+    | '/patient/vaccines'
     | '/patient/wallet'
     | '/staff/attendance'
+    | '/staff/command'
+    | '/staff/emergency'
+    | '/staff/labs'
     | '/staff/patients'
+    | '/staff/prescriptions'
     | '/staff/profile'
     | '/staff/schedule'
     | '/staff/sign'
+    | '/staff/surgeries'
+    | '/staff/tracker'
     | '/staff/verify'
     | '/admin/'
     | '/patient/'
@@ -377,30 +617,50 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuditTimelineRoute: typeof AuditTimelineRoute
+  CredentialExplorerRoute: typeof CredentialExplorerRoute
+  DidExplorerRoute: typeof DidExplorerRoute
   LoginRoute: typeof LoginRoute
   AdminAttendanceRoute: typeof AdminAttendanceRoute
   AdminAuditRoute: typeof AdminAuditRoute
+  AdminCommandRoute: typeof AdminCommandRoute
   AdminComplianceRoute: typeof AdminComplianceRoute
+  AdminCredentialsRoute: typeof AdminCredentialsRoute
   AdminDidsRoute: typeof AdminDidsRoute
+  AdminDigitalTwinRoute: typeof AdminDigitalTwinRoute
+  AdminFederationRoute: typeof AdminFederationRoute
+  AdminFinancialRoute: typeof AdminFinancialRoute
   AdminFraudRoute: typeof AdminFraudRoute
   AdminInfrastructureRoute: typeof AdminInfrastructureRoute
   AdminPeopleRoute: typeof AdminPeopleRoute
   AdminPoliciesRoute: typeof AdminPoliciesRoute
   AdminProfileRoute: typeof AdminProfileRoute
+  AdminResourcesRoute: typeof AdminResourcesRoute
   PatientAppointmentsRoute: typeof PatientAppointmentsRoute
   PatientBillingRoute: typeof PatientBillingRoute
   PatientConsentRoute: typeof PatientConsentRoute
+  PatientEmergencyRoute: typeof PatientEmergencyRoute
+  PatientFamilyRoute: typeof PatientFamilyRoute
   PatientHistoryRoute: typeof PatientHistoryRoute
   PatientInpatientRoute: typeof PatientInpatientRoute
+  PatientInsuranceRoute: typeof PatientInsuranceRoute
   PatientProfileRoute: typeof PatientProfileRoute
   PatientQrRoute: typeof PatientQrRoute
   PatientRecordsRoute: typeof PatientRecordsRoute
+  PatientTelemedicineRoute: typeof PatientTelemedicineRoute
+  PatientVaccinesRoute: typeof PatientVaccinesRoute
   PatientWalletRoute: typeof PatientWalletRoute
   StaffAttendanceRoute: typeof StaffAttendanceRoute
+  StaffCommandRoute: typeof StaffCommandRoute
+  StaffEmergencyRoute: typeof StaffEmergencyRoute
+  StaffLabsRoute: typeof StaffLabsRoute
   StaffPatientsRoute: typeof StaffPatientsRoute
+  StaffPrescriptionsRoute: typeof StaffPrescriptionsRoute
   StaffProfileRoute: typeof StaffProfileRoute
   StaffScheduleRoute: typeof StaffScheduleRoute
   StaffSignRoute: typeof StaffSignRoute
+  StaffSurgeriesRoute: typeof StaffSurgeriesRoute
+  StaffTrackerRoute: typeof StaffTrackerRoute
   StaffVerifyRoute: typeof StaffVerifyRoute
   AdminIndexRoute: typeof AdminIndexRoute
   PatientIndexRoute: typeof PatientIndexRoute
@@ -414,6 +674,27 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/did-explorer': {
+      id: '/did-explorer'
+      path: '/did-explorer'
+      fullPath: '/did-explorer'
+      preLoaderRoute: typeof DidExplorerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/credential-explorer': {
+      id: '/credential-explorer'
+      path: '/credential-explorer'
+      fullPath: '/credential-explorer'
+      preLoaderRoute: typeof CredentialExplorerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/audit-timeline': {
+      id: '/audit-timeline'
+      path: '/audit-timeline'
+      fullPath: '/audit-timeline'
+      preLoaderRoute: typeof AuditTimelineRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -451,6 +732,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StaffVerifyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/staff/tracker': {
+      id: '/staff/tracker'
+      path: '/staff/tracker'
+      fullPath: '/staff/tracker'
+      preLoaderRoute: typeof StaffTrackerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/staff/surgeries': {
+      id: '/staff/surgeries'
+      path: '/staff/surgeries'
+      fullPath: '/staff/surgeries'
+      preLoaderRoute: typeof StaffSurgeriesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/staff/sign': {
       id: '/staff/sign'
       path: '/staff/sign'
@@ -472,11 +767,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StaffProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/staff/prescriptions': {
+      id: '/staff/prescriptions'
+      path: '/staff/prescriptions'
+      fullPath: '/staff/prescriptions'
+      preLoaderRoute: typeof StaffPrescriptionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/staff/patients': {
       id: '/staff/patients'
       path: '/staff/patients'
       fullPath: '/staff/patients'
       preLoaderRoute: typeof StaffPatientsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/staff/labs': {
+      id: '/staff/labs'
+      path: '/staff/labs'
+      fullPath: '/staff/labs'
+      preLoaderRoute: typeof StaffLabsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/staff/emergency': {
+      id: '/staff/emergency'
+      path: '/staff/emergency'
+      fullPath: '/staff/emergency'
+      preLoaderRoute: typeof StaffEmergencyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/staff/command': {
+      id: '/staff/command'
+      path: '/staff/command'
+      fullPath: '/staff/command'
+      preLoaderRoute: typeof StaffCommandRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/staff/attendance': {
@@ -491,6 +814,20 @@ declare module '@tanstack/react-router' {
       path: '/patient/wallet'
       fullPath: '/patient/wallet'
       preLoaderRoute: typeof PatientWalletRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/patient/vaccines': {
+      id: '/patient/vaccines'
+      path: '/patient/vaccines'
+      fullPath: '/patient/vaccines'
+      preLoaderRoute: typeof PatientVaccinesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/patient/telemedicine': {
+      id: '/patient/telemedicine'
+      path: '/patient/telemedicine'
+      fullPath: '/patient/telemedicine'
+      preLoaderRoute: typeof PatientTelemedicineRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/patient/records': {
@@ -514,6 +851,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PatientProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/patient/insurance': {
+      id: '/patient/insurance'
+      path: '/patient/insurance'
+      fullPath: '/patient/insurance'
+      preLoaderRoute: typeof PatientInsuranceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/patient/inpatient': {
       id: '/patient/inpatient'
       path: '/patient/inpatient'
@@ -526,6 +870,20 @@ declare module '@tanstack/react-router' {
       path: '/patient/history'
       fullPath: '/patient/history'
       preLoaderRoute: typeof PatientHistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/patient/family': {
+      id: '/patient/family'
+      path: '/patient/family'
+      fullPath: '/patient/family'
+      preLoaderRoute: typeof PatientFamilyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/patient/emergency': {
+      id: '/patient/emergency'
+      path: '/patient/emergency'
+      fullPath: '/patient/emergency'
+      preLoaderRoute: typeof PatientEmergencyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/patient/consent': {
@@ -547,6 +905,13 @@ declare module '@tanstack/react-router' {
       path: '/patient/appointments'
       fullPath: '/patient/appointments'
       preLoaderRoute: typeof PatientAppointmentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/resources': {
+      id: '/admin/resources'
+      path: '/admin/resources'
+      fullPath: '/admin/resources'
+      preLoaderRoute: typeof AdminResourcesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/profile': {
@@ -584,6 +949,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminFraudRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/financial': {
+      id: '/admin/financial'
+      path: '/admin/financial'
+      fullPath: '/admin/financial'
+      preLoaderRoute: typeof AdminFinancialRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/federation': {
+      id: '/admin/federation'
+      path: '/admin/federation'
+      fullPath: '/admin/federation'
+      preLoaderRoute: typeof AdminFederationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/digital-twin': {
+      id: '/admin/digital-twin'
+      path: '/admin/digital-twin'
+      fullPath: '/admin/digital-twin'
+      preLoaderRoute: typeof AdminDigitalTwinRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/dids': {
       id: '/admin/dids'
       path: '/admin/dids'
@@ -591,11 +977,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminDidsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/credentials': {
+      id: '/admin/credentials'
+      path: '/admin/credentials'
+      fullPath: '/admin/credentials'
+      preLoaderRoute: typeof AdminCredentialsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/compliance': {
       id: '/admin/compliance'
       path: '/admin/compliance'
       fullPath: '/admin/compliance'
       preLoaderRoute: typeof AdminComplianceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/command': {
+      id: '/admin/command'
+      path: '/admin/command'
+      fullPath: '/admin/command'
+      preLoaderRoute: typeof AdminCommandRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/audit': {
@@ -617,30 +1017,50 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuditTimelineRoute: AuditTimelineRoute,
+  CredentialExplorerRoute: CredentialExplorerRoute,
+  DidExplorerRoute: DidExplorerRoute,
   LoginRoute: LoginRoute,
   AdminAttendanceRoute: AdminAttendanceRoute,
   AdminAuditRoute: AdminAuditRoute,
+  AdminCommandRoute: AdminCommandRoute,
   AdminComplianceRoute: AdminComplianceRoute,
+  AdminCredentialsRoute: AdminCredentialsRoute,
   AdminDidsRoute: AdminDidsRoute,
+  AdminDigitalTwinRoute: AdminDigitalTwinRoute,
+  AdminFederationRoute: AdminFederationRoute,
+  AdminFinancialRoute: AdminFinancialRoute,
   AdminFraudRoute: AdminFraudRoute,
   AdminInfrastructureRoute: AdminInfrastructureRoute,
   AdminPeopleRoute: AdminPeopleRoute,
   AdminPoliciesRoute: AdminPoliciesRoute,
   AdminProfileRoute: AdminProfileRoute,
+  AdminResourcesRoute: AdminResourcesRoute,
   PatientAppointmentsRoute: PatientAppointmentsRoute,
   PatientBillingRoute: PatientBillingRoute,
   PatientConsentRoute: PatientConsentRoute,
+  PatientEmergencyRoute: PatientEmergencyRoute,
+  PatientFamilyRoute: PatientFamilyRoute,
   PatientHistoryRoute: PatientHistoryRoute,
   PatientInpatientRoute: PatientInpatientRoute,
+  PatientInsuranceRoute: PatientInsuranceRoute,
   PatientProfileRoute: PatientProfileRoute,
   PatientQrRoute: PatientQrRoute,
   PatientRecordsRoute: PatientRecordsRoute,
+  PatientTelemedicineRoute: PatientTelemedicineRoute,
+  PatientVaccinesRoute: PatientVaccinesRoute,
   PatientWalletRoute: PatientWalletRoute,
   StaffAttendanceRoute: StaffAttendanceRoute,
+  StaffCommandRoute: StaffCommandRoute,
+  StaffEmergencyRoute: StaffEmergencyRoute,
+  StaffLabsRoute: StaffLabsRoute,
   StaffPatientsRoute: StaffPatientsRoute,
+  StaffPrescriptionsRoute: StaffPrescriptionsRoute,
   StaffProfileRoute: StaffProfileRoute,
   StaffScheduleRoute: StaffScheduleRoute,
   StaffSignRoute: StaffSignRoute,
+  StaffSurgeriesRoute: StaffSurgeriesRoute,
+  StaffTrackerRoute: StaffTrackerRoute,
   StaffVerifyRoute: StaffVerifyRoute,
   AdminIndexRoute: AdminIndexRoute,
   PatientIndexRoute: PatientIndexRoute,
