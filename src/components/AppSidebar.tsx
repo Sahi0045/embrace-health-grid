@@ -7,7 +7,7 @@ import {
   BookLock, User, Receipt, Building2, ClipboardList, Clock, UserCheck,
   Heart, Syringe, CreditCard, Users2, Video, Command, Pill, FlaskConical,
   Scissors, ShieldAlert, Bed, Wrench, Award, Globe, Network, Search,
-  FileText, GitBranch, MapPin,
+  FileText, GitBranch, MapPin, Layers
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -57,6 +57,7 @@ const adminNav: Item[] = [
   { title: "Command Center",     url: "/admin/command",          icon: Command },
   { title: "Digital Twin",       url: "/admin/digital-twin",     icon: Network },
   { title: "Financials",         url: "/admin/financial",        icon: Receipt },
+  { title: "Hyperledger Console",url: "/admin/hyperledger",      icon: Layers },
   { title: "My Profile",         url: "/admin/profile",          icon: User },
   { title: "Infrastructure",     url: "/admin/infrastructure",   icon: Building2 },
   { title: "Resources",          url: "/admin/resources",        icon: Bed },

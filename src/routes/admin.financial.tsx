@@ -7,6 +7,7 @@ import { mockPatients, type PatientFull } from "@/lib/mock-patients";
 import { Search, Receipt, CreditCard, User, History, Shield, Download, FileText, CheckCircle, AlertTriangle, Printer, HelpCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { submitHyperledgerTransaction } from "@/lib/hyperledger";
 
 export const Route = createFileRoute("/admin/financial")({
   head: () => ({ meta: [{ title: "Financials — Admin Console" }] }),
@@ -62,6 +63,12 @@ function AdminFinancialPage() {
     if (found) {
       setSelectedPatient(found);
       toast.success("Patient profile retrieved via DID authentication");
+      // Invoke simulated Hyperledger transaction
+      submitHyperledgerTransaction("financial-ledger-chaincode", "resolvePatientDID", [
+        found.did,
+        found.name,
+        "Admin Console Resolution"
+      ]);
     } else {
       toast.error("DID not found", { description: "Please enter a valid patient DID or name" });
     }
@@ -70,6 +77,11 @@ function AdminFinancialPage() {
   const downloadStatement = () => {
     if (!selectedPatient) return;
     toast.success("Financial statement generated", { description: `Statement PDF for ${selectedPatient.name} downloaded successfully.` });
+    // Invoke simulated Hyperledger transaction
+    submitHyperledgerTransaction("financial-ledger-chaincode", "generateFinancialStatement", [
+      selectedPatient.did,
+      selectedPatient.name
+    ]);
   };
 
   const generateMockInvoice = (tx: Transaction) => {

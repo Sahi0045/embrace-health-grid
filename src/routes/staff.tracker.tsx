@@ -6,6 +6,7 @@ import { StaggerList, StaggerItem } from "@/components/Motion";
 import { MapPin, ShieldAlert, Phone, Clock, MessageSquare, AlertTriangle, Users, Award, Radio, Search, Filter, RefreshCw, Send } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { submitHyperledgerTransaction } from "@/lib/hyperledger";
 
 export const Route = createFileRoute("/staff/tracker")({
   head: () => ({ meta: [{ title: "Doctor Locator — Staff Portal" }] }),
@@ -79,6 +80,14 @@ function DoctorLocatorPage() {
           description: `Location changed to ${newRoom}`,
         });
 
+        // Submit to Hyperledger Fabric Peer ledger
+        submitHyperledgerTransaction("tracker-chaincode", "reportTelemetry", [
+          doc.didCard,
+          doc.name,
+          newRoom,
+          newStatus
+        ]);
+
         return prevDocs.map((d, idx) => {
           if (idx === movingDocIdx) {
             return {
@@ -100,6 +109,13 @@ function DoctorLocatorPage() {
     toast.success(`Pager notification dispatched`, {
       description: `Locate request forwarded to ${doc.name}'s Smart ID Card at ${doc.location}.`,
     });
+    
+    // Submit dispatch log to Hyperledger Fabric Peer ledger
+    submitHyperledgerTransaction("tracker-chaincode", "dispatchPagerNotify", [
+      doc.didCard,
+      doc.name,
+      doc.location
+    ]);
   };
 
   const getStatusColor = (status: DoctorLocation["status"]) => {

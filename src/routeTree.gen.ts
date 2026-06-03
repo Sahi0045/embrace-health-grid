@@ -48,6 +48,7 @@ import { Route as AdminProfileRouteImport } from './routes/admin.profile'
 import { Route as AdminPoliciesRouteImport } from './routes/admin.policies'
 import { Route as AdminPeopleRouteImport } from './routes/admin.people'
 import { Route as AdminInfrastructureRouteImport } from './routes/admin.infrastructure'
+import { Route as AdminHyperledgerRouteImport } from './routes/admin.hyperledger'
 import { Route as AdminFraudRouteImport } from './routes/admin.fraud'
 import { Route as AdminFinancialRouteImport } from './routes/admin.financial'
 import { Route as AdminFederationRouteImport } from './routes/admin.federation'
@@ -254,6 +255,11 @@ const AdminInfrastructureRoute = AdminInfrastructureRouteImport.update({
   path: '/admin/infrastructure',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminHyperledgerRoute = AdminHyperledgerRouteImport.update({
+  id: '/admin/hyperledger',
+  path: '/admin/hyperledger',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminFraudRoute = AdminFraudRouteImport.update({
   id: '/admin/fraud',
   path: '/admin/fraud',
@@ -321,6 +327,7 @@ export interface FileRoutesByFullPath {
   '/admin/federation': typeof AdminFederationRoute
   '/admin/financial': typeof AdminFinancialRoute
   '/admin/fraud': typeof AdminFraudRoute
+  '/admin/hyperledger': typeof AdminHyperledgerRoute
   '/admin/infrastructure': typeof AdminInfrastructureRoute
   '/admin/people': typeof AdminPeopleRoute
   '/admin/policies': typeof AdminPoliciesRoute
@@ -372,6 +379,7 @@ export interface FileRoutesByTo {
   '/admin/federation': typeof AdminFederationRoute
   '/admin/financial': typeof AdminFinancialRoute
   '/admin/fraud': typeof AdminFraudRoute
+  '/admin/hyperledger': typeof AdminHyperledgerRoute
   '/admin/infrastructure': typeof AdminInfrastructureRoute
   '/admin/people': typeof AdminPeopleRoute
   '/admin/policies': typeof AdminPoliciesRoute
@@ -424,6 +432,7 @@ export interface FileRoutesById {
   '/admin/federation': typeof AdminFederationRoute
   '/admin/financial': typeof AdminFinancialRoute
   '/admin/fraud': typeof AdminFraudRoute
+  '/admin/hyperledger': typeof AdminHyperledgerRoute
   '/admin/infrastructure': typeof AdminInfrastructureRoute
   '/admin/people': typeof AdminPeopleRoute
   '/admin/policies': typeof AdminPoliciesRoute
@@ -477,6 +486,7 @@ export interface FileRouteTypes {
     | '/admin/federation'
     | '/admin/financial'
     | '/admin/fraud'
+    | '/admin/hyperledger'
     | '/admin/infrastructure'
     | '/admin/people'
     | '/admin/policies'
@@ -528,6 +538,7 @@ export interface FileRouteTypes {
     | '/admin/federation'
     | '/admin/financial'
     | '/admin/fraud'
+    | '/admin/hyperledger'
     | '/admin/infrastructure'
     | '/admin/people'
     | '/admin/policies'
@@ -579,6 +590,7 @@ export interface FileRouteTypes {
     | '/admin/federation'
     | '/admin/financial'
     | '/admin/fraud'
+    | '/admin/hyperledger'
     | '/admin/infrastructure'
     | '/admin/people'
     | '/admin/policies'
@@ -631,6 +643,7 @@ export interface RootRouteChildren {
   AdminFederationRoute: typeof AdminFederationRoute
   AdminFinancialRoute: typeof AdminFinancialRoute
   AdminFraudRoute: typeof AdminFraudRoute
+  AdminHyperledgerRoute: typeof AdminHyperledgerRoute
   AdminInfrastructureRoute: typeof AdminInfrastructureRoute
   AdminPeopleRoute: typeof AdminPeopleRoute
   AdminPoliciesRoute: typeof AdminPoliciesRoute
@@ -942,6 +955,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminInfrastructureRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/hyperledger': {
+      id: '/admin/hyperledger'
+      path: '/admin/hyperledger'
+      fullPath: '/admin/hyperledger'
+      preLoaderRoute: typeof AdminHyperledgerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/fraud': {
       id: '/admin/fraud'
       path: '/admin/fraud'
@@ -1031,6 +1051,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminFederationRoute: AdminFederationRoute,
   AdminFinancialRoute: AdminFinancialRoute,
   AdminFraudRoute: AdminFraudRoute,
+  AdminHyperledgerRoute: AdminHyperledgerRoute,
   AdminInfrastructureRoute: AdminInfrastructureRoute,
   AdminPeopleRoute: AdminPeopleRoute,
   AdminPoliciesRoute: AdminPoliciesRoute,
