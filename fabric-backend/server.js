@@ -614,28 +614,140 @@ function applyChaincode(chaincode, fcn, args, txId, timestamp) {
       putState("did-registry", did, doc, txId);
       break;
     }
+    case "did-registry::revokeDID": {
+      const [did] = args;
+      const entry = getState("did-registry", did);
+      if (entry) {
+        entry.value.status = "revoked";
+        entry.value.updatedAt = timestamp;
+        putState("did-registry", did, entry.value, txId);
+      }
+      break;
+    }
+    case "credential-issuer::issueCredential": {
+      const [did, credType, issuer, claims] = args;
+      const entry = getState("did-registry", did);
+      if (entry) {
+        const vc = {
+          id: `vc_${txId}`,
+          type: credType || "IdentityVC",
+          issuer: issuer || "Apollo Hospital Authority",
+          subject: did,
+          issuedAt: timestamp,
+          expiresAt: new Date(Date.now() + 365 * 86400000).toISOString(),
+          claims: claims ? JSON.parse(claims) : {},
+          signature: `MEQCIBas${simHash(did + credType + txId).slice(0, 20)}==`,
+          status: "active",
+        };
+        if (!entry.value.credentials) entry.value.credentials = [];
+        entry.value.credentials.push(vc);
+        entry.value.updatedAt = timestamp;
+        putState("did-registry", did, entry.value, txId);
+        putState("credentials", vc.id, vc, txId);
+      }
+      break;
+    }
     case "consent-manager::grantConsent": {
       const [grantId, patient, doctor, resource, expiry] = args;
-      putState("consent-manager", grantId, { grantId, patient, doctor, resource, status: "active", expiry: expiry || new Date(Date.now() + 7 * 86400000).toISOString(), grantedAt: timestamp }, txId);
+      putState("consent-manager", grantId, {
+        grantId, patientDid: patient, doctorDid: doctor, resource,
+        status: "active",
+        expiry: expiry || new Date(Date.now() + 7 * 86400000).toISOString(),
+        grantedAt: timestamp,
+      }, txId);
+      break;
+    }
+    case "consent-manager::revokeConsent": {
+      const [grantId] = args;
+      const entry = getState("consent-manager", grantId);
+      if (entry) {
+        entry.value.status = "revoked";
+        entry.value.revokedAt = timestamp;
+        putState("consent-manager", grantId, entry.value, txId);
+      }
       break;
     }
     case "billing-chaincode::recordPayment": {
-      const [patientDid, amount, category, ref] = args;
-      putState("billing", ref || `bill_${txId}`, { patientDid, amount: Number(amount), category, status: "settled", ref, settledAt: timestamp }, txId);
+      const [patientDid, patientName, amount, category, ref] = args;
+      putState("billing", ref || `bill_${txId}`, {
+        patientDid, patientName, amount: Number(amount),
+        category, status: "settled", ref, settledAt: timestamp,
+      }, txId);
       break;
     }
-    case "audit-chaincode::logEvent": {
-      const [actor, resource, action, outcome] = args;
-      putState("audit", `audit_${txId}`, { actor, resource, action, outcome, loggedAt: timestamp }, txId);
+    case "billing-chaincode::raiseInvoice": {
+      const [patientDid, invoiceId, amount, items] = args;
+      putState("billing", `invoice:${invoiceId}`, {
+        patientDid, invoiceId, amount: Number(amount),
+        items, status: "outstanding", raisedAt: timestamp,
+      }, txId);
       break;
     }
     case "tracker-chaincode::reportTelemetry": {
       const [staffDid, name, location, status] = args;
-      putState("tracker", staffDid, { staffDid, name, location, status, lastPing: timestamp }, txId);
+      putState("tracker", staffDid, {
+        staffDid, name, location, status, lastPing: timestamp,
+        beaconStrength: (70 + Math.floor(Math.random() * 30)) + "%",
+      }, txId);
+      break;
+    }
+    case "tracker-chaincode::dispatchPagerNotify": {
+      const [staffDid, name, location] = args;
+      putState("tracker", `pager:${txId}`, {
+        staffDid, name, location, type: "PAGER_NOTIFY", dispatchedAt: timestamp, status: "delivered",
+      }, txId);
+      break;
+    }
+    case "appointments-chaincode::createAppointment": {
+      const [apptId, patientDid, doctorDid, slot, mode] = args;
+      let patientName = "Unknown Patient";
+      let doctorName = "Unknown Doctor";
+      const pEntry = getState("did-registry", patientDid);
+      if (pEntry) patientName = pEntry.value.owner;
+      const dEntry = getState("did-registry", doctorDid);
+      if (dEntry) doctorName = dEntry.value.owner;
+
+      putState("appointments", apptId || `appt_${txId}`, {
+        apptId: apptId || `appt_${txId}`, patientDid, patientName, doctorDid, doctorName, slot, mode,
+        status: "confirmed", bookedAt: timestamp,
+      }, txId);
+      break;
+    }
+    case "appointments-chaincode::cancelAppointment": {
+      const [apptId] = args;
+      const entry = getState("appointments", apptId);
+      if (entry) {
+        entry.value.status = "cancelled";
+        entry.value.cancelledAt = timestamp;
+        putState("appointments", apptId, entry.value, txId);
+      }
+      break;
+    }
+    case "audit-chaincode::logEvent": {
+      const [actor, resource, action, outcome] = args;
+      putState("audit", `audit_${txId}`, {
+        txId: `audit_${txId}`, actor, resource, action, outcome,
+        loggedAt: timestamp, severity: "info",
+      }, txId);
+      break;
+    }
+    case "financial-ledger-chaincode::resolvePatientDID": {
+      const [did, name] = args;
+      putState("financial", `resolve:${did}`, {
+        did, name, resolvedAt: timestamp, by: "admin-console",
+      }, txId);
+      break;
+    }
+    case "financial-ledger-chaincode::generateFinancialStatement": {
+      const [did, name] = args;
+      putState("financial", `statement:${did}:${txId}`, {
+        did, name, generatedAt: timestamp, format: "PDF",
+      }, txId);
       break;
     }
     default:
       putState(chaincode, `generic_${txId}`, { fcn, args, executedAt: timestamp }, txId);
+      break;
   }
 }
 
@@ -643,182 +755,7 @@ function applyChaincode(chaincode, fcn, args, txId, timestamp) {
 app.use((_, res) => res.status(404).json({ error: "Not found" }));
 
 async function seedWorldStateIfEmpty() {
-  const existingDIDs = getAllState("did-registry");
-  if (existingDIDs.length > 0) {
-    console.log(`ℹ️ World State already seeded with ${existingDIDs.length} DIDs.`);
-    return;
-  }
-
-  console.log("🌱 Seeding World State with initial patients, staff, beds, and audits...");
-
-  const txId = "genesis_seed_" + Date.now().toString(16);
-  const now = new Date().toISOString();
-
-  // Patients
-  const seedPatients = [
-    { id: "pat_001", did: "did:hosp:0x4a91b7d2", name: "Anika Sharma", mrn: "MRN-204871", age: 34, gender: "F", bloodGroup: "O+", allergies: ["Penicillin", "Sulfa drugs"], phone: "+91 98989 89432", status: "outpatient" },
-    { id: "pat_002", did: "did:hosp:0x91c2ee04", name: "Rohan Iyer", mrn: "MRN-204902", age: 58, gender: "M", bloodGroup: "B+", allergies: ["Aspirin"], phone: "+91 90909 09118", status: "inpatient" },
-    { id: "pat_003", did: "did:hosp:0x77a312fa", name: "Meera Pillai", mrn: "MRN-205110", age: 27, gender: "F", bloodGroup: "A-", allergies: [], phone: "+91 70707 09907", status: "inpatient" },
-    { id: "pat_004", did: "did:hosp:0xbe493c20", name: "Karthik Rao", mrn: "MRN-205288", age: 41, gender: "M", bloodGroup: "AB+", allergies: ["Latex"], phone: "+91 88888 88504", status: "outpatient" }
-  ];
-
-  // Staff
-  const seedStaff = [
-    { id: "doc_001", did: "did:hosp:0xd10399aa", name: "Dr. Ravi Menon", role: "Doctor", specialty: "Cardiology", email: "doctor@hospital.com", onDuty: true },
-    { id: "doc_002", did: "did:hosp:0x55ef7711", name: "Dr. Aanya Verma", role: "Doctor", specialty: "Radiology", email: "aanya@hospital.com", onDuty: true },
-    { id: "nurse_001", did: "did:hosp:0x22bd44c1", name: "Nurse Priya K.", role: "Nurse", specialty: "ICU Nursing", email: "nurse@hospital.com", onDuty: true }
-  ];
-
-  // 1. Seed DIDs and credentials
-  for (const p of seedPatients) {
-    const doc = {
-      did: p.did,
-      publicKey: `MFkw${simHash(p.did).slice(0, 32).toUpperCase()}`,
-      controller: "did:hosp:consortium:authority",
-      owner: p.name,
-      ownerType: "patient",
-      status: "active",
-      credentials: [
-        {
-          id: `vc_identity_${p.id}`,
-          type: "IdentityVC",
-          issuer: "Apollo Hospital Authority",
-          subject: p.did,
-          issuedAt: now,
-          expiresAt: new Date(Date.now() + 365 * 86400000).toISOString(),
-          claims: { name: p.name, mrn: p.mrn, bloodGroup: p.bloodGroup },
-          signature: `MEQCIBas${simHash(p.did + "identity").slice(0, 20)}==`,
-          status: "active",
-        },
-        {
-          id: `vc_insurance_${p.id}`,
-          type: "InsuranceVC",
-          issuer: "Star Health Insurance",
-          subject: p.did,
-          issuedAt: now,
-          expiresAt: new Date(Date.now() + 365 * 86400000).toISOString(),
-          claims: { policy: `POL-${p.id}`, coverage: "80%" },
-          signature: `MEQCIBas${simHash(p.did + "insurance").slice(0, 20)}==`,
-          status: "active",
-        }
-      ],
-      createdAt: now,
-      updatedAt: now,
-      serviceEndpoint: `https://did.apollohospitals.in/resolve/${p.did}`,
-    };
-    putState("did-registry", p.did, doc, txId);
-    putState("credentials", `vc_identity_${p.id}`, doc.credentials[0], txId);
-    putState("credentials", `vc_insurance_${p.id}`, doc.credentials[1], txId);
-
-    // Seed patient vitals
-    _vitals.set(p.did, {
-      heartRate: 70 + Math.floor(Math.random() * 20),
-      bp: "120/80",
-      spo2: 98,
-      temp: 36.6,
-      respRate: 16,
-    });
-  }
-
-  for (const s of seedStaff) {
-    const doc = {
-      did: s.did,
-      publicKey: `MFkw${simHash(s.did).slice(0, 32).toUpperCase()}`,
-      controller: "did:hosp:consortium:authority",
-      owner: s.name,
-      ownerType: "staff",
-      status: "active",
-      credentials: [
-        {
-          id: `vc_prof_${s.id}`,
-          type: "ProfessionalVC",
-          issuer: "Medical Council of India",
-          subject: s.did,
-          issuedAt: now,
-          expiresAt: new Date(Date.now() + 365 * 86400000).toISOString(),
-          claims: { name: s.name, role: s.role, employeeId: s.id },
-          signature: `MEQCIBas${simHash(s.did + "professional").slice(0, 20)}==`,
-          status: "active",
-        }
-      ],
-      createdAt: now,
-      updatedAt: now,
-      serviceEndpoint: `https://did.apollohospitals.in/resolve/${s.did}`,
-    };
-    putState("did-registry", s.did, doc, txId);
-    putState("credentials", `vc_prof_${s.id}`, doc.credentials[0], txId);
-
-    // Seed staff location tracker
-    _staffLoc.set(s.did, {
-      location: "Nursing Station",
-      lastSignal: now,
-      beacon: "85%",
-    });
-    putState("tracker", s.did, { staffId: s.id, name: s.name, location: "Nursing Station", lastPing: now }, txId);
-  }
-
-  // 2. Seed Beds
-  const wards = ["ICU", "Ward A", "Ward B", "Emergency"];
-  for (let i = 1; i <= 20; i++) {
-    const bedId = `B-${100 + i}`;
-    const ward = wards[i % wards.length];
-    const isOccupied = i % 3 === 0;
-    const patientDid = isOccupied ? seedPatients[i % seedPatients.length].did : null;
-    const bed = {
-      bedId,
-      ward,
-      status: isOccupied ? "occupied" : "available",
-      patientDid,
-      updatedAt: now,
-    };
-    putState("beds", bedId, bed, txId);
-  }
-
-  // 3. Seed Appointments
-  const seedAppts = [
-    { apptId: "appt_1", patientDid: seedPatients[0].did, patientName: seedPatients[0].name, doctorDid: seedStaff[0].did, doctorName: seedStaff[0].name, slot: "2026-06-09, 10:30 AM", mode: "in-person", specialty: "Cardiology", status: "confirmed", bookedAt: now },
-    { apptId: "appt_2", patientDid: seedPatients[1].did, patientName: seedPatients[1].name, doctorDid: seedStaff[1].did, doctorName: seedStaff[1].name, slot: "2026-06-10, 04:15 PM", mode: "telemedicine", specialty: "Radiology", status: "confirmed", bookedAt: now },
-  ];
-  for (const appt of seedAppts) {
-    putState("appointments", appt.apptId, appt, txId);
-  }
-
-  // 4. Seed Consents
-  const consentId = "consent_1";
-  putState("consent-manager", consentId, {
-    grantId: consentId,
-    patientDid: seedPatients[0].did,
-    doctorDid: seedStaff[0].did,
-    resource: "medical-records",
-    status: "active",
-    expiry: new Date(Date.now() + 10 * 86400000).toISOString(),
-    grantedAt: now
-  }, txId);
-
-  // 5. Seed Billing Payments
-  putState("billing", "REF-001", {
-    txId: "tx_bill_1",
-    patientDid: seedPatients[0].did,
-    patientName: seedPatients[0].name,
-    amount: 1500,
-    category: "consultation",
-    status: "settled",
-    ref: "REF-001",
-    settledAt: now
-  }, txId);
-
-  // 6. Seed Audits
-  putState("audit", "audit_genesis_1", {
-    txId: "audit_genesis_1",
-    actor: "Dr. Ravi Menon",
-    resource: "did-registry",
-    action: "initializeLedger",
-    outcome: "success",
-    severity: "info",
-    loggedAt: now
-  }, txId);
-
-  console.log("✅ World State seeding complete.");
+  console.log("🌱 World State seeding skipped (running in clean nil mode).");
 }
 
 const PORT = process.env.PORT || 3001;

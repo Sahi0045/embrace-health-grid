@@ -48,7 +48,7 @@ export const fabricGetStats = () =>
 
 // ─── Transactions ─────────────────────────────────────────────────────────────
 export const fabricSubmitTx = (chaincode: string, fcn: string, args: string[], creator?: string) =>
-  apiFetch<{ txId: string; blockNumber: number; status: string }>(`/transaction`, {
+  apiFetch<{ txId: string; blockNumber: number; status: string; timestamp?: string }>(`/transaction`, {
     method: "POST",
     body: JSON.stringify({ chaincode, fcn, args, creator }),
   });

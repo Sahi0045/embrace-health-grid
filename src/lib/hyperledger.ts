@@ -14,6 +14,7 @@
  */
 
 import { toast } from "sonner";
+import { isFabricOnline, fabricSubmitTx } from "./fabric-api";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -509,9 +510,24 @@ export const submitHyperledgerTransaction = async (
   args: string[],
   options?: { silent?: boolean; creator?: string }
 ): Promise<TransactionProposal> => {
-  const txId = generateTxId();
-  const timestamp = new Date().toLocaleString("en-IN", { hour12: true });
+  let txId = generateTxId();
+  let timestamp = new Date().toLocaleString("en-IN", { hour12: true });
+  let blockNumber: number | null = null;
   const endorsingPeers = [PEERS[0], PEERS[Math.floor(Math.random() * PEERS.length)]];
+
+  const online = await isFabricOnline();
+  if (online) {
+    try {
+      const res = await fabricSubmitTx(chaincode, fcn, args, options?.creator);
+      txId = res.txId;
+      blockNumber = res.blockNumber;
+      // Convert standard ISO to localized string if needed, or keep ISO
+      timestamp = res.timestamp ? new Date(res.timestamp).toLocaleString("en-IN", { hour12: true }) : timestamp;
+    } catch (err) {
+      console.warn("⚠️ Hyperledger: Backend submission failed, falling back to local simulation:", err);
+      // Fallback: blockNumber remains null, so local consensus loop will run
+    }
+  }
 
   const proposal: TransactionProposal = {
     txId,
@@ -525,22 +541,23 @@ export const submitHyperledgerTransaction = async (
     creator: options?.creator || "Admin Console",
   };
 
-  // Phase 1: Endorsement (simulated peer latency)
-  await new Promise((r) => setTimeout(r, 300 + Math.random() * 400));
+  if (blockNumber === null) {
+    // Phase 1: Endorsement (simulated peer latency)
+    await new Promise((r) => setTimeout(r, 300 + Math.random() * 400));
+    // Phase 2: Ordering (Raft consensus)
+    await new Promise((r) => setTimeout(r, 200 + Math.random() * 300));
+  }
 
-  // Phase 2: Ordering (Raft consensus)
-  await new Promise((r) => setTimeout(r, 200 + Math.random() * 300));
-
-  // Phase 3: Apply chaincode to world state
+  // Phase 3: Apply chaincode to world state locally (for sync and fallback)
   applyChaincode(chaincode, fcn, args, txId, timestamp);
 
-  // Phase 4: Commit new block
+  // Phase 4: Commit new block locally
   const ledger = getLedgerCache();
   const prevBlock = ledger[ledger.length - 1];
   const dataHash = simHash(JSON.stringify(proposal) + prevBlock.dataHash);
 
   const newBlock: Block = {
-    blockNumber: ledger.length,
+    blockNumber: blockNumber ?? ledger.length,
     channelId: CHANNEL,
     previousHash: prevBlock.dataHash,
     dataHash,
@@ -612,96 +629,7 @@ export const seedInitialDIDs = async (
   patients: Array<{ id: string; name: string; did: string }>,
   staff: Array<{ id: string; name: string; did: string; role: string }>
 ): Promise<void> => {
-  const registry = getDIDRegistryCache();
-
-  // Only seed if registry is nearly empty
-  if (Object.keys(registry).length > 10) return;
-
-  console.log("[Hyperledger] Seeding initial DID registry…");
-
-  // Batch process patients (silent)
-  for (const p of patients.slice(0, 50)) {
-    if (!registry[p.did]) {
-      const doc: DIDDocument = {
-        did: p.did,
-        publicKey: generatePublicKey(p.did),
-        controller: "did:hosp:consortium:authority",
-        owner: p.name,
-        ownerType: "patient",
-        status: "active",
-        credentials: [
-          {
-            id: `vc_identity_${p.id}`,
-            type: "IdentityVC",
-            issuer: "Apollo Hospital Authority",
-            subject: p.did,
-            issuedAt: "2026-06-01 00:00:00",
-            expiresAt: "2028-06-01 00:00:00",
-            claims: { name: p.name, mrn: p.id },
-            signature: generateSignature(p.did + "identity"),
-            status: "active",
-          },
-          {
-            id: `vc_insurance_${p.id}`,
-            type: "InsuranceVC",
-            issuer: "Star Health Insurance",
-            subject: p.did,
-            issuedAt: "2026-06-01 00:00:00",
-            expiresAt: "2027-06-01 00:00:00",
-            claims: { policy: `POL-${p.id}`, coverage: "80%" },
-            signature: generateSignature(p.did + "insurance"),
-            status: "active",
-          },
-        ],
-        createdAt: "2026-06-01 00:00:00",
-        updatedAt: "2026-06-01 00:00:00",
-        serviceEndpoint: `https://did.apollohospitals.in/resolve/${p.did}`,
-      };
-      registry[p.did] = doc;
-    }
-  }
-
-  // Batch process staff (silent)
-  for (const s of staff.slice(0, 30)) {
-    if (!registry[s.did]) {
-      const doc: DIDDocument = {
-        did: s.did,
-        publicKey: generatePublicKey(s.did),
-        controller: "did:hosp:consortium:authority",
-        owner: s.name,
-        ownerType: "staff",
-        status: "active",
-        credentials: [
-          {
-            id: `vc_prof_${s.id}`,
-            type: "ProfessionalVC",
-            issuer: "Medical Council of India",
-            subject: s.did,
-            issuedAt: "2026-06-01 00:00:00",
-            expiresAt: "2028-06-01 00:00:00",
-            claims: { name: s.name, role: s.role, employeeId: s.id },
-            signature: generateSignature(s.did + "professional"),
-            status: "active",
-          },
-        ],
-        createdAt: "2026-06-01 00:00:00",
-        updatedAt: "2026-06-01 00:00:00",
-        serviceEndpoint: `https://did.apollohospitals.in/resolve/${s.did}`,
-      };
-      registry[s.did] = doc;
-    }
-  }
-
-  _didRegistry = registry;
-  saveToStorage(STORAGE_KEYS.DID_REGISTRY, registry);
-
-  // Record seeding as a blockchain transaction (silent)
-  await submitHyperledgerTransaction(
-    "did-registry",
-    "batchSeedDIDs",
-    [`${patients.slice(0, 50).length} patients`, `${staff.slice(0, 30).length} staff`, "initial-seed"],
-    { silent: true }
-  );
+  console.log("[Hyperledger] Auto-seed skipped (clean nil mode).");
 };
 
 // ---------------------------------------------------------------------------

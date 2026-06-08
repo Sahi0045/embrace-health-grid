@@ -43,39 +43,7 @@ const shifts: StaffMember["shift"][] = ["morning","evening","night","on-call"];
 const statuses: StaffMember["status"][] = ["active","active","active","on-leave","inactive"];
 
 export function generateStaff(count = 100): StaffMember[] {
-  return Array.from({ length: count }, (_, i) => {
-    const id = `staff_${String(i + 1).padStart(4, "0")}`;
-    const seed = hashInt(id);
-    const fn = firstNames[seed % firstNames.length];
-    const ln = lastNames[(seed >> 4) % lastNames.length];
-    const name = `${fn} ${ln}`;
-    const role = roles[seed % roles.length];
-    const isDoctor = role === "Doctor" || role === "Surgeon" || role === "Radiologist" || role === "Anesthesiologist";
-    const dept = departments[seed % departments.length];
-    const specList = specialties[role];
-    const specialty = specList ? specList[(seed >> 2) % specList.length] : undefined;
-    const year = 2018 + (seed % 8);
-    const month = pad(1 + (seed % 12));
-    const day = pad(1 + (seed % 28));
-
-    return {
-      id,
-      did: `did:hosp:${isDoctor ? "doctor" : "staff"}:${seed.toString(16).padStart(8, "0")}`,
-      name: isDoctor ? `Dr. ${name}` : name,
-      employeeId: `EMP-${String(1000 + i).padStart(6, "0")}`,
-      role,
-      department: dept,
-      specialty,
-      email: `${fn.toLowerCase()}.${ln.toLowerCase()}@apollohospitals.in`,
-      phone: `+91 ${9 + (seed % 1)}${String(seed).slice(0, 9).padEnd(9, "0")}`,
-      shift: shifts[seed % shifts.length],
-      onDuty: seed % 3 !== 0,
-      joinedDate: `${year}-${month}-${day}`,
-      status: statuses[seed % statuses.length],
-      credentials: 2 + (seed % 8),
-      patientsToday: isDoctor ? seed % 15 : 0,
-    };
-  });
+  return [];
 }
 
-export const mockStaff = generateStaff(100);
+export const mockStaff: StaffMember[] = [];

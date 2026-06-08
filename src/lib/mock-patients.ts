@@ -42,57 +42,8 @@ function pad(n: number) { return String(n).padStart(2, "0"); }
 function hashInt(s: string) { let h = 0; for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0; return Math.abs(h); }
 
 export function generatePatients(count = 500): PatientFull[] {
-  return Array.from({ length: count }, (_, i) => {
-    const id = `pat_${String(i + 1).padStart(4, "0")}`;
-    const seed = hashInt(id);
-    const firstName = firstNames[seed % firstNames.length];
-    const lastName = lastNames[(seed >> 4) % lastNames.length];
-    const name = `${firstName} ${lastName}`;
-    const age = 18 + (seed % 70);
-    const gender: "M" | "F" = seed % 2 === 0 ? "M" : "F";
-    const year = 2020 + (seed % 6);
-    const month = pad(1 + (seed % 12));
-    const day = pad(1 + (seed % 28));
-    const admitYear = 2025 + (seed % 2);
-    const admitMonth = pad(1 + ((seed >> 2) % 12));
-    const admitDay = pad(1 + ((seed >> 3) % 28));
-    const allergies = seed % 5 === 0 ? [] : pickN(allergyPool.filter(a => a !== "None"), 1 + (seed % 3));
-    const numConditions = 1 + (seed % 4);
-    const conditions = pickN(conditionPool, numConditions);
-    const statuses: PatientFull["status"][] = ["inpatient", "outpatient", "discharged"];
-    const status = statuses[seed % 3];
-
-    return {
-      id,
-      did: `did:hosp:0x${seed.toString(16).padStart(4, "0")}…${(seed * 7).toString(16).padStart(4, "0")}`,
-      name,
-      mrn: `MRN-${200000 + i * 7}`,
-      age,
-      gender,
-      bloodGroup: bloodGroups[seed % bloodGroups.length],
-      allergies,
-      phone: `+91 ${9 + (seed % 1)}${String(seed).slice(0, 9).padEnd(9, "0")}`,
-      email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}@email.com`,
-      address: `${100 + (seed % 900)}, ${lastName} Lane, Mumbai - ${400000 + (seed % 100)}`,
-      dob: `${1950 + (age - 18)}-${month}-${day}`,
-      ward: wardOptions[seed % wardOptions.length],
-      bed: `${["A","B","C","D","E"][seed % 5]}${1 + (seed % 20)}`,
-      admitDate: `${admitYear}-${admitMonth}-${admitDay}`,
-      status,
-      primaryDoctor: doctorPool[seed % doctorPool.length],
-      conditions,
-      insuranceProvider: insurers[seed % insurers.length],
-      insurancePolicyNo: `POL-${2024 + (seed % 3)}-${String(seed).slice(0, 8).padEnd(8, "0")}`,
-      emergencyContact: {
-        name: `${firstNames[(seed + 3) % firstNames.length]} ${lastName}`,
-        relation: ["Spouse","Parent","Sibling","Child","Guardian"][seed % 5],
-        phone: `+91 ${8 + (seed % 2)}${String(seed * 3).slice(0, 9).padEnd(9, "0")}`,
-      },
-      organDonor: seed % 4 === 0,
-      nationality: "Indian",
-    };
-  });
+  return [];
 }
 
-export const mockPatients = generatePatients(500);
-export const mockPatient = mockPatients[0];
+export const mockPatients: PatientFull[] = [];
+export const mockPatient: PatientFull | null = null;

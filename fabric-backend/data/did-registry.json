@@ -306,5 +306,42 @@
     "updatedAt": "2026-06-08T07:29:06.700Z",
     "txId": "genesis_seed_19ea6229c88",
     "docType": "did-registry"
+  },
+  "generic_tx_19ea6f2c0e3_d4fa8a09": {
+    "key": "generic_tx_19ea6f2c0e3_d4fa8a09",
+    "value": {
+      "fcn": "batchSeedDIDs",
+      "args": [
+        "50 patients",
+        "30 staff",
+        "initial-seed"
+      ],
+      "executedAt": "2026-06-08T11:16:27.491Z"
+    },
+    "namespace": "did-registry",
+    "version": "tx_19ea6f2c0e3_d4fa8a09:1",
+    "updatedAt": "2026-06-08T11:16:27.491Z",
+    "txId": "tx_19ea6f2c0e3_d4fa8a09",
+    "docType": "did-registry"
+  },
+  "did:hosp:0x5cbb30af": {
+    "key": "did:hosp:0x5cbb30af",
+    "value": {
+      "did": "did:hosp:0x5cbb30af",
+      "publicKey": "MFkw33B594B36B4AC900747F49FBAB3AB942",
+      "controller": "did:hosp:consortium:authority",
+      "owner": "Sahith Kumar",
+      "ownerType": "patient",
+      "status": "active",
+      "credentials": [],
+      "createdAt": "2026-06-08T11:26:20.657Z",
+      "updatedAt": "2026-06-08T11:26:20.657Z",
+      "serviceEndpoint": "https://did.apollohospitals.in/resolve/did:hosp:0x5cbb30af"
+    },
+    "namespace": "did-registry",
+    "version": "74142986-938c-4634-af7a-004eb17d1b5f:1",
+    "updatedAt": "2026-06-08T11:26:20.657Z",
+    "txId": "74142986-938c-4634-af7a-004eb17d1b5f",
+    "docType": "did-registry"
   }
 }

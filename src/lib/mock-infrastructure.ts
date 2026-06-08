@@ -242,26 +242,26 @@ export function generateInsuranceClaims(count = 50): InsuranceClaim[] {
   });
 }
 
-export const mockBeds = generateBeds(250);
-export const mockEquipment = generateEquipment(100);
-export const mockAmbulances = generateAmbulances(20);
-export const mockInsuranceClaims = generateInsuranceClaims(50);
+export const mockBeds: BedRecord[] = [];
+export const mockEquipment: EquipmentRecord[] = [];
+export const mockAmbulances: AmbulanceRecord[] = [];
+export const mockInsuranceClaims: InsuranceClaim[] = [];
 
 // Summary stats
 export const infraStats = {
-  totalBeds: 250,
-  occupiedBeds: mockBeds.filter(b => b.status === "occupied").length,
-  availableBeds: mockBeds.filter(b => b.status === "available").length,
-  maintenanceBeds: mockBeds.filter(b => b.status === "maintenance").length,
-  totalEquipment: 100,
-  operationalEquipment: mockEquipment.filter(e => e.status === "operational" || e.status === "in-use").length,
-  maintenanceEquipment: mockEquipment.filter(e => e.status === "maintenance").length,
-  offlineEquipment: mockEquipment.filter(e => e.status === "offline").length,
-  totalAmbulances: 20,
-  availableAmbulances: mockAmbulances.filter(a => a.status === "available").length,
-  deployedAmbulances: mockAmbulances.filter(a => ["en-route","at-scene","returning"].includes(a.status)).length,
-  ventilators: mockEquipment.filter(e => e.type === "ventilator").length,
-  mriScanners: mockEquipment.filter(e => e.type === "mri").length,
-  ctScanners: mockEquipment.filter(e => e.type === "ct").length,
-  oxygenCylinders: mockEquipment.filter(e => e.type === "oxygen-cylinder").length,
+  totalBeds: 0,
+  occupiedBeds: 0,
+  availableBeds: 0,
+  maintenanceBeds: 0,
+  totalEquipment: 0,
+  operationalEquipment: 0,
+  maintenanceEquipment: 0,
+  offlineEquipment: 0,
+  totalAmbulances: 0,
+  availableAmbulances: 0,
+  deployedAmbulances: 0,
+  ventilators: 0,
+  mriScanners: 0,
+  ctScanners: 0,
+  oxygenCylinders: 0,
 };

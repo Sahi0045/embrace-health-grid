@@ -18,6 +18,7 @@ import {
 } from "./hyperledger";
 import { generatePatients, type PatientFull } from "./mock-patients";
 import { generateStaff, type StaffMember } from "./mock-staff";
+import { isFabricOnline, FABRIC_BASE } from "./fabric-api";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -251,11 +252,198 @@ function seedTransactions() {
 }
 
 // ---------------------------------------------------------------------------
-// Store initialization
+// Store initialization & WebSockets
 // ---------------------------------------------------------------------------
 let _initialized = false;
 let _livePatients: LivePatient[] = [];
 let _liveStaff: LiveStaff[] = [];
+let _storeWs: WebSocket | null = null;
+
+function hashInt(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+
+export function rebuildLiveListsFromRegistry() {
+  const registry = getDIDRegistry();
+  const patientsTemp: LivePatient[] = [];
+  const staffTemp: LiveStaff[] = [];
+
+  Object.keys(registry).forEach((did) => {
+    const doc = registry[did];
+    if (!doc) return;
+    const name = doc.owner || doc.subject || "Unknown";
+    const type = doc.ownerType || doc.type || "patient";
+
+    if (type === "patient") {
+      const seed = Math.abs(hashInt(did));
+      patientsTemp.push({
+        id: `pat_${seed.toString().slice(0, 4)}`,
+        did: did,
+        name: name,
+        mrn: doc.credentials?.find((c: any) => c.type === "IdentityVC" || c.claims?.mrn)?.claims?.mrn || `MRN-${200000 + (seed % 100000)}`,
+        age: 18 + (seed % 70),
+        gender: seed % 2 === 0 ? "M" : "F",
+        bloodGroup: (doc.credentials?.find((c: any) => c.type === "IdentityVC" || c.claims?.bloodGroup)?.claims?.bloodGroup || "O+") as any,
+        allergies: [],
+        phone: `+91 9${seed.toString().slice(0, 9).padEnd(9, "0")}`,
+        email: `${name.toLowerCase().replace(/\s+/g, ".")}@email.com`,
+        address: `${100 + (seed % 900)}, Landmark Street, Mumbai`,
+        dob: `${1950 + (18 + (seed % 70))}-01-01`,
+        ward: "General Ward",
+        bed: `B-${seed % 100}`,
+        admitDate: new Date().toISOString().slice(0, 10),
+        status: "outpatient",
+        primaryDoctor: "Dr. Ravi Menon",
+        conditions: [],
+        insuranceProvider: "None",
+        insurancePolicyNo: "",
+        emergencyContact: { name: "Guardian", relation: "Spouse", phone: "" },
+        organDonor: false,
+        nationality: "Indian",
+        didDocument: doc,
+        activeCredentials: doc.credentials?.filter((c: any) => c.status === "active") ?? [],
+        isOnChain: true,
+        lastActivity: new Date().toLocaleString("en-IN"),
+        vitals: _vitals.get(did) ?? { heartRate: 72, bp: "120/80", spo2: 98, temp: 36.6, respRate: 16 }
+      });
+    } else {
+      const seed = Math.abs(hashInt(did));
+      staffTemp.push({
+        id: `staff_${seed.toString().slice(0, 4)}`,
+        did: did,
+        name: name,
+        employeeId: `EMP-${1000 + (seed % 10000)}`,
+        role: (doc.ownerType === "staff" || doc.type === "staff" ? "Nurse" : (doc.ownerType || doc.type)) as any,
+        department: "General Medicine",
+        specialty: "General Medicine",
+        email: `${name.toLowerCase().replace(/\s+/g, ".")}@apollohospitals.in`,
+        phone: `+91 9${seed.toString().slice(0, 9).padEnd(9, "0")}`,
+        shift: "morning",
+        onDuty: true,
+        joinedDate: new Date().toISOString().slice(0, 10),
+        status: "active",
+        credentials: doc.credentials?.length || 0,
+        patientsToday: 0,
+        didDocument: doc,
+        activeCredentials: doc.credentials?.filter((c: any) => c.status === "active") ?? [],
+        isOnChain: true,
+        currentLocation: _staffLocations.get(did)?.location ?? "Nursing Station",
+        lastSignal: _staffLocations.get(did)?.lastSignal ?? new Date().toLocaleTimeString("en-IN"),
+        beaconStrength: _staffLocations.get(did)?.beacon ?? "90%",
+      });
+    }
+  });
+
+  _livePatients = patientsTemp;
+  _liveStaff = staffTemp;
+}
+
+function handleStoreWebSocketMessage(event: string, data: any) {
+  if (event === "vitals:update") {
+    if (Array.isArray(data)) {
+      data.forEach((update) => {
+        if (update && update.id) {
+          const mappedVitals = {
+            heartRate: update.heartRate,
+            bp: update.bp,
+            spo2: update.spo2,
+            temp: update.temp,
+            respRate: update.respRate,
+          };
+          _vitals.set(update.id, mappedVitals);
+          const patient = _livePatients.find((p) => p.did === update.id || p.id === update.id);
+          if (patient) {
+            _vitals.set(patient.id, mappedVitals);
+          }
+        }
+      });
+      emitStoreEvent("vitals:update");
+    }
+  } else if (event === "staff:location") {
+    const { id, location, lastSignal } = data;
+    const staffMember = _liveStaff.find((s) => s.did === id || s.id === id);
+    if (staffMember) {
+      const newStatus = location === "Operation Theatre 2" || location === "OR Suite 2" ? "In Surgery"
+        : location === "Emergency Ward" ? "Emergency Response"
+        : location === "ICU Block B" ? "In Consultation"
+        : "Available";
+      const now = lastSignal ? new Date(lastSignal).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+      _staffLocations.set(staffMember.id, {
+        location,
+        status: newStatus,
+        lastSignal: now,
+        beacon: `${70 + Math.floor(Math.random() * 30)}%`
+      });
+      emitStoreEvent("staff:location:update", { memberId: staffMember.id, location, status: newStatus });
+    }
+  } else if (event === "appointment:booked") {
+    const appt = data;
+    if (appt && appt.apptId) {
+      _appointments.set(appt.apptId, {
+        id: appt.apptId,
+        patientDid: appt.patientDid,
+        patientName: appt.patientName,
+        doctorDid: appt.doctorDid,
+        doctorName: appt.doctorName,
+        specialty: appt.specialty || "General Medicine",
+        slot: appt.slot,
+        mode: appt.mode,
+        status: appt.status || "confirmed",
+        bookedAt: appt.bookedAt ? new Date(appt.bookedAt).toLocaleString("en-IN") : new Date().toLocaleString("en-IN"),
+      });
+      emitStoreEvent("store:ready");
+    }
+  } else if (event === "payment:recorded") {
+    const tx = data;
+    if (tx && tx.ref) {
+      _transactions.set(tx.txId || tx.ref, {
+        id: tx.txId || tx.ref,
+        patientDid: tx.patientDid,
+        patientName: tx.patientName,
+        amount: tx.amount,
+        category: tx.category,
+        status: tx.status === "settled" ? "paid" : "outstanding",
+        date: tx.settledAt ? new Date(tx.settledAt).toLocaleDateString("en-IN") : new Date().toLocaleDateString("en-IN"),
+        reference: tx.ref,
+      });
+      emitStoreEvent("store:ready");
+    }
+  } else if (event === "did:created" || event === "did:updated") {
+    const doc = data;
+    if (doc && doc.did) {
+      const registry = getDIDRegistry();
+      registry[doc.did] = doc;
+      localStorage.setItem("hl:didregistry", JSON.stringify(registry));
+      rebuildLiveListsFromRegistry();
+      emitStoreEvent("store:ready");
+    }
+  }
+}
+
+function connectStoreWebSocket() {
+  if (typeof window === "undefined") return;
+  if (_storeWs && _storeWs.readyState < 2) return;
+
+  try {
+    const wsUrl = FABRIC_BASE.replace("http", "ws");
+    _storeWs = new WebSocket(wsUrl);
+    _storeWs.onmessage = (e) => {
+      try {
+        const msg = JSON.parse(e.data) as { event: string; data: any };
+        handleStoreWebSocketMessage(msg.event, msg.data);
+      } catch {}
+    };
+    _storeWs.onerror = () => {};
+    _storeWs.onclose = () => {
+      setTimeout(connectStoreWebSocket, 5000);
+    };
+  } catch {
+    _storeWs = null;
+    setTimeout(connectStoreWebSocket, 5000);
+  }
+}
 
 export async function initializeStore(): Promise<void> {
   if (_initialized) return;
@@ -271,40 +459,72 @@ export async function initializeStore(): Promise<void> {
 
   const registry = getDIDRegistry();
 
-  // Build live patient records
-  _livePatients = _allPatients.map((p) => {
-    const seed = parseInt(p.id.split("_")[1] || "1");
-    const doc = registry[p.did] ?? null;
-    return {
-      ...p,
-      didDocument: doc,
-      activeCredentials: doc?.credentials.filter((c) => c.status === "active") ?? [],
-      isOnChain: !!doc,
-      lastActivity: new Date(Date.now() - seed * 600000).toLocaleString("en-IN"),
-      vitals: generateVitals(seed),
-    };
-  });
+  // Sync from server if online
+  const online = await isFabricOnline();
+  if (online) {
+    try {
+      const { fabricGetAllDIDs, fabricGetAppointments, fabricGetNamespace } = await import("./fabric-api");
+      
+      // 1. Sync DIDs
+      const { dids } = await fabricGetAllDIDs();
+      dids.forEach((d: any) => {
+        if (d && d.did) registry[d.did] = d;
+      });
+      localStorage.setItem("hl:didregistry", JSON.stringify(registry));
 
-  // Build live staff records
-  _liveStaff = _allStaff.map((s, i) => {
-    const doc = registry[s.did] ?? null;
-    return {
-      ...s,
-      didDocument: doc,
-      activeCredentials: doc?.credentials.filter((c) => c.status === "active") ?? [],
-      isOnChain: !!doc,
-      currentLocation: LOCATIONS[i % LOCATIONS.length],
-      lastSignal: new Date(Date.now() - i * 180000).toLocaleTimeString("en-IN"),
-      beaconStrength: `${70 + (i % 30)}%`,
-    };
-  });
+      // 2. Sync Appointments
+      const { appointments } = await fabricGetAppointments();
+      appointments.forEach((appt: any) => {
+        if (appt && appt.apptId) {
+          _appointments.set(appt.apptId, {
+            id: appt.apptId,
+            patientDid: appt.patientDid,
+            patientName: appt.patientName,
+            doctorDid: appt.doctorDid,
+            doctorName: appt.doctorName,
+            specialty: appt.specialty || "General Medicine",
+            slot: appt.slot,
+            mode: appt.mode,
+            status: appt.status || "confirmed",
+            bookedAt: appt.bookedAt ? new Date(appt.bookedAt).toLocaleString("en-IN") : new Date().toLocaleString("en-IN"),
+          });
+        }
+      });
+
+      // 3. Sync Billing transactions
+      const payments = await fabricGetNamespace("billing");
+      payments.forEach((p: any) => {
+        const tx = p.value;
+        if (tx && tx.ref) {
+          _transactions.set(tx.txId || tx.ref, {
+            id: tx.txId || tx.ref,
+            patientDid: tx.patientDid,
+            patientName: tx.patientName,
+            amount: tx.amount,
+            category: tx.category,
+            status: tx.status === "settled" ? "paid" : "outstanding",
+            date: tx.settledAt ? new Date(tx.settledAt).toLocaleDateString("en-IN") : new Date().toLocaleDateString("en-IN"),
+            reference: tx.ref,
+          });
+        }
+      });
+    } catch (err) {
+      console.warn("⚠️ Failed to sync live store state from Fabric server:", err);
+    }
+  }
+
+  // Build live records dynamically from DID Registry
+  rebuildLiveListsFromRegistry();
 
   // Initialize sub-systems
-  initStaffLocations(_allStaff);
+  initStaffLocations(_liveStaff);
   seedAppointments();
   seedTransactions();
   startVitalsSimulation(_livePatients);
-  startStaffSimulation(_allStaff);
+  startStaffSimulation(_liveStaff);
+
+  // Connect WebSocket to stay updated in real time
+  connectStoreWebSocket();
 
   emitStoreEvent("store:ready");
   console.log("[Store] Ready ✓");
@@ -315,23 +535,31 @@ export async function initializeStore(): Promise<void> {
 // ---------------------------------------------------------------------------
 export function getLivePatients(): LivePatient[] {
   const registry = getDIDRegistry();
-  return _livePatients.map((p) => ({
-    ...p,
-    vitals: _vitals.get(p.id) ?? p.vitals,
-    didDocument: registry[p.did] ?? p.didDocument,
-    activeCredentials: (registry[p.did]?.credentials ?? p.activeCredentials).filter((c) => c.status === "active"),
-    isOnChain: !!registry[p.did],
-  }));
+  return _livePatients.map((p) => {
+    const doc = registry[p.did] ?? p.didDocument;
+    return {
+      ...p,
+      vitals: _vitals.get(p.id) ?? _vitals.get(p.did) ?? p.vitals,
+      didDocument: doc,
+      activeCredentials: (doc?.credentials ?? p.activeCredentials).filter((c) => c.status === "active"),
+      isOnChain: !!doc,
+    };
+  });
 }
 
 export function getLiveStaff(): LiveStaff[] {
+  const registry = getDIDRegistry();
   return _liveStaff.map((s) => {
-    const loc = _staffLocations.get(s.id);
+    const loc = _staffLocations.get(s.id) ?? _staffLocations.get(s.did);
+    const doc = registry[s.did] ?? s.didDocument;
     return {
       ...s,
       currentLocation: loc?.location ?? s.currentLocation,
       lastSignal: loc?.lastSignal ?? s.lastSignal,
       beaconStrength: loc?.beacon ?? s.beaconStrength,
+      didDocument: doc,
+      activeCredentials: (doc?.credentials ?? s.activeCredentials).filter((c) => c.status === "active"),
+      isOnChain: !!doc,
     };
   });
 }
