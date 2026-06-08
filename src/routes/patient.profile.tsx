@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { User, Mail, Phone, Calendar, Droplet, AlertCircle, Shield, LogOut, Edit } from "lucide-react";
-import { currentPatient, credentials } from "@/lib/mock-data";
+import { currentPatient } from "@/lib/mock-data";
+import { useLivePatients, useFabricCredentials } from "@/hooks/use-fabric";
 import { RouteGuard } from "@/components/RouteGuard";
 
 export const Route = createFileRoute("/patient/profile")({
@@ -19,6 +20,26 @@ export const Route = createFileRoute("/patient/profile")({
 });
 
 function PatientProfile() {
+  const { patients } = useLivePatients();
+  const patientRecord = patients?.find((p: any) => p.id === "pat_001") || currentPatient;
+  const { data: credentialsData } = useFabricCredentials();
+  const rawCredentials = credentialsData?.credentials || [];
+  
+  const liveCredentials = rawCredentials.map((c: any) => ({
+    id: c.id || c.txId || String(Math.random()),
+    type: c.type || "Verifiable Credential",
+    issuer: c.issuer || "Apollo Hospitals",
+    status: (c.status === "revoked" ? "revoked" : "active") as "active" | "revoked",
+  }));
+
+  const activeCreds = liveCredentials.length > 0 
+    ? liveCredentials.filter(c => c.status === "active") 
+    : [
+        { id: "c1", type: "Patient Identity", issuer: "Apollo Hospitals" },
+        { id: "c2", type: "Health Insurance", issuer: "Star Health" },
+        { id: "c3", type: "Vaccination Record", issuer: "Govt. of India" }
+      ];
+
   const handleLogout = () => {
     localStorage.removeItem("userRole");
     localStorage.removeItem("userEmail");
@@ -42,9 +63,10 @@ function PatientProfile() {
                   <User className="h-8 w-8" />
                 </div>
                 <div>
-                  <CardTitle className="text-2xl">{currentPatient.name}</CardTitle>
+                  <CardTitle className="text-2xl">{patientRecord.name}</CardTitle>
+
                   <CardDescription className="mt-1">
-                    MRN: {currentPatient.mrn}
+                    MRN: {patientRecord.mrn}
                   </CardDescription>
                 </div>
               </div>
@@ -62,7 +84,7 @@ function PatientProfile() {
                 </div>
                 <div>
                   <div className="text-sm text-muted-foreground">Age</div>
-                  <div className="font-medium">{currentPatient.age} years</div>
+                  <div className="font-medium">{patientRecord.age} years</div>
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -71,7 +93,7 @@ function PatientProfile() {
                 </div>
                 <div>
                   <div className="text-sm text-muted-foreground">Gender</div>
-                  <div className="font-medium">{currentPatient.gender === "M" ? "Male" : "Female"}</div>
+                  <div className="font-medium">{patientRecord.gender === "M" ? "Male" : "Female"}</div>
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -80,7 +102,7 @@ function PatientProfile() {
                 </div>
                 <div>
                   <div className="text-sm text-muted-foreground">Blood Group</div>
-                  <div className="font-medium">{currentPatient.bloodGroup}</div>
+                  <div className="font-medium">{patientRecord.bloodGroup}</div>
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -89,7 +111,7 @@ function PatientProfile() {
                 </div>
                 <div>
                   <div className="text-sm text-muted-foreground">Phone</div>
-                  <div className="font-medium">{currentPatient.phone}</div>
+                  <div className="font-medium">{patientRecord.phone}</div>
                 </div>
               </div>
             </div>
@@ -102,7 +124,7 @@ function PatientProfile() {
                 Allergies
               </div>
               <div className="flex flex-wrap gap-2">
-                {currentPatient.allergies.map((allergy) => (
+                {patientRecord.allergies.map((allergy: string) => (
                   <Badge key={allergy} variant="destructive">
                     {allergy}
                   </Badge>
@@ -125,7 +147,7 @@ function PatientProfile() {
           <CardContent>
             <div className="rounded-lg bg-muted p-4">
               <div className="text-sm text-muted-foreground">DID</div>
-              <div className="mt-1 font-mono text-sm font-medium">{currentPatient.did}</div>
+              <div className="mt-1 font-mono text-sm font-medium">{patientRecord.did}</div>
             </div>
             <div className="mt-4 text-xs text-muted-foreground">
               This DID is cryptographically secured and gives you control over your health data.
@@ -142,7 +164,7 @@ function PatientProfile() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {credentials.filter(c => c.status === "active").map((cred) => (
+              {activeCreds.map((cred) => (
                 <div
                   key={cred.id}
                   className="flex items-center justify-between rounded-lg border border-border p-3"

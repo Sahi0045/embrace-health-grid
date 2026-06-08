@@ -4,6 +4,8 @@ import { StaggerList, StaggerItem } from "@/components/Motion";
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
 import { appointments } from "@/lib/mock-data";
+import { useFabricAppointments } from "@/hooks/use-fabric";
+import { fabricBookAppointment, fabricSubmitTx } from "@/lib/fabric-api";
 import {
   CalendarDays, Video, MapPin, Plus, ChevronRight, Check, X, Search,
   AlertTriangle, Phone, Mail, MessageSquare, Pill, ClipboardList,
@@ -116,7 +118,24 @@ const recentLabReports = [
 ];
 
 function AppointmentsPage() {
-  const [list, setList] = useState(appointments);
+  const { data: appointmentsData, refetch } = useFabricAppointments();
+  const rawList = appointmentsData?.appointments || [];
+  
+  // Map raw appointments to UI structure
+  const liveList = rawList.map((a: any) => ({
+    id: a.apptId || a.id || a.txId || String(Math.random()),
+    doctor: a.doctorName || a.doctorDid || "Doctor",
+    specialty: a.specialty || "General Medicine",
+    hospital: a.hospital || (a.mode === "tele" ? "Telehealth Link" : "Apollo Hospitals"),
+    date: a.date || a.slot?.split(" · ")[0] || "2026-06-08",
+    time: a.slot || a.time || "Thu · 10:30 AM",
+    status: (a.status === "confirmed" ? "upcoming" : a.status || "upcoming") as "upcoming" | "completed" | "cancelled",
+    mode: (a.mode || "in-person") as "in-person" | "tele",
+  }));
+
+  const [localList, setLocalList] = useState<any[]>([]);
+  const list = [...localList, ...liveList].length > 0 ? [...localList, ...liveList] : appointments;
+
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSpecialty, setSelectedSpecialty] = useState("All");
   
@@ -169,23 +188,39 @@ function AppointmentsPage() {
     });
   };
 
-  const confirmBooking = () => {
+  const confirmBooking = async () => {
     if (!selectedDoc || !selectedDay || !selectedSlot) return;
     
     const id = `ap${Date.now()}`;
+    const timeStr = `${new Date(selectedDay).toLocaleDateString("en-IN", { weekday: "short" })} · ${selectedSlot}`;
     const newAppointment = {
       id,
       doctor: selectedDoc.name,
       specialty: selectedDoc.specialty,
       hospital: consultMode === "tele" ? "Telehealth Link" : selectedDoc.hospital,
       date: selectedDay,
-      time: `${new Date(selectedDay).toLocaleDateString("en-IN", { weekday: "short" })} · ${selectedSlot}`,
+      time: timeStr,
       status: "upcoming" as const,
       mode: consultMode,
     };
 
-    setList((prev) => [newAppointment, ...prev]);
-    toast.success("Appointment booked", { description: `${selectedDay} at ${selectedSlot}` });
+    try {
+      await fabricBookAppointment({
+        patientDid: "did:hosp:0x4a91…b7d2",
+        patientName: "Anika Sharma",
+        doctorDid: selectedDoc.did,
+        doctorName: selectedDoc.name,
+        slot: timeStr,
+        mode: consultMode,
+        specialty: selectedDoc.specialty,
+      });
+      toast.success("Appointment booked", { description: `${selectedDay} at ${selectedSlot}` });
+      refetch();
+    } catch (err: any) {
+      setLocalList((prev) => [newAppointment, ...prev]);
+      toast.success("Appointment booked (offline mode)", { description: `${selectedDay} at ${selectedSlot}` });
+    }
+
     triggerMockNotifications(selectedDoc.name, selectedDay, selectedSlot, consultMode);
     
     // Invoke Hyperledger simulation chaincode
@@ -202,7 +237,7 @@ function AppointmentsPage() {
     setSelectedSlot(null);
   };
 
-  const triggerEmergencyBooking = () => {
+  const triggerEmergencyBooking = async () => {
     const erDoc = mockDoctors.find(d => d.specialty === "Emergency Medicine") || mockDoctors[0];
     const id = `ap_er_${Date.now()}`;
     const emergencyAppointment = {
@@ -216,8 +251,22 @@ function AppointmentsPage() {
       mode: "in-person" as const,
     };
 
-    setList((prev) => [emergencyAppointment, ...prev]);
-    toast.error("Emergency consult requested", { description: "Report to ER Desk immediately." });
+    try {
+      await fabricBookAppointment({
+        patientDid: "did:hosp:0x4a91…b7d2",
+        patientName: "Anika Sharma",
+        doctorDid: erDoc.did,
+        doctorName: erDoc.name,
+        slot: "Immediate Triage Priority",
+        mode: "in-person",
+        specialty: "ER / Triage Urgent Consult",
+      });
+      toast.error("Emergency consult requested", { description: "Report to ER Desk immediately." });
+      refetch();
+    } catch {
+      setLocalList((prev) => [emergencyAppointment, ...prev]);
+      toast.error("Emergency consult requested (offline mode)", { description: "Report to ER Desk immediately." });
+    }
     
     // Invoke Hyperledger simulation chaincode
     submitHyperledgerTransaction("appointments-chaincode", "requestEmergencyTriage", [
@@ -229,9 +278,15 @@ function AppointmentsPage() {
     setShowEmergencyModal(false);
   };
 
-  const cancel = (id: string) => {
-    setList((prev) => prev.map((a) => (a.id === id ? { ...a, status: "cancelled" } : a)));
-    toast("Appointment cancelled");
+  const cancel = async (id: string) => {
+    try {
+      await fabricSubmitTx("appointments-chaincode", "cancelAppointment", [id]);
+      toast.success("Appointment cancelled");
+      refetch();
+    } catch {
+      setLocalList((prev) => prev.map((a) => (a.id === id ? { ...a, status: "cancelled" } : a)));
+      toast("Appointment cancelled");
+    }
 
     // Invoke Hyperledger simulation chaincode
     submitHyperledgerTransaction("appointments-chaincode", "cancelAppointment", [id]);

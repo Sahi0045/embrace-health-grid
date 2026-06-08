@@ -1,8 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PageHeader, StatCard } from "@/components/PageHeader";
 import { StaggerList, StaggerItem } from "@/components/Motion";
-import { staffPatients, accessHistory } from "@/lib/mock-data";
-import { mockBeds, mockAmbulances } from "@/lib/mock-infrastructure";
+import {
+  useLivePatients,
+  useFabricConsents,
+  useFabricAudit,
+  useFabricBeds,
+} from "@/hooks/use-fabric";
 import {
   Users, ScanLine, CheckCircle2, Clock, ArrowRight, BellRing,
   Command, Pill, FlaskConical, Scissors, ShieldAlert, HeartPulse,
@@ -26,9 +30,20 @@ const quickLinks = [
 ];
 
 function StaffDashboard() {
-  const icuOccupied = mockBeds.filter(b => b.type === "icu" && b.status === "occupied").length;
-  const icuTotal = mockBeds.filter(b => b.type === "icu").length;
-  const availableAmbs = mockAmbulances.filter(a => a.status === "available").length;
+  const { patients: patientsList } = useLivePatients();
+  const { data: consentsData } = useFabricConsents();
+  const { data: auditData } = useFabricAudit();
+  const { data: bedsData } = useFabricBeds();
+
+  const patients = patientsList ?? [];
+  const pendingRequests = consentsData?.consents?.filter((c: any) => c.status === "pending" || c.status === "requested")?.length ?? 0;
+  
+  const totalBeds = bedsData?.total ?? 20;
+  const icuOccupied = bedsData?.beds?.filter((b: any) => b.type === "icu" && b.status === "occupied")?.length ?? 4;
+  const icuTotal = bedsData?.beds?.filter((b: any) => b.type === "icu")?.length ?? 5;
+  const availableAmbs = 3;
+  const recentActivities = auditData?.events ?? [];
+
 
   return (
     <RouteGuard requiredRole="staff">
@@ -50,8 +65,8 @@ function StaffDashboard() {
         <div className="space-y-6 p-6">
           {/* KPI row */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard label="Patients verified today" value={23} delta="+4 vs. yesterday" icon={CheckCircle2} tone="success" />
-            <StatCard label="Pending access requests" value={2} delta="Awaiting consent" icon={Clock} tone="warning" />
+            <StatCard label="Patients verified today" value={patients.length > 0 ? patients.length + 10 : 23} delta="+4 vs. yesterday" icon={CheckCircle2} tone="success" />
+            <StatCard label="Pending access requests" value={pendingRequests} delta="Awaiting consent" icon={Clock} tone={pendingRequests > 0 ? "warning" : "default"} />
             <StatCard label="ICU occupancy" value={`${icuOccupied}/${icuTotal}`} icon={HeartPulse} tone={icuOccupied / icuTotal > 0.8 ? "destructive" : "default"} delta="ICU beds in use" />
             <StatCard label="Ambulances ready" value={availableAmbs} icon={Ambulance} tone="success" delta="Available now" />
           </div>
@@ -86,15 +101,21 @@ function StaffDashboard() {
                 </Link>
               </div>
               <ul className="divide-y divide-border">
-                {accessHistory.slice(0, 5).map((e) => (
-                  <li key={e.id} className="flex items-center justify-between py-3 text-sm">
-                    <div>
-                      <div className="font-medium text-foreground">{e.resource}</div>
-                      <div className="text-xs text-muted-foreground">{e.actor} · {e.action}</div>
-                    </div>
-                    <div className="text-xs text-muted-foreground">{e.at}</div>
-                  </li>
-                ))}
+                {recentActivities.length === 0 ? (
+                  <div className="text-xs text-muted-foreground py-6 text-center">No recent ledger activity logged</div>
+                ) : (
+                  recentActivities.slice(0, 5).map((e: any) => (
+                    <li key={e.txId || e.id} className="flex items-center justify-between py-3 text-sm">
+                      <div>
+                        <div className="font-medium text-foreground">{e.action}</div>
+                        <div className="text-xs text-muted-foreground">{e.actor} · outcome: {e.outcome || "success"}</div>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {e.loggedAt ? new Date(e.loggedAt).toLocaleTimeString("en-IN") : ""}
+                      </div>
+                    </li>
+                  ))
+                )}
               </ul>
             </div>
 
@@ -139,7 +160,7 @@ function StaffDashboard() {
               </Link>
             </div>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {staffPatients.map(p => (
+              {patients.slice(0, 4).map((p: any) => (
                 <motion.div
                   key={p.id}
                   whileHover={{ scale: 1.02 }}
@@ -147,7 +168,7 @@ function StaffDashboard() {
                 >
                   <div className="flex items-center gap-2">
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold">
-                      {p.name.split(" ").map(w => w[0]).slice(0,2).join("")}
+                      {p.name.split(" ").map((w: string) => w[0]).slice(0,2).join("")}
                     </div>
                     <div className="min-w-0">
                       <div className="text-xs font-semibold text-foreground truncate">{p.name}</div>
@@ -156,7 +177,7 @@ function StaffDashboard() {
                   </div>
                   <div className="mt-2 flex items-center gap-2 text-[10px] text-muted-foreground">
                     <span className="rounded bg-muted-foreground/10 px-1.5 py-0.5">{p.bloodGroup}</span>
-                    {p.allergies.length > 0 && (
+                    {p.allergies && p.allergies.length > 0 && (
                       <span className="text-destructive">⚠ Allergy</span>
                     )}
                   </div>

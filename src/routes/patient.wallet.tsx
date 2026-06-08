@@ -5,10 +5,11 @@ import { PageHeader } from "@/components/PageHeader";
 import { CredentialCard } from "@/components/credentials/CredentialCard";
 import { CredentialPreview } from "@/components/credentials/CredentialPreview";
 import { CredentialTimeline } from "@/components/credentials/CredentialTimeline";
-import { credentials } from "@/lib/mock-data";
+import { useFabricCredentials } from "@/hooks/use-fabric";
 import { RouteGuard } from "@/components/RouteGuard";
 import { Wallet as WalletIcon, ShieldCheck, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
+import { credentials } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/patient/wallet")({
   head: () => ({ meta: [{ title: "Patient · Credentials Wallet — DID Hospital" }] }),
@@ -48,14 +49,27 @@ const previewFields: Record<string, { label: string; value: string }[]> = {
 };
 
 function Wallet() {
-  const [selected, setSelected] = useState<typeof credentials[0] | null>(null);
+  const { data: credentialsData } = useFabricCredentials();
+  const rawCredentials = credentialsData?.credentials || [];
+  
+  const liveCredentials = rawCredentials.map((c: any) => ({
+    id: c.id || c.txId || String(Math.random()),
+    type: c.type || "Verifiable Credential",
+    issuer: c.issuer || "Apollo Hospitals",
+    issuedAt: c.issuedAt || c.timestamp || "2025-01-12",
+    expiresAt: c.expiresAt || "2026-01-12",
+    status: (c.status === "revoked" ? "revoked" : "active") as "active" | "revoked" | "expired",
+  }));
+
+  const list = liveCredentials.length > 0 ? liveCredentials : credentials;
+  const [selected, setSelected] = useState<typeof list[0] | null>(null);
 
   return (
     <RouteGuard requiredRole="patient">
       <PageHeader
         eyebrow="Patient app"
         title="Credentials Wallet"
-        description={`${credentials.length} verifiable credentials · secured by Ed25519`}
+        description={`${list.length} verifiable credentials · secured by Ed25519`}
         actions={
           <div className="flex items-center gap-2 rounded-full bg-success/10 px-3 py-1.5 text-xs font-medium text-success">
             <ShieldCheck className="h-3.5 w-3.5" />
@@ -67,7 +81,7 @@ function Wallet() {
       <div className="mx-auto w-full max-w-4xl px-4 py-6 sm:px-8 space-y-6">
         {/* Credential cards */}
         <StaggerList className="grid gap-3 sm:grid-cols-2">
-          {credentials.map((c) => (
+          {list.map((c: any) => (
             <StaggerItem key={c.id}>
               <CredentialCard
                 id={c.id}

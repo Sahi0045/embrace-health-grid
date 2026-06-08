@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
-import { staffPatients, type Patient } from "@/lib/mock-data";
+import { useLivePatients } from "@/hooks/use-fabric";
 import { Search, X, Activity, Pill, FlaskConical, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { vitalSigns, medications, labTests } from "@/lib/inpatient-data";
+import type { Patient } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/staff/patients")({
   head: () => ({ meta: [{ title: "Staff · Patients — DID Hospital" }] }),
@@ -15,10 +16,13 @@ export const Route = createFileRoute("/staff/patients")({
 function Patients() {
   const [q, setQ] = useState("");
   const [selected, setSelected] = useState<Patient | null>(null);
+  const { patients: patientsList } = useLivePatients();
+  const patients = patientsList ?? [];
 
-  const filtered = staffPatients.filter((p) =>
-    [p.name, p.mrn, p.did, p.phone].some((f) => f.toLowerCase().includes(q.toLowerCase())),
+  const filtered = patients.filter((p: any) =>
+    [p.name, p.mrn, p.did, p.phone || ""].some((f) => f.toLowerCase().includes(q.toLowerCase())),
   );
+
 
   return (
     <>
@@ -51,7 +55,7 @@ function Patients() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filtered.map((p) => (
+              {filtered.map((p: any) => (
                 <tr key={p.id} className="hover:bg-muted/30">
                   <td className="px-4 py-3">
                     <div className="font-medium text-foreground">{p.name}</div>

@@ -1,0 +1,42 @@
+{
+  "appt_1": {
+    "key": "appt_1",
+    "value": {
+      "apptId": "appt_1",
+      "patientDid": "did:hosp:0x4a91b7d2",
+      "patientName": "Anika Sharma",
+      "doctorDid": "did:hosp:0xd10399aa",
+      "doctorName": "Dr. Ravi Menon",
+      "slot": "2026-06-09, 10:30 AM",
+      "mode": "in-person",
+      "specialty": "Cardiology",
+      "status": "confirmed",
+      "bookedAt": "2026-06-08T07:29:06.696Z"
+    },
+    "namespace": "appointments",
+    "version": "genesis_seed_19ea6229c88:1",
+    "updatedAt": "2026-06-08T07:29:06.702Z",
+    "txId": "genesis_seed_19ea6229c88",
+    "docType": "appointments"
+  },
+  "appt_2": {
+    "key": "appt_2",
+    "value": {
+      "apptId": "appt_2",
+      "patientDid": "did:hosp:0x91c2ee04",
+      "patientName": "Rohan Iyer",
+      "doctorDid": "did:hosp:0x55ef7711",
+      "doctorName": "Dr. Aanya Verma",
+      "slot": "2026-06-10, 04:15 PM",
+      "mode": "telemedicine",
+      "specialty": "Radiology",
+      "status": "confirmed",
+      "bookedAt": "2026-06-08T07:29:06.696Z"
+    },
+    "namespace": "appointments",
+    "version": "genesis_seed_19ea6229c88:1",
+    "updatedAt": "2026-06-08T07:29:06.702Z",
+    "txId": "genesis_seed_19ea6229c88",
+    "docType": "appointments"
+  }
+}

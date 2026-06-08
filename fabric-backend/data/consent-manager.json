@@ -1,0 +1,19 @@
+{
+  "consent_1": {
+    "key": "consent_1",
+    "value": {
+      "grantId": "consent_1",
+      "patientDid": "did:hosp:0x4a91b7d2",
+      "doctorDid": "did:hosp:0xd10399aa",
+      "resource": "medical-records",
+      "status": "active",
+      "expiry": "2026-06-18T07:29:06.702Z",
+      "grantedAt": "2026-06-08T07:29:06.696Z"
+    },
+    "namespace": "consent-manager",
+    "version": "genesis_seed_19ea6229c88:1",
+    "updatedAt": "2026-06-08T07:29:06.702Z",
+    "txId": "genesis_seed_19ea6229c88",
+    "docType": "consent-manager"
+  }
+}

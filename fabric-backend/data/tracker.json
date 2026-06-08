@@ -1,0 +1,41 @@
+{
+  "did:hosp:0xd10399aa": {
+    "key": "did:hosp:0xd10399aa",
+    "value": {
+      "staffId": "did:hosp:0xd10399aa",
+      "location": "Emergency Ward",
+      "lastPing": "2026-06-08T07:40:18.894Z"
+    },
+    "namespace": "tracker",
+    "version": "fa41b28b-6122-4312-bcff-774a45ad6680:1",
+    "updatedAt": "2026-06-08T07:40:18.894Z",
+    "txId": "fa41b28b-6122-4312-bcff-774a45ad6680",
+    "docType": "tracker"
+  },
+  "did:hosp:0x55ef7711": {
+    "key": "did:hosp:0x55ef7711",
+    "value": {
+      "staffId": "did:hosp:0x55ef7711",
+      "location": "Admin Block",
+      "lastPing": "2026-06-08T07:40:10.893Z"
+    },
+    "namespace": "tracker",
+    "version": "2c494003-7691-44fa-9111-669cba9f6b16:1",
+    "updatedAt": "2026-06-08T07:40:10.893Z",
+    "txId": "2c494003-7691-44fa-9111-669cba9f6b16",
+    "docType": "tracker"
+  },
+  "did:hosp:0x22bd44c1": {
+    "key": "did:hosp:0x22bd44c1",
+    "value": {
+      "staffId": "did:hosp:0x22bd44c1",
+      "location": "OR Suite 2",
+      "lastPing": "2026-06-08T07:38:50.872Z"
+    },
+    "namespace": "tracker",
+    "version": "13d349c2-f46f-44e5-8d2b-9363347cfc44:1",
+    "updatedAt": "2026-06-08T07:38:50.872Z",
+    "txId": "13d349c2-f46f-44e5-8d2b-9363347cfc44",
+    "docType": "tracker"
+  }
+}

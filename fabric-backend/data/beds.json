@@ -1,0 +1,302 @@
+{
+  "B-101": {
+    "key": "B-101",
+    "value": {
+      "bedId": "B-101",
+      "ward": "Ward A",
+      "status": "available",
+      "patientDid": null,
+      "updatedAt": "2026-06-08T07:29:06.696Z"
+    },
+    "namespace": "beds",
+    "version": "genesis_seed_19ea6229c88:1",
+    "updatedAt": "2026-06-08T07:29:06.701Z",
+    "txId": "genesis_seed_19ea6229c88",
+    "docType": "beds"
+  },
+  "B-102": {
+    "key": "B-102",
+    "value": {
+      "bedId": "B-102",
+      "ward": "Ward B",
+      "status": "available",
+      "patientDid": null,
+      "updatedAt": "2026-06-08T07:29:06.696Z"
+    },
+    "namespace": "beds",
+    "version": "genesis_seed_19ea6229c88:1",
+    "updatedAt": "2026-06-08T07:29:06.701Z",
+    "txId": "genesis_seed_19ea6229c88",
+    "docType": "beds"
+  },
+  "B-103": {
+    "key": "B-103",
+    "value": {
+      "bedId": "B-103",
+      "ward": "Emergency",
+      "status": "occupied",
+      "patientDid": "did:hosp:0xbe493c20",
+      "updatedAt": "2026-06-08T07:29:06.696Z"
+    },
+    "namespace": "beds",
+    "version": "genesis_seed_19ea6229c88:1",
+    "updatedAt": "2026-06-08T07:29:06.701Z",
+    "txId": "genesis_seed_19ea6229c88",
+    "docType": "beds"
+  },
+  "B-104": {
+    "key": "B-104",
+    "value": {
+      "bedId": "B-104",
+      "ward": "ICU",
+      "status": "available",
+      "patientDid": null,
+      "updatedAt": "2026-06-08T07:29:06.696Z"
+    },
+    "namespace": "beds",
+    "version": "genesis_seed_19ea6229c88:1",
+    "updatedAt": "2026-06-08T07:29:06.701Z",
+    "txId": "genesis_seed_19ea6229c88",
+    "docType": "beds"
+  },
+  "B-105": {
+    "key": "B-105",
+    "value": {
+      "bedId": "B-105",
+      "ward": "Ward A",
+      "status": "available",
+      "patientDid": null,
+      "updatedAt": "2026-06-08T07:29:06.696Z"
+    },
+    "namespace": "beds",
+    "version": "genesis_seed_19ea6229c88:1",
+    "updatedAt": "2026-06-08T07:29:06.701Z",
+    "txId": "genesis_seed_19ea6229c88",
+    "docType": "beds"
+  },
+  "B-106": {
+    "key": "B-106",
+    "value": {
+      "bedId": "B-106",
+      "ward": "Ward B",
+      "status": "occupied",
+      "patientDid": "did:hosp:0x77a312fa",
+      "updatedAt": "2026-06-08T07:29:06.696Z"
+    },
+    "namespace": "beds",
+    "version": "genesis_seed_19ea6229c88:1",
+    "updatedAt": "2026-06-08T07:29:06.701Z",
+    "txId": "genesis_seed_19ea6229c88",
+    "docType": "beds"
+  },
+  "B-107": {
+    "key": "B-107",
+    "value": {
+      "bedId": "B-107",
+      "ward": "Emergency",
+      "status": "available",
+      "patientDid": null,
+      "updatedAt": "2026-06-08T07:29:06.696Z"
+    },
+    "namespace": "beds",
+    "version": "genesis_seed_19ea6229c88:1",
+    "updatedAt": "2026-06-08T07:29:06.701Z",
+    "txId": "genesis_seed_19ea6229c88",
+    "docType": "beds"
+  },
+  "B-108": {
+    "key": "B-108",
+    "value": {
+      "bedId": "B-108",
+      "ward": "ICU",
+      "status": "available",
+      "patientDid": null,
+      "updatedAt": "2026-06-08T07:29:06.696Z"
+    },
+    "namespace": "beds",
+    "version": "genesis_seed_19ea6229c88:1",
+    "updatedAt": "2026-06-08T07:29:06.701Z",
+    "txId": "genesis_seed_19ea6229c88",
+    "docType": "beds"
+  },
+  "B-109": {
+    "key": "B-109",
+    "value": {
+      "bedId": "B-109",
+      "ward": "Ward A",
+      "status": "occupied",
+      "patientDid": "did:hosp:0x91c2ee04",
+      "updatedAt": "2026-06-08T07:29:06.696Z"
+    },
+    "namespace": "beds",
+    "version": "genesis_seed_19ea6229c88:1",
+    "updatedAt": "2026-06-08T07:29:06.701Z",
+    "txId": "genesis_seed_19ea6229c88",
+    "docType": "beds"
+  },
+  "B-110": {
+    "key": "B-110",
+    "value": {
+      "bedId": "B-110",
+      "ward": "Ward B",
+      "status": "available",
+      "patientDid": null,
+      "updatedAt": "2026-06-08T07:29:06.696Z"
+    },
+    "namespace": "beds",
+    "version": "genesis_seed_19ea6229c88:1",
+    "updatedAt": "2026-06-08T07:29:06.701Z",
+    "txId": "genesis_seed_19ea6229c88",
+    "docType": "beds"
+  },
+  "B-111": {
+    "key": "B-111",
+    "value": {
+      "bedId": "B-111",
+      "ward": "Emergency",
+      "status": "available",
+      "patientDid": null,
+      "updatedAt": "2026-06-08T07:29:06.696Z"
+    },
+    "namespace": "beds",
+    "version": "genesis_seed_19ea6229c88:1",
+    "updatedAt": "2026-06-08T07:29:06.701Z",
+    "txId": "genesis_seed_19ea6229c88",
+    "docType": "beds"
+  },
+  "B-112": {
+    "key": "B-112",
+    "value": {
+      "bedId": "B-112",
+      "ward": "ICU",
+      "status": "occupied",
+      "patientDid": "did:hosp:0x4a91b7d2",
+      "updatedAt": "2026-06-08T07:29:06.696Z"
+    },
+    "namespace": "beds",
+    "version": "genesis_seed_19ea6229c88:1",
+    "updatedAt": "2026-06-08T07:29:06.701Z",
+    "txId": "genesis_seed_19ea6229c88",
+    "docType": "beds"
+  },
+  "B-113": {
+    "key": "B-113",
+    "value": {
+      "bedId": "B-113",
+      "ward": "Ward A",
+      "status": "available",
+      "patientDid": null,
+      "updatedAt": "2026-06-08T07:29:06.696Z"
+    },
+    "namespace": "beds",
+    "version": "genesis_seed_19ea6229c88:1",
+    "updatedAt": "2026-06-08T07:29:06.701Z",
+    "txId": "genesis_seed_19ea6229c88",
+    "docType": "beds"
+  },
+  "B-114": {
+    "key": "B-114",
+    "value": {
+      "bedId": "B-114",
+      "ward": "Ward B",
+      "status": "available",
+      "patientDid": null,
+      "updatedAt": "2026-06-08T07:29:06.696Z"
+    },
+    "namespace": "beds",
+    "version": "genesis_seed_19ea6229c88:1",
+    "updatedAt": "2026-06-08T07:29:06.701Z",
+    "txId": "genesis_seed_19ea6229c88",
+    "docType": "beds"
+  },
+  "B-115": {
+    "key": "B-115",
+    "value": {
+      "bedId": "B-115",
+      "ward": "Emergency",
+      "status": "occupied",
+      "patientDid": "did:hosp:0xbe493c20",
+      "updatedAt": "2026-06-08T07:29:06.696Z"
+    },
+    "namespace": "beds",
+    "version": "genesis_seed_19ea6229c88:1",
+    "updatedAt": "2026-06-08T07:29:06.701Z",
+    "txId": "genesis_seed_19ea6229c88",
+    "docType": "beds"
+  },
+  "B-116": {
+    "key": "B-116",
+    "value": {
+      "bedId": "B-116",
+      "ward": "ICU",
+      "status": "available",
+      "patientDid": null,
+      "updatedAt": "2026-06-08T07:29:06.696Z"
+    },
+    "namespace": "beds",
+    "version": "genesis_seed_19ea6229c88:1",
+    "updatedAt": "2026-06-08T07:29:06.701Z",
+    "txId": "genesis_seed_19ea6229c88",
+    "docType": "beds"
+  },
+  "B-117": {
+    "key": "B-117",
+    "value": {
+      "bedId": "B-117",
+      "ward": "Ward A",
+      "status": "available",
+      "patientDid": null,
+      "updatedAt": "2026-06-08T07:29:06.696Z"
+    },
+    "namespace": "beds",
+    "version": "genesis_seed_19ea6229c88:1",
+    "updatedAt": "2026-06-08T07:29:06.701Z",
+    "txId": "genesis_seed_19ea6229c88",
+    "docType": "beds"
+  },
+  "B-118": {
+    "key": "B-118",
+    "value": {
+      "bedId": "B-118",
+      "ward": "Ward B",
+      "status": "occupied",
+      "patientDid": "did:hosp:0x77a312fa",
+      "updatedAt": "2026-06-08T07:29:06.696Z"
+    },
+    "namespace": "beds",
+    "version": "genesis_seed_19ea6229c88:1",
+    "updatedAt": "2026-06-08T07:29:06.701Z",
+    "txId": "genesis_seed_19ea6229c88",
+    "docType": "beds"
+  },
+  "B-119": {
+    "key": "B-119",
+    "value": {
+      "bedId": "B-119",
+      "ward": "Emergency",
+      "status": "available",
+      "patientDid": null,
+      "updatedAt": "2026-06-08T07:29:06.696Z"
+    },
+    "namespace": "beds",
+    "version": "genesis_seed_19ea6229c88:1",
+    "updatedAt": "2026-06-08T07:29:06.702Z",
+    "txId": "genesis_seed_19ea6229c88",
+    "docType": "beds"
+  },
+  "B-120": {
+    "key": "B-120",
+    "value": {
+      "bedId": "B-120",
+      "ward": "ICU",
+      "status": "available",
+      "patientDid": null,
+      "updatedAt": "2026-06-08T07:29:06.696Z"
+    },
+    "namespace": "beds",
+    "version": "genesis_seed_19ea6229c88:1",
+    "updatedAt": "2026-06-08T07:29:06.702Z",
+    "txId": "genesis_seed_19ea6229c88",
+    "docType": "beds"
+  }
+}

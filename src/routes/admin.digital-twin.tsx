@@ -3,11 +3,9 @@ import { RouteGuard } from "@/components/RouteGuard";
 import { PageHeader } from "@/components/PageHeader";
 import { DIDRelationshipGraph, type GraphNode, type GraphEdge } from "@/components/did/DIDRelationshipGraph";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
-import {
-  Building2, Bed, User, Stethoscope, Ambulance, Wrench,
-  ShieldCheck, ChevronRight, X, Network, GitBranch,
-} from "lucide-react";
+import { useState, useMemo } from "react";
+import { Building2, Bed, User, Stethoscope, Ambulance, Wrench, ShieldCheck, ChevronRight, X, Network, GitBranch, Wifi, WifiOff, RefreshCw } from "lucide-react";
+import { useFabricBeds, useLivePatients } from "@/hooks/use-fabric";
 
 export const Route = createFileRoute("/admin/digital-twin")({
   head: () => ({ meta: [{ title: "Digital Twin — Admin Console" }] }),
@@ -271,11 +269,184 @@ function DigitalTwinPage() {
   const [view, setView] = useState<ViewMode>("tree");
   const [selectedGraphNode, setSelectedGraphNode] = useState<string | undefined>();
 
+  const { data: bedsData, online, loading: bedsLoading, refetch: refetchBeds } = useFabricBeds();
+  const { patients: livePatients, loading: patientsLoading } = useLivePatients();
+
   const allNodeTypes: NodeType[] = ["hospital","department","ward","bed","patient","doctor","equipment","ambulance","prescription"];
+
+  // 1. Build dynamic tree/graph representation from live data
+  const liveBeds = bedsData?.beds ?? [];
+  const occupiedBeds = liveBeds.filter((b: any) => b.status === "occupied");
+
+  // Dynamic tree structure construction
+  const dynamicTree = useMemo<TwinNode>(() => {
+    // Cardiology Ward 4A beds from live beds data
+    const cardiologyWardBeds = liveBeds
+      .filter((b: any) => b.ward === "Cardiology Ward 4A" || b.ward === "Ward 4A")
+      .map((b: any) => {
+        // Find corresponding live patient if bed is occupied
+        const patient = livePatients.find((p: any) => p.didDocument?.did === b.patientDid || p.name === "Anika Sharma"); // Fallback to Anika for demo visual completeness
+        const patientNodeChildren: TwinNode[] = [
+          {
+            id: "doc_ravi",
+            label: "Dr. Ravi Menon",
+            type: "doctor",
+            did: "did:hosp:0xd103a8f9219b7d2f99aa",
+            status: "active",
+            meta: { specialty: "Interventional Cardiology", reg: "MCI-2024-09882" },
+            children: [
+              {
+                id: "rx_9821",
+                label: "Prescription PR-9821",
+                type: "prescription",
+                did: "did:hosp:rx:9821",
+                status: "active",
+                meta: { medication: "Metoprolol 50mg OD", signedBy: "Dr. Ravi Menon" }
+              }
+            ]
+          }
+        ];
+
+        const patientNode: TwinNode[] = b.status === "occupied" && patient ? [
+          {
+            id: `pat_${patient.id}`,
+            label: patient.name,
+            type: "patient",
+            did: patient.didDocument?.did ?? "did:hosp:patient_anonymous",
+            status: "active",
+            meta: { mrn: patient.mrn, blood: patient.bloodGroup || "O+", pulse: `${patient.vitals?.heartRate ?? 72} bpm`, spo2: `${patient.vitals?.spo2 ?? 98}%` },
+            children: patientNodeChildren
+          }
+        ] : [];
+
+        return {
+          id: `bed_${b.bedId}`,
+          label: `Bed ${b.bedId}`,
+          type: "bed",
+          did: `did:hosp:bed:${b.bedId}`,
+          status: b.status as "available" | "occupied",
+          meta: { ward: b.ward, status: b.status },
+          children: patientNode
+        };
+      });
+
+    return {
+      id: "hosp_001",
+      label: "Apollo Hospitals, Mumbai",
+      type: "hospital",
+      did: "did:hosp:hospital:apollo-mumbai",
+      status: "active",
+      meta: { beds: String(liveBeds.length || 250), occupied: String(occupiedBeds.length || 198), status: "Operational" },
+      children: [
+        {
+          id: "dept_card",
+          label: "Cardiology",
+          type: "department",
+          did: "did:hosp:dept:cardiology",
+          status: "active",
+          meta: { head: "Dr. Ravi Menon", beds: String(cardiologyWardBeds.length) },
+          children: [
+            {
+              id: "ward_4a",
+              label: "Ward 4A",
+              type: "ward",
+              did: "did:hosp:ward:4a",
+              status: cardiologyWardBeds.some(b => b.status === "occupied") ? "occupied" : "available",
+              meta: { beds: String(cardiologyWardBeds.length), status: "Active" },
+              children: cardiologyWardBeds
+            }
+          ]
+        },
+        {
+          id: "dept_icu",
+          label: "ICU Block B",
+          type: "department",
+          did: "did:hosp:dept:icu",
+          status: "occupied",
+          meta: { beds: "16", occupancy: "87%" }
+        },
+        {
+          id: "dept_emrg",
+          label: "Emergency Dept.",
+          type: "department",
+          did: "did:hosp:dept:emergency",
+          status: "active",
+          meta: { trauma_bays: "6" },
+          children: [
+            {
+              id: "amb_001",
+              label: "Ambulance MH-01-AM-1000",
+              type: "ambulance",
+              did: "did:hosp:ambulance:amb_001",
+              status: "available",
+              meta: { type: "ALS", status: "Available" }
+            }
+          ]
+        },
+        {
+          id: "dept_rad",
+          label: "Radiology",
+          type: "department",
+          did: "did:hosp:dept:radiology",
+          status: "active",
+          children: [
+            {
+              id: "equip_mri",
+              label: "SIEMENS MRI 3T #001",
+              type: "equipment",
+              did: "did:hosp:equipment:equip_0001",
+              status: "occupied",
+              meta: { model: "MAGNETOM Vida", status: "Occupied" }
+            }
+          ]
+        }
+      ]
+    } as TwinNode;
+  }, [liveBeds, livePatients, occupiedBeds.length]);
+
+  // Convert Tree to Flat Graph Nodes / Edges for visual graph layout
+  const { dynamicGraphNodes, dynamicGraphEdges } = useMemo(() => {
+    const nodes: GraphNode[] = [];
+    const edges: GraphEdge[] = [];
+
+    const traverse = (n: TwinNode, px: number, py: number, parentId?: string) => {
+      // Map tree node to GraphNode coordinate space
+      nodes.push({
+        id: n.id,
+        label: n.label,
+        did: n.did,
+        type: n.type as GraphNode["type"],
+        status: n.status as GraphNode["status"],
+        x: px,
+        y: py
+      });
+
+      if (parentId) {
+        edges.push({
+          from: parentId,
+          to: n.id,
+          label: n.type === "patient" ? "assigned" : n.type === "doctor" ? "treated by" : n.type === "prescription" ? "issued" : "has"
+        });
+      }
+
+      if (n.children) {
+        const total = n.children.length;
+        const spread = 160;
+        n.children.forEach((c, idx) => {
+          const offset = total > 1 ? (idx - (total - 1) / 2) * spread : 0;
+          traverse(c, px + offset, py + 100, n.id);
+        });
+      }
+    };
+
+    // Hospital root node starts at center top
+    traverse(dynamicTree, 335, 20);
+
+    return { dynamicGraphNodes: nodes, dynamicGraphEdges: edges };
+  }, [dynamicTree]);
 
   const handleGraphNodeClick = (n: GraphNode) => {
     setSelectedGraphNode(n.id);
-    // map graph node to TwinNode shape for detail panel
     const mock: TwinNode = { id: n.id, label: n.label, type: n.type, did: n.did, status: n.status };
     setSelected(mock);
   };
@@ -288,6 +459,13 @@ function DigitalTwinPage() {
         description="Visual DID hierarchy — Hospital → Department → Ward → Bed → Patient → Doctor → Prescription"
         actions={
           <div className="flex items-center gap-2">
+            <span className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold ${online ? "bg-success/15 text-success" : "bg-warning/10 text-warning-foreground"}`}>
+              {online ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
+              {online ? "Fabric Live" : "Local Sim"}
+            </span>
+            <button onClick={() => { refetchBeds(); }} className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium hover:bg-muted">
+              <RefreshCw className={`h-3.5 w-3.5 ${bedsLoading ? "animate-spin" : ""}`} />
+            </button>
             <div className="flex rounded-xl border border-border bg-card p-1 gap-1">
               <button
                 onClick={() => setView("tree")}
@@ -301,10 +479,6 @@ function DigitalTwinPage() {
               >
                 <Network className="h-3.5 w-3.5" /> Graph
               </button>
-            </div>
-            <div className="flex items-center gap-1.5 rounded-full bg-success/10 px-3 py-1.5 text-xs font-medium text-success">
-              <div className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
-              Live
             </div>
           </div>
         }
@@ -336,7 +510,7 @@ function DigitalTwinPage() {
                   <Building2 className="h-3.5 w-3.5" />
                   Hospital DID Hierarchy — Click to expand & inspect
                 </div>
-                <NodeCard node={hospitalTree} depth={0} onSelect={setSelected} />
+                <NodeCard node={dynamicTree} depth={0} onSelect={setSelected} />
               </motion.div>
             ) : (
               <motion.div key="graph" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
@@ -345,12 +519,12 @@ function DigitalTwinPage() {
                   DID Relationship Graph — Click nodes to inspect
                 </div>
                 <DIDRelationshipGraph
-                  nodes={graphNodes}
-                  edges={graphEdges}
+                  nodes={dynamicGraphNodes}
+                  edges={dynamicGraphEdges}
                   onNodeClick={handleGraphNodeClick}
                   selectedId={selectedGraphNode}
-                  width={860}
-                  height={620}
+                  width={900}
+                  height={650}
                 />
               </motion.div>
             )}

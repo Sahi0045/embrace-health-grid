@@ -25,9 +25,17 @@ const statusTone: Record<Policy["status"], string> = {
 
 function PoliciesPage() {
   const loading = useSimulatedLoading(450);
-  const [list, setList] = useState(policies);
+  const [list, setList] = useState<Policy[]>(() => {
+    const saved = localStorage.getItem("did_hospital_policies");
+    return saved ? JSON.parse(saved) : policies;
+  });
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<Category>("All");
+
+  const saveList = (newList: Policy[]) => {
+    setList(newList);
+    localStorage.setItem("did_hospital_policies", JSON.stringify(newList));
+  };
 
   const filtered = list.filter((p) => {
     const matchesCat = cat === "All" || p.category === cat;
@@ -36,14 +44,42 @@ function PoliciesPage() {
   });
 
   const toggleArchive = (id: string) => {
-    setList((prev) =>
-      prev.map((p) =>
-        p.id === id
-          ? { ...p, status: p.status === "archived" ? "active" : "archived", updatedAt: new Date().toISOString().slice(0, 10) }
-          : p,
-      ),
+    const updated = list.map((p) =>
+      p.id === id
+        ? { ...p, status: (p.status === "archived" ? "active" : "archived") as Policy["status"], updatedAt: new Date().toISOString().slice(0, 10) }
+        : p
     );
+    saveList(updated);
     toast("Policy updated");
+
+    import("@/lib/fabric-api").then(({ fabricLogAuditEvent }) => {
+      fabricLogAuditEvent("admin", `policy:${id}`, "toggle_policy_archive", "success", "info");
+    });
+  };
+
+  const handleCreate = () => {
+    const name = prompt("Policy name?");
+    if (!name) return;
+    const description = prompt("Policy description?");
+    if (!description) return;
+    const categoryInput = prompt("Category? (Consent / Access control / Retention / Audit)", "Consent");
+    if (!categoryInput) return;
+
+    const newPol: Policy = {
+      id: `p_${Date.now()}`,
+      name,
+      category: categoryInput as Policy["category"],
+      status: "draft",
+      updatedAt: new Date().toISOString().slice(0, 10),
+      description,
+    };
+
+    saveList([newPol, ...list]);
+    toast.success("Policy created in Draft status");
+
+    import("@/lib/fabric-api").then(({ fabricLogAuditEvent }) => {
+      fabricLogAuditEvent("admin", `policy:${newPol.id}`, "create_policy", "success", "info");
+    });
   };
 
   return (
@@ -53,7 +89,10 @@ function PoliciesPage() {
         title="Policy management"
         description="Define and audit the rules that govern identity, consent, and data access across the hospital."
         actions={
-          <button className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-clinical hover:bg-primary/90">
+          <button 
+            onClick={handleCreate}
+            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-clinical hover:bg-primary/90"
+          >
             <Plus className="h-4 w-4" /> New policy
           </button>
         }

@@ -3,6 +3,7 @@ import { QrPlaceholder } from "@/components/QrPlaceholder";
 import { PageHeader } from "@/components/PageHeader";
 import { RouteGuard } from "@/components/RouteGuard";
 import { currentPatient } from "@/lib/mock-data";
+import { useLivePatients } from "@/hooks/use-fabric";
 import { RefreshCw, Lock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -12,6 +13,9 @@ export const Route = createFileRoute("/patient/qr")({
 });
 
 function PatientQr() {
+  const { patients: patientsList } = useLivePatients();
+  const patient = patientsList?.[0] || currentPatient;
+
   return (
     <RouteGuard requiredRole="patient">
       <div className="mx-auto w-full max-w-md px-4 py-6 sm:px-6">
@@ -22,12 +26,12 @@ function PatientQr() {
         />
 
         <div className="mt-6 flex flex-col items-center text-center">
-          <div className="text-lg font-semibold">{currentPatient.name}</div>
-          <div className="text-sm text-muted-foreground">{currentPatient.mrn}</div>
+          <div className="text-lg font-semibold">{patient.name}</div>
+          <div className="text-sm text-muted-foreground">{patient.mrn}</div>
 
           <Card className="mt-6 w-full">
             <CardContent className="flex justify-center p-6">
-              <QrPlaceholder value={currentPatient.did} size={260} />
+              <QrPlaceholder value={patient.did} size={260} />
             </CardContent>
           </Card>
 

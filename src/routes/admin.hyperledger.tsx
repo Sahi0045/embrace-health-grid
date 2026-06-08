@@ -1,10 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { RouteGuard } from "@/components/RouteGuard";
 import { PageHeader } from "@/components/PageHeader";
-import { StaggerList, StaggerItem } from "@/components/Motion";
-import { getLedger, getWorldState, submitHyperledgerTransaction, type Block, registerLedgerListener } from "@/lib/hyperledger";
-import { Database, Cpu, Layers, RefreshCw, Send, CheckCircle, Clock, Key, ShieldCheck, Terminal, Search, HelpCircle } from "lucide-react";
+import {
+  getLedger, getWorldState, getNetworkStats, getDIDRegistry,
+  submitHyperledgerTransaction, resetHyperledger, resolveDID,
+  registerLedgerListener, registerWorldStateListener, unregisterLedgerListener,
+  type Block, type WorldStateEntry, type NetworkStats, type DIDDocument,
+} from "@/lib/hyperledger";
+import { Database, Cpu, Layers, Send, CheckCircle, Clock, ShieldCheck, Terminal, Search, RefreshCw, Trash2, Activity, Key, Globe } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
@@ -13,361 +17,419 @@ export const Route = createFileRoute("/admin/hyperledger")({
   component: HyperledgerConsolePage,
 });
 
+type Tab = "blocks" | "couchdb" | "did" | "console";
+
 function HyperledgerConsolePage() {
   const [blocks, setBlocks] = useState<Block[]>([]);
-  const [couchDb, setCouchDb] = useState<Record<string, any>>({});
-  const [activeTab, setActiveTab] = useState<"blocks" | "couchdb" | "console">("blocks");
+  const [worldState, setWorldState] = useState<Record<string, WorldStateEntry>>({});
+  const [didRegistry, setDidRegistry] = useState<Record<string, DIDDocument>>({});
+  const [stats, setStats] = useState<NetworkStats | null>(null);
+  const [activeTab, setActiveTab] = useState<Tab>("blocks");
   const [searchKey, setSearchKey] = useState("");
-  
-  // Custom Transaction Proposal States
+  const [didQuery, setDidQuery] = useState("");
+  const [resolvedDID, setResolvedDID] = useState<DIDDocument | null>(null);
   const [chaincode, setChaincode] = useState("did-registry");
   const [fcn, setFcn] = useState("createDID");
-  const [argsInput, setArgsInput] = useState("did:hosp:0x88fe, Dr. Sameer Khan");
+  const [argsInput, setArgsInput] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState(new Date().toLocaleTimeString());
 
-  useEffect(() => {
-    // Initial fetch
+  const refresh = useCallback(() => {
     setBlocks(getLedger());
-    setCouchDb(getWorldState());
-
-    // Register block updates listener
-    registerLedgerListener((newBlock) => {
-      setBlocks((prev) => [...prev, newBlock]);
-      setCouchDb(getWorldState());
-    });
+    setWorldState(getWorldState());
+    setDidRegistry(getDIDRegistry());
+    setStats(getNetworkStats());
+    setLastUpdate(new Date().toLocaleTimeString());
   }, []);
 
-  const handleCustomTransaction = async (e: React.FormEvent) => {
+  useEffect(() => {
+    refresh();
+
+    const blockCb = (block: Block) => {
+      setBlocks((p) => [...p, block]);
+      setStats(getNetworkStats());
+      setLastUpdate(new Date().toLocaleTimeString());
+    };
+    const wsCb = (ws: Record<string, WorldStateEntry>) => {
+      setWorldState({ ...ws });
+      setDidRegistry(getDIDRegistry());
+    };
+
+    registerLedgerListener(blockCb);
+    registerWorldStateListener(wsCb);
+
+    // Poll every 3s for cross-tab updates
+    const poll = setInterval(refresh, 3000);
+    return () => {
+      unregisterLedgerListener(blockCb);
+      clearInterval(poll);
+    };
+  }, [refresh]);
+
+  const handleSubmitTx = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-
-    const parsedArgs = argsInput.split(",").map(arg => arg.trim());
     try {
-      await submitHyperledgerTransaction(chaincode, fcn, parsedArgs);
+      const args = argsInput.split(",").map((a) => a.trim()).filter(Boolean);
+      await submitHyperledgerTransaction(chaincode, fcn, args);
       setArgsInput("");
-      toast.success("Transaction committed to block log");
-    } catch (err) {
-      toast.error("Failed to commit transaction proposal");
+      refresh();
+    } catch {
+      toast.error("Transaction failed");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const getFilteredDbKeys = () => {
-    return Object.keys(couchDb).filter(key => 
-      key.toLowerCase().includes(searchKey.toLowerCase()) || 
-      JSON.stringify(couchDb[key]).toLowerCase().includes(searchKey.toLowerCase())
-    );
+  const handleResolveDID = () => {
+    const doc = resolveDID(didQuery.trim());
+    if (doc) setResolvedDID(doc);
+    else toast.error("DID not found in registry");
   };
+
+  const filteredWsKeys = Object.keys(worldState).filter(
+    (k) => k.toLowerCase().includes(searchKey.toLowerCase()) ||
+      JSON.stringify(worldState[k]).toLowerCase().includes(searchKey.toLowerCase())
+  );
+
+  const filteredDIDs = Object.keys(didRegistry).filter(
+    (k) => k.toLowerCase().includes(searchKey.toLowerCase()) ||
+      didRegistry[k].owner.toLowerCase().includes(searchKey.toLowerCase())
+  );
+
+  const tabs: { id: Tab; label: string; icon: typeof Layers; count?: number }[] = [
+    { id: "blocks", label: "Ledger Blocks", icon: Layers, count: blocks.length },
+    { id: "couchdb", label: "CouchDB World State", icon: Database, count: Object.keys(worldState).length },
+    { id: "did", label: "DID Registry", icon: Key, count: Object.keys(didRegistry).length },
+    { id: "console", label: "Chaincode Sandbox", icon: Terminal },
+  ];
 
   return (
     <RouteGuard requiredRole="admin">
-      <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
-        
-        <PageHeader
-          eyebrow="Admin Console"
-          title="Hyperledger Fabric Console & Database Resolver"
-          description="Live CouchDB world state monitor, Raft ordering cluster tracker, and transactional peer validator."
-        />
+      <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
 
-        {/* Node stats cards */}
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="flex items-start justify-between flex-wrap gap-3">
+          <PageHeader
+            eyebrow="Hyperledger Fabric — embrace-health-channel"
+            title="Blockchain Console & Live Database"
+            description="Real-time block explorer, CouchDB world state browser, DID registry, and chaincode execution sandbox."
+          />
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <span className="text-[10px] text-muted-foreground font-mono">Updated: {lastUpdate}</span>
+            <button onClick={refresh} className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold hover:bg-muted">
+              <RefreshCw className="h-3.5 w-3.5" /> Refresh
+            </button>
+            <button onClick={() => { resetHyperledger(); refresh(); }} className="inline-flex items-center gap-1.5 rounded-lg border border-destructive/50 bg-destructive/10 px-3 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/20">
+              <Trash2 className="h-3.5 w-3.5" /> Reset Chain
+            </button>
+          </div>
+        </div>
+
+        {/* Live Network Stats */}
+        {stats && (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
+            {[
+              { label: "Block Height", value: stats.blockHeight, icon: Layers, color: "text-primary" },
+              { label: "Transactions", value: stats.txCount, icon: Activity, color: "text-success" },
+              { label: "DID Records", value: Object.keys(didRegistry).length, icon: Key, color: "text-primary" },
+              { label: "World State Keys", value: stats.worldStateSize, icon: Database, color: "text-warning-foreground" },
+              { label: "Peer Nodes", value: stats.peerCount, icon: Globe, color: "text-success" },
+              { label: "Orderer Nodes", value: stats.ordererCount, icon: Cpu, color: "text-success" },
+              { label: "Chaincodes", value: stats.chaincodeCount, icon: ShieldCheck, color: "text-primary" },
+            ].map((s, i) => (
+              <div key={i} className="rounded-xl border border-border bg-card px-4 py-3 shadow-clinical flex items-center justify-between gap-2">
+                <div>
+                  <div className="text-[10px] text-muted-foreground uppercase tracking-wider">{s.label}</div>
+                  <div className={`text-xl font-black mt-0.5 ${s.color}`}>{s.value}</div>
+                </div>
+                <s.icon className={`h-5 w-5 ${s.color} opacity-60`} />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Peer Status Row */}
+        <div className="flex gap-3 flex-wrap">
           {[
-            { label: "Endorsing Peers", value: "2 Nodes Active", sub: "Org1Peer0, Org2Peer0", status: "text-success", icon: ShieldCheck },
-            { label: "Raft Ordering Service", value: "3 Nodes Consensus", sub: "raft-orderer-01a", status: "text-success", icon: Cpu },
-            { label: "World State DB", value: "CouchDB v3.2.2", sub: "Ledger Key-Value Sync", status: "text-primary", icon: Database },
-            { label: "Block Height", value: `Height: ${blocks.length}`, sub: "Chain height logged", status: "text-success", icon: Layers },
-          ].map((stat, i) => (
-            <div key={i} className="rounded-xl border border-border bg-card p-4 shadow-clinical space-y-2">
-              <div className="flex justify-between items-start">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{stat.label}</span>
-                <stat.icon className="h-4 w-4 text-primary" />
-              </div>
-              <div>
-                <div className="text-sm font-bold text-foreground">{stat.value}</div>
-                <div className="text-[10px] text-muted-foreground mt-0.5">{stat.sub}</div>
-              </div>
+            { name: "Org1Peer0MSP (Apollo Main)", status: "Running" },
+            { name: "Org1Peer1MSP (Apollo Satellite)", status: "Running" },
+            { name: "Org2Peer0MSP (Registry Authority)", status: "Running" },
+            { name: "raft-orderer-01a.hosp", status: "Leader" },
+            { name: "raft-orderer-02b.hosp", status: "Follower" },
+            { name: "raft-orderer-03c.hosp", status: "Follower" },
+          ].map((p, i) => (
+            <div key={i} className="flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-[10px] font-mono">
+              <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
+              <span className="font-semibold text-foreground">{p.name}</span>
+              <span className="text-muted-foreground">· {p.status}</span>
             </div>
           ))}
         </div>
 
-        {/* Tab Selection */}
-        <div className="flex border-b border-border text-xs font-semibold gap-4">
-          {[
-            { id: "blocks", label: "Ledger Blocks", icon: Layers },
-            { id: "couchdb", label: "CouchDB World State", icon: Database },
-            { id: "console", label: "Chaincode Sandbox", icon: Terminal }
-          ].map(t => (
-            <button
-              key={t.id}
-              onClick={() => setActiveTab(t.id as any)}
-              className={`flex items-center gap-1.5 pb-2.5 px-1 border-b-2 transition-colors ${activeTab === t.id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
-            >
+        {/* Tabs */}
+        <div className="flex border-b border-border gap-1">
+          {tabs.map((t) => (
+            <button key={t.id} onClick={() => setActiveTab(t.id)}
+              className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold border-b-2 transition-colors ${activeTab === t.id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
               <t.icon className="h-3.5 w-3.5" />
               {t.label}
+              {t.count !== undefined && (
+                <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold ${activeTab === t.id ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
+                  {t.count}
+                </span>
+              )}
             </button>
           ))}
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-4">
-
-          {/* Left panel / Console options or state metrics */}
-          <div className="lg:col-span-1 space-y-4">
-            
-            <div className="rounded-xl border border-border bg-card p-5 shadow-clinical space-y-3">
-              <h3 className="text-xs font-bold text-foreground flex items-center gap-1">
-                <Cpu className="h-4 w-4 text-primary" /> Consensus Monitor
-              </h3>
-              <div className="space-y-3 text-xs">
-                <div className="rounded-lg bg-muted/50 p-2.5 border border-border space-y-1.5">
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Orderer Raft Node:</span>
-                    <span className="font-semibold text-success flex items-center gap-1">
-                      <div className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" /> Running
-                    </span>
-                  </div>
-                  <div className="h-1 w-full bg-border rounded-full overflow-hidden">
-                    <div className="h-full bg-success w-[90%]" />
-                  </div>
-                </div>
-
-                <div className="rounded-lg bg-muted/50 p-2.5 border border-border space-y-1.5">
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Endorsement Policy:</span>
-                    <span className="font-semibold text-foreground">AND(Org1, Org2)</span>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground">
-                    Transactions require endorsement from both Apollo Node and Registry Node before committing.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-border bg-card p-5 shadow-clinical text-xs space-y-2">
-              <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-wider block">Peer Connection Info</span>
-              <div className="font-mono space-y-1 text-muted-foreground text-[10px]">
-                <div>GRPC: grpcs://peer0.org1.hosp:7051</div>
-                <div>TLS CERT: /crypto/peer/tls/ca.crt</div>
-                <div>CHANNEL: embrace-health-channel</div>
-              </div>
-            </div>
-
+        {/* Search bar for DB tabs */}
+        {(activeTab === "couchdb" || activeTab === "did") && (
+          <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/40 px-4 py-2.5 max-w-sm">
+            <Search className="h-4 w-4 text-muted-foreground" />
+            <input value={searchKey} onChange={(e) => setSearchKey(e.target.value)}
+              placeholder={activeTab === "did" ? "Search DID or owner…" : "Search key or value…"}
+              className="bg-transparent text-xs outline-none w-full text-foreground placeholder:text-muted-foreground" />
           </div>
+        )}
 
-          {/* Right main view content */}
-          <div className="lg:col-span-3">
-            <AnimatePresence mode="wait">
-              
-              {/* Blocks Explorer View */}
-              {activeTab === "blocks" && (
-                <motion.div
-                  key="blocks"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  className="space-y-4"
-                >
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
-                      <Layers className="h-4.5 w-4.5 text-primary" /> Block Ledger Chain
-                    </h3>
+        <AnimatePresence mode="wait">
+          {/* ── Ledger Blocks ── */}
+          {activeTab === "blocks" && (
+            <motion.div key="blocks" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-3">
+              {blocks.length === 0 && (
+                <div className="rounded-xl border border-border bg-card p-12 text-center text-muted-foreground">
+                  <Layers className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                  No blocks yet. Submit a transaction to create the first block.
+                </div>
+              )}
+              {[...blocks].reverse().map((block) => (
+                <div key={block.blockNumber} className="rounded-xl border border-border bg-card p-5 shadow-clinical hover:border-primary/20 transition-colors space-y-3">
+                  <div className="flex items-center justify-between flex-wrap gap-2 border-b border-border pb-3">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="bg-primary/10 text-primary font-black text-sm rounded-lg px-3 py-1">Block #{block.blockNumber}</span>
+                      <span className="text-[10px] font-mono text-muted-foreground">{block.timestamp}</span>
+                      <span className="text-[10px] font-mono text-muted-foreground">CH: {block.channelId}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-mono text-muted-foreground">via {block.metadata.orderer}</span>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-success/15 border border-success/20 px-2 py-0.5 text-[9px] font-bold text-success">
+                        <CheckCircle className="h-3 w-3" /> VALID
+                      </span>
+                    </div>
                   </div>
-
-                  <div className="space-y-4">
-                    {blocks.slice().reverse().map((block) => (
-                      <div key={block.blockNumber} className="rounded-xl border border-border bg-card p-5 shadow-clinical space-y-3 hover:border-primary/20 transition-colors">
-                        <div className="flex items-center justify-between border-b border-border pb-2.5">
-                          <div className="flex items-center gap-2">
-                            <span className="bg-primary/10 text-primary text-xs font-bold rounded-lg px-2.5 py-1">
-                              Block #{block.blockNumber}
-                            </span>
-                            <span className="text-[10px] text-muted-foreground font-mono">
-                              Committed at {block.timestamp}
-                            </span>
-                          </div>
-                          <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-[9px] font-bold text-success border border-success/20">
-                            <CheckCircle className="h-3 w-3" /> Validated Ledger
+                  <div className="grid sm:grid-cols-2 gap-2 font-mono text-[10px]">
+                    <div><span className="text-muted-foreground font-sans">Data Hash: </span><span className="text-foreground break-all">{block.dataHash}</span></div>
+                    <div><span className="text-muted-foreground font-sans">Prev Hash: </span><span className="text-muted-foreground break-all">{block.previousHash}</span></div>
+                  </div>
+                  <div className="bg-muted/40 rounded-lg p-3 border border-border space-y-2">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                      <Clock className="h-3 w-3" /> Transactions ({block.transactions.length})
+                    </div>
+                    {block.transactions.map((tx) => (
+                      <div key={tx.txId} className="text-xs space-y-1 pt-1 border-t border-border/40 first:border-0 first:pt-0">
+                        <div className="flex justify-between flex-wrap gap-1">
+                          <span className="font-mono font-bold text-foreground">{tx.txId}</span>
+                          <span className="font-mono rounded bg-primary/10 text-primary px-1.5 py-0.5 text-[9px]">
+                            {tx.chaincode}::{tx.fcn}()
                           </span>
                         </div>
-
-                        <div className="grid gap-2 sm:grid-cols-2 text-xs font-mono">
-                          <div>
-                            <span className="text-[10px] text-muted-foreground block font-sans">Block Hash</span>
-                            <span className="text-foreground text-[10px] break-all">{block.dataHash}</span>
-                          </div>
-                          <div>
-                            <span className="text-[10px] text-muted-foreground block font-sans">Prev Hash</span>
-                            <span className="text-muted-foreground text-[10px] break-all">{block.previousHash}</span>
-                          </div>
-                        </div>
-
-                        {/* Block Transactions */}
-                        <div className="mt-3 bg-muted/40 rounded-lg p-3 border border-border">
-                          <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1">
-                            <Clock className="h-3 w-3" /> Transaction Proposal Payload
-                          </div>
-                          {block.transactions.map((tx) => (
-                            <div key={tx.txId} className="space-y-2 text-xs">
-                              <div className="flex justify-between items-start flex-wrap gap-1">
-                                <span className="font-bold text-foreground font-mono">{tx.txId}</span>
-                                <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[9px] font-semibold text-primary font-mono">
-                                  CC: {tx.chaincode} {"->"} {tx.fcn}()
-                                </span>
-                              </div>
-                              <div className="text-muted-foreground text-[11px]">
-                                <span className="font-bold text-foreground font-sans">Parameters: </span>
-                                <span className="font-mono">{JSON.stringify(tx.args)}</span>
-                              </div>
-                              <div className="flex gap-2 text-[10px] text-muted-foreground flex-wrap items-center mt-1 pt-1.5 border-t border-border/40">
-                                <span className="font-sans font-bold">Endorsement Certs:</span>
-                                {tx.endorsers.map((end, idx) => (
-                                  <span key={idx} className="bg-muted px-1.5 py-0.5 rounded border border-border font-mono">{end}</span>
-                                ))}
-                              </div>
-                            </div>
+                        <div className="text-muted-foreground font-mono text-[10px]">Args: {JSON.stringify(tx.args)}</div>
+                        <div className="flex gap-1 flex-wrap">
+                          {tx.endorsers.map((e, i) => (
+                            <span key={i} className="bg-muted border border-border rounded px-1.5 py-0.5 text-[9px] font-mono">{e}</span>
                           ))}
                         </div>
                       </div>
                     ))}
                   </div>
-                </motion.div>
-              )}
+                </div>
+              ))}
+            </motion.div>
+          )}
 
-              {/* CouchDB Database Browser View */}
-              {activeTab === "couchdb" && (
-                <motion.div
-                  key="couchdb"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  className="space-y-4"
-                >
-                  <div className="rounded-xl border border-border bg-card p-4 shadow-clinical flex flex-col sm:flex-row items-center justify-between gap-3">
-                    <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
-                      <Database className="h-4.5 w-4.5 text-primary" /> CouchDB World State StateDB
-                    </h3>
-                    <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 py-1.5 w-full sm:max-w-xs">
-                      <Search className="h-4 w-4 text-muted-foreground" />
-                      <input
-                        type="text"
-                        placeholder="Query keys or state values..."
-                        value={searchKey}
-                        onChange={(e) => setSearchKey(e.target.value)}
-                        className="w-full bg-transparent text-xs text-foreground outline-none placeholder:text-muted-foreground"
-                      />
+          {/* ── CouchDB World State ── */}
+          {activeTab === "couchdb" && (
+            <motion.div key="couchdb" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+              <div className="rounded-xl border border-border bg-card overflow-hidden shadow-clinical">
+                <table className="w-full text-xs text-left">
+                  <thead className="bg-muted text-muted-foreground uppercase text-[10px] font-bold tracking-wider">
+                    <tr>
+                      <th className="px-4 py-3">Namespace:Key</th>
+                      <th className="px-4 py-3">JSON State Document</th>
+                      <th className="px-4 py-3">Tx Version</th>
+                      <th className="px-4 py-3">Updated At</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {filteredWsKeys.length === 0 && (
+                      <tr><td colSpan={4} className="px-4 py-12 text-center text-muted-foreground">
+                        <Database className="h-10 w-10 mx-auto mb-2 opacity-20" />
+                        World State empty — submit transactions to populate.
+                      </td></tr>
+                    )}
+                    {filteredWsKeys.map((k) => {
+                      const entry = worldState[k];
+                      return (
+                        <tr key={k} className="hover:bg-muted/30">
+                          <td className="px-4 py-3 font-mono text-primary font-bold break-all max-w-[180px]">{k}</td>
+                          <td className="px-4 py-3">
+                            <pre className="font-mono text-[9px] bg-muted/60 p-2 rounded border border-border overflow-x-auto max-w-xs">{JSON.stringify(entry.value, null, 2)}</pre>
+                          </td>
+                          <td className="px-4 py-3 font-mono text-[9px] text-muted-foreground">{entry.version}</td>
+                          <td className="px-4 py-3 text-[10px] text-muted-foreground">{entry.updatedAt}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ── DID Registry ── */}
+          {activeTab === "did" && (
+            <motion.div key="did" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-4">
+              {/* DID resolver */}
+              <div className="rounded-xl border border-border bg-card p-5 shadow-clinical space-y-3">
+                <h3 className="text-sm font-bold text-foreground flex items-center gap-2"><Key className="h-4 w-4 text-primary" /> DID Resolver</h3>
+                <div className="flex gap-2">
+                  <input value={didQuery} onChange={(e) => setDidQuery(e.target.value)}
+                    placeholder="did:hosp:0x…"
+                    className="flex-1 rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs font-mono text-foreground outline-none" />
+                  <button onClick={handleResolveDID} className="rounded-lg bg-primary text-primary-foreground px-4 py-2 text-xs font-bold hover:bg-primary/90">
+                    Resolve
+                  </button>
+                </div>
+                {resolvedDID && (
+                  <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="rounded-lg border border-border bg-muted/30 p-4 space-y-3 text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono font-bold text-primary">{resolvedDID.did}</span>
+                      <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${resolvedDID.status === "active" ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"}`}>
+                        {resolvedDID.status.toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="grid sm:grid-cols-3 gap-2">
+                      <div><span className="text-muted-foreground">Owner:</span><p className="font-semibold mt-0.5">{resolvedDID.owner}</p></div>
+                      <div><span className="text-muted-foreground">Type:</span><p className="font-semibold mt-0.5 capitalize">{resolvedDID.ownerType}</p></div>
+                      <div><span className="text-muted-foreground">Created:</span><p className="font-semibold mt-0.5">{resolvedDID.createdAt}</p></div>
+                    </div>
+                    <div><span className="text-muted-foreground">Public Key:</span><p className="font-mono text-[9px] break-all mt-0.5 bg-muted p-1.5 rounded">{resolvedDID.publicKey}</p></div>
+                    <div>
+                      <span className="text-muted-foreground font-bold">Verifiable Credentials ({resolvedDID.credentials.length})</span>
+                      <div className="flex flex-wrap gap-1.5 mt-1">
+                        {resolvedDID.credentials.map((vc) => (
+                          <span key={vc.id} className={`rounded-full px-2 py-0.5 text-[9px] font-bold border ${vc.status === "active" ? "bg-success/10 text-success border-success/20" : "bg-muted text-muted-foreground border-border"}`}>
+                            {vc.type}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </div>
+
+              {/* DID Table */}
+              <div className="rounded-xl border border-border bg-card overflow-hidden shadow-clinical">
+                <table className="w-full text-xs text-left">
+                  <thead className="bg-muted text-muted-foreground uppercase text-[10px] font-bold tracking-wider">
+                    <tr>
+                      <th className="px-4 py-3">DID</th>
+                      <th className="px-4 py-3">Owner</th>
+                      <th className="px-4 py-3">Type</th>
+                      <th className="px-4 py-3">Status</th>
+                      <th className="px-4 py-3">Credentials</th>
+                      <th className="px-4 py-3">Created</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {filteredDIDs.length === 0 && (
+                      <tr><td colSpan={6} className="px-4 py-10 text-center text-muted-foreground">No DID records found. Store is initializing…</td></tr>
+                    )}
+                    {filteredDIDs.slice(0, 50).map((did) => {
+                      const doc = didRegistry[did];
+                      return (
+                        <tr key={did} className="hover:bg-muted/30 cursor-pointer" onClick={() => { setDidQuery(did); setResolvedDID(doc); setActiveTab("did"); }}>
+                          <td className="px-4 py-3 font-mono text-primary text-[10px] font-bold max-w-[160px] truncate">{did}</td>
+                          <td className="px-4 py-3 font-semibold text-foreground">{doc.owner}</td>
+                          <td className="px-4 py-3 capitalize text-muted-foreground">{doc.ownerType}</td>
+                          <td className="px-4 py-3">
+                            <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${doc.status === "active" ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}`}>
+                              {doc.status}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-muted-foreground">{doc.credentials.length} VC{doc.credentials.length !== 1 ? "s" : ""}</td>
+                          <td className="px-4 py-3 text-[10px] text-muted-foreground">{doc.createdAt}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ── Chaincode Sandbox ── */}
+          {activeTab === "console" && (
+            <motion.div key="console" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-4">
+              <div className="rounded-xl border border-border bg-card p-6 shadow-clinical space-y-5">
+                <h3 className="text-sm font-bold flex items-center gap-2"><Terminal className="h-4 w-4 text-primary" /> Execute Chaincode Transaction</h3>
+                <form onSubmit={handleSubmitTx} className="space-y-4">
+                  <div className="grid sm:grid-cols-3 gap-4 text-xs">
+                    <div className="space-y-1.5">
+                      <label className="font-bold text-muted-foreground uppercase text-[10px]">Chaincode</label>
+                      <select value={chaincode} onChange={(e) => setChaincode(e.target.value)}
+                        className="w-full rounded-lg border border-border bg-muted/40 p-2.5 text-foreground outline-none">
+                        <option>did-registry</option>
+                        <option>consent-manager</option>
+                        <option>billing-chaincode</option>
+                        <option>tracker-chaincode</option>
+                        <option>appointments-chaincode</option>
+                        <option>credential-issuer</option>
+                        <option>audit-chaincode</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="font-bold text-muted-foreground uppercase text-[10px]">Function</label>
+                      <input value={fcn} onChange={(e) => setFcn(e.target.value)}
+                        className="w-full rounded-lg border border-border bg-muted/40 p-2.5 text-foreground outline-none font-mono"
+                        placeholder="e.g. createDID" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="font-bold text-muted-foreground uppercase text-[10px]">Args (comma-separated)</label>
+                      <input value={argsInput} onChange={(e) => setArgsInput(e.target.value)}
+                        className="w-full rounded-lg border border-border bg-muted/40 p-2.5 text-foreground outline-none font-mono"
+                        placeholder="arg1, arg2, arg3" />
                     </div>
                   </div>
+                  <button type="submit" disabled={isSubmitting}
+                    className="inline-flex items-center gap-2 rounded-xl bg-primary text-primary-foreground px-5 py-2.5 text-sm font-bold hover:bg-primary/90 disabled:opacity-50">
+                    <Send className="h-4 w-4" />
+                    {isSubmitting ? "Endorsing… Ordering… Committing…" : "Submit Transaction Proposal"}
+                  </button>
+                </form>
 
-                  <div className="rounded-xl border border-border bg-card overflow-hidden shadow-clinical">
-                    <table className="w-full text-xs text-left">
-                      <thead className="bg-muted text-muted-foreground uppercase font-bold tracking-wider">
-                        <tr>
-                          <th className="px-4 py-3">State Document Key</th>
-                          <th className="px-4 py-3">JSON Value Document</th>
-                          <th className="px-4 py-3 text-right">DB Action</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border">
-                        {getFilteredDbKeys().map((key) => (
-                          <tr key={key} className="hover:bg-muted/30">
-                            <td className="px-4 py-3.5 font-mono text-primary font-bold">{key}</td>
-                            <td className="px-4 py-3.5">
-                              <pre className="font-mono text-[10px] text-foreground bg-muted/65 p-2 rounded border border-border overflow-x-auto max-w-lg">
-                                {JSON.stringify(couchDb[key], null, 2)}
-                              </pre>
-                            </td>
-                            <td className="px-4 py-3.5 text-right font-sans text-muted-foreground">
-                              <span className="inline-flex items-center gap-1 rounded bg-success/10 text-success text-[10px] px-1.5 py-0.5 font-bold">
-                                Committed
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-
-                        {getFilteredDbKeys().length === 0 && (
-                          <tr>
-                            <td colSpan={3} className="px-4 py-12 text-center text-muted-foreground">
-                              <Database className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                              CouchDB CouchState is empty. Execute transactions to populate the database.
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </motion.div>
-              )}
-
-              {/* Chaincode Sandbox Console View */}
-              {activeTab === "console" && (
-                <motion.div
-                  key="console"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  className="space-y-4"
-                >
-                  <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
-                    <Terminal className="h-4.5 w-4.5 text-primary" /> Chaincode Exec Console Sandbox
-                  </h3>
-
-                  <div className="rounded-xl border border-border bg-card p-5 shadow-clinical space-y-4">
-                    <form onSubmit={handleCustomTransaction} className="space-y-4 text-xs">
-                      <div className="grid gap-4 sm:grid-cols-3">
-                        <div className="space-y-1">
-                          <label className="font-bold text-muted-foreground uppercase text-[10px]">Chaincode ID</label>
-                          <select
-                            value={chaincode}
-                            onChange={(e) => setChaincode(e.target.value)}
-                            className="w-full rounded-lg border border-border bg-card p-2 text-foreground outline-none"
-                          >
-                            <option value="did-registry">did-registry</option>
-                            <option value="consent-manager">consent-manager</option>
-                            <option value="billing">billing</option>
-                            <option value="tracker">tracker</option>
-                          </select>
-                        </div>
-
-                        <div className="space-y-1">
-                          <label className="font-bold text-muted-foreground uppercase text-[10px]">Smart Contract Function</label>
-                          <input
-                            type="text"
-                            value={fcn}
-                            onChange={(e) => setFcn(e.target.value)}
-                            className="w-full rounded-lg border border-border bg-card p-2 text-foreground outline-none"
-                            placeholder="e.g. createDID"
-                          />
-                        </div>
-
-                        <div className="space-y-1">
-                          <label className="font-bold text-muted-foreground uppercase text-[10px]">Proposal Arguments (Comma Separated)</label>
-                          <input
-                            type="text"
-                            value={argsInput}
-                            onChange={(e) => setArgsInput(e.target.value)}
-                            className="w-full rounded-lg border border-border bg-card p-2 text-foreground outline-none font-mono"
-                            placeholder="did:hosp:0x88fe, Dr. Sameer"
-                          />
-                        </div>
-                      </div>
-
-                      <button
-                        type="submit"
-                        disabled={isSubmitting}
-                        className="inline-flex items-center gap-1.5 rounded-xl bg-primary text-primary-foreground px-4 py-2.5 font-bold hover:bg-primary/90 disabled:opacity-50"
-                      >
-                        <Send className="h-4 w-4" /> {isSubmitting ? "Invoking Chaincode..." : "Submit Transaction Proposal"}
+                {/* Quick-fire presets */}
+                <div className="border-t border-border pt-4 space-y-2">
+                  <div className="text-[10px] font-bold uppercase text-muted-foreground tracking-wider">Quick Presets</div>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { label: "Register Patient DID", cc: "did-registry", fn: "createDID", args: "did:hosp:0xabc123, John Doe, patient, did:hosp:consortium" },
+                      { label: "Grant Consent", cc: "consent-manager", fn: "grantConsent", args: "GRANT-001, did:hosp:patient1, did:hosp:doctor1, MedicalRecords" },
+                      { label: "Record Payment", cc: "billing-chaincode", fn: "recordPayment", args: "did:hosp:pat1, Jane Smith, 4500, consultation, REF-123" },
+                      { label: "Log Audit", cc: "audit-chaincode", fn: "logEvent", args: "Admin, Records, READ, SUCCESS" },
+                    ].map((p) => (
+                      <button key={p.label}
+                        onClick={() => { setChaincode(p.cc); setFcn(p.fn); setArgsInput(p.args); }}
+                        className="rounded-lg border border-border bg-muted/40 px-3 py-1.5 text-[10px] font-semibold hover:bg-muted transition-colors">
+                        {p.label}
                       </button>
-                    </form>
+                    ))}
                   </div>
-                </motion.div>
-              )}
-
-            </AnimatePresence>
-          </div>
-
-        </div>
-
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </RouteGuard>
   );

@@ -1,6 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { StaggerList, StaggerItem } from "@/components/Motion";
-import { currentPatient, consents, appointments } from "@/lib/mock-data";
+import { currentPatient } from "@/lib/mock-data";
+import {
+  useLivePatients,
+  useFabricConsents,
+  useFabricAppointments,
+} from "@/hooks/use-fabric";
 import { QrCode, Wallet, ShieldCheck, History, Heart, ChevronRight, BellRing, CalendarDays, Activity, ClipboardList, Syringe, CreditCard, Video, Users2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { RouteGuard } from "@/components/RouteGuard";
@@ -27,15 +32,30 @@ const quickActions: { to: string; label: string; icon: React.ComponentType<{ cla
 ];
 
 function PatientHome() {
-  const pendingConsents = consents.filter((c) => c.status === "pending").length;
-  const nextVisit = appointments.find((a) => a.status === "upcoming");
+  const { patients } = useLivePatients();
+  const { data: consentsData } = useFabricConsents();
+  const { data: apptsData } = useFabricAppointments();
+
+  const patientRecord = patients?.find((p: any) => p.id === "pat_001") || currentPatient;
+  const pendingConsents = consentsData?.consents?.filter((c: any) => c.status === "pending" || c.status === "requested")?.length ?? 0;
+  
+  // Find upcoming appointment
+  const patientAppts = apptsData?.appointments?.filter((a: any) => a.patientDid === patientRecord.did) ?? [];
+  const nextVisit = patientAppts.find((a: any) => a.status === "confirmed" || a.status === "upcoming" || a.status === "upcoming-visit") as any;
+
+  const displayNextVisit = nextVisit ? {
+    doctor: nextVisit.doctorName || nextVisit.doctorDid || "Doctor Specialist",
+    specialty: nextVisit.specialty || "General Medicine",
+    time: nextVisit.slot || "Confirmed Appointment Slot"
+  } : null;
+
 
   return (
     <RouteGuard requiredRole="patient">
       <div className="mx-auto w-full max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
         <PageHeader
           eyebrow="Patient app"
-          title={`Good morning, ${currentPatient.name.split(" ")[0]}`}
+          title={`Good morning, ${patientRecord.name.split(" ")[0]}`}
           description="Your health summary and quick actions"
         />
 
@@ -50,11 +70,11 @@ function PatientHome() {
                 <span>Hospital DID</span>
                 <span className="rounded-full bg-white/20 px-2 py-0.5">Verified</span>
               </div>
-              <div className="mt-2 font-mono text-sm">{currentPatient.did}</div>
+              <div className="mt-2 font-mono text-sm">{patientRecord.did}</div>
               <div className="mt-4 flex items-end justify-between">
                 <div>
                   <div className="text-[10px] uppercase tracking-wider opacity-70">MRN</div>
-                  <div className="text-sm font-medium">{currentPatient.mrn}</div>
+                  <div className="text-sm font-medium">{patientRecord.mrn}</div>
                 </div>
                 <Link to="/patient/qr" className="inline-flex items-center gap-1 rounded-full bg-white/15 px-3 py-1.5 text-xs font-medium backdrop-blur hover:bg-white/25 transition-colors">
                   Check-in QR <ChevronRight className="h-3 w-3" />
@@ -84,7 +104,7 @@ function PatientHome() {
           {/* Two-column row: next visit + emergency info */}
           <StaggerItem>
             <div className="grid gap-4 sm:grid-cols-2">
-              {nextVisit && (
+              {displayNextVisit && (
                 <Link
                   to="/patient/appointments"
                   className="block rounded-xl border border-border bg-card p-4 transition-shadow hover:shadow-clinical-md"
@@ -93,8 +113,8 @@ function PatientHome() {
                     <div className="text-[10px] font-medium uppercase tracking-wider text-primary">Next visit</div>
                     <ChevronRight className="h-4 w-4 text-muted-foreground" />
                   </div>
-                  <div className="mt-1 text-sm font-semibold text-foreground">{nextVisit.doctor}</div>
-                  <div className="text-xs text-muted-foreground">{nextVisit.specialty} · {nextVisit.time}</div>
+                  <div className="mt-1 text-sm font-semibold text-foreground">{displayNextVisit.doctor}</div>
+                  <div className="text-xs text-muted-foreground">{displayNextVisit.specialty} · {displayNextVisit.time}</div>
                 </Link>
               )}
 
@@ -106,18 +126,19 @@ function PatientHome() {
                 <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
                   <div>
                     <div className="text-muted-foreground">Blood group</div>
-                    <div className="font-semibold text-foreground">{currentPatient.bloodGroup}</div>
+                    <div className="font-semibold text-foreground">{patientRecord.bloodGroup}</div>
                   </div>
                   <div>
                     <div className="text-muted-foreground">Allergies</div>
                     <div className="font-semibold text-foreground">
-                      {currentPatient.allergies.join(", ") || "None"}
+                      {patientRecord.allergies.join(", ") || "None"}
                     </div>
                   </div>
                 </div>
               </div>
             </div>
           </StaggerItem>
+
 
           {/* Quick actions grid */}
           <StaggerItem>

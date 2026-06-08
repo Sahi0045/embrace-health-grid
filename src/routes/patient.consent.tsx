@@ -7,6 +7,8 @@ import { ConsentCard, type ConsentRecord } from "@/components/consent/ConsentCar
 import { ConsentHistory } from "@/components/consent/ConsentHistory";
 import { ConsentToggle } from "@/components/consent/ConsentToggle";
 import { consents as initial } from "@/lib/mock-data";
+import { useFabricConsents } from "@/hooks/use-fabric";
+import { fabricRevokeConsent, fabricGrantConsent } from "@/lib/fabric-api";
 import { toast } from "sonner";
 import { ShieldCheck, History, Settings2 } from "lucide-react";
 
@@ -27,25 +29,50 @@ type Tab = "active" | "history" | "preferences";
 
 function Consent() {
   const [tab, setTab] = useState<Tab>("active");
-  const [list, setList] = useState<ConsentRecord[]>(
-    initial.map(c => ({ ...c, status: c.status as ConsentRecord["status"] }))
-  );
+  const { data: consentsData, refetch } = useFabricConsents();
 
-  const handleRevoke = (id: string) => {
-    setList(prev => prev.map(c => c.id === id ? { ...c, status: "revoked" as const } : c));
-    const c = list.find(x => x.id === id);
-    toast.success(`Access revoked from ${c?.requester}`);
+  const liveList = (consentsData?.consents || []).map((c: any) => ({
+    id: c.id || c.txId || String(Math.random()),
+    requester: c.requester || c.doctorName || c.doctorDid || "Doctor Specialist",
+    requesterRole: c.requesterRole || "Medical Specialist",
+    reason: c.reason || "Patient Care and Record Access",
+    grantedAt: c.grantedAt || c.timestamp || "2026-06-08",
+    expiresAt: c.expiresAt || "2026-07-08",
+    status: (c.status === "granted" || c.status === "active" ? "active" : (c.status === "requested" || c.status === "pending" ? "pending" : c.status)) as ConsentRecord["status"],
+  }));
+
+  const list = liveList.length > 0 ? liveList : initial.map(c => ({ ...c, status: c.status as ConsentRecord["status"] }));
+
+  const handleRevoke = async (id: string) => {
+    try {
+      const c = list.find(x => x.id === id);
+      await fabricRevokeConsent(id);
+      toast.success(`Access revoked from ${c?.requester}`);
+      refetch();
+    } catch (err: any) {
+      toast.error(`Failed to revoke consent: ${err.message}`);
+    }
   };
 
-  const handleApprove = (id: string) => {
-    setList(prev => prev.map(c => c.id === id ? { ...c, status: "active" as const } : c));
-    const c = list.find(x => x.id === id);
-    toast.success(`Consent approved for ${c?.requester}`);
+  const handleApprove = async (id: string) => {
+    try {
+      const c = list.find(x => x.id === id);
+      await fabricGrantConsent(
+        "did:hosp:0x4a91…b7d2",
+        c?.requester || "did:hosp:0xd103…99aa",
+        c?.reason || "General care"
+      );
+      toast.success(`Consent approved for ${c?.requester}`);
+      refetch();
+    } catch (err: any) {
+      toast.error(`Failed to approve consent: ${err.message}`);
+    }
   };
 
   const active = list.filter(c => c.status === "active");
   const pending = list.filter(c => c.status === "pending");
   const history = list.filter(c => c.status === "revoked" || c.status === "expired");
+
 
   return (
     <RouteGuard requiredRole="patient">

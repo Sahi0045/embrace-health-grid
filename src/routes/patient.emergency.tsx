@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { StaggerList, StaggerItem } from "@/components/Motion";
 import { EmergencyAccessCard, type EmergencyAccessEvent } from "@/components/emergency/EmergencyAccessCard";
 import { currentPatient } from "@/lib/mock-data";
+import { useLivePatients } from "@/hooks/use-fabric";
 import { Heart, AlertTriangle, User, Phone, Droplets, ShieldAlert, QrCode, Activity } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState } from "react";
@@ -37,6 +38,8 @@ function SeverityBadge({ severity }: { severity: string }) {
 }
 
 function EmergencyPage() {
+  const { patients: patientsList } = useLivePatients();
+  const patient = patientsList?.[0] || currentPatient;
   const [showQr, setShowQr] = useState(false);
 
   return (
@@ -71,14 +74,14 @@ function EmergencyPage() {
               <div className="grid gap-5 sm:grid-cols-3">
                 <div>
                   <div className="text-[10px] uppercase tracking-wider opacity-70 mb-1">Patient</div>
-                  <div className="text-lg font-bold">{currentPatient.name}</div>
-                  <div className="text-sm opacity-80">{currentPatient.mrn} · Age {currentPatient.age} · {currentPatient.gender === "F" ? "Female" : "Male"}</div>
+                  <div className="text-lg font-bold">{patient.name}</div>
+                  <div className="text-sm opacity-80">{patient.mrn} · Age {patient.age} · {patient.gender === "F" ? "Female" : "Male"}</div>
                 </div>
                 <div>
                   <div className="text-[10px] uppercase tracking-wider opacity-70 mb-1">Blood Group</div>
                   <div className="flex items-center gap-2">
                     <Droplets className="h-5 w-5 text-red-200" />
-                    <span className="text-3xl font-bold">{currentPatient.bloodGroup}</span>
+                    <span className="text-3xl font-bold">{patient.bloodGroup}</span>
                   </div>
                 </div>
                 <div>
@@ -100,7 +103,7 @@ function EmergencyPage() {
                 Known Allergies
               </div>
               <div className="flex flex-wrap gap-2">
-                {currentPatient.allergies.map((a) => (
+                {patient.allergies && patient.allergies.map((a: string) => (
                   <span key={a} className="rounded-lg bg-destructive/15 px-3 py-1.5 text-sm font-semibold text-destructive">{a}</span>
                 ))}
               </div>
@@ -189,8 +192,8 @@ function EmergencyPage() {
               <QrCode className="h-32 w-32 text-foreground/30" />
             </div>
             <div className="mt-4 rounded-lg bg-destructive/10 p-3">
-              <div className="text-xs font-semibold text-destructive">{currentPatient.name}</div>
-              <div className="text-[11px] text-muted-foreground">{currentPatient.bloodGroup} · {currentPatient.allergies.join(", ")}</div>
+              <div className="text-xs font-semibold text-destructive">{patient.name}</div>
+              <div className="text-[11px] text-muted-foreground">{patient.bloodGroup} · {patient.allergies && patient.allergies.join(", ")}</div>
             </div>
             <button onClick={() => setShowQr(false)} className="mt-4 w-full rounded-xl bg-muted py-2 text-sm font-medium text-muted-foreground hover:bg-muted/80 transition-colors">
               Close

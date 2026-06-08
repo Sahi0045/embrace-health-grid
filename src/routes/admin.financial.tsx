@@ -1,301 +1,232 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { RouteGuard } from "@/components/RouteGuard";
 import { PageHeader, StatCard } from "@/components/PageHeader";
-import { StaggerList, StaggerItem } from "@/components/Motion";
-import { mockPatients, type PatientFull } from "@/lib/mock-patients";
-import { Search, Receipt, CreditCard, User, History, Shield, Download, FileText, CheckCircle, AlertTriangle, Printer, HelpCircle } from "lucide-react";
+import { getLivePatients, getLiveTransactions, recordPayment, storeEvents, type LivePatient, type LiveTransaction } from "@/lib/realtime-store";
+import { resolveDID, queryWorldState } from "@/lib/hyperledger";
+import { Search, Receipt, CreditCard, History, Shield, Download, FileText, CheckCircle, AlertTriangle, Printer, Key } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import { submitHyperledgerTransaction } from "@/lib/hyperledger";
 
 export const Route = createFileRoute("/admin/financial")({
   head: () => ({ meta: [{ title: "Financials — Admin Console" }] }),
   component: AdminFinancialPage,
 });
 
-interface Transaction {
-  id: string;
-  patientName: string;
-  did: string;
-  category: "consultation" | "pharmacy" | "lab" | "room" | "surgery";
-  amount: number;
-  status: "paid" | "outstanding" | "refunded";
-  date: string;
-  reference: string;
-}
-
-const mockTransactions: Transaction[] = [
-  { id: "tx1", patientName: "Anika Sharma", did: "did:hosp:0x4a91…b7d2", category: "consultation", amount: 1500, status: "paid", date: "2026-06-03", reference: "REF-98124A" },
-  { id: "tx2", patientName: "Rohan Iyer", did: "did:hosp:0x91c2…ee04", category: "pharmacy", amount: 4820, status: "paid", date: "2026-06-02", reference: "REF-10948B" },
-  { id: "tx3", patientName: "Meera Pillai", did: "did:hosp:0x77a3…12fa", category: "room", amount: 15000, status: "outstanding", date: "2026-06-02", reference: "REF-99211C" },
-  { id: "tx4", patientName: "Karthik Rao", did: "did:hosp:0xbe49…3c20", category: "lab", amount: 3500, status: "paid", date: "2026-06-01", reference: "REF-33928D" },
-  { id: "tx5", patientName: "Anika Sharma", did: "did:hosp:0x4a91…b7d2", category: "surgery", amount: 85000, status: "paid", date: "2026-05-28", reference: "REF-88421E" },
-  { id: "tx6", patientName: "Sanjay Verma", did: "did:hosp:0x33ef…aa10", category: "consultation", amount: 1500, status: "refunded", date: "2026-05-27", reference: "REF-77621F" }
-];
-
-const categoryTotals = {
-  consultation: 245000,
-  pharmacy: 890000,
-  lab: 420000,
-  room: 1560000,
-  surgery: 3450000
-};
-
 function AdminFinancialPage() {
   const [didQuery, setDidQuery] = useState("");
-  const [selectedPatient, setSelectedPatient] = useState<PatientFull | null>(null);
-  const [showInvoice, setShowInvoice] = useState<Transaction | null>(null);
+  const [selectedPatient, setSelectedPatient] = useState<LivePatient | null>(null);
+  const [showInvoice, setShowInvoice] = useState<LiveTransaction | null>(null);
+  const [transactions, setTransactions] = useState<LiveTransaction[]>([]);
+  const [lastUpdate, setLastUpdate] = useState(new Date().toLocaleTimeString());
 
-  // Financial statistics
-  const totalRevenue = 6565000;
-  const outstandingDues = 485000;
-  const refundsProcessed = 32000;
-  const transactionVolume = 2840;
+  const refresh = useCallback(() => {
+    setTransactions(getLiveTransactions());
+    setLastUpdate(new Date().toLocaleTimeString());
+  }, []);
+
+  useEffect(() => {
+    refresh();
+    const handler = () => refresh();
+    storeEvents.addEventListener("payment:recorded", handler);
+    const poll = setInterval(refresh, 5000);
+    return () => {
+      storeEvents.removeEventListener("payment:recorded", handler);
+      clearInterval(poll);
+    };
+  }, [refresh]);
 
   const handleSearch = () => {
-    const trimmed = didQuery.trim();
-    if (!trimmed) return;
-    
-    // Find patient in mockPatients by DID or Name
-    const found = mockPatients.find(p => p.did.toLowerCase().includes(trimmed.toLowerCase()) || p.name.toLowerCase().includes(trimmed.toLowerCase()));
-    
+    const q = didQuery.trim().toLowerCase();
+    if (!q) return;
+    const patients = getLivePatients();
+    const found = patients.find((p) =>
+      p.did.toLowerCase().includes(q) ||
+      p.name.toLowerCase().includes(q) ||
+      p.mrn.toLowerCase().includes(q)
+    );
     if (found) {
       setSelectedPatient(found);
-      toast.success("Patient profile retrieved via DID authentication");
-      // Invoke simulated Hyperledger transaction
-      submitHyperledgerTransaction("financial-ledger-chaincode", "resolvePatientDID", [
-        found.did,
-        found.name,
-        "Admin Console Resolution"
-      ]);
+      toast.success("Patient resolved via DID", { description: `${found.name} — ${found.did}` });
     } else {
-      toast.error("DID not found", { description: "Please enter a valid patient DID or name" });
+      toast.error("Not found", { description: "No patient matches that DID, name, or MRN." });
     }
   };
 
-  const downloadStatement = () => {
+  const handleRecordPayment = async (category: LiveTransaction["category"]) => {
     if (!selectedPatient) return;
-    toast.success("Financial statement generated", { description: `Statement PDF for ${selectedPatient.name} downloaded successfully.` });
-    // Invoke simulated Hyperledger transaction
-    submitHyperledgerTransaction("financial-ledger-chaincode", "generateFinancialStatement", [
-      selectedPatient.did,
-      selectedPatient.name
-    ]);
+    const amounts: Record<string, number> = { consultation: 1500, pharmacy: 3200, lab: 2800, room: 12000, surgery: 65000 };
+    await recordPayment(selectedPatient, amounts[category] ?? 2000, category);
+    refresh();
   };
 
-  const generateMockInvoice = (tx: Transaction) => {
-    setShowInvoice(tx);
-  };
+  const fmt = (v: number) => `₹${v.toLocaleString("en-IN")}`;
 
-  const fmt = (val: number) => `₹${val.toLocaleString("en-IN")}`;
+  const totalRevenue = transactions.filter((t) => t.status === "paid").reduce((s, t) => s + t.amount, 0);
+  const outstanding = transactions.filter((t) => t.status === "outstanding").reduce((s, t) => s + t.amount, 0);
+  const refunded = transactions.filter((t) => t.status === "refunded").reduce((s, t) => s + t.amount, 0);
+
+  // Revenue by category
+  const byCategory = transactions.reduce<Record<string, number>>((acc, t) => {
+    if (t.status === "paid") acc[t.category] = (acc[t.category] ?? 0) + t.amount;
+    return acc;
+  }, {});
+  const maxCat = Math.max(...Object.values(byCategory), 1);
+
+  // Blockchain billing records
+  const billingRecords = queryWorldState("billing");
 
   return (
     <RouteGuard requiredRole="admin">
       <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
-        
+
         <PageHeader
-          eyebrow="Admin Console"
+          eyebrow={`Admin Console — Last sync ${lastUpdate}`}
           title="Financial Ledger & Identity Lookup"
-          description="Authenticate patient profiles using DIDs and track end-to-end healthcare payments."
+          description="Live blockchain-backed payment records, DID-based patient resolution, and real-time revenue analytics."
         />
 
-        {/* Financial Metrics */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label="Total Revenue Settled" value={fmt(totalRevenue)} icon={Receipt} tone="success" delta="62% coverage ratio" />
-          <StatCard label="Outstanding Dues" value={fmt(outstandingDues)} icon={AlertTriangle} tone="destructive" delta="Pending insurance claim audits" />
-          <StatCard label="Refunds Settled" value={fmt(refundsProcessed)} icon={History} tone="default" delta="Approved by compliance" />
-          <StatCard label="Transactions Settled" value={transactionVolume.toLocaleString()} icon={CreditCard} tone="default" delta="+184 settled today" />
+          <StatCard label="Revenue Settled" value={fmt(totalRevenue)} icon={Receipt} tone="success" delta={`${transactions.filter(t => t.status === "paid").length} transactions`} />
+          <StatCard label="Outstanding Dues" value={fmt(outstanding)} icon={AlertTriangle} tone="destructive" delta={`${transactions.filter(t => t.status === "outstanding").length} pending`} />
+          <StatCard label="Refunds Processed" value={fmt(refunded)} icon={History} tone="default" delta={`${transactions.filter(t => t.status === "refunded").length} refunds`} />
+          <StatCard label="On-Chain Records" value={billingRecords.length.toString()} icon={Key} tone="default" delta="Hyperledger committed" />
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
-          
-          {/* Main search and profile retrieval */}
           <div className="lg:col-span-2 space-y-6">
-            
-            {/* Patient DID Lookup */}
+
+            {/* DID Lookup */}
             <div className="rounded-xl border border-border bg-card p-5 shadow-clinical space-y-4">
               <div className="flex items-center gap-2">
                 <Search className="h-5 w-5 text-primary" />
-                <h3 className="text-sm font-bold text-foreground">Patient DID Resolution</h3>
+                <h3 className="text-sm font-bold">Patient DID Resolution</h3>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Enter the patient's DID or name to retrieve verified medical histories, active admission files, and payment statements.
-              </p>
-              
+              <p className="text-xs text-muted-foreground">Resolve patients from the live Hyperledger DID registry using DID, name, or MRN.</p>
               <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="e.g. did:hosp:0x4a91…b7d2 or Anika Sharma"
-                  value={didQuery}
-                  onChange={(e) => setDidQuery(e.target.value)}
-                  className="flex-1 rounded-xl border border-border bg-muted/50 px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/20"
-                />
-                <button
-                  onClick={handleSearch}
-                  className="rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:bg-primary/90"
-                >
+                <input value={didQuery} onChange={(e) => setDidQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                  placeholder="did:hosp:0x… or Anika Sharma or MRN-200000"
+                  className="flex-1 rounded-xl border border-border bg-muted/50 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/20" />
+                <button onClick={handleSearch} className="rounded-xl bg-primary text-primary-foreground px-4 py-2.5 text-sm font-bold hover:bg-primary/90">
                   Resolve DID
                 </button>
               </div>
-
-              {/* Suggestions */}
               <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
-                <span>Quick demo DIDs:</span>
-                {mockPatients.slice(0, 3).map(p => (
-                  <button
-                    key={p.id}
-                    onClick={() => { setDidQuery(p.did); setSelectedPatient(p); toast.success("Sample DID resolved"); }}
-                    className="underline hover:text-primary"
-                  >
-                    {p.name}
-                  </button>
+                <span>Quick resolve:</span>
+                {getLivePatients().slice(0, 3).map((p) => (
+                  <button key={p.id} onClick={() => { setDidQuery(p.did); setSelectedPatient(p); }}
+                    className="underline hover:text-primary">{p.name}</button>
                 ))}
               </div>
             </div>
 
-            {/* Resolved Profile Details */}
+            {/* Resolved Patient */}
             <AnimatePresence mode="wait">
               {selectedPatient && (
-                <motion.div
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -12 }}
-                  className="rounded-xl border border-border bg-card p-6 shadow-clinical space-y-5"
-                >
+                <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}
+                  className="rounded-xl border border-border bg-card p-6 shadow-clinical space-y-5">
                   <div className="flex items-start justify-between border-b border-border pb-4">
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h2 className="text-lg font-bold text-foreground">{selectedPatient.name}</h2>
-                        <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2.5 py-0.5 text-[10px] font-bold text-success">
-                          <CheckCircle className="h-3 w-3" /> DID Verified
+                        <h2 className="text-lg font-bold">{selectedPatient.name}</h2>
+                        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${selectedPatient.isOnChain ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"}`}>
+                          <CheckCircle className="h-3 w-3" />
+                          {selectedPatient.isOnChain ? "DID Verified On-Chain" : "Pending DID Registration"}
                         </span>
                       </div>
                       <p className="font-mono text-xs text-muted-foreground mt-0.5">{selectedPatient.did}</p>
                     </div>
-                    <button
-                      onClick={downloadStatement}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-bold text-foreground hover:bg-muted"
-                    >
-                      <Download className="h-3.5 w-3.5" /> Download Statement
+                    <button onClick={() => toast.success("Statement generated", { description: `PDF for ${selectedPatient.name}` })}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-bold hover:bg-muted">
+                      <Download className="h-3.5 w-3.5" /> Download
                     </button>
                   </div>
 
-                  {/* Summary grid */}
                   <div className="grid gap-4 sm:grid-cols-3 text-xs">
-                    <div>
-                      <span className="text-muted-foreground">MRN</span>
-                      <p className="font-semibold text-foreground mt-0.5">{selectedPatient.mrn}</p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Demographics</span>
-                      <p className="font-semibold text-foreground mt-0.5">{selectedPatient.age}y · {selectedPatient.gender === "M" ? "Male" : "Female"}</p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Blood Type</span>
-                      <p className="font-semibold text-foreground mt-0.5">{selectedPatient.bloodGroup}</p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Contact</span>
-                      <p className="font-semibold text-foreground mt-0.5">{selectedPatient.phone}</p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Insurance provider</span>
-                      <p className="font-semibold text-primary mt-0.5">{selectedPatient.insuranceProvider}</p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Policy Number</span>
-                      <p className="font-mono text-foreground mt-0.5">{selectedPatient.insurancePolicyNo}</p>
-                    </div>
+                    {[
+                      ["MRN", selectedPatient.mrn],
+                      ["Demographics", `${selectedPatient.age}y · ${selectedPatient.gender === "M" ? "Male" : "Female"}`],
+                      ["Blood Type", selectedPatient.bloodGroup],
+                      ["Contact", selectedPatient.phone],
+                      ["Insurance", selectedPatient.insuranceProvider],
+                      ["Policy", selectedPatient.insurancePolicyNo],
+                    ].map(([k, v]) => (
+                      <div key={k}>
+                        <span className="text-muted-foreground">{k}</span>
+                        <p className="font-semibold mt-0.5">{v}</p>
+                      </div>
+                    ))}
                   </div>
 
-                  {/* Admission records */}
-                  <div className="rounded-lg bg-muted/50 p-4 border border-border space-y-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">Admission & Ward Placement</span>
-                    <div className="grid gap-2 sm:grid-cols-3 text-xs">
-                      <div>
-                        <span className="text-muted-foreground">Location</span>
-                        <p className="font-semibold text-foreground mt-0.5">{selectedPatient.ward} Bed {selectedPatient.bed}</p>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Primary Physician</span>
-                        <p className="font-semibold text-foreground mt-0.5">{selectedPatient.primaryDoctor}</p>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Admission Date</span>
-                        <p className="font-semibold text-foreground mt-0.5">{selectedPatient.admitDate}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Diagnostics, History & Prescriptions */}
-                  <div className="grid gap-4 sm:grid-cols-2 text-xs">
-                    
-                    <div className="rounded-lg border border-border p-3 space-y-2">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">Prescriptions</span>
-                      <div className="space-y-1">
-                        {selectedPatient.conditions.slice(0, 3).map((c, i) => (
-                          <div key={i} className="flex justify-between items-center bg-card p-1.5 rounded border border-border">
-                            <span className="font-semibold text-foreground">{c} Meds Plan</span>
-                            <span className="text-[10px] text-muted-foreground">Active</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="rounded-lg border border-border p-3 space-y-2">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">Diagnosed Conditions</span>
-                      <div className="flex flex-wrap gap-1">
-                        {selectedPatient.conditions.map((c, i) => (
-                          <span key={i} className="rounded bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
-                            {c}
+                  {/* Active Credentials */}
+                  {selectedPatient.activeCredentials.length > 0 && (
+                    <div className="rounded-lg bg-muted/40 p-3 border border-border">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Active Verifiable Credentials</div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {selectedPatient.activeCredentials.map((vc) => (
+                          <span key={vc.id} className="rounded-full bg-success/10 text-success border border-success/20 px-2 py-0.5 text-[9px] font-bold">
+                            ✓ {vc.type}
                           </span>
                         ))}
                       </div>
                     </div>
+                  )}
 
+                  {/* Quick charge buttons */}
+                  <div>
+                    <div className="text-[10px] font-bold uppercase text-muted-foreground mb-2">Record New Payment (Commits to Hyperledger)</div>
+                    <div className="flex flex-wrap gap-2">
+                      {(["consultation", "pharmacy", "lab", "room", "surgery"] as LiveTransaction["category"][]).map((cat) => (
+                        <button key={cat} onClick={() => handleRecordPayment(cat)}
+                          className="rounded-lg border border-border bg-muted/40 px-3 py-1.5 text-xs font-semibold capitalize hover:bg-primary/10 hover:text-primary hover:border-primary/20 transition-colors">
+                          + {cat}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-
                 </motion.div>
               )}
             </AnimatePresence>
 
-            {/* Payment Ledger / Audit logs */}
+            {/* Transactions Table */}
             <div className="rounded-xl border border-border bg-card p-5 shadow-clinical space-y-4">
               <div className="flex items-center gap-2">
                 <Receipt className="h-5 w-5 text-primary" />
-                <h3 className="text-sm font-bold text-foreground">Recent Transactions & Audit Logs</h3>
+                <h3 className="text-sm font-bold">Live Transaction Ledger</h3>
+                <span className="rounded-full bg-primary/10 text-primary text-[9px] px-2 py-0.5 font-bold">{transactions.length} records</span>
               </div>
-              
               <div className="overflow-x-auto">
                 <table className="w-full text-xs text-left">
-                  <thead className="bg-muted text-muted-foreground uppercase font-bold tracking-wider">
+                  <thead className="bg-muted text-muted-foreground uppercase font-bold tracking-wider text-[10px]">
                     <tr>
-                      <th className="px-3 py-2 rounded-l-lg">Patient</th>
+                      <th className="px-3 py-2">Patient</th>
+                      <th className="px-3 py-2">DID</th>
                       <th className="px-3 py-2">Category</th>
                       <th className="px-3 py-2">Reference</th>
                       <th className="px-3 py-2">Status</th>
                       <th className="px-3 py-2">Amount</th>
-                      <th className="px-3 py-2 rounded-r-lg text-right">Invoice</th>
+                      <th className="px-3 py-2 text-right">Invoice</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-                    {mockTransactions.map((tx) => (
+                    {transactions.slice(0, 30).map((tx) => (
                       <tr key={tx.id} className="hover:bg-muted/40 transition-colors">
-                        <td className="px-3 py-3 font-semibold text-foreground">{tx.patientName}</td>
+                        <td className="px-3 py-3 font-semibold">{tx.patientName}</td>
+                        <td className="px-3 py-3 font-mono text-primary text-[9px] max-w-[100px] truncate">{tx.patientDid}</td>
                         <td className="px-3 py-3 capitalize text-muted-foreground">{tx.category}</td>
-                        <td className="px-3 py-3 font-mono text-muted-foreground">{tx.reference}</td>
+                        <td className="px-3 py-3 font-mono text-muted-foreground text-[9px]">{tx.reference}</td>
                         <td className="px-3 py-3">
-                          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase ${tx.status === "paid" ? "bg-success/10 text-success" : tx.status === "outstanding" ? "bg-warning/10 text-warning-foreground" : "bg-destructive/10 text-destructive"}`}>
+                          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-bold uppercase ${
+                            tx.status === "paid" ? "bg-success/10 text-success" :
+                            tx.status === "outstanding" ? "bg-warning/10 text-warning-foreground" :
+                            "bg-destructive/10 text-destructive"}`}>
                             {tx.status}
                           </span>
                         </td>
-                        <td className="px-3 py-3 font-bold text-foreground">{fmt(tx.amount)}</td>
+                        <td className="px-3 py-3 font-bold">{fmt(tx.amount)}</td>
                         <td className="px-3 py-3 text-right">
-                          <button
-                            onClick={() => generateMockInvoice(tx)}
-                            className="inline-flex items-center gap-1 text-[10px] font-bold text-primary hover:underline"
-                          >
+                          <button onClick={() => setShowInvoice(tx)} className="inline-flex items-center gap-1 text-[10px] font-bold text-primary hover:underline">
                             <FileText className="h-3 w-3" /> View
                           </button>
                         </td>
@@ -305,165 +236,100 @@ function AdminFinancialPage() {
                 </table>
               </div>
             </div>
-
           </div>
 
-          {/* Column 3: Category totals chart & insurance info */}
+          {/* Right Column */}
           <div className="space-y-6">
-            
-            {/* Category totals breakdown */}
             <div className="rounded-xl border border-border bg-card p-5 shadow-clinical space-y-4">
               <div className="flex items-center gap-2 border-b border-border pb-2">
                 <Receipt className="h-5 w-5 text-primary" />
-                <h3 className="text-sm font-bold text-foreground">Revenue by Category</h3>
+                <h3 className="text-sm font-bold">Revenue by Category</h3>
               </div>
-              
               <div className="space-y-3">
-                {Object.entries(categoryTotals).map(([cat, val]) => (
+                {Object.entries(byCategory).map(([cat, val]) => (
                   <div key={cat} className="space-y-1">
                     <div className="flex justify-between text-xs font-semibold">
-                      <span className="capitalize text-foreground">{cat}</span>
-                      <span className="text-foreground">{fmt(val)}</span>
+                      <span className="capitalize">{cat}</span>
+                      <span>{fmt(val)}</span>
                     </div>
                     <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-                      <div className="h-full bg-primary" style={{ width: `${(val / 3450000) * 100}%` }} />
+                      <div className="h-full bg-primary rounded-full transition-all duration-500" style={{ width: `${(val / maxCat) * 100}%` }} />
                     </div>
                   </div>
                 ))}
+                {Object.keys(byCategory).length === 0 && (
+                  <p className="text-xs text-muted-foreground">No payments recorded yet.</p>
+                )}
               </div>
             </div>
 
-            {/* Insurance Claims Audit Center */}
-            <div className="rounded-xl border border-border bg-card p-5 shadow-clinical space-y-4">
+            {/* On-chain billing */}
+            <div className="rounded-xl border border-border bg-card p-5 shadow-clinical space-y-3">
               <div className="flex items-center gap-2 border-b border-border pb-2">
                 <Shield className="h-5 w-5 text-primary" />
-                <h3 className="text-sm font-bold text-foreground">Insurance Settlement Audit</h3>
+                <h3 className="text-sm font-bold">Blockchain Records</h3>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Verification status of out-of-hospital claims submitted via cryptographic proofs.
-              </p>
-              
-              <div className="space-y-2">
-                {[
-                  { claim: "CLM-9912", patient: "Anika Sharma", status: "Approved", coverage: "90%" },
-                  { claim: "CLM-1049", patient: "Rohan Iyer", status: "Audit Review", coverage: "80%" },
-                  { claim: "CLM-3829", patient: "Karthik Rao", status: "Pending Settlement", coverage: "100%" }
-                ].map((item, idx) => (
-                  <div key={idx} className="rounded-lg bg-muted/50 p-2.5 border border-border text-xs flex items-center justify-between">
-                    <div>
-                      <div className="font-semibold text-foreground">{item.claim} · {item.patient}</div>
-                      <div className="text-[10px] text-muted-foreground">Authorized coverage: {item.coverage}</div>
-                    </div>
-                    <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${item.status === "Approved" ? "bg-success/15 text-success" : item.status === "Audit Review" ? "bg-warning/15 text-warning-foreground" : "bg-muted text-muted-foreground"}`}>
-                      {item.status}
-                    </span>
+              <p className="text-xs text-muted-foreground">{billingRecords.length} billing entries committed to Hyperledger Fabric.</p>
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {billingRecords.slice(0, 10).map((r, i) => (
+                  <div key={i} className="rounded-lg bg-muted/40 p-2.5 border border-border text-xs">
+                    <div className="font-semibold font-mono text-[9px] text-primary">{r.key}</div>
+                    <div className="text-muted-foreground text-[9px] mt-0.5">Updated: {r.updatedAt}</div>
                   </div>
                 ))}
+                {billingRecords.length === 0 && (
+                  <p className="text-xs text-muted-foreground">No on-chain billing records yet.</p>
+                )}
               </div>
             </div>
-
           </div>
-
         </div>
-
       </div>
 
-      {/* Invoice Generator Modal Dialog */}
+      {/* Invoice Modal */}
       <AnimatePresence>
         {showInvoice && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/45 backdrop-blur-sm p-4"
-            onClick={() => setShowInvoice(null)}
-          >
-            <motion.div
-              initial={{ scale: 0.95 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.95 }}
-              className="w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-clinical-md space-y-4"
-              onClick={(e) => e.stopPropagation()}
-            >
-              
-              {/* Invoice Layout */}
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 backdrop-blur-sm p-4"
+            onClick={() => setShowInvoice(null)}>
+            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }}
+              className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-clinical-md space-y-4"
+              onClick={(e) => e.stopPropagation()}>
               <div className="border border-border rounded-xl p-5 space-y-4 font-mono text-xs">
-                
-                {/* Header */}
                 <div className="flex justify-between border-b border-border pb-3">
                   <div>
-                    <h3 className="font-bold text-sm text-foreground">DID HOSPITAL</h3>
+                    <h3 className="font-black text-sm">DID HOSPITAL</h3>
                     <p className="text-[10px] text-muted-foreground">Apollo Campus, Mumbai</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-bold text-foreground">INVOICE</p>
+                    <p className="font-bold">INVOICE</p>
                     <p className="text-[10px] text-muted-foreground">{showInvoice.date}</p>
                   </div>
                 </div>
-
-                {/* Patient section */}
                 <div className="space-y-1">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">PATIENT:</span>
-                    <span className="font-bold text-foreground">{showInvoice.patientName}</span>
-                  </div>
-                  <div className="flex justify-between text-[10px]">
-                    <span className="text-muted-foreground">DID:</span>
-                    <span className="text-muted-foreground">{showInvoice.did}</span>
-                  </div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">PATIENT:</span><span className="font-bold">{showInvoice.patientName}</span></div>
+                  <div className="flex justify-between text-[10px]"><span className="text-muted-foreground">DID:</span><span className="truncate max-w-[160px]">{showInvoice.patientDid}</span></div>
+                  {showInvoice.blockTxId && (
+                    <div className="flex justify-between text-[10px]"><span className="text-muted-foreground">TX:</span><span className="truncate max-w-[160px]">{showInvoice.blockTxId}</span></div>
+                  )}
                 </div>
-
-                {/* Details */}
-                <div className="border-t border-b border-border py-3 space-y-2">
-                  <div className="flex justify-between font-bold text-foreground">
-                    <span>ITEM</span>
-                    <span>AMOUNT</span>
-                  </div>
-                  <div className="flex justify-between text-muted-foreground">
-                    <span className="capitalize">{showInvoice.category} Charge</span>
-                    <span>{fmt(showInvoice.amount)}</span>
-                  </div>
+                <div className="border-t border-b border-border py-3 space-y-1">
+                  <div className="flex justify-between font-bold"><span>ITEM</span><span>AMOUNT</span></div>
+                  <div className="flex justify-between text-muted-foreground"><span className="capitalize">{showInvoice.category} Charge</span><span>{fmt(showInvoice.amount)}</span></div>
                 </div>
-
-                {/* Totals */}
-                <div className="space-y-1 text-right">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">SUBTOTAL:</span>
-                    <span className="font-bold text-foreground">{fmt(showInvoice.amount)}</span>
-                  </div>
-                  <div className="flex justify-between font-bold text-foreground text-sm">
-                    <span>TOTAL:</span>
-                    <span>{fmt(showInvoice.amount)}</span>
-                  </div>
-                  <div className="flex justify-between text-[10px]">
-                    <span className="text-muted-foreground">REF:</span>
-                    <span className="text-muted-foreground">{showInvoice.reference}</span>
-                  </div>
-                </div>
-
+                <div className="flex justify-between font-bold text-sm"><span>TOTAL:</span><span>{fmt(showInvoice.amount)}</span></div>
               </div>
-
-              {/* Action buttons */}
               <div className="flex gap-2">
-                <button
-                  onClick={() => setShowInvoice(null)}
-                  className="flex-1 rounded-xl border border-border bg-card py-2 text-xs font-semibold hover:bg-muted"
-                >
-                  Close
-                </button>
-                <button
-                  onClick={() => { toast.success("Sent to printer queue"); setShowInvoice(null); }}
-                  className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-primary text-primary-foreground py-2 text-xs font-bold hover:bg-primary/90"
-                >
-                  <Printer className="h-4 w-4" /> Print Invoice
+                <button onClick={() => setShowInvoice(null)} className="flex-1 rounded-xl border border-border py-2 text-xs font-semibold hover:bg-muted">Close</button>
+                <button onClick={() => { toast.success("Sent to printer queue"); setShowInvoice(null); }}
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-primary text-primary-foreground py-2 text-xs font-bold hover:bg-primary/90">
+                  <Printer className="h-4 w-4" /> Print
                 </button>
               </div>
-
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
-
     </RouteGuard>
   );
 }

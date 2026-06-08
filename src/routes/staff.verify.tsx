@@ -3,6 +3,7 @@ import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { QrPlaceholder } from "@/components/QrPlaceholder";
 import { currentPatient } from "@/lib/mock-data";
+import { useLivePatients } from "@/hooks/use-fabric";
 import { ScanLine, CheckCircle2, ShieldCheck, AlertTriangle, X, FileText, Pill, Activity, FlaskConical, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,13 +16,15 @@ export const Route = createFileRoute("/staff/verify")({
 });
 
 function VerifyPatient() {
+  const { patients: patientsList } = useLivePatients();
+  const patient = patientsList?.[0] || currentPatient;
   const [verified, setVerified] = useState(false);
   const [chartOpen, setChartOpen] = useState(false);
 
   const handleScan = () => {
     setVerified(true);
     toast.success("Patient identity verified", {
-      description: `${currentPatient.name} · MRN ${currentPatient.mrn}`,
+      description: `${patient.name} · MRN ${patient.mrn}`,
     });
   };
 
@@ -76,9 +79,9 @@ function VerifyPatient() {
               <div className="flex items-start justify-between">
                 <div>
                   <div className="text-xs uppercase tracking-wider text-muted-foreground">Patient</div>
-                  <div className="mt-1 text-xl font-semibold text-foreground">{currentPatient.name}</div>
+                  <div className="mt-1 text-xl font-semibold text-foreground">{patient.name}</div>
                   <div className="text-xs text-muted-foreground">
-                    {currentPatient.age} · {currentPatient.gender} · MRN {currentPatient.mrn}
+                    {patient.age} · {patient.gender} · MRN {patient.mrn}
                   </div>
                 </div>
                 <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-3 py-1 text-xs font-medium text-success">
@@ -87,16 +90,16 @@ function VerifyPatient() {
               </div>
 
               <dl className="mt-6 grid grid-cols-2 gap-4 text-sm">
-                <Field label="DID" value={<span className="font-mono text-xs">{currentPatient.did}</span>} />
-                <Field label="Phone" value={currentPatient.phone} />
-                <Field label="Blood group" value={currentPatient.bloodGroup} />
+                <Field label="DID" value={<span className="font-mono text-xs">{patient.did}</span>} />
+                <Field label="Phone" value={patient.phone} />
+                <Field label="Blood group" value={patient.bloodGroup} />
                 <Field
                   label="Allergies"
                   value={
-                    currentPatient.allergies.length ? (
+                    patient.allergies && patient.allergies.length ? (
                       <span className="inline-flex items-center gap-1 text-destructive">
                         <AlertTriangle className="h-3.5 w-3.5" />
-                        {currentPatient.allergies.join(", ")}
+                        {patient.allergies.join(", ")}
                       </span>
                     ) : "None"
                   }
@@ -132,8 +135,8 @@ function VerifyPatient() {
             {/* Header */}
             <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-card px-6 py-4">
               <div>
-                <div className="font-semibold text-foreground">{currentPatient.name} — Clinical Chart</div>
-                <div className="text-xs text-muted-foreground">MRN {currentPatient.mrn} · {currentPatient.age}y · {currentPatient.gender} · {currentPatient.bloodGroup}</div>
+                <div className="font-semibold text-foreground">{patient.name} — Clinical Chart</div>
+                <div className="text-xs text-muted-foreground">MRN {patient.mrn} · {patient.age}y · {patient.gender} · {patient.bloodGroup}</div>
               </div>
               <button
                 onClick={() => setChartOpen(false)}
@@ -145,12 +148,12 @@ function VerifyPatient() {
 
             <div className="p-6 space-y-5">
               {/* Allergy alert */}
-              {currentPatient.allergies.length > 0 && (
+              {patient.allergies && patient.allergies.length > 0 && (
                 <div className="flex items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
                   <AlertTriangle className="h-5 w-5 text-destructive shrink-0" />
                   <div>
                     <div className="text-sm font-semibold text-destructive">Allergy Alert</div>
-                    <div className="text-sm text-foreground">{currentPatient.allergies.join(", ")}</div>
+                    <div className="text-sm text-foreground">{patient.allergies.join(", ")}</div>
                   </div>
                 </div>
               )}

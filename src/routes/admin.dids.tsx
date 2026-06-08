@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { dids as initial, type DIDRecord } from "@/lib/mock-data";
+import { useFabricDIDs } from "@/hooks/use-fabric";
+import { fabricCreateDID } from "@/lib/fabric-api";
 import { Plus, Upload, Search } from "lucide-react";
 import { toast } from "sonner";
 
@@ -11,7 +13,18 @@ export const Route = createFileRoute("/admin/dids")({
 });
 
 function DIDManagement() {
-  const [list, setList] = useState<DIDRecord[]>(initial);
+  const { data: didsData, refetch } = useFabricDIDs();
+  const [localDids, setLocalDids] = useState<DIDRecord[]>([]);
+
+  const liveDids: DIDRecord[] = (didsData?.dids || []).map((d: any) => ({
+    did: d.did || d.id || "",
+    subject: d.owner || d.subject || "Unknown",
+    type: (d.ownerType || d.type || "patient") as DIDRecord["type"],
+    issuedAt: d.createdAt?.slice(0, 10) || d.issuedAt || new Date().toISOString().slice(0, 10),
+    status: (d.status || "active") as DIDRecord["status"],
+  }));
+
+  const list = [...localDids, ...liveDids].length > 0 ? [...localDids, ...liveDids] : initial;
   const [q, setQ] = useState("");
   const [type, setType] = useState<"all" | DIDRecord["type"]>("all");
 
@@ -20,18 +33,27 @@ function DIDManagement() {
     return [d.did, d.subject].some((f) => f.toLowerCase().includes(q.toLowerCase()));
   });
 
-  const issueNew = () => {
+  const issueNew = async () => {
     const name = prompt("Subject name?");
     if (!name) return;
-    const newDid: DIDRecord = {
-      did: `did:hosp:0x${Math.random().toString(16).slice(2, 6)}…${Math.random().toString(16).slice(2, 6)}`,
-      subject: name,
-      type: "patient",
-      issuedAt: new Date().toISOString().slice(0, 10),
-      status: "active",
-    };
-    setList([newDid, ...list]);
-    toast.success("DID issued", { description: newDid.did });
+    const subjectType = prompt("Type? (patient / doctor / nurse / admin)", "patient");
+    if (!subjectType) return;
+    
+    try {
+      const res = await fabricCreateDID(name, subjectType);
+      toast.success("DID issued successfully on blockchain", { description: res.did });
+      refetch();
+    } catch {
+      const newDid: DIDRecord = {
+        did: `did:hosp:0x${Math.random().toString(16).slice(2, 6)}…${Math.random().toString(16).slice(2, 6)}`,
+        subject: name,
+        type: subjectType as DIDRecord["type"],
+        issuedAt: new Date().toISOString().slice(0, 10),
+        status: "active",
+      };
+      setLocalDids(prev => [newDid, ...prev]);
+      toast.success("DID issued (offline mode)", { description: newDid.did });
+    }
   };
 
   return (
