@@ -3,6 +3,7 @@ import { PageHeader, StatCard } from "@/components/PageHeader";
 import { StaggerList, StaggerItem } from "@/components/Motion";
 import {
   useLivePatients,
+  useLiveStaff,
   useFabricConsents,
   useFabricAudit,
   useFabricBeds,
@@ -13,6 +14,7 @@ import {
   Ambulance, Bed,
 } from "lucide-react";
 import { RouteGuard } from "@/components/RouteGuard";
+import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 
 export const Route = createFileRoute("/staff/")({
@@ -31,9 +33,48 @@ const quickLinks = [
 
 function StaffDashboard() {
   const { patients: patientsList } = useLivePatients();
+  const { staff: staffList } = useLiveStaff();
   const { data: consentsData } = useFabricConsents();
   const { data: auditData } = useFabricAudit();
   const { data: bedsData } = useFabricBeds();
+
+  const userEmail = typeof window !== "undefined" ? localStorage.getItem("userEmail") : "";
+  const userName = typeof window !== "undefined" ? localStorage.getItem("userName") : "";
+  const staffRecord = staffList?.find((s: any) => s.email === userEmail);
+
+  if (!staffRecord) {
+    return (
+      <RouteGuard requiredRole="staff">
+        <div className="flex min-h-[80vh] items-center justify-center px-4">
+          <div className="max-w-md text-center bg-card p-8 rounded-2xl border border-border shadow-clinical">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+              <ShieldAlert className="h-8 w-8 text-primary animate-pulse" />
+            </div>
+            <h1 className="mt-6 text-2xl font-bold text-foreground">Awaiting DID Provisioning</h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Welcome to the Staff Portal, <span className="font-semibold">{userName || userEmail}</span>.
+            </p>
+            <p className="mt-4 text-xs text-muted-foreground leading-relaxed">
+              Your clinician decentralized identity (DID) document must be approved and issued on the blockchain by an Administrator before you can access clinical databases, patient records, or sign prescriptions.
+            </p>
+            <div className="mt-6">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  localStorage.removeItem("userRole");
+                  localStorage.removeItem("userEmail");
+                  localStorage.removeItem("userName");
+                  window.location.href = "/login";
+                }}
+              >
+                Logout / Switch Account
+              </Button>
+            </div>
+          </div>
+        </div>
+      </RouteGuard>
+    );
+  }
 
   const patients = patientsList ?? [];
   const pendingRequests = consentsData?.consents?.filter((c: any) => c.status === "pending" || c.status === "requested")?.length ?? 0;
@@ -44,14 +85,13 @@ function StaffDashboard() {
   const availableAmbs = 3;
   const recentActivities = auditData?.events ?? [];
 
-
   return (
     <RouteGuard requiredRole="staff">
       <>
         <PageHeader
           eyebrow="Staff portal"
-          title="Good morning, Dr. Menon"
-          description="Cardiology · Apollo Hospitals · Shift 08:00 – 16:00"
+          title={`Good morning, ${staffRecord.name}`}
+          description={`${staffRecord.specialty || "Medical Specialist"} · Apollo Hospitals · Shift 08:00 – 16:00`}
           actions={
             <Link
               to="/staff/verify"

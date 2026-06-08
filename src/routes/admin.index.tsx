@@ -39,13 +39,13 @@ function AdminOverview() {
   const { data: bedsData } = useFabricBeds();
   const { data: fraudData } = useFabricFraudAlerts();
 
-  const totalDIDs = didsData?.total ?? 50;
-  const activeUsers = Math.max(12, Math.round(totalDIDs * 0.6));
-  const activeCredentials = credsData?.total ?? 12;
-  const avgCheckInSec = stats?.throughputTps ? Math.max(1, Math.round(5 / stats.throughputTps)) : 2;
+  const totalDIDs = didsData?.total ?? 0;
+  const activeUsers = totalDIDs;
+  const activeCredentials = credsData?.total ?? 0;
+  const avgCheckInSec = stats?.throughputTps ? Math.max(1, Math.round(5 / stats.throughputTps)) : 0;
 
-  const totalBeds = bedsData?.total ?? 20;
-  const occupiedBeds = bedsData?.beds?.filter((b: any) => b.status === "occupied")?.length ?? 12;
+  const totalBeds = bedsData?.total ?? 0;
+  const occupiedBeds = bedsData?.beds?.filter((b: any) => b.status === "occupied")?.length ?? 0;
 
   const activeFraudAlerts = fraudData?.alerts ?? [];
   const criticalEvents = (auditData?.events ?? [])

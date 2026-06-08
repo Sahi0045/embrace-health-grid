@@ -27,9 +27,19 @@ export async function isFabricOnline(): Promise<boolean> {
 export function resetFabricCache() { _serverOnline = null; _lastCheck = 0; }
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const role = typeof window !== "undefined" ? localStorage.getItem("userRole") : null;
+  const email = typeof window !== "undefined" ? localStorage.getItem("userEmail") : null;
+  const authHeaders: Record<string, string> = {};
+  if (role) authHeaders["x-user-role"] = role;
+  if (email) authHeaders["x-user-email"] = email;
+
   const r = await fetch(`${API}${path}`, {
     ...init,
-    headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
+    headers: { 
+      "Content-Type": "application/json", 
+      ...authHeaders,
+      ...(init?.headers ?? {}) 
+    },
     signal: AbortSignal.timeout(8000),
   });
   if (!r.ok) {
@@ -194,3 +204,19 @@ export const fabricGetWorldState = () =>
 
 export const fabricGetNamespace = (namespace: string) =>
   apiFetch<unknown[]>(`/worldstate/${namespace}`);
+
+// ─── Auth ─────────────────────────────────────────────────────────────────────
+export const fabricSignup = (data: { name: string; email: string; role: string; password?: string }) =>
+  apiFetch<{ success: boolean; user: { name: string; email: string; role: string } }>(`/auth/signup`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+
+export const fabricLogin = (data: { email: string; password?: string }) =>
+  apiFetch<{ success: boolean; user: { name: string; email: string; role: string; did?: string } }>(`/auth/login`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+
+export const fabricGetUsers = () =>
+  apiFetch<{ users: Array<{ name: string; email: string; role: string; did?: string | null; createdAt: string }> }>(`/auth/users`);

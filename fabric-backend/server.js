@@ -346,7 +346,12 @@ app.get("/api/did/:did", (req, res) => {
 });
 
 app.post("/api/did", async (req, res) => {
-  const { owner, ownerType = "patient", controller } = req.body;
+  const userRole = req.headers["x-user-role"];
+  if (userRole !== "admin") {
+    return res.status(403).json({ error: "Access Denied: Only Admin can create DIDs" });
+  }
+
+  const { owner, ownerType = "patient", controller, ownerEmail } = req.body;
   if (!owner) return res.status(400).json({ error: "owner required" });
   const did = `did:hosp:0x${simHash(owner + Date.now()).slice(0, 8)}`;
   const txId = randomUUID();
@@ -356,9 +361,19 @@ app.post("/api/did", async (req, res) => {
     owner, ownerType, status: "active", credentials: [],
     createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
     serviceEndpoint: `https://did.apollohospitals.in/resolve/${did}`,
+    ownerEmail: ownerEmail || null
   };
   putState("did-registry", did, doc, txId);
   const block = commitBlock({ txId, chaincode: "did-registry", fcn: "createDID", args: [did, owner, ownerType], status: "VALID", timestamp: new Date().toISOString(), channel: CHANNEL, creator: "API" });
+
+  if (ownerEmail) {
+    const userEntry = getState("users", ownerEmail);
+    if (userEntry) {
+      userEntry.value.did = did;
+      putState("users", ownerEmail, userEntry.value, randomUUID());
+    }
+  }
+
   broadcast({ event: "did:created", data: doc });
   res.json({ did, doc, blockNumber: block.blockNumber, txId });
 });
@@ -750,6 +765,74 @@ function applyChaincode(chaincode, fcn, args, txId, timestamp) {
       break;
   }
 }
+
+// ─── Auth APIs ────────────────────────────────────────────────────────────────
+app.post("/api/auth/signup", async (req, res) => {
+  const { name, email, role, password } = req.body;
+  if (!email || !role || !name) {
+    return res.status(400).json({ error: "Name, email, and role are required" });
+  }
+
+  const existingUser = getState("users", email);
+  if (existingUser) {
+    return res.status(400).json({ error: "User already exists" });
+  }
+
+  const txId = randomUUID();
+  const user = { name, email, password: password || "", role, did: null, createdAt: new Date().toISOString() };
+  putState("users", email, user, txId);
+  
+  commitBlock({
+    txId,
+    chaincode: "users",
+    fcn: "signup",
+    args: [email, name, role],
+    status: "VALID",
+    timestamp: new Date().toISOString(),
+    channel: CHANNEL,
+    creator: "System"
+  });
+
+  res.json({ success: true, user: { name, email, role } });
+});
+
+app.post("/api/auth/login", (req, res) => {
+  const { email, password } = req.body;
+  if (!email) {
+    return res.status(400).json({ error: "Email is required" });
+  }
+
+  const userEntry = getState("users", email);
+  if (!userEntry) {
+    return res.status(401).json({ error: "Invalid email or password" });
+  }
+
+  // If password was provided on signup, verify it, otherwise mock login is fine
+  if (userEntry.value.password && userEntry.value.password !== password) {
+    return res.status(401).json({ error: "Invalid email or password" });
+  }
+
+  res.json({ 
+    success: true, 
+    user: { 
+      name: userEntry.value.name, 
+      email: userEntry.value.email, 
+      role: userEntry.value.role, 
+      did: userEntry.value.did 
+    } 
+  });
+});
+
+app.get("/api/auth/users", (req, res) => {
+  const role = req.headers["x-user-role"];
+  if (role !== "admin") {
+    return res.status(403).json({ error: "Forbidden: Admins only" });
+  }
+
+  const entries = getAllState("users");
+  const users = entries.map(e => e.value);
+  res.json({ users });
+});
 
 // 404
 app.use((_, res) => res.status(404).json({ error: "Not found" }));

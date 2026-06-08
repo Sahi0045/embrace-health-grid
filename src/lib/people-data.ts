@@ -122,12 +122,13 @@ export interface SupportStaff {
   supervisor: string;
 }
 
+// All data arrays are empty - Admin must create DIDs first
 export const patients: PatientDetails[] = [];
 export const doctors: DoctorDetails[] = [];
 export const nurses: NurseDetails[] = [];
 export const supportStaff: SupportStaff[] = [];
 
-// Summary Statistics
+// Summary Statistics - All Zero
 export const peopleStats = {
   totalPatients: 0,
   admittedPatients: 0,

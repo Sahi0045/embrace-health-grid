@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
-import { dids as initial, type DIDRecord } from "@/lib/mock-data";
+import { type DIDRecord } from "@/lib/mock-data";
 import { useFabricDIDs } from "@/hooks/use-fabric";
 import { fabricCreateDID } from "@/lib/fabric-api";
 import { Plus, Upload, Search } from "lucide-react";
@@ -24,7 +24,7 @@ function DIDManagement() {
     status: (d.status || "active") as DIDRecord["status"],
   }));
 
-  const list = [...localDids, ...liveDids].length > 0 ? [...localDids, ...liveDids] : initial;
+  const list = [...localDids, ...liveDids];
   const [q, setQ] = useState("");
   const [type, setType] = useState<"all" | DIDRecord["type"]>("all");
 

@@ -10,6 +10,7 @@ import { QrCode, Wallet, ShieldCheck, History, Heart, ChevronRight, BellRing, Ca
 import { motion } from "framer-motion";
 import { RouteGuard } from "@/components/RouteGuard";
 import { PageHeader } from "@/components/PageHeader";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/patient/")({
   head: () => ({ meta: [{ title: "Patient · Home — DID Hospital" }] }),
@@ -36,7 +37,44 @@ function PatientHome() {
   const { data: consentsData } = useFabricConsents();
   const { data: apptsData } = useFabricAppointments();
 
-  const patientRecord = patients?.find((p: any) => p.id === "pat_001") || currentPatient;
+  const userEmail = typeof window !== "undefined" ? localStorage.getItem("userEmail") : "";
+  const userName = typeof window !== "undefined" ? localStorage.getItem("userName") : "";
+  const patientRecord = patients?.find((p: any) => p.email === userEmail);
+
+  if (!patientRecord) {
+    return (
+      <RouteGuard requiredRole="patient">
+        <div className="flex min-h-[80vh] items-center justify-center px-4">
+          <div className="max-w-md text-center bg-card p-8 rounded-2xl border border-border shadow-clinical">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+              <ShieldCheck className="h-8 w-8 text-primary animate-pulse" />
+            </div>
+            <h1 className="mt-6 text-2xl font-bold text-foreground">Awaiting DID Provisioning</h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Welcome to the Patient Portal, <span className="font-semibold">{userName || userEmail}</span>.
+            </p>
+            <p className="mt-4 text-xs text-muted-foreground leading-relaxed">
+              Your decentralized identity (DID) document must be approved and issued on the blockchain by an Administrator before you can access health services, appointments, or medical wallets.
+            </p>
+            <div className="mt-6">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  localStorage.removeItem("userRole");
+                  localStorage.removeItem("userEmail");
+                  localStorage.removeItem("userName");
+                  window.location.href = "/login";
+                }}
+              >
+                Logout / Switch Account
+              </Button>
+            </div>
+          </div>
+        </div>
+      </RouteGuard>
+    );
+  }
+
   const pendingConsents = consentsData?.consents?.filter((c: any) => c.status === "pending" || c.status === "requested")?.length ?? 0;
   
   // Find upcoming appointment
@@ -48,7 +86,6 @@ function PatientHome() {
     specialty: nextVisit.specialty || "General Medicine",
     time: nextVisit.slot || "Confirmed Appointment Slot"
   } : null;
-
 
   return (
     <RouteGuard requiredRole="patient">

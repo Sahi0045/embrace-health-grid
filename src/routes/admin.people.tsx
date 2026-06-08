@@ -15,7 +15,9 @@ import { patients, doctors, nurses, supportStaff, peopleStats } from "@/lib/peop
 import { mockStaff } from "@/lib/mock-staff";
 import { DIDBadge } from "@/components/did/DIDBadge";
 import { DIDStatusChip } from "@/components/did/DIDStatusChip";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { fabricGetUsers, fabricCreateDID } from "@/lib/fabric-api";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/people")({
   head: () => ({
@@ -29,6 +31,38 @@ export const Route = createFileRoute("/admin/people")({
 
 function PeopleManagement() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [users, setUsers] = useState<any[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+
+  const fetchUsers = async () => {
+    setLoadingUsers(true);
+    try {
+      const res = await fabricGetUsers();
+      setUsers(res.users || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const handleIssueDID = async (user: any) => {
+    try {
+      let didRole = user.role;
+      if (didRole === "staff") {
+        didRole = "doctor";
+      }
+      const res = await fabricCreateDID(user.name, didRole, undefined, user.email);
+      toast.success(`DID issued successfully for ${user.name}!`, { description: res.did });
+      fetchUsers();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to issue DID");
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -108,7 +142,7 @@ function PeopleManagement() {
               <TabsTrigger value="doctors">Doctors</TabsTrigger>
               <TabsTrigger value="nurses">Nurses</TabsTrigger>
               <TabsTrigger value="staff">Support Staff</TabsTrigger>
-              <TabsTrigger value="dids">Staff DIDs (100)</TabsTrigger>
+              <TabsTrigger value="registered">Registered Gateway Users ({users.length})</TabsTrigger>
             </TabsList>
 
             {/* Patients Tab */}
@@ -550,9 +584,50 @@ function PeopleManagement() {
               ))}
             </TabsContent>
 
-            {/* Staff DIDs tab */}
-            <TabsContent value="dids" className="mt-4">
-              <StaffDIDsPanel searchTerm={searchTerm} />
+            {/* Registered Users tab */}
+            <TabsContent value="registered" className="space-y-4 mt-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Registered Accounts</CardTitle>
+                  <CardDescription>Users who registered via the gateway. Click "Issue DID" to anchor their profile to the blockchain.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {loadingUsers ? (
+                    <div className="text-center py-6 text-sm text-muted-foreground">Loading users...</div>
+                  ) : users.length === 0 ? (
+                    <div className="text-center py-12 text-sm text-muted-foreground">No registered users found.</div>
+                  ) : (
+                    <div className="divide-y divide-border">
+                      {users.map((u: any) => (
+                        <div key={u.email} className="flex items-center justify-between py-4">
+                          <div>
+                            <div className="font-semibold text-foreground text-sm">{u.name}</div>
+                            <div className="text-xs text-muted-foreground">{u.email} · Role: <span className="capitalize font-medium">{u.role}</span></div>
+                            {u.did ? (
+                              <div className="mt-1 text-[10px] font-mono text-success">On-chain DID: {u.did}</div>
+                            ) : (
+                              <div className="mt-1 text-[10px] font-mono text-warning">Awaiting blockchain registration</div>
+                            )}
+                          </div>
+                          <div>
+                            {!u.did ? (
+                              <Button
+                                size="sm"
+                                onClick={() => handleIssueDID(u)}
+                                className="inline-flex items-center gap-1 shadow-clinical"
+                              >
+                                Issue DID
+                              </Button>
+                            ) : (
+                              <span className="text-xs font-semibold text-success bg-success/10 border border-success/20 px-3 py-1 rounded-full">Anchored</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
 

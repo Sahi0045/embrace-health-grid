@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { fabricLogin, fabricSignup } from "@/lib/fabric-api";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -46,25 +48,48 @@ function LoginPage() {
   const navigate = useNavigate();
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
   const [password, setPassword] = useState("");
+  const [isSignup, setIsSignup] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedRole) return;
 
     setIsLoading(true);
-    
-    // Simulate login delay
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    // Store user session
-    localStorage.setItem("userRole", selectedRole);
-    localStorage.setItem("userEmail", email);
-    
-    // Navigate to appropriate dashboard
-    navigate({ to: `/${selectedRole}` });
-    setIsLoading(false);
+
+    try {
+      if (isSignup) {
+        if (!name.trim()) {
+          toast.error("Name is required for registration");
+          setIsLoading(false);
+          return;
+        }
+        await fabricSignup({ name, email, role: selectedRole, password });
+        toast.success("Account registered successfully! You can now log in.");
+        setIsSignup(false);
+        setPassword("");
+      } else {
+        const res = await fabricLogin({ email, password });
+        if (res.success && res.user) {
+          localStorage.setItem("userRole", res.user.role);
+          localStorage.setItem("userEmail", res.user.email);
+          localStorage.setItem("userName", res.user.name);
+          if (res.user.did) {
+            localStorage.setItem("userDID", res.user.did);
+          } else {
+            localStorage.removeItem("userDID");
+          }
+          toast.success(`Welcome back, ${res.user.name}!`);
+          navigate({ to: `/${res.user.role}` });
+        }
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Authentication failed");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -125,7 +150,7 @@ function LoginPage() {
                         <Icon className="h-5 w-5" />
                       </div>
                       <div>
-                        <CardTitle>Sign in as {role?.label}</CardTitle>
+                        <CardTitle>{isSignup ? "Sign up as" : "Sign in as"} {role?.label}</CardTitle>
                         <CardDescription>{role?.description}</CardDescription>
                       </div>
                     </>
@@ -134,7 +159,20 @@ function LoginPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleLogin} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {isSignup && (
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Full Name</Label>
+                    <Input
+                      id="name"
+                      type="text"
+                      placeholder="Enter your name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      required
+                    />
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
                   <Input
@@ -161,14 +199,42 @@ function LoginPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => setSelectedRole(null)}
+                    onClick={() => {
+                      setSelectedRole(null);
+                      setIsSignup(false);
+                    }}
                     className="flex-1"
                   >
                     Back
                   </Button>
                   <Button type="submit" disabled={isLoading} className="flex-1">
-                    {isLoading ? "Signing in..." : "Sign in"}
+                    {isLoading ? "Processing..." : (isSignup ? "Register" : "Sign in")}
                   </Button>
+                </div>
+                <div className="text-center mt-4 text-sm">
+                  {isSignup ? (
+                    <p className="text-muted-foreground">
+                      Already have an account?{" "}
+                      <button
+                        type="button"
+                        onClick={() => setIsSignup(false)}
+                        className="text-primary hover:underline font-medium"
+                      >
+                        Sign in
+                      </button>
+                    </p>
+                  ) : (
+                    <p className="text-muted-foreground">
+                      Don't have an account?{" "}
+                      <button
+                        type="button"
+                        onClick={() => setIsSignup(true)}
+                        className="text-primary hover:underline font-medium"
+                      >
+                        Sign up
+                      </button>
+                    </p>
+                  )}
                 </div>
               </form>
             </CardContent>
