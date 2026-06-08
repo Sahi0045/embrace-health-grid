@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader, StatCard } from "@/components/PageHeader";
 import { AuditEventCard } from "@/components/audit/AuditEventCard";
-import { mockAuditEvents } from "@/lib/mock-audit";
 import { Search, Filter, Activity, ShieldX, AlertTriangle, Info } from "lucide-react";
 import { useState, useMemo } from "react";
+import { useFabricAudit } from "@/hooks/use-fabric";
 
 export const Route = createFileRoute("/audit-timeline")({
   head: () => ({ meta: [{ title: "Audit Timeline — DID Hospital" }] }),
@@ -22,8 +22,42 @@ function AuditTimelinePage() {
 
   const PAGE_SIZE = 25;
 
+  const { data: fabricData } = useFabricAudit();
+
+  const liveEvents = useMemo(() => {
+    const events = (fabricData?.events ?? []) as Array<{
+      actor?: string;
+      actorRole?: string;
+      actorDID?: string;
+      resource?: string;
+      action?: string;
+      loggedAt?: string;
+      category?: string;
+      txId?: string;
+      details?: string;
+      result?: string;
+      severity?: string;
+    }>;
+
+    return events.map((e, idx) => ({
+      id: e.txId ?? `fab_timeline_${idx}`,
+      category: (e.category?.toLowerCase() || "access") as Category,
+      action: e.action || "Action executed",
+      actor: e.actor || "System",
+      actorRole: e.actorRole || "Staff",
+      actorDID: e.actorDID || "did:hosp:sys",
+      target: e.resource || "Ledger",
+      ip: "10.0.1.44",
+      result: (e.result || "success") as "success" | "denied" | "error",
+      severity: (e.severity || "info") as "info" | "warning" | "critical",
+      at: e.loggedAt || new Date().toISOString(),
+      details: e.details || "",
+      hash: e.txId || "sha256:hash"
+    }));
+  }, [fabricData]);
+
   const filtered = useMemo(() => {
-    return mockAuditEvents.filter(e =>
+    return liveEvents.filter(e =>
       (categoryFilter === "all" || e.category === categoryFilter) &&
       (severityFilter === "all" || e.severity === severityFilter) &&
       (resultFilter === "all" || e.result === resultFilter) &&
@@ -33,14 +67,14 @@ function AuditTimelinePage() {
         e.target.toLowerCase().includes(search.toLowerCase()) ||
         e.details.toLowerCase().includes(search.toLowerCase()))
     );
-  }, [search, categoryFilter, severityFilter, resultFilter]);
+  }, [liveEvents, search, categoryFilter, severityFilter, resultFilter]);
 
   const paginated = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
 
-  const criticals = mockAuditEvents.filter(e => e.severity === "critical").length;
-  const warnings = mockAuditEvents.filter(e => e.severity === "warning").length;
-  const denied = mockAuditEvents.filter(e => e.result === "denied").length;
+  const criticals = liveEvents.filter(e => e.severity === "critical").length;
+  const warnings = liveEvents.filter(e => e.severity === "warning").length;
+  const denied = liveEvents.filter(e => e.result === "denied").length;
 
   return (
     <div className="min-h-screen">

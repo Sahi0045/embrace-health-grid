@@ -22,6 +22,8 @@ export type PatientFull = {
   emergencyContact: { name: string; relation: string; phone: string };
   organDonor: boolean;
   nationality: string;
+  totalVisits?: number;
+  outstandingBills?: number;
 };
 
 const firstNames = ["Anika","Rohan","Meera","Karthik","Priya","Arjun","Divya","Suresh","Lakshmi","Vikram","Anjali","Ravi","Nisha","Deepak","Sunita","Mohit","Kavya","Rajesh","Pooja","Aman","Sneha","Harsh","Rekha","Vivek","Neha","Sanjay","Tanya","Arun","Geeta","Nikhil","Swati","Rahul","Usha","Pratik","Manisha","Gaurav","Shruti","Vinod","Pallavi","Rohit","Kavita","Siddharth","Lata","Amit","Seema","Kunal","Ananya","Vijay","Radha","Akash"];

@@ -351,7 +351,7 @@ app.post("/api/did", async (req, res) => {
     return res.status(403).json({ error: "Access Denied: Only Admin can create DIDs" });
   }
 
-  const { owner, ownerType = "patient", controller, ownerEmail } = req.body;
+  const { owner, ownerType = "patient", controller, ownerEmail, ...extraFields } = req.body;
   if (!owner) return res.status(400).json({ error: "owner required" });
   const did = `did:hosp:0x${simHash(owner + Date.now()).slice(0, 8)}`;
   const txId = randomUUID();
@@ -361,7 +361,8 @@ app.post("/api/did", async (req, res) => {
     owner, ownerType, status: "active", credentials: [],
     createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
     serviceEndpoint: `https://did.apollohospitals.in/resolve/${did}`,
-    ownerEmail: ownerEmail || null
+    ownerEmail: ownerEmail || null,
+    ...extraFields
   };
   putState("did-registry", did, doc, txId);
   const block = commitBlock({ txId, chaincode: "did-registry", fcn: "createDID", args: [did, owner, ownerType], status: "VALID", timestamp: new Date().toISOString(), channel: CHANNEL, creator: "API" });

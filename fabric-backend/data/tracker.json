@@ -2,40 +2,49 @@
   "did:hosp:0xd10399aa": {
     "key": "did:hosp:0xd10399aa",
     "value": {
-      "staffId": "did:hosp:0xd10399aa",
-      "location": "Emergency Ward",
-      "lastPing": "2026-06-08T07:40:18.894Z"
+      "staffDid": "did:hosp:0xd10399aa",
+      "name": "Dr. Ravi Menon",
+      "location": "Admin Block",
+      "status": "Available",
+      "lastPing": "2026-06-08T13:58:35.421Z",
+      "beaconStrength": "86%"
     },
     "namespace": "tracker",
-    "version": "fa41b28b-6122-4312-bcff-774a45ad6680:1",
-    "updatedAt": "2026-06-08T07:40:18.894Z",
-    "txId": "fa41b28b-6122-4312-bcff-774a45ad6680",
+    "version": "tx_19ea787309d_48254534:1",
+    "updatedAt": "2026-06-08T13:58:35.421Z",
+    "txId": "tx_19ea787309d_48254534",
     "docType": "tracker"
   },
   "did:hosp:0x55ef7711": {
     "key": "did:hosp:0x55ef7711",
     "value": {
-      "staffId": "did:hosp:0x55ef7711",
-      "location": "Admin Block",
-      "lastPing": "2026-06-08T07:40:10.893Z"
+      "staffDid": "did:hosp:0x55ef7711",
+      "name": "Dr. Aanya Verma",
+      "location": "Operation Theatre 2",
+      "status": "In Surgery",
+      "lastPing": "2026-06-08T13:57:51.251Z",
+      "beaconStrength": "76%"
     },
     "namespace": "tracker",
-    "version": "2c494003-7691-44fa-9111-669cba9f6b16:1",
-    "updatedAt": "2026-06-08T07:40:10.893Z",
-    "txId": "2c494003-7691-44fa-9111-669cba9f6b16",
+    "version": "tx_19ea7868413_41789c35:1",
+    "updatedAt": "2026-06-08T13:57:51.251Z",
+    "txId": "tx_19ea7868413_41789c35",
     "docType": "tracker"
   },
   "did:hosp:0x22bd44c1": {
     "key": "did:hosp:0x22bd44c1",
     "value": {
-      "staffId": "did:hosp:0x22bd44c1",
-      "location": "OR Suite 2",
-      "lastPing": "2026-06-08T07:38:50.872Z"
+      "staffDid": "did:hosp:0x22bd44c1",
+      "name": "Nurse Priya K.",
+      "location": "Emergency Ward",
+      "status": "Emergency Response",
+      "lastPing": "2026-06-08T14:00:10.569Z",
+      "beaconStrength": "72%"
     },
     "namespace": "tracker",
-    "version": "13d349c2-f46f-44e5-8d2b-9363347cfc44:1",
-    "updatedAt": "2026-06-08T07:38:50.872Z",
-    "txId": "13d349c2-f46f-44e5-8d2b-9363347cfc44",
+    "version": "tx_19ea788a449_7ebf9c5b:1",
+    "updatedAt": "2026-06-08T14:00:10.569Z",
+    "txId": "tx_19ea788a449_7ebf9c5b",
     "docType": "tracker"
   },
   "did:hosp:doctor:0f6d4eff": {
@@ -59,15 +68,15 @@
     "value": {
       "staffDid": "did:hosp:doctor:0f6d4e40",
       "name": "Dr. Jagdish Batra",
-      "location": "Consultation Room 5",
+      "location": "OPD Room 3",
       "status": "Available",
-      "lastPing": "2026-06-08T13:28:33.400Z",
-      "beaconStrength": "70%"
+      "lastPing": "2026-06-08T13:54:07.228Z",
+      "beaconStrength": "77%"
     },
     "namespace": "tracker",
-    "version": "tx_19ea76bb178_8e5a3e7a:1",
-    "updatedAt": "2026-06-08T13:28:33.400Z",
-    "txId": "tx_19ea76bb178_8e5a3e7a",
+    "version": "tx_19ea78318fc_46c74636:1",
+    "updatedAt": "2026-06-08T13:54:07.228Z",
+    "txId": "tx_19ea78318fc_46c74636",
     "docType": "tracker"
   },
   "did:hosp:staff:0f6d4e61": {
@@ -155,15 +164,15 @@
     "value": {
       "staffDid": "did:hosp:doctor:0f6d4e25",
       "name": "Dr. Shankar Malhotra",
-      "location": "ICU Block B",
-      "status": "In Consultation",
-      "lastPing": "2026-06-08T13:30:30.686Z",
-      "beaconStrength": "81%"
+      "location": "Radiology Block",
+      "status": "Available",
+      "lastPing": "2026-06-08T14:05:42.577Z",
+      "beaconStrength": "78%"
     },
     "namespace": "tracker",
-    "version": "tx_19ea76d7b9e_6b8eb841:1",
-    "updatedAt": "2026-06-08T13:30:30.686Z",
-    "txId": "tx_19ea76d7b9e_6b8eb841",
+    "version": "tx_19ea78db531_2fd9d99d:1",
+    "updatedAt": "2026-06-08T14:05:42.577Z",
+    "txId": "tx_19ea78db531_2fd9d99d",
     "docType": "tracker"
   },
   "did:hosp:staff:0f6d4e81": {
@@ -187,15 +196,15 @@
     "value": {
       "staffDid": "did:hosp:doctor:0f6d4e3f",
       "name": "Dr. Mahendra Gill",
-      "location": "Nursing Station",
-      "status": "Available",
-      "lastPing": "2026-06-08T13:27:37.318Z",
-      "beaconStrength": "86%"
+      "location": "Emergency Ward",
+      "status": "Emergency Response",
+      "lastPing": "2026-06-08T14:01:01.213Z",
+      "beaconStrength": "75%"
     },
     "namespace": "tracker",
-    "version": "tx_19ea76ad666_9406b86c:1",
-    "updatedAt": "2026-06-08T13:27:37.318Z",
-    "txId": "tx_19ea76ad666_9406b86c",
+    "version": "tx_19ea7896a1d_94e15c19:1",
+    "updatedAt": "2026-06-08T14:01:01.213Z",
+    "txId": "tx_19ea7896a1d_94e15c19",
     "docType": "tracker"
   },
   "did:hosp:staff:0f6d4eba": {
@@ -251,15 +260,15 @@
     "value": {
       "staffDid": "did:hosp:doctor:0f6d4e07",
       "name": "Dr. Girish Sinha",
-      "location": "Operation Theatre 2",
-      "status": "In Surgery",
-      "lastPing": "2026-06-08T13:18:57.124Z",
-      "beaconStrength": "78%"
+      "location": "ICU Block B",
+      "status": "In Consultation",
+      "lastPing": "2026-06-08T13:57:41.242Z",
+      "beaconStrength": "72%"
     },
     "namespace": "tracker",
-    "version": "tx_19ea762e664_96faa74e:1",
-    "updatedAt": "2026-06-08T13:18:57.124Z",
-    "txId": "tx_19ea762e664_96faa74e",
+    "version": "tx_19ea7865cfa_52781172:1",
+    "updatedAt": "2026-06-08T13:57:41.242Z",
+    "txId": "tx_19ea7865cfa_52781172",
     "docType": "tracker"
   },
   "did:hosp:doctor:0f6d4ed8": {
@@ -395,15 +404,15 @@
     "value": {
       "staffDid": "did:hosp:doctor:0f6d4e3d",
       "name": "Dr. Govind Gill",
-      "location": "Emergency Ward",
-      "status": "Emergency Response",
-      "lastPing": "2026-06-08T13:29:29.439Z",
-      "beaconStrength": "71%"
+      "location": "Lab Wing A",
+      "status": "Available",
+      "lastPing": "2026-06-08T14:01:25.235Z",
+      "beaconStrength": "94%"
     },
     "namespace": "tracker",
-    "version": "tx_19ea76c8c5f_4cee4819:1",
-    "updatedAt": "2026-06-08T13:29:29.439Z",
-    "txId": "tx_19ea76c8c5f_4cee4819",
+    "version": "tx_19ea789c7f3_5b50462a:1",
+    "updatedAt": "2026-06-08T14:01:25.235Z",
+    "txId": "tx_19ea789c7f3_5b50462a",
     "docType": "tracker"
   },
   "did:hosp:staff:0f6d4e21": {
@@ -411,15 +420,15 @@
     "value": {
       "staffDid": "did:hosp:staff:0f6d4e21",
       "name": "Balaji Malhotra",
-      "location": "ICU Block B",
-      "status": "In Consultation",
-      "lastPing": "2026-06-08T13:27:05.182Z",
-      "beaconStrength": "80%"
+      "location": "Pharmacy Desk",
+      "status": "Available",
+      "lastPing": "2026-06-08T13:53:19.565Z",
+      "beaconStrength": "93%"
     },
     "namespace": "tracker",
-    "version": "tx_19ea76a58de_91e570e4:1",
-    "updatedAt": "2026-06-08T13:27:05.182Z",
-    "txId": "tx_19ea76a58de_91e570e4",
+    "version": "tx_19ea7825ecd_a420b7be:1",
+    "updatedAt": "2026-06-08T13:53:19.565Z",
+    "txId": "tx_19ea7825ecd_a420b7be",
     "docType": "tracker"
   },
   "did:hosp:doctor:0f6d4f1d": {
@@ -443,15 +452,15 @@
     "value": {
       "staffDid": "did:hosp:staff:0f6d4e01",
       "name": "Prakash Sinha",
-      "location": "Nursing Station",
+      "location": "Radiology Block",
       "status": "Available",
-      "lastPing": "2026-06-08T13:30:38.755Z",
-      "beaconStrength": "99%"
+      "lastPing": "2026-06-08T14:02:05.512Z",
+      "beaconStrength": "91%"
     },
     "namespace": "tracker",
-    "version": "tx_19ea76d9b23_96e1ba67:1",
-    "updatedAt": "2026-06-08T13:30:38.755Z",
-    "txId": "tx_19ea76d9b23_96e1ba67",
+    "version": "tx_19ea78a6548_5718d53d:1",
+    "updatedAt": "2026-06-08T14:02:05.512Z",
+    "txId": "tx_19ea78a6548_5718d53d",
     "docType": "tracker"
   },
   "did:hosp:doctor:0f6d4e06": {
@@ -459,15 +468,15 @@
     "value": {
       "staffDid": "did:hosp:doctor:0f6d4e06",
       "name": "Dr. Mala Sinha",
-      "location": "Consultation Room 5",
+      "location": "OPD Room 3",
       "status": "Available",
-      "lastPing": "2026-06-08T13:22:57.161Z",
-      "beaconStrength": "72%"
+      "lastPing": "2026-06-08T14:05:49.143Z",
+      "beaconStrength": "78%"
     },
     "namespace": "tracker",
-    "version": "tx_19ea7669009_02e515f6:1",
-    "updatedAt": "2026-06-08T13:22:57.161Z",
-    "txId": "tx_19ea7669009_02e515f6",
+    "version": "tx_19ea78dced7_d6ef6f86:1",
+    "updatedAt": "2026-06-08T14:05:49.143Z",
+    "txId": "tx_19ea78dced7_d6ef6f86",
     "docType": "tracker"
   },
   "did:hosp:doctor:0f6d4e05": {
@@ -475,15 +484,15 @@
     "value": {
       "staffDid": "did:hosp:doctor:0f6d4e05",
       "name": "Dr. Sunil Sinha",
-      "location": "Cafeteria",
+      "location": "Consultation Room 5",
       "status": "Available",
-      "lastPing": "2026-06-08T13:11:21.210Z",
-      "beaconStrength": "71%"
+      "lastPing": "2026-06-08T13:55:35.280Z",
+      "beaconStrength": "94%"
     },
     "namespace": "tracker",
-    "version": "tx_19ea75bf17a_27ba761a:1",
-    "updatedAt": "2026-06-08T13:11:21.210Z",
-    "txId": "tx_19ea75bf17a_27ba761a",
+    "version": "tx_19ea78470f0_b21b25b1:1",
+    "updatedAt": "2026-06-08T13:55:35.280Z",
+    "txId": "tx_19ea78470f0_b21b25b1",
     "docType": "tracker"
   },
   "did:hosp:doctor:0f6d4e46": {
@@ -491,15 +500,15 @@
     "value": {
       "staffDid": "did:hosp:doctor:0f6d4e46",
       "name": "Dr. Sameer Batra",
-      "location": "Admin Block",
+      "location": "Consultation Room 5",
       "status": "Available",
-      "lastPing": "2026-06-08T13:29:13.294Z",
-      "beaconStrength": "73%"
+      "lastPing": "2026-06-08T14:01:09.146Z",
+      "beaconStrength": "93%"
     },
     "namespace": "tracker",
-    "version": "tx_19ea76c4d4e_4b4942c6:1",
-    "updatedAt": "2026-06-08T13:29:13.294Z",
-    "txId": "tx_19ea76c4d4e_4b4942c6",
+    "version": "tx_19ea789891a_8103197c:1",
+    "updatedAt": "2026-06-08T14:01:09.146Z",
+    "txId": "tx_19ea789891a_8103197c",
     "docType": "tracker"
   },
   "did:hosp:doctor:0f6d4e26": {
@@ -507,15 +516,15 @@
     "value": {
       "staffDid": "did:hosp:doctor:0f6d4e26",
       "name": "Dr. Hemant Malhotra",
-      "location": "Conference Room 1",
+      "location": "Radiology Block",
       "status": "Available",
-      "lastPing": "2026-06-08T13:24:33.373Z",
-      "beaconStrength": "87%"
+      "lastPing": "2026-06-08T13:58:43.393Z",
+      "beaconStrength": "78%"
     },
     "namespace": "tracker",
-    "version": "tx_19ea76807dd_0d5ce69c:1",
-    "updatedAt": "2026-06-08T13:24:33.373Z",
-    "txId": "tx_19ea76807dd_0d5ce69c",
+    "version": "tx_19ea7874fc1_c37a7e9e:1",
+    "updatedAt": "2026-06-08T13:58:43.393Z",
+    "txId": "tx_19ea7874fc1_c37a7e9e",
     "docType": "tracker"
   },
   "did:hosp:doctor:0f6d4e3e": {
@@ -523,15 +532,15 @@
     "value": {
       "staffDid": "did:hosp:doctor:0f6d4e3e",
       "name": "Dr. Sharda Gill",
-      "location": "Consultation Room 5",
+      "location": "OPD Room 3",
       "status": "Available",
-      "lastPing": "2026-06-08T13:20:41.294Z",
-      "beaconStrength": "72%"
+      "lastPing": "2026-06-08T13:54:31.321Z",
+      "beaconStrength": "95%"
     },
     "namespace": "tracker",
-    "version": "tx_19ea7647d4e_f6feb771:1",
-    "updatedAt": "2026-06-08T13:20:41.294Z",
-    "txId": "tx_19ea7647d4e_f6feb771",
+    "version": "tx_19ea7837719_195891d2:1",
+    "updatedAt": "2026-06-08T13:54:31.321Z",
+    "txId": "tx_19ea7837719_195891d2",
     "docType": "tracker"
   },
   "did:hosp:staff:0f6d4e42": {
@@ -541,13 +550,13 @@
       "name": "Kedar Batra",
       "location": "Consultation Room 5",
       "status": "Available",
-      "lastPing": "2026-06-08T13:27:53.316Z",
-      "beaconStrength": "92%"
+      "lastPing": "2026-06-08T14:01:33.544Z",
+      "beaconStrength": "91%"
     },
     "namespace": "tracker",
-    "version": "tx_19ea76b14e4_ccad0d35:1",
-    "updatedAt": "2026-06-08T13:27:53.316Z",
-    "txId": "tx_19ea76b14e4_ccad0d35",
+    "version": "tx_19ea789e868_23d40c53:1",
+    "updatedAt": "2026-06-08T14:01:33.544Z",
+    "txId": "tx_19ea789e868_23d40c53",
     "docType": "tracker"
   },
   "did:hosp:doctor:0f6d4e1e": {
@@ -555,15 +564,15 @@
     "value": {
       "staffDid": "did:hosp:doctor:0f6d4e1e",
       "name": "Dr. Padma Agarwal",
-      "location": "Cafeteria",
+      "location": "Admin Block",
       "status": "Available",
-      "lastPing": "2026-06-08T13:25:13.066Z",
-      "beaconStrength": "82%"
+      "lastPing": "2026-06-08T14:01:57.278Z",
+      "beaconStrength": "71%"
     },
     "namespace": "tracker",
-    "version": "tx_19ea768a2ea_44f8f4cd:1",
-    "updatedAt": "2026-06-08T13:25:13.066Z",
-    "txId": "tx_19ea768a2ea_44f8f4cd",
+    "version": "tx_19ea78a451e_9afbb664:1",
+    "updatedAt": "2026-06-08T14:01:57.278Z",
+    "txId": "tx_19ea78a451e_9afbb664",
     "docType": "tracker"
   },
   "did:hosp:staff:0f6d4e41": {
@@ -571,15 +580,15 @@
     "value": {
       "staffDid": "did:hosp:staff:0f6d4e41",
       "name": "Tarabai Batra",
-      "location": "Pharmacy Desk",
-      "status": "Available",
-      "lastPing": "2026-06-08T13:26:25.328Z",
-      "beaconStrength": "74%"
+      "location": "Operation Theatre 2",
+      "status": "In Surgery",
+      "lastPing": "2026-06-08T14:00:37.307Z",
+      "beaconStrength": "90%"
     },
     "namespace": "tracker",
-    "version": "tx_19ea769bd30_74d7ebae:1",
-    "updatedAt": "2026-06-08T13:26:25.328Z",
-    "txId": "tx_19ea769bd30_74d7ebae",
+    "version": "tx_19ea7890cbb_1e6dd1ea:1",
+    "updatedAt": "2026-06-08T14:00:37.307Z",
+    "txId": "tx_19ea7890cbb_1e6dd1ea",
     "docType": "tracker"
   },
   "did:hosp:doctor:0f6d4e1f": {
@@ -587,15 +596,15 @@
     "value": {
       "staffDid": "did:hosp:doctor:0f6d4e1f",
       "name": "Dr. Krishnan Agarwal",
-      "location": "Radiology Block",
+      "location": "Nursing Station",
       "status": "Available",
-      "lastPing": "2026-06-08T13:26:33.214Z",
-      "beaconStrength": "75%"
+      "lastPing": "2026-06-08T13:57:35.532Z",
+      "beaconStrength": "86%"
     },
     "namespace": "tracker",
-    "version": "tx_19ea769dbfe_e3145132:1",
-    "updatedAt": "2026-06-08T13:26:33.214Z",
-    "txId": "tx_19ea769dbfe_e3145132",
+    "version": "tx_19ea78646ac_3fe870dd:1",
+    "updatedAt": "2026-06-08T13:57:35.532Z",
+    "txId": "tx_19ea78646ac_3fe870dd",
     "docType": "tracker"
   },
   "did:hosp:staff:0f6d4e02": {
@@ -603,15 +612,15 @@
     "value": {
       "staffDid": "did:hosp:staff:0f6d4e02",
       "name": "Lata Sinha",
-      "location": "OPD Room 3",
+      "location": "Pharmacy Desk",
       "status": "Available",
-      "lastPing": "2026-06-08T13:12:25.384Z",
-      "beaconStrength": "94%"
+      "lastPing": "2026-06-08T13:57:43.457Z",
+      "beaconStrength": "81%"
     },
     "namespace": "tracker",
-    "version": "tx_19ea75cec28_c389dc5c:1",
-    "updatedAt": "2026-06-08T13:12:25.384Z",
-    "txId": "tx_19ea75cec28_c389dc5c",
+    "version": "tx_19ea78665a1_0581ea79:1",
+    "updatedAt": "2026-06-08T13:57:43.457Z",
+    "txId": "tx_19ea78665a1_0581ea79",
     "docType": "tracker"
   },
   "did:hosp:staff:0f6d4e04": {
@@ -619,15 +628,15 @@
     "value": {
       "staffDid": "did:hosp:staff:0f6d4e04",
       "name": "Puja Sinha",
-      "location": "Emergency Ward",
-      "status": "Emergency Response",
-      "lastPing": "2026-06-08T13:30:22.897Z",
-      "beaconStrength": "88%"
+      "location": "Admin Block",
+      "status": "Available",
+      "lastPing": "2026-06-08T13:57:57.266Z",
+      "beaconStrength": "87%"
     },
     "namespace": "tracker",
-    "version": "tx_19ea76d5d31_ed1873cc:1",
-    "updatedAt": "2026-06-08T13:30:22.898Z",
-    "txId": "tx_19ea76d5d31_ed1873cc",
+    "version": "tx_19ea7869b92_54c99a95:1",
+    "updatedAt": "2026-06-08T13:57:57.266Z",
+    "txId": "tx_19ea7869b92_54c99a95",
     "docType": "tracker"
   },
   "did:hosp:doctor:0f6d4e45": {
@@ -635,15 +644,15 @@
     "value": {
       "staffDid": "did:hosp:doctor:0f6d4e45",
       "name": "Dr. Aanya Batra",
-      "location": "Radiology Block",
+      "location": "Conference Room 1",
       "status": "Available",
-      "lastPing": "2026-06-08T13:26:09.245Z",
-      "beaconStrength": "95%"
+      "lastPing": "2026-06-08T14:02:13.336Z",
+      "beaconStrength": "83%"
     },
     "namespace": "tracker",
-    "version": "tx_19ea7697e5d_e658631c:1",
-    "updatedAt": "2026-06-08T13:26:09.245Z",
-    "txId": "tx_19ea7697e5d_e658631c",
+    "version": "tx_19ea78a83d8_dbb37cdb:1",
+    "updatedAt": "2026-06-08T14:02:13.336Z",
+    "txId": "tx_19ea78a83d8_dbb37cdb",
     "docType": "tracker"
   },
   "did:hosp:doctor:0f6d4e08": {
@@ -651,15 +660,15 @@
     "value": {
       "staffDid": "did:hosp:doctor:0f6d4e08",
       "name": "Dr. Sarla Sinha",
-      "location": "Cafeteria",
+      "location": "Pharmacy Desk",
       "status": "Available",
-      "lastPing": "2026-06-08T13:29:37.156Z",
-      "beaconStrength": "95%"
+      "lastPing": "2026-06-08T14:05:03.487Z",
+      "beaconStrength": "79%"
     },
     "namespace": "tracker",
-    "version": "tx_19ea76caa84_ff4028fc:1",
-    "updatedAt": "2026-06-08T13:29:37.156Z",
-    "txId": "tx_19ea76caa84_ff4028fc",
+    "version": "tx_19ea78d1c7f_fd4ef4fc:1",
+    "updatedAt": "2026-06-08T14:05:03.487Z",
+    "txId": "tx_19ea78d1c7f_fd4ef4fc",
     "docType": "tracker"
   },
   "did:hosp:doctor:0f6d4e27": {
@@ -683,15 +692,15 @@
     "value": {
       "staffDid": "did:hosp:staff:0f6d4e5c",
       "name": "Geeta Arora",
-      "location": "Admin Block",
+      "location": "Nursing Station",
       "status": "Available",
-      "lastPing": "2026-06-08T13:30:14.722Z",
-      "beaconStrength": "95%"
+      "lastPing": "2026-06-08T14:04:03.438Z",
+      "beaconStrength": "86%"
     },
     "namespace": "tracker",
-    "version": "tx_19ea76d3d42_d288ce74:1",
-    "updatedAt": "2026-06-08T13:30:14.722Z",
-    "txId": "tx_19ea76d3d42_d288ce74",
+    "version": "tx_19ea78c31ee_b298ce07:1",
+    "updatedAt": "2026-06-08T14:04:03.438Z",
+    "txId": "tx_19ea78c31ee_b298ce07",
     "docType": "tracker"
   },
   "did:hosp:staff:0f6d4e23": {
@@ -699,15 +708,15 @@
     "value": {
       "staffDid": "did:hosp:staff:0f6d4e23",
       "name": "Venkat Malhotra",
-      "location": "Lab Wing A",
+      "location": "Radiology Block",
       "status": "Available",
-      "lastPing": "2026-06-08T13:12:49.211Z",
-      "beaconStrength": "90%"
+      "lastPing": "2026-06-08T13:55:03.323Z",
+      "beaconStrength": "72%"
     },
     "namespace": "tracker",
-    "version": "tx_19ea75d493b_63e79fee:1",
-    "updatedAt": "2026-06-08T13:12:49.212Z",
-    "txId": "tx_19ea75d493b_63e79fee",
+    "version": "tx_19ea783f41a_904950e8:1",
+    "updatedAt": "2026-06-08T13:55:03.323Z",
+    "txId": "tx_19ea783f41a_904950e8",
     "docType": "tracker"
   },
   "did:hosp:doctor:0f6d4e20": {
@@ -715,15 +724,15 @@
     "value": {
       "staffDid": "did:hosp:doctor:0f6d4e20",
       "name": "Dr. Uma Malhotra",
-      "location": "Emergency Ward",
-      "status": "Emergency Response",
-      "lastPing": "2026-06-08T13:22:33.137Z",
-      "beaconStrength": "79%"
+      "location": "Operation Theatre 2",
+      "status": "In Surgery",
+      "lastPing": "2026-06-08T14:01:17.464Z",
+      "beaconStrength": "78%"
     },
     "namespace": "tracker",
-    "version": "tx_19ea7663231_ed5f2ff4:1",
-    "updatedAt": "2026-06-08T13:22:33.137Z",
-    "txId": "tx_19ea7663231_ed5f2ff4",
+    "version": "tx_19ea789a998_0fe8b353:1",
+    "updatedAt": "2026-06-08T14:01:17.464Z",
+    "txId": "tx_19ea789a998_0fe8b353",
     "docType": "tracker"
   },
   "did:hosp:doctor:0f6d4e00": {
@@ -731,15 +740,15 @@
     "value": {
       "staffDid": "did:hosp:doctor:0f6d4e00",
       "name": "Dr. Radha Sinha",
-      "location": "Cafeteria",
+      "location": "Radiology Block",
       "status": "Available",
-      "lastPing": "2026-06-08T13:29:21.416Z",
-      "beaconStrength": "88%"
+      "lastPing": "2026-06-08T14:00:21.126Z",
+      "beaconStrength": "91%"
     },
     "namespace": "tracker",
-    "version": "tx_19ea76c6d08_0859bb69:1",
-    "updatedAt": "2026-06-08T13:29:21.417Z",
-    "txId": "tx_19ea76c6d08_0859bb69",
+    "version": "tx_19ea788cd86_1016a06d:1",
+    "updatedAt": "2026-06-08T14:00:21.126Z",
+    "txId": "tx_19ea788cd86_1016a06d",
     "docType": "tracker"
   },
   "did:hosp:staff:0f6d4e22": {
@@ -747,15 +756,15 @@
     "value": {
       "staffDid": "did:hosp:staff:0f6d4e22",
       "name": "Nandini Malhotra",
-      "location": "Conference Room 1",
-      "status": "Available",
-      "lastPing": "2026-06-08T13:28:49.279Z",
-      "beaconStrength": "92%"
+      "location": "Emergency Ward",
+      "status": "Emergency Response",
+      "lastPing": "2026-06-08T14:00:02.876Z",
+      "beaconStrength": "93%"
     },
     "namespace": "tracker",
-    "version": "tx_19ea76bef7f_59462812:1",
-    "updatedAt": "2026-06-08T13:28:49.279Z",
-    "txId": "tx_19ea76bef7f_59462812",
+    "version": "tx_19ea788863c_bbcd9fd1:1",
+    "updatedAt": "2026-06-08T14:00:02.876Z",
+    "txId": "tx_19ea788863c_bbcd9fd1",
     "docType": "tracker"
   },
   "did:hosp:staff:0f6d4e24": {
@@ -763,15 +772,15 @@
     "value": {
       "staffDid": "did:hosp:staff:0f6d4e24",
       "name": "Revati Malhotra",
-      "location": "Lab Wing A",
+      "location": "Cafeteria",
       "status": "Available",
-      "lastPing": "2026-06-08T13:28:09.193Z",
-      "beaconStrength": "75%"
+      "lastPing": "2026-06-08T13:58:19.558Z",
+      "beaconStrength": "95%"
     },
     "namespace": "tracker",
-    "version": "tx_19ea76b52e9_68708efa:1",
-    "updatedAt": "2026-06-08T13:28:09.193Z",
-    "txId": "tx_19ea76b52e9_68708efa",
+    "version": "tx_19ea786f2a6_45655c48:1",
+    "updatedAt": "2026-06-08T13:58:19.558Z",
+    "txId": "tx_19ea786f2a6_45655c48",
     "docType": "tracker"
   },
   "did:hosp:staff:0f6d4e03": {
@@ -781,13 +790,13 @@
       "name": "Kishore Sinha",
       "location": "OPD Room 3",
       "status": "Available",
-      "lastPing": "2026-06-08T13:27:13.087Z",
-      "beaconStrength": "87%"
+      "lastPing": "2026-06-08T13:58:59.422Z",
+      "beaconStrength": "89%"
     },
     "namespace": "tracker",
-    "version": "tx_19ea76a77bf_2167ea1c:1",
-    "updatedAt": "2026-06-08T13:27:13.087Z",
-    "txId": "tx_19ea76a77bf_2167ea1c",
+    "version": "tx_19ea7878e5e_273798ea:1",
+    "updatedAt": "2026-06-08T13:58:59.422Z",
+    "txId": "tx_19ea7878e5e_273798ea",
     "docType": "tracker"
   },
   "did:hosp:staff:0f6d4e44": {
@@ -797,13 +806,13 @@
       "name": "Ravi Batra",
       "location": "Nursing Station",
       "status": "Available",
-      "lastPing": "2026-06-08T13:29:05.129Z",
-      "beaconStrength": "72%"
+      "lastPing": "2026-06-08T13:57:33.335Z",
+      "beaconStrength": "97%"
     },
     "namespace": "tracker",
-    "version": "tx_19ea76c2d69_658b1b14:1",
-    "updatedAt": "2026-06-08T13:29:05.129Z",
-    "txId": "tx_19ea76c2d69_658b1b14",
+    "version": "tx_19ea7863e17_66e8ef87:1",
+    "updatedAt": "2026-06-08T13:57:33.335Z",
+    "txId": "tx_19ea7863e17_66e8ef87",
     "docType": "tracker"
   },
   "did:hosp:staff:0f6d4e43": {
@@ -811,15 +820,15 @@
     "value": {
       "staffDid": "did:hosp:staff:0f6d4e43",
       "name": "Savita Batra",
-      "location": "Emergency Ward",
-      "status": "Emergency Response",
-      "lastPing": "2026-06-08T13:24:41.265Z",
-      "beaconStrength": "98%"
+      "location": "Nursing Station",
+      "status": "Available",
+      "lastPing": "2026-06-08T13:59:30.864Z",
+      "beaconStrength": "82%"
     },
     "namespace": "tracker",
-    "version": "tx_19ea76826b1_83bc5905:1",
-    "updatedAt": "2026-06-08T13:24:41.265Z",
-    "txId": "tx_19ea76826b1_83bc5905",
+    "version": "tx_19ea7880930_cfa49e58:1",
+    "updatedAt": "2026-06-08T13:59:30.864Z",
+    "txId": "tx_19ea7880930_cfa49e58",
     "docType": "tracker"
   }
 }

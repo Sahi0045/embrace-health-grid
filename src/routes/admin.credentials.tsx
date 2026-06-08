@@ -3,9 +3,10 @@ import { RouteGuard } from "@/components/RouteGuard";
 import { PageHeader, StatCard } from "@/components/PageHeader";
 import { CredentialCard } from "@/components/credentials/CredentialCard";
 import { CredentialIssuerBadge } from "@/components/credentials/CredentialIssuerBadge";
-import { mockCredentials } from "@/lib/mock-credentials";
 import { ShieldCheck, ShieldX, Search, TrendingUp, Eye, Award, AlertTriangle } from "lucide-react";
 import { useState } from "react";
+import type { CredentialFull } from "@/lib/mock-credentials";
+import { useFabricCredentials } from "@/hooks/use-fabric";
 
 export const Route = createFileRoute("/admin/credentials")({
   head: () => ({ meta: [{ title: "Credentials — Admin Console" }] }),
@@ -24,19 +25,44 @@ function CredentialsPage() {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
 
-  const active = mockCredentials.filter(c => c.status === "active").length;
-  const expired = mockCredentials.filter(c => c.status === "expired").length;
-  const revoked = mockCredentials.filter(c => c.status === "revoked").length;
-  const totalVerifications = mockCredentials.reduce((s, c) => s + c.verificationCount, 0);
+  const { data: credentialsData } = useFabricCredentials();
 
-  const filtered = mockCredentials.filter(c =>
+  const displayCredentials: CredentialFull[] = (credentialsData?.credentials ?? []).map((c: any) => {
+    return {
+      id: c.id,
+      type: c.type || "PatientIdentity",
+      typeLabel: c.type === "IdentityVC" ? "Patient Identity" : c.type === "InsuranceVC" ? "Insurance Policy" : c.type === "VaccinationVC" ? "Vaccination Record" : c.type === "ProfessionalVC" ? "Professional Credential" : "Verifiable Credential",
+      issuer: c.issuer || "Apollo Hospitals",
+      issuerDID: `did:hosp:issuer:${c.issuer || "apollo"}`,
+      holder: c.subject || "Unknown Holder",
+      holderDID: c.claims?.subjectDid || "did:hosp:unknown",
+      issuedAt: c.issuedAt ? c.issuedAt.split("T")[0] : new Date().toISOString().split("T")[0],
+      expiresAt: c.expiresAt ? c.expiresAt.split("T")[0] : new Date().toISOString().split("T")[0],
+      status: c.status || "active",
+      schema: `https://schema.did-hospital.in/v1/${(c.type || "").toLowerCase()}`,
+      verificationCount: 1,
+      lastVerified: c.issuedAt ? c.issuedAt.split("T")[0] : new Date().toISOString().split("T")[0],
+      metadata: {
+        issuanceCountry: "India",
+        credentialVersion: "1.2",
+        encryptionAlgo: "Ed25519",
+      }
+    };
+  });
+
+  const active = displayCredentials.filter(c => c.status === "active").length;
+  const expired = displayCredentials.filter(c => c.status === "expired").length;
+  const revoked = displayCredentials.filter(c => c.status === "revoked").length;
+  const totalVerifications = displayCredentials.reduce((s, c) => s + c.verificationCount, 0);
+
+  const filtered = displayCredentials.filter(c =>
     (typeFilter === "all" || c.type === typeFilter) &&
-    (c.typeLabel.toLowerCase().includes(search.toLowerCase()) ||
-     c.holder.toLowerCase().includes(search.toLowerCase()) ||
-     c.issuer.toLowerCase().includes(search.toLowerCase()))
+    (((c.typeLabel || "").toLowerCase().includes(search.toLowerCase())) ||
+     ((c.holder || "").toLowerCase().includes(search.toLowerCase())) ||
+     ((c.issuer || "").toLowerCase().includes(search.toLowerCase())))
   );
 
-  const typeOptions = [...new Set(mockCredentials.map(c => c.type))];
+  const typeOptions = [...new Set(displayCredentials.map(c => c.type))];
 
   return (
     <RouteGuard requiredRole="admin">
@@ -47,8 +73,8 @@ function CredentialsPage() {
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 px-6 pt-6">
-        <StatCard label="Total Credentials" value={mockCredentials.length.toLocaleString()} icon={Award} tone="default" delta="1,000 issued credentials" />
-        <StatCard label="Active" value={active} icon={ShieldCheck} tone="success" delta={`${Math.round(active / mockCredentials.length * 100)}% of total`} />
+        <StatCard label="Total Credentials" value={displayCredentials.length.toLocaleString()} icon={Award} tone="default" delta={`${displayCredentials.length} issued credentials`} />
+        <StatCard label="Active" value={active} icon={ShieldCheck} tone="success" delta={`${displayCredentials.length ? Math.round(active / displayCredentials.length * 100) : 0}% of total`} />
         <StatCard label="Revoked" value={revoked} icon={ShieldX} tone="destructive" delta={`${expired} expired`} />
         <StatCard label="Total Verifications" value={totalVerifications.toLocaleString()} icon={Eye} tone="default" delta="All-time credential checks" />
       </div>
@@ -110,9 +136,9 @@ function CredentialsPage() {
           <div className="space-y-6">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {typeOptions.slice(0, 6).map(type => {
-                const count = mockCredentials.filter(c => c.type === type).length;
-                const activeCount = mockCredentials.filter(c => c.type === type && c.status === "active").length;
-                const verifications = mockCredentials.filter(c => c.type === type).reduce((s, c) => s + c.verificationCount, 0);
+                const count = displayCredentials.filter(c => c.type === type).length;
+                const activeCount = displayCredentials.filter(c => c.type === type && c.status === "active").length;
+                const verifications = displayCredentials.filter(c => c.type === type).reduce((s, c) => s + c.verificationCount, 0);
                 return (
                   <div key={type} className="rounded-xl border border-border bg-card p-4 shadow-clinical">
                     <div className="text-sm font-semibold text-foreground">{type}</div>

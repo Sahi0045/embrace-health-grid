@@ -343,5 +343,52 @@
     "updatedAt": "2026-06-08T11:26:20.657Z",
     "txId": "74142986-938c-4634-af7a-004eb17d1b5f",
     "docType": "did-registry"
+  },
+  "did:hosp:0x5ecf72fd": {
+    "key": "did:hosp:0x5ecf72fd",
+    "value": {
+      "did": "did:hosp:0x5ecf72fd",
+      "publicKey": "MFkw608EE491DEC3A3EE8B2D472180EFFCB5",
+      "controller": "did:hosp:consortium:authority",
+      "owner": "Sahith Kumar",
+      "ownerType": "patient",
+      "status": "active",
+      "credentials": [],
+      "createdAt": "2026-06-08T13:39:13.234Z",
+      "updatedAt": "2026-06-08T13:39:13.235Z",
+      "serviceEndpoint": "https://did.apollohospitals.in/resolve/did:hosp:0x5ecf72fd",
+      "ownerEmail": null
+    },
+    "namespace": "did-registry",
+    "version": "5e60a89c-c91b-47b9-858a-7f8c62458c99:1",
+    "updatedAt": "2026-06-08T13:39:13.235Z",
+    "txId": "5e60a89c-c91b-47b9-858a-7f8c62458c99",
+    "docType": "did-registry"
+  },
+  "did:hosp:0x643a3a37": {
+    "key": "did:hosp:0x643a3a37",
+    "value": {
+      "did": "did:hosp:0x643a3a37",
+      "publicKey": "MFkw6AEF49DFC6AA0F5D62074CCABB22FDDD",
+      "controller": "did:hosp:consortium:authority",
+      "owner": "PASUPULETI SAHITH KUMAR",
+      "ownerType": "patient",
+      "status": "active",
+      "credentials": [],
+      "createdAt": "2026-06-08T13:42:55.448Z",
+      "updatedAt": "2026-06-08T13:42:55.448Z",
+      "serviceEndpoint": "https://did.apollohospitals.in/resolve/did:hosp:0x643a3a37",
+      "ownerEmail": "sahi0046@yahoo.com",
+      "age": "25",
+      "gender": "M",
+      "bloodGroup": "O+",
+      "phone": "+919392954474",
+      "address": "ASBL SPRINGS,POCHARAM"
+    },
+    "namespace": "did-registry",
+    "version": "655c6b68-84e5-4959-ac7e-c8946af82e68:1",
+    "updatedAt": "2026-06-08T13:42:55.448Z",
+    "txId": "655c6b68-84e5-4959-ac7e-c8946af82e68",
+    "docType": "did-registry"
   }
 }

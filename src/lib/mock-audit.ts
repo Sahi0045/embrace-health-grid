@@ -66,37 +66,7 @@ function hashInt(s: string) { let h = 0; for (let i = 0; i < s.length; i++) h = 
 function pad(n: number) { return String(n).padStart(2, "0"); }
 
 export function generateAuditEvents(count = 5000): AuditEvent[] {
-  return Array.from({ length: count }, (_, i) => {
-    const id = `evt_${String(i + 1).padStart(6, "0")}`;
-    const seed = hashInt(id);
-    const actor = actors[seed % actors.length];
-    const ev = actions[(seed >> 2) % actions.length];
-    const target = targets[(seed >> 3) % targets.length];
-    const daysAgo = seed % 180;
-    const d = new Date(2026, 4, 29);
-    d.setDate(d.getDate() - daysAgo);
-    const hour = pad(seed % 24);
-    const min = pad((seed >> 1) % 60);
-    const dateStr = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${hour}:${min}`;
-    const hashVal = ((seed * 0xdeadbeef) >>> 0).toString(16).padStart(8, "0");
-
-    return {
-      id,
-      category: ev.cat,
-      action: ev.action,
-      actor: actor.name,
-      actorRole: actor.role,
-      actorDID: actor.did,
-      target,
-      targetDID: seed % 3 === 0 ? `did:hosp:0x${(seed * 2).toString(16).padStart(4, "0")}…` : undefined,
-      ip: ips[seed % ips.length],
-      result: ev.result,
-      severity: ev.severity,
-      at: dateStr,
-      details: ev.details,
-      hash: `sha256:${hashVal}${((seed * 0xcafebabe) >>> 0).toString(16).padStart(8, "0")}`,
-    };
-  });
+  return [];
 }
 
-export const mockAuditEvents = generateAuditEvents(5000);
+export const mockAuditEvents = [];

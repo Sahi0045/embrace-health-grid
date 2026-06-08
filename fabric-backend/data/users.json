@@ -1,1 +1,34 @@
-{}
+{
+  "sahi0046@yahoo.com": {
+    "key": "sahi0046@yahoo.com",
+    "value": {
+      "name": "Sahith Kumar Pasupuleti",
+      "email": "sahi0046@yahoo.com",
+      "password": "Sahi@0045",
+      "role": "patient",
+      "did": "did:hosp:0x643a3a37",
+      "createdAt": "2026-06-08T13:38:01.900Z"
+    },
+    "namespace": "users",
+    "version": "fb47b8ab-4da6-4361-ad7d-18e9a39b2d5a:1",
+    "updatedAt": "2026-06-08T13:42:55.449Z",
+    "txId": "fb47b8ab-4da6-4361-ad7d-18e9a39b2d5a",
+    "docType": "users"
+  },
+  "team@nivixpe.com": {
+    "key": "team@nivixpe.com",
+    "value": {
+      "name": "Sahith Kumar Pasupuleti",
+      "email": "team@nivixpe.com",
+      "password": "Sahi@0045",
+      "role": "admin",
+      "did": null,
+      "createdAt": "2026-06-08T13:38:35.881Z"
+    },
+    "namespace": "users",
+    "version": "9918b42f-2203-4da3-8da0-08d828fd9072:1",
+    "updatedAt": "2026-06-08T13:38:35.881Z",
+    "txId": "9918b42f-2203-4da3-8da0-08d828fd9072",
+    "docType": "users"
+  }
+}

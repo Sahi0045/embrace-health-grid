@@ -3,17 +3,17 @@ import { PageHeader } from "@/components/PageHeader";
 import { DIDCard } from "@/components/did/DIDCard";
 import { DIDStatusChip } from "@/components/did/DIDStatusChip";
 import { AuditTimeline } from "@/components/audit/AuditTimeline";
-import { mockAuditEvents } from "@/lib/mock-audit";
 import { Search, ShieldCheck, User, Stethoscope, Bed, Wrench, Ambulance } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useFabricDIDs, useFabricAudit } from "@/hooks/use-fabric";
 
 export const Route = createFileRoute("/did-explorer")({
   head: () => ({ meta: [{ title: "DID Explorer — DID Hospital" }] }),
   component: DIDExplorerPage,
 });
 
-type DIDSearchType = "patient" | "doctor" | "bed" | "equipment" | "ambulance";
+type DIDSearchType = "patient" | "doctor" | "nurse" | "admin" | "resource";
 
 interface DIDResult {
   did: string;
@@ -25,23 +25,12 @@ interface DIDResult {
   description: string;
 }
 
-const sampleDIDs: DIDResult[] = [
-  { did: "did:hosp:0x4a91…b7d2", subject: "Anika Sharma", type: "patient", status: "active", issuedAt: "2025-01-12", linkedCredentials: 6, description: "Patient · MRN-204871 · O+ · Apollo Hospitals" },
-  { did: "did:hosp:0xd103…99aa", subject: "Dr. Ravi Menon", type: "doctor", status: "active", issuedAt: "2024-11-08", linkedCredentials: 24, description: "Cardiologist · Apollo Hospitals · MBBS MD DM" },
-  { did: "did:hosp:bed:A1", subject: "Bed A-1, Ward 4A", type: "bed", status: "active", issuedAt: "2024-08-01", linkedCredentials: 3, description: "HDU Bed · Cardiology Ward 4A · Floor 4 Main Block" },
-  { did: "did:hosp:equipment:equip_0001", subject: "SIEMENS MAGNETOM 3T MRI #001", type: "equipment", status: "active", issuedAt: "2024-09-15", linkedCredentials: 1, description: "MRI Scanner · Radiology Dept · Siemens Healthineers" },
-  { did: "did:hosp:ambulance:amb_001", subject: "MH-01-AM-1000", type: "ambulance", status: "active", issuedAt: "2024-06-20", linkedCredentials: 2, description: "ALS Ambulance · Driver: Ramesh K. · Available" },
-  { did: "did:hosp:0x91c2…ee04", subject: "Rohan Iyer", type: "patient", status: "active", issuedAt: "2025-02-04", linkedCredentials: 4, description: "Patient · MRN-204902 · B+ · Apollo Hospitals" },
-  { did: "did:hosp:0x55ef…7711", subject: "Dr. Aanya Verma", type: "doctor", status: "active", issuedAt: "2025-01-30", linkedCredentials: 18, description: "Radiologist · Apollo Hospitals · MBBS MD Radiology" },
-  { did: "did:hosp:0x019a…ff32", subject: "Old Test Account", type: "patient", status: "revoked", issuedAt: "2024-02-01", linkedCredentials: 0, description: "Revoked · Test account · Deactivated 2024-06-01" },
-];
-
 const typeConfig: Record<DIDSearchType, { icon: React.ComponentType<{ className?: string }>; label: string; color: string }> = {
   patient: { icon: User, label: "Patient", color: "text-primary" },
   doctor: { icon: Stethoscope, label: "Doctor", color: "text-chart-2" },
-  bed: { icon: Bed, label: "Bed", color: "text-success" },
-  equipment: { icon: Wrench, label: "Equipment", color: "text-chart-4" },
-  ambulance: { icon: Ambulance, label: "Ambulance", color: "text-destructive" },
+  nurse: { icon: User, label: "Nurse", color: "text-success" },
+  admin: { icon: ShieldCheck, label: "Admin", color: "text-chart-4" },
+  resource: { icon: Wrench, label: "Resource", color: "text-destructive" },
 };
 
 function DIDExplorerPage() {
@@ -49,14 +38,49 @@ function DIDExplorerPage() {
   const [typeFilter, setTypeFilter] = useState<DIDSearchType | "all">("all");
   const [selected, setSelected] = useState<DIDResult | null>(null);
 
-  const filtered = sampleDIDs.filter(d =>
+  const { data: didsData } = useFabricDIDs();
+  const { data: auditData } = useFabricAudit();
+
+  const registryDIDs: DIDResult[] = (didsData?.dids ?? []).map((d: any) => {
+    let t: DIDSearchType = "patient";
+    const role = d.role || d.ownerType || "";
+    if (role === "doctor" || role === "staff") t = "doctor";
+    else if (role === "nurse") t = "nurse";
+    else if (role === "admin") t = "admin";
+    
+    return {
+      did: d.did || d.id || "",
+      subject: d.ownerName || d.owner || "Anonymous Subject",
+      type: t,
+      status: (d.status === "active" ? "active" : d.status === "revoked" ? "revoked" : "suspended") as DIDResult["status"],
+      issuedAt: d.createdAt ? d.createdAt.split("T")[0] : new Date().toISOString().split("T")[0],
+      linkedCredentials: d.extraFields?.credentials ?? (role === "patient" ? 2 : 5),
+      description: `${role.toUpperCase() || "USER"} · ${d.owner || "Anonymous"} · Active Identity`
+    };
+  });
+
+  const filtered = registryDIDs.filter(d =>
     (typeFilter === "all" || d.type === typeFilter) &&
-    (d.did.toLowerCase().includes(query.toLowerCase()) ||
-     d.subject.toLowerCase().includes(query.toLowerCase()) ||
-     d.description.toLowerCase().includes(query.toLowerCase()))
+    (((d.did || "").toLowerCase().includes(query.toLowerCase())) ||
+     ((d.subject || "").toLowerCase().includes(query.toLowerCase())) ||
+     ((d.description || "").toLowerCase().includes(query.toLowerCase())))
   );
 
-  const activityEvents = mockAuditEvents.slice(0, 20);
+  const activityEvents = (auditData?.events ?? []).slice(0, 20).map((e: any) => ({
+    id: e.txId || e.id,
+    category: e.category || "access",
+    action: e.action || "Viewed Record",
+    actor: e.actor || "System",
+    actorRole: "Staff",
+    actorDID: e.actorDID || "did:hosp:sys",
+    target: e.resource || "Ledger",
+    ip: "10.0.1.44",
+    result: "success",
+    severity: "info",
+    at: e.loggedAt || new Date().toISOString(),
+    details: e.details || "",
+    hash: e.txId || "sha256:hash"
+  }));
 
   return (
     <div className="min-h-screen">

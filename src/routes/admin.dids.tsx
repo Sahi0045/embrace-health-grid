@@ -4,8 +4,17 @@ import { PageHeader } from "@/components/PageHeader";
 import { type DIDRecord } from "@/lib/mock-data";
 import { useFabricDIDs } from "@/hooks/use-fabric";
 import { fabricCreateDID } from "@/lib/fabric-api";
-import { Plus, Upload, Search } from "lucide-react";
+import { Plus, Upload, Search, X } from "lucide-react";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/admin/dids")({
   head: () => ({ meta: [{ title: "Admin · DID Management — DID Hospital" }] }),
@@ -14,17 +23,33 @@ export const Route = createFileRoute("/admin/dids")({
 
 function DIDManagement() {
   const { data: didsData, refetch } = useFabricDIDs();
-  const [localDids, setLocalDids] = useState<DIDRecord[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    role: "patient",
+    // Patient specific fields:
+    age: "",
+    gender: "M",
+    bloodGroup: "O+",
+    phone: "",
+    address: "",
+    // Staff/Clinician specific fields:
+    employeeId: "",
+    department: "General Medicine",
+    specialty: "General Medicine",
+    shift: "morning"
+  });
 
   const liveDids: DIDRecord[] = (didsData?.dids || []).map((d: any) => ({
     did: d.did || d.id || "",
-    subject: d.owner || d.subject || "Unknown",
-    type: (d.ownerType || d.type || "patient") as DIDRecord["type"],
+    subject: d.ownerName || d.owner || d.subject || "Unknown",
+    type: (d.role || d.ownerType || d.type || "patient") as DIDRecord["type"],
     issuedAt: d.createdAt?.slice(0, 10) || d.issuedAt || new Date().toISOString().slice(0, 10),
     status: (d.status || "active") as DIDRecord["status"],
   }));
 
-  const list = [...localDids, ...liveDids];
+  const list = liveDids;
   const [q, setQ] = useState("");
   const [type, setType] = useState<"all" | DIDRecord["type"]>("all");
 
@@ -33,26 +58,63 @@ function DIDManagement() {
     return [d.did, d.subject].some((f) => f.toLowerCase().includes(q.toLowerCase()));
   });
 
-  const issueNew = async () => {
-    const name = prompt("Subject name?");
-    if (!name) return;
-    const subjectType = prompt("Type? (patient / doctor / nurse / admin)", "patient");
-    if (!subjectType) return;
-    
-    try {
-      const res = await fabricCreateDID(name, subjectType);
-      toast.success("DID issued successfully on blockchain", { description: res.did });
-      refetch();
-    } catch {
-      const newDid: DIDRecord = {
-        did: `did:hosp:0x${Math.random().toString(16).slice(2, 6)}…${Math.random().toString(16).slice(2, 6)}`,
-        subject: name,
-        type: subjectType as DIDRecord["type"],
-        issuedAt: new Date().toISOString().slice(0, 10),
-        status: "active",
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const { name, email, role, ...rest } = formData;
+    if (!name || !email) {
+      toast.error("Name and Email are required");
+      return;
+    }
+
+    let extraFields: any = {};
+    if (role === "patient") {
+      extraFields = {
+        age: rest.age,
+        gender: rest.gender,
+        bloodGroup: rest.bloodGroup,
+        phone: rest.phone,
+        address: rest.address
       };
-      setLocalDids(prev => [newDid, ...prev]);
-      toast.success("DID issued (offline mode)", { description: newDid.did });
+    } else {
+      extraFields = {
+        employeeId: rest.employeeId,
+        department: rest.department,
+        specialty: rest.specialty,
+        shift: rest.shift,
+        phone: rest.phone
+      };
+    }
+
+    try {
+      const res = await fabricCreateDID(name, role, undefined, email, extraFields);
+      toast.success("DID issued successfully on blockchain", { description: res.did });
+      setIsModalOpen(false);
+      // Reset form
+      setFormData({
+        name: "",
+        email: "",
+        role: "patient",
+        age: "",
+        gender: "M",
+        bloodGroup: "O+",
+        phone: "",
+        address: "",
+        employeeId: "",
+        department: "General Medicine",
+        specialty: "General Medicine",
+        shift: "morning"
+      });
+      refetch();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to issue DID on blockchain");
     }
   };
 
@@ -68,8 +130,8 @@ function DIDManagement() {
               <Upload className="h-4 w-4" /> Bulk CSV
             </button>
             <button
-              onClick={issueNew}
-              className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-clinical hover:bg-primary/90"
+              onClick={() => setIsModalOpen(true)}
+              className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-clinical hover:bg-primary/90 cursor-pointer"
             >
               <Plus className="h-4 w-4" /> Issue DID
             </button>
@@ -136,10 +198,225 @@ function DIDManagement() {
                   </td>
                 </tr>
               ))}
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="py-8 text-center text-sm text-muted-foreground">
+                    No DIDs found.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
       </div>
+
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="sm:max-w-[550px] border border-border bg-card text-foreground">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">Issue New Decentralized Identifier (DID)</DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              Anchor a new identity onto the Hyperledger Fabric blockchain. Specify custom role attributes.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSubmit} className="space-y-4 py-2">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-muted-foreground">Subject Name</label>
+                <input
+                  required
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  placeholder="e.g. Dr. Ravi Menon"
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-muted-foreground">Subject Email</label>
+                <input
+                  required
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  placeholder="e.g. ravi@apollohospitals.in"
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-muted-foreground">Identity Role</label>
+                <select
+                  name="role"
+                  value={formData.role}
+                  onChange={handleInputChange}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
+                >
+                  <option value="patient">Patient</option>
+                  <option value="doctor">Doctor</option>
+                  <option value="nurse">Nurse</option>
+                  <option value="admin">Administrator</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-muted-foreground">Phone Number</label>
+                <input
+                  type="tel"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  placeholder="e.g. +91 9876543210"
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
+                />
+              </div>
+            </div>
+
+            {/* Dynamic Role-specific details */}
+            {formData.role === "patient" && (
+              <div className="space-y-4 border-t border-border/50 pt-4">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-primary">Patient Medical Profile</h4>
+                
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-semibold text-muted-foreground">Age</label>
+                    <input
+                      type="number"
+                      name="age"
+                      value={formData.age}
+                      onChange={handleInputChange}
+                      placeholder="35"
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-semibold text-muted-foreground">Gender</label>
+                    <select
+                      name="gender"
+                      value={formData.gender}
+                      onChange={handleInputChange}
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
+                    >
+                      <option value="M">Male</option>
+                      <option value="F">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-semibold text-muted-foreground">Blood Group</label>
+                    <select
+                      name="bloodGroup"
+                      value={formData.bloodGroup}
+                      onChange={handleInputChange}
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
+                    >
+                      {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map(bg => (
+                        <option key={bg} value={bg}>{bg}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-muted-foreground">Residential Address</label>
+                  <input
+                    type="text"
+                    name="address"
+                    value={formData.address}
+                    onChange={handleInputChange}
+                    placeholder="123 Health Street, Mumbai"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
+                  />
+                </div>
+              </div>
+            )}
+
+            {formData.role !== "patient" && (
+              <div className="space-y-4 border-t border-border/50 pt-4">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-primary">Clinician / Staff Directory details</h4>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-semibold text-muted-foreground">Employee ID</label>
+                    <input
+                      type="text"
+                      name="employeeId"
+                      value={formData.employeeId}
+                      onChange={handleInputChange}
+                      placeholder="e.g. EMP-9982"
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-semibold text-muted-foreground">Department</label>
+                    <input
+                      type="text"
+                      name="department"
+                      value={formData.department}
+                      onChange={handleInputChange}
+                      placeholder="e.g. Cardiology"
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-semibold text-muted-foreground">Specialty / Subspecialty</label>
+                    <input
+                      type="text"
+                      name="specialty"
+                      value={formData.specialty}
+                      onChange={handleInputChange}
+                      placeholder="e.g. Pediatric Cardiology"
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-semibold text-muted-foreground">Active Work Shift</label>
+                    <select
+                      name="shift"
+                      value={formData.shift}
+                      onChange={handleInputChange}
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
+                    >
+                      <option value="morning">Morning Shift</option>
+                      <option value="afternoon">Afternoon Shift</option>
+                      <option value="night">Night Shift</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <DialogFooter className="pt-4 border-t border-border/50">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsModalOpen(false)}
+                className="cursor-pointer"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                className="cursor-pointer"
+              >
+                Issue Blockchain DID
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

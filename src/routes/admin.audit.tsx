@@ -8,7 +8,6 @@ import {
   ShieldAlert, Clock, User, Activity, ChevronDown, ChevronUp,
   CheckCircle2, AlertCircle, Database, RefreshCw, Wifi, WifiOff
 } from "lucide-react";
-import { mockAuditEvents } from "@/lib/mock-audit";
 import { useFabricAudit } from "@/hooks/use-fabric";
 import { fabricLogAuditEvent } from "@/lib/fabric-api";
 
@@ -30,42 +29,8 @@ const actionConfig: Record<AuditAction, { bg: string; text: string; icon: React.
   verified: { bg: "bg-success/10",     text: "text-success",           icon: CheckCircle2 },
 };
 
-// Generate extended audit entries beyond what mock-audit provides
-const extraEntries = [
-  { id: "ax01", actor: "Admin Sandeep",     actorRole: "Super Admin",      resource: "User role: nurse → senior nurse",         action: "updated",  at: "2026-06-08 09:15", category: "Admin" },
-  { id: "ax02", actor: "System",            actorRole: "Auto-job",         resource: "Daily compliance export",                 action: "exported", at: "2026-06-08 06:00", category: "System" },
-  { id: "ax03", actor: "Dr. Aanya Verma",   actorRole: "Radiologist",      resource: "DICOM study DICOM-2284",                  action: "viewed",   at: "2026-06-07 21:55", category: "Clinical" },
-  { id: "ax04", actor: "DID Engine",        actorRole: "System",           resource: "Credential VC-VACC-0091 issued",          action: "created",  at: "2026-06-07 19:30", category: "Credential" },
-  { id: "ax05", actor: "Dr. Sameer Khan",   actorRole: "Surgeon",          resource: "Consent VC-SURG-042 signed",              action: "signed",   at: "2026-06-07 14:10", category: "Clinical" },
-  { id: "ax06", actor: "Admin Priya",       actorRole: "IT Admin",         resource: "Staff DID did:hosp:0xf2a1… revoked",      action: "revoked",  at: "2026-06-07 11:00", category: "DID" },
-  { id: "ax07", actor: "Pharmacist Rahul",  actorRole: "Pharmacist",       resource: "Prescription PR-9820 dispensed",          action: "verified", at: "2026-06-07 09:45", category: "Clinical" },
-  { id: "ax08", actor: "System",            actorRole: "Auto-job",         resource: "Patient MRN-204871 record snapshot",      action: "exported", at: "2026-06-06 23:00", category: "System" },
-  { id: "ax09", actor: "Nurse Priya",       actorRole: "ICU Nurse",        resource: "Vital signs chart — Bed B12",             action: "updated",  at: "2026-06-06 16:30", category: "Clinical" },
-  { id: "ax10", actor: "Admin Kewal",       actorRole: "Department Admin", resource: "Policy POL-032 updated",                  action: "updated",  at: "2026-06-06 10:00", category: "Admin" },
-];
-
-const allEntries = [
-  ...extraEntries,
-  ...(mockAuditEvents ?? []).slice(0, 40).map(e => ({
-    id: e.id,
-    actor: e.actor,
-    actorRole: e.actorRole ?? "Staff",
-    resource: e.target,
-    action: (e.action.split(" ")[0].toLowerCase()) as AuditAction,
-    at: e.at,
-    category: (e.category.charAt(0).toUpperCase() + e.category.slice(1)) as string,
-  })),
-];
-
 const categories = ["All", "Clinical", "Admin", "Credential", "DID", "System"] as const;
 type Category = typeof categories[number];
-
-const summaryStats = [
-  { label: "Total Events", value: allEntries.length + "+" , icon: Activity, color: "text-primary", bg: "bg-primary/10" },
-  { label: "Signed", value: allEntries.filter(e => e.action === "signed").length, icon: FileSignature, color: "text-success", bg: "bg-success/10" },
-  { label: "Exports", value: allEntries.filter(e => e.action === "exported").length, icon: Download, color: "text-chart-2", bg: "bg-chart-2/10" },
-  { label: "Revocations", value: allEntries.filter(e => e.action === "revoked").length, icon: ShieldAlert, color: "text-destructive", bg: "bg-destructive/10" },
-];
 
 type SortField = "at" | "actor" | "action";
 type SortDir = "asc" | "desc";
@@ -93,15 +58,14 @@ function AuditLogs() {
     category: e.category ?? "System",
   }));
 
-  const combined = [...liveEntries, ...extraEntries, ...(mockAuditEvents ?? []).slice(0, 40).map(e => ({
-    id: e.id, actor: e.actor, actorRole: e.actorRole ?? "Staff",
-    resource: e.target, action: (e.action.split(" ")[0].toLowerCase()) as AuditAction,
-    at: e.at, category: (e.category.charAt(0).toUpperCase() + e.category.slice(1)) as string,
-  }))];
+  const allEntries = liveEntries;
 
-  // Deduplicate by id
-  const seen = new Set<string>();
-  const allEntries = combined.filter(e => { if (seen.has(e.id)) return false; seen.add(e.id); return true; });
+  const summaryStats = useMemo(() => [
+    { label: "Total Events", value: liveEntries.length, icon: Activity, color: "text-primary", bg: "bg-primary/10" },
+    { label: "Signed", value: liveEntries.filter(e => e.action === "signed").length, icon: FileSignature, color: "text-success", bg: "bg-success/10" },
+    { label: "Exports", value: liveEntries.filter(e => e.action === "exported").length, icon: Download, color: "text-chart-2", bg: "bg-chart-2/10" },
+    { label: "Revocations", value: liveEntries.filter(e => e.action === "revoked").length, icon: ShieldAlert, color: "text-destructive", bg: "bg-destructive/10" },
+  ], [liveEntries]);
 
   const filtered = useMemo(() => {
     let rows = allEntries;

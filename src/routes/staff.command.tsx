@@ -3,7 +3,7 @@ import { RouteGuard } from "@/components/RouteGuard";
 import { PageHeader, StatCard } from "@/components/PageHeader";
 import { StaggerList, StaggerItem } from "@/components/Motion";
 import { mockBeds, mockAmbulances } from "@/lib/mock-infrastructure";
-import { mockPatients } from "@/lib/mock-patients";
+import { useLivePatients } from "@/hooks/use-fabric";
 import {
   AlertTriangle, Activity, Bed, Ambulance, FileSignature,
   ShieldAlert, Stethoscope, HeartPulse, Clock, TrendingUp, Users
@@ -15,7 +15,6 @@ export const Route = createFileRoute("/staff/command")({
   component: StaffCommandCenter,
 });
 
-const criticalPatients = mockPatients.filter(p => p.conditions.some(c => c.includes("Cardiac") || c.includes("COPD") || c.includes("Kidney"))).slice(0, 5);
 const icuBeds = mockBeds.filter(b => b.type === "icu").slice(0, 8);
 const pendingSignatures = [
   { id: "ps1", type: "Prescription", patient: "Anika Sharma", requestedBy: "Nurse Priya K.", urgency: "high", time: "08:42" },
@@ -42,6 +41,11 @@ function UrgencyDot({ urgency }: { urgency: string }) {
 }
 
 function StaffCommandCenter() {
+  const { patients: livePatients = [] } = useLivePatients();
+  const criticalPatients = livePatients.filter(p => {
+    return (p.conditions || []).some((c: string) => c.includes("Cardiac") || c.includes("COPD") || c.includes("Kidney")) || p.status === "inpatient";
+  });
+
   const occupiedICU = icuBeds.filter(b => b.status === "occupied").length;
   const availableAmbulances = mockAmbulances.filter(a => a.status === "available").length;
 

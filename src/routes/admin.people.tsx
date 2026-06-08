@@ -11,13 +11,14 @@ import {
   Phone, Mail, MapPin, Calendar, Award, Briefcase, ClipboardList,
   Activity, AlertCircle, Clock
 } from "lucide-react";
-import { patients, doctors, nurses, supportStaff, peopleStats } from "@/lib/people-data";
+import { peopleStats } from "@/lib/people-data";
 import { mockStaff } from "@/lib/mock-staff";
 import { DIDBadge } from "@/components/did/DIDBadge";
 import { DIDStatusChip } from "@/components/did/DIDStatusChip";
 import { useState, useEffect } from "react";
 import { fabricGetUsers, fabricCreateDID } from "@/lib/fabric-api";
 import { toast } from "sonner";
+import { useLivePatients, useLiveStaff } from "@/hooks/use-fabric";
 
 export const Route = createFileRoute("/admin/people")({
   head: () => ({
@@ -33,6 +34,9 @@ function PeopleManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [users, setUsers] = useState<any[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
+
+  const { patients: livePatients } = useLivePatients();
+  const { staff: liveStaff } = useLiveStaff();
 
   const fetchUsers = async () => {
     setLoadingUsers(true);
@@ -63,6 +67,44 @@ function PeopleManagement() {
       toast.error(err.message || "Failed to issue DID");
     }
   };
+
+  // Filter lists in real-time
+  const patientsList = (livePatients || []).filter(p =>
+    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    p.mrn?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    p.did?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const doctorsList = (liveStaff || []).filter(s =>
+    s.role?.toLowerCase() === "doctor" &&
+    (s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     s.employeeId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     s.did?.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
+  const nursesList = (liveStaff || []).filter(s =>
+    s.role?.toLowerCase() === "nurse" &&
+    (s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     s.employeeId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     s.did?.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
+  const supportStaffList = (liveStaff || []).filter(s =>
+    s.role?.toLowerCase() !== "doctor" && s.role?.toLowerCase() !== "nurse" &&
+    (s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     s.employeeId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     s.did?.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
+  // Compute stats in real-time
+  const totalPatients = (livePatients || []).length;
+  const totalDoctors = (liveStaff || []).filter(s => s.role?.toLowerCase() === "doctor").length;
+  const totalNurses = (liveStaff || []).filter(s => s.role?.toLowerCase() === "nurse").length;
+  const totalSupportStaff = (liveStaff || []).filter(s => s.role?.toLowerCase() !== "doctor" && s.role?.toLowerCase() !== "nurse").length;
+
+  const doctorsOnDuty = (liveStaff || []).filter(s => s.role?.toLowerCase() === "doctor" && s.onDuty).length;
+  const nursesOnDuty = (liveStaff || []).filter(s => s.role?.toLowerCase() === "nurse" && s.onDuty).length;
+  const supportOnDuty = (liveStaff || []).filter(s => s.role?.toLowerCase() !== "doctor" && s.role?.toLowerCase() !== "nurse" && s.onDuty).length;
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -95,27 +137,27 @@ function PeopleManagement() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard 
               label="Total Patients" 
-              value={peopleStats.totalPatients.toLocaleString()} 
-              delta={`+${peopleStats.newRegistrationsToday} today`}
+              value={totalPatients.toLocaleString()} 
+              delta={`Live on-chain`}
               icon={Users} 
             />
             <StatCard 
               label="Doctors" 
-              value={peopleStats.totalDoctors} 
-              delta={`${peopleStats.doctorsOnDuty} on duty`}
+              value={totalDoctors} 
+              delta={`${doctorsOnDuty} on duty`}
               icon={Stethoscope}
               tone="success"
             />
             <StatCard 
               label="Nurses" 
-              value={peopleStats.totalNurses} 
-              delta={`${peopleStats.nursesOnDuty} on duty`}
+              value={totalNurses} 
+              delta={`${nursesOnDuty} on duty`}
               icon={HeartPulse}
             />
             <StatCard 
               label="Support Staff" 
-              value={peopleStats.totalSupportStaff} 
-              delta={`${peopleStats.supportStaffOnDuty} on duty`}
+              value={totalSupportStaff} 
+              delta={`${supportOnDuty} on duty`}
               icon={UserCog}
             />
           </div>
@@ -151,24 +193,32 @@ function PeopleManagement() {
                 <Card>
                   <CardContent className="p-4">
                     <div className="text-sm text-muted-foreground">Currently Admitted</div>
-                    <div className="text-2xl font-semibold">{peopleStats.admittedPatients}</div>
+                    <div className="text-2xl font-semibold">
+                      {patientsList.filter(p => p.ward && p.status !== "discharged").length}
+                    </div>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="p-4">
                     <div className="text-sm text-muted-foreground">Outpatients</div>
-                    <div className="text-2xl font-semibold">{peopleStats.outpatients.toLocaleString()}</div>
+                    <div className="text-2xl font-semibold">
+                      {patientsList.filter(p => !p.ward || p.status === "outpatient").length}
+                    </div>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="p-4">
-                    <div className="text-sm text-muted-foreground">Today's Appointments</div>
-                    <div className="text-2xl font-semibold">{peopleStats.todayAppointments}</div>
+                    <div className="text-sm text-muted-foreground">Total Live Patients</div>
+                    <div className="text-2xl font-semibold">{patientsList.length}</div>
                   </CardContent>
                 </Card>
               </div>
 
-              {patients.map((patient) => (
+              {patientsList.length === 0 && (
+                <div className="py-12 text-center text-sm text-muted-foreground">No patients found.</div>
+              )}
+
+              {patientsList.map((patient) => (
                 <Card key={patient.id}>
                   <CardHeader>
                     <div className="flex items-start justify-between">
@@ -195,12 +245,12 @@ function PeopleManagement() {
                       </div>
                       <div>
                         <div className="text-sm text-muted-foreground">Total Visits</div>
-                        <div className="font-medium">{patient.totalVisits}</div>
+                        <div className="font-medium">{patient.totalVisits ?? 0}</div>
                       </div>
                       <div>
                         <div className="text-sm text-muted-foreground">Outstanding Bills</div>
-                        <div className={patient.outstandingBills > 0 ? "font-medium text-destructive" : "font-medium text-success"}>
-                          ₹{patient.outstandingBills.toLocaleString()}
+                        <div className={(patient.outstandingBills || 0) > 0 ? "font-medium text-destructive" : "font-medium text-success"}>
+                          ₹{(patient.outstandingBills ?? 0).toLocaleString()}
                         </div>
                       </div>
                     </div>
@@ -278,61 +328,63 @@ function PeopleManagement() {
                 <Card>
                   <CardContent className="p-4">
                     <div className="text-sm text-muted-foreground">Doctors On Duty</div>
-                    <div className="text-2xl font-semibold">{peopleStats.doctorsOnDuty}/{peopleStats.totalDoctors}</div>
+                    <div className="text-2xl font-semibold">
+                      {doctorsList.filter(d => d.onDuty).length}/{doctorsList.length}
+                    </div>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="p-4">
-                    <div className="text-sm text-muted-foreground">Today's Appointments</div>
-                    <div className="text-2xl font-semibold">{doctors.reduce((sum, doc) => sum + doc.todayAppointments, 0)}</div>
+                    <div className="text-sm text-muted-foreground">Active Department</div>
+                    <div className="text-2xl font-semibold">
+                      {new Set(doctorsList.map(d => d.department)).size}
+                    </div>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="p-4">
-                    <div className="text-sm text-muted-foreground">Active Cases</div>
-                    <div className="text-2xl font-semibold">{doctors.reduce((sum, doc) => sum + doc.activeCases, 0)}</div>
+                    <div className="text-sm text-muted-foreground">Total Credentials</div>
+                    <div className="text-2xl font-semibold">
+                      {doctorsList.reduce((sum, d) => sum + (d.credentials ?? 0), 0)}
+                    </div>
                   </CardContent>
                 </Card>
               </div>
 
-              {doctors.map((doctor) => (
+              {doctorsList.length === 0 && (
+                <div className="py-12 text-center text-sm text-muted-foreground">No doctors found.</div>
+              )}
+
+              {doctorsList.map((doctor) => (
                 <Card key={doctor.id}>
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div>
                         <CardTitle className="text-lg">{doctor.name}</CardTitle>
                         <CardDescription className="mt-1">
-                          {doctor.designation} • {doctor.department}
+                          Role: Doctor • ID: {doctor.employeeId} • DID: {doctor.did}
                         </CardDescription>
                       </div>
                       <div className="text-right">
                         <Badge className={getStatusColor(doctor.status)}>
                           {doctor.status}
                         </Badge>
-                        <div className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
-                          <Award className="h-3 w-3 text-warning" />
-                          <span>{doctor.rating}/5</span>
-                        </div>
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid gap-4 sm:grid-cols-4">
+                    <div className="grid gap-4 sm:grid-cols-3">
                       <div>
-                        <div className="text-sm text-muted-foreground">Specialty</div>
-                        <div className="font-medium">{doctor.specialty}</div>
+                        <div className="text-sm text-muted-foreground">Specialty / Dept</div>
+                        <div className="font-medium">{doctor.specialty} • {doctor.department}</div>
                       </div>
                       <div>
-                        <div className="text-sm text-muted-foreground">Experience</div>
-                        <div className="font-medium">{doctor.experience} years</div>
+                        <div className="text-sm text-muted-foreground">Active Shift</div>
+                        <div className="font-medium capitalize">{doctor.shift}</div>
                       </div>
                       <div>
-                        <div className="text-sm text-muted-foreground">Consultation Fee</div>
-                        <div className="font-medium">₹{doctor.consultationFee}</div>
-                      </div>
-                      <div>
-                        <div className="text-sm text-muted-foreground">Total Patients</div>
-                        <div className="font-medium">{doctor.totalPatientsTreated.toLocaleString()}</div>
+                        <div className="text-sm text-muted-foreground">Blockchain Credentials</div>
+                        <div className="font-medium">{doctor.credentials} VC</div>
                       </div>
                     </div>
 
@@ -345,51 +397,6 @@ function PeopleManagement() {
                         <Mail className="h-4 w-4 text-muted-foreground" />
                         <span className="text-xs">{doctor.email}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-xs">{doctor.chamberLocation}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-xs">{doctor.consultationTiming}</span>
-                      </div>
-                    </div>
-
-                    <div className="mt-3">
-                      <div className="mb-2 text-sm font-medium">Qualifications</div>
-                      <div className="flex flex-wrap gap-1">
-                        {doctor.qualification.map((qual, idx) => (
-                          <Badge key={idx} variant="secondary" className="text-xs">
-                            {qual}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="mt-3">
-                      <div className="mb-2 text-sm font-medium">Sub-specialties</div>
-                      <div className="flex flex-wrap gap-1">
-                        {doctor.subSpecialties.map((spec, idx) => (
-                          <Badge key={idx} variant="outline" className="text-xs">
-                            {spec}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="mt-3 grid gap-2 text-sm sm:grid-cols-3">
-                      <div className="rounded-lg bg-muted p-2">
-                        <div className="text-xs text-muted-foreground">Active Cases</div>
-                        <div className="font-semibold">{doctor.activeCases}</div>
-                      </div>
-                      <div className="rounded-lg bg-muted p-2">
-                        <div className="text-xs text-muted-foreground">Today's Appointments</div>
-                        <div className="font-semibold">{doctor.todayAppointments}</div>
-                      </div>
-                      <div className="rounded-lg bg-muted p-2">
-                        <div className="text-xs text-muted-foreground">License</div>
-                        <div className="text-xs font-mono">{doctor.licenseNumber}</div>
-                      </div>
                     </div>
 
                     <div className="mt-3 flex gap-2">
@@ -399,7 +406,7 @@ function PeopleManagement() {
                       </Button>
                       <Button size="sm" variant="outline">
                         <Activity className="mr-2 h-4 w-4" />
-                        Performance
+                        Duty: {doctor.onDuty ? "On Duty" : "Off Duty"}
                       </Button>
                     </div>
                   </CardContent>
@@ -413,33 +420,41 @@ function PeopleManagement() {
                 <Card>
                   <CardContent className="p-4">
                     <div className="text-sm text-muted-foreground">Nurses On Duty</div>
-                    <div className="text-2xl font-semibold">{peopleStats.nursesOnDuty}/{peopleStats.totalNurses}</div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="text-sm text-muted-foreground">Total Patients Assigned</div>
-                    <div className="text-2xl font-semibold">{nurses.reduce((sum, nurse) => sum + nurse.assignedPatients, 0)}</div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="text-sm text-muted-foreground">Avg Experience</div>
                     <div className="text-2xl font-semibold">
-                      {Math.round(nurses.reduce((sum, nurse) => sum + nurse.experience, 0) / nurses.length)} years
+                      {nursesList.filter(n => n.onDuty).length}/{nursesList.length}
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="text-sm text-muted-foreground">Active Shift</div>
+                    <div className="text-2xl font-semibold">
+                      {new Set(nursesList.map(n => n.shift)).size}
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="text-sm text-muted-foreground">Total Credentials</div>
+                    <div className="text-2xl font-semibold">
+                      {nursesList.reduce((sum, n) => sum + (n.credentials ?? 0), 0)}
                     </div>
                   </CardContent>
                 </Card>
               </div>
 
-              {nurses.map((nurse) => (
+              {nursesList.length === 0 && (
+                <div className="py-12 text-center text-sm text-muted-foreground">No nurses found.</div>
+              )}
+
+              {nursesList.map((nurse) => (
                 <Card key={nurse.id}>
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div>
                         <CardTitle className="text-lg">{nurse.name}</CardTitle>
                         <CardDescription className="mt-1">
-                          {nurse.department} • {nurse.ward}
+                          Role: Nurse • ID: {nurse.employeeId} • DID: {nurse.did}
                         </CardDescription>
                       </div>
                       <Badge className={getStatusColor(nurse.status)}>
@@ -448,22 +463,18 @@ function PeopleManagement() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid gap-4 sm:grid-cols-4">
+                    <div className="grid gap-4 sm:grid-cols-3">
                       <div>
-                        <div className="text-sm text-muted-foreground">Qualification</div>
-                        <div className="font-medium">{nurse.qualification}</div>
+                        <div className="text-sm text-muted-foreground">Department</div>
+                        <div className="font-medium">{nurse.department}</div>
                       </div>
                       <div>
-                        <div className="text-sm text-muted-foreground">Experience</div>
-                        <div className="font-medium">{nurse.experience} years</div>
-                      </div>
-                      <div>
-                        <div className="text-sm text-muted-foreground">Shift</div>
+                        <div className="text-sm text-muted-foreground">Active Shift</div>
                         <div className="font-medium capitalize">{nurse.shift}</div>
                       </div>
                       <div>
-                        <div className="text-sm text-muted-foreground">Assigned Patients</div>
-                        <div className="font-medium">{nurse.assignedPatients}</div>
+                        <div className="text-sm text-muted-foreground">Blockchain Credentials</div>
+                        <div className="font-medium">{nurse.credentials} VC</div>
                       </div>
                     </div>
 
@@ -476,25 +487,6 @@ function PeopleManagement() {
                         <Mail className="h-4 w-4 text-muted-foreground" />
                         <span className="text-xs">{nurse.email}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-xs">{nurse.nursingStation}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Briefcase className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-xs">License: {nurse.licenseNumber}</span>
-                      </div>
-                    </div>
-
-                    <div className="mt-3">
-                      <div className="mb-2 text-sm font-medium">Specializations</div>
-                      <div className="flex flex-wrap gap-1">
-                        {nurse.specialization.map((spec, idx) => (
-                          <Badge key={idx} variant="secondary" className="text-xs">
-                            {spec}
-                          </Badge>
-                        ))}
-                      </div>
                     </div>
 
                     <div className="mt-3 flex gap-2">
@@ -504,7 +496,7 @@ function PeopleManagement() {
                       </Button>
                       <Button size="sm" variant="outline">
                         <Users className="mr-2 h-4 w-4" />
-                        Assigned Patients
+                        Duty: {nurse.onDuty ? "On Duty" : "Off Duty"}
                       </Button>
                     </div>
                   </CardContent>
@@ -513,35 +505,46 @@ function PeopleManagement() {
             </TabsContent>
 
             {/* Support Staff Tab */}
-            <TabsContent value="staff" className="space-y-4 mt-4">              <div className="mb-4 grid gap-4 sm:grid-cols-3">
+            <TabsContent value="staff" className="space-y-4 mt-4">
+              <div className="mb-4 grid gap-4 sm:grid-cols-3">
                 <Card>
                   <CardContent className="p-4">
                     <div className="text-sm text-muted-foreground">Staff On Duty</div>
-                    <div className="text-2xl font-semibold">{peopleStats.supportStaffOnDuty}/{peopleStats.totalSupportStaff}</div>
+                    <div className="text-2xl font-semibold">
+                      {supportStaffList.filter(s => s.onDuty).length}/{supportStaffList.length}
+                    </div>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="p-4">
-                    <div className="text-sm text-muted-foreground">Open Vacancies</div>
-                    <div className="text-2xl font-semibold">{peopleStats.staffVacancies}</div>
+                    <div className="text-sm text-muted-foreground">Active Roles</div>
+                    <div className="text-2xl font-semibold">
+                      {new Set(supportStaffList.map(s => s.role)).size}
+                    </div>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="p-4">
-                    <div className="text-sm text-muted-foreground">Total Roles</div>
-                    <div className="text-2xl font-semibold">{new Set(supportStaff.map(s => s.role)).size}</div>
+                    <div className="text-sm text-muted-foreground">Total Credentials</div>
+                    <div className="text-2xl font-semibold">
+                      {supportStaffList.reduce((sum, s) => sum + (s.credentials ?? 0), 0)}
+                    </div>
                   </CardContent>
                 </Card>
               </div>
 
-              {supportStaff.map((staff) => (
+              {supportStaffList.length === 0 && (
+                <div className="py-12 text-center text-sm text-muted-foreground">No support staff found.</div>
+              )}
+
+              {supportStaffList.map((staff) => (
                 <Card key={staff.id}>
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div>
                         <CardTitle className="text-lg">{staff.name}</CardTitle>
                         <CardDescription className="mt-1">
-                          {staff.role} • {staff.department}
+                          Role: {staff.role} • ID: {staff.employeeId} • DID: {staff.did}
                         </CardDescription>
                       </div>
                       <Badge className={getStatusColor(staff.status)}>
@@ -550,7 +553,22 @@ function PeopleManagement() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid gap-4 text-sm sm:grid-cols-3">
+                    <div className="grid gap-4 sm:grid-cols-3">
+                      <div>
+                        <div className="text-sm text-muted-foreground">Department</div>
+                        <div className="font-medium">{staff.department}</div>
+                      </div>
+                      <div>
+                        <div className="text-sm text-muted-foreground">Active Shift</div>
+                        <div className="font-medium capitalize">{staff.shift}</div>
+                      </div>
+                      <div>
+                        <div className="text-sm text-muted-foreground">Blockchain Credentials</div>
+                        <div className="font-medium">{staff.credentials} VC</div>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
                       <div className="flex items-center gap-2">
                         <Phone className="h-4 w-4 text-muted-foreground" />
                         <span>{staff.phone}</span>
@@ -559,24 +577,20 @@ function PeopleManagement() {
                         <Mail className="h-4 w-4 text-muted-foreground" />
                         <span className="text-xs">{staff.email}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <UserCheck className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-xs">Supervisor: {staff.supervisor}</span>
-                      </div>
                     </div>
 
                     <div className="mt-3 grid gap-2 text-sm sm:grid-cols-3">
                       <div className="rounded-lg bg-muted p-2">
-                        <div className="text-xs text-muted-foreground">Shift</div>
+                        <div className="text-xs text-muted-foreground">Duty Shift</div>
                         <div className="font-medium capitalize">{staff.shift}</div>
                       </div>
                       <div className="rounded-lg bg-muted p-2">
-                        <div className="text-xs text-muted-foreground">Employee ID</div>
-                        <div className="font-mono text-xs">{staff.employeeId}</div>
+                        <div className="text-xs text-muted-foreground">Duty Status</div>
+                        <div className="text-xs font-semibold">{staff.onDuty ? "On Duty" : "Off Duty"}</div>
                       </div>
                       <div className="rounded-lg bg-muted p-2">
                         <div className="text-xs text-muted-foreground">Join Date</div>
-                        <div className="text-xs">{new Date(staff.joinDate).toLocaleDateString()}</div>
+                        <div className="text-xs">{new Date(staff.joinedDate).toLocaleDateString()}</div>
                       </div>
                     </div>
                   </CardContent>

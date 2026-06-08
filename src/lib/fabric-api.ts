@@ -70,10 +70,10 @@ export const fabricGetAllDIDs = () =>
 export const fabricResolveDID = (did: string) =>
   apiFetch<unknown>(`/did/${encodeURIComponent(did)}`);
 
-export const fabricCreateDID = (owner: string, ownerType: string, controller?: string) =>
+export const fabricCreateDID = (owner: string, ownerType: string, controller?: string, ownerEmail?: string, extraFields?: Record<string, any>) =>
   apiFetch<{ did: string; doc: unknown; blockNumber: number; txId: string }>(`/did`, {
     method: "POST",
-    body: JSON.stringify({ owner, ownerType, controller }),
+    body: JSON.stringify({ owner, ownerType, controller, ownerEmail, ...extraFields }),
   });
 
 export const fabricRevokeDID = (did: string) =>

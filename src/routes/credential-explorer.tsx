@@ -3,11 +3,11 @@ import { PageHeader } from "@/components/PageHeader";
 import { CredentialCard } from "@/components/credentials/CredentialCard";
 import { CredentialTimeline } from "@/components/credentials/CredentialTimeline";
 import { CredentialIssuerBadge } from "@/components/credentials/CredentialIssuerBadge";
-import { mockCredentials } from "@/lib/mock-credentials";
 import { Search, ShieldCheck, Award, Filter } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { CredentialFull } from "@/lib/mock-credentials";
+import { useFabricCredentials } from "@/hooks/use-fabric";
 
 export const Route = createFileRoute("/credential-explorer")({
   head: () => ({ meta: [{ title: "Credential Explorer — DID Hospital" }] }),
@@ -27,16 +27,40 @@ function CredentialExplorerPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [selected, setSelected] = useState<CredentialFull | null>(null);
 
-  const displayCredentials = mockCredentials.slice(0, 100);
+  const { data: credentialsData } = useFabricCredentials();
+
+  const displayCredentials: CredentialFull[] = (credentialsData?.credentials ?? []).map((c: any) => {
+    return {
+      id: c.id,
+      type: c.type || "PatientIdentity",
+      typeLabel: c.type === "IdentityVC" ? "Patient Identity" : c.type === "InsuranceVC" ? "Insurance Policy" : c.type === "VaccinationVC" ? "Vaccination Record" : c.type === "ProfessionalVC" ? "Professional Credential" : "Verifiable Credential",
+      issuer: c.issuer || "Apollo Hospitals",
+      issuerDID: `did:hosp:issuer:${c.issuer || "apollo"}`,
+      holder: c.subject || "Unknown Holder",
+      holderDID: c.claims?.subjectDid || "did:hosp:unknown",
+      issuedAt: c.issuedAt ? c.issuedAt.split("T")[0] : new Date().toISOString().split("T")[0],
+      expiresAt: c.expiresAt ? c.expiresAt.split("T")[0] : new Date().toISOString().split("T")[0],
+      status: c.status || "active",
+      schema: `https://schema.did-hospital.in/v1/${(c.type || "").toLowerCase()}`,
+      verificationCount: 1,
+      lastVerified: c.issuedAt ? c.issuedAt.split("T")[0] : new Date().toISOString().split("T")[0],
+      metadata: {
+        issuanceCountry: "India",
+        credentialVersion: "1.2",
+        encryptionAlgo: "Ed25519",
+      }
+    };
+  });
+
   const typeOptions = [...new Set(displayCredentials.map(c => c.type))];
 
   const filtered = displayCredentials.filter(c =>
     (typeFilter === "all" || c.type === typeFilter) &&
     (statusFilter === "all" || c.status === statusFilter) &&
-    (c.typeLabel.toLowerCase().includes(search.toLowerCase()) ||
-     c.holder.toLowerCase().includes(search.toLowerCase()) ||
-     c.issuer.toLowerCase().includes(search.toLowerCase()) ||
-     c.id.toLowerCase().includes(search.toLowerCase()))
+    (((c.typeLabel || "").toLowerCase().includes(search.toLowerCase())) ||
+     ((c.holder || "").toLowerCase().includes(search.toLowerCase())) ||
+     ((c.issuer || "").toLowerCase().includes(search.toLowerCase())) ||
+     ((c.id || "").toLowerCase().includes(search.toLowerCase())))
   );
 
   return (
