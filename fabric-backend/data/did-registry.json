@@ -390,5 +390,31 @@
     "updatedAt": "2026-06-08T13:42:55.448Z",
     "txId": "655c6b68-84e5-4959-ac7e-c8946af82e68",
     "docType": "did-registry"
+  },
+  "did:hosp:0x2297f6ac": {
+    "key": "did:hosp:0x2297f6ac",
+    "value": {
+      "did": "did:hosp:0x2297f6ac",
+      "publicKey": "MFkw6C3CA80DBA7BCDC9F1A24C96AB85DBA0",
+      "controller": "did:hosp:consortium:authority",
+      "owner": "Test Patient",
+      "ownerType": "patient",
+      "status": "active",
+      "credentials": [],
+      "createdAt": "2026-06-22T05:25:22.262Z",
+      "updatedAt": "2026-06-22T05:25:22.262Z",
+      "serviceEndpoint": "https://did.apollohospitals.in/resolve/did:hosp:0x2297f6ac",
+      "ownerEmail": "testpatient@example.com",
+      "age": "30",
+      "gender": "M",
+      "bloodGroup": "O+",
+      "phone": "+91 9876543210",
+      "address": "123 Health Street, Mumbai"
+    },
+    "namespace": "did-registry",
+    "version": "6caeb18f-6f0c-41cd-95bc-719c6466db83:1",
+    "updatedAt": "2026-06-22T05:25:22.262Z",
+    "txId": "6caeb18f-6f0c-41cd-95bc-719c6466db83",
+    "docType": "did-registry"
   }
 }

@@ -24,39 +24,37 @@ import {
 import {
   getLivePatients, getLiveStaff, getLiveAppointments,
   getLiveTransactions, storeEvents, initializeStore,
+  getWorkerConnected,
 } from "@/lib/realtime-store";
 
 // ─── WebSocket singleton ──────────────────────────────────────────────────────
-let _ws: WebSocket | null = null;
 const _wsListeners: Map<string, Set<(data: unknown) => void>> = new Map();
+let _globalWsListenerInitialized = false;
 
-function getWebSocket(): WebSocket | null {
-  if (typeof window === "undefined") return null;
-  if (_ws && _ws.readyState < 2) return _ws;
+function initGlobalWsListener() {
+  if (_globalWsListenerInitialized || typeof window === "undefined") return;
+  _globalWsListenerInitialized = true;
 
-  try {
-    _ws = new WebSocket(FABRIC_BASE.replace("http", "ws"));
-    _ws.onmessage = (e) => {
-      try {
-        const msg = JSON.parse(e.data) as { event: string; data: unknown };
-        const listeners = _wsListeners.get(msg.event);
-        listeners?.forEach((cb) => cb(msg.data));
-        // Also fire wildcard listeners
-        _wsListeners.get("*")?.forEach((cb) => cb(msg));
-      } catch {}
-    };
-    _ws.onerror = () => {};
-    _ws.onclose = () => { _ws = null; };
-  } catch {
-    _ws = null;
-  }
-  return _ws;
+  storeEvents.addEventListener("ws:message", (e: Event) => {
+    try {
+      const customEvent = e as CustomEvent<{ event: string; data: unknown }>;
+      const { event, data } = customEvent.detail;
+      
+      const listeners = _wsListeners.get(event);
+      listeners?.forEach((cb) => cb(data));
+
+      // Also fire wildcard listeners
+      _wsListeners.get("*")?.forEach((cb) => cb({ event, data }));
+    } catch (err) {
+      console.error("[useFabric] Error dispatching ws event message:", err);
+    }
+  });
 }
 
 function subscribeWS(event: string, cb: (data: unknown) => void): () => void {
+  initGlobalWsListener();
   if (!_wsListeners.has(event)) _wsListeners.set(event, new Set());
   _wsListeners.get(event)!.add(cb);
-  getWebSocket(); // ensure connection
   return () => _wsListeners.get(event)?.delete(cb);
 }
 
@@ -300,7 +298,7 @@ export function useLiveStaff() {
 // ─── WebSocket connection status ──────────────────────────────────────────────
 export function useFabricConnection() {
   const [online, setOnline] = useState(false);
-  const [wsConnected, setWsConnected] = useState(false);
+  const [wsConnected, setWsConnected] = useState(getWorkerConnected);
   const [blockHeight, setBlockHeight] = useState(0);
   const [latestBlock, setLatestBlock] = useState<unknown>(null);
 
@@ -308,14 +306,12 @@ export function useFabricConnection() {
     let mounted = true;
     isFabricOnline().then((up) => { if (mounted) setOnline(up); });
 
-    const ws = getWebSocket();
-    if (!ws) return;
+    const onStatusChange = (e: Event) => {
+      const connected = (e as CustomEvent<boolean>).detail;
+      if (mounted) setWsConnected(connected);
+    };
 
-    const onOpen = () => { if (mounted) setWsConnected(true); };
-    const onClose = () => { if (mounted) setWsConnected(false); };
-    ws.addEventListener("open", onOpen);
-    ws.addEventListener("close", onClose);
-    if (ws.readyState === 1) setWsConnected(true);
+    storeEvents.addEventListener("ws:status", onStatusChange);
 
     const unsub = subscribeWS("block:committed", (block: unknown) => {
       if (!mounted) return;
@@ -325,8 +321,7 @@ export function useFabricConnection() {
 
     return () => {
       mounted = false;
-      ws.removeEventListener("open", onOpen);
-      ws.removeEventListener("close", onClose);
+      storeEvents.removeEventListener("ws:status", onStatusChange);
       unsub();
     };
   }, []);
