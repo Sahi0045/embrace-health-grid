@@ -13,11 +13,34 @@ import morgan from "morgan";
 import { randomUUID } from "crypto";
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
+import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
 import { ConvexHttpClient } from "convex/browser";
 import {
-  putState as dbPutState, getState, getAllState, queryState,
-  deleteState, getWorldStateSize, getAllWorldState, generateId,
+  putState as dbPutState,
+  getState,
+  getAllState,
+  queryState,
+  deleteState,
+  getWorldStateSize,
+  getAllWorldState,
+  generateId,
 } from "./world-state-db.js";
+
+const JWT_SECRET = process.env.JWT_SECRET || "did-hospital-secret-2026-hyperledger";
+const JWT_EXPIRES = "8h";
+
+// JWT middleware
+function requireAuth(req, res, next) {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Authentication required" });
+  try {
+    req.user = jwt.verify(token, JWT_SECRET);
+    next();
+  } catch {
+    return res.status(401).json({ error: "Invalid or expired token" });
+  }
+}
 
 // Manual basic .env loader to read from workspace root
 function loadEnv() {
@@ -25,11 +48,15 @@ function loadEnv() {
   if (existsSync(envPath)) {
     try {
       const content = readFileSync(envPath, "utf8");
-      content.split("\n").forEach(line => {
+      content.split("\n").forEach((line) => {
         const parts = line.split("=");
         if (parts.length >= 2) {
           const key = parts[0].trim();
-          const val = parts.slice(1).join("=").trim().replace(/^['"]|['"]$/g, "");
+          const val = parts
+            .slice(1)
+            .join("=")
+            .trim()
+            .replace(/^['"]|['"]$/g, "");
           process.env[key] = val;
         }
       });
@@ -187,8 +214,6 @@ function putState(namespace, key, value, txId, version = "1") {
   return entry;
 }
 
-
-
 // ─── In-memory ledger (persisted per session) ────────────────────────────────
 const CHANNEL = "embrace-health-channel";
 const PEERS = ["Org1Peer0MSP", "Org1Peer1MSP", "Org2Peer0MSP"];
@@ -204,10 +229,20 @@ function simHash(s) {
 
 function genesisBlock() {
   return {
-    blockNumber: 0, channelId: CHANNEL,
+    blockNumber: 0,
+    channelId: CHANNEL,
     previousHash: "0".repeat(64),
     dataHash: simHash("GENESIS_2026"),
-    transactions: [{ txId: "genesis", chaincode: "system", fcn: "initLedger", args: [], status: "VALID", timestamp: new Date().toISOString() }],
+    transactions: [
+      {
+        txId: "genesis",
+        chaincode: "system",
+        fcn: "initLedger",
+        args: [],
+        status: "VALID",
+        timestamp: new Date().toISOString(),
+      },
+    ],
     timestamp: new Date().toISOString(),
     metadata: { orderer: ORDERERS[0], commitPeer: PEERS[0], consensusType: "etcdraft" },
   };
@@ -237,11 +272,18 @@ function commitBlock(proposal) {
 // ─── WebSocket broadcast ─────────────────────────────────────────────────────
 function broadcast(msg) {
   const text = JSON.stringify(msg);
-  wss.clients.forEach((c) => { if (c.readyState === 1) c.send(text); });
+  wss.clients.forEach((c) => {
+    if (c.readyState === 1) c.send(text);
+  });
 }
 
 wss.on("connection", (ws) => {
-  ws.send(JSON.stringify({ event: "connected", data: { blockHeight: _ledger.length, peers: PEERS.length } }));
+  ws.send(
+    JSON.stringify({
+      event: "connected",
+      data: { blockHeight: _ledger.length, peers: PEERS.length },
+    }),
+  );
   ws.on("error", () => {});
 });
 
@@ -265,7 +307,16 @@ setInterval(() => {
 }, 5000);
 
 // ─── Staff location simulator ────────────────────────────────────────────────
-const LOCATIONS = ["OPD Room 3", "ICU Block B", "Emergency Ward", "OR Suite 2", "Radiology Block", "Lab Wing A", "Nursing Station", "Admin Block"];
+const LOCATIONS = [
+  "OPD Room 3",
+  "ICU Block B",
+  "Emergency Ward",
+  "OR Suite 2",
+  "Radiology Block",
+  "Lab Wing A",
+  "Nursing Station",
+  "Admin Block",
+];
 const _staffLoc = new Map();
 setInterval(async () => {
   if (wss.clients.size === 0 || _staffLoc.size === 0) return;
@@ -273,7 +324,11 @@ setInterval(async () => {
   const id = ids[Math.floor(Math.random() * ids.length)];
   const loc = LOCATIONS[Math.floor(Math.random() * LOCATIONS.length)];
   const now = new Date().toISOString();
-  _staffLoc.set(id, { location: loc, lastSignal: now, beacon: `${70 + Math.floor(Math.random() * 30)}%` });
+  _staffLoc.set(id, {
+    location: loc,
+    lastSignal: now,
+    beacon: `${70 + Math.floor(Math.random() * 30)}%`,
+  });
   putState("tracker", id, { staffId: id, location: loc, lastPing: now }, randomUUID());
   broadcast({ event: "staff:location", data: { id, location: loc, lastSignal: now } });
 }, 8000);
@@ -283,7 +338,14 @@ setInterval(async () => {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // Health
-app.get("/health", (_, res) => res.json({ status: "ok", blockHeight: _ledger.length, peers: PEERS.length, time: new Date().toISOString() }));
+app.get("/health", (_, res) =>
+  res.json({
+    status: "ok",
+    blockHeight: _ledger.length,
+    peers: PEERS.length,
+    time: new Date().toISOString(),
+  }),
+);
 
 // ─── Ledger ──────────────────────────────────────────────────────────────────
 app.get("/api/ledger", (req, res) => {
@@ -296,8 +358,10 @@ app.get("/api/ledger", (req, res) => {
 app.get("/api/ledger/stats", (_, res) => {
   const txCount = _ledger.reduce((s, b) => s + b.transactions.length, 0);
   res.json({
-    blockHeight: _ledger.length, txCount,
-    peerCount: PEERS.length, ordererCount: ORDERERS.length,
+    blockHeight: _ledger.length,
+    txCount,
+    peerCount: PEERS.length,
+    ordererCount: ORDERERS.length,
     worldStateSize: getWorldStateSize(),
     lastBlockTime: _ledger[_ledger.length - 1]?.timestamp,
     throughputTps: parseFloat((txCount / Math.max(1, _ledger.length)).toFixed(2)),
@@ -318,7 +382,17 @@ app.post("/api/transaction", async (req, res) => {
   // Apply to world state
   applyChaincode(chaincode, fcn, args, txId, timestamp);
 
-  const proposal = { txId, chaincode, channel: CHANNEL, fcn, args, status: "VALID", timestamp, creator, endorsers: [PEERS[0], PEERS[1]] };
+  const proposal = {
+    txId,
+    chaincode,
+    channel: CHANNEL,
+    fcn,
+    args,
+    status: "VALID",
+    timestamp,
+    creator,
+    endorsers: [PEERS[0], PEERS[1]],
+  };
   const block = commitBlock(proposal);
 
   res.json({ txId, blockNumber: block.blockNumber, status: "COMMITTED", timestamp });
@@ -356,16 +430,30 @@ app.post("/api/did", async (req, res) => {
   const did = `did:hosp:0x${simHash(owner + Date.now()).slice(0, 8)}`;
   const txId = randomUUID();
   const doc = {
-    did, publicKey: `MFkw${simHash(did).slice(0, 32).toUpperCase()}`,
+    did,
+    publicKey: `MFkw${simHash(did).slice(0, 32).toUpperCase()}`,
     controller: controller || "did:hosp:consortium:authority",
-    owner, ownerType, status: "active", credentials: [],
-    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+    owner,
+    ownerType,
+    status: "active",
+    credentials: [],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     serviceEndpoint: `https://did.apollohospitals.in/resolve/${did}`,
     ownerEmail: ownerEmail || null,
-    ...extraFields
+    ...extraFields,
   };
   putState("did-registry", did, doc, txId);
-  const block = commitBlock({ txId, chaincode: "did-registry", fcn: "createDID", args: [did, owner, ownerType], status: "VALID", timestamp: new Date().toISOString(), channel: CHANNEL, creator: "API" });
+  const block = commitBlock({
+    txId,
+    chaincode: "did-registry",
+    fcn: "createDID",
+    args: [did, owner, ownerType],
+    status: "VALID",
+    timestamp: new Date().toISOString(),
+    channel: CHANNEL,
+    creator: "API",
+  });
 
   if (ownerEmail) {
     const userEntry = getState("users", ownerEmail);
@@ -397,10 +485,14 @@ app.post("/api/credential/issue", async (req, res) => {
   if (!entry) return res.status(404).json({ error: "DID not found" });
   const txId = randomUUID();
   const vc = {
-    id: `vc_${txId.slice(0, 8)}`, type, issuer: issuer || "Apollo Hospital Authority",
-    subject: did, issuedAt: new Date().toISOString(),
+    id: `vc_${txId.slice(0, 8)}`,
+    type,
+    issuer: issuer || "Apollo Hospital Authority",
+    subject: did,
+    issuedAt: new Date().toISOString(),
     expiresAt: new Date(Date.now() + 365 * 86400000).toISOString(),
-    claims, signature: `MEQCIBas${simHash(did + type).slice(0, 20)}==`,
+    claims,
+    signature: `MEQCIBas${simHash(did + type).slice(0, 20)}==`,
     status: "active",
   };
   if (!entry.value.credentials) entry.value.credentials = [];
@@ -408,7 +500,16 @@ app.post("/api/credential/issue", async (req, res) => {
   entry.value.updatedAt = new Date().toISOString();
   putState("did-registry", did, entry.value, txId);
   putState("credentials", vc.id, vc, txId);
-  const block = commitBlock({ txId, chaincode: "credential-issuer", fcn: "issueCredential", args: [did, type], status: "VALID", timestamp: new Date().toISOString(), channel: CHANNEL, creator: "API" });
+  const block = commitBlock({
+    txId,
+    chaincode: "credential-issuer",
+    fcn: "issueCredential",
+    args: [did, type],
+    status: "VALID",
+    timestamp: new Date().toISOString(),
+    channel: CHANNEL,
+    creator: "API",
+  });
   broadcast({ event: "credential:issued", data: vc });
   res.json({ vc, blockNumber: block.blockNumber, txId });
 });
@@ -439,13 +540,25 @@ app.post("/api/consent/grant", (req, res) => {
   const grantId = `consent_${randomUUID().slice(0, 8)}`;
   const txId = randomUUID();
   const grant = {
-    grantId, patientDid, doctorDid, resource,
+    grantId,
+    patientDid,
+    doctorDid,
+    resource,
     status: "active",
     expiry: expiry || new Date(Date.now() + 7 * 86400000).toISOString(),
     grantedAt: new Date().toISOString(),
   };
   putState("consent-manager", grantId, grant, txId);
-  commitBlock({ txId, chaincode: "consent-manager", fcn: "grantConsent", args: [grantId, patientDid, doctorDid, resource], status: "VALID", timestamp: new Date().toISOString(), channel: CHANNEL, creator: "API" });
+  commitBlock({
+    txId,
+    chaincode: "consent-manager",
+    fcn: "grantConsent",
+    args: [grantId, patientDid, doctorDid, resource],
+    status: "VALID",
+    timestamp: new Date().toISOString(),
+    channel: CHANNEL,
+    creator: "API",
+  });
   broadcast({ event: "consent:granted", data: grant });
   res.json(grant);
 });
@@ -460,21 +573,104 @@ app.patch("/api/consent/:id/revoke", (req, res) => {
   res.json({ success: true });
 });
 
+// Staff → Patient consent request
+app.post("/api/consent/request", (req, res) => {
+  const { doctorDid, doctorName, patientDid, resource, reason, expiry } = req.body;
+  if (!patientDid || !doctorDid)
+    return res.status(400).json({ error: "patientDid and doctorDid required" });
+
+  const reqId = "creq-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 7);
+  const txId = "tx-creq-" + Date.now().toString(36);
+  const request = {
+    id: reqId,
+    doctorDid,
+    doctorName: doctorName || "Doctor",
+    patientDid,
+    resource: resource || "Medical Records",
+    reason: reason || "Patient care and treatment",
+    status: "pending",
+    requestedAt: new Date().toISOString(),
+    expiry: expiry || new Date(Date.now() + 48 * 3600000).toISOString(),
+  };
+
+  putState(
+    "consent-requests",
+    reqId,
+    { ...request, chaincode: "consent-manager", fcn: "RequestConsent" },
+    txId,
+  );
+  commitBlock([
+    {
+      chaincode: "consent-manager",
+      fcn: "RequestConsent",
+      args: [patientDid, doctorDid, reqId],
+      status: "valid",
+      timestamp: new Date().toISOString(),
+      channel: CHANNEL,
+      creator: doctorDid,
+    },
+  ]);
+
+  broadcast({ event: "consent:request", data: request });
+
+  _notifications.push({
+    id: "notif-creq-" + reqId,
+    type: "consent_request",
+    title: "Consent Request",
+    message: `${request.doctorName} is requesting access to your ${request.resource}`,
+    timestamp: new Date().toISOString(),
+    read: false,
+    severity: "warning",
+    link: "/patient/consent",
+  });
+
+  res.json({ success: true, requestId: reqId, request, txId });
+});
+
+// GET consent requests for a patient DID
+app.get("/api/consent/requests/:patientDid", (req, res) => {
+  const all = getAllState("consent-requests");
+  const requests = all
+    .filter((e) => e.value?.patientDid === req.params.patientDid)
+    .map((e) => e.value);
+  res.json({ requests, total: requests.length });
+});
+
 // ─── Audit ────────────────────────────────────────────────────────────────────
 app.get("/api/audit", (req, res) => {
   const page = parseInt(req.query.page ?? "0");
   const size = parseInt(req.query.size ?? "50");
   const all = getAllState("audit");
   const sorted = all.sort((a, b) => b.updatedAt?.localeCompare(a.updatedAt ?? "") ?? 0);
-  res.json({ events: sorted.slice(page * size, (page + 1) * size).map((e) => e.value), total: all.length });
+  res.json({
+    events: sorted.slice(page * size, (page + 1) * size).map((e) => e.value),
+    total: all.length,
+  });
 });
 
 app.post("/api/audit/log", (req, res) => {
   const { actor, resource, action, outcome = "success", severity = "info" } = req.body;
   const txId = randomUUID();
-  const event = { txId, actor, resource, action, outcome, severity, loggedAt: new Date().toISOString() };
+  const event = {
+    txId,
+    actor,
+    resource,
+    action,
+    outcome,
+    severity,
+    loggedAt: new Date().toISOString(),
+  };
   putState("audit", `audit_${txId}`, event, txId);
-  commitBlock({ txId, chaincode: "audit-chaincode", fcn: "logEvent", args: [actor, resource, action, outcome], status: "VALID", timestamp: new Date().toISOString(), channel: CHANNEL, creator: actor });
+  commitBlock({
+    txId,
+    chaincode: "audit-chaincode",
+    fcn: "logEvent",
+    args: [actor, resource, action, outcome],
+    status: "VALID",
+    timestamp: new Date().toISOString(),
+    channel: CHANNEL,
+    creator: actor,
+  });
   broadcast({ event: "audit:logged", data: event });
   res.json(event);
 });
@@ -482,9 +678,11 @@ app.post("/api/audit/log", (req, res) => {
 // ─── Vitals ───────────────────────────────────────────────────────────────────
 app.post("/api/vitals/seed", (req, res) => {
   const { patients = [] } = req.body;
-  patients.forEach(({ id, heartRate = 72, bp = "120/80", spo2 = 98, temp = 36.5, respRate = 16 }) => {
-    _vitals.set(id, { heartRate, bp, spo2, temp, respRate });
-  });
+  patients.forEach(
+    ({ id, heartRate = 72, bp = "120/80", spo2 = 98, temp = 36.5, respRate = 16 }) => {
+      _vitals.set(id, { heartRate, bp, spo2, temp, respRate });
+    },
+  );
   res.json({ seeded: patients.length });
 });
 
@@ -499,7 +697,12 @@ app.post("/api/tracker/seed", (req, res) => {
   const { staff = [] } = req.body;
   staff.forEach(({ id, location = "Nursing Station" }) => {
     _staffLoc.set(id, { location, lastSignal: new Date().toISOString(), beacon: "85%" });
-    putState("tracker", id, { staffId: id, location, lastPing: new Date().toISOString() }, randomUUID());
+    putState(
+      "tracker",
+      id,
+      { staffId: id, location, lastPing: new Date().toISOString() },
+      randomUUID(),
+    );
   });
   res.json({ seeded: staff.length });
 });
@@ -520,7 +723,16 @@ app.post("/api/beds", (req, res) => {
   const txId = randomUUID();
   const bed = { bedId, ward, status, patientDid, updatedAt: new Date().toISOString() };
   putState("beds", bedId, bed, txId);
-  commitBlock({ txId, chaincode: "infrastructure-chaincode", fcn: "updateBed", args: [bedId, ward, status], status: "VALID", timestamp: new Date().toISOString(), channel: CHANNEL, creator: "Infrastructure" });
+  commitBlock({
+    txId,
+    chaincode: "infrastructure-chaincode",
+    fcn: "updateBed",
+    args: [bedId, ward, status],
+    status: "VALID",
+    timestamp: new Date().toISOString(),
+    channel: CHANNEL,
+    creator: "Infrastructure",
+  });
   broadcast({ event: "bed:updated", data: bed });
   res.json(bed);
 });
@@ -531,12 +743,28 @@ app.post("/api/prescriptions", (req, res) => {
   const txId = randomUUID();
   const rxId = `PR-${Date.now().toString(36).toUpperCase()}`;
   const rx = {
-    rxId, patientDid, doctorDid, drugs, diagnosis, notes, signedBy,
-    signedAt: new Date().toISOString(), status: "active",
+    rxId,
+    patientDid,
+    doctorDid,
+    drugs,
+    diagnosis,
+    notes,
+    signedBy,
+    signedAt: new Date().toISOString(),
+    status: "active",
     hash: `sha256:${simHash(rxId + patientDid)}`,
   };
   putState("prescriptions", rxId, rx, txId);
-  const block = commitBlock({ txId, chaincode: "prescription-chaincode", fcn: "signPrescription", args: [rxId, patientDid, doctorDid], status: "VALID", timestamp: new Date().toISOString(), channel: CHANNEL, creator: signedBy });
+  const block = commitBlock({
+    txId,
+    chaincode: "prescription-chaincode",
+    fcn: "signPrescription",
+    args: [rxId, patientDid, doctorDid],
+    status: "VALID",
+    timestamp: new Date().toISOString(),
+    channel: CHANNEL,
+    creator: signedBy,
+  });
   broadcast({ event: "prescription:signed", data: { rxId, blockNumber: block.blockNumber } });
   res.json({ rxId, rx, blockNumber: block.blockNumber, txId });
 });
@@ -551,9 +779,26 @@ app.post("/api/labs", (req, res) => {
   const { patientDid, orderedBy, tests, priority = "routine" } = req.body;
   const labId = `LAB-${Date.now().toString(36).toUpperCase()}`;
   const txId = randomUUID();
-  const lab = { labId, patientDid, orderedBy, tests, priority, status: "pending", orderedAt: new Date().toISOString() };
+  const lab = {
+    labId,
+    patientDid,
+    orderedBy,
+    tests,
+    priority,
+    status: "pending",
+    orderedAt: new Date().toISOString(),
+  };
   putState("lab-results", labId, lab, txId);
-  commitBlock({ txId, chaincode: "lab-chaincode", fcn: "createLabOrder", args: [labId, patientDid, priority], status: "VALID", timestamp: new Date().toISOString(), channel: CHANNEL, creator: orderedBy });
+  commitBlock({
+    txId,
+    chaincode: "lab-chaincode",
+    fcn: "createLabOrder",
+    args: [labId, patientDid, priority],
+    status: "VALID",
+    timestamp: new Date().toISOString(),
+    channel: CHANNEL,
+    creator: orderedBy,
+  });
   broadcast({ event: "lab:ordered", data: lab });
   res.json(lab);
 });
@@ -568,7 +813,16 @@ app.post("/api/fraud/alert", (req, res) => {
   const { actor, type, message, severity = "high", riskScore = 75 } = req.body;
   const alertId = `FA-${randomUUID().slice(0, 8).toUpperCase()}`;
   const txId = randomUUID();
-  const alert = { alertId, actor, type, message, severity, riskScore, status: "open", detectedAt: new Date().toISOString() };
+  const alert = {
+    alertId,
+    actor,
+    type,
+    message,
+    severity,
+    riskScore,
+    status: "open",
+    detectedAt: new Date().toISOString(),
+  };
   putState("fraud-alerts", alertId, alert, txId);
   broadcast({ event: "fraud:detected", data: alert });
   res.json(alert);
@@ -584,9 +838,27 @@ app.post("/api/billing/payment", (req, res) => {
   const { patientDid, patientName, amount, category, reference } = req.body;
   const txId = randomUUID();
   const ref = reference || `REF-${Date.now().toString(36).toUpperCase()}`;
-  const payment = { txId, patientDid, patientName, amount, category, status: "settled", ref, settledAt: new Date().toISOString() };
+  const payment = {
+    txId,
+    patientDid,
+    patientName,
+    amount,
+    category,
+    status: "settled",
+    ref,
+    settledAt: new Date().toISOString(),
+  };
   putState("billing", ref, payment, txId);
-  commitBlock({ txId, chaincode: "billing-chaincode", fcn: "recordPayment", args: [patientDid, String(amount), category, ref], status: "VALID", timestamp: new Date().toISOString(), channel: CHANNEL, creator: "Billing" });
+  commitBlock({
+    txId,
+    chaincode: "billing-chaincode",
+    fcn: "recordPayment",
+    args: [patientDid, String(amount), category, ref],
+    status: "VALID",
+    timestamp: new Date().toISOString(),
+    channel: CHANNEL,
+    creator: "Billing",
+  });
   broadcast({ event: "payment:recorded", data: payment });
   res.json(payment);
 });
@@ -606,9 +878,29 @@ app.post("/api/appointments", (req, res) => {
   const { patientDid, patientName, doctorDid, doctorName, slot, mode, specialty } = req.body;
   const apptId = `appt_${randomUUID().slice(0, 8)}`;
   const txId = randomUUID();
-  const appt = { apptId, patientDid, patientName, doctorDid, doctorName, slot, mode, specialty, status: "confirmed", bookedAt: new Date().toISOString() };
+  const appt = {
+    apptId,
+    patientDid,
+    patientName,
+    doctorDid,
+    doctorName,
+    slot,
+    mode,
+    specialty,
+    status: "confirmed",
+    bookedAt: new Date().toISOString(),
+  };
   putState("appointments", apptId, appt, txId);
-  commitBlock({ txId, chaincode: "appointments-chaincode", fcn: "createAppointment", args: [apptId, patientDid, doctorDid, slot], status: "VALID", timestamp: new Date().toISOString(), channel: CHANNEL, creator: patientName });
+  commitBlock({
+    txId,
+    chaincode: "appointments-chaincode",
+    fcn: "createAppointment",
+    args: [apptId, patientDid, doctorDid, slot],
+    status: "VALID",
+    timestamp: new Date().toISOString(),
+    channel: CHANNEL,
+    creator: patientName,
+  });
   broadcast({ event: "appointment:booked", data: appt });
   res.json(appt);
 });
@@ -621,10 +913,15 @@ function applyChaincode(chaincode, fcn, args, txId, timestamp) {
     case "did-registry::registerDID": {
       const [did, owner, ownerType, controller] = args;
       const doc = {
-        did, owner, ownerType, status: "active", credentials: [],
+        did,
+        owner,
+        ownerType,
+        status: "active",
+        credentials: [],
         controller: controller || "did:hosp:consortium:authority",
         publicKey: `MFkw${simHash(did).slice(0, 32).toUpperCase()}`,
-        createdAt: timestamp, updatedAt: timestamp,
+        createdAt: timestamp,
+        updatedAt: timestamp,
         serviceEndpoint: `https://did.apollohospitals.in/resolve/${did}`,
       };
       putState("did-registry", did, doc, txId);
@@ -665,12 +962,20 @@ function applyChaincode(chaincode, fcn, args, txId, timestamp) {
     }
     case "consent-manager::grantConsent": {
       const [grantId, patient, doctor, resource, expiry] = args;
-      putState("consent-manager", grantId, {
-        grantId, patientDid: patient, doctorDid: doctor, resource,
-        status: "active",
-        expiry: expiry || new Date(Date.now() + 7 * 86400000).toISOString(),
-        grantedAt: timestamp,
-      }, txId);
+      putState(
+        "consent-manager",
+        grantId,
+        {
+          grantId,
+          patientDid: patient,
+          doctorDid: doctor,
+          resource,
+          status: "active",
+          expiry: expiry || new Date(Date.now() + 7 * 86400000).toISOString(),
+          grantedAt: timestamp,
+        },
+        txId,
+      );
       break;
     }
     case "consent-manager::revokeConsent": {
@@ -685,33 +990,71 @@ function applyChaincode(chaincode, fcn, args, txId, timestamp) {
     }
     case "billing-chaincode::recordPayment": {
       const [patientDid, patientName, amount, category, ref] = args;
-      putState("billing", ref || `bill_${txId}`, {
-        patientDid, patientName, amount: Number(amount),
-        category, status: "settled", ref, settledAt: timestamp,
-      }, txId);
+      putState(
+        "billing",
+        ref || `bill_${txId}`,
+        {
+          patientDid,
+          patientName,
+          amount: Number(amount),
+          category,
+          status: "settled",
+          ref,
+          settledAt: timestamp,
+        },
+        txId,
+      );
       break;
     }
     case "billing-chaincode::raiseInvoice": {
       const [patientDid, invoiceId, amount, items] = args;
-      putState("billing", `invoice:${invoiceId}`, {
-        patientDid, invoiceId, amount: Number(amount),
-        items, status: "outstanding", raisedAt: timestamp,
-      }, txId);
+      putState(
+        "billing",
+        `invoice:${invoiceId}`,
+        {
+          patientDid,
+          invoiceId,
+          amount: Number(amount),
+          items,
+          status: "outstanding",
+          raisedAt: timestamp,
+        },
+        txId,
+      );
       break;
     }
     case "tracker-chaincode::reportTelemetry": {
       const [staffDid, name, location, status] = args;
-      putState("tracker", staffDid, {
-        staffDid, name, location, status, lastPing: timestamp,
-        beaconStrength: (70 + Math.floor(Math.random() * 30)) + "%",
-      }, txId);
+      putState(
+        "tracker",
+        staffDid,
+        {
+          staffDid,
+          name,
+          location,
+          status,
+          lastPing: timestamp,
+          beaconStrength: 70 + Math.floor(Math.random() * 30) + "%",
+        },
+        txId,
+      );
       break;
     }
     case "tracker-chaincode::dispatchPagerNotify": {
       const [staffDid, name, location] = args;
-      putState("tracker", `pager:${txId}`, {
-        staffDid, name, location, type: "PAGER_NOTIFY", dispatchedAt: timestamp, status: "delivered",
-      }, txId);
+      putState(
+        "tracker",
+        `pager:${txId}`,
+        {
+          staffDid,
+          name,
+          location,
+          type: "PAGER_NOTIFY",
+          dispatchedAt: timestamp,
+          status: "delivered",
+        },
+        txId,
+      );
       break;
     }
     case "appointments-chaincode::createAppointment": {
@@ -723,10 +1066,22 @@ function applyChaincode(chaincode, fcn, args, txId, timestamp) {
       const dEntry = getState("did-registry", doctorDid);
       if (dEntry) doctorName = dEntry.value.owner;
 
-      putState("appointments", apptId || `appt_${txId}`, {
-        apptId: apptId || `appt_${txId}`, patientDid, patientName, doctorDid, doctorName, slot, mode,
-        status: "confirmed", bookedAt: timestamp,
-      }, txId);
+      putState(
+        "appointments",
+        apptId || `appt_${txId}`,
+        {
+          apptId: apptId || `appt_${txId}`,
+          patientDid,
+          patientName,
+          doctorDid,
+          doctorName,
+          slot,
+          mode,
+          status: "confirmed",
+          bookedAt: timestamp,
+        },
+        txId,
+      );
       break;
     }
     case "appointments-chaincode::cancelAppointment": {
@@ -741,24 +1096,50 @@ function applyChaincode(chaincode, fcn, args, txId, timestamp) {
     }
     case "audit-chaincode::logEvent": {
       const [actor, resource, action, outcome] = args;
-      putState("audit", `audit_${txId}`, {
-        txId: `audit_${txId}`, actor, resource, action, outcome,
-        loggedAt: timestamp, severity: "info",
-      }, txId);
+      putState(
+        "audit",
+        `audit_${txId}`,
+        {
+          txId: `audit_${txId}`,
+          actor,
+          resource,
+          action,
+          outcome,
+          loggedAt: timestamp,
+          severity: "info",
+        },
+        txId,
+      );
       break;
     }
     case "financial-ledger-chaincode::resolvePatientDID": {
       const [did, name] = args;
-      putState("financial", `resolve:${did}`, {
-        did, name, resolvedAt: timestamp, by: "admin-console",
-      }, txId);
+      putState(
+        "financial",
+        `resolve:${did}`,
+        {
+          did,
+          name,
+          resolvedAt: timestamp,
+          by: "admin-console",
+        },
+        txId,
+      );
       break;
     }
     case "financial-ledger-chaincode::generateFinancialStatement": {
       const [did, name] = args;
-      putState("financial", `statement:${did}:${txId}`, {
-        did, name, generatedAt: timestamp, format: "PDF",
-      }, txId);
+      putState(
+        "financial",
+        `statement:${did}:${txId}`,
+        {
+          did,
+          name,
+          generatedAt: timestamp,
+          format: "PDF",
+        },
+        txId,
+      );
       break;
     }
     default:
@@ -779,10 +1160,18 @@ app.post("/api/auth/signup", async (req, res) => {
     return res.status(400).json({ error: "User already exists" });
   }
 
+  const hashedPassword = password ? await bcrypt.hash(password, 10) : "";
   const txId = randomUUID();
-  const user = { name, email, password: password || "", role, did: null, createdAt: new Date().toISOString() };
+  const user = {
+    name,
+    email,
+    password: hashedPassword,
+    role,
+    did: null,
+    createdAt: new Date().toISOString(),
+  };
   putState("users", email, user, txId);
-  
+
   commitBlock({
     txId,
     chaincode: "users",
@@ -791,13 +1180,14 @@ app.post("/api/auth/signup", async (req, res) => {
     status: "VALID",
     timestamp: new Date().toISOString(),
     channel: CHANNEL,
-    creator: "System"
+    creator: "System",
   });
 
-  res.json({ success: true, user: { name, email, role } });
+  const token = jwt.sign({ email, role, name }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
+  res.json({ success: true, token, user: { name, email, role } });
 });
 
-app.post("/api/auth/login", (req, res) => {
+app.post("/api/auth/login", async (req, res) => {
   const { email, password } = req.body;
   if (!email) {
     return res.status(400).json({ error: "Email is required" });
@@ -808,20 +1198,38 @@ app.post("/api/auth/login", (req, res) => {
     return res.status(401).json({ error: "Invalid email or password" });
   }
 
-  // If password was provided on signup, verify it, otherwise mock login is fine
-  if (userEntry.value.password && userEntry.value.password !== password) {
-    return res.status(401).json({ error: "Invalid email or password" });
+  // Backward compat: if no stored password (seeded users), allow any password.
+  // Otherwise verify against bcrypt hash.
+  if (userEntry.value.password) {
+    const match = await bcrypt.compare(password || "", userEntry.value.password);
+    if (!match) {
+      return res.status(401).json({ error: "Invalid email or password" });
+    }
   }
 
-  res.json({ 
-    success: true, 
-    user: { 
-      name: userEntry.value.name, 
-      email: userEntry.value.email, 
-      role: userEntry.value.role, 
-      did: userEntry.value.did 
-    } 
-  });
+  const user = {
+    name: userEntry.value.name,
+    email: userEntry.value.email,
+    role: userEntry.value.role,
+    did: userEntry.value.did,
+  };
+  const token = jwt.sign(
+    { email: user.email, role: user.role, name: user.name, did: user.did },
+    JWT_SECRET,
+    { expiresIn: JWT_EXPIRES },
+  );
+  res.json({ success: true, token, user });
+});
+
+app.get("/api/auth/me", requireAuth, (req, res) => {
+  res.json({ user: req.user });
+});
+
+app.post("/api/auth/refresh", requireAuth, (req, res) => {
+  // Strip JWT metadata fields before re-signing
+  const { iat, exp, ...payload } = req.user;
+  const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES });
+  res.json({ token });
 });
 
 app.get("/api/auth/users", (req, res) => {
@@ -831,8 +1239,276 @@ app.get("/api/auth/users", (req, res) => {
   }
 
   const entries = getAllState("users");
-  const users = entries.map(e => e.value);
+  const users = entries.map((e) => e.value);
   res.json({ users });
+});
+
+// ─── Notifications ──────────────────────────────────────────────────────────
+const _notifications = [];
+let _notifSeeded = false;
+
+function seedNotifications() {
+  if (_notifSeeded) return;
+  _notifSeeded = true;
+  const now = Date.now();
+  _notifications.push(
+    {
+      id: "notif-001",
+      type: "consent_request",
+      title: "Consent Request",
+      message: "Dr. Ravi Menon requests access to your ECG reports",
+      timestamp: new Date(now - 3 * 60000).toISOString(),
+      read: false,
+      severity: "warning",
+      link: "/patient/consent",
+    },
+    {
+      id: "notif-002",
+      type: "credential_issued",
+      title: "New Credential Issued",
+      message: "DID Medical License credential issued on Hyperledger Fabric",
+      timestamp: new Date(now - 15 * 60000).toISOString(),
+      read: false,
+      severity: "info",
+      link: "/patient/wallet",
+    },
+    {
+      id: "notif-003",
+      type: "fraud_alert",
+      title: "Fraud Alert Raised",
+      message: "Unusual access pattern detected from IP 10.14.2.88",
+      timestamp: new Date(now - 30 * 60000).toISOString(),
+      read: false,
+      severity: "critical",
+      link: "/admin/fraud",
+    },
+    {
+      id: "notif-004",
+      type: "block_committed",
+      title: "Block Committed",
+      message: "Block #" + _blockNumber + " committed to embrace-health-channel",
+      timestamp: new Date(now - 45 * 60000).toISOString(),
+      read: true,
+      severity: "info",
+    },
+    {
+      id: "notif-005",
+      type: "lab_ready",
+      title: "Lab Results Ready",
+      message: "CBC and Lipid Panel results are now available",
+      timestamp: new Date(now - 2 * 3600000).toISOString(),
+      read: true,
+      severity: "info",
+      link: "/patient/records",
+    },
+  );
+}
+
+app.get("/api/notifications", (req, res) => {
+  seedNotifications();
+  res.json({
+    notifications: _notifications,
+    unreadCount: _notifications.filter((n) => !n.read).length,
+  });
+});
+
+app.patch("/api/notifications/read-all", (req, res) => {
+  seedNotifications();
+  _notifications.forEach((n) => (n.read = true));
+  broadcast({ event: "notifications:update", data: { unreadCount: 0 } });
+  res.json({ success: true });
+});
+
+app.patch("/api/notifications/:id/read", (req, res) => {
+  seedNotifications();
+  const n = _notifications.find((x) => x.id === req.params.id);
+  if (n) n.read = true;
+  res.json({ success: true });
+});
+
+// ─── ZKP ─────────────────────────────────────────────────────────────────────
+app.post("/api/zkproof/generate", (req, res) => {
+  const { patientDid, selectedClaims } = req.body;
+  if (!patientDid) return res.status(400).json({ error: "patientDid required" });
+
+  const proofId = "zkp-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
+  const commitment = "0x" + simHash(patientDid + proofId).slice(0, 40);
+  const nullifier = "0x" + simHash(proofId + Date.now()).slice(0, 40);
+  const merkleRoot = "0x" + simHash(patientDid + "merkle" + _blockNumber).slice(0, 40);
+  const now = new Date();
+  const expires = new Date(now.getTime() + 24 * 3600000);
+
+  const proof = {
+    proofId,
+    patientDid,
+    claims: selectedClaims || [],
+    commitment,
+    nullifier,
+    merkleRoot,
+    circuitId: "groth16-hospital-v1",
+    generatedAt: now.toISOString(),
+    expiresAt: expires.toISOString(),
+    qrPayload: Buffer.from(
+      JSON.stringify({ proofId, patientDid, merkleRoot, circuitId: "groth16-hospital-v1" }),
+    ).toString("base64"),
+    verificationStatus: "pending",
+  };
+
+  putState("zkproof-" + proofId, {
+    ...proof,
+    chaincode: "did-registry",
+    fcn: "GenerateZKProof",
+    channel: CHANNEL,
+  });
+
+  const txId = "tx-zkp-" + Date.now().toString(36);
+  commitBlock([
+    {
+      chaincode: "did-registry",
+      fcn: "GenerateZKProof",
+      args: [patientDid, proofId],
+      status: "valid",
+      timestamp: now.toISOString(),
+      channel: CHANNEL,
+      creator: patientDid,
+    },
+  ]);
+
+  res.json({ proof, txId, blockNumber: _blockNumber });
+});
+
+app.post("/api/zkproof/verify", (req, res) => {
+  const { proofId, patientDid } = req.body;
+  if (!proofId) return res.status(400).json({ error: "proofId required" });
+
+  const proof = Object.values(_ledger).find(
+    (e) => e && typeof e === "object" && e.proofId === proofId,
+  );
+
+  const disclosedAttributes = {};
+  if (proof && proof.claims) {
+    proof.claims
+      .filter((c) => c.disclosed)
+      .forEach((c) => {
+        disclosedAttributes[c.attribute] = c.value;
+      });
+  } else {
+    disclosedAttributes["bloodGroup"] = "B+";
+    disclosedAttributes["insuranceValid"] = "true";
+  }
+
+  const result = {
+    valid: true,
+    proofId: proofId || "zkp-unknown",
+    disclosedAttributes,
+    verifiedAt: new Date().toISOString(),
+    circuitId: "groth16-hospital-v1",
+    blockHash: "0x" + simHash(proofId + "verify").slice(0, 40),
+    message:
+      "Zero-knowledge proof verified successfully. Identity confirmed without revealing full medical record.",
+  };
+
+  commitBlock([
+    {
+      chaincode: "did-registry",
+      fcn: "VerifyZKProof",
+      args: [proofId],
+      status: "valid",
+      timestamp: new Date().toISOString(),
+      channel: CHANNEL,
+      creator: "verifier",
+    },
+  ]);
+
+  res.json(result);
+});
+
+// ─── Chaincode management ─────────────────────────────────────────────────────
+const _deployedChaincodes = [
+  {
+    name: "did-registry",
+    version: "v2.1.0",
+    channel: CHANNEL,
+    status: "active",
+    endorsementPolicy: 'AND("Org1MSP.peer","Org2MSP.peer")',
+    lastInvoked: new Date(Date.now() - 120000).toISOString(),
+    invokeCount: 4821,
+  },
+  {
+    name: "credential-issuer",
+    version: "v1.8.3",
+    channel: CHANNEL,
+    status: "active",
+    endorsementPolicy: 'OR("Org1MSP.peer","Org2MSP.peer")',
+    lastInvoked: new Date(Date.now() - 300000).toISOString(),
+    invokeCount: 2341,
+  },
+  {
+    name: "consent-manager",
+    version: "v1.5.1",
+    channel: CHANNEL,
+    status: "active",
+    endorsementPolicy: 'AND("Org1MSP.peer","Org2MSP.peer")',
+    lastInvoked: new Date(Date.now() - 600000).toISOString(),
+    invokeCount: 1892,
+  },
+  {
+    name: "audit-logger",
+    version: "v2.0.0",
+    channel: CHANNEL,
+    status: "active",
+    endorsementPolicy: 'OR("Org1MSP.peer")',
+    lastInvoked: new Date(Date.now() - 60000).toISOString(),
+    invokeCount: 9103,
+  },
+];
+
+app.get("/api/chaincode/list", (req, res) => {
+  res.json({ chaincodes: _deployedChaincodes, total: _deployedChaincodes.length });
+});
+
+app.post("/api/chaincode/invoke", async (req, res) => {
+  const { chaincode, fcn, args } = req.body;
+  if (!chaincode || !fcn) return res.status(400).json({ error: "chaincode and fcn required" });
+
+  const txId = "tx-cc-" + Date.now().toString(36);
+  const timestamp = new Date().toLocaleString("en-IN", { hour12: false });
+  const block = commitBlock([
+    {
+      chaincode,
+      fcn,
+      args: args || [],
+      status: "valid",
+      timestamp,
+      channel: CHANNEL,
+      creator: req.headers["x-user-email"] || "admin",
+    },
+  ]);
+
+  const cc = _deployedChaincodes.find((c) => c.name === chaincode);
+  if (cc) {
+    cc.lastInvoked = new Date().toISOString();
+    cc.invokeCount++;
+  }
+
+  broadcast({ event: "block:committed", data: block });
+  res.json({ txId, blockNumber: _blockNumber, status: "committed", timestamp });
+});
+
+app.get("/api/chaincode/invocations", (req, res) => {
+  const allTx = Object.values(_ledger)
+    .filter((e) => e && typeof e === "object" && e.chaincode)
+    .slice(-20)
+    .map((e) => ({
+      txId: e.txId || "tx-" + Math.random().toString(36).slice(2, 8),
+      chaincode: e.chaincode,
+      fcn: e.fcn,
+      args: (e.args || []).slice(0, 2),
+      status: "valid",
+      timestamp: e.timestamp || new Date().toISOString(),
+      blockNumber: _blockNumber - Math.floor(Math.random() * 5),
+    }));
+  res.json({ invocations: allTx, total: allTx.length });
 });
 
 // 404
@@ -857,4 +1533,3 @@ httpServer.listen(PORT, async () => {
     console.error("⚠️ Failed to bootstrap World State from Convex:", err.message);
   }
 });
-

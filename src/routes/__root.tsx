@@ -16,9 +16,9 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { Toaster } from "@/components/ui/sonner";
 import { HyperledgerProvider } from "@/components/HyperledgerProvider";
 import { FabricStatusBar } from "@/components/FabricStatusBar";
+import { NotificationBell } from "@/components/NotificationBell";
 import { ConvexProvider } from "convex/react";
 import { convexClient } from "@/lib/convex-client";
-
 
 function NotFoundComponent() {
   return (
@@ -86,14 +86,21 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "DID Hospital — Decentralized Identity Infrastructure" },
-      { name: "description", content: "Unified demo of the patient app, staff portal, and admin console for the DID Hospital Infrastructure." },
+      {
+        name: "description",
+        content:
+          "Unified demo of the patient app, staff portal, and admin console for the DID Hospital Infrastructure.",
+      },
     ],
     links: [
       { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
       { rel: "stylesheet", href: appCss },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
+      },
     ],
   }),
   shellComponent: RootShell,
@@ -133,6 +140,8 @@ function RootComponent() {
                     <span className="inline-block h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
                     <span>Hyperledger Fabric — embrace-health-channel — Live</span>
                   </div>
+                  <span className="ml-auto" />
+                  <NotificationBell />
                 </header>
                 <FabricStatusBar />
                 <main className="flex-1">
@@ -147,4 +156,3 @@ function RootComponent() {
     </ConvexProvider>
   );
 }
-

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { fabricLogin, fabricSignup } from "@/lib/fabric-api";
+import { setSession } from "@/lib/auth";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/login")({
@@ -66,21 +67,16 @@ function LoginPage() {
           setIsLoading(false);
           return;
         }
-        await fabricSignup({ name, email, role: selectedRole, password });
-        toast.success("Account registered successfully! You can now log in.");
-        setIsSignup(false);
-        setPassword("");
+        const signupRes = await fabricSignup({ name, email, role: selectedRole, password });
+        if (signupRes.success && signupRes.user) {
+          setSession(signupRes.token, signupRes.user);
+          toast.success(`Welcome, ${signupRes.user.name}! Account created.`);
+          navigate({ to: `/${signupRes.user.role}` });
+        }
       } else {
         const res = await fabricLogin({ email, password });
         if (res.success && res.user) {
-          localStorage.setItem("userRole", res.user.role);
-          localStorage.setItem("userEmail", res.user.email);
-          localStorage.setItem("userName", res.user.name);
-          if (res.user.did) {
-            localStorage.setItem("userDID", res.user.did);
-          } else {
-            localStorage.removeItem("userDID");
-          }
+          setSession(res.token, res.user);
           toast.success(`Welcome back, ${res.user.name}!`);
           navigate({ to: `/${res.user.role}` });
         }
@@ -103,9 +99,7 @@ function LoginPage() {
           <h1 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
             Welcome Back
           </h1>
-          <p className="mt-2 text-muted-foreground">
-            Select your role and sign in to continue
-          </p>
+          <p className="mt-2 text-muted-foreground">Select your role and sign in to continue</p>
         </div>
 
         {!selectedRole ? (
@@ -118,19 +112,18 @@ function LoginPage() {
                   onClick={() => setSelectedRole(role.id)}
                   className="group relative overflow-hidden rounded-2xl border border-border bg-card p-6 text-left shadow-clinical transition-all hover:-translate-y-1 hover:shadow-clinical-md"
                 >
-                  <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${role.color} to-transparent opacity-60`} />
+                  <div
+                    className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${role.color} to-transparent opacity-60`}
+                  />
                   <div className="relative">
                     <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
                       <Icon className="h-6 w-6" />
                     </div>
-                    <h3 className="mt-4 text-xl font-semibold text-foreground">
-                      {role.label}
-                    </h3>
-                    <p className="mt-2 text-sm text-muted-foreground">
-                      {role.description}
-                    </p>
+                    <h3 className="mt-4 text-xl font-semibold text-foreground">{role.label}</h3>
+                    <p className="mt-2 text-sm text-muted-foreground">{role.description}</p>
                     <div className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary">
-                      Continue <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                      Continue{" "}
+                      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                     </div>
                   </div>
                 </button>
@@ -142,7 +135,7 @@ function LoginPage() {
             <CardHeader>
               <div className="flex items-center gap-3">
                 {(() => {
-                  const role = roles.find(r => r.id === selectedRole);
+                  const role = roles.find((r) => r.id === selectedRole);
                   const Icon = role?.icon || User;
                   return (
                     <>
@@ -150,7 +143,9 @@ function LoginPage() {
                         <Icon className="h-5 w-5" />
                       </div>
                       <div>
-                        <CardTitle>{isSignup ? "Sign up as" : "Sign in as"} {role?.label}</CardTitle>
+                        <CardTitle>
+                          {isSignup ? "Sign up as" : "Sign in as"} {role?.label}
+                        </CardTitle>
                         <CardDescription>{role?.description}</CardDescription>
                       </div>
                     </>
@@ -208,7 +203,7 @@ function LoginPage() {
                     Back
                   </Button>
                   <Button type="submit" disabled={isLoading} className="flex-1">
-                    {isLoading ? "Processing..." : (isSignup ? "Register" : "Sign in")}
+                    {isLoading ? "Processing..." : isSignup ? "Register" : "Sign in"}
                   </Button>
                 </div>
                 <div className="text-center mt-4 text-sm">

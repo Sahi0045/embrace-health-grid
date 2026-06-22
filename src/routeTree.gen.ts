@@ -29,6 +29,7 @@ import { Route as StaffLabsRouteImport } from './routes/staff.labs'
 import { Route as StaffEmergencyRouteImport } from './routes/staff.emergency'
 import { Route as StaffCommandRouteImport } from './routes/staff.command'
 import { Route as StaffAttendanceRouteImport } from './routes/staff.attendance'
+import { Route as PatientZkproofRouteImport } from './routes/patient.zkproof'
 import { Route as PatientWalletRouteImport } from './routes/patient.wallet'
 import { Route as PatientVaccinesRouteImport } from './routes/patient.vaccines'
 import { Route as PatientTelemedicineRouteImport } from './routes/patient.telemedicine'
@@ -57,6 +58,7 @@ import { Route as AdminDidsRouteImport } from './routes/admin.dids'
 import { Route as AdminCredentialsRouteImport } from './routes/admin.credentials'
 import { Route as AdminComplianceRouteImport } from './routes/admin.compliance'
 import { Route as AdminCommandRouteImport } from './routes/admin.command'
+import { Route as AdminChaincodeRouteImport } from './routes/admin.chaincode'
 import { Route as AdminAuditRouteImport } from './routes/admin.audit'
 import { Route as AdminAttendanceRouteImport } from './routes/admin.attendance'
 
@@ -158,6 +160,11 @@ const StaffCommandRoute = StaffCommandRouteImport.update({
 const StaffAttendanceRoute = StaffAttendanceRouteImport.update({
   id: '/staff/attendance',
   path: '/staff/attendance',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PatientZkproofRoute = PatientZkproofRouteImport.update({
+  id: '/patient/zkproof',
+  path: '/patient/zkproof',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PatientWalletRoute = PatientWalletRouteImport.update({
@@ -300,6 +307,11 @@ const AdminCommandRoute = AdminCommandRouteImport.update({
   path: '/admin/command',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminChaincodeRoute = AdminChaincodeRouteImport.update({
+  id: '/admin/chaincode',
+  path: '/admin/chaincode',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminAuditRoute = AdminAuditRouteImport.update({
   id: '/admin/audit',
   path: '/admin/audit',
@@ -319,6 +331,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/admin/attendance': typeof AdminAttendanceRoute
   '/admin/audit': typeof AdminAuditRoute
+  '/admin/chaincode': typeof AdminChaincodeRoute
   '/admin/command': typeof AdminCommandRoute
   '/admin/compliance': typeof AdminComplianceRoute
   '/admin/credentials': typeof AdminCredentialsRoute
@@ -347,6 +360,7 @@ export interface FileRoutesByFullPath {
   '/patient/telemedicine': typeof PatientTelemedicineRoute
   '/patient/vaccines': typeof PatientVaccinesRoute
   '/patient/wallet': typeof PatientWalletRoute
+  '/patient/zkproof': typeof PatientZkproofRoute
   '/staff/attendance': typeof StaffAttendanceRoute
   '/staff/command': typeof StaffCommandRoute
   '/staff/emergency': typeof StaffEmergencyRoute
@@ -371,6 +385,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/admin/attendance': typeof AdminAttendanceRoute
   '/admin/audit': typeof AdminAuditRoute
+  '/admin/chaincode': typeof AdminChaincodeRoute
   '/admin/command': typeof AdminCommandRoute
   '/admin/compliance': typeof AdminComplianceRoute
   '/admin/credentials': typeof AdminCredentialsRoute
@@ -399,6 +414,7 @@ export interface FileRoutesByTo {
   '/patient/telemedicine': typeof PatientTelemedicineRoute
   '/patient/vaccines': typeof PatientVaccinesRoute
   '/patient/wallet': typeof PatientWalletRoute
+  '/patient/zkproof': typeof PatientZkproofRoute
   '/staff/attendance': typeof StaffAttendanceRoute
   '/staff/command': typeof StaffCommandRoute
   '/staff/emergency': typeof StaffEmergencyRoute
@@ -424,6 +440,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/admin/attendance': typeof AdminAttendanceRoute
   '/admin/audit': typeof AdminAuditRoute
+  '/admin/chaincode': typeof AdminChaincodeRoute
   '/admin/command': typeof AdminCommandRoute
   '/admin/compliance': typeof AdminComplianceRoute
   '/admin/credentials': typeof AdminCredentialsRoute
@@ -452,6 +469,7 @@ export interface FileRoutesById {
   '/patient/telemedicine': typeof PatientTelemedicineRoute
   '/patient/vaccines': typeof PatientVaccinesRoute
   '/patient/wallet': typeof PatientWalletRoute
+  '/patient/zkproof': typeof PatientZkproofRoute
   '/staff/attendance': typeof StaffAttendanceRoute
   '/staff/command': typeof StaffCommandRoute
   '/staff/emergency': typeof StaffEmergencyRoute
@@ -478,6 +496,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/admin/attendance'
     | '/admin/audit'
+    | '/admin/chaincode'
     | '/admin/command'
     | '/admin/compliance'
     | '/admin/credentials'
@@ -506,6 +525,7 @@ export interface FileRouteTypes {
     | '/patient/telemedicine'
     | '/patient/vaccines'
     | '/patient/wallet'
+    | '/patient/zkproof'
     | '/staff/attendance'
     | '/staff/command'
     | '/staff/emergency'
@@ -530,6 +550,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/admin/attendance'
     | '/admin/audit'
+    | '/admin/chaincode'
     | '/admin/command'
     | '/admin/compliance'
     | '/admin/credentials'
@@ -558,6 +579,7 @@ export interface FileRouteTypes {
     | '/patient/telemedicine'
     | '/patient/vaccines'
     | '/patient/wallet'
+    | '/patient/zkproof'
     | '/staff/attendance'
     | '/staff/command'
     | '/staff/emergency'
@@ -582,6 +604,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/admin/attendance'
     | '/admin/audit'
+    | '/admin/chaincode'
     | '/admin/command'
     | '/admin/compliance'
     | '/admin/credentials'
@@ -610,6 +633,7 @@ export interface FileRouteTypes {
     | '/patient/telemedicine'
     | '/patient/vaccines'
     | '/patient/wallet'
+    | '/patient/zkproof'
     | '/staff/attendance'
     | '/staff/command'
     | '/staff/emergency'
@@ -635,6 +659,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   AdminAttendanceRoute: typeof AdminAttendanceRoute
   AdminAuditRoute: typeof AdminAuditRoute
+  AdminChaincodeRoute: typeof AdminChaincodeRoute
   AdminCommandRoute: typeof AdminCommandRoute
   AdminComplianceRoute: typeof AdminComplianceRoute
   AdminCredentialsRoute: typeof AdminCredentialsRoute
@@ -663,6 +688,7 @@ export interface RootRouteChildren {
   PatientTelemedicineRoute: typeof PatientTelemedicineRoute
   PatientVaccinesRoute: typeof PatientVaccinesRoute
   PatientWalletRoute: typeof PatientWalletRoute
+  PatientZkproofRoute: typeof PatientZkproofRoute
   StaffAttendanceRoute: typeof StaffAttendanceRoute
   StaffCommandRoute: typeof StaffCommandRoute
   StaffEmergencyRoute: typeof StaffEmergencyRoute
@@ -820,6 +846,13 @@ declare module '@tanstack/react-router' {
       path: '/staff/attendance'
       fullPath: '/staff/attendance'
       preLoaderRoute: typeof StaffAttendanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/patient/zkproof': {
+      id: '/patient/zkproof'
+      path: '/patient/zkproof'
+      fullPath: '/patient/zkproof'
+      preLoaderRoute: typeof PatientZkproofRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/patient/wallet': {
@@ -1018,6 +1051,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCommandRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/chaincode': {
+      id: '/admin/chaincode'
+      path: '/admin/chaincode'
+      fullPath: '/admin/chaincode'
+      preLoaderRoute: typeof AdminChaincodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/audit': {
       id: '/admin/audit'
       path: '/admin/audit'
@@ -1043,6 +1083,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   AdminAttendanceRoute: AdminAttendanceRoute,
   AdminAuditRoute: AdminAuditRoute,
+  AdminChaincodeRoute: AdminChaincodeRoute,
   AdminCommandRoute: AdminCommandRoute,
   AdminComplianceRoute: AdminComplianceRoute,
   AdminCredentialsRoute: AdminCredentialsRoute,
@@ -1071,6 +1112,7 @@ const rootRouteChildren: RootRouteChildren = {
   PatientTelemedicineRoute: PatientTelemedicineRoute,
   PatientVaccinesRoute: PatientVaccinesRoute,
   PatientWalletRoute: PatientWalletRoute,
+  PatientZkproofRoute: PatientZkproofRoute,
   StaffAttendanceRoute: StaffAttendanceRoute,
   StaffCommandRoute: StaffCommandRoute,
   StaffEmergencyRoute: StaffEmergencyRoute,

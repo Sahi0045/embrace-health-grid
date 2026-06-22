@@ -10,20 +10,35 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
-  isFabricOnline, FABRIC_BASE,
-  fabricGetStats, fabricGetLedger, fabricGetAuditEvents,
-  fabricGetAllDIDs, fabricGetCredentials, fabricGetConsents,
-  fabricGetAppointments, fabricGetBeds, fabricGetTracker,
+  isFabricOnline,
+  FABRIC_BASE,
+  fabricGetStats,
+  fabricGetLedger,
+  fabricGetAuditEvents,
+  fabricGetAllDIDs,
+  fabricGetCredentials,
+  fabricGetConsents,
+  fabricGetAppointments,
+  fabricGetBeds,
+  fabricGetTracker,
   fabricGetFraudAlerts,
+  fabricGetAllPrescriptions,
 } from "@/lib/fabric-api";
 import { registerLedgerListener, unregisterLedgerListener } from "@/lib/hyperledger";
 import {
-  getLedger, getNetworkStats, getDIDRegistry,
-  queryWorldState, getWorldState,
+  getLedger,
+  getNetworkStats,
+  getDIDRegistry,
+  queryWorldState,
+  getWorldState,
 } from "@/lib/hyperledger";
 import {
-  getLivePatients, getLiveStaff, getLiveAppointments,
-  getLiveTransactions, storeEvents, initializeStore,
+  getLivePatients,
+  getLiveStaff,
+  getLiveAppointments,
+  getLiveTransactions,
+  storeEvents,
+  initializeStore,
   getWorkerConnected,
 } from "@/lib/realtime-store";
 
@@ -71,7 +86,7 @@ function useFabricData<T>(
   fetchFn: () => Promise<T>,
   fallbackFn: () => T,
   wsEvent?: string,
-  deps: unknown[] = []
+  deps: unknown[] = [],
 ): FabricResult<T> {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
@@ -106,13 +121,17 @@ function useFabricData<T>(
   useEffect(() => {
     mountedRef.current = true;
     load();
-    return () => { mountedRef.current = false; };
+    return () => {
+      mountedRef.current = false;
+    };
   }, [load]);
 
   // Subscribe to WebSocket events for live refresh
   useEffect(() => {
     if (!wsEvent) return;
-    return subscribeWS(wsEvent, () => { if (mountedRef.current) load(); });
+    return subscribeWS(wsEvent, () => {
+      if (mountedRef.current) load();
+    });
   }, [wsEvent, load]);
 
   return { data, loading, error, online, refetch: load };
@@ -120,20 +139,20 @@ function useFabricData<T>(
 
 // ─── Network stats ────────────────────────────────────────────────────────────
 export function useFabricStats() {
-  return useFabricData(
-    fabricGetStats,
-    () => getNetworkStats(),
-    "block:committed"
-  );
+  return useFabricData(fabricGetStats, () => getNetworkStats(), "block:committed");
 }
 
 // ─── Ledger blocks ────────────────────────────────────────────────────────────
 export function useFabricLedger(page = 0) {
   return useFabricData(
     () => fabricGetLedger(page, 20),
-    () => ({ blocks: [...getLedger()].reverse().slice(0, 20), total: getLedger().length, blockHeight: getLedger().length }),
+    () => ({
+      blocks: [...getLedger()].reverse().slice(0, 20),
+      total: getLedger().length,
+      blockHeight: getLedger().length,
+    }),
     "block:committed",
-    [page]
+    [page],
   );
 }
 
@@ -146,7 +165,7 @@ export function useFabricDIDs() {
       const dids = Object.values(reg);
       return { dids, total: dids.length };
     },
-    "did:created"
+    "did:created",
   );
 }
 
@@ -158,7 +177,7 @@ export function useFabricCredentials() {
       const ws = queryWorldState("credential-issuer");
       return { credentials: ws.map((e) => e.value), total: ws.length };
     },
-    "credential:issued"
+    "credential:issued",
   );
 }
 
@@ -170,7 +189,7 @@ export function useFabricConsents() {
       const ws = queryWorldState("consent-manager");
       return { consents: ws.map((e) => e.value), total: ws.length };
     },
-    "consent:granted"
+    "consent:granted",
   );
 }
 
@@ -183,7 +202,7 @@ export function useFabricAudit(page = 0) {
       return { events: ws.map((e) => e.value), total: ws.length };
     },
     "audit:logged",
-    [page]
+    [page],
   );
 }
 
@@ -195,7 +214,7 @@ export function useFabricAppointments() {
       const appts = getLiveAppointments();
       return { appointments: appts, total: appts.length };
     },
-    "appointment:booked"
+    "appointment:booked",
   );
 }
 
@@ -207,7 +226,7 @@ export function useFabricBeds() {
       const ws = queryWorldState("beds");
       return { beds: ws.map((e) => e.value), total: ws.length };
     },
-    "bed:updated"
+    "bed:updated",
   );
 }
 
@@ -217,18 +236,34 @@ export function useFabricTracker() {
     fabricGetTracker,
     () => {
       const staff = getLiveStaff();
-      return { staff: staff.map((s) => ({ staffId: s.id, name: s.name, location: s.currentLocation, lastPing: s.lastSignal, beacon: s.beaconStrength })) };
+      return {
+        staff: staff.map((s) => ({
+          staffId: s.id,
+          name: s.name,
+          location: s.currentLocation,
+          lastPing: s.lastSignal,
+          beacon: s.beaconStrength,
+        })),
+      };
     },
-    "staff:location"
+    "staff:location",
   );
 }
 
-// ─── Fraud Alerts ─────────────────────────────────────────────────────────────
+// ─── Fraud Alerts ────────────────────────────────────────────────────────────────
 export function useFabricFraudAlerts() {
+  return useFabricData(fabricGetFraudAlerts, () => ({ alerts: [], total: 0 }), "fraud:detected");
+}
+
+// ─── Prescriptions (staff overview) ─────────────────────────────────────────────
+export function useFabricPrescriptions() {
   return useFabricData(
-    fabricGetFraudAlerts,
-    () => ({ alerts: [], total: 0 }),
-    "fraud:detected"
+    fabricGetAllPrescriptions,
+    () => {
+      const ws = queryWorldState("prescription");
+      return { prescriptions: ws.map((e) => e.value), total: ws.length };
+    },
+    "prescription:signed",
   );
 }
 
@@ -240,10 +275,15 @@ export function useLivePatients() {
   useEffect(() => {
     let mounted = true;
     initializeStore().then(() => {
-      if (mounted) { setPatients(getLivePatients()); setLoading(false); }
+      if (mounted) {
+        setPatients(getLivePatients());
+        setLoading(false);
+      }
     });
 
-    const onVitals = () => { if (mounted) setPatients(getLivePatients()); };
+    const onVitals = () => {
+      if (mounted) setPatients(getLivePatients());
+    };
     storeEvents.addEventListener("vitals:update", onVitals);
     storeEvents.addEventListener("store:ready", onVitals);
 
@@ -272,10 +312,15 @@ export function useLiveStaff() {
   useEffect(() => {
     let mounted = true;
     initializeStore().then(() => {
-      if (mounted) { setStaff(getLiveStaff()); setLoading(false); }
+      if (mounted) {
+        setStaff(getLiveStaff());
+        setLoading(false);
+      }
     });
 
-    const onLocation = () => { if (mounted) setStaff(getLiveStaff()); };
+    const onLocation = () => {
+      if (mounted) setStaff(getLiveStaff());
+    };
     storeEvents.addEventListener("staff:location:update", onLocation);
     storeEvents.addEventListener("store:ready", onLocation);
 
@@ -304,7 +349,9 @@ export function useFabricConnection() {
 
   useEffect(() => {
     let mounted = true;
-    isFabricOnline().then((up) => { if (mounted) setOnline(up); });
+    isFabricOnline().then((up) => {
+      if (mounted) setOnline(up);
+    });
 
     const onStatusChange = (e: Event) => {
       const connected = (e as CustomEvent<boolean>).detail;
@@ -352,7 +399,13 @@ export function useLiveBlocks(limit = 20) {
 
 // ─── Single-patient vitals (live) ─────────────────────────────────────────────
 export function usePatientVitals(patientId: string) {
-  const [vitals, setVitals] = useState<{ heartRate: number; bp: string; spo2: number; temp: number; respRate: number } | null>(null);
+  const [vitals, setVitals] = useState<{
+    heartRate: number;
+    bp: string;
+    spo2: number;
+    temp: number;
+    respRate: number;
+  } | null>(null);
   const [source, setSource] = useState<"api" | "local">("local");
 
   useEffect(() => {
@@ -365,13 +418,19 @@ export function usePatientVitals(patientId: string) {
         try {
           const { fabricGetVitals } = await import("@/lib/fabric-api");
           const v = await fabricGetVitals(patientId);
-          if (mounted) { setVitals(v); setSource("api"); }
+          if (mounted) {
+            setVitals(v);
+            setSource("api");
+          }
           return;
         } catch {}
       }
       // Fallback: pull from live store
       const p = getLivePatients().find((pt) => pt.id === patientId);
-      if (p && mounted) { setVitals(p.vitals); setSource("local"); }
+      if (p && mounted) {
+        setVitals(p.vitals);
+        setSource("local");
+      }
     };
 
     fetchVitals();
