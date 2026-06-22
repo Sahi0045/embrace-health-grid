@@ -26,7 +26,6 @@ export type CredentialFull = {
   schema: string;
   verificationCount: number;
   lastVerified?: string;
-  metadata: Record<string, string>;
 };
 
 const credTypeLabels: Record<CredentialType, string> = {
@@ -96,11 +95,6 @@ export function generateCredentials(count = 1000): CredentialFull[] {
       schema: `https://schema.did-hospital.in/v1/${type.toLowerCase()}`,
       verificationCount: seed % 50,
       lastVerified: status !== "revoked" ? `${lastVerYear}-${lastVerMonth}-${lastVerDay}` : undefined,
-      metadata: {
-        issuanceCountry: "India",
-        credentialVersion: "1.2",
-        encryptionAlgo: "Ed25519",
-      },
     };
   });
 }

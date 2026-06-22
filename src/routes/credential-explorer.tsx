@@ -44,11 +44,6 @@ function CredentialExplorerPage() {
       schema: `https://schema.did-hospital.in/v1/${(c.type || "").toLowerCase()}`,
       verificationCount: 1,
       lastVerified: c.issuedAt ? c.issuedAt.split("T")[0] : new Date().toISOString().split("T")[0],
-      metadata: {
-        issuanceCountry: "India",
-        credentialVersion: "1.2",
-        encryptionAlgo: "Ed25519",
-      }
     };
   });
 
@@ -156,7 +151,6 @@ function CredentialExplorerPage() {
                           { label: "Expires", value: selected.expiresAt },
                           { label: "Verifications", value: String(selected.verificationCount) },
                           { label: "Schema", value: selected.type },
-                          { label: "Encryption", value: selected.metadata.encryptionAlgo },
                         ].map((f) => (
                           <div key={f.label} className="rounded-lg bg-muted p-2.5">
                             <div className="text-[10px] text-muted-foreground">{f.label}</div>

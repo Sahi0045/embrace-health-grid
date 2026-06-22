@@ -244,7 +244,7 @@ function NodeDetailPanel({ node, onClose }: { node: TwinNode; onClose: () => voi
         </div>
         {node.meta && Object.keys(node.meta).length > 0 && (
           <div className="rounded-lg border border-border p-3 space-y-1.5">
-            <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-2">Metadata</div>
+            <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-2">Details</div>
             {Object.entries(node.meta).map(([k, v]) => (
               <div key={k} className="flex justify-between text-xs">
                 <span className="text-muted-foreground capitalize">{k.replace(/_/g, " ")}</span>
@@ -540,7 +540,7 @@ function DigitalTwinPage() {
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
                 <ShieldCheck className="h-10 w-10 mx-auto mb-3 opacity-20" />
-                Select any node to inspect its DID, status, and metadata
+                Select any node to inspect its DID, status, and details
               </motion.div>
             )}
           </AnimatePresence>

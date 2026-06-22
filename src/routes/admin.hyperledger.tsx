@@ -211,7 +211,6 @@ function HyperledgerConsolePage() {
                       <span className="text-[10px] font-mono text-muted-foreground">CH: {block.channelId}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-mono text-muted-foreground">via {block.metadata.orderer}</span>
                       <span className="inline-flex items-center gap-1 rounded-full bg-success/15 border border-success/20 px-2 py-0.5 text-[9px] font-bold text-success">
                         <CheckCircle className="h-3 w-3" /> VALID
                       </span>

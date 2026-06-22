@@ -42,11 +42,6 @@ function CredentialsPage() {
       schema: `https://schema.did-hospital.in/v1/${(c.type || "").toLowerCase()}`,
       verificationCount: 1,
       lastVerified: c.issuedAt ? c.issuedAt.split("T")[0] : new Date().toISOString().split("T")[0],
-      metadata: {
-        issuanceCountry: "India",
-        credentialVersion: "1.2",
-        encryptionAlgo: "Ed25519",
-      }
     };
   });
 
