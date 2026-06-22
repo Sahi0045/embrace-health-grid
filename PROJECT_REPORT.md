@@ -83,3 +83,56 @@ The application follows a modern web architecture, decoupling the frontend user 
 
 ## 7. Conclusion
 The DID Hospital Infrastructure project is a highly advanced, feature-rich simulation of a next-generation healthcare system. By combining modern frontend technologies with a simulated blockchain backend and real-time database syncing, it successfully demonstrates the practical application of Decentralized Identity, Verifiable Credentials, and secure role-based access in a complex medical environment.
+
+### 6.1 Folder Structure Detail (tree)
+```
+.
+├── INPATIENT_FEATURES.md          # Documentation for inpatient features
+├── PROJECT_REPORT.md              # This project report
+├── RBAC_IMPLEMENTATION.md         # Documentation for Role-Based Access Control
+├── components.json                # Radix/shadcn UI configuration
+├── convex/                        # Convex database schema and server functions
+│   ├── records.ts                 # Convex server functions for database interaction
+│   └── schema.ts                  # Convex database schema definitions
+├── eslint.config.js               # Linter configuration
+├── fabric-backend/                # Custom Hyperledger Fabric simulation server
+│   ├── data/                      # Initial mock data/world state JSON files
+│   ├── package.json               # Backend dependencies
+│   ├── server.js                  # Main Express and WebSocket server for simulation
+│   └── world-state-db.js          # In-memory world state management logic
+├── package.json                   # Main project dependencies and scripts
+├── public/                        # Static assets
+│   └── favicon.svg                # Application favicon
+├── src/                           # Frontend source code
+│   ├── components/                # React components
+│   │   ├── AppSidebar.tsx         # Global sidebar navigation
+│   │   ├── RouteGuard.tsx         # Component protecting routes based on roles
+│   │   ├── RoleSwitcher.tsx       # Component for admins to switch viewing roles
+│   │   ├── audit/                 # Components for audit logs and timeline
+│   │   ├── consent/               # Components for consent management
+│   │   ├── credentials/           # Components for VC wallet and display
+│   │   ├── did/                   # Components for DID exploration and visualization
+│   │   ├── emergency/             # Components for emergency access ("break-glass")
+│   │   ├── federation/            # Components for inter-hospital network view
+│   │   ├── infrastructure/        # Components for beds, equipment, ambulance tracking
+│   │   ├── insurance/             # Components for insurance and claims
+│   │   └── ui/                    # Reusable, atomic Radix UI components (shadcn)
+│   ├── hooks/                     # Custom React hooks (e.g., use-fabric.ts)
+│   ├── lib/                       # Utilities, API integrations, and mock data
+│   │   ├── auth.ts                # Client-side authentication logic
+│   │   ├── convex-client.ts       # Convex connection setup
+│   │   ├── fabric-api.ts          # API client for interacting with fabric-backend
+│   │   └── zkproof.ts             # Logic for generating/verifying Zero-Knowledge Proofs
+│   ├── routes/                    # TanStack Start file-based routing directory
+│   │   ├── __root.tsx             # Root layout and context providers
+│   │   ├── index.tsx              # Main landing page
+│   │   ├── patient.*.tsx          # Patient portal routes (e.g., patient.inpatient.tsx)
+│   │   ├── staff.*.tsx            # Staff portal routes (e.g., staff.sign.tsx)
+│   │   └── admin.*.tsx            # Admin console routes (e.g., admin.digital-twin.tsx)
+│   ├── router.tsx                 # TanStack Router configuration
+│   ├── server.ts                  # TanStack Start SSR entry point
+│   ├── start.ts                   # TanStack Start client entry point
+│   └── styles.css                 # Global Tailwind CSS styles
+├── tsconfig.json                  # TypeScript configuration
+└── vite.config.ts                 # Vite build and development configuration
+```
