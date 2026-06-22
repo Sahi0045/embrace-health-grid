@@ -104,31 +104,31 @@ function generateVitals(seed: number) {
 
 // Vitals fluctuate every 5 seconds
 const _vitals: Map<string, LivePatient["vitals"]> = new Map();
-let _vitalsTimer: ReturnType<typeof setInterval> | null = null;
 
-function startVitalsSimulation(patients: LivePatient[]) {
-  if (_vitalsTimer) clearInterval(_vitalsTimer);
-  // Seed initial vitals
+function seedInitialVitals(patients: LivePatient[]) {
   patients.forEach((p) => {
     const seed = p.id.split("_")[1] ? parseInt(p.id.split("_")[1]) : 0;
-    _vitals.set(p.id, generateVitals(seed));
+    const initialVitals = generateVitals(seed);
+    _vitals.set(p.id, initialVitals);
+    _vitals.set(p.did, initialVitals);
   });
+}
 
-  _vitalsTimer = setInterval(() => {
-    // Fluctuate vitals for ~20 random patients
-    const inpatients = patients.filter((p) => p.status === "inpatient").slice(0, 20);
-    inpatients.forEach((p) => {
-      const current = _vitals.get(p.id)!;
-      _vitals.set(p.id, {
-        heartRate: Math.max(40, Math.min(160, current.heartRate + Math.round((Math.random() - 0.5) * 6))),
-        bp: `${Math.max(80, Math.min(180, parseInt(current.bp.split("/")[0]) + Math.round((Math.random() - 0.5) * 4)))}/${Math.max(50, Math.min(120, parseInt(current.bp.split("/")[1]) + Math.round((Math.random() - 0.5) * 3)))}`,
-        spo2: Math.max(88, Math.min(100, current.spo2 + Math.round((Math.random() - 0.5) * 2))),
-        temp: parseFloat(Math.max(35.0, Math.min(40.0, current.temp + (Math.random() - 0.5) * 0.2)).toFixed(1)),
-        respRate: Math.max(8, Math.min(30, current.respRate + Math.round((Math.random() - 0.5) * 2))),
-      });
-    });
-    emitStoreEvent("vitals:update");
-  }, 5000);
+function runVitalsTick() {
+  const inpatients = _livePatients.filter((p) => p.status === "inpatient").slice(0, 20);
+  inpatients.forEach((p) => {
+    const current = _vitals.get(p.id) ?? _vitals.get(p.did) ?? generateVitals(0);
+    const updated = {
+      heartRate: Math.max(40, Math.min(160, current.heartRate + Math.round((Math.random() - 0.5) * 6))),
+      bp: `${Math.max(80, Math.min(180, parseInt(current.bp.split("/")[0]) + Math.round((Math.random() - 0.5) * 4)))}/${Math.max(50, Math.min(120, parseInt(current.bp.split("/")[1]) + Math.round((Math.random() - 0.5) * 3)))}`,
+      spo2: Math.max(88, Math.min(100, current.spo2 + Math.round((Math.random() - 0.5) * 2))),
+      temp: parseFloat(Math.max(35.0, Math.min(40.0, current.temp + (Math.random() - 0.5) * 0.2)).toFixed(1)),
+      respRate: Math.max(8, Math.min(30, current.respRate + Math.round((Math.random() - 0.5) * 2))),
+    };
+    _vitals.set(p.id, updated);
+    _vitals.set(p.did, updated);
+  });
+  emitStoreEvent("vitals:update");
 }
 
 // ---------------------------------------------------------------------------
@@ -153,44 +153,38 @@ function initStaffLocations(staff: StaffMember[]) {
   });
 }
 
-let _staffLocationTimer: ReturnType<typeof setInterval> | null = null;
+async function runStaffTick() {
+  const onDuty = _liveStaff.filter((s) => s.onDuty);
+  const idx = Math.floor(Math.random() * onDuty.length);
+  const member = onDuty[idx];
+  if (!member) return;
 
-function startStaffSimulation(staff: StaffMember[]) {
-  if (_staffLocationTimer) clearInterval(_staffLocationTimer);
+  const current = _staffLocations.get(member.id);
+  const newLoc = LOCATIONS[Math.floor(Math.random() * LOCATIONS.length)];
+  if (current?.location === newLoc) return;
 
-  _staffLocationTimer = setInterval(async () => {
-    const onDuty = staff.filter((s) => s.onDuty);
-    const idx = Math.floor(Math.random() * onDuty.length);
-    const member = onDuty[idx];
-    if (!member) return;
+  const newStatus = newLoc === "Operation Theatre 2" ? "In Surgery"
+    : newLoc === "Emergency Ward" ? "Emergency Response"
+    : newLoc === "ICU Block B" ? "In Consultation"
+    : "Available";
 
-    const current = _staffLocations.get(member.id);
-    const newLoc = LOCATIONS[Math.floor(Math.random() * LOCATIONS.length)];
-    if (current?.location === newLoc) return;
+  const now = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  _staffLocations.set(member.id, {
+    location: newLoc,
+    status: newStatus,
+    lastSignal: now,
+    beacon: `${70 + Math.floor(Math.random() * 30)}%`,
+  });
 
-    const newStatus = newLoc === "Operation Theatre 2" ? "In Surgery"
-      : newLoc === "Emergency Ward" ? "Emergency Response"
-      : newLoc === "ICU Block B" ? "In Consultation"
-      : "Available";
+  // Record on chain (silently)
+  await submitHyperledgerTransaction(
+    "tracker-chaincode",
+    "reportTelemetry",
+    [member.did, member.name, newLoc, newStatus],
+    { silent: true }
+  );
 
-    const now = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-    _staffLocations.set(member.id, {
-      location: newLoc,
-      status: newStatus,
-      lastSignal: now,
-      beacon: `${70 + Math.floor(Math.random() * 30)}%`,
-    });
-
-    // Record on chain (silently)
-    await submitHyperledgerTransaction(
-      "tracker-chaincode",
-      "reportTelemetry",
-      [member.did, member.name, newLoc, newStatus],
-      { silent: true }
-    );
-
-    emitStoreEvent("staff:location:update", { memberId: member.id, location: newLoc, status: newStatus });
-  }, 8000);
+  emitStoreEvent("staff:location:update", { memberId: member.id, location: newLoc, status: newStatus });
 }
 
 // ---------------------------------------------------------------------------
@@ -252,12 +246,89 @@ function seedTransactions() {
 }
 
 // ---------------------------------------------------------------------------
-// Store initialization & WebSockets
+// Store initialization, Web Workers, & Leader Election
 // ---------------------------------------------------------------------------
 let _initialized = false;
 let _livePatients: LivePatient[] = [];
 let _liveStaff: LiveStaff[] = [];
-let _storeWs: WebSocket | null = null;
+let _worker: Worker | null = null;
+let _workerConnected = false;
+let _tabId = "";
+let _isLeader = false;
+let _leaderChannel: BroadcastChannel | null = null;
+const _activeTabs = new Map<string, number>();
+let _heartbeatTimer: any = null;
+
+function setupLeaderElection() {
+  if (typeof window === "undefined") return;
+  if (_tabId) return;
+
+  _tabId = "tab_" + Math.random().toString(36).slice(2, 10);
+  _activeTabs.set(_tabId, Date.now());
+
+  try {
+    _leaderChannel = new BroadcastChannel("fabric_leader_election");
+    
+    _leaderChannel.onmessage = (event) => {
+      const { type, sender } = event.data;
+      if (type === "HEARTBEAT" && sender) {
+        _activeTabs.set(sender, Date.now());
+        runElection();
+      }
+    };
+  } catch (err) {
+    console.error("[Leader Election] BroadcastChannel not supported, fallback to single tab leader:", err);
+    _isLeader = true;
+    updateWorkerLeaderState();
+    return;
+  }
+
+  // Send initial heartbeat
+  sendHeartbeat();
+
+  // Heartbeat loop every 2 seconds
+  _heartbeatTimer = setInterval(() => {
+    sendHeartbeat();
+    runElection();
+  }, 2000);
+}
+
+function sendHeartbeat() {
+  if (_leaderChannel) {
+    _leaderChannel.postMessage({ type: "HEARTBEAT", sender: _tabId });
+  }
+}
+
+function runElection() {
+  const now = Date.now();
+  // Remove expired tabs (no heartbeat for 6 seconds)
+  for (const [id, lastTime] of _activeTabs.entries()) {
+    if (id !== _tabId && now - lastTime > 6000) {
+      _activeTabs.delete(id);
+    }
+  }
+
+  // Elect alphabetically lowest tab ID
+  const allIds = Array.from(_activeTabs.keys()).sort();
+  const lowestId = allIds[0];
+  const newLeader = lowestId === _tabId;
+
+  if (newLeader !== _isLeader) {
+    _isLeader = newLeader;
+    console.log(`[Leader Election] Tab ${_tabId} status: ${ _isLeader ? "LEADER" : "FOLLOWER" } (Active tabs: ${allIds.join(", ")})`);
+    updateWorkerLeaderState();
+    emitStoreEvent("tab:leader:change", _isLeader);
+  }
+}
+
+function updateWorkerLeaderState() {
+  if (_worker) {
+    _worker.postMessage({
+      type: "SET_LEADER",
+      payload: { isLeader: _isLeader },
+    });
+  }
+}
 
 function hashInt(s: string): number {
   let h = 0;
@@ -271,7 +342,7 @@ export function rebuildLiveListsFromRegistry() {
   const staffTemp: LiveStaff[] = [];
 
   Object.keys(registry).forEach((did) => {
-    const doc = registry[did];
+    const doc = registry[did] as any;
     if (!doc) return;
     const name = doc.owner || doc.subject || "Unknown";
     const type = doc.ownerType || doc.type || "patient";
@@ -325,7 +396,7 @@ export function rebuildLiveListsFromRegistry() {
         shift: doc.shift || "morning",
         onDuty: doc.onDuty !== undefined ? doc.onDuty : true,
         joinedDate: doc.joinedDate || new Date().toISOString().slice(0, 10),
-        status: doc.status || "active",
+        status: (doc.status === "active" ? "active" : "inactive") as any,
         credentials: doc.credentials?.length || 0,
         patientsToday: doc.patientsToday || 0,
         didDocument: doc,
@@ -424,27 +495,12 @@ function handleStoreWebSocketMessage(event: string, data: any) {
   }
 }
 
-function connectStoreWebSocket() {
-  if (typeof window === "undefined") return;
-  if (_storeWs && _storeWs.readyState < 2) return;
+export function getWorkerConnected(): boolean {
+  return _workerConnected;
+}
 
-  try {
-    const wsUrl = FABRIC_BASE.replace("http", "ws");
-    _storeWs = new WebSocket(wsUrl);
-    _storeWs.onmessage = (e) => {
-      try {
-        const msg = JSON.parse(e.data) as { event: string; data: any };
-        handleStoreWebSocketMessage(msg.event, msg.data);
-      } catch {}
-    };
-    _storeWs.onerror = () => {};
-    _storeWs.onclose = () => {
-      setTimeout(connectStoreWebSocket, 5000);
-    };
-  } catch {
-    _storeWs = null;
-    setTimeout(connectStoreWebSocket, 5000);
-  }
+export function isTabLeader(): boolean {
+  return _isLeader;
 }
 
 export async function initializeStore(): Promise<void> {
@@ -522,11 +578,49 @@ export async function initializeStore(): Promise<void> {
   initStaffLocations(_liveStaff);
   seedAppointments();
   seedTransactions();
-  startVitalsSimulation(_livePatients);
-  startStaffSimulation(_liveStaff);
+  seedInitialVitals(_livePatients);
 
-  // Connect WebSocket to stay updated in real time
-  connectStoreWebSocket();
+  // Setup Leader Election & Web Worker
+  if (typeof window !== "undefined") {
+    setupLeaderElection();
+
+    _worker = new Worker(new URL("./fabric-worker.ts", import.meta.url), {
+      type: "module",
+    });
+
+    _worker.onmessage = (event) => {
+      const { type, payload } = event.data;
+
+      switch (type) {
+        case "WS_STATUS":
+          _workerConnected = payload.connected;
+          emitStoreEvent("ws:status", _workerConnected);
+          break;
+
+        case "WS_MESSAGE":
+          handleStoreWebSocketMessage(payload.event, payload.data);
+          emitStoreEvent("ws:message", payload);
+          break;
+
+        case "SIMULATE_VITALS_TICK":
+          runVitalsTick();
+          break;
+
+        case "SIMULATE_STAFF_TICK":
+          runStaffTick();
+          break;
+      }
+    };
+
+    // Send init config to worker
+    _worker.postMessage({
+      type: "INIT",
+      payload: {
+        isLeader: _isLeader,
+        wsUrl: FABRIC_BASE.replace("http", "ws"),
+      },
+    });
+  }
 
   emitStoreEvent("store:ready");
   console.log("[Store] Ready ✓");

@@ -75,8 +75,8 @@ function DIDExplorerPage() {
     actorDID: e.actorDID || "did:hosp:sys",
     target: e.resource || "Ledger",
     ip: "10.0.1.44",
-    result: "success",
-    severity: "info",
+    result: "success" as const,
+    severity: "info" as const,
     at: e.loggedAt || new Date().toISOString(),
     details: e.details || "",
     hash: e.txId || "sha256:hash"

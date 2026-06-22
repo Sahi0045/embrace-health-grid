@@ -30,5 +30,53 @@
     "updatedAt": "2026-06-08T13:38:35.881Z",
     "txId": "9918b42f-2203-4da3-8da0-08d828fd9072",
     "docType": "users"
+  },
+  "testpatient@example.com": {
+    "key": "testpatient@example.com",
+    "value": {
+      "name": "Test Patient",
+      "email": "testpatient@example.com",
+      "password": "password123",
+      "role": "patient",
+      "did": "did:hosp:0x2297f6ac",
+      "createdAt": "2026-06-22T05:21:47.561Z"
+    },
+    "namespace": "users",
+    "version": "01a6a78d-3462-4d38-9e7a-6f3e60c9c112:1",
+    "updatedAt": "2026-06-22T05:25:22.263Z",
+    "txId": "01a6a78d-3462-4d38-9e7a-6f3e60c9c112",
+    "docType": "users"
+  },
+  "admin@example.com": {
+    "key": "admin@example.com",
+    "value": {
+      "name": "Admin User",
+      "email": "admin@example.com",
+      "password": "password123",
+      "role": "admin",
+      "did": null,
+      "createdAt": "2026-06-22T05:22:25.511Z"
+    },
+    "namespace": "users",
+    "version": "28bce216-53d5-4e14-bd5b-d902d7cf92dc:1",
+    "updatedAt": "2026-06-22T05:22:25.511Z",
+    "txId": "28bce216-53d5-4e14-bd5b-d902d7cf92dc",
+    "docType": "users"
+  },
+  "testpatient2@example.com": {
+    "key": "testpatient2@example.com",
+    "value": {
+      "name": "Test Patient 2",
+      "email": "testpatient2@example.com",
+      "password": "Password123!",
+      "role": "patient",
+      "did": null,
+      "createdAt": "2026-06-22T05:27:29.740Z"
+    },
+    "namespace": "users",
+    "version": "c2d9d9fd-ba80-4bbd-b772-fff11bd8cb85:1",
+    "updatedAt": "2026-06-22T05:27:29.740Z",
+    "txId": "c2d9d9fd-ba80-4bbd-b772-fff11bd8cb85",
+    "docType": "users"
   }
 }

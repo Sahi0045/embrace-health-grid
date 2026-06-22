@@ -86,7 +86,7 @@ function AuditTimelinePage() {
 
       {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 px-6 pt-6">
-        <StatCard label="Total Events" value={mockAuditEvents.length.toLocaleString()} icon={Activity} tone="default" delta="Last 180 days" />
+        <StatCard label="Total Events" value={liveEvents.length.toLocaleString()} icon={Activity} tone="default" delta="Last 180 days" />
         <StatCard label="Critical Events" value={criticals} icon={ShieldX} tone="destructive" delta="Require review" />
         <StatCard label="Warnings" value={warnings} icon={AlertTriangle} tone="warning" delta="Anomalies flagged" />
         <StatCard label="Denied Access" value={denied} icon={ShieldX} tone="destructive" delta="Blocked by policy" />

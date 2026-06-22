@@ -516,6 +516,7 @@ export const submitHyperledgerTransaction = async (
   const endorsingPeers = [PEERS[0], PEERS[Math.floor(Math.random() * PEERS.length)]];
 
   const online = await isFabricOnline();
+  let submittedToBackend = false;
   if (online) {
     try {
       const res = await fabricSubmitTx(chaincode, fcn, args, options?.creator);
@@ -523,9 +524,19 @@ export const submitHyperledgerTransaction = async (
       blockNumber = res.blockNumber;
       // Convert standard ISO to localized string if needed, or keep ISO
       timestamp = res.timestamp ? new Date(res.timestamp).toLocaleString("en-IN", { hour12: true }) : timestamp;
+      submittedToBackend = true;
     } catch (err) {
       console.warn("⚠️ Hyperledger: Backend submission failed, falling back to local simulation:", err);
       // Fallback: blockNumber remains null, so local consensus loop will run
+    }
+  }
+
+  if (!submittedToBackend && options?.silent !== true) {
+    try {
+      const { enqueueOfflineTransaction } = await import("./offline-queue");
+      enqueueOfflineTransaction(chaincode, fcn, args, options?.creator);
+    } catch (err) {
+      console.error("⚠️ Failed to enqueue offline transaction:", err);
     }
   }
 

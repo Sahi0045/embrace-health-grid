@@ -266,14 +266,14 @@ function PeopleManagement() {
                       </div>
                     </div>
 
-                    {patient.currentAdmission && (
+                    {patient.ward && (
                       <div className="mt-3 rounded-lg bg-primary/5 p-3">
                         <div className="text-sm font-medium">Current Admission</div>
                         <div className="mt-1 text-xs text-muted-foreground">
-                          {patient.currentAdmission.ward} • {patient.currentAdmission.room} - {patient.currentAdmission.bed}
+                          {patient.ward} • Bed {patient.bed}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          Admitted: {new Date(patient.currentAdmission.admittedOn).toLocaleDateString()}
+                          Admitted: {new Date(patient.admitDate).toLocaleDateString()}
                         </div>
                       </div>
                     )}
@@ -294,11 +294,11 @@ function PeopleManagement() {
                       </div>
                     )}
 
-                    {patient.chronicConditions.length > 0 && (
+                    {patient.conditions.length > 0 && (
                       <div className="mt-3">
                         <div className="mb-1 text-sm font-medium">Chronic Conditions</div>
                         <div className="flex flex-wrap gap-1">
-                          {patient.chronicConditions.map((condition, idx) => (
+                          {patient.conditions.map((condition, idx) => (
                             <Badge key={idx} variant="secondary" className="text-xs">
                               {condition}
                             </Badge>
