@@ -21,6 +21,9 @@ import {
   Camera,
   CameraOff,
   Cpu,
+  RefreshCw,
+  CreditCard,
+  Wifi,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -61,6 +64,13 @@ function VerifyPatient() {
   // UI state
   const [chartOpen, setChartOpen] = useState(false);
   const [zkpOpen, setZkpOpen] = useState(false);
+
+  // NFC & Fallback States
+  const [activeTab, setActiveTab] = useState<"qr" | "nfc">("qr");
+  const [nfcStatus, setNfcStatus] = useState<"idle" | "reading" | "verifying" | "success" | "error">("idle");
+  const [nfcError, setNfcError] = useState<string | null>(null);
+  const [manualMrn, setManualMrn] = useState("");
+  const [isManualInputActive, setIsManualInputActive] = useState(false);
 
   // ── Scanner controls ──────────────────────────────────────────────────────
 
@@ -154,6 +164,94 @@ function VerifyPatient() {
     handleScanSuccess(fakePayload);
   }, [patientsList, handleScanSuccess]);
 
+  // ── NFC & Manual handlers ────────────────────────────────────────────────
+
+  const handleNfcSimulateSuccess = useCallback(() => {
+    setNfcStatus("reading");
+    setNfcError(null);
+    setError(null);
+    setVerified(false);
+    setScanResult(null);
+
+    setTimeout(() => {
+      setNfcStatus("verifying");
+
+      setTimeout(() => {
+        const target = patientsList?.[0] || currentPatient;
+        const payload: ScannedPayload = {
+          did: target.did,
+          mrn: target.mrn,
+          name: target.name,
+          exp: Date.now() + 31536000000, // 1 year validity for cards
+          channel: "embrace-health-channel",
+        };
+
+        setScanResult(payload);
+        setVerified(true);
+        setNfcStatus("success");
+        void fabricLogAuditEvent("staff", payload.did, "NFC_VERIFY", "success", "info");
+
+        toast.success("Patient NFC Verified", {
+          description: `${target.name} · MRN ${target.mrn}`,
+        });
+      }, 1000);
+    }, 1000);
+  }, [patientsList]);
+
+  const handleNfcSimulateFailure = useCallback(() => {
+    setNfcStatus("reading");
+    setNfcError(null);
+    setError(null);
+    setVerified(false);
+    setScanResult(null);
+
+    setTimeout(() => {
+      setNfcStatus("error");
+      setNfcError("NDEF signature verification failed. Card payload is unsigned or tampered.");
+      toast.error("NFC Verification Failed", {
+        description: "Signature mismatch or invalid issuer.",
+      });
+      setIsManualInputActive(true);
+    }, 1200);
+  }, []);
+
+  const handleManualCheckin = useCallback(() => {
+    if (!manualMrn.trim()) {
+      toast.error("Please enter a valid MRN.");
+      return;
+    }
+
+    const matched = patientsList?.find(
+      (p) => p.mrn.toLowerCase() === manualMrn.trim().toLowerCase()
+    );
+
+    if (matched) {
+      const payload: ScannedPayload = {
+        did: matched.did,
+        mrn: matched.mrn,
+        name: matched.name,
+        exp: Date.now() + 60_000,
+        channel: "embrace-health-channel",
+      };
+
+      setScanResult(payload);
+      setVerified(true);
+      setError(null);
+      setNfcError(null);
+      if (activeTab === "nfc") {
+        setNfcStatus("success");
+      }
+      void fabricLogAuditEvent("staff", matched.did, "MANUAL_VERIFY", "success", "info");
+      toast.success("Patient verified manually", {
+        description: `${matched.name} · MRN ${matched.mrn}`,
+      });
+    } else {
+      toast.error("MRN not found", {
+        description: `No patient registered with MRN: ${manualMrn}`,
+      });
+    }
+  }, [manualMrn, patientsList, activeTab]);
+
   // ── Derived display patient ───────────────────────────────────────────────
 
   const displayPatient = scanResult
@@ -167,103 +265,234 @@ function VerifyPatient() {
       <PageHeader
         eyebrow="Verification"
         title="Verify patient identity"
-        description="Scan the patient's QR code to cryptographically verify their hospital DID."
+        description="Verify the patient's identity using secure decentralized methods."
       />
 
       <div className="grid gap-6 p-8 lg:grid-cols-[1fr_1.2fr]">
         {/* ── Scanner panel ── */}
         <div className="rounded-xl border border-border bg-card p-6 shadow-clinical">
-          <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-            <ScanLine className="h-4 w-4 text-primary" /> Scanner
-          </div>
-
-          {/* Video viewport */}
-          <div className="relative mt-4 overflow-hidden rounded-xl border-2 border-dashed border-border bg-muted/40 aspect-square w-full flex items-center justify-center">
-            {/* Camera feed — always in DOM so ref stays attached */}
-            <video
-              ref={videoRef}
-              className={`w-full h-full rounded-xl object-cover ${scanning ? "block" : "hidden"}`}
-              muted
-              playsInline
-            />
-
-            {/* Overlay when not scanning */}
-            {!scanning && !verified && (
-              <div className="flex flex-col items-center gap-3 text-center text-muted-foreground p-6">
-                <Camera className="h-14 w-14 opacity-30" />
-                <span className="text-sm">Camera inactive</span>
-                <span className="text-xs">Press "Start Camera" to begin scanning</span>
-              </div>
-            )}
-
-            {/* Success overlay after scan */}
-            {!scanning && verified && (
-              <div className="flex flex-col items-center gap-2 text-center p-6">
-                <CheckCircle2 className="h-16 w-16 text-success" />
-                <div className="text-sm font-medium text-foreground">Identity match</div>
-              </div>
-            )}
-
-            {/* Scanning corner brackets */}
-            {scanning && (
-              <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                <div className="h-40 w-40 rounded-lg border-2 border-primary/60 shadow-[0_0_0_9999px_rgba(0,0,0,0.35)]">
-                  <span className="absolute -top-px -left-px h-5 w-5 border-t-2 border-l-2 border-primary rounded-tl" />
-                  <span className="absolute -top-px -right-px h-5 w-5 border-t-2 border-r-2 border-primary rounded-tr" />
-                  <span className="absolute -bottom-px -left-px h-5 w-5 border-b-2 border-l-2 border-primary rounded-bl" />
-                  <span className="absolute -bottom-px -right-px h-5 w-5 border-b-2 border-r-2 border-primary rounded-br" />
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Camera error */}
-          {cameraError && (
-            <div className="mt-3 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
-              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              <span>{cameraError} — use "Simulate Scan" below.</span>
-            </div>
-          )}
-
-          {/* Scan errors */}
-          {error && (
-            <div className="mt-3 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
-              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
-
-          {/* Controls */}
-          <div className="mt-5 flex flex-col gap-2">
-            {!scanning ? (
-              <button
-                onClick={startScanner}
-                disabled={verified}
-                className="flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-clinical hover:bg-primary/90 disabled:opacity-60 transition-colors"
-              >
-                <Camera className="h-4 w-4" /> Start Camera
-              </button>
-            ) : (
-              <button
-                onClick={stopScanner}
-                className="flex w-full items-center justify-center gap-2 rounded-md border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
-              >
-                <CameraOff className="h-4 w-4" /> Stop Camera
-              </button>
-            )}
-
+          {/* Method Tabs */}
+          <div className="flex border-b border-border mb-6">
             <button
-              onClick={simulateScan}
-              disabled={verified || scanning}
-              className="flex w-full items-center justify-center gap-2 rounded-md border border-border bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50 transition-colors"
+              onClick={() => {
+                setActiveTab("qr");
+                setError(null);
+                setNfcError(null);
+                setIsManualInputActive(false);
+              }}
+              className={`flex-1 pb-3 text-center text-sm font-semibold border-b-2 transition-all ${
+                activeTab === "qr"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
             >
-              <Cpu className="h-4 w-4" /> Simulate Scan
+              <span className="flex items-center justify-center gap-1.5">
+                <ScanLine className="h-4 w-4" /> QR Code
+              </span>
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab("nfc");
+                setError(null);
+                setNfcError(null);
+                setIsManualInputActive(false);
+                if (scanning) {
+                  stopScanner();
+                }
+              }}
+              className={`flex-1 pb-3 text-center text-sm font-semibold border-b-2 transition-all ${
+                activeTab === "nfc"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <span className="flex items-center justify-center gap-1.5">
+                <CreditCard className="h-4 w-4" /> NFC Card
+              </span>
             </button>
           </div>
 
-          <p className="mt-3 text-center text-xs text-muted-foreground">
-            Real camera scan or simulate to verify.
-          </p>
+          {/* QR Scan Interface */}
+          {activeTab === "qr" && (
+            <div>
+              {/* Video viewport */}
+              <div className="relative overflow-hidden rounded-xl border-2 border-dashed border-border bg-muted/40 aspect-square w-full flex items-center justify-center">
+                {/* Camera feed — always in DOM so ref stays attached */}
+                <video
+                  ref={videoRef}
+                  className={`w-full h-full rounded-xl object-cover ${scanning ? "block" : "hidden"}`}
+                  muted
+                  playsInline
+                />
+
+                {/* Overlay when not scanning */}
+                {!scanning && !verified && (
+                  <div className="flex flex-col items-center gap-3 text-center text-muted-foreground p-6">
+                    <Camera className="h-14 w-14 opacity-30" />
+                    <span className="text-sm">Camera inactive</span>
+                    <span className="text-xs">Press "Start Camera" to begin scanning</span>
+                  </div>
+                )}
+
+                {/* Success overlay after scan */}
+                {!scanning && verified && (
+                  <div className="flex flex-col items-center gap-2 text-center p-6">
+                    <CheckCircle2 className="h-16 w-16 text-success" />
+                    <div className="text-sm font-medium text-foreground">Identity match</div>
+                  </div>
+                )}
+
+                {/* Scanning corner brackets */}
+                {scanning && (
+                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                    <div className="h-40 w-40 rounded-lg border-2 border-primary/60 shadow-[0_0_0_9999px_rgba(0,0,0,0.35)]">
+                      <span className="absolute -top-px -left-px h-5 w-5 border-t-2 border-l-2 border-primary rounded-tl" />
+                      <span className="absolute -top-px -right-px h-5 w-5 border-t-2 border-r-2 border-primary rounded-tr" />
+                      <span className="absolute -bottom-px -left-px h-5 w-5 border-b-2 border-l-2 border-primary rounded-bl" />
+                      <span className="absolute -bottom-px -right-px h-5 w-5 border-b-2 border-r-2 border-primary rounded-br" />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Camera error */}
+              {cameraError && (
+                <div className="mt-3 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  <span>{cameraError} — use "Simulate Scan" below.</span>
+                </div>
+              )}
+
+              {/* Scan errors */}
+              {error && (
+                <div className="mt-3 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  <span>{error}</span>
+                </div>
+              )}
+
+              {/* Controls */}
+              <div className="mt-5 flex flex-col gap-2">
+                {!scanning ? (
+                  <button
+                    onClick={startScanner}
+                    disabled={verified}
+                    className="flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-clinical hover:bg-primary/90 disabled:opacity-60 transition-colors"
+                  >
+                    <Camera className="h-4 w-4" /> Start Camera
+                  </button>
+                ) : (
+                  <button
+                    onClick={stopScanner}
+                    className="flex w-full items-center justify-center gap-2 rounded-md border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+                  >
+                    <CameraOff className="h-4 w-4" /> Stop Camera
+                  </button>
+                )}
+
+                <button
+                  onClick={simulateScan}
+                  disabled={verified || scanning}
+                  className="flex w-full items-center justify-center gap-2 rounded-md border border-border bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50 transition-colors"
+                >
+                  <Cpu className="h-4 w-4" /> Simulate Scan
+                </button>
+              </div>
+
+              <p className="mt-3 text-center text-xs text-muted-foreground">
+                Real camera scan or simulate to verify.
+              </p>
+            </div>
+          )}
+
+          {/* NFC Tap Interface */}
+          {activeTab === "nfc" && (
+            <div>
+              <NfcContactlessReader status={nfcStatus} errorText={nfcError} />
+
+              {/* NFC status error message */}
+              {nfcStatus === "error" && nfcError && (
+                <div className="mt-3 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  <span>{nfcError}</span>
+                </div>
+              )}
+
+              {/* NFC Controls */}
+              <div className="mt-5 flex flex-col gap-2">
+                {nfcStatus === "idle" && (
+                  <>
+                    <button
+                      onClick={handleNfcSimulateSuccess}
+                      className="flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-clinical hover:bg-primary/90 transition-colors"
+                    >
+                      <Cpu className="h-4 w-4" /> Simulate NFC Tap
+                    </button>
+                    <button
+                      onClick={handleNfcSimulateFailure}
+                      className="flex w-full items-center justify-center gap-2 rounded-md border border-border bg-card px-4 py-2 text-sm font-medium text-destructive hover:bg-destructive/5 transition-colors"
+                    >
+                      Simulate Tap Failure
+                    </button>
+                  </>
+                )}
+                {(nfcStatus === "success" || nfcStatus === "error") && (
+                  <button
+                    onClick={() => {
+                      setNfcStatus("idle");
+                      setNfcError(null);
+                      setVerified(false);
+                      setScanResult(null);
+                    }}
+                    className="flex w-full items-center justify-center gap-2 rounded-md border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+                  >
+                    Reset Reader
+                  </button>
+                )}
+              </div>
+
+              <p className="mt-3 text-center text-xs text-muted-foreground">
+                Simulate NFC tap to verify Patient DID document.
+              </p>
+            </div>
+          )}
+
+          {/* Manual Input Fallback */}
+          {!isManualInputActive ? (
+            <button
+              onClick={() => setIsManualInputActive(true)}
+              className="mt-4 text-xs text-primary hover:underline block mx-auto text-center font-medium transition-all"
+            >
+              Trouble scanning? Check-in by MRN manually
+            </button>
+          ) : (
+            <div className="mt-5 border-t border-border pt-4">
+              <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                Manual Patient MRN Check-In
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="e.g. MRN-60914"
+                  value={manualMrn}
+                  onChange={(e) => setManualMrn(e.target.value)}
+                  className="flex-1 rounded-md border border-border bg-background px-3 py-1.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+                <button
+                  onClick={handleManualCheckin}
+                  className="rounded-md bg-secondary px-3 py-1.5 text-sm font-medium text-secondary-foreground hover:bg-secondary/90 transition-colors"
+                >
+                  Verify
+                </button>
+              </div>
+              <button
+                onClick={() => setIsManualInputActive(false)}
+                className="mt-2.5 text-xs text-muted-foreground hover:text-foreground transition-colors hover:underline block"
+              >
+                Cancel manual input
+              </button>
+            </div>
+          )}
         </div>
 
         {/* ── Patient info panel ── */}
@@ -612,6 +841,219 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
     <div>
       <dt className="text-xs uppercase tracking-wider text-muted-foreground">{label}</dt>
       <dd className="mt-1 font-medium text-foreground">{value}</dd>
+    </div>
+  );
+}
+
+interface NfcReaderProps {
+  status: "idle" | "reading" | "verifying" | "success" | "error";
+  errorText: string | null;
+}
+
+function NfcContactlessReader({ status, errorText }: NfcReaderProps) {
+  const cardVariants: any = {
+    idle: {
+      y: [0, -8, 0],
+      rotateX: [10, 6, 10],
+      rotateY: [-8, -4, -8],
+      rotateZ: [0, 0.5, 0],
+      scale: 1,
+      transition: {
+        y: { repeat: Infinity, duration: 4, ease: "easeInOut" },
+        rotateX: { repeat: Infinity, duration: 4, ease: "easeInOut" },
+        rotateY: { repeat: Infinity, duration: 4, ease: "easeInOut" },
+        rotateZ: { repeat: Infinity, duration: 4, ease: "easeInOut" },
+      }
+    },
+    reading: {
+      y: 70,
+      rotateX: 30,
+      rotateY: 0,
+      scale: 0.9,
+      transition: { type: "spring", stiffness: 350, damping: 15 }
+    },
+    verifying: {
+      y: 0,
+      rotateX: [15, 15, 15],
+      rotateY: [0, 180, 360],
+      scale: 1.05,
+      transition: {
+        rotateY: { repeat: Infinity, duration: 2, ease: "linear" },
+        y: { type: "spring", stiffness: 100, damping: 10 }
+      }
+    },
+    success: {
+      y: 0,
+      rotateX: 0,
+      rotateY: 0,
+      scale: 1.05,
+      transition: { type: "spring", stiffness: 200, damping: 12 }
+    },
+    error: {
+      x: [0, -10, 10, -10, 10, -5, 5, 0],
+      y: -25,
+      rotateX: 12,
+      rotateY: -12,
+      scale: 0.95,
+      transition: {
+        x: { duration: 0.5 },
+        y: { type: "spring", stiffness: 200, damping: 15 }
+      }
+    }
+  };
+
+  return (
+    <div className="relative overflow-hidden rounded-xl border border-border bg-card p-6 aspect-square w-full flex flex-col items-center justify-center text-center">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(var(--primary-rgb),0.05),transparent_70%)] pointer-events-none" />
+
+      <div className="flex-1 flex items-center justify-center relative w-full" style={{ perspective: "1000px" }}>
+        <motion.div
+          style={{
+            perspective: "1200px",
+            transformStyle: "preserve-3d",
+            width: "280px",
+            height: "170px",
+          }}
+          className="relative"
+          animate={status}
+          variants={cardVariants}
+        >
+          {/* Card Front */}
+          <div
+            style={{
+              backfaceVisibility: "hidden",
+              transformStyle: "preserve-3d",
+            }}
+            className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/30 via-white/5 to-white/10 backdrop-blur-md border border-white/20 p-5 shadow-2xl flex flex-col justify-between overflow-hidden"
+          >
+            <div className="absolute -inset-10 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.1),transparent_40%)] pointer-events-none" />
+            
+            {status === "reading" && (
+              <motion.div
+                initial={{ top: "0%" }}
+                animate={{ top: "100%" }}
+                transition={{ duration: 1, ease: "easeInOut", repeat: Infinity }}
+                className="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-warning to-transparent shadow-[0_0_8px_#eab308] z-20 pointer-events-none"
+              />
+            )}
+
+            <div className="flex justify-between items-start">
+              <div className="flex flex-col text-left">
+                <span className="text-[9px] tracking-widest text-primary font-bold">EMBRACE HEALTH</span>
+                <span className="text-[7px] text-muted-foreground tracking-wider">HEALTH DID CARD</span>
+              </div>
+              <Wifi className="h-5 w-5 text-primary/80" />
+            </div>
+
+            <div className="w-9 h-7 rounded bg-gradient-to-br from-amber-300 via-yellow-400 to-amber-600 border border-amber-500/30 relative overflow-hidden shadow-inner self-start">
+              <div className="absolute inset-x-2 inset-y-1 border-r border-amber-900/10" />
+              <div className="absolute inset-x-1 inset-y-2 border-b border-amber-900/10" />
+            </div>
+
+            <div className="flex justify-between items-end">
+              <div className="flex flex-col text-left">
+                <span className="font-mono text-xs tracking-wider text-foreground">did:fabric:patient:••••••••</span>
+                <span className="text-[9px] uppercase tracking-widest text-muted-foreground mt-1">SECURED BY HYPERLEDGER</span>
+              </div>
+              <div className="h-6 w-6 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center">
+                <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+              </div>
+            </div>
+          </div>
+
+          {/* Card Back */}
+          <div
+            style={{
+              backfaceVisibility: "hidden",
+              transform: "rotateY(180deg)",
+              transformStyle: "preserve-3d",
+            }}
+            className="absolute inset-0 rounded-2xl bg-gradient-to-br from-zinc-950 to-zinc-900 border border-white/10 p-5 shadow-2xl flex flex-col justify-between overflow-hidden"
+          >
+            <div className="absolute top-4 left-0 right-0 h-8 bg-zinc-800" />
+            
+            <div className="mt-10 flex flex-col gap-2 text-left">
+              <div className="h-5 bg-white/5 border border-white/10 rounded px-2 flex items-center justify-end">
+                <span className="font-mono text-[9px] text-muted-foreground tracking-widest">EXP 2029-12-31</span>
+              </div>
+              <p className="text-[7px] text-muted-foreground/60 leading-tight">
+                This card contains encrypted hospital credentials. Keep away from strong magnetic fields. Under constant ledger state audit.
+              </p>
+            </div>
+
+            <div className="flex justify-between items-center text-[7px] text-muted-foreground">
+              <span>HYPERLEDGER FABRIC STATE</span>
+              <span>v2.5.4</span>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+
+      <div className="relative mt-2 w-44 h-12 flex justify-center items-center">
+        <div className="absolute inset-x-0 bottom-0 h-6 bg-zinc-900 rounded-full border border-border flex items-center justify-center shadow-lg">
+          <div className="w-1/2 h-1 bg-primary/40 rounded-full blur-[1px] animate-pulse" />
+        </div>
+
+        <AnimatePresence>
+          {status === "idle" && (
+            <>
+              <motion.div
+                initial={{ scale: 0.6, opacity: 0.8 }}
+                animate={{ scale: [0.6, 1.8], opacity: [0.8, 0] }}
+                transition={{ repeat: Infinity, duration: 2.2, ease: "easeOut" }}
+                className="absolute bottom-3 w-16 h-8 rounded-full border border-primary/40 pointer-events-none"
+              />
+              <motion.div
+                initial={{ scale: 0.6, opacity: 0.8 }}
+                animate={{ scale: [0.6, 1.8], opacity: [0.8, 0] }}
+                transition={{ repeat: Infinity, duration: 2.2, delay: 1.1, ease: "easeOut" }}
+                className="absolute bottom-3 w-16 h-8 rounded-full border border-primary/30 pointer-events-none"
+              />
+            </>
+          )}
+          {(status === "reading" || status === "verifying") && (
+            <motion.div
+              initial={{ scale: 0.8, opacity: 1 }}
+              animate={{ scale: [0.8, 2.2], opacity: [1, 0] }}
+              transition={{ repeat: Infinity, duration: 1.2, ease: "easeInOut" }}
+              className="absolute bottom-3 w-16 h-8 rounded-full border-2 border-warning/60 shadow-[0_0_15px_rgba(234,179,8,0.2)] pointer-events-none"
+            />
+          )}
+        </AnimatePresence>
+      </div>
+
+      <div className="mt-4 z-10">
+        {status === "idle" && (
+          <div className="flex flex-col gap-1">
+            <span className="text-sm font-semibold text-foreground">Ready to scan NFC Card</span>
+            <span className="text-xs text-muted-foreground">Tap patient membership card on reader</span>
+          </div>
+        )}
+        {status === "reading" && (
+          <div className="flex flex-col gap-1">
+            <span className="text-sm font-semibold text-warning">Reading NDEF record...</span>
+            <span className="text-xs text-muted-foreground">Hold card close to reader</span>
+          </div>
+        )}
+        {status === "verifying" && (
+          <div className="flex flex-col gap-1">
+            <span className="text-sm font-semibold text-primary">Resolving DID on ledger...</span>
+            <span className="text-xs text-muted-foreground">Verifying signature details</span>
+          </div>
+        )}
+        {status === "success" && (
+          <div className="flex flex-col gap-1">
+            <span className="text-sm font-semibold text-success">Contactless Identity Verified</span>
+            <span className="text-xs text-muted-foreground">Access log recorded on blockchain</span>
+          </div>
+        )}
+        {status === "error" && (
+          <div className="flex flex-col gap-1">
+            <span className="text-sm font-semibold text-destructive">NFC Verification Failed</span>
+            <span className="text-xs text-muted-foreground">{errorText}</span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
