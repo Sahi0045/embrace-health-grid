@@ -12,7 +12,7 @@ import { stagger, fadeUp } from "@/components/Motion";
 import { useFabricFraudAlerts } from "@/hooks/use-fabric";
 import { fabricRaiseFraudAlert, fabricLogAuditEvent } from "@/lib/fabric-api";
 
-export const Route = createFileRoute("/admin/fraud")({
+export const Route = createFileRoute("/fraud")({
   head: () => ({ meta: [{ title: "Admin · Fraud Detection — DID Hospital" }] }),
   component: FraudPage,
 });

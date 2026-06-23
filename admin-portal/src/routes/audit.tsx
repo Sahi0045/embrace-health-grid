@@ -11,7 +11,7 @@ import {
 import { useFabricAudit } from "@/hooks/use-fabric";
 import { fabricLogAuditEvent } from "@/lib/fabric-api";
 
-export const Route = createFileRoute("/admin/audit")({
+export const Route = createFileRoute("/audit")({
   head: () => ({ meta: [{ title: "Admin · Audit Logs — DID Hospital" }] }),
   component: AuditLogs,
 });

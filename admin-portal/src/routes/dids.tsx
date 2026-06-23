@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
-export const Route = createFileRoute("/admin/dids")({
+export const Route = createFileRoute("/dids")({
   head: () => ({ meta: [{ title: "Admin · DID Management — DID Hospital" }] }),
   component: DIDManagement,
 });

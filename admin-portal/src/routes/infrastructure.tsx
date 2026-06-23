@@ -15,7 +15,7 @@ import {
   bloodBank, infrastructureStats
 } from "@/lib/infrastructure-data";
 
-export const Route = createFileRoute("/admin/infrastructure")({
+export const Route = createFileRoute("/infrastructure")({
   head: () => ({
     meta: [
       { title: "Hospital Infrastructure — Admin Console" },

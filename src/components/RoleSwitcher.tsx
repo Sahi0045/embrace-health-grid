@@ -6,7 +6,6 @@ import { getCurrentUser, type AuthUser } from "@/lib/auth";
 const roles = [
   { id: "patient", label: "Patient", icon: User, to: "/patient" as const },
   { id: "staff", label: "Staff", icon: Stethoscope, to: "/staff" as const },
-  { id: "admin", label: "Admin", icon: ShieldCheck, to: "/admin" as const },
 ];
 
 export function RoleSwitcher() {
@@ -19,14 +18,14 @@ export function RoleSwitcher() {
   }, [pathname]);
 
   const availableRoles = roles.filter((r) => {
-    if (user?.role === "admin") return true;
+    if (user?.role === "admin") return true; // Keep admin permission if logged in as admin to bypass patient/staff switcher
     return r.id === user?.role;
   });
 
   if (availableRoles.length <= 1) return null;
 
   return (
-    <div className="grid grid-cols-3 gap-1 rounded-xl border border-border bg-muted/40 p-1">
+    <div className="grid grid-cols-2 gap-1 rounded-xl border border-border bg-muted/40 p-1">
       {roles.map((r) => {
         const active = pathname.startsWith(r.to);
         const Icon = r.icon;

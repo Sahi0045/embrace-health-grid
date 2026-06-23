@@ -16,7 +16,6 @@ import { Route as AuditTimelineRouteImport } from './routes/audit-timeline'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StaffIndexRouteImport } from './routes/staff.index'
 import { Route as PatientIndexRouteImport } from './routes/patient.index'
-import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as StaffVerifyRouteImport } from './routes/staff.verify'
 import { Route as StaffTrackerRouteImport } from './routes/staff.tracker'
 import { Route as StaffSurgeriesRouteImport } from './routes/staff.surgeries'
@@ -44,23 +43,6 @@ import { Route as PatientEmergencyRouteImport } from './routes/patient.emergency
 import { Route as PatientConsentRouteImport } from './routes/patient.consent'
 import { Route as PatientBillingRouteImport } from './routes/patient.billing'
 import { Route as PatientAppointmentsRouteImport } from './routes/patient.appointments'
-import { Route as AdminResourcesRouteImport } from './routes/admin.resources'
-import { Route as AdminProfileRouteImport } from './routes/admin.profile'
-import { Route as AdminPoliciesRouteImport } from './routes/admin.policies'
-import { Route as AdminPeopleRouteImport } from './routes/admin.people'
-import { Route as AdminInfrastructureRouteImport } from './routes/admin.infrastructure'
-import { Route as AdminHyperledgerRouteImport } from './routes/admin.hyperledger'
-import { Route as AdminFraudRouteImport } from './routes/admin.fraud'
-import { Route as AdminFinancialRouteImport } from './routes/admin.financial'
-import { Route as AdminFederationRouteImport } from './routes/admin.federation'
-import { Route as AdminDigitalTwinRouteImport } from './routes/admin.digital-twin'
-import { Route as AdminDidsRouteImport } from './routes/admin.dids'
-import { Route as AdminCredentialsRouteImport } from './routes/admin.credentials'
-import { Route as AdminComplianceRouteImport } from './routes/admin.compliance'
-import { Route as AdminCommandRouteImport } from './routes/admin.command'
-import { Route as AdminChaincodeRouteImport } from './routes/admin.chaincode'
-import { Route as AdminAuditRouteImport } from './routes/admin.audit'
-import { Route as AdminAttendanceRouteImport } from './routes/admin.attendance'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -95,11 +77,6 @@ const StaffIndexRoute = StaffIndexRouteImport.update({
 const PatientIndexRoute = PatientIndexRouteImport.update({
   id: '/patient/',
   path: '/patient/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminIndexRoute = AdminIndexRouteImport.update({
-  id: '/admin/',
-  path: '/admin/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StaffVerifyRoute = StaffVerifyRouteImport.update({
@@ -237,91 +214,6 @@ const PatientAppointmentsRoute = PatientAppointmentsRouteImport.update({
   path: '/patient/appointments',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminResourcesRoute = AdminResourcesRouteImport.update({
-  id: '/admin/resources',
-  path: '/admin/resources',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminProfileRoute = AdminProfileRouteImport.update({
-  id: '/admin/profile',
-  path: '/admin/profile',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminPoliciesRoute = AdminPoliciesRouteImport.update({
-  id: '/admin/policies',
-  path: '/admin/policies',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminPeopleRoute = AdminPeopleRouteImport.update({
-  id: '/admin/people',
-  path: '/admin/people',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminInfrastructureRoute = AdminInfrastructureRouteImport.update({
-  id: '/admin/infrastructure',
-  path: '/admin/infrastructure',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminHyperledgerRoute = AdminHyperledgerRouteImport.update({
-  id: '/admin/hyperledger',
-  path: '/admin/hyperledger',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminFraudRoute = AdminFraudRouteImport.update({
-  id: '/admin/fraud',
-  path: '/admin/fraud',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminFinancialRoute = AdminFinancialRouteImport.update({
-  id: '/admin/financial',
-  path: '/admin/financial',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminFederationRoute = AdminFederationRouteImport.update({
-  id: '/admin/federation',
-  path: '/admin/federation',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminDigitalTwinRoute = AdminDigitalTwinRouteImport.update({
-  id: '/admin/digital-twin',
-  path: '/admin/digital-twin',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminDidsRoute = AdminDidsRouteImport.update({
-  id: '/admin/dids',
-  path: '/admin/dids',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminCredentialsRoute = AdminCredentialsRouteImport.update({
-  id: '/admin/credentials',
-  path: '/admin/credentials',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminComplianceRoute = AdminComplianceRouteImport.update({
-  id: '/admin/compliance',
-  path: '/admin/compliance',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminCommandRoute = AdminCommandRouteImport.update({
-  id: '/admin/command',
-  path: '/admin/command',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminChaincodeRoute = AdminChaincodeRouteImport.update({
-  id: '/admin/chaincode',
-  path: '/admin/chaincode',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminAuditRoute = AdminAuditRouteImport.update({
-  id: '/admin/audit',
-  path: '/admin/audit',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminAttendanceRoute = AdminAttendanceRouteImport.update({
-  id: '/admin/attendance',
-  path: '/admin/attendance',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -329,23 +221,6 @@ export interface FileRoutesByFullPath {
   '/credential-explorer': typeof CredentialExplorerRoute
   '/did-explorer': typeof DidExplorerRoute
   '/login': typeof LoginRoute
-  '/admin/attendance': typeof AdminAttendanceRoute
-  '/admin/audit': typeof AdminAuditRoute
-  '/admin/chaincode': typeof AdminChaincodeRoute
-  '/admin/command': typeof AdminCommandRoute
-  '/admin/compliance': typeof AdminComplianceRoute
-  '/admin/credentials': typeof AdminCredentialsRoute
-  '/admin/dids': typeof AdminDidsRoute
-  '/admin/digital-twin': typeof AdminDigitalTwinRoute
-  '/admin/federation': typeof AdminFederationRoute
-  '/admin/financial': typeof AdminFinancialRoute
-  '/admin/fraud': typeof AdminFraudRoute
-  '/admin/hyperledger': typeof AdminHyperledgerRoute
-  '/admin/infrastructure': typeof AdminInfrastructureRoute
-  '/admin/people': typeof AdminPeopleRoute
-  '/admin/policies': typeof AdminPoliciesRoute
-  '/admin/profile': typeof AdminProfileRoute
-  '/admin/resources': typeof AdminResourcesRoute
   '/patient/appointments': typeof PatientAppointmentsRoute
   '/patient/billing': typeof PatientBillingRoute
   '/patient/consent': typeof PatientConsentRoute
@@ -373,7 +248,6 @@ export interface FileRoutesByFullPath {
   '/staff/surgeries': typeof StaffSurgeriesRoute
   '/staff/tracker': typeof StaffTrackerRoute
   '/staff/verify': typeof StaffVerifyRoute
-  '/admin/': typeof AdminIndexRoute
   '/patient/': typeof PatientIndexRoute
   '/staff/': typeof StaffIndexRoute
 }
@@ -383,23 +257,6 @@ export interface FileRoutesByTo {
   '/credential-explorer': typeof CredentialExplorerRoute
   '/did-explorer': typeof DidExplorerRoute
   '/login': typeof LoginRoute
-  '/admin/attendance': typeof AdminAttendanceRoute
-  '/admin/audit': typeof AdminAuditRoute
-  '/admin/chaincode': typeof AdminChaincodeRoute
-  '/admin/command': typeof AdminCommandRoute
-  '/admin/compliance': typeof AdminComplianceRoute
-  '/admin/credentials': typeof AdminCredentialsRoute
-  '/admin/dids': typeof AdminDidsRoute
-  '/admin/digital-twin': typeof AdminDigitalTwinRoute
-  '/admin/federation': typeof AdminFederationRoute
-  '/admin/financial': typeof AdminFinancialRoute
-  '/admin/fraud': typeof AdminFraudRoute
-  '/admin/hyperledger': typeof AdminHyperledgerRoute
-  '/admin/infrastructure': typeof AdminInfrastructureRoute
-  '/admin/people': typeof AdminPeopleRoute
-  '/admin/policies': typeof AdminPoliciesRoute
-  '/admin/profile': typeof AdminProfileRoute
-  '/admin/resources': typeof AdminResourcesRoute
   '/patient/appointments': typeof PatientAppointmentsRoute
   '/patient/billing': typeof PatientBillingRoute
   '/patient/consent': typeof PatientConsentRoute
@@ -427,7 +284,6 @@ export interface FileRoutesByTo {
   '/staff/surgeries': typeof StaffSurgeriesRoute
   '/staff/tracker': typeof StaffTrackerRoute
   '/staff/verify': typeof StaffVerifyRoute
-  '/admin': typeof AdminIndexRoute
   '/patient': typeof PatientIndexRoute
   '/staff': typeof StaffIndexRoute
 }
@@ -438,23 +294,6 @@ export interface FileRoutesById {
   '/credential-explorer': typeof CredentialExplorerRoute
   '/did-explorer': typeof DidExplorerRoute
   '/login': typeof LoginRoute
-  '/admin/attendance': typeof AdminAttendanceRoute
-  '/admin/audit': typeof AdminAuditRoute
-  '/admin/chaincode': typeof AdminChaincodeRoute
-  '/admin/command': typeof AdminCommandRoute
-  '/admin/compliance': typeof AdminComplianceRoute
-  '/admin/credentials': typeof AdminCredentialsRoute
-  '/admin/dids': typeof AdminDidsRoute
-  '/admin/digital-twin': typeof AdminDigitalTwinRoute
-  '/admin/federation': typeof AdminFederationRoute
-  '/admin/financial': typeof AdminFinancialRoute
-  '/admin/fraud': typeof AdminFraudRoute
-  '/admin/hyperledger': typeof AdminHyperledgerRoute
-  '/admin/infrastructure': typeof AdminInfrastructureRoute
-  '/admin/people': typeof AdminPeopleRoute
-  '/admin/policies': typeof AdminPoliciesRoute
-  '/admin/profile': typeof AdminProfileRoute
-  '/admin/resources': typeof AdminResourcesRoute
   '/patient/appointments': typeof PatientAppointmentsRoute
   '/patient/billing': typeof PatientBillingRoute
   '/patient/consent': typeof PatientConsentRoute
@@ -482,7 +321,6 @@ export interface FileRoutesById {
   '/staff/surgeries': typeof StaffSurgeriesRoute
   '/staff/tracker': typeof StaffTrackerRoute
   '/staff/verify': typeof StaffVerifyRoute
-  '/admin/': typeof AdminIndexRoute
   '/patient/': typeof PatientIndexRoute
   '/staff/': typeof StaffIndexRoute
 }
@@ -494,23 +332,6 @@ export interface FileRouteTypes {
     | '/credential-explorer'
     | '/did-explorer'
     | '/login'
-    | '/admin/attendance'
-    | '/admin/audit'
-    | '/admin/chaincode'
-    | '/admin/command'
-    | '/admin/compliance'
-    | '/admin/credentials'
-    | '/admin/dids'
-    | '/admin/digital-twin'
-    | '/admin/federation'
-    | '/admin/financial'
-    | '/admin/fraud'
-    | '/admin/hyperledger'
-    | '/admin/infrastructure'
-    | '/admin/people'
-    | '/admin/policies'
-    | '/admin/profile'
-    | '/admin/resources'
     | '/patient/appointments'
     | '/patient/billing'
     | '/patient/consent'
@@ -538,7 +359,6 @@ export interface FileRouteTypes {
     | '/staff/surgeries'
     | '/staff/tracker'
     | '/staff/verify'
-    | '/admin/'
     | '/patient/'
     | '/staff/'
   fileRoutesByTo: FileRoutesByTo
@@ -548,23 +368,6 @@ export interface FileRouteTypes {
     | '/credential-explorer'
     | '/did-explorer'
     | '/login'
-    | '/admin/attendance'
-    | '/admin/audit'
-    | '/admin/chaincode'
-    | '/admin/command'
-    | '/admin/compliance'
-    | '/admin/credentials'
-    | '/admin/dids'
-    | '/admin/digital-twin'
-    | '/admin/federation'
-    | '/admin/financial'
-    | '/admin/fraud'
-    | '/admin/hyperledger'
-    | '/admin/infrastructure'
-    | '/admin/people'
-    | '/admin/policies'
-    | '/admin/profile'
-    | '/admin/resources'
     | '/patient/appointments'
     | '/patient/billing'
     | '/patient/consent'
@@ -592,7 +395,6 @@ export interface FileRouteTypes {
     | '/staff/surgeries'
     | '/staff/tracker'
     | '/staff/verify'
-    | '/admin'
     | '/patient'
     | '/staff'
   id:
@@ -602,23 +404,6 @@ export interface FileRouteTypes {
     | '/credential-explorer'
     | '/did-explorer'
     | '/login'
-    | '/admin/attendance'
-    | '/admin/audit'
-    | '/admin/chaincode'
-    | '/admin/command'
-    | '/admin/compliance'
-    | '/admin/credentials'
-    | '/admin/dids'
-    | '/admin/digital-twin'
-    | '/admin/federation'
-    | '/admin/financial'
-    | '/admin/fraud'
-    | '/admin/hyperledger'
-    | '/admin/infrastructure'
-    | '/admin/people'
-    | '/admin/policies'
-    | '/admin/profile'
-    | '/admin/resources'
     | '/patient/appointments'
     | '/patient/billing'
     | '/patient/consent'
@@ -646,7 +431,6 @@ export interface FileRouteTypes {
     | '/staff/surgeries'
     | '/staff/tracker'
     | '/staff/verify'
-    | '/admin/'
     | '/patient/'
     | '/staff/'
   fileRoutesById: FileRoutesById
@@ -657,23 +441,6 @@ export interface RootRouteChildren {
   CredentialExplorerRoute: typeof CredentialExplorerRoute
   DidExplorerRoute: typeof DidExplorerRoute
   LoginRoute: typeof LoginRoute
-  AdminAttendanceRoute: typeof AdminAttendanceRoute
-  AdminAuditRoute: typeof AdminAuditRoute
-  AdminChaincodeRoute: typeof AdminChaincodeRoute
-  AdminCommandRoute: typeof AdminCommandRoute
-  AdminComplianceRoute: typeof AdminComplianceRoute
-  AdminCredentialsRoute: typeof AdminCredentialsRoute
-  AdminDidsRoute: typeof AdminDidsRoute
-  AdminDigitalTwinRoute: typeof AdminDigitalTwinRoute
-  AdminFederationRoute: typeof AdminFederationRoute
-  AdminFinancialRoute: typeof AdminFinancialRoute
-  AdminFraudRoute: typeof AdminFraudRoute
-  AdminHyperledgerRoute: typeof AdminHyperledgerRoute
-  AdminInfrastructureRoute: typeof AdminInfrastructureRoute
-  AdminPeopleRoute: typeof AdminPeopleRoute
-  AdminPoliciesRoute: typeof AdminPoliciesRoute
-  AdminProfileRoute: typeof AdminProfileRoute
-  AdminResourcesRoute: typeof AdminResourcesRoute
   PatientAppointmentsRoute: typeof PatientAppointmentsRoute
   PatientBillingRoute: typeof PatientBillingRoute
   PatientConsentRoute: typeof PatientConsentRoute
@@ -701,7 +468,6 @@ export interface RootRouteChildren {
   StaffSurgeriesRoute: typeof StaffSurgeriesRoute
   StaffTrackerRoute: typeof StaffTrackerRoute
   StaffVerifyRoute: typeof StaffVerifyRoute
-  AdminIndexRoute: typeof AdminIndexRoute
   PatientIndexRoute: typeof PatientIndexRoute
   StaffIndexRoute: typeof StaffIndexRoute
 }
@@ -755,13 +521,6 @@ declare module '@tanstack/react-router' {
       path: '/patient'
       fullPath: '/patient/'
       preLoaderRoute: typeof PatientIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/': {
-      id: '/admin/'
-      path: '/admin'
-      fullPath: '/admin/'
-      preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/staff/verify': {
@@ -953,125 +712,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PatientAppointmentsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/resources': {
-      id: '/admin/resources'
-      path: '/admin/resources'
-      fullPath: '/admin/resources'
-      preLoaderRoute: typeof AdminResourcesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/profile': {
-      id: '/admin/profile'
-      path: '/admin/profile'
-      fullPath: '/admin/profile'
-      preLoaderRoute: typeof AdminProfileRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/policies': {
-      id: '/admin/policies'
-      path: '/admin/policies'
-      fullPath: '/admin/policies'
-      preLoaderRoute: typeof AdminPoliciesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/people': {
-      id: '/admin/people'
-      path: '/admin/people'
-      fullPath: '/admin/people'
-      preLoaderRoute: typeof AdminPeopleRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/infrastructure': {
-      id: '/admin/infrastructure'
-      path: '/admin/infrastructure'
-      fullPath: '/admin/infrastructure'
-      preLoaderRoute: typeof AdminInfrastructureRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/hyperledger': {
-      id: '/admin/hyperledger'
-      path: '/admin/hyperledger'
-      fullPath: '/admin/hyperledger'
-      preLoaderRoute: typeof AdminHyperledgerRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/fraud': {
-      id: '/admin/fraud'
-      path: '/admin/fraud'
-      fullPath: '/admin/fraud'
-      preLoaderRoute: typeof AdminFraudRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/financial': {
-      id: '/admin/financial'
-      path: '/admin/financial'
-      fullPath: '/admin/financial'
-      preLoaderRoute: typeof AdminFinancialRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/federation': {
-      id: '/admin/federation'
-      path: '/admin/federation'
-      fullPath: '/admin/federation'
-      preLoaderRoute: typeof AdminFederationRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/digital-twin': {
-      id: '/admin/digital-twin'
-      path: '/admin/digital-twin'
-      fullPath: '/admin/digital-twin'
-      preLoaderRoute: typeof AdminDigitalTwinRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/dids': {
-      id: '/admin/dids'
-      path: '/admin/dids'
-      fullPath: '/admin/dids'
-      preLoaderRoute: typeof AdminDidsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/credentials': {
-      id: '/admin/credentials'
-      path: '/admin/credentials'
-      fullPath: '/admin/credentials'
-      preLoaderRoute: typeof AdminCredentialsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/compliance': {
-      id: '/admin/compliance'
-      path: '/admin/compliance'
-      fullPath: '/admin/compliance'
-      preLoaderRoute: typeof AdminComplianceRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/command': {
-      id: '/admin/command'
-      path: '/admin/command'
-      fullPath: '/admin/command'
-      preLoaderRoute: typeof AdminCommandRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/chaincode': {
-      id: '/admin/chaincode'
-      path: '/admin/chaincode'
-      fullPath: '/admin/chaincode'
-      preLoaderRoute: typeof AdminChaincodeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/audit': {
-      id: '/admin/audit'
-      path: '/admin/audit'
-      fullPath: '/admin/audit'
-      preLoaderRoute: typeof AdminAuditRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/attendance': {
-      id: '/admin/attendance'
-      path: '/admin/attendance'
-      fullPath: '/admin/attendance'
-      preLoaderRoute: typeof AdminAttendanceRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -1081,23 +721,6 @@ const rootRouteChildren: RootRouteChildren = {
   CredentialExplorerRoute: CredentialExplorerRoute,
   DidExplorerRoute: DidExplorerRoute,
   LoginRoute: LoginRoute,
-  AdminAttendanceRoute: AdminAttendanceRoute,
-  AdminAuditRoute: AdminAuditRoute,
-  AdminChaincodeRoute: AdminChaincodeRoute,
-  AdminCommandRoute: AdminCommandRoute,
-  AdminComplianceRoute: AdminComplianceRoute,
-  AdminCredentialsRoute: AdminCredentialsRoute,
-  AdminDidsRoute: AdminDidsRoute,
-  AdminDigitalTwinRoute: AdminDigitalTwinRoute,
-  AdminFederationRoute: AdminFederationRoute,
-  AdminFinancialRoute: AdminFinancialRoute,
-  AdminFraudRoute: AdminFraudRoute,
-  AdminHyperledgerRoute: AdminHyperledgerRoute,
-  AdminInfrastructureRoute: AdminInfrastructureRoute,
-  AdminPeopleRoute: AdminPeopleRoute,
-  AdminPoliciesRoute: AdminPoliciesRoute,
-  AdminProfileRoute: AdminProfileRoute,
-  AdminResourcesRoute: AdminResourcesRoute,
   PatientAppointmentsRoute: PatientAppointmentsRoute,
   PatientBillingRoute: PatientBillingRoute,
   PatientConsentRoute: PatientConsentRoute,
@@ -1125,7 +748,6 @@ const rootRouteChildren: RootRouteChildren = {
   StaffSurgeriesRoute: StaffSurgeriesRoute,
   StaffTrackerRoute: StaffTrackerRoute,
   StaffVerifyRoute: StaffVerifyRoute,
-  AdminIndexRoute: AdminIndexRoute,
   PatientIndexRoute: PatientIndexRoute,
   StaffIndexRoute: StaffIndexRoute,
 }

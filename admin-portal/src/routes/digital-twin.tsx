@@ -7,7 +7,7 @@ import { useState, useMemo } from "react";
 import { Building2, Bed, User, Stethoscope, Ambulance, Wrench, ShieldCheck, ChevronRight, X, Network, GitBranch, Wifi, WifiOff, RefreshCw } from "lucide-react";
 import { useFabricBeds, useLivePatients } from "@/hooks/use-fabric";
 
-export const Route = createFileRoute("/admin/digital-twin")({
+export const Route = createFileRoute("/digital-twin")({
   head: () => ({ meta: [{ title: "Digital Twin — Admin Console" }] }),
   component: DigitalTwinPage,
 });

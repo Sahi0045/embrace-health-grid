@@ -17,7 +17,7 @@ import { PageHeader, StatCard } from "@/components/PageHeader";
 import { StaggerList, StaggerItem } from "@/components/Motion";
 import { motion } from "framer-motion";
 
-export const Route = createFileRoute("/admin/")({
+export const Route = createFileRoute("/")({
   head: () => ({ meta: [{ title: "Admin · Overview — DID Hospital" }] }),
   component: AdminOverview,
 });

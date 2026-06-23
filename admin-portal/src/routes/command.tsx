@@ -15,7 +15,7 @@ import { PageHeader, StatCard } from "@/components/PageHeader";
 import { RouteGuard } from "@/components/RouteGuard";
 import { motion } from "framer-motion";
 
-export const Route = createFileRoute("/admin/command")({
+export const Route = createFileRoute("/command")({
   head: () => ({ meta: [{ title: "Command Center — Admin Console" }] }),
   component: AdminCommandCenter,
 });

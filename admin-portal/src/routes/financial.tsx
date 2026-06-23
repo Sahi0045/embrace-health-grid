@@ -8,7 +8,7 @@ import { Search, Receipt, CreditCard, History, Shield, Download, FileText, Check
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/admin/financial")({
+export const Route = createFileRoute("/financial")({
   head: () => ({ meta: [{ title: "Financials — Admin Console" }] }),
   component: AdminFinancialPage,
 });

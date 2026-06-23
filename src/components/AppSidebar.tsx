@@ -100,26 +100,7 @@ const staffNav: Item[] = [
   { title: "Emergency", url: "/staff/emergency", icon: ShieldAlert },
 ];
 
-const adminNav: Item[] = [
-  { title: "Overview", url: "/admin", icon: LayoutDashboard },
-  { title: "Command Center", url: "/admin/command", icon: Command },
-  { title: "Digital Twin", url: "/admin/digital-twin", icon: Network },
-  { title: "Financials", url: "/admin/financial", icon: Receipt },
-  { title: "Hyperledger Console", url: "/admin/hyperledger", icon: Layers },
-  { title: "Chaincode", url: "/admin/chaincode", icon: Code2 },
-  { title: "My Profile", url: "/admin/profile", icon: User },
-  { title: "Infrastructure", url: "/admin/infrastructure", icon: Building2 },
-  { title: "Resources", url: "/admin/resources", icon: Bed },
-  { title: "People", url: "/admin/people", icon: Users },
-  { title: "Attendance", url: "/admin/attendance", icon: UserCheck },
-  { title: "DID Management", url: "/admin/dids", icon: KeyRound },
-  { title: "Credentials", url: "/admin/credentials", icon: Award },
-  { title: "Policies", url: "/admin/policies", icon: BookLock },
-  { title: "Audit Logs", url: "/admin/audit", icon: Activity },
-  { title: "Fraud Detection", url: "/admin/fraud", icon: AlertTriangle },
-  { title: "Compliance", url: "/admin/compliance", icon: BarChart3 },
-  { title: "Federation", url: "/admin/federation", icon: Globe },
-];
+
 
 const globalNav: Item[] = [
   { title: "DID Explorer", url: "/did-explorer", icon: Search },
@@ -167,17 +148,14 @@ export function AppSidebar() {
     setUser(getCurrentUser());
   }, [pathname]);
 
-  const role: "patient" | "staff" | "admin" | null = pathname.startsWith("/patient")
+  const role: "patient" | "staff" | null = pathname.startsWith("/patient")
     ? "patient"
     : pathname.startsWith("/staff")
       ? "staff"
-      : pathname.startsWith("/admin")
-        ? "admin"
-        : null;
+      : null;
 
-  const canSeePatient = user?.role === "admin" || user?.role === "patient";
-  const canSeeStaff = user?.role === "admin" || user?.role === "staff";
-  const canSeeAdmin = user?.role === "admin";
+  const canSeePatient = user?.role === "patient";
+  const canSeeStaff = user?.role === "staff";
 
   return (
     <Sidebar collapsible="icon">
@@ -205,7 +183,6 @@ export function AppSidebar() {
       <SidebarContent>
         {canSeePatient && role === "patient" && <NavGroup label="Patient App" items={patientNav} />}
         {canSeeStaff && role === "staff" && <NavGroup label="Staff Portal" items={staffNav} />}
-        {canSeeAdmin && role === "admin" && <NavGroup label="Admin Console" items={adminNav} />}
 
         <NavGroup label="Network" items={globalNav} />
 
