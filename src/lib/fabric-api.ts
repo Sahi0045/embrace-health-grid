@@ -4,7 +4,25 @@
  * Falls back silently to localStorage simulation when server is offline
  */
 
-export const FABRIC_BASE = "http://localhost:3001";
+const getFabricBaseUrl = (): string => {
+  // Check build-time/runtime environment variables first
+  const envUrl = typeof process !== "undefined" && process?.env ? process.env.VITE_FABRIC_BASE : undefined;
+  const viteEnvUrl = typeof import.meta !== "undefined" && (import.meta as any).env ? (import.meta as any).env.VITE_FABRIC_BASE : undefined;
+  const configUrl = viteEnvUrl || envUrl;
+  if (configUrl) return configUrl;
+
+  if (typeof window !== "undefined") {
+    const hostname = window.location.hostname;
+    // If not running on localhost, default to the current window origin
+    if (hostname !== "localhost" && hostname !== "127.0.0.1") {
+      return window.location.origin;
+    }
+  }
+
+  return "http://localhost:3001";
+};
+
+export const FABRIC_BASE = getFabricBaseUrl();
 const API = `${FABRIC_BASE}/api`;
 
 let _serverOnline: boolean | null = null;
