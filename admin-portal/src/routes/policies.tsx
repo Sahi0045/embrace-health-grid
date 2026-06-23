@@ -9,7 +9,7 @@ import { BookLock, Search, Plus, Pencil, Archive } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/admin/policies")({
+export const Route = createFileRoute("/policies")({
   head: () => ({ meta: [{ title: "Admin · Policies — DID Hospital" }] }),
   component: PoliciesPage,
 });

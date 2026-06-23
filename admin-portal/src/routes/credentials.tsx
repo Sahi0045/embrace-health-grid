@@ -8,7 +8,7 @@ import { useState } from "react";
 import type { CredentialFull } from "@/lib/mock-credentials";
 import { useFabricCredentials } from "@/hooks/use-fabric";
 
-export const Route = createFileRoute("/admin/credentials")({
+export const Route = createFileRoute("/credentials")({
   head: () => ({ meta: [{ title: "Credentials — Admin Console" }] }),
   component: CredentialsPage,
 });

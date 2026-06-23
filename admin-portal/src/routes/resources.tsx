@@ -9,7 +9,7 @@ import { mockBeds, mockEquipment, mockAmbulances, infraStats } from "@/lib/mock-
 import { Bed, Wrench, Ambulance, Search, Wind, Map } from "lucide-react";
 import { useState } from "react";
 
-export const Route = createFileRoute("/admin/resources")({
+export const Route = createFileRoute("/resources")({
   head: () => ({ meta: [{ title: "Resources — Admin Console" }] }),
   component: ResourcesPage,
 });

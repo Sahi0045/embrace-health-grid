@@ -20,7 +20,7 @@ import { fabricGetUsers, fabricCreateDID } from "@/lib/fabric-api";
 import { toast } from "sonner";
 import { useLivePatients, useLiveStaff } from "@/hooks/use-fabric";
 
-export const Route = createFileRoute("/admin/people")({
+export const Route = createFileRoute("/people")({
   head: () => ({
     meta: [
       { title: "People Management — Admin Console" },

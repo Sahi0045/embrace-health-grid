@@ -78,5 +78,69 @@
     "updatedAt": "2026-06-22T05:27:29.740Z",
     "txId": "c2d9d9fd-ba80-4bbd-b772-fff11bd8cb85",
     "docType": "users"
+  },
+  "patient-1782216524393@test.com": {
+    "key": "patient-1782216524393@test.com",
+    "value": {
+      "name": "John Patient",
+      "email": "patient-1782216524393@test.com",
+      "password": "$2b$10$y0WPfDKDT3N8RiQhwGOvBOatS9jJZQ5bd2M45ZwKNdE15Sf8wck/W",
+      "role": "patient",
+      "did": null,
+      "createdAt": "2026-06-23T12:08:44.460Z"
+    },
+    "namespace": "users",
+    "version": "d53056ec-be26-464c-9ab5-b52fc03f3cfa:1",
+    "updatedAt": "2026-06-23T12:08:44.460Z",
+    "txId": "d53056ec-be26-464c-9ab5-b52fc03f3cfa",
+    "docType": "users"
+  },
+  "admin-1782216524393@test.com": {
+    "key": "admin-1782216524393@test.com",
+    "value": {
+      "name": "Alice Admin",
+      "email": "admin-1782216524393@test.com",
+      "password": "$2b$10$f6qDc.iXDZIHyHF2rs9fr.G0TfGGQHWEophzofS5erWVEouzg2JWG",
+      "role": "admin",
+      "did": null,
+      "createdAt": "2026-06-23T12:08:44.514Z"
+    },
+    "namespace": "users",
+    "version": "62c5e929-d7b9-4668-9889-88e1627a4ef4:1",
+    "updatedAt": "2026-06-23T12:08:44.514Z",
+    "txId": "62c5e929-d7b9-4668-9889-88e1627a4ef4",
+    "docType": "users"
+  },
+  "patient-1782224532050@test.com": {
+    "key": "patient-1782224532050@test.com",
+    "value": {
+      "name": "John Patient",
+      "email": "patient-1782224532050@test.com",
+      "password": "$2b$10$DwQMp0hsn8qKRrJzZfCu0uZDKf1MPN6gFFHUEICkePZ4qLbTc2SZi",
+      "role": "patient",
+      "did": null,
+      "createdAt": "2026-06-23T14:22:12.110Z"
+    },
+    "namespace": "users",
+    "version": "0f72537b-6916-4089-89a2-31ae0cadaf63:1",
+    "updatedAt": "2026-06-23T14:22:12.110Z",
+    "txId": "0f72537b-6916-4089-89a2-31ae0cadaf63",
+    "docType": "users"
+  },
+  "admin-1782224532050@test.com": {
+    "key": "admin-1782224532050@test.com",
+    "value": {
+      "name": "Alice Admin",
+      "email": "admin-1782224532050@test.com",
+      "password": "$2b$10$tqKjVBA2bDFB1ZQHCDsnROnhQXI4mWHngfiPrxSYNxaohhh3/7O62",
+      "role": "admin",
+      "did": null,
+      "createdAt": "2026-06-23T14:22:12.164Z"
+    },
+    "namespace": "users",
+    "version": "9684d9b2-f6b1-4428-a776-17c399d47e92:1",
+    "updatedAt": "2026-06-23T14:22:12.164Z",
+    "txId": "9684d9b2-f6b1-4428-a776-17c399d47e92",
+    "docType": "users"
   }
 }

@@ -14,7 +14,7 @@ import {
   todayStaffAttendance, visitorLog, patientMovements, attendanceStats
 } from "@/lib/attendance-data";
 
-export const Route = createFileRoute("/admin/attendance")({
+export const Route = createFileRoute("/attendance")({
   head: () => ({
     meta: [{ title: "Attendance Monitor — Admin Console" }],
   }),

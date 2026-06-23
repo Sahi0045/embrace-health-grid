@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { stagger, fadeUp } from "@/components/Motion";
 
-export const Route = createFileRoute("/admin/compliance")({
+export const Route = createFileRoute("/compliance")({
   head: () => ({ meta: [{ title: "Admin · Compliance — DID Hospital" }] }),
   component: CompliancePage,
 });

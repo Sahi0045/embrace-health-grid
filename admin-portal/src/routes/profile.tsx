@@ -7,7 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { ShieldCheck, Mail, Phone, Calendar, Shield, LogOut, Edit, Key, Building2, Lock } from "lucide-react";
 import { RouteGuard } from "@/components/RouteGuard";
 
-export const Route = createFileRoute("/admin/profile")({
+export const Route = createFileRoute("/profile")({
   head: () => ({
     meta: [
       { title: "My Profile — Admin Console" },

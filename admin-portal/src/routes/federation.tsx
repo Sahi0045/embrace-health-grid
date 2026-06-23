@@ -8,7 +8,7 @@ import { Building2, ShieldCheck, Link2, CheckCircle, Clock, Globe } from "lucide
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 
-export const Route = createFileRoute("/admin/federation")({
+export const Route = createFileRoute("/federation")({
   head: () => ({ meta: [{ title: "Federation — Admin Console" }] }),
   component: FederationPage,
 });

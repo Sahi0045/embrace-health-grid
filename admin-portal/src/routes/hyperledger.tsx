@@ -12,7 +12,7 @@ import { Database, Cpu, Layers, Send, CheckCircle, Clock, ShieldCheck, Terminal,
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/admin/hyperledger")({
+export const Route = createFileRoute("/hyperledger")({
   head: () => ({ meta: [{ title: "Hyperledger Console — Admin" }] }),
   component: HyperledgerConsolePage,
 });

@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/admin/chaincode")({
+export const Route = createFileRoute("/chaincode")({
   head: () => ({ meta: [{ title: "Chaincode Management — Admin Console" }] }),
   component: ChaincodeManagementPage,
 });
