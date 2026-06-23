@@ -51,10 +51,12 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const role = typeof window !== "undefined" ? localStorage.getItem("userRole") : null;
   const email = typeof window !== "undefined" ? localStorage.getItem("userEmail") : null;
   const token = typeof window !== "undefined" ? localStorage.getItem("fabricAuthToken") : null;
+  const clientKey = (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_CLIENT_KEY) || "apollo-consortium-client-secret-2026";
   const authHeaders: Record<string, string> = {};
   if (role) authHeaders["x-user-role"] = role;
   if (email) authHeaders["x-user-email"] = email;
   if (token) authHeaders["Authorization"] = "Bearer " + token;
+  if (clientKey) authHeaders["x-client-key"] = clientKey;
 
   const r = await fetch(`${API}${path}`, {
     ...init,
