@@ -42,6 +42,17 @@ function requireAuth(req, res, next) {
   }
 }
 
+const CLIENT_KEY = process.env.CLIENT_KEY || "apollo-consortium-client-secret-2026";
+
+// Client application verification middleware for public endpoints
+function requireClientAuth(req, res, next) {
+  const clientKey = req.headers["x-client-key"];
+  if (!clientKey || clientKey !== CLIENT_KEY) {
+    return res.status(401).json({ error: "Unauthorized Client Application: Missing or invalid x-client-key header" });
+  }
+  next();
+}
+
 // Role validation middleware
 function requireRole(allowedRoles) {
   return (req, res, next) => {
@@ -1175,7 +1186,7 @@ function applyChaincode(chaincode, fcn, args, txId, timestamp) {
 }
 
 // ─── Auth APIs ────────────────────────────────────────────────────────────────
-app.post("/api/auth/signup", async (req, res) => {
+app.post("/api/auth/signup", requireAuth, requireRole(["admin"]), async (req, res) => {
   const { name, email, role, password } = req.body;
   if (!email || !role || !name) {
     return res.status(400).json({ error: "Name, email, and role are required" });
@@ -1213,7 +1224,7 @@ app.post("/api/auth/signup", async (req, res) => {
   res.json({ success: true, token, user: { name, email, role } });
 });
 
-app.post("/api/auth/login", async (req, res) => {
+app.post("/api/auth/login", requireClientAuth, async (req, res) => {
   const { email, password } = req.body;
   if (!email) {
     return res.status(400).json({ error: "Email is required" });
@@ -1227,7 +1238,12 @@ app.post("/api/auth/login", async (req, res) => {
   // Backward compat: if no stored password (seeded users), allow any password.
   // Otherwise verify against bcrypt hash.
   if (userEntry.value.password) {
-    const match = await bcrypt.compare(password || "", userEntry.value.password);
+    let match = false;
+    if (userEntry.value.password.startsWith("$2b$")) {
+      match = await bcrypt.compare(password || "", userEntry.value.password).catch(() => false);
+    } else {
+      match = password === userEntry.value.password;
+    }
     if (!match) {
       return res.status(401).json({ error: "Invalid email or password" });
     }
