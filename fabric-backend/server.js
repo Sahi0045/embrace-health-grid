@@ -42,6 +42,17 @@ function requireAuth(req, res, next) {
   }
 }
 
+// Role validation middleware
+function requireRole(allowedRoles) {
+  return (req, res, next) => {
+    if (!req.user) return res.status(401).json({ error: "Authentication required" });
+    if (!allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({ error: "Access Denied: Insufficient permissions" });
+    }
+    next();
+  };
+}
+
 // Manual basic .env loader to read from workspace root
 function loadEnv() {
   const envPath = join(process.cwd(), ".env");
@@ -348,14 +359,14 @@ app.get("/health", (_, res) =>
 );
 
 // ─── Ledger ──────────────────────────────────────────────────────────────────
-app.get("/api/ledger", (req, res) => {
+app.get("/api/ledger", requireAuth, (req, res) => {
   const page = parseInt(req.query.page ?? "0");
   const size = parseInt(req.query.size ?? "20");
   const blocks = [..._ledger].reverse().slice(page * size, (page + 1) * size);
   res.json({ blocks, total: _ledger.length, blockHeight: _ledger.length });
 });
 
-app.get("/api/ledger/stats", (_, res) => {
+app.get("/api/ledger/stats", requireAuth, (_, res) => {
   const txCount = _ledger.reduce((s, b) => s + b.transactions.length, 0);
   res.json({
     blockHeight: _ledger.length,
@@ -370,7 +381,7 @@ app.get("/api/ledger/stats", (_, res) => {
 });
 
 // ─── Transactions ─────────────────────────────────────────────────────────────
-app.post("/api/transaction", async (req, res) => {
+app.post("/api/transaction", requireAuth, requireRole(["admin"]), async (req, res) => {
   const { chaincode, fcn, args = [], creator = "Frontend" } = req.body;
   if (!chaincode || !fcn) return res.status(400).json({ error: "chaincode and fcn required" });
 
@@ -399,32 +410,27 @@ app.post("/api/transaction", async (req, res) => {
 });
 
 // ─── World State ──────────────────────────────────────────────────────────────
-app.get("/api/worldstate", (_, res) => res.json(getAllWorldState()));
-app.get("/api/worldstate/:namespace", (req, res) => res.json(getAllState(req.params.namespace)));
-app.get("/api/worldstate/:namespace/:key", (req, res) => {
+app.get("/api/worldstate", requireAuth, (_, res) => res.json(getAllWorldState()));
+app.get("/api/worldstate/:namespace", requireAuth, (req, res) => res.json(getAllState(req.params.namespace)));
+app.get("/api/worldstate/:namespace/:key", requireAuth, (req, res) => {
   const entry = getState(req.params.namespace, req.params.key);
   if (!entry) return res.status(404).json({ error: "Not found" });
   res.json(entry);
 });
 
 // ─── DID Registry ─────────────────────────────────────────────────────────────
-app.get("/api/did", (_, res) => {
+app.get("/api/did", requireAuth, (_, res) => {
   const all = getAllState("did-registry");
   res.json({ dids: all.map((e) => e.value), total: all.length });
 });
 
-app.get("/api/did/:did", (req, res) => {
+app.get("/api/did/:did", requireAuth, (req, res) => {
   const entry = getState("did-registry", req.params.did);
   if (!entry) return res.status(404).json({ error: "DID not found" });
   res.json(entry.value);
 });
 
-app.post("/api/did", async (req, res) => {
-  const userRole = req.headers["x-user-role"];
-  if (userRole !== "admin") {
-    return res.status(403).json({ error: "Access Denied: Only Admin can create DIDs" });
-  }
-
+app.post("/api/did", requireAuth, requireRole(["admin"]), async (req, res) => {
   const { owner, ownerType = "patient", controller, ownerEmail, ...extraFields } = req.body;
   if (!owner) return res.status(400).json({ error: "owner required" });
   const did = `did:hosp:0x${simHash(owner + Date.now()).slice(0, 8)}`;
@@ -467,7 +473,7 @@ app.post("/api/did", async (req, res) => {
   res.json({ did, doc, blockNumber: block.blockNumber, txId });
 });
 
-app.patch("/api/did/:did/revoke", (req, res) => {
+app.patch("/api/did/:did/revoke", requireAuth, requireRole(["admin"]), (req, res) => {
   const entry = getState("did-registry", req.params.did);
   if (!entry) return res.status(404).json({ error: "DID not found" });
   entry.value.status = "revoked";
@@ -478,7 +484,7 @@ app.patch("/api/did/:did/revoke", (req, res) => {
 });
 
 // ─── Credentials ──────────────────────────────────────────────────────────────
-app.post("/api/credential/issue", async (req, res) => {
+app.post("/api/credential/issue", requireAuth, requireRole(["admin"]), async (req, res) => {
   const { did, type = "IdentityVC", claims = {}, issuer } = req.body;
   if (!did) return res.status(400).json({ error: "did required" });
   const entry = getState("did-registry", did);
@@ -514,7 +520,7 @@ app.post("/api/credential/issue", async (req, res) => {
   res.json({ vc, blockNumber: block.blockNumber, txId });
 });
 
-app.patch("/api/credential/:id/revoke", (req, res) => {
+app.patch("/api/credential/:id/revoke", requireAuth, requireRole(["admin"]), (req, res) => {
   const entry = getState("credentials", req.params.id);
   if (!entry) return res.status(404).json({ error: "Credential not found" });
   entry.value.status = "revoked";
@@ -524,18 +530,18 @@ app.patch("/api/credential/:id/revoke", (req, res) => {
   res.json({ success: true, id: req.params.id });
 });
 
-app.get("/api/credentials", (_, res) => {
+app.get("/api/credentials", requireAuth, requireRole(["admin"]), (_, res) => {
   const all = getAllState("credentials");
   res.json({ credentials: all.map((e) => e.value), total: all.length });
 });
 
 // ─── Consent ──────────────────────────────────────────────────────────────────
-app.get("/api/consent", (_, res) => {
+app.get("/api/consent", requireAuth, requireRole(["admin", "doctor", "staff"]), (_, res) => {
   const all = getAllState("consent-manager");
   res.json({ consents: all.map((e) => e.value), total: all.length });
 });
 
-app.post("/api/consent/grant", (req, res) => {
+app.post("/api/consent/grant", requireAuth, requireRole(["patient"]), (req, res) => {
   const { patientDid, doctorDid, resource, expiry } = req.body;
   const grantId = `consent_${randomUUID().slice(0, 8)}`;
   const txId = randomUUID();
@@ -563,7 +569,7 @@ app.post("/api/consent/grant", (req, res) => {
   res.json(grant);
 });
 
-app.patch("/api/consent/:id/revoke", (req, res) => {
+app.patch("/api/consent/:id/revoke", requireAuth, requireRole(["patient"]), (req, res) => {
   const entry = getState("consent-manager", req.params.id);
   if (!entry) return res.status(404).json({ error: "Not found" });
   entry.value.status = "revoked";
@@ -574,7 +580,7 @@ app.patch("/api/consent/:id/revoke", (req, res) => {
 });
 
 // Staff → Patient consent request
-app.post("/api/consent/request", (req, res) => {
+app.post("/api/consent/request", requireAuth, requireRole(["doctor", "staff"]), (req, res) => {
   const { doctorDid, doctorName, patientDid, resource, reason, expiry } = req.body;
   if (!patientDid || !doctorDid)
     return res.status(400).json({ error: "patientDid and doctorDid required" });
@@ -628,7 +634,7 @@ app.post("/api/consent/request", (req, res) => {
 });
 
 // GET consent requests for a patient DID
-app.get("/api/consent/requests/:patientDid", (req, res) => {
+app.get("/api/consent/requests/:patientDid", requireAuth, requireRole(["patient"]), (req, res) => {
   const all = getAllState("consent-requests");
   const requests = all
     .filter((e) => e.value?.patientDid === req.params.patientDid)
@@ -637,7 +643,7 @@ app.get("/api/consent/requests/:patientDid", (req, res) => {
 });
 
 // ─── Audit ────────────────────────────────────────────────────────────────────
-app.get("/api/audit", (req, res) => {
+app.get("/api/audit", requireAuth, (req, res) => {
   const page = parseInt(req.query.page ?? "0");
   const size = parseInt(req.query.size ?? "50");
   const all = getAllState("audit");
@@ -648,7 +654,7 @@ app.get("/api/audit", (req, res) => {
   });
 });
 
-app.post("/api/audit/log", (req, res) => {
+app.post("/api/audit/log", requireAuth, (req, res) => {
   const { actor, resource, action, outcome = "success", severity = "info" } = req.body;
   const txId = randomUUID();
   const event = {
@@ -676,7 +682,8 @@ app.post("/api/audit/log", (req, res) => {
 });
 
 // ─── Vitals ───────────────────────────────────────────────────────────────────
-app.post("/api/vitals/seed", (req, res) => {
+// ─── Vitals ───────────────────────────────────────────────────────────────────
+app.post("/api/vitals/seed", requireAuth, requireRole(["admin", "doctor", "staff"]), (req, res) => {
   const { patients = [] } = req.body;
   patients.forEach(
     ({ id, heartRate = 72, bp = "120/80", spo2 = 98, temp = 36.5, respRate = 16 }) => {
@@ -686,14 +693,14 @@ app.post("/api/vitals/seed", (req, res) => {
   res.json({ seeded: patients.length });
 });
 
-app.get("/api/vitals/:id", (req, res) => {
+app.get("/api/vitals/:id", requireAuth, (req, res) => {
   const v = _vitals.get(req.params.id);
   if (!v) return res.status(404).json({ error: "Not found" });
   res.json(v);
 });
 
 // ─── Staff tracker ────────────────────────────────────────────────────────────
-app.post("/api/tracker/seed", (req, res) => {
+app.post("/api/tracker/seed", requireAuth, requireRole(["admin", "doctor", "staff"]), (req, res) => {
   const { staff = [] } = req.body;
   staff.forEach(({ id, location = "Nursing Station" }) => {
     _staffLoc.set(id, { location, lastSignal: new Date().toISOString(), beacon: "85%" });
@@ -707,18 +714,18 @@ app.post("/api/tracker/seed", (req, res) => {
   res.json({ seeded: staff.length });
 });
 
-app.get("/api/tracker", (_, res) => {
+app.get("/api/tracker", requireAuth, requireRole(["admin", "doctor", "staff"]), (_, res) => {
   const all = getAllState("tracker");
   res.json({ staff: all.map((e) => e.value) });
 });
 
 // ─── Beds & Infrastructure ────────────────────────────────────────────────────
-app.get("/api/beds", (_, res) => {
+app.get("/api/beds", requireAuth, (_, res) => {
   const all = getAllState("beds");
   res.json({ beds: all.map((e) => e.value), total: all.length });
 });
 
-app.post("/api/beds", (req, res) => {
+app.post("/api/beds", requireAuth, requireRole(["admin", "staff"]), (req, res) => {
   const { bedId, ward, status = "available", patientDid } = req.body;
   const txId = randomUUID();
   const bed = { bedId, ward, status, patientDid, updatedAt: new Date().toISOString() };
@@ -738,7 +745,7 @@ app.post("/api/beds", (req, res) => {
 });
 
 // ─── Prescriptions ────────────────────────────────────────────────────────────
-app.post("/api/prescriptions", (req, res) => {
+app.post("/api/prescriptions", requireAuth, requireRole(["doctor", "staff"]), (req, res) => {
   const { patientDid, doctorDid, drugs, diagnosis, notes, signedBy } = req.body;
   const txId = randomUUID();
   const rxId = `PR-${Date.now().toString(36).toUpperCase()}`;
@@ -769,13 +776,16 @@ app.post("/api/prescriptions", (req, res) => {
   res.json({ rxId, rx, blockNumber: block.blockNumber, txId });
 });
 
-app.get("/api/prescriptions/:patientDid", (req, res) => {
+app.get("/api/prescriptions/:patientDid", requireAuth, (req, res) => {
+  if (req.user.role === "patient" && req.user.did !== req.params.patientDid) {
+    return res.status(403).json({ error: "Access Denied: Cannot view other patients' prescriptions" });
+  }
   const all = queryState("prescriptions", (v) => v.patientDid === req.params.patientDid);
   res.json({ prescriptions: all.map((e) => e.value) });
 });
 
 // ─── Lab results ──────────────────────────────────────────────────────────────
-app.post("/api/labs", (req, res) => {
+app.post("/api/labs", requireAuth, requireRole(["doctor", "staff"]), (req, res) => {
   const { patientDid, orderedBy, tests, priority = "routine" } = req.body;
   const labId = `LAB-${Date.now().toString(36).toUpperCase()}`;
   const txId = randomUUID();
@@ -803,13 +813,16 @@ app.post("/api/labs", (req, res) => {
   res.json(lab);
 });
 
-app.get("/api/labs/:patientDid", (req, res) => {
+app.get("/api/labs/:patientDid", requireAuth, (req, res) => {
+  if (req.user.role === "patient" && req.user.did !== req.params.patientDid) {
+    return res.status(403).json({ error: "Access Denied: Cannot view other patients' lab results" });
+  }
   const all = queryState("lab-results", (v) => v.patientDid === req.params.patientDid);
   res.json({ labs: all.map((e) => e.value) });
 });
 
 // ─── Fraud alerts ─────────────────────────────────────────────────────────────
-app.post("/api/fraud/alert", (req, res) => {
+app.post("/api/fraud/alert", requireAuth, (req, res) => {
   const { actor, type, message, severity = "high", riskScore = 75 } = req.body;
   const alertId = `FA-${randomUUID().slice(0, 8).toUpperCase()}`;
   const txId = randomUUID();
@@ -828,14 +841,19 @@ app.post("/api/fraud/alert", (req, res) => {
   res.json(alert);
 });
 
-app.get("/api/fraud/alerts", (_, res) => {
+app.get("/api/fraud/alerts", requireAuth, requireRole(["admin"]), (_, res) => {
   const all = getAllState("fraud-alerts");
   res.json({ alerts: all.map((e) => e.value), total: all.length });
 });
 
 // ─── Billing ──────────────────────────────────────────────────────────────────
-app.post("/api/billing/payment", (req, res) => {
+app.post("/api/billing/payment", requireAuth, requireRole(["patient"]), (req, res) => {
   const { patientDid, patientName, amount, category, reference } = req.body;
+  
+  if (req.user.did !== patientDid) {
+    return res.status(403).json({ error: "Access Denied: Cannot record payment for another patient" });
+  }
+
   const txId = randomUUID();
   const ref = reference || `REF-${Date.now().toString(36).toUpperCase()}`;
   const payment = {
@@ -863,19 +881,27 @@ app.post("/api/billing/payment", (req, res) => {
   res.json(payment);
 });
 
-app.get("/api/billing/:patientDid", (req, res) => {
+app.get("/api/billing/:patientDid", requireAuth, (req, res) => {
+  if (req.user.role === "patient" && req.user.did !== req.params.patientDid) {
+    return res.status(403).json({ error: "Access Denied: Cannot view other patients' billing records" });
+  }
   const all = queryState("billing", (v) => v.patientDid === req.params.patientDid);
   res.json({ payments: all.map((e) => e.value) });
 });
 
 // ─── Appointments ─────────────────────────────────────────────────────────────
-app.get("/api/appointments", (_, res) => {
+app.get("/api/appointments", requireAuth, (_, res) => {
   const all = getAllState("appointments");
   res.json({ appointments: all.map((e) => e.value), total: all.length });
 });
 
-app.post("/api/appointments", (req, res) => {
+app.post("/api/appointments", requireAuth, (req, res) => {
   const { patientDid, patientName, doctorDid, doctorName, slot, mode, specialty } = req.body;
+  
+  if (req.user.role === "patient" && req.user.did !== patientDid) {
+    return res.status(403).json({ error: "Access Denied: Cannot book appointments for another patient" });
+  }
+
   const apptId = `appt_${randomUUID().slice(0, 8)}`;
   const txId = randomUUID();
   const appt = {
@@ -1225,18 +1251,20 @@ app.get("/api/auth/me", requireAuth, (req, res) => {
   res.json({ user: req.user });
 });
 
-app.post("/api/auth/refresh", requireAuth, (req, res) => {
-  // Strip JWT metadata fields before re-signing
-  const { iat, exp, ...payload } = req.user;
-  const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES });
-  res.json({ token });
+app.post("/api/auth/refresh", (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Authentication required" });
+  try {
+    const payload = jwt.verify(token, JWT_SECRET, { ignoreExpiration: true });
+    const { iat, exp, ...cleanPayload } = payload;
+    const newToken = jwt.sign(cleanPayload, JWT_SECRET, { expiresIn: JWT_EXPIRES });
+    res.json({ token: newToken });
+  } catch {
+    return res.status(401).json({ error: "Invalid token" });
+  }
 });
 
-app.get("/api/auth/users", (req, res) => {
-  const role = req.headers["x-user-role"];
-  if (role !== "admin") {
-    return res.status(403).json({ error: "Forbidden: Admins only" });
-  }
+app.get("/api/auth/users", requireAuth, requireRole(["admin"]), (req, res) => {
 
   const entries = getAllState("users");
   const users = entries.map((e) => e.value);
@@ -1304,7 +1332,7 @@ function seedNotifications() {
   );
 }
 
-app.get("/api/notifications", (req, res) => {
+app.get("/api/notifications", requireAuth, (req, res) => {
   seedNotifications();
   res.json({
     notifications: _notifications,
@@ -1312,14 +1340,14 @@ app.get("/api/notifications", (req, res) => {
   });
 });
 
-app.patch("/api/notifications/read-all", (req, res) => {
+app.patch("/api/notifications/read-all", requireAuth, (req, res) => {
   seedNotifications();
   _notifications.forEach((n) => (n.read = true));
   broadcast({ event: "notifications:update", data: { unreadCount: 0 } });
   res.json({ success: true });
 });
 
-app.patch("/api/notifications/:id/read", (req, res) => {
+app.patch("/api/notifications/:id/read", requireAuth, (req, res) => {
   seedNotifications();
   const n = _notifications.find((x) => x.id === req.params.id);
   if (n) n.read = true;
@@ -1327,9 +1355,13 @@ app.patch("/api/notifications/:id/read", (req, res) => {
 });
 
 // ─── ZKP ─────────────────────────────────────────────────────────────────────
-app.post("/api/zkproof/generate", (req, res) => {
+app.post("/api/zkproof/generate", requireAuth, requireRole(["patient"]), (req, res) => {
   const { patientDid, selectedClaims } = req.body;
   if (!patientDid) return res.status(400).json({ error: "patientDid required" });
+
+  if (req.user.did !== patientDid) {
+    return res.status(403).json({ error: "Access Denied: Cannot generate proof for another patient" });
+  }
 
   const proofId = "zkp-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
   const commitment = "0x" + simHash(patientDid + proofId).slice(0, 40);
@@ -1377,13 +1409,12 @@ app.post("/api/zkproof/generate", (req, res) => {
   res.json({ proof, txId, blockNumber: _blockNumber });
 });
 
-app.post("/api/zkproof/verify", (req, res) => {
-  const { proofId, patientDid } = req.body;
+app.post("/api/zkproof/verify", requireAuth, (req, res) => {
+  const { proofId } = req.body;
   if (!proofId) return res.status(400).json({ error: "proofId required" });
 
-  const proof = Object.values(_ledger).find(
-    (e) => e && typeof e === "object" && e.proofId === proofId,
-  );
+  const entry = getState("zkproof-" + proofId);
+  const proof = entry ? entry.value : null;
 
   const disclosedAttributes = {};
   if (proof && proof.claims) {
@@ -1398,7 +1429,7 @@ app.post("/api/zkproof/verify", (req, res) => {
   }
 
   const result = {
-    valid: true,
+    valid: !!proof,
     proofId: proofId || "zkp-unknown",
     disclosedAttributes,
     verifiedAt: new Date().toISOString(),
