@@ -4,15 +4,15 @@
     "value": {
       "staffDid": "did:hosp:0xd10399aa",
       "name": "Dr. Ravi Menon",
-      "location": "Lab Wing A",
+      "location": "Nursing Station",
       "status": "Available",
-      "lastPing": "2026-06-22T06:13:12.200Z",
-      "beaconStrength": "91%"
+      "lastPing": "2026-06-22T17:35:50.051Z",
+      "beaconStrength": "84%"
     },
     "namespace": "tracker",
-    "version": "tx_19eedf62588_fedaf671:1",
-    "updatedAt": "2026-06-22T06:13:12.200Z",
-    "txId": "tx_19eedf62588_fedaf671",
+    "version": "tx_19ef0671d23_cd5b4835:1",
+    "updatedAt": "2026-06-22T17:35:50.051Z",
+    "txId": "tx_19ef0671d23_cd5b4835",
     "docType": "tracker"
   },
   "did:hosp:0x55ef7711": {
@@ -20,15 +20,15 @@
     "value": {
       "staffDid": "did:hosp:0x55ef7711",
       "name": "Dr. Aanya Verma",
-      "location": "Radiology Block",
+      "location": "OPD Room 3",
       "status": "Available",
-      "lastPing": "2026-06-22T06:13:20.250Z",
-      "beaconStrength": "76%"
+      "lastPing": "2026-06-22T17:34:54.093Z",
+      "beaconStrength": "87%"
     },
     "namespace": "tracker",
-    "version": "tx_19eedf644fa_0fe054cb:1",
-    "updatedAt": "2026-06-22T06:13:20.250Z",
-    "txId": "tx_19eedf644fa_0fe054cb",
+    "version": "tx_19ef066428d_c4bda614:1",
+    "updatedAt": "2026-06-22T17:34:54.093Z",
+    "txId": "tx_19ef066428d_c4bda614",
     "docType": "tracker"
   },
   "did:hosp:0x22bd44c1": {
@@ -36,15 +36,15 @@
     "value": {
       "staffDid": "did:hosp:0x22bd44c1",
       "name": "Nurse Priya K.",
-      "location": "ICU Block B",
-      "status": "In Consultation",
-      "lastPing": "2026-06-22T06:12:24.299Z",
-      "beaconStrength": "85%"
+      "location": "Admin Block",
+      "status": "Available",
+      "lastPing": "2026-06-22T17:35:42.039Z",
+      "beaconStrength": "94%"
     },
     "namespace": "tracker",
-    "version": "tx_19eedf56a6b_48e96d7c:1",
-    "updatedAt": "2026-06-22T06:12:24.299Z",
-    "txId": "tx_19eedf56a6b_48e96d7c",
+    "version": "tx_19ef066fdd6_ed353b1a:1",
+    "updatedAt": "2026-06-22T17:35:42.039Z",
+    "txId": "tx_19ef066fdd6_ed353b1a",
     "docType": "tracker"
   },
   "did:hosp:doctor:0f6d4eff": {

@@ -26,21 +26,13 @@ import {
   getAllWorldState,
   generateId,
 } from "./world-state-db.js";
-
-const JWT_SECRET = process.env.JWT_SECRET || "did-hospital-secret-2026-hyperledger";
-const JWT_EXPIRES = "8h";
-
-// JWT middleware
-function requireAuth(req, res, next) {
-  const token = req.headers.authorization?.replace("Bearer ", "");
-  if (!token) return res.status(401).json({ error: "Authentication required" });
-  try {
-    req.user = jwt.verify(token, JWT_SECRET);
-    next();
-  } catch {
-    return res.status(401).json({ error: "Invalid or expired token" });
-  }
-}
+import { buildAuth } from "./middleware/auth.js";
+import { createAuditHelper } from "./lib/audit.js";
+import { registerExtensionRoutes } from "./routes/extensions.js";
+import { signCredential } from "./lib/vc-sign.js";
+import * as notificationStore from "./lib/notifications.js";
+import { splitRecord } from "./lib/hash.js";
+import * as solanaLib from "./lib/solana.js";
 
 const CLIENT_KEY = process.env.CLIENT_KEY || "apollo-consortium-client-secret-2026";
 
@@ -53,16 +45,6 @@ function requireClientAuth(req, res, next) {
   next();
 }
 
-// Role validation middleware
-function requireRole(allowedRoles) {
-  return (req, res, next) => {
-    if (!req.user) return res.status(401).json({ error: "Authentication required" });
-    if (!allowedRoles.includes(req.user.role)) {
-      return res.status(403).json({ error: "Access Denied: Insufficient permissions" });
-    }
-    next();
-  };
-}
 
 // Manual basic .env loader to read from workspace root
 function loadEnv() {
@@ -89,14 +71,30 @@ function loadEnv() {
 }
 loadEnv();
 
+const JWT_SECRET =
+  process.env.JWT_SECRET ||
+  (process.env.NODE_ENV === "production"
+    ? null
+    : "dev-only-jwt-secret-change-before-production");
+if (!JWT_SECRET) {
+  console.error("FATAL: JWT_SECRET must be set in production");
+  process.exit(1);
+}
+const IDENTITY_SECRET = process.env.IDENTITY_SECRET || JWT_SECRET + "-identity";
+const JWT_EXPIRES = "8h";
+const CORS_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:5173";
+
+const { requireAuth, requireRole, globalApiAuth } = buildAuth(jwt, JWT_SECRET);
+
 const app = express();
 const httpServer = createServer(app);
 const wss = new WebSocketServer({ server: httpServer });
 
-app.use(cors({ origin: "*" }));
+app.use(cors({ origin: [CORS_ORIGIN, "http://localhost:5173", "http://127.0.0.1:5173"] }));
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(morgan("tiny"));
 app.use(express.json({ limit: "2mb" }));
+app.use(globalApiAuth);
 
 // Initialize Convex Client
 const convexUrl = process.env.VITE_CONVEX_URL || process.env.CONVEX_URL;
@@ -242,6 +240,14 @@ const PEERS = ["Org1Peer0MSP", "Org1Peer1MSP", "Org2Peer0MSP"];
 const ORDERERS = ["raft-orderer-01a", "raft-orderer-02b"];
 let _ledger = [genesisBlock()];
 let _blockNumber = 1;
+
+const logAudit = createAuditHelper({
+  putState,
+  commitBlock: (...args) => commitBlock(...args),
+  broadcast,
+  randomUUID,
+  CHANNEL,
+});
 
 function simHash(s) {
   let h = 0;
@@ -1235,11 +1241,12 @@ app.post("/api/auth/login", requireClientAuth, async (req, res) => {
     return res.status(401).json({ error: "Invalid email or password" });
   }
 
-  // Backward compat: if no stored password (seeded users), allow any password.
-  // Otherwise verify against bcrypt hash.
   if (userEntry.value.password) {
+    const isHash = userEntry.value.password.startsWith("$2a$") || 
+                   userEntry.value.password.startsWith("$2b$") || 
+                   userEntry.value.password.startsWith("$2y$");
     let match = false;
-    if (userEntry.value.password.startsWith("$2b$")) {
+    if (isHash) {
       match = await bcrypt.compare(password || "", userEntry.value.password).catch(() => false);
     } else {
       match = password === userEntry.value.password;
