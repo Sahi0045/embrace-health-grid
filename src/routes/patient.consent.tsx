@@ -12,6 +12,7 @@ import {
   fabricRevokeConsent,
   fabricGrantConsent,
   fabricGetConsentRequests,
+  FABRIC_BASE,
 } from "@/lib/fabric-api";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
@@ -118,7 +119,8 @@ function Consent() {
 
   // Real-time WebSocket subscription for new consent:request events
   useEffect(() => {
-    const ws = new WebSocket("ws://localhost:3001");
+    const wsUrl = FABRIC_BASE.replace("http", "ws");
+    const ws = new WebSocket(wsUrl);
     ws.onmessage = (e) => {
       try {
         const msg = JSON.parse(e.data);
