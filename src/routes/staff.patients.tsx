@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
+import { RouteGuard } from "@/components/RouteGuard";
 import { useLivePatients } from "@/hooks/use-fabric";
 import { Search, X, Activity, Pill, FlaskConical, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,7 +26,7 @@ function Patients() {
 
 
   return (
-    <>
+    <RouteGuard requiredRole="staff">
       <PageHeader
         eyebrow="Patients"
         title="My active patients"
@@ -214,6 +215,6 @@ function Patients() {
           </div>
         </div>
       )}
-    </>
+    </RouteGuard>
   );
 }

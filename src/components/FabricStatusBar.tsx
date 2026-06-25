@@ -45,7 +45,7 @@ export function FabricStatusBar() {
                     <span className="animate-ping absolute h-full w-full rounded-full bg-success opacity-75" />
                     <span className="relative h-2 w-2 rounded-full bg-success" />
                   </span>
-                  Fabric REST
+                  Solana RPC
                 </span>
               ) : (
                 <span className="flex items-center gap-1 text-warning-foreground">
@@ -71,7 +71,7 @@ export function FabricStatusBar() {
 
             <span className="hidden sm:flex items-center gap-1 text-muted-foreground">
               <Blocks className="h-3 w-3 text-primary" />
-              Channel: <span className="font-mono font-semibold text-foreground">embrace-health-channel</span>
+              Program: <span className="font-mono font-semibold text-foreground">embrace-health-anchor</span>
             </span>
           </div>
 
@@ -87,7 +87,7 @@ export function FabricStatusBar() {
                   className="flex items-center gap-1 rounded-full border border-success/40 bg-success/10 px-2 py-0.5 text-success font-semibold"
                 >
                   <Zap className="h-2.5 w-2.5" />
-                  New Block Committed!
+                  New Slot Confirmed!
                 </motion.div>
               )}
             </AnimatePresence>
@@ -99,7 +99,7 @@ export function FabricStatusBar() {
             )}
 
             <Link
-              to="/admin/hyperledger"
+              to="/audit-timeline"
               className="flex items-center gap-0.5 rounded border border-border bg-background/50 px-2 py-0.5 text-muted-foreground hover:text-primary hover:border-primary/30 transition-colors"
             >
               Console <ChevronRight className="h-3 w-3" />

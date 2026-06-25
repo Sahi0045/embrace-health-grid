@@ -138,7 +138,7 @@ function RootComponent() {
                   <SidebarTrigger />
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <span className="inline-block h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
-                    <span>Hyperledger Fabric — embrace-health-channel — Live</span>
+                    <span>Solana Devnet — embrace-health-anchor — Live</span>
                   </div>
                   <span className="ml-auto" />
                   <NotificationBell />

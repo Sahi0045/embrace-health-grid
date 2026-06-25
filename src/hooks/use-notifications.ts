@@ -1,6 +1,6 @@
 /**
  * useNotifications — subscribes to the in-memory notification store and to
- * Hyperledger Fabric WebSocket events, translating each event type into an
+ * Solana Devnet WebSocket events, translating each event type into an
  * actionable notification.
  */
 
@@ -38,7 +38,7 @@ function handleNotifWsEvent(event: string) {
         type: "fraud_alert",
         title: "Fraud Alert Detected",
         message:
-          "Suspicious activity has been flagged on the Hyperledger network. Immediate review required.",
+          "Suspicious activity has been flagged on the Solana network. Immediate review required.",
         severity: "critical",
       });
       break;
@@ -56,7 +56,7 @@ function handleNotifWsEvent(event: string) {
       addNotification({
         type: "block_committed",
         title: "Block Committed",
-        message: "A new block has been committed to the embrace-health-channel ledger.",
+        message: "A new slot has been confirmed on the Solana Devnet anchor program.",
         severity: "info",
       });
       break;

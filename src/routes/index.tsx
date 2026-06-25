@@ -36,19 +36,9 @@ const portals = [
     color: "text-chart-2",
     count: "12 screens",
   },
-  {
-    to: "/admin" as const,
-    role: "Admin Console",
-    icon: ShieldCheck,
-    blurb: "Digital twin, resource tracking, credentials, federation network, audit, fraud, compliance.",
-    accent: "from-chart-4/15",
-    color: "text-chart-4",
-    count: "15 screens",
-  },
 ];
 
 const globalTools = [
-  { to: "/admin/digital-twin" as const, label: "Digital Twin", icon: Network, desc: "Live hospital DID hierarchy" },
   { to: "/did-explorer" as const, label: "DID Explorer", icon: Search, desc: "Search all DID records" },
   { to: "/credential-explorer" as const, label: "Credential Explorer", icon: Award, desc: "Browse verifiable credentials" },
   { to: "/audit-timeline" as const, label: "Audit Timeline", icon: GitBranch, desc: "5,000 immutable audit events" },
@@ -64,9 +54,9 @@ const featureModules = [
   { icon: FlaskConical, label: "Lab Orders", color: "text-chart-2 bg-chart-2/10", portal: "Staff" },
   { icon: Scissors, label: "Surgeries", color: "text-primary bg-primary/10", portal: "Staff" },
   { icon: ShieldAlert, label: "Emergency Dept.", color: "text-destructive bg-destructive/10", portal: "Staff" },
-  { icon: Bed, label: "Resource Tracking", color: "text-success bg-success/10", portal: "Admin" },
-  { icon: Globe, label: "Federation Network", color: "text-chart-2 bg-chart-2/10", portal: "Admin" },
-  { icon: Activity, label: "Admin Command", color: "text-chart-4 bg-chart-4/10", portal: "Admin" },
+  { icon: Bed, label: "Resource Tracking", color: "text-success bg-success/10", portal: "Staff" },
+  { icon: Globe, label: "Federation Network", color: "text-chart-2 bg-chart-2/10", portal: "Staff" },
+  { icon: Activity, label: "Admin Command", color: "text-chart-4 bg-chart-4/10", portal: "Staff" },
 ];
 
 export default function Home() {
@@ -117,11 +107,11 @@ export default function Home() {
             Sign In <ArrowRight className="h-4 w-4" />
           </Link>
           <Link
-            to="/admin/digital-twin"
+            to="/did-explorer"
             className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-6 py-3 text-sm font-semibold text-foreground hover:bg-muted transition-colors"
           >
-            <Network className="h-4 w-4" />
-            Live Digital Twin
+            <Search className="h-4 w-4" />
+            DID Explorer
           </Link>
         </motion.div>
       </div>
@@ -149,8 +139,8 @@ export default function Home() {
 
       {/* Portals */}
       <div>
-        <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-5">Three Portals</div>
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-5">Two Portals</div>
+        <div className="grid gap-4 sm:grid-cols-2 max-w-4xl mx-auto">
           {portals.map((p, i) => {
             const Icon = p.icon;
             return (
@@ -188,7 +178,7 @@ export default function Home() {
       {/* Global tools */}
       <div>
         <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-5">Global Network Tools</div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-3 max-w-5xl mx-auto">
           {globalTools.map((t, i) => {
             const Icon = t.icon;
             return (

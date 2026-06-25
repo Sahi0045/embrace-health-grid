@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader, StatCard } from "@/components/PageHeader";
+import { RouteGuard } from "@/components/RouteGuard";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { stagger, fadeUp } from "@/components/Motion";
@@ -126,7 +127,7 @@ function SchedulePage() {
   const totalHours = Math.round(totalMinutes / 60);
 
   return (
-    <>
+    <RouteGuard requiredRole="staff">
       <PageHeader
         eyebrow="My Schedule"
         title="Week of June 8 – 14, 2026"
@@ -216,6 +217,6 @@ function SchedulePage() {
           </div>
         </div>
       </div>
-    </>
+    </RouteGuard>
   );
 }

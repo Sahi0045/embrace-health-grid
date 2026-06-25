@@ -1,1 +1,172 @@
-{}
+{
+  "audit_26eec0da-e4ed-4614-9c6b-46a941b06453": {
+    "key": "audit_26eec0da-e4ed-4614-9c6b-46a941b06453",
+    "value": {
+      "txId": "26eec0da-e4ed-4614-9c6b-46a941b06453",
+      "actor": "staff",
+      "resource": "",
+      "action": "NFC_VERIFY",
+      "outcome": "success",
+      "severity": "info",
+      "loggedAt": "2026-06-23T11:49:44.544Z"
+    },
+    "namespace": "audit",
+    "version": "26eec0da-e4ed-4614-9c6b-46a941b06453:1",
+    "updatedAt": "2026-06-23T11:49:44.546Z",
+    "txId": "26eec0da-e4ed-4614-9c6b-46a941b06453",
+    "docType": "audit"
+  },
+  "audit_4fa485a2-e2d3-4a43-9ce9-689e02e5750d": {
+    "key": "audit_4fa485a2-e2d3-4a43-9ce9-689e02e5750d",
+    "value": {
+      "txId": "4fa485a2-e2d3-4a43-9ce9-689e02e5750d",
+      "actor": "staff",
+      "resource": "did:hosp:0x4a91b7d2",
+      "action": "QR_VERIFY",
+      "outcome": "success",
+      "severity": "info",
+      "loggedAt": "2026-06-23T11:59:57.624Z"
+    },
+    "namespace": "audit",
+    "version": "4fa485a2-e2d3-4a43-9ce9-689e02e5750d:1",
+    "updatedAt": "2026-06-23T11:59:57.624Z",
+    "txId": "4fa485a2-e2d3-4a43-9ce9-689e02e5750d",
+    "docType": "audit"
+  },
+  "audit_0bed6871-78bf-4f53-9c0a-3b943f3a4b0b": {
+    "key": "audit_0bed6871-78bf-4f53-9c0a-3b943f3a4b0b",
+    "value": {
+      "txId": "0bed6871-78bf-4f53-9c0a-3b943f3a4b0b",
+      "actor": "staff",
+      "resource": "did:hosp:0x4a91b7d2",
+      "action": "QR_VERIFY",
+      "outcome": "success",
+      "severity": "info",
+      "loggedAt": "2026-06-23T12:04:21.545Z"
+    },
+    "namespace": "audit",
+    "version": "0bed6871-78bf-4f53-9c0a-3b943f3a4b0b:1",
+    "updatedAt": "2026-06-23T12:04:21.545Z",
+    "txId": "0bed6871-78bf-4f53-9c0a-3b943f3a4b0b",
+    "docType": "audit"
+  },
+  "audit_f3086f0b-cd03-44b0-a2fa-d228644032ba": {
+    "key": "audit_f3086f0b-cd03-44b0-a2fa-d228644032ba",
+    "value": {
+      "txId": "f3086f0b-cd03-44b0-a2fa-d228644032ba",
+      "actor": "staff",
+      "resource": "did:hosp:0x4a91b7d2",
+      "action": "QR_VERIFY",
+      "outcome": "success",
+      "severity": "info",
+      "loggedAt": "2026-06-23T12:04:51.994Z"
+    },
+    "namespace": "audit",
+    "version": "f3086f0b-cd03-44b0-a2fa-d228644032ba:1",
+    "updatedAt": "2026-06-23T12:04:51.994Z",
+    "txId": "f3086f0b-cd03-44b0-a2fa-d228644032ba",
+    "docType": "audit"
+  },
+  "audit_4dcb4618-e79a-4c13-a3bb-7d5c81c7ce47": {
+    "key": "audit_4dcb4618-e79a-4c13-a3bb-7d5c81c7ce47",
+    "value": {
+      "txId": "4dcb4618-e79a-4c13-a3bb-7d5c81c7ce47",
+      "actor": "staff",
+      "resource": "did:hosp:0x4a91b7d2",
+      "action": "NFC_VERIFY",
+      "outcome": "success",
+      "severity": "info",
+      "loggedAt": "2026-06-23T13:17:08.061Z"
+    },
+    "namespace": "audit",
+    "version": "4dcb4618-e79a-4c13-a3bb-7d5c81c7ce47:1",
+    "updatedAt": "2026-06-23T13:17:08.061Z",
+    "txId": "4dcb4618-e79a-4c13-a3bb-7d5c81c7ce47",
+    "docType": "audit"
+  },
+  "audit_3690a925-a1a7-448a-bcf2-cd8341e47723": {
+    "key": "audit_3690a925-a1a7-448a-bcf2-cd8341e47723",
+    "value": {
+      "txId": "3690a925-a1a7-448a-bcf2-cd8341e47723",
+      "actor": "staff",
+      "resource": "did:hosp:0x4a91b7d2",
+      "action": "NFC_VERIFY",
+      "outcome": "success",
+      "severity": "info",
+      "loggedAt": "2026-06-23T13:17:17.688Z"
+    },
+    "namespace": "audit",
+    "version": "3690a925-a1a7-448a-bcf2-cd8341e47723:1",
+    "updatedAt": "2026-06-23T13:17:17.688Z",
+    "txId": "3690a925-a1a7-448a-bcf2-cd8341e47723",
+    "docType": "audit"
+  },
+  "audit_02512b03-d042-4d76-923f-7702521f8e43": {
+    "key": "audit_02512b03-d042-4d76-923f-7702521f8e43",
+    "value": {
+      "txId": "02512b03-d042-4d76-923f-7702521f8e43",
+      "actor": "staff",
+      "resource": "did:hosp:0x4a91b7d2",
+      "action": "NFC_VERIFY",
+      "outcome": "success",
+      "severity": "info",
+      "loggedAt": "2026-06-23T13:17:24.404Z"
+    },
+    "namespace": "audit",
+    "version": "02512b03-d042-4d76-923f-7702521f8e43:1",
+    "updatedAt": "2026-06-23T13:17:24.404Z",
+    "txId": "02512b03-d042-4d76-923f-7702521f8e43",
+    "docType": "audit"
+  },
+  "audit_6074fa79-76b6-4d7c-9438-8dbf97666fb1": {
+    "key": "audit_6074fa79-76b6-4d7c-9438-8dbf97666fb1",
+    "value": {
+      "txId": "6074fa79-76b6-4d7c-9438-8dbf97666fb1",
+      "actor": "staff",
+      "resource": "did:hosp:0x4a91b7d2",
+      "action": "QR_VERIFY",
+      "outcome": "success",
+      "severity": "info",
+      "loggedAt": "2026-06-23T13:20:19.286Z"
+    },
+    "namespace": "audit",
+    "version": "6074fa79-76b6-4d7c-9438-8dbf97666fb1:1",
+    "updatedAt": "2026-06-23T13:20:19.286Z",
+    "txId": "6074fa79-76b6-4d7c-9438-8dbf97666fb1",
+    "docType": "audit"
+  },
+  "audit_e54c3488-0b37-4c6e-912c-b4cab3c21f95": {
+    "key": "audit_e54c3488-0b37-4c6e-912c-b4cab3c21f95",
+    "value": {
+      "txId": "e54c3488-0b37-4c6e-912c-b4cab3c21f95",
+      "actor": "staff",
+      "resource": "did:hosp:0x4a91b7d2",
+      "action": "NFC_VERIFY",
+      "outcome": "success",
+      "severity": "info",
+      "loggedAt": "2026-06-23T13:21:34.702Z"
+    },
+    "namespace": "audit",
+    "version": "e54c3488-0b37-4c6e-912c-b4cab3c21f95:1",
+    "updatedAt": "2026-06-23T13:21:34.702Z",
+    "txId": "e54c3488-0b37-4c6e-912c-b4cab3c21f95",
+    "docType": "audit"
+  },
+  "audit_2f7d2b5a-4b3b-4b67-95c0-274f9971cc69": {
+    "key": "audit_2f7d2b5a-4b3b-4b67-95c0-274f9971cc69",
+    "value": {
+      "txId": "2f7d2b5a-4b3b-4b67-95c0-274f9971cc69",
+      "actor": "staff",
+      "resource": "did:hosp:0x4a91b7d2",
+      "action": "NFC_VERIFY",
+      "outcome": "success",
+      "severity": "info",
+      "loggedAt": "2026-06-23T13:22:30.172Z"
+    },
+    "namespace": "audit",
+    "version": "2f7d2b5a-4b3b-4b67-95c0-274f9971cc69:1",
+    "updatedAt": "2026-06-23T13:22:30.172Z",
+    "txId": "2f7d2b5a-4b3b-4b67-95c0-274f9971cc69",
+    "docType": "audit"
+  }
+}

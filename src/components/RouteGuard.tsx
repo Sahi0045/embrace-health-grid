@@ -43,7 +43,7 @@ export function RouteGuard({ requiredRole, children }: RouteGuardProps) {
               onClick={() => {
                 if (user.role === "patient") navigate({ to: "/patient" });
                 else if (user.role === "staff") navigate({ to: "/staff" });
-                else if (user.role === "admin") navigate({ to: "/admin" });
+                else if (user.role === "admin") navigate({ to: "/" });
                 else navigate({ to: "/" });
               }}
             >

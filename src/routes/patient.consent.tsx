@@ -106,7 +106,7 @@ function Consent() {
         })),
       );
     } catch {
-      // Fabric offline or endpoint not yet available — show empty gracefully
+      // Solana Devnet offline or endpoint not yet available — show empty gracefully
       setRequests([]);
     } finally {
       setReqLoading(false);
@@ -130,7 +130,7 @@ function Consent() {
     return () => ws.close();
   }, [fetchRequests]);
 
-  // ─── Active / granted consents from Fabric ──────────────────────────────────
+  // ─── Active / granted consents from Solana ──────────────────────────────────
   const liveList = (consentsData?.consents ?? []).map((c: any) => ({
     id: c.id ?? c.txId ?? String(Math.random()),
     requester: c.requester ?? c.doctorName ?? c.doctorDid ?? "Doctor Specialist",
@@ -309,7 +309,7 @@ function Consent() {
           <div className="space-y-4">
             <div className="text-xs text-muted-foreground">
               Pending data-access requests from healthcare providers — approve or deny each request.
-              Decisions are recorded on the Fabric audit ledger.
+              Decisions are recorded on the Solana audit ledger.
             </div>
 
             {reqLoading ? (

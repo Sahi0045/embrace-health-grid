@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHeader } from "@/components/PageHeader";
+import { RouteGuard } from "@/components/RouteGuard";
 import { stagger, fadeUp } from "@/components/Motion";
 import {
   FileSignature,
@@ -411,7 +412,7 @@ function SignPage() {
           "info",
         ).catch(() => {});
         toast.success(`Prescription ${res.rxId} signed & committed`, {
-          description: `Block #${res.blockNumber} · Ed25519 · Fabric Ledger`,
+          description: `Block #${res.blockNumber} · Ed25519 · Solana Ledger`,
         });
       } else {
         // Fallback: simulate local signing
@@ -436,7 +437,7 @@ function SignPage() {
   };
 
   return (
-    <>
+    <RouteGuard requiredRole="staff">
       <PageHeader
         eyebrow="Digital Signature"
         title="Create & Sign Prescription"
@@ -744,7 +745,7 @@ function SignPage() {
                     {fabricOnline ? (
                       <span className="flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-semibold text-success">
                         <Wifi className="h-2.5 w-2.5" />
-                        Fabric Ledger
+                        Solana Ledger
                       </span>
                     ) : (
                       <span className="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
@@ -852,6 +853,6 @@ function SignPage() {
           </AnimatePresence>
         </div>
       </div>
-    </>
+    </RouteGuard>
   );
 }
