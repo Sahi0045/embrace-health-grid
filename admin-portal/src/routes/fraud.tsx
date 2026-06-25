@@ -249,13 +249,13 @@ function FraudPage() {
     type: a.type ?? "Unknown",
     message: a.message ?? "",
     actor: a.actor ?? "System",
-    actorRole: "Fabric Alert",
-    location: "Fabric Network",
+    actorRole: "Security Monitor",
+    location: "Secure System",
     ip: "—",
     at: a.detectedAt ? new Date(a.detectedAt).toLocaleString("en-IN") : "—",
     riskScore: a.riskScore ?? 50,
-    details: "Alert received from Hyperledger Fabric blockchain event.",
-    affectedResource: "Fabric World State",
+    details: "Alert received from secure registry compliance scanner.",
+    affectedResource: "System Registry",
   }));
 
   // Merge deduplicated

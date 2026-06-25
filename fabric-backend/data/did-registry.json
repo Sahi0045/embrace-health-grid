@@ -207,6 +207,7 @@
       "controller": "did:hosp:consortium:authority",
       "owner": "Dr. Ravi Menon",
       "ownerType": "staff",
+      "ownerEmail": "doctor@example.com",
       "status": "active",
       "credentials": [
         {
@@ -279,6 +280,7 @@
       "controller": "did:hosp:consortium:authority",
       "owner": "Nurse Priya K.",
       "ownerType": "staff",
+      "ownerEmail": "nurse@example.com",
       "status": "active",
       "credentials": [
         {

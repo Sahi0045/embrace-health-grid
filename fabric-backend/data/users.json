@@ -142,5 +142,37 @@
     "updatedAt": "2026-06-23T14:22:12.164Z",
     "txId": "9684d9b2-f6b1-4428-a776-17c399d47e92",
     "docType": "users"
+  },
+  "doctor@example.com": {
+    "key": "doctor@example.com",
+    "value": {
+      "name": "Dr. Ravi Menon",
+      "email": "doctor@example.com",
+      "password": "password123",
+      "role": "staff",
+      "did": "did:hosp:0xd10399aa",
+      "createdAt": "2026-06-25T05:00:00.000Z"
+    },
+    "namespace": "users",
+    "version": "genesis:1",
+    "updatedAt": "2026-06-25T05:00:00.000Z",
+    "txId": "genesis",
+    "docType": "users"
+  },
+  "nurse@example.com": {
+    "key": "nurse@example.com",
+    "value": {
+      "name": "Nurse Priya K.",
+      "email": "nurse@example.com",
+      "password": "password123",
+      "role": "staff",
+      "did": "did:hosp:0x22bd44c1",
+      "createdAt": "2026-06-25T05:00:00.000Z"
+    },
+    "namespace": "users",
+    "version": "genesis:1",
+    "updatedAt": "2026-06-25T05:00:00.000Z",
+    "txId": "genesis",
+    "docType": "users"
   }
 }

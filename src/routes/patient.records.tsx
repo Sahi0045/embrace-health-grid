@@ -14,7 +14,8 @@ import {
   prescriptions, medicalDocuments, healthMetrics,
   pharmacyOrders, rehabSessions, feedbackList
 } from "@/lib/medical-records-data";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { fabricGetPrescriptions, fabricGetMedicalRecords } from "@/lib/fabric-api";
 
 export const Route = createFileRoute("/patient/records")({
   head: () => ({
@@ -38,6 +39,66 @@ const docTypeIcon: Record<string, React.ComponentType<{ className?: string }>> =
 
 function MedicalRecords() {
   const [feedbackRating, setFeedbackRating] = useState(0);
+  const [apiPrescriptions, setApiPrescriptions] = useState<any[]>([]);
+  const [apiRecords, setApiRecords] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const patientDid = typeof window !== "undefined" ? localStorage.getItem("userDID") || "" : "";
+
+  useEffect(() => {
+    if (!patientDid) {
+      setLoading(false);
+      return;
+    }
+    let mounted = true;
+    const fetchData = async () => {
+      try {
+        const [rxRes, recRes] = await Promise.all([
+          fabricGetPrescriptions(patientDid),
+          fabricGetMedicalRecords(patientDid)
+        ]);
+        if (mounted) {
+          setApiPrescriptions(rxRes.prescriptions || []);
+          setApiRecords(recRes.records || []);
+        }
+      } catch (err) {
+        console.warn("Could not load medical records from API, using mock data:", err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+    fetchData();
+    return () => { mounted = false; };
+  }, [patientDid]);
+
+  const displayPrescriptions = [
+    ...apiPrescriptions.map((rx) => ({
+      id: rx.rxId,
+      diagnosis: rx.diagnosis,
+      doctor: rx.signedBy || "Doctor",
+      specialty: "General Care",
+      date: rx.signedAt || new Date().toISOString(),
+      status: rx.status || "active",
+      medicines: rx.drugs || [],
+      nextReviewDate: "",
+      notes: rx.notes
+    })),
+    ...prescriptions
+  ];
+
+  const displayDocuments = [
+    ...apiRecords.map((rec) => ({
+      id: rec.recordId,
+      title: rec.title,
+      type: rec.type, // e.g. "lab-report"
+      date: rec.createdAt || new Date().toISOString(),
+      issuedBy: rec.doctorName || "Doctor",
+      fileSize: "N/A",
+      summary: rec.content,
+      isNew: true
+    })),
+    ...medicalDocuments
+  ];
 
   return (
     <RouteGuard requiredRole="patient">
@@ -61,10 +122,11 @@ function MedicalRecords() {
 
             {/* ── Prescriptions ── */}
             <TabsContent value="prescriptions" className="space-y-4">
-              {prescriptions.map((rx) => (
+              {loading && <div className="text-center py-4 text-sm text-muted-foreground animate-pulse">Loading latest prescriptions...</div>}
+              {displayPrescriptions.map((rx) => (
                 <Card key={rx.id}>
                   <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
+                     <div className="flex items-start justify-between">
                       <div>
                         <CardTitle className="text-base">{rx.diagnosis}</CardTitle>
                         <CardDescription>
@@ -83,7 +145,7 @@ function MedicalRecords() {
                   </CardHeader>
                   <CardContent>
                     <div className="grid gap-3 sm:grid-cols-2">
-                      {rx.medicines.map((med, i) => (
+                      {rx.medicines.map((med: any, i: number) => (
                         <div key={i} className="rounded-lg border p-3">
                           <div className="flex items-center gap-2">
                             <Pill className="h-4 w-4 text-primary shrink-0" />
@@ -102,6 +164,11 @@ function MedicalRecords() {
                         Next review: {new Date(rx.nextReviewDate).toLocaleDateString()}
                       </div>
                     )}
+                    {rx.notes && (
+                      <div className="mt-2 text-xs text-muted-foreground italic">
+                        Notes: {rx.notes}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               ))}
@@ -109,8 +176,9 @@ function MedicalRecords() {
 
             {/* ── Reports & Documents ── */}
             <TabsContent value="reports" className="space-y-4">
+              {loading && <div className="text-center py-4 text-sm text-muted-foreground animate-pulse">Loading latest reports...</div>}
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {medicalDocuments.map((doc) => {
+                {displayDocuments.map((doc) => {
                   const Icon = docTypeIcon[doc.type] ?? FileText;
                   return (
                     <Card key={doc.id} className={doc.isNew ? "border-primary/40 bg-primary/5" : ""}>

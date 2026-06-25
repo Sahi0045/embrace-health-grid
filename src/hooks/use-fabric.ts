@@ -1,19 +1,16 @@
 /**
- * useFabric — React hooks for real-time Hyperledger Fabric integration
+ * useFabric — React hooks for real-time API integrations
  *
  * Each hook:
  *  1. Tries the REST API (fabric-backend port 3001)
- *  2. Falls back to the localStorage simulation (hyperledger.ts)
+ *  2. Falls back to local live store / state when offline
  *  3. Subscribes to WebSocket events for live updates
  *  4. Returns { data, loading, error, online, refetch }
  */
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
-  isFabricOnline,
-  FABRIC_BASE,
   fabricGetStats,
-  fabricGetLedger,
   fabricGetAuditEvents,
   fabricGetAllDIDs,
   fabricGetCredentials,
@@ -23,20 +20,14 @@ import {
   fabricGetTracker,
   fabricGetFraudAlerts,
   fabricGetAllPrescriptions,
+  fabricGetVitals,
+  isFabricOnline,
+  fabricGetAllLabs,
 } from "@/lib/fabric-api";
-import { registerLedgerListener, unregisterLedgerListener } from "@/lib/hyperledger";
-import {
-  getLedger,
-  getNetworkStats,
-  getDIDRegistry,
-  queryWorldState,
-  getWorldState,
-} from "@/lib/hyperledger";
 import {
   getLivePatients,
   getLiveStaff,
   getLiveAppointments,
-  getLiveTransactions,
   storeEvents,
   initializeStore,
   getWorkerConnected,
@@ -58,7 +49,7 @@ function initGlobalWsListener() {
       const listeners = _wsListeners.get(event);
       listeners?.forEach((cb) => cb(data));
 
-      // Also fire wildcard listeners
+      // Wildcard listeners
       _wsListeners.get("*")?.forEach((cb) => cb({ event, data }));
     } catch (err) {
       console.error("[useFabric] Error dispatching ws event message:", err);
@@ -97,21 +88,27 @@ function useFabricData<T>(
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const serverUp = await isFabricOnline();
-    setOnline(serverUp);
     try {
-      if (serverUp) {
-        const result = await fetchFn();
-        if (mountedRef.current) setData(result);
+      const serverOnline = await isFabricOnline();
+      if (serverOnline) {
+        const res = await fetchFn();
+        if (mountedRef.current) {
+          setData(res);
+          setOnline(true);
+        }
       } else {
-        const fallback = fallbackFn();
-        if (mountedRef.current) setData(fallback);
+        throw new Error("Server offline");
       }
     } catch (err) {
-      const fallback = fallbackFn();
       if (mountedRef.current) {
-        setData(fallback);
-        setError(err instanceof Error ? err.message : "Fetch failed — using local data");
+        setError(err instanceof Error ? err.message : "Fetch failed");
+        setOnline(false);
+        try {
+          const fallback = fallbackFn();
+          setData(fallback);
+        } catch {
+          // ignore
+        }
       }
     } finally {
       if (mountedRef.current) setLoading(false);
@@ -139,19 +136,30 @@ function useFabricData<T>(
 
 // ─── Network stats ────────────────────────────────────────────────────────────
 export function useFabricStats() {
-  return useFabricData(fabricGetStats, () => getNetworkStats(), "block:committed");
+  return useFabricData(
+    fabricGetStats,
+    () => ({
+      blockHeight: 1,
+      txCount: 0,
+      peerCount: 3,
+      worldStateSize: 0,
+      throughputTps: 0,
+      lastBlockTime: new Date().toISOString(),
+    }),
+    "bed:updated"
+  );
 }
 
-// ─── Ledger blocks ────────────────────────────────────────────────────────────
+// ─── Ledger blocks (Mocked to return empty array) ─────────────────────────────
 export function useFabricLedger(page = 0) {
   return useFabricData(
-    () => fabricGetLedger(page, 20),
+    async () => ({ blocks: [] as any[], total: 0, blockHeight: 1 }),
     () => ({
-      blocks: [...getLedger()].reverse().slice(0, 20),
-      total: getLedger().length,
-      blockHeight: getLedger().length,
+      blocks: [] as any[],
+      total: 0,
+      blockHeight: 1,
     }),
-    "block:committed",
+    undefined,
     [page],
   );
 }
@@ -160,11 +168,7 @@ export function useFabricLedger(page = 0) {
 export function useFabricDIDs() {
   return useFabricData(
     fabricGetAllDIDs,
-    () => {
-      const reg = getDIDRegistry();
-      const dids = Object.values(reg);
-      return { dids, total: dids.length };
-    },
+    () => ({ dids: [] as any[], total: 0 }),
     "did:created",
   );
 }
@@ -173,10 +177,7 @@ export function useFabricDIDs() {
 export function useFabricCredentials() {
   return useFabricData(
     fabricGetCredentials,
-    () => {
-      const ws = queryWorldState("credential-issuer");
-      return { credentials: ws.map((e) => e.value), total: ws.length };
-    },
+    () => ({ credentials: [] as any[], total: 0 }),
     "credential:issued",
   );
 }
@@ -185,10 +186,7 @@ export function useFabricCredentials() {
 export function useFabricConsents() {
   return useFabricData(
     fabricGetConsents,
-    () => {
-      const ws = queryWorldState("consent-manager");
-      return { consents: ws.map((e) => e.value), total: ws.length };
-    },
+    () => ({ consents: [] as any[], total: 0 }),
     "consent:granted",
   );
 }
@@ -197,10 +195,7 @@ export function useFabricConsents() {
 export function useFabricAudit(page = 0) {
   return useFabricData(
     () => fabricGetAuditEvents(page, 50),
-    () => {
-      const ws = queryWorldState("audit");
-      return { events: ws.map((e) => e.value), total: ws.length };
-    },
+    () => ({ events: [] as any[], total: 0 }),
     "audit:logged",
     [page],
   );
@@ -222,10 +217,7 @@ export function useFabricAppointments() {
 export function useFabricBeds() {
   return useFabricData(
     fabricGetBeds,
-    () => {
-      const ws = queryWorldState("beds");
-      return { beds: ws.map((e) => e.value), total: ws.length };
-    },
+    () => ({ beds: [] as any[], total: 0 }),
     "bed:updated",
   );
 }
@@ -252,18 +244,28 @@ export function useFabricTracker() {
 
 // ─── Fraud Alerts ────────────────────────────────────────────────────────────────
 export function useFabricFraudAlerts() {
-  return useFabricData(fabricGetFraudAlerts, () => ({ alerts: [], total: 0 }), "fraud:detected");
+  return useFabricData(
+    fabricGetFraudAlerts,
+    () => ({ alerts: [] as any[], total: 0 }),
+    "fraud:detected"
+  );
 }
 
 // ─── Prescriptions (staff overview) ─────────────────────────────────────────────
 export function useFabricPrescriptions() {
   return useFabricData(
     fabricGetAllPrescriptions,
-    () => {
-      const ws = queryWorldState("prescription");
-      return { prescriptions: ws.map((e) => e.value), total: ws.length };
-    },
+    () => ({ prescriptions: [] as any[], total: 0 }),
     "prescription:signed",
+  );
+}
+
+// ─── Labs (staff overview) ──────────────────────────────────────────────────────
+export function useFabricLabs() {
+  return useFabricData(
+    fabricGetAllLabs,
+    () => ({ labs: [] as any[], total: 0 }),
+    "lab:ordered",
   );
 }
 
@@ -287,8 +289,7 @@ export function useLivePatients() {
     storeEvents.addEventListener("vitals:update", onVitals);
     storeEvents.addEventListener("store:ready", onVitals);
 
-    // WS vitals updates
-    const unsub = subscribeWS("vitals:update", (updates) => {
+    const unsub = subscribeWS("vitals:update", () => {
       if (!mounted) return;
       setPatients(getLivePatients());
     });
@@ -324,7 +325,7 @@ export function useLiveStaff() {
     storeEvents.addEventListener("staff:location:update", onLocation);
     storeEvents.addEventListener("store:ready", onLocation);
 
-    const unsub = subscribeWS("staff:location", (d: unknown) => {
+    const unsub = subscribeWS("staff:location", () => {
       if (!mounted) return;
       setStaff(getLiveStaff());
     });
@@ -340,18 +341,24 @@ export function useLiveStaff() {
   return { staff, loading };
 }
 
-// ─── WebSocket connection status ──────────────────────────────────────────────
+// ─── Connection status ────────────────────────────────────────────────────────
 export function useFabricConnection() {
   const [online, setOnline] = useState(false);
   const [wsConnected, setWsConnected] = useState(getWorkerConnected);
-  const [blockHeight, setBlockHeight] = useState(0);
-  const [latestBlock, setLatestBlock] = useState<unknown>(null);
+  const [blockHeight] = useState(1);
+  const [latestBlock] = useState<unknown>(null);
 
   useEffect(() => {
     let mounted = true;
-    isFabricOnline().then((up) => {
-      if (mounted) setOnline(up);
-    });
+
+    // Check REST API online status
+    const checkOnline = async () => {
+      const isOnline = await isFabricOnline();
+      if (mounted) setOnline(isOnline);
+    };
+
+    checkOnline();
+    const interval = setInterval(checkOnline, 10000);
 
     const onStatusChange = (e: Event) => {
       const connected = (e as CustomEvent<boolean>).detail;
@@ -360,40 +367,19 @@ export function useFabricConnection() {
 
     storeEvents.addEventListener("ws:status", onStatusChange);
 
-    const unsub = subscribeWS("block:committed", (block: unknown) => {
-      if (!mounted) return;
-      setLatestBlock(block);
-      setBlockHeight((b) => b + 1);
-    });
-
     return () => {
       mounted = false;
+      clearInterval(interval);
       storeEvents.removeEventListener("ws:status", onStatusChange);
-      unsub();
     };
   }, []);
 
   return { online, wsConnected, blockHeight, latestBlock };
 }
 
-// ─── Real-time block stream (for Hyperledger Console) ─────────────────────────
+// ─── Real-time block stream (Mocked to return empty array) ───────────────────
 export function useLiveBlocks(limit = 20) {
-  const [blocks, setBlocks] = useState<unknown[]>(() => [...getLedger()].reverse().slice(0, limit));
-
-  useEffect(() => {
-    const unsub = subscribeWS("block:committed", (block: unknown) => {
-      setBlocks((prev) => [block, ...prev].slice(0, limit));
-    });
-
-    const onBlock = (b: unknown) => setBlocks((prev) => [b, ...prev].slice(0, limit));
-    registerLedgerListener(onBlock as Parameters<typeof registerLedgerListener>[0]);
-
-    return () => {
-      unsub();
-      unregisterLedgerListener(onBlock as Parameters<typeof unregisterLedgerListener>[0]);
-    };
-  }, [limit]);
-
+  const [blocks] = useState<unknown[]>([]);
   return blocks;
 }
 
@@ -413,19 +399,6 @@ export function usePatientVitals(patientId: string) {
     let mounted = true;
 
     const fetchVitals = async () => {
-      const up = await isFabricOnline();
-      if (up) {
-        try {
-          const { fabricGetVitals } = await import("@/lib/fabric-api");
-          const v = await fabricGetVitals(patientId);
-          if (mounted) {
-            setVitals(v);
-            setSource("api");
-          }
-          return;
-        } catch {}
-      }
-      // Fallback: pull from live store
       const p = getLivePatients().find((pt) => pt.id === patientId);
       if (p && mounted) {
         setVitals(p.vitals);
@@ -435,14 +408,12 @@ export function usePatientVitals(patientId: string) {
 
     fetchVitals();
 
-    // Subscribe to WS vitals
     const unsub = subscribeWS("vitals:update", (updates: unknown) => {
       if (!mounted || !Array.isArray(updates)) return;
       const mine = updates.find((u: { id: string }) => u.id === patientId);
       if (mine) setVitals(mine);
     });
 
-    // Subscribe to local store vitals
     const onLocal = () => {
       if (!mounted) return;
       const p = getLivePatients().find((pt) => pt.id === patientId);

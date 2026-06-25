@@ -2,27 +2,44 @@
  * Real-Time Hospital Data Store
  *
  * - Single source of truth for ALL live data
- * - Backed by Hyperledger Fabric simulation (localStorage persistence)
+ * - Backed by REST API & WebSocket synchronization
  * - Emits real-time events via custom EventTarget
- * - Auto-seeds patient/staff registry into blockchain on first load
- * - Generates cryptographically-valid DID cards for every entity
+ * - Handles local fallback when backend is offline
  */
 
-import {
-  seedInitialDIDs,
-  submitHyperledgerTransaction,
-  getDIDRegistry,
-  queryWorldState,
-  type DIDDocument,
-  type VerifiableCredential,
-} from "./hyperledger";
 import { generatePatients, type PatientFull } from "./mock-patients";
 import { generateStaff, type StaffMember } from "./mock-staff";
-import { isFabricOnline, FABRIC_BASE } from "./fabric-api";
+import { isFabricOnline } from "./fabric-api";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
+export interface DIDDocument {
+  did: string;
+  publicKey: string;
+  controller: string;
+  owner: string;
+  ownerType: "patient" | "staff" | "device" | "org";
+  status: "active" | "revoked" | "suspended";
+  credentials: VerifiableCredential[];
+  createdAt: string;
+  updatedAt: string;
+  serviceEndpoint?: string;
+  ownerEmail?: string | null;
+}
+
+export interface VerifiableCredential {
+  id: string;
+  type: "IdentityVC" | "InsuranceVC" | "VaccinationVC" | "ProfessionalVC" | "AccessVC";
+  issuer: string;
+  subject: string;
+  issuedAt: string;
+  expiresAt: string;
+  claims: Record<string, string>;
+  signature: string;
+  status: "active" | "expired" | "revoked";
+}
+
 export interface LivePatient extends PatientFull {
   didDocument: DIDDocument | null;
   activeCredentials: VerifiableCredential[];
@@ -58,7 +75,6 @@ export interface LiveAppointment {
   status: "confirmed" | "pending" | "cancelled" | "completed";
   bookedAt: string;
   blockTxId?: string;
-  blockNumber?: number;
 }
 
 export interface LiveTransaction {
@@ -83,13 +99,13 @@ export function emitStoreEvent(event: string, detail?: unknown) {
 }
 
 // ---------------------------------------------------------------------------
-// Base data (deterministic generation — same across all refreshes)
+// Base data
 // ---------------------------------------------------------------------------
 const _allPatients: PatientFull[] = generatePatients(500);
 const _allStaff: StaffMember[] = generateStaff(100);
 
 // ---------------------------------------------------------------------------
-// Real-time vital sign simulator
+// Real-time vital sign simulator (local fallback)
 // ---------------------------------------------------------------------------
 function generateVitals(seed: number) {
   const base = seed % 100;
@@ -102,7 +118,6 @@ function generateVitals(seed: number) {
   };
 }
 
-// Vitals fluctuate every 5 seconds
 const _vitals: Map<string, LivePatient["vitals"]> = new Map();
 
 function seedInitialVitals(patients: LivePatient[]) {
@@ -115,6 +130,7 @@ function seedInitialVitals(patients: LivePatient[]) {
 }
 
 function runVitalsTick() {
+  if (_wsConnected) return; // Use live WebSocket vitals when connected
   const inpatients = _livePatients.filter((p) => p.status === "inpatient").slice(0, 20);
   inpatients.forEach((p) => {
     const current = _vitals.get(p.id) ?? _vitals.get(p.did) ?? generateVitals(0);
@@ -132,7 +148,7 @@ function runVitalsTick() {
 }
 
 // ---------------------------------------------------------------------------
-// Staff Location Simulator
+// Staff Location Simulator (local fallback)
 // ---------------------------------------------------------------------------
 const LOCATIONS = [
   "OPD Room 3", "ICU Block B", "Emergency Ward", "Operation Theatre 2",
@@ -153,7 +169,8 @@ function initStaffLocations(staff: StaffMember[]) {
   });
 }
 
-async function runStaffTick() {
+function runStaffTick() {
+  if (_wsConnected) return; // Use live WebSocket locations when connected
   const onDuty = _liveStaff.filter((s) => s.onDuty);
   const idx = Math.floor(Math.random() * onDuty.length);
   const member = onDuty[idx];
@@ -175,14 +192,6 @@ async function runStaffTick() {
     lastSignal: now,
     beacon: `${70 + Math.floor(Math.random() * 30)}%`,
   });
-
-  // Record on chain (silently)
-  await submitHyperledgerTransaction(
-    "tracker-chaincode",
-    "reportTelemetry",
-    [member.did, member.name, newLoc, newStatus],
-    { silent: true }
-  );
 
   emitStoreEvent("staff:location:update", { memberId: member.id, location: newLoc, status: newStatus });
 }
@@ -246,87 +255,21 @@ function seedTransactions() {
 }
 
 // ---------------------------------------------------------------------------
-// Store initialization, Web Workers, & Leader Election
+// Store initialization & WebSocket sync
 // ---------------------------------------------------------------------------
 let _initialized = false;
 let _livePatients: LivePatient[] = [];
 let _liveStaff: LiveStaff[] = [];
-let _worker: Worker | null = null;
-let _workerConnected = false;
-let _tabId = "";
-let _isLeader = false;
-let _leaderChannel: BroadcastChannel | null = null;
-const _activeTabs = new Map<string, number>();
-let _heartbeatTimer: any = null;
+let _wsConnected = false;
+let _socket: WebSocket | null = null;
 
-function setupLeaderElection() {
-  if (typeof window === "undefined") return;
-  if (_tabId) return;
-
-  _tabId = "tab_" + Math.random().toString(36).slice(2, 10);
-  _activeTabs.set(_tabId, Date.now());
-
+function getDIDRegistry(): Record<string, DIDDocument> {
+  if (typeof window === "undefined") return {};
   try {
-    _leaderChannel = new BroadcastChannel("fabric_leader_election");
-    
-    _leaderChannel.onmessage = (event) => {
-      const { type, sender } = event.data;
-      if (type === "HEARTBEAT" && sender) {
-        _activeTabs.set(sender, Date.now());
-        runElection();
-      }
-    };
-  } catch (err) {
-    console.error("[Leader Election] BroadcastChannel not supported, fallback to single tab leader:", err);
-    _isLeader = true;
-    updateWorkerLeaderState();
-    return;
-  }
-
-  // Send initial heartbeat
-  sendHeartbeat();
-
-  // Heartbeat loop every 2 seconds
-  _heartbeatTimer = setInterval(() => {
-    sendHeartbeat();
-    runElection();
-  }, 2000);
-}
-
-function sendHeartbeat() {
-  if (_leaderChannel) {
-    _leaderChannel.postMessage({ type: "HEARTBEAT", sender: _tabId });
-  }
-}
-
-function runElection() {
-  const now = Date.now();
-  // Remove expired tabs (no heartbeat for 6 seconds)
-  for (const [id, lastTime] of _activeTabs.entries()) {
-    if (id !== _tabId && now - lastTime > 6000) {
-      _activeTabs.delete(id);
-    }
-  }
-
-  // Elect alphabetically lowest tab ID
-  const allIds = Array.from(_activeTabs.keys()).sort();
-  const lowestId = allIds[0];
-  const newLeader = lowestId === _tabId;
-
-  if (newLeader !== _isLeader) {
-    _isLeader = newLeader;
-    console.log(`[Leader Election] Tab ${_tabId} status: ${ _isLeader ? "LEADER" : "FOLLOWER" } (Active tabs: ${allIds.join(", ")})`);
-    updateWorkerLeaderState();
-    emitStoreEvent("tab:leader:change", _isLeader);
-  }
-}
-
-function updateWorkerLeaderState() {
-  if (_worker) {
-    _worker.postMessage({
-      type: "SET_LEADER",
-      payload: { isLeader: _isLeader },
-    });
+    const raw = localStorage.getItem("hl:didregistry");
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
   }
 }
 
@@ -342,10 +285,10 @@ export function rebuildLiveListsFromRegistry() {
   const staffTemp: LiveStaff[] = [];
 
   Object.keys(registry).forEach((did) => {
-    const doc = registry[did] as any;
+    const doc = registry[did];
     if (!doc) return;
-    const name = doc.owner || doc.subject || "Unknown";
-    const type = doc.ownerType || doc.type || "patient";
+    const name = doc.owner || "Unknown";
+    const type = doc.ownerType || "patient";
 
     if (type === "patient") {
       const seed = Math.abs(hashInt(did));
@@ -353,30 +296,30 @@ export function rebuildLiveListsFromRegistry() {
         id: `pat_${seed.toString().slice(0, 4)}`,
         did: did,
         name: name,
-        mrn: doc.mrn || doc.credentials?.find((c: any) => c.type === "IdentityVC" || c.claims?.mrn)?.claims?.mrn || `MRN-${200000 + (seed % 100000)}`,
-        age: doc.age ? Number(doc.age) : (18 + (seed % 70)),
-        gender: doc.gender || (seed % 2 === 0 ? "M" : "F"),
-        bloodGroup: (doc.bloodGroup || doc.credentials?.find((c: any) => c.type === "IdentityVC" || c.claims?.bloodGroup)?.claims?.bloodGroup || "O+") as any,
-        allergies: doc.allergies || [],
-        phone: doc.phone || `+91 9${seed.toString().slice(0, 9).padEnd(9, "0")}`,
-        email: doc.ownerEmail || doc.email || `${name.toLowerCase().replace(/\s+/g, ".")}@email.com`,
-        address: doc.address || `${100 + (seed % 900)}, Landmark Street, Mumbai`,
-        dob: doc.dob || `${1950 + (18 + (seed % 70))}-01-01`,
-        ward: doc.ward || "General Ward",
-        bed: doc.bed || `B-${seed % 100}`,
-        admitDate: doc.admitDate || new Date().toISOString().slice(0, 10),
-        status: doc.status || "outpatient",
-        primaryDoctor: doc.primaryDoctor || "Dr. Ravi Menon",
-        conditions: doc.conditions || [],
-        insuranceProvider: doc.insuranceProvider || "None",
-        insurancePolicyNo: doc.insurancePolicyNo || "",
-        emergencyContact: doc.emergencyContact || { name: "Guardian", relation: "Spouse", phone: "" },
-        organDonor: doc.organDonor || false,
-        nationality: doc.nationality || "Indian",
-        totalVisits: doc.totalVisits || (1 + (seed % 10)),
-        outstandingBills: doc.outstandingBills !== undefined ? doc.outstandingBills : (seed % 3 === 0 ? (seed % 15) * 1200 : 0),
+        mrn: doc.ownerEmail || `MRN-${200000 + (seed % 100000)}`,
+        age: 18 + (seed % 70),
+        gender: seed % 2 === 0 ? "M" : "F",
+        bloodGroup: "O+",
+        allergies: [],
+        phone: `+91 9${seed.toString().slice(0, 9).padEnd(9, "0")}`,
+        email: doc.ownerEmail || `${name.toLowerCase().replace(/\s+/g, ".")}@email.com`,
+        address: `${100 + (seed % 900)}, Landmark Street, Mumbai`,
+        dob: `${1950 + (18 + (seed % 70))}-01-01`,
+        ward: "General Ward",
+        bed: `B-${seed % 100}`,
+        admitDate: new Date().toISOString().slice(0, 10),
+        status: "outpatient",
+        primaryDoctor: "Dr. Ravi Menon",
+        conditions: [],
+        insuranceProvider: "None",
+        insurancePolicyNo: "",
+        emergencyContact: { name: "Guardian", relation: "Spouse", phone: "" },
+        organDonor: false,
+        nationality: "Indian",
+        totalVisits: 1 + (seed % 10),
+        outstandingBills: 0,
         didDocument: doc,
-        activeCredentials: doc.credentials?.filter((c: any) => c.status === "active") ?? [],
+        activeCredentials: doc.credentials?.filter((c) => c.status === "active") ?? [],
         isOnChain: true,
         lastActivity: new Date().toLocaleString("en-IN"),
         vitals: _vitals.get(did) ?? { heartRate: 72, bp: "120/80", spo2: 98, temp: 36.6, respRate: 16 }
@@ -387,20 +330,20 @@ export function rebuildLiveListsFromRegistry() {
         id: `staff_${seed.toString().slice(0, 4)}`,
         did: did,
         name: name,
-        employeeId: doc.employeeId || `EMP-${1000 + (seed % 10000)}`,
-        role: doc.role || (doc.ownerType === "staff" || doc.type === "staff" ? "Nurse" : (doc.ownerType || doc.type)) as any,
-        department: doc.department || "General Medicine",
-        specialty: doc.specialty || "General Medicine",
-        email: doc.ownerEmail || doc.email || `${name.toLowerCase().replace(/\s+/g, ".")}@apollohospitals.in`,
-        phone: doc.phone || `+91 9${seed.toString().slice(0, 9).padEnd(9, "0")}`,
-        shift: doc.shift || "morning",
-        onDuty: doc.onDuty !== undefined ? doc.onDuty : true,
-        joinedDate: doc.joinedDate || new Date().toISOString().slice(0, 10),
-        status: (doc.status === "active" ? "active" : "inactive") as any,
+        employeeId: `EMP-${1000 + (seed % 10000)}`,
+        role: (doc.ownerType === "staff" ? "Nurse" : doc.ownerType) as any,
+        department: "General Medicine",
+        specialty: "General Medicine",
+        email: doc.ownerEmail || `${name.toLowerCase().replace(/\s+/g, ".")}@apollohospitals.in`,
+        phone: `+91 9${seed.toString().slice(0, 9).padEnd(9, "0")}`,
+        shift: "morning",
+        onDuty: true,
+        joinedDate: new Date().toISOString().slice(0, 10),
+        status: "active",
         credentials: doc.credentials?.length || 0,
-        patientsToday: doc.patientsToday || 0,
+        patientsToday: 0,
         didDocument: doc,
-        activeCredentials: doc.credentials?.filter((c: any) => c.status === "active") ?? [],
+        activeCredentials: doc.credentials?.filter((c) => c.status === "active") ?? [],
         isOnChain: true,
         currentLocation: _staffLocations.get(did)?.location ?? "Nursing Station",
         lastSignal: _staffLocations.get(did)?.lastSignal ?? new Date().toLocaleTimeString("en-IN"),
@@ -495,12 +438,57 @@ function handleStoreWebSocketMessage(event: string, data: any) {
   }
 }
 
-export function getWorkerConnected(): boolean {
-  return _workerConnected;
+function setupWebSocket() {
+  if (typeof window === "undefined") return;
+  if (_socket && _socket.readyState < 2) return;
+
+  const wsUrl = "ws://localhost:3001";
+  try {
+    const socket = new WebSocket(wsUrl);
+    _socket = socket;
+
+    socket.onopen = () => {
+      _wsConnected = true;
+      storeEvents.dispatchEvent(new CustomEvent("ws:status", { detail: true }));
+      // Fetch initial registry from backend
+      import("./fabric-api").then(({ fabricGetAllDIDs }) => {
+        fabricGetAllDIDs().then(({ dids }) => {
+          const registry: Record<string, DIDDocument> = {};
+          dids.forEach((d: any) => {
+            registry[d.did] = d;
+          });
+          localStorage.setItem("hl:didregistry", JSON.stringify(registry));
+          rebuildLiveListsFromRegistry();
+          emitStoreEvent("store:ready");
+        }).catch(() => {});
+      });
+    };
+
+    socket.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data);
+        storeEvents.dispatchEvent(new CustomEvent("ws:message", { detail: msg }));
+        handleStoreWebSocketMessage(msg.event, msg.data);
+      } catch (err) {
+        // Silently capture parsing errors
+      }
+    };
+
+    socket.onclose = () => {
+      _wsConnected = false;
+      storeEvents.dispatchEvent(new CustomEvent("ws:status", { detail: false }));
+      _socket = null;
+      setTimeout(setupWebSocket, 5000); // Reconnect after 5 seconds
+    };
+  } catch (err) {
+    _socket = null;
+    _wsConnected = false;
+    setTimeout(setupWebSocket, 5000);
+  }
 }
 
-export function isTabLeader(): boolean {
-  return _isLeader;
+export function getWorkerConnected(): boolean {
+  return _wsConnected;
 }
 
 export async function initializeStore(): Promise<void> {
@@ -509,69 +497,7 @@ export async function initializeStore(): Promise<void> {
 
   console.log("[Store] Initializing real-time hospital data store…");
 
-  // Seed DIDs into blockchain (only on first run)
-  await seedInitialDIDs(
-    _allPatients.slice(0, 50).map((p) => ({ id: p.id, name: p.name, did: p.did })),
-    _allStaff.slice(0, 30).map((s) => ({ id: s.id, name: s.name, did: s.did, role: s.role }))
-  );
-
-  const registry = getDIDRegistry();
-
-  // Sync from server if online
-  const online = await isFabricOnline();
-  if (online) {
-    try {
-      const { fabricGetAllDIDs, fabricGetAppointments, fabricGetNamespace } = await import("./fabric-api");
-      
-      // 1. Sync DIDs
-      const { dids } = await fabricGetAllDIDs();
-      dids.forEach((d: any) => {
-        if (d && d.did) registry[d.did] = d;
-      });
-      localStorage.setItem("hl:didregistry", JSON.stringify(registry));
-
-      // 2. Sync Appointments
-      const { appointments } = await fabricGetAppointments();
-      appointments.forEach((appt: any) => {
-        if (appt && appt.apptId) {
-          _appointments.set(appt.apptId, {
-            id: appt.apptId,
-            patientDid: appt.patientDid,
-            patientName: appt.patientName,
-            doctorDid: appt.doctorDid,
-            doctorName: appt.doctorName,
-            specialty: appt.specialty || "General Medicine",
-            slot: appt.slot,
-            mode: appt.mode,
-            status: appt.status || "confirmed",
-            bookedAt: appt.bookedAt ? new Date(appt.bookedAt).toLocaleString("en-IN") : new Date().toLocaleString("en-IN"),
-          });
-        }
-      });
-
-      // 3. Sync Billing transactions
-      const payments = await fabricGetNamespace("billing");
-      payments.forEach((p: any) => {
-        const tx = p.value;
-        if (tx && tx.ref) {
-          _transactions.set(tx.txId || tx.ref, {
-            id: tx.txId || tx.ref,
-            patientDid: tx.patientDid,
-            patientName: tx.patientName,
-            amount: tx.amount,
-            category: tx.category,
-            status: tx.status === "settled" ? "paid" : "outstanding",
-            date: tx.settledAt ? new Date(tx.settledAt).toLocaleDateString("en-IN") : new Date().toLocaleDateString("en-IN"),
-            reference: tx.ref,
-          });
-        }
-      });
-    } catch (err) {
-      console.warn("⚠️ Failed to sync live store state from Fabric server:", err);
-    }
-  }
-
-  // Build live records dynamically from DID Registry
+  // Rebuild lists from localStorage cache first
   rebuildLiveListsFromRegistry();
 
   // Initialize sub-systems
@@ -580,47 +506,12 @@ export async function initializeStore(): Promise<void> {
   seedTransactions();
   seedInitialVitals(_livePatients);
 
-  // Setup Leader Election & Web Worker
-  if (typeof window !== "undefined") {
-    setupLeaderElection();
+  // Setup WS connection
+  setupWebSocket();
 
-    _worker = new Worker(new URL("./fabric-worker.ts", import.meta.url), {
-      type: "module",
-    });
-
-    _worker.onmessage = (event) => {
-      const { type, payload } = event.data;
-
-      switch (type) {
-        case "WS_STATUS":
-          _workerConnected = payload.connected;
-          emitStoreEvent("ws:status", _workerConnected);
-          break;
-
-        case "WS_MESSAGE":
-          handleStoreWebSocketMessage(payload.event, payload.data);
-          emitStoreEvent("ws:message", payload);
-          break;
-
-        case "SIMULATE_VITALS_TICK":
-          runVitalsTick();
-          break;
-
-        case "SIMULATE_STAFF_TICK":
-          runStaffTick();
-          break;
-      }
-    };
-
-    // Send init config to worker
-    _worker.postMessage({
-      type: "INIT",
-      payload: {
-        isLeader: _isLeader,
-        wsUrl: FABRIC_BASE.replace("http", "ws"),
-      },
-    });
-  }
+  // Run local backup simulators when WebSocket is disconnected
+  setInterval(runVitalsTick, 5000);
+  setInterval(runStaffTick, 8000);
 
   emitStoreEvent("store:ready");
   console.log("[Store] Ready ✓");
@@ -677,7 +568,7 @@ export function getPatientByMRN(mrn: string): LivePatient | null {
 }
 
 // ---------------------------------------------------------------------------
-// Appointment booking (records on blockchain)
+// Appointment booking
 // ---------------------------------------------------------------------------
 export async function bookAppointment(
   patient: LivePatient,
@@ -689,11 +580,23 @@ export async function bookAppointment(
 ): Promise<LiveAppointment> {
   const apptId = `appt_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 
-  const proposal = await submitHyperledgerTransaction(
-    "appointments-chaincode",
-    "createAppointment",
-    [apptId, patient.did, doctorDid, slot, mode]
-  );
+  const online = await isFabricOnline();
+  if (online) {
+    try {
+      const { fabricBookAppointment } = await import("./fabric-api");
+      await fabricBookAppointment({
+        patientDid: patient.did,
+        patientName: patient.name,
+        doctorDid,
+        doctorName,
+        slot,
+        mode,
+        specialty,
+      });
+    } catch (err) {
+      console.warn("Backend book appointment failed:", err);
+    }
+  }
 
   const appt: LiveAppointment = {
     id: apptId,
@@ -706,7 +609,6 @@ export async function bookAppointment(
     mode,
     status: "confirmed",
     bookedAt: new Date().toLocaleString("en-IN"),
-    blockTxId: proposal.txId,
   };
 
   _appointments.set(apptId, appt);
@@ -715,7 +617,7 @@ export async function bookAppointment(
 }
 
 // ---------------------------------------------------------------------------
-// Payment recording (records on blockchain)
+// Payment recording
 // ---------------------------------------------------------------------------
 export async function recordPayment(
   patient: LivePatient,
@@ -724,14 +626,20 @@ export async function recordPayment(
 ): Promise<LiveTransaction> {
   const ref = `REF-${Date.now().toString(36).toUpperCase()}`;
 
-  const proposal = await submitHyperledgerTransaction(
-    "billing-chaincode",
-    "recordPayment",
-    [patient.did, patient.name, String(amount), category, ref]
-  );
+  const online = await isFabricOnline();
+  let txId = `tx_${Date.now()}_local`;
+  if (online) {
+    try {
+      const { fabricRecordPayment } = await import("./fabric-api");
+      const res = await fabricRecordPayment(patient.did, patient.name, amount, category) as any;
+      if (res && res.txId) txId = res.txId;
+    } catch (err) {
+      console.warn("Backend payment failed:", err);
+    }
+  }
 
   const tx: LiveTransaction = {
-    id: proposal.txId,
+    id: txId,
     patientDid: patient.did,
     patientName: patient.name,
     amount,
@@ -739,7 +647,6 @@ export async function recordPayment(
     status: "paid",
     date: new Date().toLocaleDateString("en-IN"),
     reference: ref,
-    blockTxId: proposal.txId,
   };
 
   _transactions.set(tx.id, tx);

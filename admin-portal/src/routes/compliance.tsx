@@ -46,7 +46,7 @@ const frameworks: Framework[] = [
     controls: [
       { id: "h1", name: "Encryption at Rest (AES-256)", status: "compliant", description: "All PHI stored with AES-256 encryption", lastChecked: "2026-06-01", evidence: "Encryption audit report Q2-2026" },
       { id: "h2", name: "Access Controls & RBAC", status: "compliant", description: "Role-based access enforced via DID credentials", lastChecked: "2026-06-01", evidence: "DID RBAC attestation" },
-      { id: "h3", name: "Audit Logging", status: "compliant", description: "Immutable audit logs on Hyperledger Fabric", lastChecked: "2026-06-01", evidence: "Blockchain audit trail" },
+      { id: "h3", name: "Audit Logging", status: "compliant", description: "Immutable audit logs on secure registry", lastChecked: "2026-06-01", evidence: "Secure audit trail" },
       { id: "h4", name: "Breach Notification (72h)", status: "compliant", description: "Automated breach detection and notification workflow", lastChecked: "2026-05-15", evidence: "Incident response test #IR-22" },
       { id: "h5", name: "Business Associate Agreements", status: "compliant", description: "All third-party BAAs signed and current", lastChecked: "2026-04-20" },
       { id: "h6", name: "Minimum Necessary Standard", status: "partial", description: "Data access scope review in progress for lab module", lastChecked: "2026-05-28" },
@@ -238,7 +238,7 @@ function CompliancePage() {
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="grid gap-4 sm:grid-cols-3">
           {[
             { icon: Lock, label: "Encryption", val: "AES-256 + TLS 1.3 + Ed25519 DID", color: "text-primary" },
-            { icon: Eye, label: "Access Audit", val: "100% of accesses logged on Hyperledger", color: "text-chart-2" },
+            { icon: Eye, label: "Access Audit", val: "100% of accesses logged on Secure Registry", color: "text-chart-2" },
             { icon: Users, label: "Consent", val: "Verifiable Credentials — machine-readable", color: "text-success" },
             { icon: Database, label: "Data Residency", val: "India region only (Mumbai AZ)", color: "text-chart-4" },
             { icon: Trash2, label: "Data Deletion", val: "Right-to-erasure within 72 hours", color: "text-destructive" },

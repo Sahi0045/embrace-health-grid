@@ -146,7 +146,7 @@ function PatientZkProofPage() {
       <PageHeader
         eyebrow="Privacy"
         title="Zero-Knowledge Proof"
-        description="Prove facts about your identity to care providers without revealing your full medical record — powered by Groth16 on Hyperledger Fabric."
+        description="Prove facts about your identity to care providers without revealing your full medical record — powered by Groth16 zk-SNARKs."
         actions={
           <div className="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary">
             <Zap className="h-3.5 w-3.5" />
@@ -169,7 +169,7 @@ function PatientZkProofPage() {
               <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
                 A ZKP lets you <strong className="text-foreground">prove a fact</strong> (e.g. "my
                 blood group is B+") without revealing any other information. The proof is anchored
-                immutably on the Hyperledger Fabric ledger. Care providers scan your proof QR — they
+                immutably on the secure decentralized ledger. Care providers scan your proof QR — they
                 see only what you choose to share.
               </p>
               <div className="mt-3 grid grid-cols-3 gap-2 text-center text-[10px]">

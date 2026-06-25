@@ -15,7 +15,6 @@ import { Route as PoliciesRouteImport } from './routes/policies'
 import { Route as PeopleRouteImport } from './routes/people'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as InfrastructureRouteImport } from './routes/infrastructure'
-import { Route as HyperledgerRouteImport } from './routes/hyperledger'
 import { Route as FraudRouteImport } from './routes/fraud'
 import { Route as FinancialRouteImport } from './routes/financial'
 import { Route as FederationRouteImport } from './routes/federation'
@@ -24,7 +23,6 @@ import { Route as DidsRouteImport } from './routes/dids'
 import { Route as CredentialsRouteImport } from './routes/credentials'
 import { Route as ComplianceRouteImport } from './routes/compliance'
 import { Route as CommandRouteImport } from './routes/command'
-import { Route as ChaincodeRouteImport } from './routes/chaincode'
 import { Route as AuditRouteImport } from './routes/audit'
 import { Route as AttendanceRouteImport } from './routes/attendance'
 import { Route as IndexRouteImport } from './routes/index'
@@ -57,11 +55,6 @@ const LoginRoute = LoginRouteImport.update({
 const InfrastructureRoute = InfrastructureRouteImport.update({
   id: '/infrastructure',
   path: '/infrastructure',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const HyperledgerRoute = HyperledgerRouteImport.update({
-  id: '/hyperledger',
-  path: '/hyperledger',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FraudRoute = FraudRouteImport.update({
@@ -104,11 +97,6 @@ const CommandRoute = CommandRouteImport.update({
   path: '/command',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ChaincodeRoute = ChaincodeRouteImport.update({
-  id: '/chaincode',
-  path: '/chaincode',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AuditRoute = AuditRouteImport.update({
   id: '/audit',
   path: '/audit',
@@ -129,7 +117,6 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/attendance': typeof AttendanceRoute
   '/audit': typeof AuditRoute
-  '/chaincode': typeof ChaincodeRoute
   '/command': typeof CommandRoute
   '/compliance': typeof ComplianceRoute
   '/credentials': typeof CredentialsRoute
@@ -138,7 +125,6 @@ export interface FileRoutesByFullPath {
   '/federation': typeof FederationRoute
   '/financial': typeof FinancialRoute
   '/fraud': typeof FraudRoute
-  '/hyperledger': typeof HyperledgerRoute
   '/infrastructure': typeof InfrastructureRoute
   '/login': typeof LoginRoute
   '/people': typeof PeopleRoute
@@ -150,7 +136,6 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/attendance': typeof AttendanceRoute
   '/audit': typeof AuditRoute
-  '/chaincode': typeof ChaincodeRoute
   '/command': typeof CommandRoute
   '/compliance': typeof ComplianceRoute
   '/credentials': typeof CredentialsRoute
@@ -159,7 +144,6 @@ export interface FileRoutesByTo {
   '/federation': typeof FederationRoute
   '/financial': typeof FinancialRoute
   '/fraud': typeof FraudRoute
-  '/hyperledger': typeof HyperledgerRoute
   '/infrastructure': typeof InfrastructureRoute
   '/login': typeof LoginRoute
   '/people': typeof PeopleRoute
@@ -172,7 +156,6 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/attendance': typeof AttendanceRoute
   '/audit': typeof AuditRoute
-  '/chaincode': typeof ChaincodeRoute
   '/command': typeof CommandRoute
   '/compliance': typeof ComplianceRoute
   '/credentials': typeof CredentialsRoute
@@ -181,7 +164,6 @@ export interface FileRoutesById {
   '/federation': typeof FederationRoute
   '/financial': typeof FinancialRoute
   '/fraud': typeof FraudRoute
-  '/hyperledger': typeof HyperledgerRoute
   '/infrastructure': typeof InfrastructureRoute
   '/login': typeof LoginRoute
   '/people': typeof PeopleRoute
@@ -195,7 +177,6 @@ export interface FileRouteTypes {
     | '/'
     | '/attendance'
     | '/audit'
-    | '/chaincode'
     | '/command'
     | '/compliance'
     | '/credentials'
@@ -204,7 +185,6 @@ export interface FileRouteTypes {
     | '/federation'
     | '/financial'
     | '/fraud'
-    | '/hyperledger'
     | '/infrastructure'
     | '/login'
     | '/people'
@@ -216,7 +196,6 @@ export interface FileRouteTypes {
     | '/'
     | '/attendance'
     | '/audit'
-    | '/chaincode'
     | '/command'
     | '/compliance'
     | '/credentials'
@@ -225,7 +204,6 @@ export interface FileRouteTypes {
     | '/federation'
     | '/financial'
     | '/fraud'
-    | '/hyperledger'
     | '/infrastructure'
     | '/login'
     | '/people'
@@ -237,7 +215,6 @@ export interface FileRouteTypes {
     | '/'
     | '/attendance'
     | '/audit'
-    | '/chaincode'
     | '/command'
     | '/compliance'
     | '/credentials'
@@ -246,7 +223,6 @@ export interface FileRouteTypes {
     | '/federation'
     | '/financial'
     | '/fraud'
-    | '/hyperledger'
     | '/infrastructure'
     | '/login'
     | '/people'
@@ -259,7 +235,6 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AttendanceRoute: typeof AttendanceRoute
   AuditRoute: typeof AuditRoute
-  ChaincodeRoute: typeof ChaincodeRoute
   CommandRoute: typeof CommandRoute
   ComplianceRoute: typeof ComplianceRoute
   CredentialsRoute: typeof CredentialsRoute
@@ -268,7 +243,6 @@ export interface RootRouteChildren {
   FederationRoute: typeof FederationRoute
   FinancialRoute: typeof FinancialRoute
   FraudRoute: typeof FraudRoute
-  HyperledgerRoute: typeof HyperledgerRoute
   InfrastructureRoute: typeof InfrastructureRoute
   LoginRoute: typeof LoginRoute
   PeopleRoute: typeof PeopleRoute
@@ -319,13 +293,6 @@ declare module '@tanstack/react-router' {
       path: '/infrastructure'
       fullPath: '/infrastructure'
       preLoaderRoute: typeof InfrastructureRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/hyperledger': {
-      id: '/hyperledger'
-      path: '/hyperledger'
-      fullPath: '/hyperledger'
-      preLoaderRoute: typeof HyperledgerRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/fraud': {
@@ -384,13 +351,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CommandRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/chaincode': {
-      id: '/chaincode'
-      path: '/chaincode'
-      fullPath: '/chaincode'
-      preLoaderRoute: typeof ChaincodeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/audit': {
       id: '/audit'
       path: '/audit'
@@ -419,7 +379,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AttendanceRoute: AttendanceRoute,
   AuditRoute: AuditRoute,
-  ChaincodeRoute: ChaincodeRoute,
   CommandRoute: CommandRoute,
   ComplianceRoute: ComplianceRoute,
   CredentialsRoute: CredentialsRoute,
@@ -428,7 +387,6 @@ const rootRouteChildren: RootRouteChildren = {
   FederationRoute: FederationRoute,
   FinancialRoute: FinancialRoute,
   FraudRoute: FraudRoute,
-  HyperledgerRoute: HyperledgerRoute,
   InfrastructureRoute: InfrastructureRoute,
   LoginRoute: LoginRoute,
   PeopleRoute: PeopleRoute,

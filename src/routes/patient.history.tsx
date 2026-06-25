@@ -79,7 +79,7 @@ function History() {
   ).map((e, i) => ({
     id: e.txId ?? `fab_${i}`,
     actor: e.actor ?? "System",
-    actorRole: "Fabric Actor",
+    actorRole: "System Actor",
     resource: e.resource ?? "—",
     action: (e.action?.split(" ")[0]?.toLowerCase() ?? "viewed") as AccessAction,
     at: e.loggedAt ? new Date(e.loggedAt).toLocaleString("en-IN") : "—",
@@ -161,13 +161,13 @@ function History() {
           <div className="flex items-center gap-2">
             <span className="flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-semibold text-primary">
               <Fingerprint className="h-3 w-3" />
-              Hyperledger Fabric
+              Secure Registry
             </span>
             <span
               className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold ${online ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"}`}
             >
               {online ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
-              {online ? "Fabric Live" : "Local Sim"}
+              {online ? "API Live" : "Local Sim"}
             </span>
             <button
               onClick={refetch}
@@ -214,7 +214,7 @@ function History() {
             <div className="text-sm font-semibold text-foreground">DID-Protected Audit Log</div>
             <div className="mt-0.5 text-xs text-muted-foreground">
               Every access event is cryptographically signed and immutably recorded on the
-              Hyperledger Fabric ledger. You can dispute any unauthorized access using the "Report"
+              Secure Audit ledger. You can dispute any unauthorized access using the "Report"
               button.
             </div>
           </div>

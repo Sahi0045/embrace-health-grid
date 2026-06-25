@@ -30,7 +30,6 @@ import { toast } from "sonner";
 import {
   fabricSignPrescription,
   fabricLogAuditEvent,
-  isFabricOnline,
   fabricRequestConsent,
 } from "@/lib/fabric-api";
 
@@ -302,11 +301,10 @@ function SignPage() {
   const [signing, setSigning] = useState(false);
   const [signedBlock, setSignedBlock] = useState<{
     rxId: string;
-    blockNumber: number;
+    blockNumber?: number;
     txId: string;
     hash: string;
   } | null>(null);
-  const [fabricOnline, setFabricOnline] = useState<boolean | null>(null);
   const [patient] = useState({
     name: "Anika Sharma",
     mrn: "MRN-204871",
@@ -377,56 +375,38 @@ function SignPage() {
     setSigning(true);
 
     try {
-      const online = await isFabricOnline();
-      setFabricOnline(online);
-
-      if (online) {
-        // Real Fabric commit
-        const result = await fabricSignPrescription({
-          patientDid: patient.did,
-          doctorDid: "did:hosp:0xd103…99aa",
-          drugs: drugs.map((d) => ({
-            name: d.name,
-            dose: d.dose,
-            frequency: d.frequency,
-            duration: d.duration,
-            instructions: d.instructions,
-          })),
-          diagnosis,
-          notes,
-          signedBy: "Dr. Ravi Menon",
-        });
-        const res = result as { rxId: string; blockNumber: number; txId: string };
-        setSignedBlock({
-          rxId: res.rxId,
-          blockNumber: res.blockNumber,
-          txId: res.txId,
-          hash: `sha256:${res.txId.slice(0, 16)}…`,
-        });
-        await fabricLogAuditEvent(
-          "Dr. Ravi Menon",
-          `Prescription ${res.rxId}`,
-          "signed",
-          "success",
-          "info",
-        ).catch(() => {});
-        toast.success(`Prescription ${res.rxId} signed & committed`, {
-          description: `Block #${res.blockNumber} · Ed25519 · Fabric Ledger`,
-        });
-      } else {
-        // Fallback: simulate local signing
-        await new Promise((r) => setTimeout(r, 1800));
-        const rxId = `PR-${Date.now().toString(36).toUpperCase()}`;
-        setSignedBlock({
-          rxId,
-          blockNumber: 1285044 + Math.floor(Math.random() * 100),
-          txId: `tx_${Date.now().toString(16)}`,
-          hash: `sha256:${Math.random().toString(36).slice(2)}`,
-        });
-        toast.success(`${rxId} signed (local simulation)`, {
-          description: `Ed25519 signature · localStorage ledger`,
-        });
-      }
+      // Local signing path using the stubbed Fabric API surface.
+      const result = await fabricSignPrescription({
+        patientDid: patient.did,
+        doctorDid: "did:hosp:0xd103…99aa",
+        drugs: drugs.map((d) => ({
+          name: d.name,
+          dose: d.dose,
+          frequency: d.frequency,
+          duration: d.duration,
+          instructions: d.instructions,
+        })),
+        diagnosis,
+        notes,
+        signedBy: "Dr. Ravi Menon",
+      });
+      const res = result as { rxId: string; txId: string; blockNumber?: number };
+      setSignedBlock({
+        rxId: res.rxId,
+        blockNumber: res.blockNumber,
+        txId: res.txId,
+        hash: `sha256:${res.txId.slice(0, 16)}…`,
+      });
+      await fabricLogAuditEvent(
+        "Dr. Ravi Menon",
+        `Prescription ${res.rxId}`,
+        "signed",
+        "success",
+        "info",
+      ).catch(() => {});
+      toast.success(`Prescription ${res.rxId} signed & committed`, {
+        description: `Tx: ${res.txId.slice(0, 8)} · Ed25519 · Local Ledger`,
+      });
       setSigned(true);
     } catch (err) {
       toast.error("Signing failed", { description: String(err) });
@@ -735,23 +715,16 @@ function SignPage() {
                     Signed & Anchored
                   </div>
                   <div className="mt-1 font-mono text-[11px] text-muted-foreground">
-                    {signedBlock?.rxId} · Block #{signedBlock?.blockNumber?.toLocaleString()}
+                    {signedBlock?.rxId} {signedBlock?.blockNumber ? `· Block #${signedBlock.blockNumber.toLocaleString()}` : ""}
                   </div>
                   <div className="mt-1 text-[11px] text-muted-foreground">
                     Ed25519 · {new Date().toLocaleString("en-IN")}
                   </div>
                   <div className="mt-1.5 flex items-center justify-center gap-1.5">
-                    {fabricOnline ? (
-                      <span className="flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-semibold text-success">
-                        <Wifi className="h-2.5 w-2.5" />
-                        Fabric Ledger
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                        <WifiOff className="h-2.5 w-2.5" />
-                        Local Ledger
-                      </span>
-                    )}
+                    <span className="flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-semibold text-success">
+                      <Wifi className="h-2.5 w-2.5" />
+                      Local Ledger
+                    </span>
                   </div>
                   <div className="mt-1 font-mono text-[10px] text-muted-foreground/60 truncate">
                     {signedBlock?.txId}

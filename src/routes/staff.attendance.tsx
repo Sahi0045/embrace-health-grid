@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { RouteGuard } from "@/components/RouteGuard";
 import { PageHeader, StatCard } from "@/components/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { myAttendanceHistory } from "@/lib/attendance-data";
 import { toast } from "sonner";
+import { fabricGetAttendance, fabricClockAttendance } from "@/lib/fabric-api";
 
 export const Route = createFileRoute("/staff/attendance")({
   head: () => ({
@@ -21,18 +22,73 @@ export const Route = createFileRoute("/staff/attendance")({
 });
 
 function StaffAttendance() {
-  const [clockedIn, setClockedIn] = useState(true);  // Dr. Menon already clocked in
-  const [checkInTime] = useState("07:52");
+  const [clockedIn, setClockedIn] = useState(false);
+  const [checkInTime, setCheckInTime] = useState("08:00");
+  const [apiHistory, setApiHistory] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const now = new Date();
 
-  const handleClockIn = () => {
-    setClockedIn(true);
-    toast.success("Clocked in", { description: `${now.toLocaleTimeString()} — Have a great shift!` });
+  const userEmail = typeof window !== "undefined" ? localStorage.getItem("userEmail") || "" : "";
+
+  const fetchHistory = async () => {
+    if (!userEmail) {
+      setLoading(false);
+      return;
+    }
+    try {
+      const res = await fabricGetAttendance(userEmail);
+      const records = res.records || [];
+      setApiHistory(records);
+      
+      // Determine clocked in based on last record
+      if (records.length > 0) {
+        const sorted = [...records].sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+        const last = sorted[0];
+        if (last.action === "in") {
+          setClockedIn(true);
+          const inDate = new Date(last.timestamp);
+          setCheckInTime(inDate.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }));
+        } else {
+          setClockedIn(false);
+        }
+      }
+    } catch (err) {
+      console.warn("Could not load attendance from API, using local mock status:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleClockOut = () => {
-    setClockedIn(false);
-    toast("Clocked out", { description: `${now.toLocaleTimeString()} — See you next shift.` });
+  useEffect(() => {
+    fetchHistory();
+  }, [userEmail]);
+
+  const handleClockIn = async () => {
+    const timeStr = now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+    try {
+      await fabricClockAttendance({ action: "in", location: "Cardiology OPD" });
+      setClockedIn(true);
+      setCheckInTime(timeStr);
+      toast.success("Clocked in", { description: `${timeStr} — Have a great shift!` });
+      fetchHistory();
+    } catch (err: any) {
+      setClockedIn(true);
+      setCheckInTime(timeStr);
+      toast.success("Clocked in (offline mode)", { description: `${timeStr} — Have a great shift!` });
+    }
+  };
+
+  const handleClockOut = async () => {
+    const timeStr = now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+    try {
+      await fabricClockAttendance({ action: "out", location: "Cardiology OPD" });
+      setClockedIn(false);
+      toast("Clocked out", { description: `${timeStr} — See you next shift.` });
+      fetchHistory();
+    } catch (err: any) {
+      setClockedIn(false);
+      toast("Clocked out (offline mode)", { description: `${timeStr} — See you next shift.` });
+    }
   };
 
   const statusColor = (status: string) => {
@@ -48,6 +104,22 @@ function StaffAttendance() {
   const present  = myAttendanceHistory.filter(d => d.status === "present").length;
   const absent   = myAttendanceHistory.filter(d => d.status === "absent").length;
   const onLeave  = myAttendanceHistory.filter(d => d.status === "on-leave").length;
+
+  const displayHistory = [
+    ...apiHistory.map((rec) => {
+      const dt = new Date(rec.timestamp);
+      return {
+        day: dt.toLocaleDateString("en-IN", { weekday: "short" }),
+        date: dt.toLocaleDateString("en-IN", { day: "numeric", month: "short" }),
+        shift: "08:00–16:00",
+        checkIn: rec.action === "in" ? dt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "–",
+        checkOut: rec.action === "out" ? dt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "",
+        hours: rec.action === "out" ? "8h" : "–",
+        status: "present"
+      };
+    }),
+    ...myAttendanceHistory
+  ];
 
   return (
     <RouteGuard requiredRole="staff">
@@ -114,7 +186,8 @@ function StaffAttendance() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    {myAttendanceHistory.map((day, i) => (
+                    {loading && <div className="text-center py-4 text-sm text-muted-foreground animate-pulse">Loading attendance history...</div>}
+                    {displayHistory.map((day, i) => (
                       <div key={i} className="flex items-center justify-between rounded-lg border p-3">
                         <div className="flex items-center gap-3">
                           <div className="text-center w-10">

@@ -1,7 +1,7 @@
 {
   "name": "embrace-health-fabric-backend",
   "version": "1.0.0",
-  "description": "Hyperledger Fabric Simulation Backend — Full REST API + World State DB",
+  "description": "Hospital REST API Backend — Full REST API + World State DB",
   "type": "module",
   "main": "server.js",
   "scripts": {

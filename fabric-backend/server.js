@@ -1,6 +1,5 @@
 /**
- * Hyperledger Fabric Simulation Server
- * REST API + WebSocket real-time broadcast
+ * Express REST API + WebSocket Server (Clean, Database-Driven)
  * Port: 3001
  */
 
@@ -36,7 +35,6 @@ import * as solanaLib from "./lib/solana.js";
 
 const CLIENT_KEY = process.env.CLIENT_KEY || "apollo-consortium-client-secret-2026";
 
-// Client application verification middleware for public endpoints
 function requireClientAuth(req, res, next) {
   const clientKey = req.headers["x-client-key"];
   if (!clientKey || clientKey !== CLIENT_KEY) {
@@ -45,8 +43,6 @@ function requireClientAuth(req, res, next) {
   next();
 }
 
-
-// Manual basic .env loader to read from workspace root
 function loadEnv() {
   const envPath = join(process.cwd(), ".env");
   if (existsSync(envPath)) {
@@ -120,11 +116,9 @@ if (convexUrl && convexUrl !== "https://dummy-url.convex.cloud") {
   console.log("ℹ️ Convex URL not configured. Operating in local simulated storage mode.");
 }
 
-// ─── Convex Real-Time Synchronizer ───────────────────────────────────────────
 async function syncToConvex(namespace, key, value, txId) {
   if (!convexClient) return;
   try {
-    // Invoke mutations using string paths (fully compatible with ConvexHttpClient)
     switch (namespace) {
       case "did-registry":
         if (value.status === "revoked") {
@@ -235,7 +229,6 @@ async function syncToConvex(namespace, key, value, txId) {
   }
 }
 
-// Wrapped putState to intercept all chaincode/worldstate writes
 function putState(namespace, key, value, txId, version = "1") {
   const entry = dbPutState(namespace, key, value, txId, version);
   syncToConvex(namespace, key, value, txId).catch((err) => {
@@ -244,16 +237,11 @@ function putState(namespace, key, value, txId, version = "1") {
   return entry;
 }
 
-// ─── In-memory ledger (persisted per session) ────────────────────────────────
 const CHANNEL = "embrace-health-channel";
-const PEERS = ["Org1Peer0MSP", "Org1Peer1MSP", "Org2Peer0MSP"];
-const ORDERERS = ["raft-orderer-01a", "raft-orderer-02b"];
-let _ledger = [genesisBlock()];
-let _blockNumber = 1;
+const PEERS_COUNT = 3;
 
 const logAudit = createAuditHelper({
   putState,
-  commitBlock: (...args) => commitBlock(...args),
   broadcast,
   randomUUID,
   CHANNEL,
@@ -265,49 +253,6 @@ function simHash(s) {
   return Math.abs(h).toString(16).padStart(8, "0") + randomUUID().replace(/-/g, "").slice(0, 24);
 }
 
-function genesisBlock() {
-  return {
-    blockNumber: 0,
-    channelId: CHANNEL,
-    previousHash: "0".repeat(64),
-    dataHash: simHash("GENESIS_2026"),
-    transactions: [
-      {
-        txId: "genesis",
-        chaincode: "system",
-        fcn: "initLedger",
-        args: [],
-        status: "VALID",
-        timestamp: new Date().toISOString(),
-      },
-    ],
-    timestamp: new Date().toISOString(),
-    metadata: { orderer: ORDERERS[0], commitPeer: PEERS[0], consensusType: "etcdraft" },
-  };
-}
-
-function commitBlock(proposal) {
-  const prev = _ledger[_ledger.length - 1];
-  const block = {
-    blockNumber: _blockNumber++,
-    channelId: CHANNEL,
-    previousHash: prev.dataHash,
-    dataHash: simHash(JSON.stringify(proposal)),
-    transactions: [proposal],
-    timestamp: new Date().toISOString(),
-    metadata: {
-      orderer: ORDERERS[Math.floor(Math.random() * ORDERERS.length)],
-      commitPeer: PEERS[0],
-      consensusType: "etcdraft",
-    },
-  };
-  _ledger.push(block);
-  if (_ledger.length > 500) _ledger = _ledger.slice(-500);
-  broadcast({ event: "block:committed", data: block });
-  return block;
-}
-
-// ─── WebSocket broadcast ─────────────────────────────────────────────────────
 function broadcast(msg) {
   const text = JSON.stringify(msg);
   wss.clients.forEach((c) => {
@@ -319,7 +264,7 @@ wss.on("connection", (ws) => {
   ws.send(
     JSON.stringify({
       event: "connected",
-      data: { blockHeight: _ledger.length, peers: PEERS.length },
+      data: { blockHeight: 1, peers: PEERS_COUNT },
     }),
   );
   ws.on("error", () => {});
@@ -371,72 +316,15 @@ setInterval(async () => {
   broadcast({ event: "staff:location", data: { id, location: loc, lastSignal: now } });
 }, 8000);
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// REST ROUTES
-// ═══════════════════════════════════════════════════════════════════════════════
-
-// Health
+// ─── Health check ─────────────────────────────────────────────────────────────
 app.get("/health", (_, res) =>
   res.json({
     status: "ok",
-    blockHeight: _ledger.length,
-    peers: PEERS.length,
     time: new Date().toISOString(),
   }),
 );
 
-// ─── Ledger ──────────────────────────────────────────────────────────────────
-app.get("/api/ledger", requireAuth, (req, res) => {
-  const page = parseInt(req.query.page ?? "0");
-  const size = parseInt(req.query.size ?? "20");
-  const blocks = [..._ledger].reverse().slice(page * size, (page + 1) * size);
-  res.json({ blocks, total: _ledger.length, blockHeight: _ledger.length });
-});
-
-app.get("/api/ledger/stats", requireAuth, (_, res) => {
-  const txCount = _ledger.reduce((s, b) => s + b.transactions.length, 0);
-  res.json({
-    blockHeight: _ledger.length,
-    txCount,
-    peerCount: PEERS.length,
-    ordererCount: ORDERERS.length,
-    worldStateSize: getWorldStateSize(),
-    lastBlockTime: _ledger[_ledger.length - 1]?.timestamp,
-    throughputTps: parseFloat((txCount / Math.max(1, _ledger.length)).toFixed(2)),
-    channel: CHANNEL,
-  });
-});
-
-// ─── Transactions ─────────────────────────────────────────────────────────────
-app.post("/api/transaction", requireAuth, requireRole(["admin"]), async (req, res) => {
-  const { chaincode, fcn, args = [], creator = "Frontend" } = req.body;
-  if (!chaincode || !fcn) return res.status(400).json({ error: "chaincode and fcn required" });
-
-  await new Promise((r) => setTimeout(r, 300 + Math.random() * 400)); // simulate endorsement
-
-  const txId = `tx_${Date.now().toString(16)}_${randomUUID().slice(0, 8)}`;
-  const timestamp = new Date().toISOString();
-
-  // Apply to world state
-  applyChaincode(chaincode, fcn, args, txId, timestamp);
-
-  const proposal = {
-    txId,
-    chaincode,
-    channel: CHANNEL,
-    fcn,
-    args,
-    status: "VALID",
-    timestamp,
-    creator,
-    endorsers: [PEERS[0], PEERS[1]],
-  };
-  const block = commitBlock(proposal);
-
-  res.json({ txId, blockNumber: block.blockNumber, status: "COMMITTED", timestamp });
-});
-
-// ─── World State ──────────────────────────────────────────────────────────────
+// ─── World State API ──────────────────────────────────────────────────────────
 app.get("/api/worldstate", requireAuth, (_, res) => res.json(getAllWorldState()));
 app.get("/api/worldstate/:namespace", requireAuth, (req, res) => res.json(getAllState(req.params.namespace)));
 app.get("/api/worldstate/:namespace/:key", requireAuth, (req, res) => {
@@ -477,16 +365,6 @@ app.post("/api/did", requireAuth, requireRole(["admin"]), async (req, res) => {
     ...extraFields,
   };
   putState("did-registry", did, doc, txId);
-  const block = commitBlock({
-    txId,
-    chaincode: "did-registry",
-    fcn: "createDID",
-    args: [did, owner, ownerType],
-    status: "VALID",
-    timestamp: new Date().toISOString(),
-    channel: CHANNEL,
-    creator: "API",
-  });
 
   if (ownerEmail) {
     const userEntry = getState("users", ownerEmail);
@@ -497,7 +375,7 @@ app.post("/api/did", requireAuth, requireRole(["admin"]), async (req, res) => {
   }
 
   broadcast({ event: "did:created", data: doc });
-  res.json({ did, doc, blockNumber: block.blockNumber, txId });
+  res.json({ did, doc, txId });
 });
 
 app.patch("/api/did/:did/revoke", requireAuth, requireRole(["admin"]), (req, res) => {
@@ -533,18 +411,8 @@ app.post("/api/credential/issue", requireAuth, requireRole(["admin"]), async (re
   entry.value.updatedAt = new Date().toISOString();
   putState("did-registry", did, entry.value, txId);
   putState("credentials", vc.id, vc, txId);
-  const block = commitBlock({
-    txId,
-    chaincode: "credential-issuer",
-    fcn: "issueCredential",
-    args: [did, type],
-    status: "VALID",
-    timestamp: new Date().toISOString(),
-    channel: CHANNEL,
-    creator: "API",
-  });
   broadcast({ event: "credential:issued", data: vc });
-  res.json({ vc, blockNumber: block.blockNumber, txId });
+  res.json({ vc, txId });
 });
 
 app.patch("/api/credential/:id/revoke", requireAuth, requireRole(["admin"]), (req, res) => {
@@ -582,16 +450,6 @@ app.post("/api/consent/grant", requireAuth, requireRole(["patient"]), (req, res)
     grantedAt: new Date().toISOString(),
   };
   putState("consent-manager", grantId, grant, txId);
-  commitBlock({
-    txId,
-    chaincode: "consent-manager",
-    fcn: "grantConsent",
-    args: [grantId, patientDid, doctorDid, resource],
-    status: "VALID",
-    timestamp: new Date().toISOString(),
-    channel: CHANNEL,
-    creator: "API",
-  });
   broadcast({ event: "consent:granted", data: grant });
   res.json(grant);
 });
@@ -606,7 +464,6 @@ app.patch("/api/consent/:id/revoke", requireAuth, requireRole(["patient"]), (req
   res.json({ success: true });
 });
 
-// Staff → Patient consent request
 app.post("/api/consent/request", requireAuth, requireRole(["doctor", "staff"]), (req, res) => {
   const { doctorDid, doctorName, patientDid, resource, reason, expiry } = req.body;
   if (!patientDid || !doctorDid)
@@ -626,26 +483,10 @@ app.post("/api/consent/request", requireAuth, requireRole(["doctor", "staff"]), 
     expiry: expiry || new Date(Date.now() + 48 * 3600000).toISOString(),
   };
 
-  putState(
-    "consent-requests",
-    reqId,
-    { ...request, chaincode: "consent-manager", fcn: "RequestConsent" },
-    txId,
-  );
-  commitBlock([
-    {
-      chaincode: "consent-manager",
-      fcn: "RequestConsent",
-      args: [patientDid, doctorDid, reqId],
-      status: "valid",
-      timestamp: new Date().toISOString(),
-      channel: CHANNEL,
-      creator: doctorDid,
-    },
-  ]);
-
+  putState("consent-requests", reqId, request, txId);
   broadcast({ event: "consent:request", data: request });
 
+  // Add notification in memory
   _notifications.push({
     id: "notif-creq-" + reqId,
     type: "consent_request",
@@ -660,7 +501,6 @@ app.post("/api/consent/request", requireAuth, requireRole(["doctor", "staff"]), 
   res.json({ success: true, requestId: reqId, request, txId });
 });
 
-// GET consent requests for a patient DID
 app.get("/api/consent/requests/:patientDid", requireAuth, requireRole(["patient"]), (req, res) => {
   const all = getAllState("consent-requests");
   const requests = all
@@ -694,21 +534,10 @@ app.post("/api/audit/log", requireAuth, (req, res) => {
     loggedAt: new Date().toISOString(),
   };
   putState("audit", `audit_${txId}`, event, txId);
-  commitBlock({
-    txId,
-    chaincode: "audit-chaincode",
-    fcn: "logEvent",
-    args: [actor, resource, action, outcome],
-    status: "VALID",
-    timestamp: new Date().toISOString(),
-    channel: CHANNEL,
-    creator: actor,
-  });
   broadcast({ event: "audit:logged", data: event });
   res.json(event);
 });
 
-// ─── Vitals ───────────────────────────────────────────────────────────────────
 // ─── Vitals ───────────────────────────────────────────────────────────────────
 app.post("/api/vitals/seed", requireAuth, requireRole(["admin", "doctor", "staff"]), (req, res) => {
   const { patients = [] } = req.body;
@@ -757,16 +586,6 @@ app.post("/api/beds", requireAuth, requireRole(["admin", "staff"]), (req, res) =
   const txId = randomUUID();
   const bed = { bedId, ward, status, patientDid, updatedAt: new Date().toISOString() };
   putState("beds", bedId, bed, txId);
-  commitBlock({
-    txId,
-    chaincode: "infrastructure-chaincode",
-    fcn: "updateBed",
-    args: [bedId, ward, status],
-    status: "VALID",
-    timestamp: new Date().toISOString(),
-    channel: CHANNEL,
-    creator: "Infrastructure",
-  });
   broadcast({ event: "bed:updated", data: bed });
   res.json(bed);
 });
@@ -789,18 +608,8 @@ app.post("/api/prescriptions", requireAuth, requireRole(["doctor", "staff"]), (r
     hash: `sha256:${simHash(rxId + patientDid)}`,
   };
   putState("prescriptions", rxId, rx, txId);
-  const block = commitBlock({
-    txId,
-    chaincode: "prescription-chaincode",
-    fcn: "signPrescription",
-    args: [rxId, patientDid, doctorDid],
-    status: "VALID",
-    timestamp: new Date().toISOString(),
-    channel: CHANNEL,
-    creator: signedBy,
-  });
-  broadcast({ event: "prescription:signed", data: { rxId, blockNumber: block.blockNumber } });
-  res.json({ rxId, rx, blockNumber: block.blockNumber, txId });
+  broadcast({ event: "prescription:signed", data: { rxId } });
+  res.json({ rxId, rx, txId });
 });
 
 app.get("/api/prescriptions/:patientDid", requireAuth, (req, res) => {
@@ -826,18 +635,13 @@ app.post("/api/labs", requireAuth, requireRole(["doctor", "staff"]), (req, res) 
     orderedAt: new Date().toISOString(),
   };
   putState("lab-results", labId, lab, txId);
-  commitBlock({
-    txId,
-    chaincode: "lab-chaincode",
-    fcn: "createLabOrder",
-    args: [labId, patientDid, priority],
-    status: "VALID",
-    timestamp: new Date().toISOString(),
-    channel: CHANNEL,
-    creator: orderedBy,
-  });
   broadcast({ event: "lab:ordered", data: lab });
   res.json(lab);
+});
+
+app.get("/api/labs", requireAuth, requireRole(["doctor", "staff", "admin"]), (req, res) => {
+  const all = getAllState("lab-results");
+  res.json({ labs: all.map((e) => e.value), total: all.length });
 });
 
 app.get("/api/labs/:patientDid", requireAuth, (req, res) => {
@@ -894,16 +698,6 @@ app.post("/api/billing/payment", requireAuth, requireRole(["patient"]), (req, re
     settledAt: new Date().toISOString(),
   };
   putState("billing", ref, payment, txId);
-  commitBlock({
-    txId,
-    chaincode: "billing-chaincode",
-    fcn: "recordPayment",
-    args: [patientDid, String(amount), category, ref],
-    status: "VALID",
-    timestamp: new Date().toISOString(),
-    channel: CHANNEL,
-    creator: "Billing",
-  });
   broadcast({ event: "payment:recorded", data: payment });
   res.json(payment);
 });
@@ -944,262 +738,30 @@ app.post("/api/appointments", requireAuth, (req, res) => {
     bookedAt: new Date().toISOString(),
   };
   putState("appointments", apptId, appt, txId);
-  commitBlock({
-    txId,
-    chaincode: "appointments-chaincode",
-    fcn: "createAppointment",
-    args: [apptId, patientDid, doctorDid, slot],
-    status: "VALID",
-    timestamp: new Date().toISOString(),
-    channel: CHANNEL,
-    creator: patientName,
-  });
   broadcast({ event: "appointment:booked", data: appt });
   res.json(appt);
 });
 
-// ─── Chaincode applier ────────────────────────────────────────────────────────
-function applyChaincode(chaincode, fcn, args, txId, timestamp) {
-  const key = `${chaincode}::${fcn}`;
-  switch (key) {
-    case "did-registry::createDID":
-    case "did-registry::registerDID": {
-      const [did, owner, ownerType, controller] = args;
-      const doc = {
-        did,
-        owner,
-        ownerType,
-        status: "active",
-        credentials: [],
-        controller: controller || "did:hosp:consortium:authority",
-        publicKey: `MFkw${simHash(did).slice(0, 32).toUpperCase()}`,
-        createdAt: timestamp,
-        updatedAt: timestamp,
-        serviceEndpoint: `https://did.apollohospitals.in/resolve/${did}`,
-      };
-      putState("did-registry", did, doc, txId);
-      break;
-    }
-    case "did-registry::revokeDID": {
-      const [did] = args;
-      const entry = getState("did-registry", did);
-      if (entry) {
-        entry.value.status = "revoked";
-        entry.value.updatedAt = timestamp;
-        putState("did-registry", did, entry.value, txId);
-      }
-      break;
-    }
-    case "credential-issuer::issueCredential": {
-      const [did, credType, issuer, claims] = args;
-      const entry = getState("did-registry", did);
-      if (entry) {
-        const vc = {
-          id: `vc_${txId}`,
-          type: credType || "IdentityVC",
-          issuer: issuer || "Apollo Hospital Authority",
-          subject: did,
-          issuedAt: timestamp,
-          expiresAt: new Date(Date.now() + 365 * 86400000).toISOString(),
-          claims: claims ? JSON.parse(claims) : {},
-          signature: `MEQCIBas${simHash(did + credType + txId).slice(0, 20)}==`,
-          status: "active",
-        };
-        if (!entry.value.credentials) entry.value.credentials = [];
-        entry.value.credentials.push(vc);
-        entry.value.updatedAt = timestamp;
-        putState("did-registry", did, entry.value, txId);
-        putState("credentials", vc.id, vc, txId);
-      }
-      break;
-    }
-    case "consent-manager::grantConsent": {
-      const [grantId, patient, doctor, resource, expiry] = args;
-      putState(
-        "consent-manager",
-        grantId,
-        {
-          grantId,
-          patientDid: patient,
-          doctorDid: doctor,
-          resource,
-          status: "active",
-          expiry: expiry || new Date(Date.now() + 7 * 86400000).toISOString(),
-          grantedAt: timestamp,
-        },
-        txId,
-      );
-      break;
-    }
-    case "consent-manager::revokeConsent": {
-      const [grantId] = args;
-      const entry = getState("consent-manager", grantId);
-      if (entry) {
-        entry.value.status = "revoked";
-        entry.value.revokedAt = timestamp;
-        putState("consent-manager", grantId, entry.value, txId);
-      }
-      break;
-    }
-    case "billing-chaincode::recordPayment": {
-      const [patientDid, patientName, amount, category, ref] = args;
-      putState(
-        "billing",
-        ref || `bill_${txId}`,
-        {
-          patientDid,
-          patientName,
-          amount: Number(amount),
-          category,
-          status: "settled",
-          ref,
-          settledAt: timestamp,
-        },
-        txId,
-      );
-      break;
-    }
-    case "billing-chaincode::raiseInvoice": {
-      const [patientDid, invoiceId, amount, items] = args;
-      putState(
-        "billing",
-        `invoice:${invoiceId}`,
-        {
-          patientDid,
-          invoiceId,
-          amount: Number(amount),
-          items,
-          status: "outstanding",
-          raisedAt: timestamp,
-        },
-        txId,
-      );
-      break;
-    }
-    case "tracker-chaincode::reportTelemetry": {
-      const [staffDid, name, location, status] = args;
-      putState(
-        "tracker",
-        staffDid,
-        {
-          staffDid,
-          name,
-          location,
-          status,
-          lastPing: timestamp,
-          beaconStrength: 70 + Math.floor(Math.random() * 30) + "%",
-        },
-        txId,
-      );
-      break;
-    }
-    case "tracker-chaincode::dispatchPagerNotify": {
-      const [staffDid, name, location] = args;
-      putState(
-        "tracker",
-        `pager:${txId}`,
-        {
-          staffDid,
-          name,
-          location,
-          type: "PAGER_NOTIFY",
-          dispatchedAt: timestamp,
-          status: "delivered",
-        },
-        txId,
-      );
-      break;
-    }
-    case "appointments-chaincode::createAppointment": {
-      const [apptId, patientDid, doctorDid, slot, mode] = args;
-      let patientName = "Unknown Patient";
-      let doctorName = "Unknown Doctor";
-      const pEntry = getState("did-registry", patientDid);
-      if (pEntry) patientName = pEntry.value.owner;
-      const dEntry = getState("did-registry", doctorDid);
-      if (dEntry) doctorName = dEntry.value.owner;
-
-      putState(
-        "appointments",
-        apptId || `appt_${txId}`,
-        {
-          apptId: apptId || `appt_${txId}`,
-          patientDid,
-          patientName,
-          doctorDid,
-          doctorName,
-          slot,
-          mode,
-          status: "confirmed",
-          bookedAt: timestamp,
-        },
-        txId,
-      );
-      break;
-    }
-    case "appointments-chaincode::cancelAppointment": {
-      const [apptId] = args;
-      const entry = getState("appointments", apptId);
-      if (entry) {
-        entry.value.status = "cancelled";
-        entry.value.cancelledAt = timestamp;
-        putState("appointments", apptId, entry.value, txId);
-      }
-      break;
-    }
-    case "audit-chaincode::logEvent": {
-      const [actor, resource, action, outcome] = args;
-      putState(
-        "audit",
-        `audit_${txId}`,
-        {
-          txId: `audit_${txId}`,
-          actor,
-          resource,
-          action,
-          outcome,
-          loggedAt: timestamp,
-          severity: "info",
-        },
-        txId,
-      );
-      break;
-    }
-    case "financial-ledger-chaincode::resolvePatientDID": {
-      const [did, name] = args;
-      putState(
-        "financial",
-        `resolve:${did}`,
-        {
-          did,
-          name,
-          resolvedAt: timestamp,
-          by: "admin-console",
-        },
-        txId,
-      );
-      break;
-    }
-    case "financial-ledger-chaincode::generateFinancialStatement": {
-      const [did, name] = args;
-      putState(
-        "financial",
-        `statement:${did}:${txId}`,
-        {
-          did,
-          name,
-          generatedAt: timestamp,
-          format: "PDF",
-        },
-        txId,
-      );
-      break;
-    }
-    default:
-      putState(chaincode, `generic_${txId}`, { fcn, args, executedAt: timestamp }, txId);
-      break;
-  }
-}
+// ─── Pager notifications (added for locator integrations) ────────────────────
+app.post("/api/tracker/notify", requireAuth, requireRole(["admin", "doctor", "staff"]), (req, res) => {
+  const { staffDid, name, location } = req.body;
+  if (!staffDid || !name) return res.status(400).json({ error: "staffDid and name required" });
+  
+  const txId = randomUUID();
+  const notifyEvent = {
+    id: `pager_${txId.slice(0, 8)}`,
+    staffDid,
+    name,
+    location: location || "Unknown Location",
+    dispatchedAt: new Date().toISOString(),
+    status: "delivered",
+  };
+  putState("tracker", `pager_${txId.slice(0, 8)}`, notifyEvent, txId);
+  broadcast({ event: "staff:location", data: { id: staffDid, location: location || "Unknown Location", lastSignal: notifyEvent.dispatchedAt } });
+  
+  logAudit(req, { resource: staffDid, action: "PAGER_DISPATCH" });
+  res.json({ success: true, notifyEvent });
+});
 
 // ─── Auth APIs ────────────────────────────────────────────────────────────────
 app.post("/api/auth/signup", requireAuth, requireRole(["admin"]), async (req, res) => {
@@ -1224,17 +786,6 @@ app.post("/api/auth/signup", requireAuth, requireRole(["admin"]), async (req, re
     createdAt: new Date().toISOString(),
   };
   putState("users", email, user, txId);
-
-  commitBlock({
-    txId,
-    chaincode: "users",
-    fcn: "signup",
-    args: [email, name, role],
-    status: "VALID",
-    timestamp: new Date().toISOString(),
-    channel: CHANNEL,
-    creator: "System",
-  });
 
   const token = jwt.sign({ email, role, name }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
   res.json({ success: true, token, user: { name, email, role } });
@@ -1298,7 +849,6 @@ app.post("/api/auth/refresh", (req, res) => {
 });
 
 app.get("/api/auth/users", requireAuth, requireRole(["admin"]), (req, res) => {
-
   const entries = getAllState("users");
   const users = entries.map((e) => e.value);
   res.json({ users });
@@ -1327,7 +877,7 @@ function seedNotifications() {
       id: "notif-002",
       type: "credential_issued",
       title: "New Credential Issued",
-      message: "DID Medical License credential issued on Hyperledger Fabric",
+      message: "DID Medical License credential issued",
       timestamp: new Date(now - 15 * 60000).toISOString(),
       read: false,
       severity: "info",
@@ -1342,15 +892,6 @@ function seedNotifications() {
       read: false,
       severity: "critical",
       link: "/admin/fraud",
-    },
-    {
-      id: "notif-004",
-      type: "block_committed",
-      title: "Block Committed",
-      message: "Block #" + _blockNumber + " committed to embrace-health-channel",
-      timestamp: new Date(now - 45 * 60000).toISOString(),
-      read: true,
-      severity: "info",
     },
     {
       id: "notif-005",
@@ -1399,7 +940,7 @@ app.post("/api/zkproof/generate", requireAuth, requireRole(["patient"]), (req, r
   const proofId = "zkp-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
   const commitment = "0x" + simHash(patientDid + proofId).slice(0, 40);
   const nullifier = "0x" + simHash(proofId + Date.now()).slice(0, 40);
-  const merkleRoot = "0x" + simHash(patientDid + "merkle" + _blockNumber).slice(0, 40);
+  const merkleRoot = "0x" + simHash(patientDid + "merkle" + 1).slice(0, 40);
   const now = new Date();
   const expires = new Date(now.getTime() + 24 * 3600000);
 
@@ -1427,19 +968,7 @@ app.post("/api/zkproof/generate", requireAuth, requireRole(["patient"]), (req, r
   });
 
   const txId = "tx-zkp-" + Date.now().toString(36);
-  commitBlock([
-    {
-      chaincode: "did-registry",
-      fcn: "GenerateZKProof",
-      args: [patientDid, proofId],
-      status: "valid",
-      timestamp: now.toISOString(),
-      channel: CHANNEL,
-      creator: patientDid,
-    },
-  ]);
-
-  res.json({ proof, txId, blockNumber: _blockNumber });
+  res.json({ proof, txId });
 });
 
 app.post("/api/zkproof/verify", requireAuth, (req, res) => {
@@ -1472,119 +1001,29 @@ app.post("/api/zkproof/verify", requireAuth, (req, res) => {
       "Zero-knowledge proof verified successfully. Identity confirmed without revealing full medical record.",
   };
 
-  commitBlock([
-    {
-      chaincode: "did-registry",
-      fcn: "VerifyZKProof",
-      args: [proofId],
-      status: "valid",
-      timestamp: new Date().toISOString(),
-      channel: CHANNEL,
-      creator: "verifier",
-    },
-  ]);
-
   res.json(result);
 });
 
-// ─── Chaincode management ─────────────────────────────────────────────────────
-const _deployedChaincodes = [
-  {
-    name: "did-registry",
-    version: "v2.1.0",
-    channel: CHANNEL,
-    status: "active",
-    endorsementPolicy: 'AND("Org1MSP.peer","Org2MSP.peer")',
-    lastInvoked: new Date(Date.now() - 120000).toISOString(),
-    invokeCount: 4821,
-  },
-  {
-    name: "credential-issuer",
-    version: "v1.8.3",
-    channel: CHANNEL,
-    status: "active",
-    endorsementPolicy: 'OR("Org1MSP.peer","Org2MSP.peer")',
-    lastInvoked: new Date(Date.now() - 300000).toISOString(),
-    invokeCount: 2341,
-  },
-  {
-    name: "consent-manager",
-    version: "v1.5.1",
-    channel: CHANNEL,
-    status: "active",
-    endorsementPolicy: 'AND("Org1MSP.peer","Org2MSP.peer")',
-    lastInvoked: new Date(Date.now() - 600000).toISOString(),
-    invokeCount: 1892,
-  },
-  {
-    name: "audit-logger",
-    version: "v2.0.0",
-    channel: CHANNEL,
-    status: "active",
-    endorsementPolicy: 'OR("Org1MSP.peer")',
-    lastInvoked: new Date(Date.now() - 60000).toISOString(),
-    invokeCount: 9103,
-  },
-];
-
-app.get("/api/chaincode/list", (req, res) => {
-  res.json({ chaincodes: _deployedChaincodes, total: _deployedChaincodes.length });
-});
-
-app.post("/api/chaincode/invoke", async (req, res) => {
-  const { chaincode, fcn, args } = req.body;
-  if (!chaincode || !fcn) return res.status(400).json({ error: "chaincode and fcn required" });
-
-  const txId = "tx-cc-" + Date.now().toString(36);
-  const timestamp = new Date().toLocaleString("en-IN", { hour12: false });
-  const block = commitBlock([
-    {
-      chaincode,
-      fcn,
-      args: args || [],
-      status: "valid",
-      timestamp,
-      channel: CHANNEL,
-      creator: req.headers["x-user-email"] || "admin",
-    },
-  ]);
-
-  const cc = _deployedChaincodes.find((c) => c.name === chaincode);
-  if (cc) {
-    cc.lastInvoked = new Date().toISOString();
-    cc.invokeCount++;
-  }
-
-  broadcast({ event: "block:committed", data: block });
-  res.json({ txId, blockNumber: _blockNumber, status: "committed", timestamp });
-});
-
-app.get("/api/chaincode/invocations", (req, res) => {
-  const allTx = Object.values(_ledger)
-    .filter((e) => e && typeof e === "object" && e.chaincode)
-    .slice(-20)
-    .map((e) => ({
-      txId: e.txId || "tx-" + Math.random().toString(36).slice(2, 8),
-      chaincode: e.chaincode,
-      fcn: e.fcn,
-      args: (e.args || []).slice(0, 2),
-      status: "valid",
-      timestamp: e.timestamp || new Date().toISOString(),
-      blockNumber: _blockNumber - Math.floor(Math.random() * 5),
-    }));
-  res.json({ invocations: allTx, total: allTx.length });
+// ─── Register Extension Routes (Medical Records, NFC, Visitors, Attendance, Solana) ───
+registerExtensionRoutes(app, {
+  putState,
+  getState,
+  getAllState,
+  queryState,
+  commitBlock: () => {}, // Mock no-op for backward compatibility in extensions
+  broadcast,
+  CHANNEL,
+  logAudit,
+  requireRole,
+  IDENTITY_SECRET,
 });
 
 // 404
 app.use((_, res) => res.status(404).json({ error: "Not found" }));
 
-async function seedWorldStateIfEmpty() {
-  console.log("🌱 World State seeding skipped (running in clean nil mode).");
-}
-
 const PORT = process.env.PORT || 3001;
 httpServer.listen(PORT, async () => {
-  console.log(`\n🏥 Hyperledger Fabric Simulation Server`);
+  console.log(`\n🏥 Hospital REST API + WebSocket Server`);
   console.log(`   REST API : http://localhost:${PORT}/api`);
   console.log(`   WebSocket: ws://localhost:${PORT}`);
   console.log(`   Health   : http://localhost:${PORT}/health\n`);
@@ -1592,7 +1031,6 @@ httpServer.listen(PORT, async () => {
   try {
     const { bootstrapFromConvex } = await import("./world-state-db.js");
     await bootstrapFromConvex();
-    await seedWorldStateIfEmpty();
   } catch (err) {
     console.error("⚠️ Failed to bootstrap World State from Convex:", err.message);
   }

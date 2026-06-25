@@ -5,7 +5,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
 import { appointments } from "@/lib/mock-data";
 import { useFabricAppointments } from "@/hooks/use-fabric";
-import { fabricBookAppointment, fabricSubmitTx } from "@/lib/fabric-api";
+import { fabricBookAppointment } from "@/lib/fabric-api";
 import {
   CalendarDays, Video, MapPin, Plus, ChevronRight, Check, X, Search,
   AlertTriangle, Phone, Mail, MessageSquare, Pill, ClipboardList,
@@ -14,7 +14,6 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { RouteGuard } from "@/components/RouteGuard";
-import { submitHyperledgerTransaction } from "@/lib/hyperledger";
 
 export const Route = createFileRoute("/patient/appointments")({
   head: () => ({ meta: [{ title: "Patient · Appointments — DID Hospital" }] }),
@@ -223,14 +222,6 @@ function AppointmentsPage() {
 
     triggerMockNotifications(selectedDoc.name, selectedDay, selectedSlot, consultMode);
     
-    // Invoke Hyperledger simulation chaincode
-    submitHyperledgerTransaction("appointments-chaincode", "createAppointment", [
-      selectedDoc.name,
-      selectedDay,
-      selectedSlot,
-      consultMode
-    ]);
-
     // reset state
     setSelectedDoc(null);
     setSelectedDay(null);
@@ -268,28 +259,13 @@ function AppointmentsPage() {
       toast.error("Emergency consult requested (offline mode)", { description: "Report to ER Desk immediately." });
     }
     
-    // Invoke Hyperledger simulation chaincode
-    submitHyperledgerTransaction("appointments-chaincode", "requestEmergencyTriage", [
-      erDoc.name,
-      "Trauma Room"
-    ]);
-
     triggerMockNotifications(erDoc.name, new Date().toISOString().split("T")[0], "IMMEDIATE", "in-person");
     setShowEmergencyModal(false);
   };
 
   const cancel = async (id: string) => {
-    try {
-      await fabricSubmitTx("appointments-chaincode", "cancelAppointment", [id]);
-      toast.success("Appointment cancelled");
-      refetch();
-    } catch {
-      setLocalList((prev) => prev.map((a) => (a.id === id ? { ...a, status: "cancelled" } : a)));
-      toast("Appointment cancelled");
-    }
-
-    // Invoke Hyperledger simulation chaincode
-    submitHyperledgerTransaction("appointments-chaincode", "cancelAppointment", [id]);
+    setLocalList((prev) => prev.map((a) => (a.id === id ? { ...a, status: "cancelled" } : a)));
+    toast.success("Appointment cancelled");
   };
 
   return (

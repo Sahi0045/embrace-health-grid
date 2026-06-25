@@ -1,7 +1,7 @@
 /**
  * World State Database — CouchDB-Compatible File-Persisted Store
  *
- * Mimics Hyperledger Fabric's CouchDB world state database.
+ * Standard key-value database for data persistence.
  * Data is persisted to JSON files on disk, surviving server restarts.
  *
  * Namespaces (equivalent to Fabric channels/chaincodes):

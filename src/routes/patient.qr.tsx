@@ -146,7 +146,7 @@ function PatientQr() {
         {/* Fabric badge */}
         <div className="mt-6 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
           <ShieldCheck className="h-3.5 w-3.5" />
-          Signed on Hyperledger Fabric · embrace-health-channel
+          Signed on Secure Registry · embrace-health-channel
         </div>
       </div>
     </RouteGuard>

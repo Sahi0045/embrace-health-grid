@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { RouteGuard } from "@/components/RouteGuard";
 import { PageHeader } from "@/components/PageHeader";
 import { getLiveStaff, storeEvents, type LiveStaff } from "@/lib/realtime-store";
-import { submitHyperledgerTransaction } from "@/lib/hyperledger";
+import { fabricDispatchPagerNotify } from "@/lib/fabric-api";
 import { MapPin, ShieldAlert, Phone, Clock, Radio, Search, Filter, Send, Activity, Users, CheckCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -50,9 +50,11 @@ function DoctorLocatorPage() {
 
   const handlePage = async (member: LiveStaff) => {
     toast.success("Pager dispatched", { description: `${member.name} at ${member.currentLocation}` });
-    await submitHyperledgerTransaction("tracker-chaincode", "dispatchPagerNotify", [
-      member.did, member.name, member.currentLocation,
-    ], { silent: true });
+    try {
+      await fabricDispatchPagerNotify(member.did, member.name, member.currentLocation);
+    } catch (err: any) {
+      console.warn("REST pager dispatch failed, running in local mode:", err.message);
+    }
     setLogs((prev) => [
       { id: `page_${Date.now()}`, time: new Date().toLocaleTimeString(), event: `PAGER → ${member.name} at ${member.currentLocation}` },
       ...prev.slice(0, 14),
@@ -92,8 +94,8 @@ function DoctorLocatorPage() {
 
         <div className="flex items-start justify-between flex-wrap gap-3">
           <PageHeader
-            eyebrow="Staff Portal — Hyperledger Tracker"
-            title="Real-Time Staff Location Ledger"
+            eyebrow="Staff Portal — Locator Tracker"
+            title="Real-Time Staff Location Tracker"
             description={`Live Smart-ID beacon data from ${staff.length} staff members. Last sync: ${lastUpdate}`}
           />
           <div className="flex gap-3 text-xs flex-wrap">

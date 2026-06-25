@@ -215,7 +215,7 @@ function DIDManagement() {
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">Issue New Decentralized Identifier (DID)</DialogTitle>
             <DialogDescription className="text-sm text-muted-foreground">
-              Anchor a new identity onto the Hyperledger Fabric blockchain. Specify custom role attributes.
+              Anchor a new identity onto the secure registry. Specify custom role attributes.
             </DialogDescription>
           </DialogHeader>
 

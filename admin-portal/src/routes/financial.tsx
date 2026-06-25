@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { RouteGuard } from "@/components/RouteGuard";
 import { PageHeader, StatCard } from "@/components/PageHeader";
 import { getLivePatients, getLiveTransactions, recordPayment, storeEvents, type LivePatient, type LiveTransaction } from "@/lib/realtime-store";
-import { resolveDID, queryWorldState } from "@/lib/hyperledger";
+import { fabricGetNamespace } from "@/lib/fabric-api";
 import { Search, Receipt, CreditCard, History, Shield, Download, FileText, CheckCircle, AlertTriangle, Printer, Key } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -19,10 +19,14 @@ function AdminFinancialPage() {
   const [showInvoice, setShowInvoice] = useState<LiveTransaction | null>(null);
   const [transactions, setTransactions] = useState<LiveTransaction[]>([]);
   const [lastUpdate, setLastUpdate] = useState(new Date().toLocaleTimeString());
+  const [billingRecords, setBillingRecords] = useState<any[]>([]);
 
   const refresh = useCallback(() => {
     setTransactions(getLiveTransactions());
     setLastUpdate(new Date().toLocaleTimeString());
+    fabricGetNamespace("billing")
+      .then((res) => setBillingRecords(res || []))
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -73,9 +77,6 @@ function AdminFinancialPage() {
   }, {});
   const maxCat = Math.max(...Object.values(byCategory), 1);
 
-  // Blockchain billing records
-  const billingRecords = queryWorldState("billing");
-
   return (
     <RouteGuard requiredRole="admin">
       <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
@@ -83,14 +84,14 @@ function AdminFinancialPage() {
         <PageHeader
           eyebrow={`Admin Console — Last sync ${lastUpdate}`}
           title="Financial Ledger & Identity Lookup"
-          description="Live blockchain-backed payment records, DID-based patient resolution, and real-time revenue analytics."
+          description="Live database-backed payment records, DID-based patient resolution, and real-time revenue analytics."
         />
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard label="Revenue Settled" value={fmt(totalRevenue)} icon={Receipt} tone="success" delta={`${transactions.filter(t => t.status === "paid").length} transactions`} />
           <StatCard label="Outstanding Dues" value={fmt(outstanding)} icon={AlertTriangle} tone="destructive" delta={`${transactions.filter(t => t.status === "outstanding").length} pending`} />
           <StatCard label="Refunds Processed" value={fmt(refunded)} icon={History} tone="default" delta={`${transactions.filter(t => t.status === "refunded").length} refunds`} />
-          <StatCard label="On-Chain Records" value={billingRecords.length.toString()} icon={Key} tone="default" delta="Hyperledger committed" />
+          <StatCard label="On-Chain Records" value={billingRecords.length.toString()} icon={Key} tone="default" delta="Audit committed" />
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
@@ -102,7 +103,7 @@ function AdminFinancialPage() {
                 <Search className="h-5 w-5 text-primary" />
                 <h3 className="text-sm font-bold">Patient DID Resolution</h3>
               </div>
-              <p className="text-xs text-muted-foreground">Resolve patients from the live Hyperledger DID registry using DID, name, or MRN.</p>
+              <p className="text-xs text-muted-foreground">Resolve patients from the live secure DID registry using DID, name, or MRN.</p>
               <div className="flex gap-2">
                 <input value={didQuery} onChange={(e) => setDidQuery(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSearch()}
@@ -175,7 +176,7 @@ function AdminFinancialPage() {
 
                   {/* Quick charge buttons */}
                   <div>
-                    <div className="text-[10px] font-bold uppercase text-muted-foreground mb-2">Record New Payment (Commits to Hyperledger)</div>
+                    <div className="text-[10px] font-bold uppercase text-muted-foreground mb-2">Record New Payment (Commits to Secure Registry)</div>
                     <div className="flex flex-wrap gap-2">
                       {(["consultation", "pharmacy", "lab", "room", "surgery"] as LiveTransaction["category"][]).map((cat) => (
                         <button key={cat} onClick={() => handleRecordPayment(cat)}
@@ -267,9 +268,9 @@ function AdminFinancialPage() {
             <div className="rounded-xl border border-border bg-card p-5 shadow-clinical space-y-3">
               <div className="flex items-center gap-2 border-b border-border pb-2">
                 <Shield className="h-5 w-5 text-primary" />
-                <h3 className="text-sm font-bold">Blockchain Records</h3>
+                <h3 className="text-sm font-bold">Secure Audit Records</h3>
               </div>
-              <p className="text-xs text-muted-foreground">{billingRecords.length} billing entries committed to Hyperledger Fabric.</p>
+              <p className="text-xs text-muted-foreground">{billingRecords.length} billing entries committed to Secure Registry.</p>
               <div className="space-y-2 max-h-48 overflow-y-auto">
                 {billingRecords.slice(0, 10).map((r, i) => (
                   <div key={i} className="rounded-lg bg-muted/40 p-2.5 border border-border text-xs">

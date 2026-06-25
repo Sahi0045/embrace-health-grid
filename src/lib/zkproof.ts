@@ -52,7 +52,7 @@ export interface ZKVerificationResult {
 // Internal crypto utilities (deterministic, SHA-256-like hex simulation)
 // ---------------------------------------------------------------------------
 
-/** Murmurhash3-inspired finaliser — same pattern as hyperledger.ts simHash */
+/** Murmurhash3-inspired finaliser — deterministic hashing simulator */
 function simHash(input: string): string {
   let h1 = 0xdeadbeef,
     h2 = 0x41c6ce57;

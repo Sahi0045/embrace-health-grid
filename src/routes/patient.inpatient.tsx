@@ -15,6 +15,7 @@ import {
   labTests, procedures, nursingNotes, dietOrder
 } from "@/lib/inpatient-data";
 import { billSummary } from "@/lib/billing-data";
+import { usePatientVitals } from "@/hooks/use-fabric";
 
 export const Route = createFileRoute("/patient/inpatient")({
   head: () => ({
@@ -27,7 +28,21 @@ export const Route = createFileRoute("/patient/inpatient")({
 });
 
 function InpatientCare() {
-  const latestVitals = vitalSigns[0];
+  const { vitals: liveVitals } = usePatientVitals("pat_001");
+
+  const latestVitals = liveVitals ? {
+    ...vitalSigns[0],
+    heartRate: liveVitals.heartRate,
+    bloodPressure: {
+      systolic: parseInt(liveVitals.bp) || 120,
+      diastolic: parseInt(liveVitals.bp.split("/")[1]) || 80
+    },
+    oxygenSaturation: liveVitals.spo2,
+    temperature: liveVitals.temp,
+    respiratoryRate: liveVitals.respRate,
+    timestamp: "Live telemetry (WS)"
+  } : vitalSigns[0];
+
   const activeMeds = medications.filter(m => m.status === "active");
   const todayCheckups = dailyCheckups.filter(c => c.date === "2026-05-30");
   const upcomingProcedures = procedures.filter(p => p.status === "scheduled");

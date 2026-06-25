@@ -45,8 +45,6 @@ const adminNav: Item[] = [
   { title: "Command Center", url: "/command", icon: Command },
   { title: "Digital Twin", url: "/digital-twin", icon: Network },
   { title: "Financials", url: "/financial", icon: Receipt },
-  { title: "Hyperledger Console", url: "/hyperledger", icon: Layers },
-  { title: "Chaincode", url: "/chaincode", icon: Code2 },
   { title: "My Profile", url: "/profile", icon: User },
   { title: "Infrastructure", url: "/infrastructure", icon: Building2 },
   { title: "Resources", url: "/resources", icon: Bed },

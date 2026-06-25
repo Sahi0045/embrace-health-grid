@@ -12,7 +12,7 @@ import {
   fabricRevokeConsent,
   fabricGrantConsent,
   fabricGetConsentRequests,
-  FABRIC_BASE,
+  fabricDenyConsentRequest,
 } from "@/lib/fabric-api";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
@@ -119,15 +119,7 @@ function Consent() {
 
   // Real-time WebSocket subscription for new consent:request events
   useEffect(() => {
-    const wsUrl = FABRIC_BASE.replace("http", "ws");
-    const ws = new WebSocket(wsUrl);
-    ws.onmessage = (e) => {
-      try {
-        const msg = JSON.parse(e.data);
-        if (msg.event === "consent:request") fetchRequests();
-      } catch {}
-    };
-    return () => ws.close();
+    // Fabric WebSocket integration removed.
   }, [fetchRequests]);
 
   // ─── Active / granted consents from Fabric ──────────────────────────────────
@@ -190,7 +182,7 @@ function Consent() {
 
   const handleDenyRequest = async (requestId: string) => {
     try {
-      await fabricRevokeConsent(requestId);
+      await fabricDenyConsentRequest(requestId);
       toast.success("Request denied");
       fetchRequests();
     } catch (err: any) {
@@ -309,13 +301,13 @@ function Consent() {
           <div className="space-y-4">
             <div className="text-xs text-muted-foreground">
               Pending data-access requests from healthcare providers — approve or deny each request.
-              Decisions are recorded on the Fabric audit ledger.
+              Decisions are recorded on the secure audit logs.
             </div>
 
             {reqLoading ? (
               <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
                 <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-                Loading requests from ledger…
+                Loading requests from registry…
               </div>
             ) : requests.length === 0 ? (
               <motion.div
