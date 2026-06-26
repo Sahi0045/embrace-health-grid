@@ -3,24 +3,16 @@
  * Role is always derived from JWT — never from x-user-role header.
  */
 
-const PUBLIC_PATHS = new Set([
-  "/health",
-  "/api/auth/login",
-  "/api/auth/signup",
-]);
+const PUBLIC_PATHS = new Set(["/health", "/api/auth/login", "/api/auth/signup"]);
 
 /** Routes any authenticated user may access */
-const AUTHENTICATED_PATHS = new Set([
-  "/api/auth/me",
-  "/api/auth/refresh",
-  "/api/notifications",
-]);
+const AUTHENTICATED_PATHS = new Set(["/api/auth/me", "/api/auth/refresh", "/api/notifications"]);
 
 /** Admin-only path prefixes */
 const ADMIN_PREFIXES = [
   "/api/did",
   "/api/auth/users",
-  "/api/chaincode/invoke",
+  "/api/invoke",
   "/api/nfc/issue",
   "/api/credential/issue",
 ];
@@ -82,7 +74,9 @@ export function buildAuth(jwt, jwtSecret) {
     return (req, res, next) => {
       if (!req.user) return res.status(401).json({ error: "Authentication required" });
       if (!allowedRoles.includes(req.user.role)) {
-        return res.status(403).json({ error: `Forbidden: requires role ${allowedRoles.join(" or ")}` });
+        return res
+          .status(403)
+          .json({ error: `Forbidden: requires role ${allowedRoles.join(" or ")}` });
       }
       next();
     };
@@ -125,7 +119,7 @@ export function buildAuth(jwt, jwtSecret) {
           return res.status(403).json({ error: "Forbidden: staff or admin only" });
         }
       }
-      if (apiPath.startsWith("/api/chaincode/invoke")) {
+      if (apiPath.startsWith("/api/invoke")) {
         return res.status(403).json({ error: "Forbidden: admin only" });
       }
     }
@@ -162,10 +156,7 @@ export function consentMiddleware(getAllState) {
     if (role === "admin") return next();
     if (role === "patient") return next();
 
-    const patientDid =
-      req.params.patientDid ||
-      req.body?.patientDid ||
-      req.query?.patientDid;
+    const patientDid = req.params.patientDid || req.body?.patientDid || req.query?.patientDid;
 
     if (!patientDid) return next();
 

@@ -1,16 +1,28 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link } from "@tanstack/react-router";
 import {
-  useFabricStats,
-  useFabricDIDs,
-  useFabricCredentials,
-  useFabricAudit,
-  useFabricBeds,
-  useFabricFraudAlerts,
-} from "@/hooks/use-fabric";
+  useStats,
+  useDIDs,
+  useCredentials,
+  useAudit,
+  useBeds,
+  useFraudAlerts,
+} from "@/hooks/use-api";
 import {
-  KeyRound, Users, ShieldCheck, Timer, ServerCog, Gauge,
-  Network, Bed, Award, Globe, Activity, AlertTriangle,
-  ArrowRight, Command, GitBranch,
+  KeyRound,
+  Users,
+  ShieldCheck,
+  Timer,
+  ServerCog,
+  Gauge,
+  Network,
+  Bed,
+  Award,
+  Globe,
+  Activity,
+  AlertTriangle,
+  ArrowRight,
+  Command,
+  GitBranch,
 } from "lucide-react";
 import { RouteGuard } from "@/components/RouteGuard";
 import { PageHeader, StatCard } from "@/components/PageHeader";
@@ -23,21 +35,51 @@ export const Route = createFileRoute("/")({
 });
 
 const quickLinks = [
-  { to: "/admin/command" as const, label: "Command Center", icon: Command, color: "text-primary bg-primary/10" },
-  { to: "/admin/digital-twin" as const, label: "Digital Twin", icon: Network, color: "text-chart-2 bg-chart-2/10" },
-  { to: "/admin/resources" as const, label: "Resources", icon: Bed, color: "text-success bg-success/10" },
-  { to: "/admin/credentials" as const, label: "Credentials", icon: Award, color: "text-chart-3 bg-chart-3/10" },
-  { to: "/admin/federation" as const, label: "Federation", icon: Globe, color: "text-chart-4 bg-chart-4/10" },
-  { to: "/audit-timeline" as const, label: "Audit Timeline", icon: GitBranch, color: "text-muted-foreground bg-muted" },
+  {
+    to: "/admin/command" as const,
+    label: "Command Center",
+    icon: Command,
+    color: "text-primary bg-primary/10",
+  },
+  {
+    to: "/admin/digital-twin" as const,
+    label: "Digital Twin",
+    icon: Network,
+    color: "text-chart-2 bg-chart-2/10",
+  },
+  {
+    to: "/admin/resources" as const,
+    label: "Resources",
+    icon: Bed,
+    color: "text-success bg-success/10",
+  },
+  {
+    to: "/admin/credentials" as const,
+    label: "Credentials",
+    icon: Award,
+    color: "text-chart-3 bg-chart-3/10",
+  },
+  {
+    to: "/admin/federation" as const,
+    label: "Federation",
+    icon: Globe,
+    color: "text-chart-4 bg-chart-4/10",
+  },
+  {
+    to: "/audit-timeline" as const,
+    label: "Audit Timeline",
+    icon: GitBranch,
+    color: "text-muted-foreground bg-muted",
+  },
 ];
 
 function AdminOverview() {
-  const stats = useFabricStats().data as any;
-  const { data: didsData } = useFabricDIDs();
-  const { data: credsData } = useFabricCredentials();
-  const { data: auditData } = useFabricAudit();
-  const { data: bedsData } = useFabricBeds();
-  const { data: fraudData } = useFabricFraudAlerts();
+  const stats = useStats().data as any;
+  const { data: didsData } = useDIDs();
+  const { data: credsData } = useCredentials();
+  const { data: auditData } = useAudit();
+  const { data: bedsData } = useBeds();
+  const { data: fraudData } = useFraudAlerts();
 
   const totalDIDs = didsData?.total ?? 0;
   const activeUsers = totalDIDs;
@@ -51,7 +93,6 @@ function AdminOverview() {
   const criticalEvents = (auditData?.events ?? [])
     .filter((e: any) => e.severity === "critical" || e.outcome === "failure")
     .slice(0, 3);
-
 
   return (
     <RouteGuard requiredRole="admin">
@@ -74,15 +115,37 @@ function AdminOverview() {
         <div className="space-y-6 p-6">
           {/* KPI grid */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard label="Total DIDs" value={totalDIDs.toLocaleString()} delta="+1 today" icon={KeyRound} />
-            <StatCard label="Active users" value={activeUsers.toLocaleString()} delta="last 24h" icon={Users} />
-            <StatCard label="Active credentials" value={activeCredentials.toLocaleString()} delta={`${credsData?.total ?? 0} total issued`} icon={Award} tone="success" />
-            <StatCard label="Avg. check-in" value={`${avgCheckInSec}s`} delta="↓ 74% vs. paper" icon={Timer} tone="success" />
+            <StatCard
+              label="Total DIDs"
+              value={totalDIDs.toLocaleString()}
+              delta="+1 today"
+              icon={KeyRound}
+            />
+            <StatCard
+              label="Active users"
+              value={activeUsers.toLocaleString()}
+              delta="last 24h"
+              icon={Users}
+            />
+            <StatCard
+              label="Active credentials"
+              value={activeCredentials.toLocaleString()}
+              delta={`${credsData?.total ?? 0} total issued`}
+              icon={Award}
+              tone="success"
+            />
+            <StatCard
+              label="Avg. check-in"
+              value={`${avgCheckInSec}s`}
+              delta="↓ 74% vs. paper"
+              icon={Timer}
+              tone="success"
+            />
           </div>
 
           {/* Quick links */}
           <StaggerList className="grid grid-cols-3 gap-3 sm:grid-cols-6">
-            {quickLinks.map(l => {
+            {quickLinks.map((l) => {
               const Icon = l.icon;
               return (
                 <StaggerItem key={l.to}>
@@ -90,7 +153,9 @@ function AdminOverview() {
                     to={l.to}
                     className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card p-4 text-center hover:shadow-clinical-md hover:-translate-y-0.5 transition-all"
                   >
-                    <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${l.color}`}>
+                    <div
+                      className={`flex h-9 w-9 items-center justify-center rounded-lg ${l.color}`}
+                    >
                       <Icon className="h-4 w-4" />
                     </div>
                     <span className="text-xs font-medium text-foreground">{l.label}</span>
@@ -107,14 +172,25 @@ function AdminOverview() {
                 <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
                   <ServerCog className="h-4 w-4 text-primary" /> Infrastructure
                 </div>
-                <Link to="/admin/resources" className="text-xs text-primary hover:underline flex items-center gap-1">
+                <Link
+                  to="/admin/resources"
+                  className="text-xs text-primary hover:underline flex items-center gap-1"
+                >
                   Resources <ArrowRight className="h-3 w-3" />
                 </Link>
               </div>
               <ul className="space-y-3 text-sm">
-                <Row label="Blockchain nodes" value={`${stats?.nodesCountUp ?? 3}/${stats?.nodesCountTotal ?? 3} healthy`} good />
+                <Row
+                  label="Blockchain nodes"
+                  value={`${stats?.nodesCountUp ?? 3}/${stats?.nodesCountTotal ?? 3} healthy`}
+                  good
+                />
                 <Row label="API latency" value={`${stats?.latencyMs ?? 15} ms p50`} good />
-                <Row label="Bed occupancy" value={`${occupiedBeds}/${totalBeds} (${totalBeds > 0 ? Math.round((occupiedBeds / totalBeds) * 100) : 0}%)`} good />
+                <Row
+                  label="Bed occupancy"
+                  value={`${occupiedBeds}/${totalBeds} (${totalBeds > 0 ? Math.round((occupiedBeds / totalBeds) * 100) : 0}%)`}
+                  good
+                />
                 <Row label="Ambulances ready" value="4/5" good />
                 <Row label="Equipment operational" value="98/100" good />
               </ul>
@@ -126,7 +202,9 @@ function AdminOverview() {
                 <Gauge className="h-4 w-4 text-primary" /> Compliance score
               </div>
               <div className="mt-2 text-center">
-                <div className="text-5xl font-semibold text-foreground">{stats?.complianceScore ?? 98}</div>
+                <div className="text-5xl font-semibold text-foreground">
+                  {stats?.complianceScore ?? 98}
+                </div>
                 <div className="text-xs text-muted-foreground">out of 100</div>
               </div>
               <div className="mt-4 h-2 overflow-hidden rounded-full bg-muted">
@@ -138,11 +216,26 @@ function AdminOverview() {
                 />
               </div>
               <div className="mt-4 grid grid-cols-3 gap-2 text-center text-[11px] text-muted-foreground">
-                <div>HIPAA<br /><span className="font-semibold text-foreground">98</span></div>
-                <div>GDPR<br /><span className="font-semibold text-foreground">95</span></div>
-                <div>DPDP<br /><span className="font-semibold text-foreground">97</span></div>
+                <div>
+                  HIPAA
+                  <br />
+                  <span className="font-semibold text-foreground">98</span>
+                </div>
+                <div>
+                  GDPR
+                  <br />
+                  <span className="font-semibold text-foreground">95</span>
+                </div>
+                <div>
+                  DPDP
+                  <br />
+                  <span className="font-semibold text-foreground">97</span>
+                </div>
               </div>
-              <Link to="/admin/compliance" className="mt-4 flex items-center justify-center gap-1 text-xs text-primary hover:underline">
+              <Link
+                to="/admin/compliance"
+                className="mt-4 flex items-center justify-center gap-1 text-xs text-primary hover:underline"
+              >
                 View compliance report <ArrowRight className="h-3 w-3" />
               </Link>
             </div>
@@ -154,23 +247,32 @@ function AdminOverview() {
                   <AlertTriangle className="h-4 w-4 text-destructive" />
                   Active fraud alerts
                 </div>
-                <Link to="/admin/fraud" className="text-xs text-primary hover:underline flex items-center gap-1">
+                <Link
+                  to="/admin/fraud"
+                  className="text-xs text-primary hover:underline flex items-center gap-1"
+                >
                   All alerts <ArrowRight className="h-3 w-3" />
                 </Link>
               </div>
               <ul className="space-y-3 text-sm">
                 {activeFraudAlerts.length === 0 ? (
-                  <div className="text-xs text-muted-foreground py-4 text-center">No active fraud alerts detected</div>
+                  <div className="text-xs text-muted-foreground py-4 text-center">
+                    No active fraud alerts detected
+                  </div>
                 ) : (
                   activeFraudAlerts.slice(0, 3).map((a: any) => (
                     <li key={a.id} className="rounded-lg border border-border bg-card p-3">
                       <div className="flex items-center justify-between">
-                        <span className={[
-                          "rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider",
-                          a.severity === "high" ? "bg-destructive/15 text-destructive"
-                          : a.severity === "medium" ? "bg-warning/20 text-warning-foreground"
-                          : "bg-muted text-muted-foreground",
-                        ].join(" ")}>
+                        <span
+                          className={[
+                            "rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider",
+                            a.severity === "high"
+                              ? "bg-destructive/15 text-destructive"
+                              : a.severity === "medium"
+                                ? "bg-warning/20 text-warning-foreground"
+                                : "bg-muted text-muted-foreground",
+                          ].join(" ")}
+                        >
                           {a.severity}
                         </span>
                         <span className="text-[11px] text-muted-foreground">
@@ -193,22 +295,34 @@ function AdminOverview() {
                 <Activity className="h-4 w-4 text-primary" />
                 Critical Audit Events
               </div>
-              <Link to="/audit-timeline" className="text-xs text-primary hover:underline flex items-center gap-1">
+              <Link
+                to="/audit-timeline"
+                className="text-xs text-primary hover:underline flex items-center gap-1"
+              >
                 Full timeline <ArrowRight className="h-3 w-3" />
               </Link>
             </div>
             <div className="space-y-2">
               {criticalEvents.length === 0 ? (
-                <div className="text-xs text-muted-foreground py-4 text-center">No critical audit events found on the ledger</div>
+                <div className="text-xs text-muted-foreground py-4 text-center">
+                  No critical audit events found on the ledger
+                </div>
               ) : (
                 criticalEvents.map((e: any) => (
-                  <div key={e.txId || e.id} className="flex items-center gap-3 rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2.5">
+                  <div
+                    key={e.txId || e.id}
+                    className="flex items-center gap-3 rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2.5"
+                  >
                     <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0" />
                     <div className="flex-1 min-w-0">
                       <div className="text-xs font-medium text-foreground truncate">{e.action}</div>
-                      <div className="text-[11px] text-muted-foreground">{e.actor} · {e.loggedAt ? new Date(e.loggedAt).toLocaleString("en-IN") : ""}</div>
+                      <div className="text-[11px] text-muted-foreground">
+                        {e.actor} · {e.loggedAt ? new Date(e.loggedAt).toLocaleString("en-IN") : ""}
+                      </div>
                     </div>
-                    <span className="text-[10px] font-semibold text-destructive bg-destructive/10 rounded-full px-2 py-0.5 shrink-0">critical</span>
+                    <span className="text-[10px] font-semibold text-destructive bg-destructive/10 rounded-full px-2 py-0.5 shrink-0">
+                      critical
+                    </span>
                   </div>
                 ))
               )}

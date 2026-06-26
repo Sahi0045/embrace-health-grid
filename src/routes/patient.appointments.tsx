@@ -4,12 +4,29 @@ import { StaggerList, StaggerItem } from "@/components/Motion";
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
 import { appointments } from "@/lib/mock-data";
-import { useFabricAppointments } from "@/hooks/use-fabric";
-import { fabricBookAppointment } from "@/lib/fabric-api";
+import { useAppointments } from "@/hooks/use-api";
+import { bookAppointment } from "@/lib/api";
 import {
-  CalendarDays, Video, MapPin, Plus, ChevronRight, Check, X, Search,
-  AlertTriangle, Phone, Mail, MessageSquare, Pill, ClipboardList,
-  FlaskConical, User, ShieldAlert, HeartPulse, Clock, Sparkles
+  CalendarDays,
+  Video,
+  MapPin,
+  Plus,
+  ChevronRight,
+  Check,
+  X,
+  Search,
+  AlertTriangle,
+  Phone,
+  Mail,
+  MessageSquare,
+  Pill,
+  ClipboardList,
+  FlaskConical,
+  User,
+  ShieldAlert,
+  HeartPulse,
+  Clock,
+  Sparkles,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -46,8 +63,8 @@ const mockDoctors: Doctor[] = [
     rating: 4.9,
     availableDays: [
       { day: "Thu", date: "2026-06-04", slots: ["10:30 AM", "11:00 AM", "02:00 PM"] },
-      { day: "Fri", date: "2026-06-05", slots: ["09:00 AM", "10:00 AM", "03:30 PM"] }
-    ]
+      { day: "Fri", date: "2026-06-05", slots: ["09:00 AM", "10:00 AM", "03:30 PM"] },
+    ],
   },
   {
     id: "doc2",
@@ -59,8 +76,8 @@ const mockDoctors: Doctor[] = [
     rating: 4.8,
     availableDays: [
       { day: "Thu", date: "2026-06-04", slots: ["09:30 AM", "11:30 AM", "03:00 PM"] },
-      { day: "Fri", date: "2026-06-05", slots: ["08:30 AM", "01:00 PM", "04:30 PM"] }
-    ]
+      { day: "Fri", date: "2026-06-05", slots: ["08:30 AM", "01:00 PM", "04:30 PM"] },
+    ],
   },
   {
     id: "doc3",
@@ -72,8 +89,8 @@ const mockDoctors: Doctor[] = [
     rating: 4.9,
     availableDays: [
       { day: "Fri", date: "2026-06-05", slots: ["10:00 AM", "11:30 AM", "02:30 PM", "04:15 PM"] },
-      { day: "Sat", date: "2026-06-06", slots: ["09:00 AM", "11:00 AM"] }
-    ]
+      { day: "Sat", date: "2026-06-06", slots: ["09:00 AM", "11:00 AM"] },
+    ],
   },
   {
     id: "doc4",
@@ -84,8 +101,8 @@ const mockDoctors: Doctor[] = [
     status: "Available",
     rating: 5.0,
     availableDays: [
-      { day: "Thu", date: "2026-06-04", slots: ["08:00 AM", "12:00 PM", "04:00 PM", "08:00 PM"] }
-    ]
+      { day: "Thu", date: "2026-06-04", slots: ["08:00 AM", "12:00 PM", "04:00 PM", "08:00 PM"] },
+    ],
   },
   {
     id: "doc5",
@@ -96,30 +113,59 @@ const mockDoctors: Doctor[] = [
     status: "Off Duty",
     rating: 4.7,
     availableDays: [
-      { day: "Mon", date: "2026-06-08", slots: ["09:00 AM", "10:30 AM", "02:00 PM"] }
-    ]
-  }
+      { day: "Mon", date: "2026-06-08", slots: ["09:00 AM", "10:30 AM", "02:00 PM"] },
+    ],
+  },
 ];
 
 const medicalHistory = [
-  { id: "h1", date: "2026-05-18", condition: "Type 2 Diabetes Checkup", doctor: "Dr. Sameer Khan", status: "Controlled" },
-  { id: "h2", date: "2026-04-12", condition: "Routine Cardiac Echo", doctor: "Dr. Ravi Menon", status: "Healthy Ejection Fraction" }
+  {
+    id: "h1",
+    date: "2026-05-18",
+    condition: "Type 2 Diabetes Checkup",
+    doctor: "Dr. Sameer Khan",
+    status: "Controlled",
+  },
+  {
+    id: "h2",
+    date: "2026-04-12",
+    condition: "Routine Cardiac Echo",
+    doctor: "Dr. Ravi Menon",
+    status: "Healthy Ejection Fraction",
+  },
 ];
 
 const currentMedications = [
   { id: "m1", name: "Metoprolol 50mg", frequency: "Once daily (Morning)", purpose: "Hypertension" },
-  { id: "m2", name: "Metformin 1000mg", frequency: "Twice daily (With meals)", purpose: "Type 2 Diabetes" }
+  {
+    id: "m2",
+    name: "Metformin 1000mg",
+    frequency: "Twice daily (With meals)",
+    purpose: "Type 2 Diabetes",
+  },
 ];
 
 const recentLabReports = [
-  { id: "l1", date: "2026-05-20", test: "HbA1c Glycated Hemoglobin", result: "6.4%", status: "Optimal" },
-  { id: "l2", date: "2026-04-12", test: "Lipid Profile Panel", result: "LDL 92 mg/dL", status: "Desirable" }
+  {
+    id: "l1",
+    date: "2026-05-20",
+    test: "HbA1c Glycated Hemoglobin",
+    result: "6.4%",
+    status: "Optimal",
+  },
+  {
+    id: "l2",
+    date: "2026-04-12",
+    test: "Lipid Profile Panel",
+    result: "LDL 92 mg/dL",
+    status: "Desirable",
+  },
 ];
 
 function AppointmentsPage() {
-  const { data: appointmentsData, refetch } = useFabricAppointments();
+  const { data: appointmentsData, refetch } = useAppointments();
   const rawList = appointmentsData?.appointments || [];
-  
+
   // Map raw appointments to UI structure
   const liveList = rawList.map((a: any) => ({
     id: a.apptId || a.id || a.txId || String(Math.random()),
@@ -128,7 +174,10 @@ function AppointmentsPage() {
     hospital: a.hospital || (a.mode === "tele" ? "Telehealth Link" : "Apollo Hospitals"),
     date: a.date || a.slot?.split(" · ")[0] || "2026-06-08",
     time: a.slot || a.time || "Thu · 10:30 AM",
-    status: (a.status === "confirmed" ? "upcoming" : a.status || "upcoming") as "upcoming" | "completed" | "cancelled",
+    status: (a.status === "confirmed" ? "upcoming" : a.status || "upcoming") as
+      | "upcoming"
+      | "completed"
+      | "cancelled",
     mode: (a.mode || "in-person") as "in-person" | "tele",
   }));
 
@@ -137,13 +186,13 @@ function AppointmentsPage() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSpecialty, setSelectedSpecialty] = useState("All");
-  
+
   // Booking flow state
   const [selectedDoc, setSelectedDoc] = useState<Doctor | null>(null);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [consultMode, setConsultMode] = useState<"in-person" | "tele">("in-person");
-  
+
   // Simulated Notification modal state
   const [notificationPreview, setNotificationPreview] = useState<{
     show: boolean;
@@ -168,17 +217,34 @@ function AppointmentsPage() {
   const upcoming = list.filter((a) => a.status === "upcoming");
   const past = list.filter((a) => a.status !== "upcoming");
 
-  const specialties = ["All", "Cardiology", "General Medicine", "Radiology", "Emergency Medicine", "Pediatrics"];
+  const specialties = [
+    "All",
+    "Cardiology",
+    "General Medicine",
+    "Radiology",
+    "Emergency Medicine",
+    "Pediatrics",
+  ];
 
   const filteredDoctors = mockDoctors.filter((doc) => {
-    const matchesSearch = doc.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          doc.specialty.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch =
+      doc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      doc.specialty.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesSpecialty = selectedSpecialty === "All" || doc.specialty === selectedSpecialty;
     return matchesSearch && matchesSpecialty;
   });
 
-  const triggerMockNotifications = (doctorName: string, date: string, time: string, mode: string) => {
-    const formattedDate = new Date(date).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" });
+  const triggerMockNotifications = (
+    doctorName: string,
+    date: string,
+    time: string,
+    mode: string,
+  ) => {
+    const formattedDate = new Date(date).toLocaleDateString("en-IN", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+    });
     const msg = `Appointment Confirmed! Date: ${formattedDate} at ${time}. Doctor: ${doctorName} (${mode === "tele" ? "Telehealth" : "In-Person"}). Check-in details: did:hosp:0x4a91…b7d2`;
     setNotificationPreview({
       show: true,
@@ -189,7 +255,7 @@ function AppointmentsPage() {
 
   const confirmBooking = async () => {
     if (!selectedDoc || !selectedDay || !selectedSlot) return;
-    
+
     const id = `ap${Date.now()}`;
     const timeStr = `${new Date(selectedDay).toLocaleDateString("en-IN", { weekday: "short" })} · ${selectedSlot}`;
     const newAppointment = {
@@ -204,7 +270,7 @@ function AppointmentsPage() {
     };
 
     try {
-      await fabricBookAppointment({
+      await bookAppointment({
         patientDid: "did:hosp:0x4a91…b7d2",
         patientName: "Anika Sharma",
         doctorDid: selectedDoc.did,
@@ -217,11 +283,13 @@ function AppointmentsPage() {
       refetch();
     } catch (err: any) {
       setLocalList((prev) => [newAppointment, ...prev]);
-      toast.success("Appointment booked (offline mode)", { description: `${selectedDay} at ${selectedSlot}` });
+      toast.success("Appointment booked (offline mode)", {
+        description: `${selectedDay} at ${selectedSlot}`,
+      });
     }
 
     triggerMockNotifications(selectedDoc.name, selectedDay, selectedSlot, consultMode);
-    
+
     // reset state
     setSelectedDoc(null);
     setSelectedDay(null);
@@ -229,7 +297,7 @@ function AppointmentsPage() {
   };
 
   const triggerEmergencyBooking = async () => {
-    const erDoc = mockDoctors.find(d => d.specialty === "Emergency Medicine") || mockDoctors[0];
+    const erDoc = mockDoctors.find((d) => d.specialty === "Emergency Medicine") || mockDoctors[0];
     const id = `ap_er_${Date.now()}`;
     const emergencyAppointment = {
       id,
@@ -243,7 +311,7 @@ function AppointmentsPage() {
     };
 
     try {
-      await fabricBookAppointment({
+      await bookAppointment({
         patientDid: "did:hosp:0x4a91…b7d2",
         patientName: "Anika Sharma",
         doctorDid: erDoc.did,
@@ -256,10 +324,17 @@ function AppointmentsPage() {
       refetch();
     } catch {
       setLocalList((prev) => [emergencyAppointment, ...prev]);
-      toast.error("Emergency consult requested (offline mode)", { description: "Report to ER Desk immediately." });
+      toast.error("Emergency consult requested (offline mode)", {
+        description: "Report to ER Desk immediately.",
+      });
     }
-    
-    triggerMockNotifications(erDoc.name, new Date().toISOString().split("T")[0], "IMMEDIATE", "in-person");
+
+    triggerMockNotifications(
+      erDoc.name,
+      new Date().toISOString().split("T")[0],
+      "IMMEDIATE",
+      "in-person",
+    );
     setShowEmergencyModal(false);
   };
 
@@ -271,7 +346,6 @@ function AppointmentsPage() {
   return (
     <RouteGuard requiredRole="patient">
       <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
-        
         {/* Page Header */}
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between border-b border-border pb-4">
           <PageHeader
@@ -291,15 +365,17 @@ function AppointmentsPage() {
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
-          
           {/* Column 1 & 2: Main Booking & Appointment Cards */}
           <div className="lg:col-span-2 space-y-6">
-            
             {/* Quick Specialization Filters */}
             <div className="rounded-xl border border-border bg-card p-4 shadow-clinical space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-foreground">Find Doctor Availability</span>
-                <span className="text-xs text-muted-foreground">{filteredDoctors.length} doctors found</span>
+                <span className="text-sm font-semibold text-foreground">
+                  Find Doctor Availability
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {filteredDoctors.length} doctors found
+                </span>
               </div>
               <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 py-2">
                 <Search className="h-4 w-4 text-muted-foreground" />
@@ -327,12 +403,21 @@ function AppointmentsPage() {
             {/* Doctor Listing Grid */}
             <div className="grid gap-4 sm:grid-cols-2">
               {filteredDoctors.map((doc) => (
-                <div key={doc.id} className="rounded-xl border border-border bg-card p-4 shadow-clinical flex flex-col justify-between space-y-4">
+                <div
+                  key={doc.id}
+                  className="rounded-xl border border-border bg-card p-4 shadow-clinical flex flex-col justify-between space-y-4"
+                >
                   <div>
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-medium text-primary uppercase tracking-wide">{doc.specialty}</span>
-                      <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${doc.status === "Available" ? "bg-success/15 text-success" : doc.status === "Busy" ? "bg-warning/15 text-warning-foreground" : "bg-muted text-muted-foreground"}`}>
-                        <div className={`h-1.5 w-1.5 rounded-full ${doc.status === "Available" ? "bg-success" : doc.status === "Busy" ? "bg-warning" : "bg-muted-foreground"}`} />
+                      <span className="text-xs font-medium text-primary uppercase tracking-wide">
+                        {doc.specialty}
+                      </span>
+                      <span
+                        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${doc.status === "Available" ? "bg-success/15 text-success" : doc.status === "Busy" ? "bg-warning/15 text-warning-foreground" : "bg-muted text-muted-foreground"}`}
+                      >
+                        <div
+                          className={`h-1.5 w-1.5 rounded-full ${doc.status === "Available" ? "bg-success" : doc.status === "Busy" ? "bg-warning" : "bg-muted-foreground"}`}
+                        />
                         {doc.status}
                       </span>
                     </div>
@@ -341,7 +426,9 @@ function AppointmentsPage() {
                     <p className="text-xs text-muted-foreground mt-1">{doc.hospital}</p>
                   </div>
                   <div className="flex items-center justify-between pt-2 border-t border-border">
-                    <span className="text-xs font-semibold text-yellow-500">★ {doc.rating} Rating</span>
+                    <span className="text-xs font-semibold text-yellow-500">
+                      ★ {doc.rating} Rating
+                    </span>
                     <button
                       onClick={() => {
                         setSelectedDoc(doc);
@@ -381,7 +468,11 @@ function AppointmentsPage() {
                             <div className="text-xs text-muted-foreground">{a.specialty}</div>
                           </div>
                           <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
-                            {a.mode === "tele" ? <Video className="h-3 w-3" /> : <MapPin className="h-3 w-3" />}
+                            {a.mode === "tele" ? (
+                              <Video className="h-3 w-3" />
+                            ) : (
+                              <MapPin className="h-3 w-3" />
+                            )}
                             {a.mode === "tele" ? "Telemedicine" : "In-Person"}
                           </span>
                         </div>
@@ -390,7 +481,7 @@ function AppointmentsPage() {
                           <span className="font-semibold">{a.time}</span>
                         </div>
                         <p className="text-xs text-muted-foreground mt-1">{a.hospital}</p>
-                        
+
                         <div className="mt-4 flex gap-2 border-t border-border pt-3">
                           <button
                             onClick={() => cancel(a.id)}
@@ -400,7 +491,9 @@ function AppointmentsPage() {
                           </button>
                           {a.mode === "tele" ? (
                             <button
-                              onClick={() => setActiveCall({ id: a.id, doctorName: a.doctor, active: true })}
+                              onClick={() =>
+                                setActiveCall({ id: a.id, doctorName: a.doctor, active: true })
+                              }
                               className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-success text-success-foreground py-2 text-xs font-bold hover:bg-success/90"
                             >
                               <Video className="h-3.5 w-3.5" /> Launch Telehealth
@@ -424,15 +517,24 @@ function AppointmentsPage() {
             {/* Past Visits */}
             {past.length > 0 && (
               <div className="space-y-2">
-                <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Previous Consultation History</div>
+                <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Previous Consultation History
+                </div>
                 <div className="grid gap-2 sm:grid-cols-2">
                   {past.map((a) => (
-                    <div key={a.id} className="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-3">
+                    <div
+                      key={a.id}
+                      className="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-3"
+                    >
                       <div>
                         <div className="font-medium text-foreground">{a.doctor}</div>
-                        <div className="text-xs text-muted-foreground">{a.time} · {a.specialty}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {a.time} · {a.specialty}
+                        </div>
                       </div>
-                      <span className={`text-[10px] font-bold uppercase tracking-wider ${a.status === "cancelled" ? "text-destructive" : "text-success"}`}>
+                      <span
+                        className={`text-[10px] font-bold uppercase tracking-wider ${a.status === "cancelled" ? "text-destructive" : "text-success"}`}
+                      >
                         {a.status}
                       </span>
                     </div>
@@ -440,31 +542,40 @@ function AppointmentsPage() {
                 </div>
               </div>
             )}
-
           </div>
 
           {/* Column 3: Patient Health Profile Dashboard */}
           <div className="space-y-6">
-            
             {/* Quick Profile Summary Card */}
             <div className="rounded-xl border border-border bg-card p-5 shadow-clinical space-y-4">
               <div className="flex items-center gap-2 border-b border-border pb-2">
                 <User className="h-5 w-5 text-primary" />
-                <h3 className="text-sm font-bold text-foreground">Patient Health Records Overview</h3>
+                <h3 className="text-sm font-bold text-foreground">
+                  Patient Health Records Overview
+                </h3>
               </div>
-              
+
               {/* Medical History */}
               <div className="space-y-2">
-                <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-wider block">Conditions & Medical History</span>
+                <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-wider block">
+                  Conditions & Medical History
+                </span>
                 <div className="space-y-1.5">
                   {medicalHistory.map((item) => (
-                    <div key={item.id} className="rounded-lg bg-muted/60 p-2 text-xs border border-border">
+                    <div
+                      key={item.id}
+                      className="rounded-lg bg-muted/60 p-2 text-xs border border-border"
+                    >
                       <div className="flex justify-between items-center">
                         <span className="font-semibold text-foreground">{item.condition}</span>
                         <span className="text-[10px] text-muted-foreground">{item.date}</span>
                       </div>
-                      <div className="text-muted-foreground mt-0.5">Primary physician: {item.doctor}</div>
-                      <div className="mt-1 font-medium text-primary text-[10px]">Result: {item.status}</div>
+                      <div className="text-muted-foreground mt-0.5">
+                        Primary physician: {item.doctor}
+                      </div>
+                      <div className="mt-1 font-medium text-primary text-[10px]">
+                        Result: {item.status}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -477,12 +588,17 @@ function AppointmentsPage() {
                 </span>
                 <div className="space-y-1.5">
                   {currentMedications.map((med) => (
-                    <div key={med.id} className="flex justify-between items-center rounded-lg bg-primary/5 p-2 text-xs border border-primary/20">
+                    <div
+                      key={med.id}
+                      className="flex justify-between items-center rounded-lg bg-primary/5 p-2 text-xs border border-primary/20"
+                    >
                       <div>
                         <div className="font-semibold text-foreground">{med.name}</div>
                         <div className="text-[10px] text-muted-foreground">{med.frequency}</div>
                       </div>
-                      <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[9px] font-medium text-primary">{med.purpose}</span>
+                      <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[9px] font-medium text-primary">
+                        {med.purpose}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -495,7 +611,10 @@ function AppointmentsPage() {
                 </span>
                 <div className="space-y-1.5">
                   {recentLabReports.map((lab) => (
-                    <div key={lab.id} className="rounded-lg bg-muted/60 p-2 text-xs border border-border flex items-center justify-between">
+                    <div
+                      key={lab.id}
+                      className="rounded-lg bg-muted/60 p-2 text-xs border border-border flex items-center justify-between"
+                    >
                       <div>
                         <div className="font-semibold text-foreground">{lab.test}</div>
                         <div className="text-[9px] text-muted-foreground">{lab.date}</div>
@@ -518,24 +637,40 @@ function AppointmentsPage() {
                   View Complete Medical File
                 </Link>
               </div>
-
             </div>
 
             {/* Notification Reminders simulator */}
             <div className="rounded-xl border border-border bg-card p-5 shadow-clinical space-y-4">
               <div className="flex items-center gap-2 border-b border-border pb-2">
                 <MessageSquare className="h-5 w-5 text-primary" />
-                <h3 className="text-sm font-bold text-foreground">Multi-Channel Reminder settings</h3>
+                <h3 className="text-sm font-bold text-foreground">
+                  Multi-Channel Reminder settings
+                </h3>
               </div>
               <p className="text-xs text-muted-foreground">
                 Automated reminders trigger on bookings, reschedules, and health events.
               </p>
-              
+
               <div className="space-y-3">
                 {[
-                  { id: "whatsapp", label: "WhatsApp Alerts", icon: MessageSquare, desc: "Send rich media templates" },
-                  { id: "sms", label: "SMS Notifications", icon: Phone, desc: "Immediate offline alerts" },
-                  { id: "email", label: "Email Summaries", icon: Mail, desc: "Detailed PDF invoices + links" }
+                  {
+                    id: "whatsapp",
+                    label: "WhatsApp Alerts",
+                    icon: MessageSquare,
+                    desc: "Send rich media templates",
+                  },
+                  {
+                    id: "sms",
+                    label: "SMS Notifications",
+                    icon: Phone,
+                    desc: "Immediate offline alerts",
+                  },
+                  {
+                    id: "email",
+                    label: "Email Summaries",
+                    icon: Mail,
+                    desc: "Detailed PDF invoices + links",
+                  },
                 ].map((item) => (
                   <div key={item.id} className="flex items-start justify-between">
                     <div className="flex gap-2">
@@ -550,12 +685,16 @@ function AppointmentsPage() {
                     <div className="relative inline-flex items-center cursor-pointer">
                       <input
                         type="checkbox"
-                        checked={notificationPreview.channels[item.id as keyof typeof notificationPreview.channels]}
+                        checked={
+                          notificationPreview.channels[
+                            item.id as keyof typeof notificationPreview.channels
+                          ]
+                        }
                         onChange={(e) => {
                           const val = e.target.checked;
-                          setNotificationPreview(prev => ({
+                          setNotificationPreview((prev) => ({
                             ...prev,
-                            channels: { ...prev.channels, [item.id]: val }
+                            channels: { ...prev.channels, [item.id]: val },
                           }));
                         }}
                         className="sr-only peer"
@@ -566,11 +705,8 @@ function AppointmentsPage() {
                 ))}
               </div>
             </div>
-
           </div>
-
         </div>
-
       </div>
 
       {/* Booking Calendar Modal */}
@@ -593,7 +729,9 @@ function AppointmentsPage() {
               <div className="flex items-center justify-between border-b border-border pb-3">
                 <div>
                   <h3 className="text-base font-bold text-foreground">Schedule Consultation</h3>
-                  <p className="text-xs text-muted-foreground">{selectedDoc.name} · {selectedDoc.specialty}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {selectedDoc.name} · {selectedDoc.specialty}
+                  </p>
                 </div>
                 <button
                   onClick={() => setSelectedDoc(null)}
@@ -604,10 +742,11 @@ function AppointmentsPage() {
               </div>
 
               <div className="mt-4 space-y-4">
-                
                 {/* Consultation Mode Selection */}
                 <div>
-                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Consultation Type</label>
+                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+                    Consultation Type
+                  </label>
                   <div className="mt-1.5 grid grid-cols-2 gap-2">
                     <button
                       onClick={() => setConsultMode("in-person")}
@@ -630,12 +769,17 @@ function AppointmentsPage() {
 
                 {/* Day Selection */}
                 <div>
-                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Select Date</label>
+                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+                    Select Date
+                  </label>
                   <div className="mt-1.5 flex gap-2">
                     {selectedDoc.availableDays.map((d) => (
                       <button
                         key={d.date}
-                        onClick={() => { setSelectedDay(d.date); setSelectedSlot(null); }}
+                        onClick={() => {
+                          setSelectedDay(d.date);
+                          setSelectedSlot(null);
+                        }}
                         className={`flex-1 flex flex-col items-center p-2 rounded-lg border text-center transition-all ${selectedDay === d.date ? "border-primary bg-primary/5 text-primary font-bold" : "border-border hover:bg-muted text-muted-foreground"}`}
                       >
                         <span className="text-[10px] uppercase font-bold">{d.day}</span>
@@ -648,21 +792,24 @@ function AppointmentsPage() {
                 {/* Slot Selection */}
                 {selectedDay && (
                   <div>
-                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Available Slots</label>
+                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+                      Available Slots
+                    </label>
                     <div className="mt-1.5 grid grid-cols-3 gap-2">
-                      {selectedDoc.availableDays.find(d => d.date === selectedDay)?.slots.map((s) => (
-                        <button
-                          key={s}
-                          onClick={() => setSelectedSlot(s)}
-                          className={`p-2 rounded-lg border text-xs font-medium text-center transition-all ${selectedSlot === s ? "bg-primary text-primary-foreground border-primary shadow-clinical" : "border-border hover:bg-muted text-foreground"}`}
-                        >
-                          {s}
-                        </button>
-                      ))}
+                      {selectedDoc.availableDays
+                        .find((d) => d.date === selectedDay)
+                        ?.slots.map((s) => (
+                          <button
+                            key={s}
+                            onClick={() => setSelectedSlot(s)}
+                            className={`p-2 rounded-lg border text-xs font-medium text-center transition-all ${selectedSlot === s ? "bg-primary text-primary-foreground border-primary shadow-clinical" : "border-border hover:bg-muted text-foreground"}`}
+                          >
+                            {s}
+                          </button>
+                        ))}
                     </div>
                   </div>
                 )}
-
               </div>
 
               <div className="mt-6 flex gap-2 border-t border-border pt-4">
@@ -708,7 +855,8 @@ function AppointmentsPage() {
                 </div>
                 <h3 className="text-lg font-bold text-foreground">Request Emergency Consult?</h3>
                 <p className="text-xs text-muted-foreground px-4">
-                  This issues an immediate trauma-level triage request and assigns the next available ER physician. Use only for clinical emergencies.
+                  This issues an immediate trauma-level triage request and assigns the next
+                  available ER physician. Use only for clinical emergencies.
                 </p>
               </div>
 
@@ -756,13 +904,14 @@ function AppointmentsPage() {
 
             {/* Video Viewport Mockup */}
             <div className="flex-1 my-6 rounded-2xl bg-muted/10 border border-white/10 overflow-hidden relative flex items-center justify-center">
-              
               {/* Main Doctor Screen */}
               <div className="absolute inset-0 flex flex-col items-center justify-center space-y-4">
                 <div className="h-28 w-28 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center text-primary">
                   <User className="h-14 w-14" />
                 </div>
-                <div className="text-white text-sm font-medium animate-pulse">Connecting with {activeCall.doctorName}…</div>
+                <div className="text-white text-sm font-medium animate-pulse">
+                  Connecting with {activeCall.doctorName}…
+                </div>
               </div>
 
               {/* Patient Miniature View */}
@@ -794,7 +943,6 @@ function AppointmentsPage() {
       <AnimatePresence>
         {notificationPreview.show && (
           <div className="fixed bottom-4 right-4 z-50 max-w-sm w-full space-y-2">
-            
             {notificationPreview.channels.whatsapp && (
               <motion.div
                 initial={{ transform: "translateY(50px)", opacity: 0 }}
@@ -807,20 +955,25 @@ function AppointmentsPage() {
                 </div>
                 <div className="flex-1">
                   <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold text-foreground">WhatsApp Reminder Sent</span>
-                    <button onClick={() => setNotificationPreview(p => ({ ...p, show: false }))} className="text-muted-foreground hover:text-foreground">
+                    <span className="text-xs font-bold text-foreground">
+                      WhatsApp Reminder Sent
+                    </span>
+                    <button
+                      onClick={() => setNotificationPreview((p) => ({ ...p, show: false }))}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
                       <X className="h-3 w-3" />
                     </button>
                   </div>
-                  <p className="text-[11px] text-foreground/80 mt-1">{notificationPreview.message}</p>
+                  <p className="text-[11px] text-foreground/80 mt-1">
+                    {notificationPreview.message}
+                  </p>
                 </div>
               </motion.div>
             )}
-
           </div>
         )}
       </AnimatePresence>
-
     </RouteGuard>
   );
 }

@@ -12,7 +12,7 @@
 │   ├── records.ts                 # Convex server-side mutations and queries
 │   └── schema.ts                  # Convex database schema definition
 ├── eslint.config.js               # ESLint linting rules and configuration
-├── fabric-backend/                # Custom simulated Hyperledger Fabric Node.js server
+├── backend/                       # Express REST + WebSocket backend server
 │   ├── data/                      # Initial JSON mock data for world state
 │   │   ├── appointments.json      # Mock appointments
 │   │   ├── audit.json             # Mock audit logs
@@ -37,8 +37,8 @@
 │   ├── components/                # React components
 │   │   ├── AppSidebar.tsx         # Global navigation sidebar
 │   │   ├── EmptyState.tsx         # Generic empty state UI component
-│   │   ├── FabricStatusBar.tsx    # Header status bar showing Fabric network status
-│   │   ├── HyperledgerProvider.tsx# Context provider for Fabric/Convex state
+│   │   ├── StatusBar.tsx          # Header status bar showing backend network status
+
 │   │   ├── Motion.tsx             # Framer Motion utility components
 │   │   ├── NotificationBell.tsx   # Header notification dropdown
 │   │   ├── PageHeader.tsx         # Generic page header component
@@ -127,7 +127,7 @@
 │   │       ├── toggle.tsx         # Toggle button
 │   │       └── tooltip.tsx        # Tooltip popup
 │   ├── hooks/                     # Custom React Hooks
-│   │   ├── use-fabric.ts          # Hook to interact with Fabric simulation backend
+│   ├── use-api.ts             # Hook to interact with backend API
 │   │   ├── use-mobile.tsx         # Hook to detect mobile screen size
 │   │   ├── use-notifications.ts   # Hook to manage notifications
 │   │   └── use-simulated-loading.ts # Hook for simulated network delay
@@ -141,9 +141,9 @@
 │   │   ├── convex-client.ts       # Initialization of Convex client
 │   │   ├── error-capture.ts       # Error tracking utility
 │   │   ├── error-page.ts          # Error page rendering utility
-│   │   ├── fabric-api.ts          # API client for the Express backend
-│   │   ├── fabric-worker.ts       # Web Worker for background Fabric tasks
-│   │   ├── hyperledger.ts         # Hyperledger constants/types
+│   │   ├── api.ts                 # API client for the Express backend
+│   │   ├── api-worker.ts          # Web Worker for background API tasks
+
 │   │   ├── infrastructure-data.ts # Mock data for infrastructure
 │   │   ├── inpatient-data.ts      # Mock data and models for inpatient care
 │   │   ├── lovable-error-reporting.ts # Telemetry/error reporting for Lovable
@@ -167,7 +167,7 @@
 │   │   ├── __root.tsx             # Root layout wrapping all pages
 │   │   ├── admin.attendance.tsx   # Admin: Staff attendance view
 │   │   ├── admin.audit.tsx        # Admin: Audit logs dashboard
-│   │   ├── admin.chaincode.tsx    # Admin: Chaincode management
+
 │   │   ├── admin.command.tsx      # Admin: Hospital command center
 │   │   ├── admin.compliance.tsx   # Admin: Compliance checks
 │   │   ├── admin.credentials.tsx  # Admin: Credential issuance/management
@@ -176,7 +176,7 @@
 │   │   ├── admin.federation.tsx   # Admin: Hospital federation network
 │   │   ├── admin.financial.tsx    # Admin: Financial reports
 │   │   ├── admin.fraud.tsx        # Admin: Fraud detection alerts
-│   │   ├── admin.hyperledger.tsx  # Admin: Fabric network status
+
 │   │   ├── admin.index.tsx        # Admin: Main dashboard
 │   │   ├── admin.infrastructure.tsx # Admin: Infrastructure management
 │   │   ├── admin.people.tsx       # Admin: User/Staff management

@@ -3,8 +3,8 @@ import { useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHeader } from "@/components/PageHeader";
 import { RouteGuard } from "@/components/RouteGuard";
-import { useLivePatients } from "@/hooks/use-fabric";
-import { fabricLogAuditEvent, fabricVerifyNFCCard, fabricResolveDID } from "@/lib/fabric-api";
+import { useLivePatients } from "@/hooks/use-api";
+import { logAuditEvent, verifyNFCCard, resolveDID } from "@/lib/api";
 import { currentPatient } from "@/lib/mock-data";
 import {
   ScanLine,
@@ -68,7 +68,9 @@ function VerifyPatient() {
 
   // NFC & Fallback States
   const [activeTab, setActiveTab] = useState<"qr" | "nfc">("qr");
-  const [nfcStatus, setNfcStatus] = useState<"idle" | "reading" | "verifying" | "success" | "error">("idle");
+  const [nfcStatus, setNfcStatus] = useState<
+    "idle" | "reading" | "verifying" | "success" | "error"
+  >("idle");
   const [nfcError, setNfcError] = useState<string | null>(null);
   const [manualMrn, setManualMrn] = useState("");
   const [isManualInputActive, setIsManualInputActive] = useState(false);
@@ -96,7 +98,7 @@ function VerifyPatient() {
       setVerified(true);
       setError(null);
 
-      void fabricLogAuditEvent("staff", parsed.did, "QR_VERIFY", "success", "info");
+      void logAuditEvent("staff", parsed.did, "QR_VERIFY", "success", "info");
 
       toast.success("Patient identity verified", {
         description: `${matched.name} · MRN ${matched.mrn}`,
@@ -180,9 +182,11 @@ function VerifyPatient() {
       try {
         const target = patientsList?.[0] || currentPatient;
         // Resolve DID document from API
-        await fabricResolveDID(target.did).catch(() => null);
+        await resolveDID(target.did).catch(() => null);
         // Verify card
-        await fabricVerifyNFCCard({ cardId: "NFC-SIMULATED-CARD" }).catch(() => ({ verified: true }));
+        await verifyNFCCard({ cardId: "NFC-SIMULATED-CARD" }).catch(() => ({
+          verified: true,
+        }));
 
         const payload: ScannedPayload = {
           did: target.did,
@@ -195,7 +199,7 @@ function VerifyPatient() {
         setScanResult(payload);
         setVerified(true);
         setNfcStatus("success");
-        void fabricLogAuditEvent("staff", payload.did, "NFC_VERIFY", "success", "info");
+        void logAuditEvent("staff", payload.did, "NFC_VERIFY", "success", "info");
 
         toast.success("Patient NFC Verified", {
           description: `${target.name} · MRN ${target.mrn}`,
@@ -232,7 +236,7 @@ function VerifyPatient() {
     }
 
     const matched = patientsList?.find(
-      (p) => p.mrn.toLowerCase() === manualMrn.trim().toLowerCase()
+      (p) => p.mrn.toLowerCase() === manualMrn.trim().toLowerCase(),
     );
 
     if (matched) {
@@ -251,7 +255,7 @@ function VerifyPatient() {
       if (activeTab === "nfc") {
         setNfcStatus("success");
       }
-      void fabricLogAuditEvent("staff", matched.did, "MANUAL_VERIFY", "success", "info");
+      void logAuditEvent("staff", matched.did, "MANUAL_VERIFY", "success", "info");
       toast.success("Patient verified manually", {
         description: `${matched.name} · MRN ${matched.mrn}`,
       });
@@ -873,14 +877,14 @@ function NfcContactlessReader({ status, errorText }: NfcReaderProps) {
         rotateX: { repeat: Infinity, duration: 4, ease: "easeInOut" },
         rotateY: { repeat: Infinity, duration: 4, ease: "easeInOut" },
         rotateZ: { repeat: Infinity, duration: 4, ease: "easeInOut" },
-      }
+      },
     },
     reading: {
       y: 70,
       rotateX: 30,
       rotateY: 0,
       scale: 0.9,
-      transition: { type: "spring", stiffness: 350, damping: 15 }
+      transition: { type: "spring", stiffness: 350, damping: 15 },
     },
     verifying: {
       y: 0,
@@ -889,15 +893,15 @@ function NfcContactlessReader({ status, errorText }: NfcReaderProps) {
       scale: 1.05,
       transition: {
         rotateY: { repeat: Infinity, duration: 2, ease: "linear" },
-        y: { type: "spring", stiffness: 100, damping: 10 }
-      }
+        y: { type: "spring", stiffness: 100, damping: 10 },
+      },
     },
     success: {
       y: 0,
       rotateX: 0,
       rotateY: 0,
       scale: 1.05,
-      transition: { type: "spring", stiffness: 200, damping: 12 }
+      transition: { type: "spring", stiffness: 200, damping: 12 },
     },
     error: {
       x: [0, -10, 10, -10, 10, -5, 5, 0],
@@ -907,16 +911,19 @@ function NfcContactlessReader({ status, errorText }: NfcReaderProps) {
       scale: 0.95,
       transition: {
         x: { duration: 0.5 },
-        y: { type: "spring", stiffness: 200, damping: 15 }
-      }
-    }
+        y: { type: "spring", stiffness: 200, damping: 15 },
+      },
+    },
   };
 
   return (
     <div className="relative overflow-hidden rounded-xl border border-border bg-card p-6 aspect-square w-full flex flex-col items-center justify-center text-center">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(var(--primary-rgb),0.05),transparent_70%)] pointer-events-none" />
 
-      <div className="flex-1 flex items-center justify-center relative w-full" style={{ perspective: "1000px" }}>
+      <div
+        className="flex-1 flex items-center justify-center relative w-full"
+        style={{ perspective: "1000px" }}
+      >
         <motion.div
           style={{
             perspective: "1200px",
@@ -937,7 +944,7 @@ function NfcContactlessReader({ status, errorText }: NfcReaderProps) {
             className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/30 via-white/5 to-white/10 backdrop-blur-md border border-white/20 p-5 shadow-2xl flex flex-col justify-between overflow-hidden"
           >
             <div className="absolute -inset-10 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.1),transparent_40%)] pointer-events-none" />
-            
+
             {status === "reading" && (
               <motion.div
                 initial={{ top: "0%" }}
@@ -949,8 +956,12 @@ function NfcContactlessReader({ status, errorText }: NfcReaderProps) {
 
             <div className="flex justify-between items-start">
               <div className="flex flex-col text-left">
-                <span className="text-[9px] tracking-widest text-primary font-bold">EMBRACE HEALTH</span>
-                <span className="text-[7px] text-muted-foreground tracking-wider">HEALTH DID CARD</span>
+                <span className="text-[9px] tracking-widest text-primary font-bold">
+                  EMBRACE HEALTH
+                </span>
+                <span className="text-[7px] text-muted-foreground tracking-wider">
+                  HEALTH DID CARD
+                </span>
               </div>
               <Wifi className="h-5 w-5 text-primary/80" />
             </div>
@@ -962,8 +973,12 @@ function NfcContactlessReader({ status, errorText }: NfcReaderProps) {
 
             <div className="flex justify-between items-end">
               <div className="flex flex-col text-left">
-                <span className="font-mono text-xs tracking-wider text-foreground">did:solana:patient:••••••••</span>
-                <span className="text-[9px] uppercase tracking-widest text-muted-foreground mt-1">SECURED BY SOLANA</span>
+                <span className="font-mono text-xs tracking-wider text-foreground">
+                  did:solana:patient:••••••••
+                </span>
+                <span className="text-[9px] uppercase tracking-widest text-muted-foreground mt-1">
+                  SECURED BY SOLANA
+                </span>
               </div>
               <div className="h-6 w-6 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center">
                 <ShieldCheck className="h-3.5 w-3.5 text-primary" />
@@ -981,13 +996,16 @@ function NfcContactlessReader({ status, errorText }: NfcReaderProps) {
             className="absolute inset-0 rounded-2xl bg-gradient-to-br from-zinc-950 to-zinc-900 border border-white/10 p-5 shadow-2xl flex flex-col justify-between overflow-hidden"
           >
             <div className="absolute top-4 left-0 right-0 h-8 bg-zinc-800" />
-            
+
             <div className="mt-10 flex flex-col gap-2 text-left">
               <div className="h-5 bg-white/5 border border-white/10 rounded px-2 flex items-center justify-end">
-                <span className="font-mono text-[9px] text-muted-foreground tracking-widest">EXP 2029-12-31</span>
+                <span className="font-mono text-[9px] text-muted-foreground tracking-widest">
+                  EXP 2029-12-31
+                </span>
               </div>
               <p className="text-[7px] text-muted-foreground/60 leading-tight">
-                This card contains encrypted hospital credentials. Keep away from strong magnetic fields. Under constant ledger state audit.
+                This card contains encrypted hospital credentials. Keep away from strong magnetic
+                fields. Under constant ledger state audit.
               </p>
             </div>
 
@@ -1036,7 +1054,9 @@ function NfcContactlessReader({ status, errorText }: NfcReaderProps) {
         {status === "idle" && (
           <div className="flex flex-col gap-1">
             <span className="text-sm font-semibold text-foreground">Ready to scan NFC Card</span>
-            <span className="text-xs text-muted-foreground">Tap patient membership card on reader</span>
+            <span className="text-xs text-muted-foreground">
+              Tap patient membership card on reader
+            </span>
           </div>
         )}
         {status === "reading" && (
@@ -1053,7 +1073,9 @@ function NfcContactlessReader({ status, errorText }: NfcReaderProps) {
         )}
         {status === "success" && (
           <div className="flex flex-col gap-1">
-            <span className="text-sm font-semibold text-success">Contactless Identity Verified</span>
+            <span className="text-sm font-semibold text-success">
+              Contactless Identity Verified
+            </span>
             <span className="text-xs text-muted-foreground">Access log recorded on blockchain</span>
           </div>
         )}

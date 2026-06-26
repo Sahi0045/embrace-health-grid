@@ -1,12 +1,23 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { StaggerList, StaggerItem } from "@/components/Motion";
 import { currentPatient } from "@/lib/mock-data";
+import { useLivePatients, useConsents, useAppointments } from "@/hooks/use-api";
 import {
-  useLivePatients,
-  useFabricConsents,
-  useFabricAppointments,
-} from "@/hooks/use-fabric";
-import { QrCode, Wallet, ShieldCheck, History, Heart, ChevronRight, BellRing, CalendarDays, Activity, ClipboardList, Syringe, CreditCard, Video, Users2 } from "lucide-react";
+  QrCode,
+  Wallet,
+  ShieldCheck,
+  History,
+  Heart,
+  ChevronRight,
+  BellRing,
+  CalendarDays,
+  Activity,
+  ClipboardList,
+  Syringe,
+  CreditCard,
+  Video,
+  Users2,
+} from "lucide-react";
 import { motion } from "framer-motion";
 import { RouteGuard } from "@/components/RouteGuard";
 import { PageHeader } from "@/components/PageHeader";
@@ -17,25 +28,29 @@ export const Route = createFileRoute("/patient/")({
   component: PatientHome,
 });
 
-const quickActions: { to: string; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { to: "/patient/inpatient",    label: "Inpatient",  icon: Activity },
-  { to: "/patient/records",      label: "Records",    icon: ClipboardList },
-  { to: "/patient/qr",           label: "Show QR",    icon: QrCode },
-  { to: "/patient/appointments", label: "Visits",     icon: CalendarDays },
-  { to: "/patient/wallet",       label: "Wallet",     icon: Wallet },
-  { to: "/patient/consent",      label: "Consent",    icon: ShieldCheck },
-  { to: "/patient/history",      label: "History",    icon: History },
-  { to: "/patient/emergency",    label: "Emergency",  icon: Heart },
-  { to: "/patient/vaccines",     label: "Vaccines",   icon: Syringe },
-  { to: "/patient/insurance",    label: "Insurance",  icon: CreditCard },
-  { to: "/patient/telemedicine", label: "Tele",       icon: Video },
-  { to: "/patient/family",       label: "Family",     icon: Users2 },
+const quickActions: {
+  to: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+}[] = [
+  { to: "/patient/inpatient", label: "Inpatient", icon: Activity },
+  { to: "/patient/records", label: "Records", icon: ClipboardList },
+  { to: "/patient/qr", label: "Show QR", icon: QrCode },
+  { to: "/patient/appointments", label: "Visits", icon: CalendarDays },
+  { to: "/patient/wallet", label: "Wallet", icon: Wallet },
+  { to: "/patient/consent", label: "Consent", icon: ShieldCheck },
+  { to: "/patient/history", label: "History", icon: History },
+  { to: "/patient/emergency", label: "Emergency", icon: Heart },
+  { to: "/patient/vaccines", label: "Vaccines", icon: Syringe },
+  { to: "/patient/insurance", label: "Insurance", icon: CreditCard },
+  { to: "/patient/telemedicine", label: "Tele", icon: Video },
+  { to: "/patient/family", label: "Family", icon: Users2 },
 ];
 
 function PatientHome() {
   const { patients } = useLivePatients();
-  const { data: consentsData } = useFabricConsents();
-  const { data: apptsData } = useFabricAppointments();
+  const { data: consentsData } = useConsents();
+  const { data: apptsData } = useAppointments();
 
   const userEmail = typeof window !== "undefined" ? localStorage.getItem("userEmail") : "";
   const userName = typeof window !== "undefined" ? localStorage.getItem("userName") : "";
@@ -51,10 +66,13 @@ function PatientHome() {
             </div>
             <h1 className="mt-6 text-2xl font-bold text-foreground">Awaiting DID Provisioning</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Welcome to the Patient Portal, <span className="font-semibold">{userName || userEmail}</span>.
+              Welcome to the Patient Portal,{" "}
+              <span className="font-semibold">{userName || userEmail}</span>.
             </p>
             <p className="mt-4 text-xs text-muted-foreground leading-relaxed">
-              Your decentralized identity (DID) document must be approved and issued on the blockchain by an Administrator before you can access health services, appointments, or medical wallets.
+              Your decentralized identity (DID) document must be approved and issued on the
+              blockchain by an Administrator before you can access health services, appointments, or
+              medical wallets.
             </p>
             <div className="mt-6">
               <Button
@@ -75,17 +93,25 @@ function PatientHome() {
     );
   }
 
-  const pendingConsents = consentsData?.consents?.filter((c: any) => c.status === "pending" || c.status === "requested")?.length ?? 0;
-  
-  // Find upcoming appointment
-  const patientAppts = apptsData?.appointments?.filter((a: any) => a.patientDid === patientRecord.did) ?? [];
-  const nextVisit = patientAppts.find((a: any) => a.status === "confirmed" || a.status === "upcoming" || a.status === "upcoming-visit") as any;
+  const pendingConsents =
+    consentsData?.consents?.filter((c: any) => c.status === "pending" || c.status === "requested")
+      ?.length ?? 0;
 
-  const displayNextVisit = nextVisit ? {
-    doctor: nextVisit.doctorName || nextVisit.doctorDid || "Doctor Specialist",
-    specialty: nextVisit.specialty || "General Medicine",
-    time: nextVisit.slot || "Confirmed Appointment Slot"
-  } : null;
+  // Find upcoming appointment
+  const patientAppts =
+    apptsData?.appointments?.filter((a: any) => a.patientDid === patientRecord.did) ?? [];
+  const nextVisit = patientAppts.find(
+    (a: any) =>
+      a.status === "confirmed" || a.status === "upcoming" || a.status === "upcoming-visit",
+  ) as any;
+
+  const displayNextVisit = nextVisit
+    ? {
+        doctor: nextVisit.doctorName || nextVisit.doctorDid || "Doctor Specialist",
+        specialty: nextVisit.specialty || "General Medicine",
+        time: nextVisit.slot || "Confirmed Appointment Slot",
+      }
+    : null;
 
   return (
     <RouteGuard requiredRole="patient">
@@ -113,7 +139,10 @@ function PatientHome() {
                   <div className="text-[10px] uppercase tracking-wider opacity-70">MRN</div>
                   <div className="text-sm font-medium">{patientRecord.mrn}</div>
                 </div>
-                <Link to="/patient/qr" className="inline-flex items-center gap-1 rounded-full bg-white/15 px-3 py-1.5 text-xs font-medium backdrop-blur hover:bg-white/25 transition-colors">
+                <Link
+                  to="/patient/qr"
+                  className="inline-flex items-center gap-1 rounded-full bg-white/15 px-3 py-1.5 text-xs font-medium backdrop-blur hover:bg-white/25 transition-colors"
+                >
                   Check-in QR <ChevronRight className="h-3 w-3" />
                 </Link>
               </div>
@@ -127,7 +156,10 @@ function PatientHome() {
                 to="/patient/consent"
                 className="flex items-center gap-3 rounded-xl border border-warning/30 bg-warning/10 p-3 text-sm transition-colors hover:bg-warning/15"
               >
-                <motion.span animate={{ scale: [1, 1.15, 1] }} transition={{ repeat: Infinity, duration: 1.8 }}>
+                <motion.span
+                  animate={{ scale: [1, 1.15, 1] }}
+                  transition={{ repeat: Infinity, duration: 1.8 }}
+                >
                   <BellRing className="h-4 w-4 text-warning-foreground" />
                 </motion.span>
                 <span className="flex-1 text-foreground">
@@ -147,11 +179,17 @@ function PatientHome() {
                   className="block rounded-xl border border-border bg-card p-4 transition-shadow hover:shadow-clinical-md"
                 >
                   <div className="flex items-center justify-between">
-                    <div className="text-[10px] font-medium uppercase tracking-wider text-primary">Next visit</div>
+                    <div className="text-[10px] font-medium uppercase tracking-wider text-primary">
+                      Next visit
+                    </div>
                     <ChevronRight className="h-4 w-4 text-muted-foreground" />
                   </div>
-                  <div className="mt-1 text-sm font-semibold text-foreground">{displayNextVisit.doctor}</div>
-                  <div className="text-xs text-muted-foreground">{displayNextVisit.specialty} · {displayNextVisit.time}</div>
+                  <div className="mt-1 text-sm font-semibold text-foreground">
+                    {displayNextVisit.doctor}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {displayNextVisit.specialty} · {displayNextVisit.time}
+                  </div>
                 </Link>
               )}
 
@@ -175,7 +213,6 @@ function PatientHome() {
               </div>
             </div>
           </StaggerItem>
-
 
           {/* Quick actions grid */}
           <StaggerItem>

@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { RouteGuard } from "@/components/RouteGuard";
-import { useLivePatients } from "@/hooks/use-fabric";
+import { useLivePatients } from "@/hooks/use-api";
 import { Search, X, Activity, Pill, FlaskConical, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +23,6 @@ function Patients() {
   const filtered = patients.filter((p: any) =>
     [p.name, p.mrn, p.did, p.phone || ""].some((f) => f.toLowerCase().includes(q.toLowerCase())),
   );
-
 
   return (
     <RouteGuard requiredRole="staff">
@@ -60,17 +59,25 @@ function Patients() {
                 <tr key={p.id} className="hover:bg-muted/30">
                   <td className="px-4 py-3">
                     <div className="font-medium text-foreground">{p.name}</div>
-                    <div className="text-xs text-muted-foreground">{p.age} · {p.gender}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {p.age} · {p.gender}
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{p.mrn}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground hidden md:table-cell">{p.did}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground hidden md:table-cell">
+                    {p.did}
+                  </td>
                   <td className="px-4 py-3">
-                    <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-medium">{p.bloodGroup}</span>
+                    <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-medium">
+                      {p.bloodGroup}
+                    </span>
                   </td>
                   <td className="px-4 py-3 text-xs text-muted-foreground hidden sm:table-cell">
                     {p.allergies.length ? (
                       <span className="text-destructive">{p.allergies.join(", ")}</span>
-                    ) : "—"}
+                    ) : (
+                      "—"
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <button
@@ -107,7 +114,9 @@ function Patients() {
             {/* Header */}
             <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-card px-6 py-4">
               <div>
-                <div className="font-semibold text-foreground">{selected.name} — Clinical Chart</div>
+                <div className="font-semibold text-foreground">
+                  {selected.name} — Clinical Chart
+                </div>
                 <div className="text-xs text-muted-foreground">
                   MRN {selected.mrn} · {selected.age}y · {selected.gender} · {selected.bloodGroup}
                 </div>
@@ -138,17 +147,22 @@ function Patients() {
                   <div className="flex items-center gap-2">
                     <Activity className="h-4 w-4 text-primary" />
                     <CardTitle className="text-sm">Latest Vitals</CardTitle>
-                    <span className="text-xs text-muted-foreground ml-auto">{vitalSigns[0].timestamp}</span>
+                    <span className="text-xs text-muted-foreground ml-auto">
+                      {vitalSigns[0].timestamp}
+                    </span>
                   </div>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
                     {[
-                      { label: "Temp",   value: `${vitalSigns[0].temperature}°C` },
-                      { label: "BP",     value: `${vitalSigns[0].bloodPressure.systolic}/${vitalSigns[0].bloodPressure.diastolic}` },
-                      { label: "HR",     value: `${vitalSigns[0].heartRate} bpm` },
-                      { label: "RR",     value: `${vitalSigns[0].respiratoryRate}/min` },
-                      { label: "SpO₂",   value: `${vitalSigns[0].oxygenSaturation}%` },
+                      { label: "Temp", value: `${vitalSigns[0].temperature}°C` },
+                      {
+                        label: "BP",
+                        value: `${vitalSigns[0].bloodPressure.systolic}/${vitalSigns[0].bloodPressure.diastolic}`,
+                      },
+                      { label: "HR", value: `${vitalSigns[0].heartRate} bpm` },
+                      { label: "RR", value: `${vitalSigns[0].respiratoryRate}/min` },
+                      { label: "SpO₂", value: `${vitalSigns[0].oxygenSaturation}%` },
                     ].map((v) => (
                       <div key={v.label} className="rounded-lg bg-muted p-2 text-center">
                         <div className="text-xs text-muted-foreground">{v.label}</div>
@@ -168,15 +182,24 @@ function Patients() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  {medications.filter((m) => m.status === "active").map((med) => (
-                    <div key={med.id} className="flex items-center justify-between rounded-lg border p-2 text-sm">
-                      <div>
-                        <span className="font-medium">{med.name}</span>
-                        <span className="text-muted-foreground ml-2">{med.dosage} · {med.frequency}</span>
+                  {medications
+                    .filter((m) => m.status === "active")
+                    .map((med) => (
+                      <div
+                        key={med.id}
+                        className="flex items-center justify-between rounded-lg border p-2 text-sm"
+                      >
+                        <div>
+                          <span className="font-medium">{med.name}</span>
+                          <span className="text-muted-foreground ml-2">
+                            {med.dosage} · {med.frequency}
+                          </span>
+                        </div>
+                        <Badge variant="outline" className="text-xs">
+                          Active
+                        </Badge>
                       </div>
-                      <Badge variant="outline" className="text-xs">Active</Badge>
-                    </div>
-                  ))}
+                    ))}
                 </CardContent>
               </Card>
 
@@ -190,12 +213,20 @@ function Patients() {
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {labTests.slice(0, 3).map((test) => (
-                    <div key={test.id} className="flex items-center justify-between rounded-lg border p-2 text-sm">
+                    <div
+                      key={test.id}
+                      className="flex items-center justify-between rounded-lg border p-2 text-sm"
+                    >
                       <div>
                         <span className="font-medium">{test.testName}</span>
-                        <span className="text-muted-foreground ml-2 text-xs">{test.orderedDate}</span>
+                        <span className="text-muted-foreground ml-2 text-xs">
+                          {test.orderedDate}
+                        </span>
                       </div>
-                      <Badge variant={test.status === "completed" ? "default" : "secondary"} className="text-xs">
+                      <Badge
+                        variant={test.status === "completed" ? "default" : "secondary"}
+                        className="text-xs"
+                      >
                         {test.status}
                       </Badge>
                     </div>

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { fabricLogin, fabricSignup } from "@/lib/fabric-api";
+import { login, signup } from "@/lib/api";
 import { setSession } from "@/lib/auth";
 import { toast } from "sonner";
 
@@ -67,14 +67,14 @@ function LoginPage() {
           setIsLoading(false);
           return;
         }
-        const signupRes = await fabricSignup({ name, email, role: selectedRole, password });
+        const signupRes = await signup({ name, email, role: selectedRole, password });
         if (signupRes.success && signupRes.user) {
           setSession(signupRes.token, signupRes.user);
           toast.success(`Welcome, ${signupRes.user.name}! Account created.`);
           navigate({ to: `/${signupRes.user.role}` });
         }
       } else {
-        const res = await fabricLogin({ email, password });
+        const res = await login({ email, password });
         if (res.success && res.user) {
           setSession(res.token, res.user);
           toast.success(`Welcome back, ${res.user.name}!`);

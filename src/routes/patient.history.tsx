@@ -24,8 +24,8 @@ import {
   WifiOff,
   RefreshCw,
 } from "lucide-react";
-import { useFabricAudit } from "@/hooks/use-fabric";
-import { fabricLogAuditEvent } from "@/lib/fabric-api";
+import { useAudit } from "@/hooks/use-api";
+import { logAuditEvent } from "@/lib/api";
 
 export const Route = createFileRoute("/patient/history")({
   head: () => ({ meta: [{ title: "Patient · Access History — DID Hospital" }] }),
@@ -60,16 +60,16 @@ function History() {
   const [actionFilter, setActionFilter] = useState<AccessAction | "all">("all");
   const [expanded, setExpanded] = useState<string | null>(null);
 
-  const { data: fabricData, online, loading: fabricLoading, refetch } = useFabricAudit(0);
+  const { data: auditData, online, loading: auditLoading, refetch } = useAudit(0);
 
   // Resolve the logged-in patient's identifiers for filtering
   const patientDid = typeof window !== "undefined" ? (localStorage.getItem("userDID") ?? "") : "";
   const patientEmail =
     typeof window !== "undefined" ? (localStorage.getItem("userEmail") ?? "") : "";
 
-  // Map Fabric audit events → local format
-  const fabricEntries = (
-    (fabricData?.events ?? []) as Array<{
+  // Map backend audit events → local format
+  const auditEntries = (
+    (auditData?.events ?? []) as Array<{
       txId?: string;
       actor?: string;
       resource?: string;
@@ -77,7 +77,7 @@ function History() {
       loggedAt?: string;
     }>
   ).map((e, i) => ({
-    id: e.txId ?? `fab_${i}`,
+    id: e.txId ?? `evt_${i}`,
     actor: e.actor ?? "System",
     actorRole: "System Actor",
     resource: e.resource ?? "—",
@@ -89,12 +89,12 @@ function History() {
   // If no patient identity is resolved, show all events
   const allHistory =
     patientDid || patientEmail
-      ? fabricEntries.filter(
+      ? auditEntries.filter(
           (e) =>
             (patientDid && (e.actor.includes(patientDid) || e.resource.includes(patientDid))) ||
             (patientEmail && (e.actor.includes(patientEmail) || e.resource.includes(patientEmail))),
         )
-      : fabricEntries;
+      : auditEntries;
 
   // Dynamic stats from merged data
   const summaryStats = [
@@ -141,7 +141,7 @@ function History() {
 
   const reportUnauthorized = async (e: (typeof allHistory)[0]) => {
     try {
-      await fabricLogAuditEvent(
+      await logAuditEvent(
         "Patient Portal",
         e.resource,
         "reported-unauthorized",
@@ -173,7 +173,7 @@ function History() {
               onClick={refetch}
               className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-muted"
             >
-              <RefreshCw className={`h-3 w-3 ${fabricLoading ? "animate-spin" : ""}`} />
+              <RefreshCw className={`h-3 w-3 ${auditLoading ? "animate-spin" : ""}`} />
               Refresh
             </button>
           </div>
@@ -213,9 +213,8 @@ function History() {
           <div>
             <div className="text-sm font-semibold text-foreground">DID-Protected Audit Log</div>
             <div className="mt-0.5 text-xs text-muted-foreground">
-              Every access event is cryptographically signed and immutably recorded on the
-              Solana Devnet ledger. You can dispute any unauthorized access using the "Report"
-              button.
+              Every access event is cryptographically signed and immutably recorded on the Solana
+              Devnet ledger. You can dispute any unauthorized access using the "Report" button.
             </div>
           </div>
           <button className="shrink-0 rounded-md border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/20">

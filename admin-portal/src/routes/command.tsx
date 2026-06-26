@@ -1,15 +1,23 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute } from "@tanstack/react-router";
 import {
   useLivePatients,
-  useFabricStats,
-  useFabricBeds,
-  useFabricCredentials,
-  useFabricFraudAlerts,
-  useFabricAudit,
-} from "@/hooks/use-fabric";
+  useStats,
+  useBeds,
+  useCredentials,
+  useFraudAlerts,
+  useAudit,
+} from "@/hooks/use-api";
 import {
-  ShieldCheck, AlertTriangle, Activity, Users, HeartPulse,
-  TrendingUp, Bed, Ambulance, ShieldAlert, BarChart3
+  ShieldCheck,
+  AlertTriangle,
+  Activity,
+  Users,
+  HeartPulse,
+  TrendingUp,
+  Bed,
+  Ambulance,
+  ShieldAlert,
+  BarChart3,
 } from "lucide-react";
 import { PageHeader, StatCard } from "@/components/PageHeader";
 import { RouteGuard } from "@/components/RouteGuard";
@@ -31,9 +39,19 @@ function ScoreRing({ score }: { score: number }) {
   return (
     <div className="relative flex h-36 w-36 items-center justify-center mx-auto">
       <svg className="-rotate-90" width="136" height="136">
-        <circle cx="68" cy="68" r={r} stroke="currentColor" strokeWidth="10" fill="none" className="text-muted" />
         <circle
-          cx="68" cy="68" r={r}
+          cx="68"
+          cy="68"
+          r={r}
+          stroke="currentColor"
+          strokeWidth="10"
+          fill="none"
+          className="text-muted"
+        />
+        <circle
+          cx="68"
+          cy="68"
+          r={r}
           stroke={color}
           strokeWidth="10"
           fill="none"
@@ -50,16 +68,18 @@ function ScoreRing({ score }: { score: number }) {
   );
 }
 
-
 function AdminCommandCenter() {
   const { patients = [] } = useLivePatients();
-  const { data: credentialsData } = useFabricCredentials();
-  const { data: bedsData } = useFabricBeds();
-  const { data: fraudData } = useFabricFraudAlerts();
-  const { data: auditData } = useFabricAudit();
+  const { data: credentialsData } = useCredentials();
+  const { data: bedsData } = useBeds();
+  const { data: fraudData } = useFraudAlerts();
+  const { data: auditData } = useAudit();
 
   const activePatientsCount = patients.length || 4;
-  const activeCredentials = (credentialsData?.credentials || []).filter((c: any) => c.status === "active" || c.status === "issued" || !c.status).length || 12;
+  const activeCredentials =
+    (credentialsData?.credentials || []).filter(
+      (c: any) => c.status === "active" || c.status === "issued" || !c.status,
+    ).length || 12;
 
   // Beds occupancy
   const beds = bedsData?.beds || [];
@@ -69,18 +89,44 @@ function AdminCommandCenter() {
 
   // Security & fraud alerts
   const rawAlerts = fraudData?.alerts || [];
-  const fraudAlerts = rawAlerts.length > 0 ? rawAlerts.slice(0, 3) : [
-    { id: "f1", action: "Unauthorised Patient DID Access Attempt", actor: "Node 4 (Mumbai)", at: "2 minutes ago" },
-    { id: "f2", action: "Double-spending DID Credential Replay", actor: "Node 9 (External)", at: "14 minutes ago" }
-  ];
+  const fraudAlerts =
+    rawAlerts.length > 0
+      ? rawAlerts.slice(0, 3)
+      : [
+          {
+            id: "f1",
+            action: "Unauthorised Patient DID Access Attempt",
+            actor: "Node 4 (Mumbai)",
+            at: "2 minutes ago",
+          },
+          {
+            id: "f2",
+            action: "Double-spending DID Credential Replay",
+            actor: "Node 9 (External)",
+            at: "14 minutes ago",
+          },
+        ];
 
   const rawAudit = auditData?.events || [];
-  const recentSecurityAlerts = rawAudit.length > 0 
-    ? rawAudit.filter((a: any) => a.action?.toLowerCase().includes("auth") || a.outcome === "FAIL").slice(0, 3)
-    : [
-        { id: "s1", action: "Emergency break-glass consent override triggered", actor: "Dr. Sameer Khan", at: "1 hour ago" },
-        { id: "s2", action: "Failed verification handshake (signature mismatch)", actor: "did:hosp:0x89e2…c10a", at: "3 hours ago" }
-      ];
+  const recentSecurityAlerts =
+    rawAudit.length > 0
+      ? rawAudit
+          .filter((a: any) => a.action?.toLowerCase().includes("auth") || a.outcome === "FAIL")
+          .slice(0, 3)
+      : [
+          {
+            id: "s1",
+            action: "Emergency break-glass consent override triggered",
+            actor: "Dr. Sameer Khan",
+            at: "1 hour ago",
+          },
+          {
+            id: "s2",
+            action: "Failed verification handshake (signature mismatch)",
+            actor: "did:hosp:0x89e2…c10a",
+            at: "3 hours ago",
+          },
+        ];
 
   return (
     <RouteGuard requiredRole="admin">
@@ -93,10 +139,34 @@ function AdminCommandCenter() {
       <div className="p-6 space-y-6">
         {/* Top KPI row */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label="Hospital Health Score" value={`${hospitalHealthScore}/100`} icon={HeartPulse} tone="success" delta="Excellent — all systems operational" />
-          <StatCard label="Active Patients" value={activePatientsCount.toLocaleString()} icon={Users} tone="default" delta="Across all wards" />
-          <StatCard label="Credential Activity" value={activeCredentials.toLocaleString()} icon={ShieldCheck} tone="default" delta="Active credentials" />
-          <StatCard label="Security Alerts" value={recentSecurityAlerts.length} icon={AlertTriangle} tone={recentSecurityAlerts.length > 2 ? "destructive" : "warning"} delta="Last 24 hours" />
+          <StatCard
+            label="Hospital Health Score"
+            value={`${hospitalHealthScore}/100`}
+            icon={HeartPulse}
+            tone="success"
+            delta="Excellent — all systems operational"
+          />
+          <StatCard
+            label="Active Patients"
+            value={activePatientsCount.toLocaleString()}
+            icon={Users}
+            tone="default"
+            delta="Across all wards"
+          />
+          <StatCard
+            label="Credential Activity"
+            value={activeCredentials.toLocaleString()}
+            icon={ShieldCheck}
+            tone="default"
+            delta="Active credentials"
+          />
+          <StatCard
+            label="Security Alerts"
+            value={recentSecurityAlerts.length}
+            icon={AlertTriangle}
+            tone={recentSecurityAlerts.length > 2 ? "destructive" : "warning"}
+            delta="Last 24 hours"
+          />
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
@@ -105,9 +175,18 @@ function AdminCommandCenter() {
             <div className="text-sm font-semibold text-foreground mb-4">Hospital Health Score</div>
             <ScoreRing score={hospitalHealthScore} />
             <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
-              <div><div className="font-semibold text-success">96%</div><div className="text-muted-foreground">Compliance</div></div>
-              <div><div className="font-semibold text-primary">84ms</div><div className="text-muted-foreground">API Latency</div></div>
-              <div><div className="font-semibold text-chart-2">7/7</div><div className="text-muted-foreground">DID Nodes</div></div>
+              <div>
+                <div className="font-semibold text-success">96%</div>
+                <div className="text-muted-foreground">Compliance</div>
+              </div>
+              <div>
+                <div className="font-semibold text-primary">84ms</div>
+                <div className="text-muted-foreground">API Latency</div>
+              </div>
+              <div>
+                <div className="font-semibold text-chart-2">7/7</div>
+                <div className="text-muted-foreground">DID Nodes</div>
+              </div>
             </div>
           </div>
 
@@ -149,7 +228,10 @@ function AdminCommandCenter() {
                 { dept: "Cardiology", count: 7, icon: "❤️" },
                 { dept: "General Ward", count: 18, icon: "🩺" },
               ].map((s) => (
-                <div key={s.dept} className="flex items-center justify-between rounded-lg bg-muted px-3 py-2">
+                <div
+                  key={s.dept}
+                  className="flex items-center justify-between rounded-lg bg-muted px-3 py-2"
+                >
                   <div className="flex items-center gap-2">
                     <span>{s.icon}</span>
                     <span className="text-sm text-foreground">{s.dept}</span>
@@ -170,11 +252,16 @@ function AdminCommandCenter() {
             </div>
             <div className="space-y-2">
               {fraudAlerts.map((a: any) => (
-                <div key={a.id} className="flex items-start gap-3 rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2.5">
+                <div
+                  key={a.id}
+                  className="flex items-start gap-3 rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2.5"
+                >
                   <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">
                     <div className="text-xs font-medium text-foreground">{a.action}</div>
-                    <div className="text-[11px] text-muted-foreground">{a.actor} · {a.at}</div>
+                    <div className="text-[11px] text-muted-foreground">
+                      {a.actor} · {a.at}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -188,11 +275,16 @@ function AdminCommandCenter() {
             </div>
             <div className="space-y-2">
               {recentSecurityAlerts.map((a: any) => (
-                <div key={a.id} className="flex items-start gap-3 rounded-lg border border-warning/20 bg-warning/5 px-3 py-2.5">
+                <div
+                  key={a.id}
+                  className="flex items-start gap-3 rounded-lg border border-warning/20 bg-warning/5 px-3 py-2.5"
+                >
                   <AlertTriangle className="h-4 w-4 text-warning-foreground shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">
                     <div className="text-xs font-medium text-foreground">{a.action}</div>
-                    <div className="text-[11px] text-muted-foreground">{a.actor} · {a.at}</div>
+                    <div className="text-[11px] text-muted-foreground">
+                      {a.actor} · {a.at}
+                    </div>
                   </div>
                 </div>
               ))}

@@ -46,14 +46,18 @@ function PoliciesPage() {
   const toggleArchive = (id: string) => {
     const updated = list.map((p) =>
       p.id === id
-        ? { ...p, status: (p.status === "archived" ? "active" : "archived") as Policy["status"], updatedAt: new Date().toISOString().slice(0, 10) }
-        : p
+        ? {
+            ...p,
+            status: (p.status === "archived" ? "active" : "archived") as Policy["status"],
+            updatedAt: new Date().toISOString().slice(0, 10),
+          }
+        : p,
     );
     saveList(updated);
     toast("Policy updated");
 
-    import("@/lib/fabric-api").then(({ fabricLogAuditEvent }) => {
-      fabricLogAuditEvent("admin", `policy:${id}`, "toggle_policy_archive", "success", "info");
+    import("@/lib/api").then(({ logAuditEvent }) => {
+      logAuditEvent("admin", `policy:${id}`, "toggle_policy_archive", "success", "info");
     });
   };
 
@@ -62,7 +66,10 @@ function PoliciesPage() {
     if (!name) return;
     const description = prompt("Policy description?");
     if (!description) return;
-    const categoryInput = prompt("Category? (Consent / Access control / Retention / Audit)", "Consent");
+    const categoryInput = prompt(
+      "Category? (Consent / Access control / Retention / Audit)",
+      "Consent",
+    );
     if (!categoryInput) return;
 
     const newPol: Policy = {
@@ -77,8 +84,8 @@ function PoliciesPage() {
     saveList([newPol, ...list]);
     toast.success("Policy created in Draft status");
 
-    import("@/lib/fabric-api").then(({ fabricLogAuditEvent }) => {
-      fabricLogAuditEvent("admin", `policy:${newPol.id}`, "create_policy", "success", "info");
+    import("@/lib/api").then(({ logAuditEvent }) => {
+      logAuditEvent("admin", `policy:${newPol.id}`, "create_policy", "success", "info");
     });
   };
 
@@ -89,7 +96,7 @@ function PoliciesPage() {
         title="Policy management"
         description="Define and audit the rules that govern identity, consent, and data access across the hospital."
         actions={
-          <button 
+          <button
             onClick={handleCreate}
             className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-clinical hover:bg-primary/90"
           >
@@ -116,7 +123,9 @@ function PoliciesPage() {
                 onClick={() => setCat(c)}
                 className={[
                   "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-                  cat === c ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted",
+                  cat === c
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-muted",
                 ].join(" ")}
               >
                 {c}
@@ -128,7 +137,11 @@ function PoliciesPage() {
         {loading ? (
           <ListSkeleton rows={4} />
         ) : filtered.length === 0 ? (
-          <EmptyState icon={BookLock} title="No matching policies" description="Try a different search term or filter." />
+          <EmptyState
+            icon={BookLock}
+            title="No matching policies"
+            description="Try a different search term or filter."
+          />
         ) : (
           <AnimatePresence mode="popLayout">
             <motion.div layout className="grid gap-4 lg:grid-cols-2">
@@ -149,7 +162,9 @@ function PoliciesPage() {
                       </div>
                       <div className="mt-1 text-sm font-semibold text-foreground">{p.name}</div>
                     </div>
-                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider ${statusTone[p.status]}`}>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider ${statusTone[p.status]}`}
+                    >
                       {p.status}
                     </span>
                   </div>
@@ -164,7 +179,8 @@ function PoliciesPage() {
                         onClick={() => toggleArchive(p.id)}
                         className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2.5 py-1 font-medium text-foreground hover:bg-muted"
                       >
-                        <Archive className="h-3 w-3" /> {p.status === "archived" ? "Restore" : "Archive"}
+                        <Archive className="h-3 w-3" />{" "}
+                        {p.status === "archived" ? "Restore" : "Archive"}
                       </button>
                     </div>
                   </div>

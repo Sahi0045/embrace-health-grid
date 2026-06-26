@@ -1,10 +1,10 @@
 /**
- * World State Database — CouchDB-Compatible File-Persisted Store
+ * World State Database — File-Persisted Key-Value Store
  *
  * Standard key-value database for data persistence.
  * Data is persisted to JSON files on disk, surviving server restarts.
  *
- * Namespaces (equivalent to Fabric channels/chaincodes):
+ * Namespaces:
  *   - did-registry     → DID documents
  *   - consent-manager  → Patient consent grants
  *   - billing          → Payment records & invoices
@@ -37,11 +37,15 @@ function loadEnv() {
   if (existsSync(envPath)) {
     try {
       const content = readFileSync(envPath, "utf8");
-      content.split("\n").forEach(line => {
+      content.split("\n").forEach((line) => {
         const parts = line.split("=");
         if (parts.length >= 2) {
           const key = parts[0].trim();
-          const val = parts.slice(1).join("=").trim().replace(/^['"]|['"]$/g, "");
+          const val = parts
+            .slice(1)
+            .join("=")
+            .trim()
+            .replace(/^['"]|['"]$/g, "");
           process.env[key] = val;
         }
       });
@@ -102,7 +106,7 @@ function flushNamespace(namespace) {
 }
 
 // ---------------------------------------------------------------------------
-// World State API (mimics Fabric shim.ChaincodeStubInterface)
+// World State API
 // ---------------------------------------------------------------------------
 
 // 🔄 Synchronously initialize/replicate from Convex database on boot
@@ -110,9 +114,18 @@ export async function bootstrapFromConvex() {
   if (!convexClient) return;
   console.log("🔄 Replicating World State from Convex to local cache...");
   const namespaces = [
-    "did-registry", "consent-manager", "billing", "tracker",
-    "appointments", "audit", "financial", "medical-records",
-    "prescriptions", "lab-results", "beds", "fraud-alerts"
+    "did-registry",
+    "consent-manager",
+    "billing",
+    "tracker",
+    "appointments",
+    "audit",
+    "financial",
+    "medical-records",
+    "prescriptions",
+    "lab-results",
+    "beds",
+    "fraud-alerts",
   ];
   for (const ns of namespaces) {
     try {
@@ -157,16 +170,18 @@ export function putState(namespace, key, value, txId, version = "1") {
   flushNamespace(namespace);
 
   if (convexClient) {
-    convexClient.mutation("records:putGenericWorldState", {
-      namespace,
-      key,
-      value,
-      txId,
-      version: `${txId}:${version}`,
-      updatedAt: entry.updatedAt,
-    }).catch((err) => {
-      console.error(`⚠️ Convex background putState error [${namespace}:${key}]:`, err.message);
-    });
+    convexClient
+      .mutation("records:putGenericWorldState", {
+        namespace,
+        key,
+        value,
+        txId,
+        version: `${txId}:${version}`,
+        updatedAt: entry.updatedAt,
+      })
+      .catch((err) => {
+        console.error(`⚠️ Convex background putState error [${namespace}:${key}]:`, err.message);
+      });
   }
 
   return entry;
@@ -232,7 +247,6 @@ export function getStateHistory(namespace, key) {
   ];
 }
 
-
 /**
  * Count total keys across all namespaces
  */
@@ -250,9 +264,16 @@ export function getWorldStateSize() {
 export function getAllWorldState() {
   const result = {};
   const namespaces = [
-    "did-registry", "consent-manager", "billing", "tracker",
-    "appointments", "audit", "financial", "medical-records",
-    "prescriptions", "lab-results",
+    "did-registry",
+    "consent-manager",
+    "billing",
+    "tracker",
+    "appointments",
+    "audit",
+    "financial",
+    "medical-records",
+    "prescriptions",
+    "lab-results",
   ];
   for (const ns of namespaces) {
     const data = getNamespaceCache(ns);

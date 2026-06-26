@@ -6,16 +6,33 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Activity, Heart, Pill, Stethoscope, FlaskConical, Calendar,
-  Utensils, FileText, AlertCircle, Clock, ChevronRight,
-  Thermometer, Droplet, Receipt
+  Activity,
+  Heart,
+  Pill,
+  Stethoscope,
+  FlaskConical,
+  Calendar,
+  Utensils,
+  FileText,
+  AlertCircle,
+  Clock,
+  ChevronRight,
+  Thermometer,
+  Droplet,
+  Receipt,
 } from "lucide-react";
 import {
-  currentAdmission, vitalSigns, medications, dailyCheckups,
-  labTests, procedures, nursingNotes, dietOrder
+  currentAdmission,
+  vitalSigns,
+  medications,
+  dailyCheckups,
+  labTests,
+  procedures,
+  nursingNotes,
+  dietOrder,
 } from "@/lib/inpatient-data";
 import { billSummary } from "@/lib/billing-data";
-import { usePatientVitals } from "@/hooks/use-fabric";
+import { usePatientVitals } from "@/hooks/use-api";
 
 export const Route = createFileRoute("/patient/inpatient")({
   head: () => ({
@@ -30,22 +47,24 @@ export const Route = createFileRoute("/patient/inpatient")({
 function InpatientCare() {
   const { vitals: liveVitals } = usePatientVitals("pat_001");
 
-  const latestVitals = liveVitals ? {
-    ...vitalSigns[0],
-    heartRate: liveVitals.heartRate,
-    bloodPressure: {
-      systolic: parseInt(liveVitals.bp) || 120,
-      diastolic: parseInt(liveVitals.bp.split("/")[1]) || 80
-    },
-    oxygenSaturation: liveVitals.spo2,
-    temperature: liveVitals.temp,
-    respiratoryRate: liveVitals.respRate,
-    timestamp: "Live telemetry (WS)"
-  } : vitalSigns[0];
+  const latestVitals = liveVitals
+    ? {
+        ...vitalSigns[0],
+        heartRate: liveVitals.heartRate,
+        bloodPressure: {
+          systolic: parseInt(liveVitals.bp) || 120,
+          diastolic: parseInt(liveVitals.bp.split("/")[1]) || 80,
+        },
+        oxygenSaturation: liveVitals.spo2,
+        temperature: liveVitals.temp,
+        respiratoryRate: liveVitals.respRate,
+        timestamp: "Live telemetry (WS)",
+      }
+    : vitalSigns[0];
 
-  const activeMeds = medications.filter(m => m.status === "active");
-  const todayCheckups = dailyCheckups.filter(c => c.date === "2026-05-30");
-  const upcomingProcedures = procedures.filter(p => p.status === "scheduled");
+  const activeMeds = medications.filter((m) => m.status === "active");
+  const todayCheckups = dailyCheckups.filter((c) => c.date === "2026-05-30");
+  const upcomingProcedures = procedures.filter((p) => p.status === "scheduled");
 
   return (
     <RouteGuard requiredRole="patient">
@@ -63,9 +82,17 @@ function InpatientCare() {
             <Card className="border-primary/30 bg-primary/5 lg:col-span-2">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <Badge variant="default" className="bg-primary">Currently Admitted</Badge>
+                  <Badge variant="default" className="bg-primary">
+                    Currently Admitted
+                  </Badge>
                   <span className="text-xs text-muted-foreground">
-                    Day {Math.ceil((new Date("2026-05-30").getTime() - new Date(currentAdmission.admissionDate).getTime()) / (1000 * 60 * 60 * 24))} of stay
+                    Day{" "}
+                    {Math.ceil(
+                      (new Date("2026-05-30").getTime() -
+                        new Date(currentAdmission.admissionDate).getTime()) /
+                        (1000 * 60 * 60 * 24),
+                    )}{" "}
+                    of stay
                   </span>
                 </div>
               </CardHeader>
@@ -77,15 +104,23 @@ function InpatientCare() {
                   </div>
                   <div>
                     <div className="text-xs text-muted-foreground">Room / Bed</div>
-                    <div className="font-medium">{currentAdmission.room} — {currentAdmission.bed}</div>
+                    <div className="font-medium">
+                      {currentAdmission.room} — {currentAdmission.bed}
+                    </div>
                   </div>
                   <div>
                     <div className="text-xs text-muted-foreground">Admitted</div>
-                    <div className="font-medium">{new Date(currentAdmission.admissionDate).toLocaleDateString()}</div>
+                    <div className="font-medium">
+                      {new Date(currentAdmission.admissionDate).toLocaleDateString()}
+                    </div>
                   </div>
                   <div>
                     <div className="text-xs text-muted-foreground">Expected Discharge</div>
-                    <div className="font-medium">{currentAdmission.expectedDischargeDate ? new Date(currentAdmission.expectedDischargeDate).toLocaleDateString() : "TBD"}</div>
+                    <div className="font-medium">
+                      {currentAdmission.expectedDischargeDate
+                        ? new Date(currentAdmission.expectedDischargeDate).toLocaleDateString()
+                        : "TBD"}
+                    </div>
                   </div>
                 </div>
                 <div className="mt-3">
@@ -123,7 +158,8 @@ function InpatientCare() {
                       <div>
                         <div className="text-xs text-muted-foreground">BP</div>
                         <div className="text-lg font-semibold">
-                          {latestVitals.bloodPressure.systolic}/{latestVitals.bloodPressure.diastolic}
+                          {latestVitals.bloodPressure.systolic}/
+                          {latestVitals.bloodPressure.diastolic}
                         </div>
                       </div>
                     </div>
@@ -141,12 +177,16 @@ function InpatientCare() {
                         </div>
                         <div>
                           <div className="text-xs text-muted-foreground">Current Bill</div>
-                          <div className="text-lg font-semibold">₹{billSummary.totalCharges.toLocaleString('en-IN')}</div>
+                          <div className="text-lg font-semibold">
+                            ₹{billSummary.totalCharges.toLocaleString("en-IN")}
+                          </div>
                         </div>
                       </div>
                       <div className="text-right">
                         <div className="text-xs text-muted-foreground">Balance Due</div>
-                        <div className="text-sm font-semibold text-destructive">₹{billSummary.balanceDue.toLocaleString('en-IN')}</div>
+                        <div className="text-sm font-semibold text-destructive">
+                          ₹{billSummary.balanceDue.toLocaleString("en-IN")}
+                        </div>
                       </div>
                     </div>
                     <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
@@ -181,16 +221,26 @@ function InpatientCare() {
                     </CardHeader>
                     <CardContent className="space-y-2">
                       {todayCheckups.map((checkup) => (
-                        <div key={checkup.id} className="flex items-start justify-between rounded-lg border p-3">
+                        <div
+                          key={checkup.id}
+                          className="flex items-start justify-between rounded-lg border p-3"
+                        >
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
                               <span className="font-medium">{checkup.time}</span>
-                              <Badge variant={checkup.status === "completed" ? "default" : "secondary"} className="text-xs">
+                              <Badge
+                                variant={checkup.status === "completed" ? "default" : "secondary"}
+                                className="text-xs"
+                              >
                                 {checkup.status}
                               </Badge>
                             </div>
-                            <div className="text-sm text-muted-foreground mt-1">{checkup.doctor} • {checkup.specialty}</div>
-                            {checkup.status === "completed" && <div className="text-sm mt-1">{checkup.notes}</div>}
+                            <div className="text-sm text-muted-foreground mt-1">
+                              {checkup.doctor} • {checkup.specialty}
+                            </div>
+                            {checkup.status === "completed" && (
+                              <div className="text-sm mt-1">{checkup.notes}</div>
+                            )}
                           </div>
                         </div>
                       ))}
@@ -206,23 +256,29 @@ function InpatientCare() {
                         </div>
                       </CardHeader>
                       <CardContent className="space-y-2">
-                        {upcomingProcedures.length > 0 ? upcomingProcedures.map((proc) => (
-                          <div key={proc.id} className="rounded-lg border p-3">
-                            <div className="flex items-center justify-between">
-                              <div className="font-medium text-sm">{proc.name}</div>
-                              {proc.requiresFasting && (
-                                <Badge variant="outline" className="text-xs">
-                                  <AlertCircle className="mr-1 h-3 w-3" />Fasting
-                                </Badge>
-                              )}
+                        {upcomingProcedures.length > 0 ? (
+                          upcomingProcedures.map((proc) => (
+                            <div key={proc.id} className="rounded-lg border p-3">
+                              <div className="flex items-center justify-between">
+                                <div className="font-medium text-sm">{proc.name}</div>
+                                {proc.requiresFasting && (
+                                  <Badge variant="outline" className="text-xs">
+                                    <AlertCircle className="mr-1 h-3 w-3" />
+                                    Fasting
+                                  </Badge>
+                                )}
+                              </div>
+                              <div className="text-xs text-muted-foreground mt-1">
+                                {new Date(proc.scheduledDate).toLocaleDateString()} at{" "}
+                                {proc.scheduledTime}
+                              </div>
+                              <div className="text-xs text-muted-foreground">{proc.location}</div>
                             </div>
-                            <div className="text-xs text-muted-foreground mt-1">
-                              {new Date(proc.scheduledDate).toLocaleDateString()} at {proc.scheduledTime}
-                            </div>
-                            <div className="text-xs text-muted-foreground">{proc.location}</div>
+                          ))
+                        ) : (
+                          <div className="text-sm text-muted-foreground text-center py-2">
+                            No procedures scheduled
                           </div>
-                        )) : (
-                          <div className="text-sm text-muted-foreground text-center py-2">No procedures scheduled</div>
                         )}
                       </CardContent>
                     </Card>
@@ -238,13 +294,19 @@ function InpatientCare() {
                         <div className="font-medium">{dietOrder.type}</div>
                         <div className="mt-2 space-y-1">
                           {dietOrder.restrictions.map((r, idx) => (
-                            <div key={idx} className="text-sm text-muted-foreground flex items-center gap-1">
-                              <span className="h-1 w-1 rounded-full bg-muted-foreground" />{r}
+                            <div
+                              key={idx}
+                              className="text-sm text-muted-foreground flex items-center gap-1"
+                            >
+                              <span className="h-1 w-1 rounded-full bg-muted-foreground" />
+                              {r}
                             </div>
                           ))}
                         </div>
                         {dietOrder.specialInstructions && (
-                          <div className="mt-2 text-sm bg-muted p-2 rounded">{dietOrder.specialInstructions}</div>
+                          <div className="mt-2 text-sm bg-muted p-2 rounded">
+                            {dietOrder.specialInstructions}
+                          </div>
                         )}
                       </CardContent>
                     </Card>
@@ -261,11 +323,40 @@ function InpatientCare() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="grid gap-3 sm:grid-cols-2">
-                      <VitalRow icon={Thermometer} label="Temperature" value={`${latestVitals.temperature}°C`} normal={latestVitals.temperature >= 36.5 && latestVitals.temperature <= 37.5} />
-                      <VitalRow icon={Activity} label="Blood Pressure" value={`${latestVitals.bloodPressure.systolic}/${latestVitals.bloodPressure.diastolic} mmHg`} normal={latestVitals.bloodPressure.systolic < 140} />
-                      <VitalRow icon={Heart} label="Heart Rate" value={`${latestVitals.heartRate} bpm`} normal={latestVitals.heartRate >= 60 && latestVitals.heartRate <= 100} />
-                      <VitalRow icon={Activity} label="Respiratory Rate" value={`${latestVitals.respiratoryRate} /min`} normal={latestVitals.respiratoryRate >= 12 && latestVitals.respiratoryRate <= 20} />
-                      <VitalRow icon={Droplet} label="O₂ Saturation" value={`${latestVitals.oxygenSaturation}%`} normal={latestVitals.oxygenSaturation >= 95} />
+                      <VitalRow
+                        icon={Thermometer}
+                        label="Temperature"
+                        value={`${latestVitals.temperature}°C`}
+                        normal={
+                          latestVitals.temperature >= 36.5 && latestVitals.temperature <= 37.5
+                        }
+                      />
+                      <VitalRow
+                        icon={Activity}
+                        label="Blood Pressure"
+                        value={`${latestVitals.bloodPressure.systolic}/${latestVitals.bloodPressure.diastolic} mmHg`}
+                        normal={latestVitals.bloodPressure.systolic < 140}
+                      />
+                      <VitalRow
+                        icon={Heart}
+                        label="Heart Rate"
+                        value={`${latestVitals.heartRate} bpm`}
+                        normal={latestVitals.heartRate >= 60 && latestVitals.heartRate <= 100}
+                      />
+                      <VitalRow
+                        icon={Activity}
+                        label="Respiratory Rate"
+                        value={`${latestVitals.respiratoryRate} /min`}
+                        normal={
+                          latestVitals.respiratoryRate >= 12 && latestVitals.respiratoryRate <= 20
+                        }
+                      />
+                      <VitalRow
+                        icon={Droplet}
+                        label="O₂ Saturation"
+                        value={`${latestVitals.oxygenSaturation}%`}
+                        normal={latestVitals.oxygenSaturation >= 95}
+                      />
                     </CardContent>
                   </Card>
 
@@ -273,19 +364,26 @@ function InpatientCare() {
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between">
                         <CardTitle className="text-sm">Vitals History</CardTitle>
-                        <Button variant="ghost" size="sm" className="h-7 text-xs">View Chart</Button>
+                        <Button variant="ghost" size="sm" className="h-7 text-xs">
+                          View Chart
+                        </Button>
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-2">
                       {vitalSigns.slice(1, 4).map((vital) => (
-                        <div key={vital.id} className="flex items-center justify-between text-sm border-b pb-2">
+                        <div
+                          key={vital.id}
+                          className="flex items-center justify-between text-sm border-b pb-2"
+                        >
                           <div>
                             <div className="font-medium">{vital.timestamp}</div>
                             <div className="text-muted-foreground text-xs">{vital.recordedBy}</div>
                           </div>
                           <div className="text-right">
                             <div>{vital.heartRate} bpm</div>
-                            <div className="text-muted-foreground text-xs">{vital.bloodPressure.systolic}/{vital.bloodPressure.diastolic} mmHg</div>
+                            <div className="text-muted-foreground text-xs">
+                              {vital.bloodPressure.systolic}/{vital.bloodPressure.diastolic} mmHg
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -308,17 +406,26 @@ function InpatientCare() {
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
                               <div className="font-medium">{med.name}</div>
-                              <div className="text-sm text-muted-foreground mt-1">{med.dosage} • {med.frequency}</div>
-                              <div className="text-sm text-muted-foreground">Route: {med.route}</div>
+                              <div className="text-sm text-muted-foreground mt-1">
+                                {med.dosage} • {med.frequency}
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                Route: {med.route}
+                              </div>
                             </div>
-                            <Badge variant="outline" className="text-xs">Active</Badge>
+                            <Badge variant="outline" className="text-xs">
+                              Active
+                            </Badge>
                           </div>
                           {med.nextDose && (
                             <div className="mt-2 flex items-center gap-1 text-sm text-primary">
-                              <Clock className="h-3 w-3" />Next dose: {med.nextDose}
+                              <Clock className="h-3 w-3" />
+                              Next dose: {med.nextDose}
                             </div>
                           )}
-                          <div className="text-xs text-muted-foreground mt-1">Prescribed by: {med.prescribedBy}</div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            Prescribed by: {med.prescribedBy}
+                          </div>
                         </div>
                       ))}
                     </CardContent>
@@ -339,7 +446,16 @@ function InpatientCare() {
                         <div key={test.id} className="rounded-lg border p-3">
                           <div className="flex items-center justify-between">
                             <div className="font-medium">{test.testName}</div>
-                            <Badge variant={test.status === "completed" ? "default" : test.status === "in-progress" ? "secondary" : "outline"} className="text-xs">
+                            <Badge
+                              variant={
+                                test.status === "completed"
+                                  ? "default"
+                                  : test.status === "in-progress"
+                                    ? "secondary"
+                                    : "outline"
+                              }
+                              className="text-xs"
+                            >
                               {test.status}
                             </Badge>
                           </div>
@@ -349,10 +465,16 @@ function InpatientCare() {
                           {test.results && (
                             <div className="mt-2 space-y-1">
                               {test.results.map((result, idx) => (
-                                <div key={idx} className="flex items-center justify-between text-sm">
+                                <div
+                                  key={idx}
+                                  className="flex items-center justify-between text-sm"
+                                >
                                   <span>{result.parameter}</span>
-                                  <span className={result.flag ? "text-destructive font-medium" : ""}>
-                                    {result.value} {result.unit}{result.flag && ` (${result.flag})`}
+                                  <span
+                                    className={result.flag ? "text-destructive font-medium" : ""}
+                                  >
+                                    {result.value} {result.unit}
+                                    {result.flag && ` (${result.flag})`}
                                   </span>
                                 </div>
                               ))}
@@ -380,11 +502,22 @@ function InpatientCare() {
                     <div key={note.id} className="rounded-lg border p-3">
                       <div className="flex items-center justify-between">
                         <div className="text-xs font-medium">{note.timestamp}</div>
-                        <Badge variant={note.priority === "urgent" ? "destructive" : note.priority === "important" ? "default" : "secondary"} className="text-xs">
+                        <Badge
+                          variant={
+                            note.priority === "urgent"
+                              ? "destructive"
+                              : note.priority === "important"
+                                ? "default"
+                                : "secondary"
+                          }
+                          className="text-xs"
+                        >
                           {note.priority}
                         </Badge>
                       </div>
-                      <div className="text-xs text-muted-foreground mt-1">{note.nurse} • {note.category}</div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {note.nurse} • {note.category}
+                      </div>
                       <div className="text-sm mt-1">{note.note}</div>
                     </div>
                   ))}
@@ -417,7 +550,7 @@ function VitalRow({
   icon: Icon,
   label,
   value,
-  normal
+  normal,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
@@ -427,7 +560,9 @@ function VitalRow({
   return (
     <div className="flex items-center justify-between rounded-lg border p-3">
       <div className="flex items-center gap-2">
-        <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${normal ? "bg-success/10" : "bg-destructive/10"}`}>
+        <div
+          className={`flex h-8 w-8 items-center justify-center rounded-lg ${normal ? "bg-success/10" : "bg-destructive/10"}`}
+        >
           <Icon className={`h-4 w-4 ${normal ? "text-success" : "text-destructive"}`} />
         </div>
         <span className="text-sm">{label}</span>

@@ -2,8 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { type DIDRecord } from "@/lib/mock-data";
-import { useFabricDIDs } from "@/hooks/use-fabric";
-import { fabricCreateDID } from "@/lib/fabric-api";
+import { useDIDs } from "@/hooks/use-api";
+import { createDID } from "@/lib/api";
 import { Plus, Upload, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -22,7 +22,7 @@ export const Route = createFileRoute("/dids")({
 });
 
 function DIDManagement() {
-  const { data: didsData, refetch } = useFabricDIDs();
+  const { data: didsData, refetch } = useDIDs();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -38,7 +38,7 @@ function DIDManagement() {
     employeeId: "",
     department: "General Medicine",
     specialty: "General Medicine",
-    shift: "morning"
+    shift: "morning",
   });
 
   const liveDids: DIDRecord[] = (didsData?.dids || []).map((d: any) => ({
@@ -60,9 +60,9 @@ function DIDManagement() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
@@ -81,7 +81,7 @@ function DIDManagement() {
         gender: rest.gender,
         bloodGroup: rest.bloodGroup,
         phone: rest.phone,
-        address: rest.address
+        address: rest.address,
       };
     } else {
       extraFields = {
@@ -89,12 +89,12 @@ function DIDManagement() {
         department: rest.department,
         specialty: rest.specialty,
         shift: rest.shift,
-        phone: rest.phone
+        phone: rest.phone,
       };
     }
 
     try {
-      const res = await fabricCreateDID(name, role, undefined, email, extraFields);
+      const res = await createDID(name, role, undefined, email, extraFields);
       toast.success("DID issued successfully on blockchain", { description: res.did });
       setIsModalOpen(false);
       // Reset form
@@ -110,7 +110,7 @@ function DIDManagement() {
         employeeId: "",
         department: "General Medicine",
         specialty: "General Medicine",
-        shift: "morning"
+        shift: "morning",
       });
       refetch();
     } catch (err: any) {
@@ -157,7 +157,9 @@ function DIDManagement() {
                 onClick={() => setType(t)}
                 className={[
                   "rounded-md px-3 py-1.5 text-xs font-medium capitalize transition-colors",
-                  type === t ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
+                  type === t
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground",
                 ].join(" ")}
               >
                 {t}
@@ -213,7 +215,9 @@ function DIDManagement() {
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-[550px] border border-border bg-card text-foreground">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold">Issue New Decentralized Identifier (DID)</DialogTitle>
+            <DialogTitle className="text-xl font-bold">
+              Issue New Decentralized Identifier (DID)
+            </DialogTitle>
             <DialogDescription className="text-sm text-muted-foreground">
               Anchor a new identity onto the secure registry. Specify custom role attributes.
             </DialogDescription>
@@ -280,8 +284,10 @@ function DIDManagement() {
             {/* Dynamic Role-specific details */}
             {formData.role === "patient" && (
               <div className="space-y-4 border-t border-border/50 pt-4">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-primary">Patient Medical Profile</h4>
-                
+                <h4 className="text-xs font-bold uppercase tracking-wider text-primary">
+                  Patient Medical Profile
+                </h4>
+
                 <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-1">
                     <label className="text-[10px] font-semibold text-muted-foreground">Age</label>
@@ -296,7 +302,9 @@ function DIDManagement() {
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[10px] font-semibold text-muted-foreground">Gender</label>
+                    <label className="text-[10px] font-semibold text-muted-foreground">
+                      Gender
+                    </label>
                     <select
                       name="gender"
                       value={formData.gender}
@@ -310,22 +318,28 @@ function DIDManagement() {
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[10px] font-semibold text-muted-foreground">Blood Group</label>
+                    <label className="text-[10px] font-semibold text-muted-foreground">
+                      Blood Group
+                    </label>
                     <select
                       name="bloodGroup"
                       value={formData.bloodGroup}
                       onChange={handleInputChange}
                       className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
                     >
-                      {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map(bg => (
-                        <option key={bg} value={bg}>{bg}</option>
+                      {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((bg) => (
+                        <option key={bg} value={bg}>
+                          {bg}
+                        </option>
                       ))}
                     </select>
                   </div>
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-muted-foreground">Residential Address</label>
+                  <label className="text-xs font-semibold text-muted-foreground">
+                    Residential Address
+                  </label>
                   <input
                     type="text"
                     name="address"
@@ -340,11 +354,15 @@ function DIDManagement() {
 
             {formData.role !== "patient" && (
               <div className="space-y-4 border-t border-border/50 pt-4">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-primary">Clinician / Staff Directory details</h4>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-primary">
+                  Clinician / Staff Directory details
+                </h4>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <label className="text-[10px] font-semibold text-muted-foreground">Employee ID</label>
+                    <label className="text-[10px] font-semibold text-muted-foreground">
+                      Employee ID
+                    </label>
                     <input
                       type="text"
                       name="employeeId"
@@ -356,7 +374,9 @@ function DIDManagement() {
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[10px] font-semibold text-muted-foreground">Department</label>
+                    <label className="text-[10px] font-semibold text-muted-foreground">
+                      Department
+                    </label>
                     <input
                       type="text"
                       name="department"
@@ -370,7 +390,9 @@ function DIDManagement() {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <label className="text-[10px] font-semibold text-muted-foreground">Specialty / Subspecialty</label>
+                    <label className="text-[10px] font-semibold text-muted-foreground">
+                      Specialty / Subspecialty
+                    </label>
                     <input
                       type="text"
                       name="specialty"
@@ -382,7 +404,9 @@ function DIDManagement() {
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[10px] font-semibold text-muted-foreground">Active Work Shift</label>
+                    <label className="text-[10px] font-semibold text-muted-foreground">
+                      Active Work Shift
+                    </label>
                     <select
                       name="shift"
                       value={formData.shift}
@@ -407,10 +431,7 @@ function DIDManagement() {
               >
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                className="cursor-pointer"
-              >
+              <Button type="submit" className="cursor-pointer">
                 Issue Blockchain DID
               </Button>
             </DialogFooter>

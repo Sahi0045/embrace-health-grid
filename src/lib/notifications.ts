@@ -33,7 +33,7 @@ function seedSampleNotifications() {
     type: "consent_request",
     title: "Consent Request Pending",
     message:
-      "Patient did:fabric:pat-001 has a pending consent request from Dr. Martinez for radiology records.",
+      "Patient did:health:pat-001 has a pending consent request from Dr. Martinez for radiology records.",
     timestamp: now - 15 * 60 * 1000,
     read: false,
     severity: "info",
@@ -44,7 +44,7 @@ function seedSampleNotifications() {
     type: "fraud_alert",
     title: "Fraud Alert — High Risk",
     message:
-      "Anomalous credential usage detected for did:fabric:pat-042. Risk score: 87/100. Immediate review required.",
+      "Anomalous credential usage detected for did:health:pat-042. Risk score: 87/100. Immediate review required.",
     timestamp: now - 8 * 60 * 1000,
     read: false,
     severity: "critical",

@@ -4,7 +4,7 @@ import { RouteGuard } from "@/components/RouteGuard";
 import { PageHeader } from "@/components/PageHeader";
 import { StaggerList, StaggerItem } from "@/components/Motion";
 import { QrPlaceholder } from "@/components/QrPlaceholder";
-import { useLivePatients } from "@/hooks/use-fabric";
+import { useLivePatients } from "@/hooks/use-api";
 import {
   generateZKProof,
   verifyZKProof,
@@ -169,8 +169,8 @@ function PatientZkProofPage() {
               <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
                 A ZKP lets you <strong className="text-foreground">prove a fact</strong> (e.g. "my
                 blood group is B+") without revealing any other information. The proof is anchored
-                immutably on the Solana Devnet ledger. Care providers scan your proof QR — they
-                see only what you choose to share.
+                immutably on the Solana Devnet ledger. Care providers scan your proof QR — they see
+                only what you choose to share.
               </p>
               <div className="mt-3 grid grid-cols-3 gap-2 text-center text-[10px]">
                 {[

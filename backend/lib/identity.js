@@ -9,7 +9,7 @@ export function signIdentityPayload(payload, secret) {
     mrn: body.mrn,
     name: body.name,
     exp: body.exp,
-    channel: body.channel,
+    network: body.network,
   });
   const sig = createHmac("sha256", secret).update(data).digest("base64url");
   return { ...body, sig };
@@ -24,7 +24,7 @@ export function verifyIdentityPayload(payload, secret) {
     mrn: payload.mrn,
     name: payload.name,
     exp: payload.exp,
-    channel: payload.channel,
+    network: payload.network,
   });
   const expected = createHmac("sha256", secret).update(data).digest("base64url");
 

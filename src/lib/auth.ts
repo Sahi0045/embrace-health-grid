@@ -7,7 +7,7 @@ export interface AuthUser {
   did?: string;
 }
 
-const TOKEN_KEY = "fabricAuthToken";
+const TOKEN_KEY = "authToken";
 
 export function getToken(): string | null {
   if (typeof window === "undefined") return null;

@@ -38,7 +38,9 @@ const CLIENT_KEY = process.env.CLIENT_KEY || "apollo-consortium-client-secret-20
 function requireClientAuth(req, res, next) {
   const clientKey = req.headers["x-client-key"];
   if (!clientKey || clientKey !== CLIENT_KEY) {
-    return res.status(401).json({ error: "Unauthorized Client Application: Missing or invalid x-client-key header" });
+    return res
+      .status(401)
+      .json({ error: "Unauthorized Client Application: Missing or invalid x-client-key header" });
   }
   next();
 }
@@ -69,9 +71,7 @@ loadEnv();
 
 const JWT_SECRET =
   process.env.JWT_SECRET ||
-  (process.env.NODE_ENV === "production"
-    ? null
-    : "dev-only-jwt-secret-change-before-production");
+  (process.env.NODE_ENV === "production" ? null : "dev-only-jwt-secret-change-before-production");
 if (!JWT_SECRET) {
   console.error("FATAL: JWT_SECRET must be set in production");
   process.exit(1);
@@ -86,17 +86,19 @@ const app = express();
 const httpServer = createServer(app);
 const wss = new WebSocketServer({ server: httpServer });
 
-app.use(cors({
-  origin: [
-    CORS_ORIGIN,
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "http://localhost:8080",
-    "http://127.0.0.1:8080",
-    "http://localhost:3002",
-    "http://127.0.0.1:3002"
-  ]
-}));
+app.use(
+  cors({
+    origin: [
+      CORS_ORIGIN,
+      "http://localhost:5173",
+      "http://127.0.0.1:5173",
+      "http://localhost:8080",
+      "http://127.0.0.1:8080",
+      "http://localhost:3002",
+      "http://127.0.0.1:3002",
+    ],
+  }),
+);
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(morgan("tiny"));
 app.use(express.json({ limit: "2mb" }));
@@ -237,14 +239,14 @@ function putState(namespace, key, value, txId, version = "1") {
   return entry;
 }
 
-const CHANNEL = "embrace-health-channel";
-const PEERS_COUNT = 3;
+const NETWORK = "embrace-health-network";
+const NODES_COUNT = 3;
 
 const logAudit = createAuditHelper({
   putState,
   broadcast,
   randomUUID,
-  CHANNEL,
+  network: NETWORK,
 });
 
 function simHash(s) {
@@ -264,7 +266,7 @@ wss.on("connection", (ws) => {
   ws.send(
     JSON.stringify({
       event: "connected",
-      data: { blockHeight: 1, peers: PEERS_COUNT },
+      data: { blockHeight: 1, nodes: NODES_COUNT },
     }),
   );
   ws.on("error", () => {});
@@ -326,7 +328,9 @@ app.get("/health", (_, res) =>
 
 // ─── World State API ──────────────────────────────────────────────────────────
 app.get("/api/worldstate", requireAuth, (_, res) => res.json(getAllWorldState()));
-app.get("/api/worldstate/:namespace", requireAuth, (req, res) => res.json(getAllState(req.params.namespace)));
+app.get("/api/worldstate/:namespace", requireAuth, (req, res) =>
+  res.json(getAllState(req.params.namespace)),
+);
 app.get("/api/worldstate/:namespace/:key", requireAuth, (req, res) => {
   const entry = getState(req.params.namespace, req.params.key);
   if (!entry) return res.status(404).json({ error: "Not found" });
@@ -556,19 +560,24 @@ app.get("/api/vitals/:id", requireAuth, (req, res) => {
 });
 
 // ─── Staff tracker ────────────────────────────────────────────────────────────
-app.post("/api/tracker/seed", requireAuth, requireRole(["admin", "doctor", "staff"]), (req, res) => {
-  const { staff = [] } = req.body;
-  staff.forEach(({ id, location = "Nursing Station" }) => {
-    _staffLoc.set(id, { location, lastSignal: new Date().toISOString(), beacon: "85%" });
-    putState(
-      "tracker",
-      id,
-      { staffId: id, location, lastPing: new Date().toISOString() },
-      randomUUID(),
-    );
-  });
-  res.json({ seeded: staff.length });
-});
+app.post(
+  "/api/tracker/seed",
+  requireAuth,
+  requireRole(["admin", "doctor", "staff"]),
+  (req, res) => {
+    const { staff = [] } = req.body;
+    staff.forEach(({ id, location = "Nursing Station" }) => {
+      _staffLoc.set(id, { location, lastSignal: new Date().toISOString(), beacon: "85%" });
+      putState(
+        "tracker",
+        id,
+        { staffId: id, location, lastPing: new Date().toISOString() },
+        randomUUID(),
+      );
+    });
+    res.json({ seeded: staff.length });
+  },
+);
 
 app.get("/api/tracker", requireAuth, requireRole(["admin", "doctor", "staff"]), (_, res) => {
   const all = getAllState("tracker");
@@ -614,7 +623,9 @@ app.post("/api/prescriptions", requireAuth, requireRole(["doctor", "staff"]), (r
 
 app.get("/api/prescriptions/:patientDid", requireAuth, (req, res) => {
   if (req.user.role === "patient" && req.user.did !== req.params.patientDid) {
-    return res.status(403).json({ error: "Access Denied: Cannot view other patients' prescriptions" });
+    return res
+      .status(403)
+      .json({ error: "Access Denied: Cannot view other patients' prescriptions" });
   }
   const all = queryState("prescriptions", (v) => v.patientDid === req.params.patientDid);
   res.json({ prescriptions: all.map((e) => e.value) });
@@ -646,7 +657,9 @@ app.get("/api/labs", requireAuth, requireRole(["doctor", "staff", "admin"]), (re
 
 app.get("/api/labs/:patientDid", requireAuth, (req, res) => {
   if (req.user.role === "patient" && req.user.did !== req.params.patientDid) {
-    return res.status(403).json({ error: "Access Denied: Cannot view other patients' lab results" });
+    return res
+      .status(403)
+      .json({ error: "Access Denied: Cannot view other patients' lab results" });
   }
   const all = queryState("lab-results", (v) => v.patientDid === req.params.patientDid);
   res.json({ labs: all.map((e) => e.value) });
@@ -680,9 +693,11 @@ app.get("/api/fraud/alerts", requireAuth, requireRole(["admin"]), (_, res) => {
 // ─── Billing ──────────────────────────────────────────────────────────────────
 app.post("/api/billing/payment", requireAuth, requireRole(["patient"]), (req, res) => {
   const { patientDid, patientName, amount, category, reference } = req.body;
-  
+
   if (req.user.did !== patientDid) {
-    return res.status(403).json({ error: "Access Denied: Cannot record payment for another patient" });
+    return res
+      .status(403)
+      .json({ error: "Access Denied: Cannot record payment for another patient" });
   }
 
   const txId = randomUUID();
@@ -704,7 +719,9 @@ app.post("/api/billing/payment", requireAuth, requireRole(["patient"]), (req, re
 
 app.get("/api/billing/:patientDid", requireAuth, (req, res) => {
   if (req.user.role === "patient" && req.user.did !== req.params.patientDid) {
-    return res.status(403).json({ error: "Access Denied: Cannot view other patients' billing records" });
+    return res
+      .status(403)
+      .json({ error: "Access Denied: Cannot view other patients' billing records" });
   }
   const all = queryState("billing", (v) => v.patientDid === req.params.patientDid);
   res.json({ payments: all.map((e) => e.value) });
@@ -718,9 +735,11 @@ app.get("/api/appointments", requireAuth, (_, res) => {
 
 app.post("/api/appointments", requireAuth, (req, res) => {
   const { patientDid, patientName, doctorDid, doctorName, slot, mode, specialty } = req.body;
-  
+
   if (req.user.role === "patient" && req.user.did !== patientDid) {
-    return res.status(403).json({ error: "Access Denied: Cannot book appointments for another patient" });
+    return res
+      .status(403)
+      .json({ error: "Access Denied: Cannot book appointments for another patient" });
   }
 
   const apptId = `appt_${randomUUID().slice(0, 8)}`;
@@ -743,25 +762,37 @@ app.post("/api/appointments", requireAuth, (req, res) => {
 });
 
 // ─── Pager notifications (added for locator integrations) ────────────────────
-app.post("/api/tracker/notify", requireAuth, requireRole(["admin", "doctor", "staff"]), (req, res) => {
-  const { staffDid, name, location } = req.body;
-  if (!staffDid || !name) return res.status(400).json({ error: "staffDid and name required" });
-  
-  const txId = randomUUID();
-  const notifyEvent = {
-    id: `pager_${txId.slice(0, 8)}`,
-    staffDid,
-    name,
-    location: location || "Unknown Location",
-    dispatchedAt: new Date().toISOString(),
-    status: "delivered",
-  };
-  putState("tracker", `pager_${txId.slice(0, 8)}`, notifyEvent, txId);
-  broadcast({ event: "staff:location", data: { id: staffDid, location: location || "Unknown Location", lastSignal: notifyEvent.dispatchedAt } });
-  
-  logAudit(req, { resource: staffDid, action: "PAGER_DISPATCH" });
-  res.json({ success: true, notifyEvent });
-});
+app.post(
+  "/api/tracker/notify",
+  requireAuth,
+  requireRole(["admin", "doctor", "staff"]),
+  (req, res) => {
+    const { staffDid, name, location } = req.body;
+    if (!staffDid || !name) return res.status(400).json({ error: "staffDid and name required" });
+
+    const txId = randomUUID();
+    const notifyEvent = {
+      id: `pager_${txId.slice(0, 8)}`,
+      staffDid,
+      name,
+      location: location || "Unknown Location",
+      dispatchedAt: new Date().toISOString(),
+      status: "delivered",
+    };
+    putState("tracker", `pager_${txId.slice(0, 8)}`, notifyEvent, txId);
+    broadcast({
+      event: "staff:location",
+      data: {
+        id: staffDid,
+        location: location || "Unknown Location",
+        lastSignal: notifyEvent.dispatchedAt,
+      },
+    });
+
+    logAudit(req, { resource: staffDid, action: "PAGER_DISPATCH" });
+    res.json({ success: true, notifyEvent });
+  },
+);
 
 // ─── Auth APIs ────────────────────────────────────────────────────────────────
 app.post("/api/auth/signup", requireAuth, requireRole(["admin"]), async (req, res) => {
@@ -803,9 +834,10 @@ app.post("/api/auth/login", requireClientAuth, async (req, res) => {
   }
 
   if (userEntry.value.password) {
-    const isHash = userEntry.value.password.startsWith("$2a$") || 
-                   userEntry.value.password.startsWith("$2b$") || 
-                   userEntry.value.password.startsWith("$2y$");
+    const isHash =
+      userEntry.value.password.startsWith("$2a$") ||
+      userEntry.value.password.startsWith("$2b$") ||
+      userEntry.value.password.startsWith("$2y$");
     let match = false;
     if (isHash) {
       match = await bcrypt.compare(password || "", userEntry.value.password).catch(() => false);
@@ -934,7 +966,9 @@ app.post("/api/zkproof/generate", requireAuth, requireRole(["patient"]), (req, r
   if (!patientDid) return res.status(400).json({ error: "patientDid required" });
 
   if (req.user.did !== patientDid) {
-    return res.status(403).json({ error: "Access Denied: Cannot generate proof for another patient" });
+    return res
+      .status(403)
+      .json({ error: "Access Denied: Cannot generate proof for another patient" });
   }
 
   const proofId = "zkp-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
@@ -962,9 +996,9 @@ app.post("/api/zkproof/generate", requireAuth, requireRole(["patient"]), (req, r
 
   putState("zkproof-" + proofId, {
     ...proof,
-    chaincode: "did-registry",
+    module: "did-registry",
     fcn: "GenerateZKProof",
-    channel: CHANNEL,
+    network: NETWORK,
   });
 
   const txId = "tx-zkp-" + Date.now().toString(36);
@@ -1012,7 +1046,7 @@ registerExtensionRoutes(app, {
   queryState,
   commitBlock: () => {}, // Mock no-op for backward compatibility in extensions
   broadcast,
-  CHANNEL,
+  NETWORK,
   logAudit,
   requireRole,
   IDENTITY_SECRET,

@@ -1,17 +1,22 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PageHeader, StatCard } from "@/components/PageHeader";
 import { StaggerList, StaggerItem } from "@/components/Motion";
+import { useLivePatients, useLiveStaff, useConsents, useAudit, useBeds } from "@/hooks/use-api";
 import {
-  useLivePatients,
-  useLiveStaff,
-  useFabricConsents,
-  useFabricAudit,
-  useFabricBeds,
-} from "@/hooks/use-fabric";
-import {
-  Users, ScanLine, CheckCircle2, Clock, ArrowRight, BellRing,
-  Command, Pill, FlaskConical, Scissors, ShieldAlert, HeartPulse,
-  Ambulance, Bed,
+  Users,
+  ScanLine,
+  CheckCircle2,
+  Clock,
+  ArrowRight,
+  BellRing,
+  Command,
+  Pill,
+  FlaskConical,
+  Scissors,
+  ShieldAlert,
+  HeartPulse,
+  Ambulance,
+  Bed,
 } from "lucide-react";
 import { RouteGuard } from "@/components/RouteGuard";
 import { Button } from "@/components/ui/button";
@@ -23,20 +28,50 @@ export const Route = createFileRoute("/staff/")({
 });
 
 const quickLinks = [
-  { to: "/staff/command" as const, label: "Command Center", icon: Command, color: "text-primary bg-primary/10" },
-  { to: "/staff/patients" as const, label: "Patients", icon: Users, color: "text-chart-2 bg-chart-2/10" },
-  { to: "/staff/prescriptions" as const, label: "Prescriptions", icon: Pill, color: "text-chart-3 bg-chart-3/10" },
-  { to: "/staff/labs" as const, label: "Labs", icon: FlaskConical, color: "text-success bg-success/10" },
-  { to: "/staff/surgeries" as const, label: "Surgeries", icon: Scissors, color: "text-chart-4 bg-chart-4/10" },
-  { to: "/staff/emergency" as const, label: "Emergency", icon: ShieldAlert, color: "text-destructive bg-destructive/10" },
+  {
+    to: "/staff/command" as const,
+    label: "Command Center",
+    icon: Command,
+    color: "text-primary bg-primary/10",
+  },
+  {
+    to: "/staff/patients" as const,
+    label: "Patients",
+    icon: Users,
+    color: "text-chart-2 bg-chart-2/10",
+  },
+  {
+    to: "/staff/prescriptions" as const,
+    label: "Prescriptions",
+    icon: Pill,
+    color: "text-chart-3 bg-chart-3/10",
+  },
+  {
+    to: "/staff/labs" as const,
+    label: "Labs",
+    icon: FlaskConical,
+    color: "text-success bg-success/10",
+  },
+  {
+    to: "/staff/surgeries" as const,
+    label: "Surgeries",
+    icon: Scissors,
+    color: "text-chart-4 bg-chart-4/10",
+  },
+  {
+    to: "/staff/emergency" as const,
+    label: "Emergency",
+    icon: ShieldAlert,
+    color: "text-destructive bg-destructive/10",
+  },
 ];
 
 function StaffDashboard() {
   const { patients: patientsList } = useLivePatients();
   const { staff: staffList } = useLiveStaff();
-  const { data: consentsData } = useFabricConsents();
-  const { data: auditData } = useFabricAudit();
-  const { data: bedsData } = useFabricBeds();
+  const { data: consentsData } = useConsents();
+  const { data: auditData } = useAudit();
+  const { data: bedsData } = useBeds();
 
   const userEmail = typeof window !== "undefined" ? localStorage.getItem("userEmail") : "";
   const userName = typeof window !== "undefined" ? localStorage.getItem("userName") : "";
@@ -52,10 +87,13 @@ function StaffDashboard() {
             </div>
             <h1 className="mt-6 text-2xl font-bold text-foreground">Awaiting DID Provisioning</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Welcome to the Staff Portal, <span className="font-semibold">{userName || userEmail}</span>.
+              Welcome to the Staff Portal,{" "}
+              <span className="font-semibold">{userName || userEmail}</span>.
             </p>
             <p className="mt-4 text-xs text-muted-foreground leading-relaxed">
-              Your clinician decentralized identity (DID) document must be approved and issued on the blockchain by an Administrator before you can access clinical databases, patient records, or sign prescriptions.
+              Your clinician decentralized identity (DID) document must be approved and issued on
+              the blockchain by an Administrator before you can access clinical databases, patient
+              records, or sign prescriptions.
             </p>
             <div className="mt-6">
               <Button
@@ -77,10 +115,13 @@ function StaffDashboard() {
   }
 
   const patients = patientsList ?? [];
-  const pendingRequests = consentsData?.consents?.filter((c: any) => c.status === "pending" || c.status === "requested")?.length ?? 0;
-  
+  const pendingRequests =
+    consentsData?.consents?.filter((c: any) => c.status === "pending" || c.status === "requested")
+      ?.length ?? 0;
+
   const totalBeds = bedsData?.total ?? 20;
-  const icuOccupied = bedsData?.beds?.filter((b: any) => b.type === "icu" && b.status === "occupied")?.length ?? 4;
+  const icuOccupied =
+    bedsData?.beds?.filter((b: any) => b.type === "icu" && b.status === "occupied")?.length ?? 4;
   const icuTotal = bedsData?.beds?.filter((b: any) => b.type === "icu")?.length ?? 5;
   const availableAmbs = 3;
   const recentActivities = auditData?.events ?? [];
@@ -105,15 +146,39 @@ function StaffDashboard() {
         <div className="space-y-6 p-6">
           {/* KPI row */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard label="Patients verified today" value={patients.length > 0 ? patients.length + 10 : 23} delta="+4 vs. yesterday" icon={CheckCircle2} tone="success" />
-            <StatCard label="Pending access requests" value={pendingRequests} delta="Awaiting consent" icon={Clock} tone={pendingRequests > 0 ? "warning" : "default"} />
-            <StatCard label="ICU occupancy" value={`${icuOccupied}/${icuTotal}`} icon={HeartPulse} tone={icuOccupied / icuTotal > 0.8 ? "destructive" : "default"} delta="ICU beds in use" />
-            <StatCard label="Ambulances ready" value={availableAmbs} icon={Ambulance} tone="success" delta="Available now" />
+            <StatCard
+              label="Patients verified today"
+              value={patients.length > 0 ? patients.length + 10 : 23}
+              delta="+4 vs. yesterday"
+              icon={CheckCircle2}
+              tone="success"
+            />
+            <StatCard
+              label="Pending access requests"
+              value={pendingRequests}
+              delta="Awaiting consent"
+              icon={Clock}
+              tone={pendingRequests > 0 ? "warning" : "default"}
+            />
+            <StatCard
+              label="ICU occupancy"
+              value={`${icuOccupied}/${icuTotal}`}
+              icon={HeartPulse}
+              tone={icuOccupied / icuTotal > 0.8 ? "destructive" : "default"}
+              delta="ICU beds in use"
+            />
+            <StatCard
+              label="Ambulances ready"
+              value={availableAmbs}
+              icon={Ambulance}
+              tone="success"
+              delta="Available now"
+            />
           </div>
 
           {/* Quick links */}
           <StaggerList className="grid grid-cols-3 gap-3 sm:grid-cols-6">
-            {quickLinks.map(l => {
+            {quickLinks.map((l) => {
               const Icon = l.icon;
               return (
                 <StaggerItem key={l.to}>
@@ -121,7 +186,9 @@ function StaffDashboard() {
                     to={l.to}
                     className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card p-4 text-center hover:shadow-clinical-md hover:-translate-y-0.5 transition-all"
                   >
-                    <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${l.color}`}>
+                    <div
+                      className={`flex h-9 w-9 items-center justify-center rounded-lg ${l.color}`}
+                    >
                       <Icon className="h-4 w-4" />
                     </div>
                     <span className="text-xs font-medium text-foreground">{l.label}</span>
@@ -136,19 +203,29 @@ function StaffDashboard() {
             <div className="rounded-xl border border-border bg-card p-6 shadow-clinical lg:col-span-2">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-sm font-semibold text-foreground">Recent activity</h2>
-                <Link to="/staff/patients" className="inline-flex items-center gap-1 text-xs font-medium text-primary">
+                <Link
+                  to="/staff/patients"
+                  className="inline-flex items-center gap-1 text-xs font-medium text-primary"
+                >
                   All patients <ArrowRight className="h-3 w-3" />
                 </Link>
               </div>
               <ul className="divide-y divide-border">
                 {recentActivities.length === 0 ? (
-                  <div className="text-xs text-muted-foreground py-6 text-center">No recent ledger activity logged</div>
+                  <div className="text-xs text-muted-foreground py-6 text-center">
+                    No recent ledger activity logged
+                  </div>
                 ) : (
                   recentActivities.slice(0, 5).map((e: any) => (
-                    <li key={e.txId || e.id} className="flex items-center justify-between py-3 text-sm">
+                    <li
+                      key={e.txId || e.id}
+                      className="flex items-center justify-between py-3 text-sm"
+                    >
                       <div>
                         <div className="font-medium text-foreground">{e.action}</div>
-                        <div className="text-xs text-muted-foreground">{e.actor} · outcome: {e.outcome || "success"}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {e.actor} · outcome: {e.outcome || "success"}
+                        </div>
                       </div>
                       <div className="text-xs text-muted-foreground">
                         {e.loggedAt ? new Date(e.loggedAt).toLocaleTimeString("en-IN") : ""}
@@ -165,7 +242,10 @@ function StaffDashboard() {
                 <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
                   <BellRing className="h-4 w-4 text-warning-foreground" /> Live alerts
                 </div>
-                <Link to="/staff/command" className="text-xs text-primary hover:underline flex items-center gap-1">
+                <Link
+                  to="/staff/command"
+                  className="text-xs text-primary hover:underline flex items-center gap-1"
+                >
                   Command <ArrowRight className="h-3 w-3" />
                 </Link>
               </div>
@@ -178,7 +258,9 @@ function StaffDashboard() {
                 </li>
                 <li className="rounded-lg border border-border bg-card p-3">
                   <div className="font-medium text-foreground text-sm">Consent granted</div>
-                  <div className="text-xs text-muted-foreground">Anika Sharma → ECG report · just now</div>
+                  <div className="text-xs text-muted-foreground">
+                    Anika Sharma → ECG report · just now
+                  </div>
                 </li>
                 <li className="rounded-lg border border-border bg-card p-3">
                   <div className="font-medium text-foreground text-sm">Access request pending</div>
@@ -195,7 +277,10 @@ function StaffDashboard() {
                 <Users className="h-4 w-4 text-primary" />
                 My Active Patients
               </div>
-              <Link to="/staff/patients" className="text-xs text-primary hover:underline flex items-center gap-1">
+              <Link
+                to="/staff/patients"
+                className="text-xs text-primary hover:underline flex items-center gap-1"
+              >
                 View all <ArrowRight className="h-3 w-3" />
               </Link>
             </div>
@@ -208,7 +293,11 @@ function StaffDashboard() {
                 >
                   <div className="flex items-center gap-2">
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold">
-                      {p.name.split(" ").map((w: string) => w[0]).slice(0,2).join("")}
+                      {p.name
+                        .split(" ")
+                        .map((w: string) => w[0])
+                        .slice(0, 2)
+                        .join("")}
                     </div>
                     <div className="min-w-0">
                       <div className="text-xs font-semibold text-foreground truncate">{p.name}</div>
@@ -216,7 +305,9 @@ function StaffDashboard() {
                     </div>
                   </div>
                   <div className="mt-2 flex items-center gap-2 text-[10px] text-muted-foreground">
-                    <span className="rounded bg-muted-foreground/10 px-1.5 py-0.5">{p.bloodGroup}</span>
+                    <span className="rounded bg-muted-foreground/10 px-1.5 py-0.5">
+                      {p.bloodGroup}
+                    </span>
                     {p.allergies && p.allergies.length > 0 && (
                       <span className="text-destructive">⚠ Allergy</span>
                     )}

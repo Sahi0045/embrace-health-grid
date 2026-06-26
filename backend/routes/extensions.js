@@ -18,7 +18,7 @@ export function registerExtensionRoutes(app, deps) {
     queryState,
     commitBlock,
     broadcast,
-    CHANNEL,
+    NETWORK,
     logAudit,
     requireRole,
     IDENTITY_SECRET,
@@ -43,30 +43,35 @@ export function registerExtensionRoutes(app, deps) {
     res.json({ records: all.map((e) => e.value), total: all.length });
   });
 
-  app.post("/api/medical-records/:patientDid", requireRole("staff", "admin"), consentGate, (req, res) => {
-    const { title, type, content, doctorDid, doctorName } = req.body;
-    if (!title || !type) return res.status(400).json({ error: "title and type required" });
+  app.post(
+    "/api/medical-records/:patientDid",
+    requireRole("staff", "admin"),
+    consentGate,
+    (req, res) => {
+      const { title, type, content, doctorDid, doctorName } = req.body;
+      if (!title || !type) return res.status(400).json({ error: "title and type required" });
 
-    const recordId = `MR-${Date.now().toString(36).toUpperCase()}`;
-    const txId = randomUUID();
-    const record = {
-      recordId,
-      patientDid: req.params.patientDid,
-      title,
-      type,
-      content,
-      doctorDid: doctorDid || req.user.did,
-      doctorName: doctorName || req.user.name,
-      createdAt: new Date().toISOString(),
-      status: "active",
-    };
-    const { anchor, offChain } = splitRecord(record, "medical-record");
-    putState("medical-records", recordId, offChain, txId);
-    putState("medical-records-anchor", recordId, anchor, txId);
-    logAudit(req, { resource: recordId, action: "MEDICAL_RECORD_CREATE" });
-    solana.scheduleAnchor({ computeRecordHash }, offChain, "medical-record", req.user.did);
-    res.json({ record: offChain, anchor });
-  });
+      const recordId = `MR-${Date.now().toString(36).toUpperCase()}`;
+      const txId = randomUUID();
+      const record = {
+        recordId,
+        patientDid: req.params.patientDid,
+        title,
+        type,
+        content,
+        doctorDid: doctorDid || req.user.did,
+        doctorName: doctorName || req.user.name,
+        createdAt: new Date().toISOString(),
+        status: "active",
+      };
+      const { anchor, offChain } = splitRecord(record, "medical-record");
+      putState("medical-records", recordId, offChain, txId);
+      putState("medical-records-anchor", recordId, anchor, txId);
+      logAudit(req, { resource: recordId, action: "MEDICAL_RECORD_CREATE" });
+      solana.scheduleAnchor({ computeRecordHash }, offChain, "medical-record", req.user.did);
+      res.json({ record: offChain, anchor });
+    },
+  );
 
   app.patch("/api/medical-records/:recordId", requireRole("staff", "admin"), (req, res) => {
     const entry = getState("medical-records", req.params.recordId);
@@ -132,7 +137,12 @@ export function registerExtensionRoutes(app, deps) {
     entry.value.revokedAt = new Date().toISOString();
     putState("nfc-cards", req.params.cardId, entry.value, randomUUID());
     logAudit(req, { resource: req.params.cardId, action: "NFC_CARD_REVOKE" });
-    solana.scheduleAnchor({ computeRecordHash }, { id: req.params.cardId, action: "revoke" }, "nfc-revoke", req.user.did);
+    solana.scheduleAnchor(
+      { computeRecordHash },
+      { id: req.params.cardId, action: "revoke" },
+      "nfc-revoke",
+      req.user.did,
+    );
     res.json({ success: true, cardId: req.params.cardId });
   });
 
@@ -150,7 +160,11 @@ export function registerExtensionRoutes(app, deps) {
     } else if (payload) {
       const result = verifyIdentityPayload(payload, IDENTITY_SECRET);
       if (!result.valid) return res.status(400).json({ error: result.error });
-      card = { patientDid: result.payload.did, mrn: result.payload.mrn, patientName: result.payload.name };
+      card = {
+        patientDid: result.payload.did,
+        mrn: result.payload.mrn,
+        patientName: result.payload.name,
+      };
     } else {
       return res.status(400).json({ error: "cardId or payload required" });
     }
@@ -161,13 +175,13 @@ export function registerExtensionRoutes(app, deps) {
 
   // ─── Identity signed payloads ───────────────────────────────────────────────
   app.post("/api/identity/sign-payload", requireRole("patient", "staff", "admin"), (req, res) => {
-    const { did, mrn, name, channel } = req.body;
+    const { did, mrn, name, network } = req.body;
     if (!did) return res.status(400).json({ error: "did required" });
     if (req.user.role === "patient" && req.user.did && req.user.did !== did) {
       return res.status(403).json({ error: "Forbidden: own DID only" });
     }
     const payload = signIdentityPayload(
-      { did, mrn, name, channel: channel || "embrace-health-channel", exp: Date.now() + 60_000 },
+      { did, mrn, name, network: network || "embrace-health-network", exp: Date.now() + 60_000 },
       IDENTITY_SECRET,
     );
     res.json({ payload });
@@ -219,7 +233,10 @@ export function registerExtensionRoutes(app, deps) {
     entry.value.status = req.body.approved === false ? "denied" : "approved";
     entry.value.resolvedAt = new Date().toISOString();
     putState("visitors", req.params.id, entry.value, randomUUID());
-    logAudit(req, { resource: req.params.id, action: `VISITOR_${entry.value.status.toUpperCase()}` });
+    logAudit(req, {
+      resource: req.params.id,
+      action: `VISITOR_${entry.value.status.toUpperCase()}`,
+    });
     res.json({ visitor: entry.value });
   });
 
@@ -286,7 +303,9 @@ export function registerExtensionRoutes(app, deps) {
 
   // ─── Per-user notifications (override in server if needed) ──────────────────
   app.get("/api/notifications/v2", (req, res) => {
-    const { notifications: list, unreadCount } = notifications.getNotificationsForUser(req.user.email);
+    const { notifications: list, unreadCount } = notifications.getNotificationsForUser(
+      req.user.email,
+    );
     res.json({ notifications: list, unreadCount });
   });
 

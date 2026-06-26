@@ -9,7 +9,7 @@
 
 import { generatePatients, type PatientFull } from "./mock-patients";
 import { generateStaff, type StaffMember } from "./mock-staff";
-import { isFabricOnline } from "./fabric-api";
+import { isBackendOnline } from "./api";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -135,10 +135,15 @@ function runVitalsTick() {
   inpatients.forEach((p) => {
     const current = _vitals.get(p.id) ?? _vitals.get(p.did) ?? generateVitals(0);
     const updated = {
-      heartRate: Math.max(40, Math.min(160, current.heartRate + Math.round((Math.random() - 0.5) * 6))),
+      heartRate: Math.max(
+        40,
+        Math.min(160, current.heartRate + Math.round((Math.random() - 0.5) * 6)),
+      ),
       bp: `${Math.max(80, Math.min(180, parseInt(current.bp.split("/")[0]) + Math.round((Math.random() - 0.5) * 4)))}/${Math.max(50, Math.min(120, parseInt(current.bp.split("/")[1]) + Math.round((Math.random() - 0.5) * 3)))}`,
       spo2: Math.max(88, Math.min(100, current.spo2 + Math.round((Math.random() - 0.5) * 2))),
-      temp: parseFloat(Math.max(35.0, Math.min(40.0, current.temp + (Math.random() - 0.5) * 0.2)).toFixed(1)),
+      temp: parseFloat(
+        Math.max(35.0, Math.min(40.0, current.temp + (Math.random() - 0.5) * 0.2)).toFixed(1),
+      ),
       respRate: Math.max(8, Math.min(30, current.respRate + Math.round((Math.random() - 0.5) * 2))),
     };
     _vitals.set(p.id, updated);
@@ -151,19 +156,43 @@ function runVitalsTick() {
 // Staff Location Simulator (local fallback)
 // ---------------------------------------------------------------------------
 const LOCATIONS = [
-  "OPD Room 3", "ICU Block B", "Emergency Ward", "Operation Theatre 2",
-  "Consultation Room 5", "Radiology Block", "Pharmacy Desk", "Nursing Station",
-  "Conference Room 1", "Lab Wing A", "Cafeteria", "Admin Block",
+  "OPD Room 3",
+  "ICU Block B",
+  "Emergency Ward",
+  "Operation Theatre 2",
+  "Consultation Room 5",
+  "Radiology Block",
+  "Pharmacy Desk",
+  "Nursing Station",
+  "Conference Room 1",
+  "Lab Wing A",
+  "Cafeteria",
+  "Admin Block",
 ];
 
-const _staffLocations: Map<string, { location: string; status: string; lastSignal: string; beacon: string }> = new Map();
+const _staffLocations: Map<
+  string,
+  { location: string; status: string; lastSignal: string; beacon: string }
+> = new Map();
 
 function initStaffLocations(staff: StaffMember[]) {
   staff.forEach((s, i) => {
     _staffLocations.set(s.id, {
       location: s.onDuty ? LOCATIONS[i % LOCATIONS.length] : "Off Duty",
-      status: s.onDuty ? (i % 5 === 0 ? "In Surgery" : i % 4 === 0 ? "Emergency Response" : i % 3 === 0 ? "In Consultation" : "Available") : "Off Duty",
-      lastSignal: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+      status: s.onDuty
+        ? i % 5 === 0
+          ? "In Surgery"
+          : i % 4 === 0
+            ? "Emergency Response"
+            : i % 3 === 0
+              ? "In Consultation"
+              : "Available"
+        : "Off Duty",
+      lastSignal: new Date().toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      }),
       beacon: `${70 + (i % 30)}%`,
     });
   });
@@ -180,12 +209,20 @@ function runStaffTick() {
   const newLoc = LOCATIONS[Math.floor(Math.random() * LOCATIONS.length)];
   if (current?.location === newLoc) return;
 
-  const newStatus = newLoc === "Operation Theatre 2" ? "In Surgery"
-    : newLoc === "Emergency Ward" ? "Emergency Response"
-    : newLoc === "ICU Block B" ? "In Consultation"
-    : "Available";
+  const newStatus =
+    newLoc === "Operation Theatre 2"
+      ? "In Surgery"
+      : newLoc === "Emergency Ward"
+        ? "Emergency Response"
+        : newLoc === "ICU Block B"
+          ? "In Consultation"
+          : "Available";
 
-  const now = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  const now = new Date().toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
   _staffLocations.set(member.id, {
     location: newLoc,
     status: newStatus,
@@ -193,7 +230,11 @@ function runStaffTick() {
     beacon: `${70 + Math.floor(Math.random() * 30)}%`,
   });
 
-  emitStoreEvent("staff:location:update", { memberId: member.id, location: newLoc, status: newStatus });
+  emitStoreEvent("staff:location:update", {
+    memberId: member.id,
+    location: newLoc,
+    status: newStatus,
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -206,13 +247,19 @@ function seedAppointments() {
   const doctors = _allStaff.filter((s) => s.role === "Doctor").slice(0, 10);
   const patientsToBook = _allPatients.slice(0, 25);
   const modes: LiveAppointment["mode"][] = ["in-person", "telemedicine"];
-  const statuses: LiveAppointment["status"][] = ["confirmed", "confirmed", "pending", "completed", "cancelled"];
+  const statuses: LiveAppointment["status"][] = [
+    "confirmed",
+    "confirmed",
+    "pending",
+    "completed",
+    "cancelled",
+  ];
 
   patientsToBook.forEach((p, i) => {
     const doc = doctors[i % doctors.length];
     const apptId = `appt_${p.id}_${i}`;
-    const slotDate = new Date(Date.now() - (i * 86400000 / 3)).toLocaleDateString("en-IN");
-    const slotTime = `${9 + (i % 8)}:${ i % 2 === 0 ? "00" : "30"} ${i < 12 ? "AM" : "PM"}`;
+    const slotDate = new Date(Date.now() - (i * 86400000) / 3).toLocaleDateString("en-IN");
+    const slotTime = `${9 + (i % 8)}:${i % 2 === 0 ? "00" : "30"} ${i < 12 ? "AM" : "PM"}`;
     _appointments.set(apptId, {
       id: apptId,
       patientDid: p.did,
@@ -233,8 +280,20 @@ function seedAppointments() {
 // ---------------------------------------------------------------------------
 const _transactions: Map<string, LiveTransaction> = new Map();
 
-const TX_CATEGORIES: LiveTransaction["category"][] = ["consultation", "pharmacy", "lab", "room", "surgery"];
-const TX_STATUSES: LiveTransaction["status"][] = ["paid", "paid", "paid", "outstanding", "refunded"];
+const TX_CATEGORIES: LiveTransaction["category"][] = [
+  "consultation",
+  "pharmacy",
+  "lab",
+  "room",
+  "surgery",
+];
+const TX_STATUSES: LiveTransaction["status"][] = [
+  "paid",
+  "paid",
+  "paid",
+  "outstanding",
+  "refunded",
+];
 
 function seedTransactions() {
   if (_transactions.size > 0) return;
@@ -248,7 +307,7 @@ function seedTransactions() {
       amount: amounts[i % amounts.length],
       category: TX_CATEGORIES[i % TX_CATEGORIES.length],
       status: TX_STATUSES[i % TX_STATUSES.length],
-      date: new Date(Date.now() - i * 86400000 / 2).toLocaleDateString("en-IN"),
+      date: new Date(Date.now() - (i * 86400000) / 2).toLocaleDateString("en-IN"),
       reference: `REF-${(100000 + i * 7).toString(36).toUpperCase()}`,
     });
   });
@@ -322,7 +381,13 @@ export function rebuildLiveListsFromRegistry() {
         activeCredentials: doc.credentials?.filter((c) => c.status === "active") ?? [],
         isOnChain: true,
         lastActivity: new Date().toLocaleString("en-IN"),
-        vitals: _vitals.get(did) ?? { heartRate: 72, bp: "120/80", spo2: 98, temp: 36.6, respRate: 16 }
+        vitals: _vitals.get(did) ?? {
+          heartRate: 72,
+          bp: "120/80",
+          spo2: 98,
+          temp: 36.6,
+          respRate: 16,
+        },
       });
     } else {
       const seed = Math.abs(hashInt(did));
@@ -381,18 +446,36 @@ function handleStoreWebSocketMessage(event: string, data: any) {
     const { id, location, lastSignal } = data;
     const staffMember = _liveStaff.find((s) => s.did === id || s.id === id);
     if (staffMember) {
-      const newStatus = location === "Operation Theatre 2" || location === "OR Suite 2" ? "In Surgery"
-        : location === "Emergency Ward" ? "Emergency Response"
-        : location === "ICU Block B" ? "In Consultation"
-        : "Available";
-      const now = lastSignal ? new Date(lastSignal).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+      const newStatus =
+        location === "Operation Theatre 2" || location === "OR Suite 2"
+          ? "In Surgery"
+          : location === "Emergency Ward"
+            ? "Emergency Response"
+            : location === "ICU Block B"
+              ? "In Consultation"
+              : "Available";
+      const now = lastSignal
+        ? new Date(lastSignal).toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          })
+        : new Date().toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          });
       _staffLocations.set(staffMember.id, {
         location,
         status: newStatus,
         lastSignal: now,
-        beacon: `${70 + Math.floor(Math.random() * 30)}%`
+        beacon: `${70 + Math.floor(Math.random() * 30)}%`,
       });
-      emitStoreEvent("staff:location:update", { memberId: staffMember.id, location, status: newStatus });
+      emitStoreEvent("staff:location:update", {
+        memberId: staffMember.id,
+        location,
+        status: newStatus,
+      });
     }
   } else if (event === "appointment:booked") {
     const appt = data;
@@ -407,7 +490,9 @@ function handleStoreWebSocketMessage(event: string, data: any) {
         slot: appt.slot,
         mode: appt.mode,
         status: appt.status || "confirmed",
-        bookedAt: appt.bookedAt ? new Date(appt.bookedAt).toLocaleString("en-IN") : new Date().toLocaleString("en-IN"),
+        bookedAt: appt.bookedAt
+          ? new Date(appt.bookedAt).toLocaleString("en-IN")
+          : new Date().toLocaleString("en-IN"),
       });
       emitStoreEvent("store:ready");
     }
@@ -421,7 +506,9 @@ function handleStoreWebSocketMessage(event: string, data: any) {
         amount: tx.amount,
         category: tx.category,
         status: tx.status === "settled" ? "paid" : "outstanding",
-        date: tx.settledAt ? new Date(tx.settledAt).toLocaleDateString("en-IN") : new Date().toLocaleDateString("en-IN"),
+        date: tx.settledAt
+          ? new Date(tx.settledAt).toLocaleDateString("en-IN")
+          : new Date().toLocaleDateString("en-IN"),
         reference: tx.ref,
       });
       emitStoreEvent("store:ready");
@@ -451,16 +538,18 @@ function setupWebSocket() {
       _wsConnected = true;
       storeEvents.dispatchEvent(new CustomEvent("ws:status", { detail: true }));
       // Fetch initial registry from backend
-      import("./fabric-api").then(({ fabricGetAllDIDs }) => {
-        fabricGetAllDIDs().then(({ dids }) => {
-          const registry: Record<string, DIDDocument> = {};
-          dids.forEach((d: any) => {
-            registry[d.did] = d;
-          });
-          localStorage.setItem("hl:didregistry", JSON.stringify(registry));
-          rebuildLiveListsFromRegistry();
-          emitStoreEvent("store:ready");
-        }).catch(() => {});
+      import("./api").then(({ getAllDIDs }) => {
+        getAllDIDs()
+          .then(({ dids }) => {
+            const registry: Record<string, DIDDocument> = {};
+            dids.forEach((d: any) => {
+              registry[d.did] = d;
+            });
+            localStorage.setItem("hl:didregistry", JSON.stringify(registry));
+            rebuildLiveListsFromRegistry();
+            emitStoreEvent("store:ready");
+          })
+          .catch(() => {});
       });
     };
 
@@ -528,7 +617,9 @@ export function getLivePatients(): LivePatient[] {
       ...p,
       vitals: _vitals.get(p.id) ?? _vitals.get(p.did) ?? p.vitals,
       didDocument: doc,
-      activeCredentials: (doc?.credentials ?? p.activeCredentials).filter((c) => c.status === "active"),
+      activeCredentials: (doc?.credentials ?? p.activeCredentials).filter(
+        (c) => c.status === "active",
+      ),
       isOnChain: !!doc,
     };
   });
@@ -545,7 +636,9 @@ export function getLiveStaff(): LiveStaff[] {
       lastSignal: loc?.lastSignal ?? s.lastSignal,
       beaconStrength: loc?.beacon ?? s.beaconStrength,
       didDocument: doc,
-      activeCredentials: (doc?.credentials ?? s.activeCredentials).filter((c) => c.status === "active"),
+      activeCredentials: (doc?.credentials ?? s.activeCredentials).filter(
+        (c) => c.status === "active",
+      ),
       isOnChain: !!doc,
     };
   });
@@ -576,15 +669,15 @@ export async function bookAppointment(
   doctorName: string,
   specialty: string,
   slot: string,
-  mode: "in-person" | "telemedicine"
+  mode: "in-person" | "telemedicine",
 ): Promise<LiveAppointment> {
   const apptId = `appt_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 
-  const online = await isFabricOnline();
+  const online = await isBackendOnline();
   if (online) {
     try {
-      const { fabricBookAppointment } = await import("./fabric-api");
-      await fabricBookAppointment({
+      const { bookAppointment } = await import("./api");
+      await bookAppointment({
         patientDid: patient.did,
         patientName: patient.name,
         doctorDid,
@@ -622,16 +715,21 @@ export async function bookAppointment(
 export async function recordPayment(
   patient: LivePatient,
   amount: number,
-  category: LiveTransaction["category"]
+  category: LiveTransaction["category"],
 ): Promise<LiveTransaction> {
   const ref = `REF-${Date.now().toString(36).toUpperCase()}`;
 
-  const online = await isFabricOnline();
+  const online = await isBackendOnline();
   let txId = `tx_${Date.now()}_local`;
   if (online) {
     try {
-      const { fabricRecordPayment } = await import("./fabric-api");
-      const res = await fabricRecordPayment(patient.did, patient.name, amount, category) as any;
+      const { recordPayment } = await import("./api");
+      const res = (await recordPayment({
+        patientDid: patient.did,
+        patientName: patient.name,
+        amount,
+        category,
+      })) as any;
       if (res && res.txId) txId = res.txId;
     } catch (err) {
       console.warn("Backend payment failed:", err);

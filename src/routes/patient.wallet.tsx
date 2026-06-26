@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { CredentialCard } from "@/components/credentials/CredentialCard";
 import { CredentialPreview } from "@/components/credentials/CredentialPreview";
 import { CredentialTimeline } from "@/components/credentials/CredentialTimeline";
-import { useFabricCredentials } from "@/hooks/use-fabric";
+import { useCredentials } from "@/hooks/use-api";
 import { RouteGuard } from "@/components/RouteGuard";
 import { Wallet as WalletIcon, ShieldCheck, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -79,7 +79,7 @@ const previewFields: Record<string, { label: string; value: string }[]> = {
 };
 
 function Wallet() {
-  const { data: credentialsData, loading } = useFabricCredentials();
+  const { data: credentialsData, loading } = useCredentials();
   const rawCredentials = credentialsData?.credentials ?? [];
 
   const liveCredentials = rawCredentials.map((c: any) => ({

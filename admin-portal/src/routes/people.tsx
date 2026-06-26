@@ -6,19 +6,32 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { 
-  Users, UserCog, Stethoscope, HeartPulse, UserCheck, Search,
-  Phone, Mail, MapPin, Calendar, Award, Briefcase, ClipboardList,
-  Activity, AlertCircle, Clock
+import {
+  Users,
+  UserCog,
+  Stethoscope,
+  HeartPulse,
+  UserCheck,
+  Search,
+  Phone,
+  Mail,
+  MapPin,
+  Calendar,
+  Award,
+  Briefcase,
+  ClipboardList,
+  Activity,
+  AlertCircle,
+  Clock,
 } from "lucide-react";
 import { peopleStats } from "@/lib/people-data";
 import { mockStaff } from "@/lib/mock-staff";
 import { DIDBadge } from "@/components/did/DIDBadge";
 import { DIDStatusChip } from "@/components/did/DIDStatusChip";
 import { useState, useEffect } from "react";
-import { fabricGetUsers, fabricCreateDID } from "@/lib/fabric-api";
+import { getUsers, createDID } from "@/lib/api";
 import { toast } from "sonner";
-import { useLivePatients, useLiveStaff } from "@/hooks/use-fabric";
+import { useLivePatients, useLiveStaff } from "@/hooks/use-api";
 
 export const Route = createFileRoute("/people")({
   head: () => ({
@@ -41,7 +54,7 @@ function PeopleManagement() {
   const fetchUsers = async () => {
     setLoadingUsers(true);
     try {
-      const res = await fabricGetUsers();
+      const res = await getUsers();
       setUsers(res.users || []);
     } catch (err) {
       console.error(err);
@@ -60,7 +73,7 @@ function PeopleManagement() {
       if (didRole === "staff") {
         didRole = "doctor";
       }
-      const res = await fabricCreateDID(user.name, didRole, undefined, user.email);
+      const res = await createDID(user.name, didRole, undefined, user.email);
       toast.success(`DID issued successfully for ${user.name}!`, { description: res.did });
       fetchUsers();
     } catch (err: any) {
@@ -69,42 +82,55 @@ function PeopleManagement() {
   };
 
   // Filter lists in real-time
-  const patientsList = (livePatients || []).filter(p =>
-    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.mrn?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.did?.toLowerCase().includes(searchTerm.toLowerCase())
+  const patientsList = (livePatients || []).filter(
+    (p) =>
+      p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.mrn?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.did?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  const doctorsList = (liveStaff || []).filter(s =>
-    s.role?.toLowerCase() === "doctor" &&
-    (s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-     s.employeeId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-     s.did?.toLowerCase().includes(searchTerm.toLowerCase()))
+  const doctorsList = (liveStaff || []).filter(
+    (s) =>
+      s.role?.toLowerCase() === "doctor" &&
+      (s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.employeeId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.did?.toLowerCase().includes(searchTerm.toLowerCase())),
   );
 
-  const nursesList = (liveStaff || []).filter(s =>
-    s.role?.toLowerCase() === "nurse" &&
-    (s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-     s.employeeId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-     s.did?.toLowerCase().includes(searchTerm.toLowerCase()))
+  const nursesList = (liveStaff || []).filter(
+    (s) =>
+      s.role?.toLowerCase() === "nurse" &&
+      (s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.employeeId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.did?.toLowerCase().includes(searchTerm.toLowerCase())),
   );
 
-  const supportStaffList = (liveStaff || []).filter(s =>
-    s.role?.toLowerCase() !== "doctor" && s.role?.toLowerCase() !== "nurse" &&
-    (s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-     s.employeeId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-     s.did?.toLowerCase().includes(searchTerm.toLowerCase()))
+  const supportStaffList = (liveStaff || []).filter(
+    (s) =>
+      s.role?.toLowerCase() !== "doctor" &&
+      s.role?.toLowerCase() !== "nurse" &&
+      (s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.employeeId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.did?.toLowerCase().includes(searchTerm.toLowerCase())),
   );
 
   // Compute stats in real-time
   const totalPatients = (livePatients || []).length;
-  const totalDoctors = (liveStaff || []).filter(s => s.role?.toLowerCase() === "doctor").length;
-  const totalNurses = (liveStaff || []).filter(s => s.role?.toLowerCase() === "nurse").length;
-  const totalSupportStaff = (liveStaff || []).filter(s => s.role?.toLowerCase() !== "doctor" && s.role?.toLowerCase() !== "nurse").length;
+  const totalDoctors = (liveStaff || []).filter((s) => s.role?.toLowerCase() === "doctor").length;
+  const totalNurses = (liveStaff || []).filter((s) => s.role?.toLowerCase() === "nurse").length;
+  const totalSupportStaff = (liveStaff || []).filter(
+    (s) => s.role?.toLowerCase() !== "doctor" && s.role?.toLowerCase() !== "nurse",
+  ).length;
 
-  const doctorsOnDuty = (liveStaff || []).filter(s => s.role?.toLowerCase() === "doctor" && s.onDuty).length;
-  const nursesOnDuty = (liveStaff || []).filter(s => s.role?.toLowerCase() === "nurse" && s.onDuty).length;
-  const supportOnDuty = (liveStaff || []).filter(s => s.role?.toLowerCase() !== "doctor" && s.role?.toLowerCase() !== "nurse" && s.onDuty).length;
+  const doctorsOnDuty = (liveStaff || []).filter(
+    (s) => s.role?.toLowerCase() === "doctor" && s.onDuty,
+  ).length;
+  const nursesOnDuty = (liveStaff || []).filter(
+    (s) => s.role?.toLowerCase() === "nurse" && s.onDuty,
+  ).length;
+  const supportOnDuty = (liveStaff || []).filter(
+    (s) => s.role?.toLowerCase() !== "doctor" && s.role?.toLowerCase() !== "nurse" && s.onDuty,
+  ).length;
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -135,28 +161,28 @@ function PeopleManagement() {
         <div className="space-y-6 p-8">
           {/* Overview Stats */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard 
-              label="Total Patients" 
-              value={totalPatients.toLocaleString()} 
+            <StatCard
+              label="Total Patients"
+              value={totalPatients.toLocaleString()}
               delta={`Live on-chain`}
-              icon={Users} 
+              icon={Users}
             />
-            <StatCard 
-              label="Doctors" 
-              value={totalDoctors} 
+            <StatCard
+              label="Doctors"
+              value={totalDoctors}
               delta={`${doctorsOnDuty} on duty`}
               icon={Stethoscope}
               tone="success"
             />
-            <StatCard 
-              label="Nurses" 
-              value={totalNurses} 
+            <StatCard
+              label="Nurses"
+              value={totalNurses}
               delta={`${nursesOnDuty} on duty`}
               icon={HeartPulse}
             />
-            <StatCard 
-              label="Support Staff" 
-              value={totalSupportStaff} 
+            <StatCard
+              label="Support Staff"
+              value={totalSupportStaff}
               delta={`${supportOnDuty} on duty`}
               icon={UserCog}
             />
@@ -184,7 +210,9 @@ function PeopleManagement() {
               <TabsTrigger value="doctors">Doctors</TabsTrigger>
               <TabsTrigger value="nurses">Nurses</TabsTrigger>
               <TabsTrigger value="staff">Support Staff</TabsTrigger>
-              <TabsTrigger value="registered">Registered Gateway Users ({users.length})</TabsTrigger>
+              <TabsTrigger value="registered">
+                Registered Gateway Users ({users.length})
+              </TabsTrigger>
             </TabsList>
 
             {/* Patients Tab */}
@@ -194,7 +222,7 @@ function PeopleManagement() {
                   <CardContent className="p-4">
                     <div className="text-sm text-muted-foreground">Currently Admitted</div>
                     <div className="text-2xl font-semibold">
-                      {patientsList.filter(p => p.ward && p.status !== "discharged").length}
+                      {patientsList.filter((p) => p.ward && p.status !== "discharged").length}
                     </div>
                   </CardContent>
                 </Card>
@@ -202,7 +230,7 @@ function PeopleManagement() {
                   <CardContent className="p-4">
                     <div className="text-sm text-muted-foreground">Outpatients</div>
                     <div className="text-2xl font-semibold">
-                      {patientsList.filter(p => !p.ward || p.status === "outpatient").length}
+                      {patientsList.filter((p) => !p.ward || p.status === "outpatient").length}
                     </div>
                   </CardContent>
                 </Card>
@@ -215,7 +243,9 @@ function PeopleManagement() {
               </div>
 
               {patientsList.length === 0 && (
-                <div className="py-12 text-center text-sm text-muted-foreground">No patients found.</div>
+                <div className="py-12 text-center text-sm text-muted-foreground">
+                  No patients found.
+                </div>
               )}
 
               {patientsList.map((patient) => (
@@ -228,16 +258,16 @@ function PeopleManagement() {
                           MRN: {patient.mrn} • DID: {patient.did}
                         </CardDescription>
                       </div>
-                      <Badge className={getStatusColor(patient.status)}>
-                        {patient.status}
-                      </Badge>
+                      <Badge className={getStatusColor(patient.status)}>{patient.status}</Badge>
                     </div>
                   </CardHeader>
                   <CardContent>
                     <div className="grid gap-4 sm:grid-cols-4">
                       <div>
                         <div className="text-sm text-muted-foreground">Age / Gender</div>
-                        <div className="font-medium">{patient.age} years • {patient.gender === "M" ? "Male" : "Female"}</div>
+                        <div className="font-medium">
+                          {patient.age} years • {patient.gender === "M" ? "Male" : "Female"}
+                        </div>
                       </div>
                       <div>
                         <div className="text-sm text-muted-foreground">Blood Group</div>
@@ -249,12 +279,18 @@ function PeopleManagement() {
                       </div>
                       <div>
                         <div className="text-sm text-muted-foreground">Outstanding Bills</div>
-                        <div className={(patient.outstandingBills || 0) > 0 ? "font-medium text-destructive" : "font-medium text-success"}>
+                        <div
+                          className={
+                            (patient.outstandingBills || 0) > 0
+                              ? "font-medium text-destructive"
+                              : "font-medium text-success"
+                          }
+                        >
                           ₹{(patient.outstandingBills ?? 0).toLocaleString()}
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
                       <div className="flex items-center gap-2">
                         <Phone className="h-4 w-4 text-muted-foreground" />
@@ -329,7 +365,7 @@ function PeopleManagement() {
                   <CardContent className="p-4">
                     <div className="text-sm text-muted-foreground">Doctors On Duty</div>
                     <div className="text-2xl font-semibold">
-                      {doctorsList.filter(d => d.onDuty).length}/{doctorsList.length}
+                      {doctorsList.filter((d) => d.onDuty).length}/{doctorsList.length}
                     </div>
                   </CardContent>
                 </Card>
@@ -337,7 +373,7 @@ function PeopleManagement() {
                   <CardContent className="p-4">
                     <div className="text-sm text-muted-foreground">Active Department</div>
                     <div className="text-2xl font-semibold">
-                      {new Set(doctorsList.map(d => d.department)).size}
+                      {new Set(doctorsList.map((d) => d.department)).size}
                     </div>
                   </CardContent>
                 </Card>
@@ -352,7 +388,9 @@ function PeopleManagement() {
               </div>
 
               {doctorsList.length === 0 && (
-                <div className="py-12 text-center text-sm text-muted-foreground">No doctors found.</div>
+                <div className="py-12 text-center text-sm text-muted-foreground">
+                  No doctors found.
+                </div>
               )}
 
               {doctorsList.map((doctor) => (
@@ -366,9 +404,7 @@ function PeopleManagement() {
                         </CardDescription>
                       </div>
                       <div className="text-right">
-                        <Badge className={getStatusColor(doctor.status)}>
-                          {doctor.status}
-                        </Badge>
+                        <Badge className={getStatusColor(doctor.status)}>{doctor.status}</Badge>
                       </div>
                     </div>
                   </CardHeader>
@@ -376,7 +412,9 @@ function PeopleManagement() {
                     <div className="grid gap-4 sm:grid-cols-3">
                       <div>
                         <div className="text-sm text-muted-foreground">Specialty / Dept</div>
-                        <div className="font-medium">{doctor.specialty} • {doctor.department}</div>
+                        <div className="font-medium">
+                          {doctor.specialty} • {doctor.department}
+                        </div>
                       </div>
                       <div>
                         <div className="text-sm text-muted-foreground">Active Shift</div>
@@ -421,7 +459,7 @@ function PeopleManagement() {
                   <CardContent className="p-4">
                     <div className="text-sm text-muted-foreground">Nurses On Duty</div>
                     <div className="text-2xl font-semibold">
-                      {nursesList.filter(n => n.onDuty).length}/{nursesList.length}
+                      {nursesList.filter((n) => n.onDuty).length}/{nursesList.length}
                     </div>
                   </CardContent>
                 </Card>
@@ -429,7 +467,7 @@ function PeopleManagement() {
                   <CardContent className="p-4">
                     <div className="text-sm text-muted-foreground">Active Shift</div>
                     <div className="text-2xl font-semibold">
-                      {new Set(nursesList.map(n => n.shift)).size}
+                      {new Set(nursesList.map((n) => n.shift)).size}
                     </div>
                   </CardContent>
                 </Card>
@@ -444,7 +482,9 @@ function PeopleManagement() {
               </div>
 
               {nursesList.length === 0 && (
-                <div className="py-12 text-center text-sm text-muted-foreground">No nurses found.</div>
+                <div className="py-12 text-center text-sm text-muted-foreground">
+                  No nurses found.
+                </div>
               )}
 
               {nursesList.map((nurse) => (
@@ -457,9 +497,7 @@ function PeopleManagement() {
                           Role: Nurse • ID: {nurse.employeeId} • DID: {nurse.did}
                         </CardDescription>
                       </div>
-                      <Badge className={getStatusColor(nurse.status)}>
-                        {nurse.status}
-                      </Badge>
+                      <Badge className={getStatusColor(nurse.status)}>{nurse.status}</Badge>
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -511,7 +549,7 @@ function PeopleManagement() {
                   <CardContent className="p-4">
                     <div className="text-sm text-muted-foreground">Staff On Duty</div>
                     <div className="text-2xl font-semibold">
-                      {supportStaffList.filter(s => s.onDuty).length}/{supportStaffList.length}
+                      {supportStaffList.filter((s) => s.onDuty).length}/{supportStaffList.length}
                     </div>
                   </CardContent>
                 </Card>
@@ -519,7 +557,7 @@ function PeopleManagement() {
                   <CardContent className="p-4">
                     <div className="text-sm text-muted-foreground">Active Roles</div>
                     <div className="text-2xl font-semibold">
-                      {new Set(supportStaffList.map(s => s.role)).size}
+                      {new Set(supportStaffList.map((s) => s.role)).size}
                     </div>
                   </CardContent>
                 </Card>
@@ -534,7 +572,9 @@ function PeopleManagement() {
               </div>
 
               {supportStaffList.length === 0 && (
-                <div className="py-12 text-center text-sm text-muted-foreground">No support staff found.</div>
+                <div className="py-12 text-center text-sm text-muted-foreground">
+                  No support staff found.
+                </div>
               )}
 
               {supportStaffList.map((staff) => (
@@ -547,9 +587,7 @@ function PeopleManagement() {
                           Role: {staff.role} • ID: {staff.employeeId} • DID: {staff.did}
                         </CardDescription>
                       </div>
-                      <Badge className={getStatusColor(staff.status)}>
-                        {staff.status}
-                      </Badge>
+                      <Badge className={getStatusColor(staff.status)}>{staff.status}</Badge>
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -586,11 +624,15 @@ function PeopleManagement() {
                       </div>
                       <div className="rounded-lg bg-muted p-2">
                         <div className="text-xs text-muted-foreground">Duty Status</div>
-                        <div className="text-xs font-semibold">{staff.onDuty ? "On Duty" : "Off Duty"}</div>
+                        <div className="text-xs font-semibold">
+                          {staff.onDuty ? "On Duty" : "Off Duty"}
+                        </div>
                       </div>
                       <div className="rounded-lg bg-muted p-2">
                         <div className="text-xs text-muted-foreground">Join Date</div>
-                        <div className="text-xs">{new Date(staff.joinedDate).toLocaleDateString()}</div>
+                        <div className="text-xs">
+                          {new Date(staff.joinedDate).toLocaleDateString()}
+                        </div>
                       </div>
                     </div>
                   </CardContent>
@@ -603,24 +645,38 @@ function PeopleManagement() {
               <Card>
                 <CardHeader>
                   <CardTitle>Registered Accounts</CardTitle>
-                  <CardDescription>Users who registered via the gateway. Click "Issue DID" to anchor their profile to the blockchain.</CardDescription>
+                  <CardDescription>
+                    Users who registered via the gateway. Click "Issue DID" to anchor their profile
+                    to the blockchain.
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   {loadingUsers ? (
-                    <div className="text-center py-6 text-sm text-muted-foreground">Loading users...</div>
+                    <div className="text-center py-6 text-sm text-muted-foreground">
+                      Loading users...
+                    </div>
                   ) : users.length === 0 ? (
-                    <div className="text-center py-12 text-sm text-muted-foreground">No registered users found.</div>
+                    <div className="text-center py-12 text-sm text-muted-foreground">
+                      No registered users found.
+                    </div>
                   ) : (
                     <div className="divide-y divide-border">
                       {users.map((u: any) => (
                         <div key={u.email} className="flex items-center justify-between py-4">
                           <div>
                             <div className="font-semibold text-foreground text-sm">{u.name}</div>
-                            <div className="text-xs text-muted-foreground">{u.email} · Role: <span className="capitalize font-medium">{u.role}</span></div>
+                            <div className="text-xs text-muted-foreground">
+                              {u.email} · Role:{" "}
+                              <span className="capitalize font-medium">{u.role}</span>
+                            </div>
                             {u.did ? (
-                              <div className="mt-1 text-[10px] font-mono text-success">On-chain DID: {u.did}</div>
+                              <div className="mt-1 text-[10px] font-mono text-success">
+                                On-chain DID: {u.did}
+                              </div>
                             ) : (
-                              <div className="mt-1 text-[10px] font-mono text-warning">Awaiting blockchain registration</div>
+                              <div className="mt-1 text-[10px] font-mono text-warning">
+                                Awaiting blockchain registration
+                              </div>
                             )}
                           </div>
                           <div>
@@ -633,7 +689,9 @@ function PeopleManagement() {
                                 Issue DID
                               </Button>
                             ) : (
-                              <span className="text-xs font-semibold text-success bg-success/10 border border-success/20 px-3 py-1 rounded-full">Anchored</span>
+                              <span className="text-xs font-semibold text-success bg-success/10 border border-success/20 px-3 py-1 rounded-full">
+                                Anchored
+                              </span>
                             )}
                           </div>
                         </div>
@@ -644,7 +702,6 @@ function PeopleManagement() {
               </Card>
             </TabsContent>
           </Tabs>
-
         </div>
       </>
     </RouteGuard>
@@ -654,16 +711,17 @@ function PeopleManagement() {
 function StaffDIDsPanel({ searchTerm }: { searchTerm: string }) {
   const [roleFilter, setRoleFilter] = useState("all");
 
-  const filtered = mockStaff.filter(s =>
-    (roleFilter === "all" || s.role === roleFilter) &&
-    (s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-     s.employeeId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-     s.department.toLowerCase().includes(searchTerm.toLowerCase()) ||
-     s.did.toLowerCase().includes(searchTerm.toLowerCase()))
+  const filtered = mockStaff.filter(
+    (s) =>
+      (roleFilter === "all" || s.role === roleFilter) &&
+      (s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.employeeId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.department.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.did.toLowerCase().includes(searchTerm.toLowerCase())),
   );
 
-  const onDuty = mockStaff.filter(s => s.onDuty).length;
-  const roles = [...new Set(mockStaff.map(s => s.role))].sort();
+  const onDuty = mockStaff.filter((s) => s.onDuty).length;
+  const roles = [...new Set(mockStaff.map((s) => s.role))].sort();
 
   return (
     <div className="space-y-4">
@@ -672,9 +730,17 @@ function StaffDIDsPanel({ searchTerm }: { searchTerm: string }) {
         {[
           { label: "Total Staff", value: mockStaff.length, color: "text-primary bg-primary/10" },
           { label: "On Duty", value: onDuty, color: "text-success bg-success/10" },
-          { label: "Doctors", value: mockStaff.filter(s => s.role === "Doctor" || s.role === "Surgeon").length, color: "text-chart-2 bg-chart-2/10" },
-          { label: "Nurses", value: mockStaff.filter(s => s.role === "Nurse").length, color: "text-chart-3 bg-chart-3/10" },
-        ].map(s => (
+          {
+            label: "Doctors",
+            value: mockStaff.filter((s) => s.role === "Doctor" || s.role === "Surgeon").length,
+            color: "text-chart-2 bg-chart-2/10",
+          },
+          {
+            label: "Nurses",
+            value: mockStaff.filter((s) => s.role === "Nurse").length,
+            color: "text-chart-3 bg-chart-3/10",
+          },
+        ].map((s) => (
           <div key={s.label} className={`rounded-xl p-3 text-center ${s.color}`}>
             <div className="text-xl font-bold">{s.value}</div>
             <div className="text-[10px] font-medium opacity-80">{s.label}</div>
@@ -691,13 +757,13 @@ function StaffDIDsPanel({ searchTerm }: { searchTerm: string }) {
         >
           All ({mockStaff.length})
         </button>
-        {roles.map(role => (
+        {roles.map((role) => (
           <button
             key={role}
             onClick={() => setRoleFilter(role)}
             className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors ${roleFilter === role ? "bg-foreground text-background border-foreground" : "border-border text-muted-foreground hover:border-foreground"}`}
           >
-            {role} ({mockStaff.filter(s => s.role === role).length})
+            {role} ({mockStaff.filter((s) => s.role === role).length})
           </button>
         ))}
       </div>
@@ -707,18 +773,27 @@ function StaffDIDsPanel({ searchTerm }: { searchTerm: string }) {
         <table className="w-full text-sm">
           <thead className="bg-muted/50 text-left">
             <tr>
-              {["Staff Member", "Role / Dept.", "DID", "Status", "Credentials", "Duty"].map(h => (
-                <th key={h} className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground hidden-when-small">{h}</th>
+              {["Staff Member", "Role / Dept.", "DID", "Status", "Credentials", "Duty"].map((h) => (
+                <th
+                  key={h}
+                  className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground hidden-when-small"
+                >
+                  {h}
+                </th>
               ))}
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {filtered.map(s => (
+            {filtered.map((s) => (
               <tr key={s.id} className="hover:bg-muted/30 transition-colors">
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold">
-                      {s.name.split(" ").map(w => w[0]).slice(0, 2).join("")}
+                      {s.name
+                        .split(" ")
+                        .map((w) => w[0])
+                        .slice(0, 2)
+                        .join("")}
                     </div>
                     <div>
                       <div className="font-medium text-foreground">{s.name}</div>
@@ -734,14 +809,29 @@ function StaffDIDsPanel({ searchTerm }: { searchTerm: string }) {
                   <DIDBadge did={s.did} />
                 </td>
                 <td className="px-4 py-3">
-                  <DIDStatusChip status={s.status === "active" ? "active" : s.status === "inactive" ? "revoked" : "suspended"} size="sm" />
+                  <DIDStatusChip
+                    status={
+                      s.status === "active"
+                        ? "active"
+                        : s.status === "inactive"
+                          ? "revoked"
+                          : "suspended"
+                    }
+                    size="sm"
+                  />
                 </td>
                 <td className="px-4 py-3">
-                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">{s.credentials}</span>
+                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                    {s.credentials}
+                  </span>
                 </td>
                 <td className="px-4 py-3">
-                  <div className={`flex items-center gap-1.5 text-xs font-medium ${s.onDuty ? "text-success" : "text-muted-foreground"}`}>
-                    <div className={`h-1.5 w-1.5 rounded-full ${s.onDuty ? "bg-success" : "bg-muted-foreground"}`} />
+                  <div
+                    className={`flex items-center gap-1.5 text-xs font-medium ${s.onDuty ? "text-success" : "text-muted-foreground"}`}
+                  >
+                    <div
+                      className={`h-1.5 w-1.5 rounded-full ${s.onDuty ? "bg-success" : "bg-muted-foreground"}`}
+                    />
                     {s.onDuty ? "On duty" : "Off duty"}
                   </div>
                 </td>
@@ -750,12 +840,15 @@ function StaffDIDsPanel({ searchTerm }: { searchTerm: string }) {
           </tbody>
         </table>
         {filtered.length === 0 && (
-          <div className="py-12 text-center text-sm text-muted-foreground">No staff match your search</div>
+          <div className="py-12 text-center text-sm text-muted-foreground">
+            No staff match your search
+          </div>
         )}
       </div>
 
       <div className="text-xs text-muted-foreground">
-        Showing {filtered.length} of {mockStaff.length} staff members — each staff member has a unique hospital DID
+        Showing {filtered.length} of {mockStaff.length} staff members — each staff member has a
+        unique hospital DID
       </div>
     </div>
   );

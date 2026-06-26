@@ -1,5 +1,5 @@
 {
-  "name": "embrace-health-fabric-backend",
+  "name": "embrace-health-backend",
   "version": "1.0.0",
   "description": "Hospital REST API Backend — Full REST API + World State DB",
   "type": "module",

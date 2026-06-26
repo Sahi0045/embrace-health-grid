@@ -7,12 +7,18 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Clock, CheckCircle2, LogIn, LogOut, Calendar, TrendingUp,
-  AlertCircle, Timer
+  Clock,
+  CheckCircle2,
+  LogIn,
+  LogOut,
+  Calendar,
+  TrendingUp,
+  AlertCircle,
+  Timer,
 } from "lucide-react";
 import { myAttendanceHistory } from "@/lib/attendance-data";
 import { toast } from "sonner";
-import { fabricGetAttendance, fabricClockAttendance } from "@/lib/fabric-api";
+import { getAttendance, clockAttendance } from "@/lib/api";
 
 export const Route = createFileRoute("/staff/attendance")({
   head: () => ({
@@ -36,10 +42,10 @@ function StaffAttendance() {
       return;
     }
     try {
-      const res = await fabricGetAttendance(userEmail);
+      const res = await getAttendance(userEmail);
       const records = res.records || [];
       setApiHistory(records);
-      
+
       // Determine clocked in based on last record
       if (records.length > 0) {
         const sorted = [...records].sort((a, b) => b.timestamp.localeCompare(a.timestamp));
@@ -47,7 +53,9 @@ function StaffAttendance() {
         if (last.action === "in") {
           setClockedIn(true);
           const inDate = new Date(last.timestamp);
-          setCheckInTime(inDate.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }));
+          setCheckInTime(
+            inDate.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
+          );
         } else {
           setClockedIn(false);
         }
@@ -66,7 +74,7 @@ function StaffAttendance() {
   const handleClockIn = async () => {
     const timeStr = now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
     try {
-      await fabricClockAttendance({ action: "in", location: "Cardiology OPD" });
+      await clockAttendance({ action: "in", location: "Cardiology OPD" });
       setClockedIn(true);
       setCheckInTime(timeStr);
       toast.success("Clocked in", { description: `${timeStr} — Have a great shift!` });
@@ -74,14 +82,16 @@ function StaffAttendance() {
     } catch (err: any) {
       setClockedIn(true);
       setCheckInTime(timeStr);
-      toast.success("Clocked in (offline mode)", { description: `${timeStr} — Have a great shift!` });
+      toast.success("Clocked in (offline mode)", {
+        description: `${timeStr} — Have a great shift!`,
+      });
     }
   };
 
   const handleClockOut = async () => {
     const timeStr = now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
     try {
-      await fabricClockAttendance({ action: "out", location: "Cardiology OPD" });
+      await clockAttendance({ action: "out", location: "Cardiology OPD" });
       setClockedIn(false);
       toast("Clocked out", { description: `${timeStr} — See you next shift.` });
       fetchHistory();
@@ -93,17 +103,22 @@ function StaffAttendance() {
 
   const statusColor = (status: string) => {
     switch (status) {
-      case "present":  return "bg-success/10 text-success";
-      case "late":     return "bg-warning/10 text-warning-foreground";
-      case "absent":   return "bg-destructive/10 text-destructive";
-      case "on-leave": return "bg-muted text-muted-foreground";
-      default:         return "bg-muted text-muted-foreground";
+      case "present":
+        return "bg-success/10 text-success";
+      case "late":
+        return "bg-warning/10 text-warning-foreground";
+      case "absent":
+        return "bg-destructive/10 text-destructive";
+      case "on-leave":
+        return "bg-muted text-muted-foreground";
+      default:
+        return "bg-muted text-muted-foreground";
     }
   };
 
-  const present  = myAttendanceHistory.filter(d => d.status === "present").length;
-  const absent   = myAttendanceHistory.filter(d => d.status === "absent").length;
-  const onLeave  = myAttendanceHistory.filter(d => d.status === "on-leave").length;
+  const present = myAttendanceHistory.filter((d) => d.status === "present").length;
+  const absent = myAttendanceHistory.filter((d) => d.status === "absent").length;
+  const onLeave = myAttendanceHistory.filter((d) => d.status === "on-leave").length;
 
   const displayHistory = [
     ...apiHistory.map((rec) => {
@@ -112,13 +127,19 @@ function StaffAttendance() {
         day: dt.toLocaleDateString("en-IN", { weekday: "short" }),
         date: dt.toLocaleDateString("en-IN", { day: "numeric", month: "short" }),
         shift: "08:00–16:00",
-        checkIn: rec.action === "in" ? dt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "–",
-        checkOut: rec.action === "out" ? dt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "",
+        checkIn:
+          rec.action === "in"
+            ? dt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })
+            : "–",
+        checkOut:
+          rec.action === "out"
+            ? dt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })
+            : "",
         hours: rec.action === "out" ? "8h" : "–",
-        status: "present"
+        status: "present",
       };
     }),
-    ...myAttendanceHistory
+    ...myAttendanceHistory,
   ];
 
   return (
@@ -132,7 +153,9 @@ function StaffAttendance() {
 
         <div className="space-y-6 p-6 sm:p-8">
           {/* Clock-in card */}
-          <Card className={`border-2 ${clockedIn ? "border-success/40 bg-success/5" : "border-border"}`}>
+          <Card
+            className={`border-2 ${clockedIn ? "border-success/40 bg-success/5" : "border-border"}`}
+          >
             <CardContent className="p-6">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
@@ -140,7 +163,12 @@ function StaffAttendance() {
                     {now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    {now.toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+                    {now.toLocaleDateString("en-IN", {
+                      weekday: "long",
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })}
                   </div>
                   {clockedIn && (
                     <div className="mt-2 flex items-center gap-2 text-sm text-success">
@@ -152,11 +180,13 @@ function StaffAttendance() {
                 <div className="flex gap-3">
                   {!clockedIn ? (
                     <Button size="lg" onClick={handleClockIn}>
-                      <LogIn className="mr-2 h-5 w-5" />Clock In
+                      <LogIn className="mr-2 h-5 w-5" />
+                      Clock In
                     </Button>
                   ) : (
                     <Button size="lg" variant="destructive" onClick={handleClockOut}>
-                      <LogOut className="mr-2 h-5 w-5" />Clock Out
+                      <LogOut className="mr-2 h-5 w-5" />
+                      Clock Out
                     </Button>
                   )}
                 </div>
@@ -166,10 +196,22 @@ function StaffAttendance() {
 
           {/* Summary stats */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard label="Present days" value={`${present}/7`} delta="This week" icon={CheckCircle2} tone="success" />
-            <StatCard label="Absent"        value={absent}        delta="This week" icon={AlertCircle} />
-            <StatCard label="On leave"      value={onLeave}       delta="This week" icon={Calendar} />
-            <StatCard label="Total hours"   value="42h 46m"       delta="This month" icon={Timer} tone="success" />
+            <StatCard
+              label="Present days"
+              value={`${present}/7`}
+              delta="This week"
+              icon={CheckCircle2}
+              tone="success"
+            />
+            <StatCard label="Absent" value={absent} delta="This week" icon={AlertCircle} />
+            <StatCard label="On leave" value={onLeave} delta="This week" icon={Calendar} />
+            <StatCard
+              label="Total hours"
+              value="42h 46m"
+              delta="This month"
+              icon={Timer}
+              tone="success"
+            />
           </div>
 
           {/* Tabs */}
@@ -186,9 +228,16 @@ function StaffAttendance() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    {loading && <div className="text-center py-4 text-sm text-muted-foreground animate-pulse">Loading attendance history...</div>}
+                    {loading && (
+                      <div className="text-center py-4 text-sm text-muted-foreground animate-pulse">
+                        Loading attendance history...
+                      </div>
+                    )}
                     {displayHistory.map((day, i) => (
-                      <div key={i} className="flex items-center justify-between rounded-lg border p-3">
+                      <div
+                        key={i}
+                        className="flex items-center justify-between rounded-lg border p-3"
+                      >
                         <div className="flex items-center gap-3">
                           <div className="text-center w-10">
                             <div className="text-xs text-muted-foreground">{day.day}</div>
@@ -230,19 +279,40 @@ function StaffAttendance() {
                 <CardContent>
                   <div className="space-y-3">
                     {[
-                      { id: "LV-001", type: "Casual Leave",   from: "2026-05-27", to: "2026-05-27", days: 1, reason: "Personal work",         status: "approved" },
-                      { id: "LV-002", type: "Medical Leave",  from: "2026-06-10", to: "2026-06-11", days: 2, reason: "Medical consultation",   status: "pending" },
+                      {
+                        id: "LV-001",
+                        type: "Casual Leave",
+                        from: "2026-05-27",
+                        to: "2026-05-27",
+                        days: 1,
+                        reason: "Personal work",
+                        status: "approved",
+                      },
+                      {
+                        id: "LV-002",
+                        type: "Medical Leave",
+                        from: "2026-06-10",
+                        to: "2026-06-11",
+                        days: 2,
+                        reason: "Medical consultation",
+                        status: "pending",
+                      },
                     ].map((leave) => (
                       <div key={leave.id} className="rounded-lg border p-3">
                         <div className="flex items-start justify-between">
                           <div>
                             <div className="font-medium text-sm">{leave.type}</div>
                             <div className="text-xs text-muted-foreground mt-0.5">
-                              {new Date(leave.from).toLocaleDateString()} – {new Date(leave.to).toLocaleDateString()} · {leave.days} day{leave.days > 1 ? "s" : ""}
+                              {new Date(leave.from).toLocaleDateString()} –{" "}
+                              {new Date(leave.to).toLocaleDateString()} · {leave.days} day
+                              {leave.days > 1 ? "s" : ""}
                             </div>
                             <div className="text-xs text-muted-foreground">{leave.reason}</div>
                           </div>
-                          <Badge variant={leave.status === "approved" ? "default" : "secondary"} className="capitalize">
+                          <Badge
+                            variant={leave.status === "approved" ? "default" : "secondary"}
+                            className="capitalize"
+                          >
                             {leave.status}
                           </Badge>
                         </div>

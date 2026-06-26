@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { QrCode } from "@/components/QrCode";
 import { PageHeader } from "@/components/PageHeader";
 import { RouteGuard } from "@/components/RouteGuard";
-import { useLivePatients } from "@/hooks/use-fabric";
+import { useLivePatients } from "@/hooks/use-api";
 import { currentPatient } from "@/lib/mock-data";
 import { RefreshCw, ShieldCheck, Droplets, CreditCard, BadgeCheck, Timer } from "lucide-react";
 

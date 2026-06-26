@@ -28,11 +28,7 @@ import {
   Send,
 } from "lucide-react";
 import { toast } from "sonner";
-import {
-  fabricSignPrescription,
-  fabricLogAuditEvent,
-  fabricRequestConsent,
-} from "@/lib/fabric-api";
+import { signPrescription, logAuditEvent, requestConsent } from "@/lib/api";
 
 export const Route = createFileRoute("/staff/sign")({
   head: () => ({ meta: [{ title: "Staff · Sign & Prescribe — DID Hospital" }] }),
@@ -340,7 +336,7 @@ function SignPage() {
     }
     setSendingConsent(true);
     try {
-      await fabricRequestConsent({
+      await requestConsent({
         doctorDid,
         doctorName,
         patientDid: patient.did,
@@ -376,8 +372,8 @@ function SignPage() {
     setSigning(true);
 
     try {
-      // Local signing path using the stubbed Fabric API surface.
-      const result = await fabricSignPrescription({
+      // Local signing path using the backend REST API.
+      const result = await signPrescription({
         patientDid: patient.did,
         doctorDid: "did:hosp:0xd103…99aa",
         drugs: drugs.map((d) => ({
@@ -398,7 +394,7 @@ function SignPage() {
         txId: res.txId,
         hash: `sha256:${res.txId.slice(0, 16)}…`,
       });
-      await fabricLogAuditEvent(
+      await logAuditEvent(
         "Dr. Ravi Menon",
         `Prescription ${res.rxId}`,
         "signed",
@@ -716,7 +712,10 @@ function SignPage() {
                     Signed & Anchored
                   </div>
                   <div className="mt-1 font-mono text-[11px] text-muted-foreground">
-                    {signedBlock?.rxId} {signedBlock?.blockNumber ? `· Block #${signedBlock.blockNumber.toLocaleString()}` : ""}
+                    {signedBlock?.rxId}{" "}
+                    {signedBlock?.blockNumber
+                      ? `· Block #${signedBlock.blockNumber.toLocaleString()}`
+                      : ""}
                   </div>
                   <div className="mt-1 text-[11px] text-muted-foreground">
                     Ed25519 · {new Date().toLocaleString("en-IN")}

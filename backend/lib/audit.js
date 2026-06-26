@@ -1,5 +1,5 @@
 /** Auto-audit helper — binds actor to JWT user */
-export function createAuditHelper({ putState, commitBlock, broadcast, randomUUID, CHANNEL }) {
+export function createAuditHelper({ putState, commitBlock, broadcast, randomUUID, network }) {
   return function logAudit(req, { resource, action, outcome = "success", severity = "info" }) {
     const actor = req.user?.email || req.user?.did || "system";
     const txId = randomUUID();
@@ -16,12 +16,12 @@ export function createAuditHelper({ putState, commitBlock, broadcast, randomUUID
     putState("audit", `audit_${txId}`, event, txId);
     commitBlock({
       txId,
-      chaincode: "audit-chaincode",
+      module: "audit",
       fcn: "logEvent",
       args: [actor, resource, action, outcome],
       status: "VALID",
       timestamp: new Date().toISOString(),
-      channel: CHANNEL,
+      network: network,
       creator: actor,
     });
     broadcast({ event: "audit:logged", data: event });

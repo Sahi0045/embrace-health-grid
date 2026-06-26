@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { fabricLogin } from "@/lib/fabric-api";
+import { login } from "@/lib/api";
 import { setSession } from "@/lib/auth";
 import { toast } from "sonner";
 
@@ -24,7 +24,7 @@ function LoginPage() {
     setIsLoading(true);
 
     try {
-      const res = await fabricLogin({ email, password });
+      const res = await login({ email, password });
       if (res.success && res.user) {
         if (res.user.role !== "admin") {
           toast.error("Access Denied: Administrative permissions required");
@@ -53,7 +53,9 @@ function LoginPage() {
           <h1 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
             Admin Portal
           </h1>
-          <p className="mt-2 text-muted-foreground">Sign in with your admin credentials to access the console</p>
+          <p className="mt-2 text-muted-foreground">
+            Sign in with your admin credentials to access the console
+          </p>
         </div>
 
         <Card>

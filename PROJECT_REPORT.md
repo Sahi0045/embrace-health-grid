@@ -1,13 +1,13 @@
 # DID Hospital Infrastructure - Project Full Report
 
 ## 1. Executive Summary
-The DID (Decentralized Identity) Hospital Infrastructure is a comprehensive healthcare platform built to modernize patient interactions, staff workflows, and administrative oversight. It leverages decentralized identities (DIDs), verifiable credentials, and a Hyperledger Fabric simulation to ensure data privacy, security, and immutability. The project is divided into three main portals: Patient Portal, Staff Portal, and Admin Console, all seamlessly integrated into a single application interface.
+The DID (Decentralized Identity) Hospital Infrastructure is a comprehensive healthcare platform built to modernize patient interactions, staff workflows, and administrative oversight. It leverages decentralized identities (DIDs), verifiable credentials, and a distributed backend system to ensure data privacy, security, and immutability. The project is divided into three main portals: Patient Portal, Staff Portal, and Admin Console, all seamlessly integrated into a single application interface.
 
 ## 2. Architecture Overview
 The application follows a modern web architecture, decoupling the frontend user interfaces from the backend ledger simulation and data synchronization layer.
 
 *   **Frontend:** Built with React, TypeScript, and Vite, utilizing TanStack Start for server-side rendering and file-based routing. Styling is managed via Tailwind CSS and Radix UI components for a robust, accessible, and responsive design.
-*   **Backend (Fabric Simulation):** A Node.js and Express backend (`fabric-backend/server.js`) simulates a Hyperledger Fabric network. It maintains an in-memory ledger with blocks, transactions, and a world state database (`fabric-backend/world-state-db.js`). It exposes REST APIs and WebSockets for real-time updates (e.g., vitals monitoring, staff tracking, blockchain events).
+*   **Backend API:** A Node.js and Express backend (`backend/server.js`) provides a distributed system architecture. It maintains an in-memory ledger with blocks, transactions, and a world state database (`backend/world-state-db.js`). It exposes REST APIs and WebSockets for real-time updates (e.g., vitals monitoring, staff tracking, system events).
 *   **Real-time Database (Convex):** The system integrates with Convex (`convex/schema.ts`) to provide live, synchronized real-time database capabilities, acting as a bridge between the simulated ledger and the frontend for instantaneous state updates across clients.
 
 ## 3. Technology Stack
@@ -24,7 +24,7 @@ The application follows a modern web architecture, decoupling the frontend user 
 *   **Framework:** Express.js
 *   **Real-time Communication:** WebSocket (`ws`)
 *   **Authentication:** JWT (JSON Web Tokens), `bcryptjs`
-*   **Simulated Blockchain:** Custom in-memory Hyperledger Fabric simulation
+*   **Distributed Ledger:** Custom in-memory distributed ledger system
 
 ### Database & Real-time Sync
 *   **Database:** Convex (Live synchronization and persistent storage mapping the world state)
@@ -50,7 +50,7 @@ The application follows a modern web architecture, decoupling the frontend user 
 *   **Digital Twin (`/admin/digital-twin`):** A live visual hierarchy of the hospital's DID infrastructure.
 *   **DID & Credential Management:** Issuing and revoking decentralized identifiers and verifiable credentials across the network.
 *   **Resource Tracking (Beds & Infrastructure):** Real-time management of bed availability and ward statuses.
-*   **Audit Timeline (`/audit-timeline`):** An immutable, detailed log of all system events (access, consent changes, prescriptions) backed by the simulated ledger.
+*   **Audit Timeline (`/audit-timeline`):** An immutable, detailed log of all system events (access, consent changes, prescriptions) backed by the distributed ledger.
 *   **Fraud Detection & Compliance:** Monitoring for unusual access patterns, tracking policy violations, and ensuring compliance with HIPAA, GDPR, etc.
 
 ## 5. Security & Access Control
@@ -63,14 +63,14 @@ The application follows a modern web architecture, decoupling the frontend user 
 
 *   `.lovable/` & `components.json`: Configuration for Lovable and UI component setup.
 *   `convex/`: Contains the Convex schema (`schema.ts`) and server-side functions (`records.ts`) for real-time database synchronization.
-*   `fabric-backend/`: The simulated Hyperledger Fabric Node.js server.
+*   `backend/`: The Express REST + WebSocket backend server.
     *   `server.js`: Express server, WebSocket setup, REST endpoints, and in-memory ledger logic.
-    *   `world-state-db.js`: Functions for managing the state of the simulated ledger (put, get, query).
+    *   `world-state-db.js`: Functions for managing the state of the distributed ledger (put, get, query).
 *   `src/`: Main frontend source code.
     *   `components/`: Reusable React components (UI elements, route guards, sidebar, layout).
         *   `ui/`: Radix UI based basic components (buttons, dialogs, etc.).
     *   `hooks/`: Custom React hooks.
-    *   `lib/`: Utility functions, API clients (`fabric-api.ts`), mock data, authentication logic (`auth.ts`), and offline queuing mechanisms.
+    *   `lib/`: Utility functions, API clients (`api.ts`), mock data, authentication logic (`auth.ts`), and offline queuing mechanisms.
     *   `routes/`: TanStack Start file-based routes.
         *   `__root.tsx`: The root application layout, providing context providers (Query, Convex, Theme, Sidebar).
         *   `index.tsx`: The main landing page.
@@ -82,7 +82,7 @@ The application follows a modern web architecture, decoupling the frontend user 
 *   `package.json` & `vite.config.ts`: Project dependencies, scripts, and build configuration.
 
 ## 7. Conclusion
-The DID Hospital Infrastructure project is a highly advanced, feature-rich simulation of a next-generation healthcare system. By combining modern frontend technologies with a simulated blockchain backend and real-time database syncing, it successfully demonstrates the practical application of Decentralized Identity, Verifiable Credentials, and secure role-based access in a complex medical environment.
+The DID Hospital Infrastructure project is a highly advanced, feature-rich simulation of a next-generation healthcare system. By combining modern frontend technologies with a distributed backend system and real-time database syncing, it successfully demonstrates the practical application of Decentralized Identity, Verifiable Credentials, and secure role-based access in a complex medical environment.
 
 ### 6.1 Folder Structure Detail (tree)
 ```
@@ -95,7 +95,7 @@ The DID Hospital Infrastructure project is a highly advanced, feature-rich simul
 │   ├── records.ts                 # Convex server functions for database interaction
 │   └── schema.ts                  # Convex database schema definitions
 ├── eslint.config.js               # Linter configuration
-├── fabric-backend/                # Custom Hyperledger Fabric simulation server
+├── backend/                       # Express REST + WebSocket backend server
 │   ├── data/                      # Initial mock data/world state JSON files
 │   ├── package.json               # Backend dependencies
 │   ├── server.js                  # Main Express and WebSocket server for simulation
@@ -117,11 +117,11 @@ The DID Hospital Infrastructure project is a highly advanced, feature-rich simul
 │   │   ├── infrastructure/        # Components for beds, equipment, ambulance tracking
 │   │   ├── insurance/             # Components for insurance and claims
 │   │   └── ui/                    # Reusable, atomic Radix UI components (shadcn)
-│   ├── hooks/                     # Custom React hooks (e.g., use-fabric.ts)
+│   ├── hooks/                     # Custom React hooks (e.g., use-api.ts)
 │   ├── lib/                       # Utilities, API integrations, and mock data
 │   │   ├── auth.ts                # Client-side authentication logic
 │   │   ├── convex-client.ts       # Convex connection setup
-│   │   ├── fabric-api.ts          # API client for interacting with fabric-backend
+│   │   ├── api.ts                 # API client for interacting with backend
 │   │   └── zkproof.ts             # Logic for generating/verifying Zero-Knowledge Proofs
 │   ├── routes/                    # TanStack Start file-based routing directory
 │   │   ├── __root.tsx             # Root layout and context providers

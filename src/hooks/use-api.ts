@@ -1,8 +1,8 @@
 /**
- * useFabric — React hooks for real-time API integrations
+ * useApi — React hooks for real-time API integrations
  *
  * Each hook:
- *  1. Tries the REST API (fabric-backend port 3001)
+ *  1. Tries the REST API (backend port 3001)
  *  2. Falls back to local live store / state when offline
  *  3. Subscribes to WebSocket events for live updates
  *  4. Returns { data, loading, error, online, refetch }
@@ -10,20 +10,20 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
-  fabricGetStats,
-  fabricGetAuditEvents,
-  fabricGetAllDIDs,
-  fabricGetCredentials,
-  fabricGetConsents,
-  fabricGetAppointments,
-  fabricGetBeds,
-  fabricGetTracker,
-  fabricGetFraudAlerts,
-  fabricGetAllPrescriptions,
-  fabricGetVitals,
-  isFabricOnline,
-  fabricGetAllLabs,
-} from "@/lib/fabric-api";
+  getStats,
+  getAuditEvents,
+  getAllDIDs,
+  getCredentials,
+  getConsents,
+  getAppointments,
+  getBeds,
+  getTracker,
+  getFraudAlerts,
+  getAllPrescriptions,
+  getVitals,
+  isOnline,
+  getAllLabs,
+} from "@/lib/api";
 import {
   getLivePatients,
   getLiveStaff,
@@ -45,14 +45,14 @@ function initGlobalWsListener() {
     try {
       const customEvent = e as CustomEvent<{ event: string; data: unknown }>;
       const { event, data } = customEvent.detail;
-      
+
       const listeners = _wsListeners.get(event);
       listeners?.forEach((cb) => cb(data));
 
       // Wildcard listeners
       _wsListeners.get("*")?.forEach((cb) => cb({ event, data }));
     } catch (err) {
-      console.error("[useFabric] Error dispatching ws event message:", err);
+      console.error("[useApi] Error dispatching ws event message:", err);
     }
   });
 }
@@ -65,7 +65,7 @@ function subscribeWS(event: string, cb: (data: unknown) => void): () => void {
 }
 
 // ─── Base hook factory ────────────────────────────────────────────────────────
-interface FabricResult<T> {
+interface ApiResult<T> {
   data: T | null;
   loading: boolean;
   error: string | null;
@@ -73,12 +73,12 @@ interface FabricResult<T> {
   refetch: () => void;
 }
 
-function useFabricData<T>(
+function useApiData<T>(
   fetchFn: () => Promise<T>,
   fallbackFn: () => T,
   wsEvent?: string,
   deps: unknown[] = [],
-): FabricResult<T> {
+): ApiResult<T> {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -89,7 +89,7 @@ function useFabricData<T>(
     setLoading(true);
     setError(null);
     try {
-      const serverOnline = await isFabricOnline();
+      const serverOnline = await isOnline();
       if (serverOnline) {
         const res = await fetchFn();
         if (mountedRef.current) {
@@ -135,9 +135,9 @@ function useFabricData<T>(
 }
 
 // ─── Network stats ────────────────────────────────────────────────────────────
-export function useFabricStats() {
-  return useFabricData(
-    fabricGetStats,
+export function useStats() {
+  return useApiData(
+    getStats,
     () => ({
       blockHeight: 1,
       txCount: 0,
@@ -146,13 +146,13 @@ export function useFabricStats() {
       throughputTps: 0,
       lastBlockTime: new Date().toISOString(),
     }),
-    "bed:updated"
+    "bed:updated",
   );
 }
 
 // ─── Ledger blocks (Mocked to return empty array) ─────────────────────────────
-export function useFabricLedger(page = 0) {
-  return useFabricData(
+export function useLedger(page = 0) {
+  return useApiData(
     async () => ({ blocks: [] as any[], total: 0, blockHeight: 1 }),
     () => ({
       blocks: [] as any[],
@@ -165,36 +165,28 @@ export function useFabricLedger(page = 0) {
 }
 
 // ─── DID Registry ─────────────────────────────────────────────────────────────
-export function useFabricDIDs() {
-  return useFabricData(
-    fabricGetAllDIDs,
-    () => ({ dids: [] as any[], total: 0 }),
-    "did:created",
-  );
+export function useDIDs() {
+  return useApiData(getAllDIDs, () => ({ dids: [] as any[], total: 0 }), "did:created");
 }
 
 // ─── Credentials ──────────────────────────────────────────────────────────────
-export function useFabricCredentials() {
-  return useFabricData(
-    fabricGetCredentials,
+export function useCredentials() {
+  return useApiData(
+    getCredentials,
     () => ({ credentials: [] as any[], total: 0 }),
     "credential:issued",
   );
 }
 
 // ─── Consent ──────────────────────────────────────────────────────────────────
-export function useFabricConsents() {
-  return useFabricData(
-    fabricGetConsents,
-    () => ({ consents: [] as any[], total: 0 }),
-    "consent:granted",
-  );
+export function useConsents() {
+  return useApiData(getConsents, () => ({ consents: [] as any[], total: 0 }), "consent:granted");
 }
 
 // ─── Audit Events ─────────────────────────────────────────────────────────────
-export function useFabricAudit(page = 0) {
-  return useFabricData(
-    () => fabricGetAuditEvents(page, 50),
+export function useAudit(page = 0) {
+  return useApiData(
+    () => getAuditEvents(page, 50),
     () => ({ events: [] as any[], total: 0 }),
     "audit:logged",
     [page],
@@ -202,9 +194,9 @@ export function useFabricAudit(page = 0) {
 }
 
 // ─── Appointments ─────────────────────────────────────────────────────────────
-export function useFabricAppointments() {
-  return useFabricData(
-    fabricGetAppointments,
+export function useAppointments() {
+  return useApiData(
+    getAppointments,
     () => {
       const appts = getLiveAppointments();
       return { appointments: appts, total: appts.length };
@@ -214,18 +206,14 @@ export function useFabricAppointments() {
 }
 
 // ─── Beds ─────────────────────────────────────────────────────────────────────
-export function useFabricBeds() {
-  return useFabricData(
-    fabricGetBeds,
-    () => ({ beds: [] as any[], total: 0 }),
-    "bed:updated",
-  );
+export function useBeds() {
+  return useApiData(getBeds, () => ({ beds: [] as any[], total: 0 }), "bed:updated");
 }
 
 // ─── Staff Tracker ────────────────────────────────────────────────────────────
-export function useFabricTracker() {
-  return useFabricData(
-    fabricGetTracker,
+export function useTracker() {
+  return useApiData(
+    getTracker,
     () => {
       const staff = getLiveStaff();
       return {
@@ -243,30 +231,22 @@ export function useFabricTracker() {
 }
 
 // ─── Fraud Alerts ────────────────────────────────────────────────────────────────
-export function useFabricFraudAlerts() {
-  return useFabricData(
-    fabricGetFraudAlerts,
-    () => ({ alerts: [] as any[], total: 0 }),
-    "fraud:detected"
-  );
+export function useFraudAlerts() {
+  return useApiData(getFraudAlerts, () => ({ alerts: [] as any[], total: 0 }), "fraud:detected");
 }
 
 // ─── Prescriptions (staff overview) ─────────────────────────────────────────────
-export function useFabricPrescriptions() {
-  return useFabricData(
-    fabricGetAllPrescriptions,
+export function usePrescriptions() {
+  return useApiData(
+    getAllPrescriptions,
     () => ({ prescriptions: [] as any[], total: 0 }),
     "prescription:signed",
   );
 }
 
 // ─── Labs (staff overview) ──────────────────────────────────────────────────────
-export function useFabricLabs() {
-  return useFabricData(
-    fabricGetAllLabs,
-    () => ({ labs: [] as any[], total: 0 }),
-    "lab:ordered",
-  );
+export function useLabs() {
+  return useApiData(getAllLabs, () => ({ labs: [] as any[], total: 0 }), "lab:ordered");
 }
 
 // ─── Live Patients (store-driven + WS vitals) ─────────────────────────────────
@@ -342,7 +322,7 @@ export function useLiveStaff() {
 }
 
 // ─── Connection status ────────────────────────────────────────────────────────
-export function useFabricConnection() {
+export function useConnection() {
   const [online, setOnline] = useState(false);
   const [wsConnected, setWsConnected] = useState(getWorkerConnected);
   const [blockHeight] = useState(1);
@@ -353,8 +333,8 @@ export function useFabricConnection() {
 
     // Check REST API online status
     const checkOnline = async () => {
-      const isOnline = await isFabricOnline();
-      if (mounted) setOnline(isOnline);
+      const apiOnline = await isOnline();
+      if (mounted) setOnline(apiOnline);
     };
 
     checkOnline();

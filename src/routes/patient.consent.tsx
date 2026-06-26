@@ -7,13 +7,8 @@ import { ConsentCard, type ConsentRecord } from "@/components/consent/ConsentCar
 import { ConsentHistory } from "@/components/consent/ConsentHistory";
 import { ConsentToggle } from "@/components/consent/ConsentToggle";
 import { consents as initial } from "@/lib/mock-data";
-import { useFabricConsents } from "@/hooks/use-fabric";
-import {
-  fabricRevokeConsent,
-  fabricGrantConsent,
-  fabricGetConsentRequests,
-  fabricDenyConsentRequest,
-} from "@/lib/fabric-api";
+import { useConsents } from "@/hooks/use-api";
+import { revokeConsent, grantConsent, getConsentRequests, denyConsentRequest } from "@/lib/api";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import {
@@ -77,7 +72,7 @@ type Tab = "active" | "requests" | "history" | "preferences";
 
 function Consent() {
   const [tab, setTab] = useState<Tab>("active");
-  const { data: consentsData, refetch } = useFabricConsents();
+  const { data: consentsData, refetch } = useConsents();
 
   // Resolve the logged-in patient's DID
   const patientDid =
@@ -92,7 +87,7 @@ function Consent() {
   const fetchRequests = useCallback(async () => {
     setReqLoading(true);
     try {
-      const data = await fabricGetConsentRequests(patientDid);
+      const data = await getConsentRequests(patientDid);
       const raw = (data.requests ?? []) as any[];
       setRequests(
         raw.map((r: any) => ({
@@ -119,7 +114,7 @@ function Consent() {
 
   // Real-time WebSocket subscription for new consent:request events
   useEffect(() => {
-    // Fabric WebSocket integration removed.
+    // WebSocket integration handled by the realtime store.
   }, [fetchRequests]);
 
   // ─── Active / granted consents from Solana ──────────────────────────────────
@@ -145,7 +140,7 @@ function Consent() {
   const handleRevoke = async (id: string) => {
     try {
       const c = list.find((x) => x.id === id);
-      await fabricRevokeConsent(id);
+      await revokeConsent(id);
       toast.success(`Access revoked from ${c?.requester}`);
       refetch();
     } catch (err: any) {
@@ -156,9 +151,9 @@ function Consent() {
   const handleApproveActive = async (id: string) => {
     try {
       const c = list.find((x) => x.id === id);
-      await fabricGrantConsent(
+      await grantConsent(
         patientDid,
-        c?.requester ?? "did:hosp:0xd103…99aa",
+        c?.requester ?? "did:hosp:0xd103… 99aa",
         c?.reason ?? "General care",
       );
       toast.success(`Consent approved for ${c?.requester}`);
@@ -171,7 +166,7 @@ function Consent() {
   // ─── Approve / deny request handlers ────────────────────────────────────────
   const handleApproveRequest = async (req: ConsentRequest) => {
     try {
-      await fabricGrantConsent(patientDid, req.doctorDid, req.resource, req.expiresAt || undefined);
+      await grantConsent(patientDid, req.doctorDid, req.resource, req.expiresAt || undefined);
       toast.success(`Access granted to ${req.doctorName}`);
       fetchRequests();
       refetch();
@@ -182,7 +177,7 @@ function Consent() {
 
   const handleDenyRequest = async (requestId: string) => {
     try {
-      await fabricDenyConsentRequest(requestId);
+      await denyConsentRequest(requestId);
       toast.success("Request denied");
       fetchRequests();
     } catch (err: any) {
@@ -248,7 +243,7 @@ function Consent() {
         {/* ─── Active tab ──────────────────────────────────────────────────────── */}
         {tab === "active" && (
           <div className="space-y-5">
-            {/* Pending requests from useFabricConsents (pending status) */}
+            {/* Pending requests from useConsents (pending status) */}
             {pendingInActive.length > 0 && (
               <div>
                 <div className="flex items-center gap-2 mb-3">

@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState } from "react";
-import { useFabricPrescriptions } from "@/hooks/use-fabric";
+import { usePrescriptions } from "@/hooks/use-api";
 
 export const Route = createFileRoute("/staff/prescriptions")({
   head: () => ({ meta: [{ title: "Prescriptions — Staff Portal" }] }),
@@ -98,7 +98,7 @@ function PrescriptionsPage() {
   const [instructions, setInstructions] = useState("");
 
   // ─── Live prescription data from Solana ──────────────────────────────────────
-  const { data: rxData, loading: rxLoading, online, refetch } = useFabricPrescriptions();
+  const { data: rxData, loading: rxLoading, online, refetch } = usePrescriptions();
 
   const livePrescriptions = ((rxData?.prescriptions ?? []) as any[]).map((rx: any) => ({
     id: rx.id ?? rx.rxId ?? rx.txId ?? String(Math.random()),

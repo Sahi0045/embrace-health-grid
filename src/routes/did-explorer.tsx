@@ -6,7 +6,7 @@ import { AuditTimeline } from "@/components/audit/AuditTimeline";
 import { Search, ShieldCheck, User, Stethoscope, Bed, Wrench, Ambulance } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useFabricDIDs, useFabricAudit } from "@/hooks/use-fabric";
+import { useDIDs, useAudit } from "@/hooks/use-api";
 
 export const Route = createFileRoute("/did-explorer")({
   head: () => ({ meta: [{ title: "DID Explorer — DID Hospital" }] }),
@@ -25,7 +25,10 @@ interface DIDResult {
   description: string;
 }
 
-const typeConfig: Record<DIDSearchType, { icon: React.ComponentType<{ className?: string }>; label: string; color: string }> = {
+const typeConfig: Record<
+  DIDSearchType,
+  { icon: React.ComponentType<{ className?: string }>; label: string; color: string }
+> = {
   patient: { icon: User, label: "Patient", color: "text-primary" },
   doctor: { icon: Stethoscope, label: "Doctor", color: "text-chart-2" },
   nurse: { icon: User, label: "Nurse", color: "text-success" },
@@ -38,8 +41,8 @@ function DIDExplorerPage() {
   const [typeFilter, setTypeFilter] = useState<DIDSearchType | "all">("all");
   const [selected, setSelected] = useState<DIDResult | null>(null);
 
-  const { data: didsData } = useFabricDIDs();
-  const { data: auditData } = useFabricAudit();
+  const { data: didsData } = useDIDs();
+  const { data: auditData } = useAudit();
 
   const registryDIDs: DIDResult[] = (didsData?.dids ?? []).map((d: any) => {
     let t: DIDSearchType = "patient";
@@ -47,23 +50,28 @@ function DIDExplorerPage() {
     if (role === "doctor" || role === "staff") t = "doctor";
     else if (role === "nurse") t = "nurse";
     else if (role === "admin") t = "admin";
-    
+
     return {
       did: d.did || d.id || "",
       subject: d.ownerName || d.owner || "Anonymous Subject",
       type: t,
-      status: (d.status === "active" ? "active" : d.status === "revoked" ? "revoked" : "suspended") as DIDResult["status"],
+      status: (d.status === "active"
+        ? "active"
+        : d.status === "revoked"
+          ? "revoked"
+          : "suspended") as DIDResult["status"],
       issuedAt: d.createdAt ? d.createdAt.split("T")[0] : new Date().toISOString().split("T")[0],
       linkedCredentials: d.extraFields?.credentials ?? (role === "patient" ? 2 : 5),
-      description: `${role.toUpperCase() || "USER"} · ${d.owner || "Anonymous"} · Active Identity`
+      description: `${role.toUpperCase() || "USER"} · ${d.owner || "Anonymous"} · Active Identity`,
     };
   });
 
-  const filtered = registryDIDs.filter(d =>
-    (typeFilter === "all" || d.type === typeFilter) &&
-    (((d.did || "").toLowerCase().includes(query.toLowerCase())) ||
-     ((d.subject || "").toLowerCase().includes(query.toLowerCase())) ||
-     ((d.description || "").toLowerCase().includes(query.toLowerCase())))
+  const filtered = registryDIDs.filter(
+    (d) =>
+      (typeFilter === "all" || d.type === typeFilter) &&
+      ((d.did || "").toLowerCase().includes(query.toLowerCase()) ||
+        (d.subject || "").toLowerCase().includes(query.toLowerCase()) ||
+        (d.description || "").toLowerCase().includes(query.toLowerCase())),
   );
 
   const activityEvents = (auditData?.events ?? []).slice(0, 20).map((e: any) => ({
@@ -79,7 +87,7 @@ function DIDExplorerPage() {
     severity: "info" as const,
     at: e.loggedAt || new Date().toISOString(),
     details: e.details || "",
-    hash: e.txId || "sha256:hash"
+    hash: e.txId || "sha256:hash",
   }));
 
   return (
@@ -111,7 +119,9 @@ function DIDExplorerPage() {
             >
               All
             </button>
-            {(Object.entries(typeConfig) as [DIDSearchType, typeof typeConfig[DIDSearchType]][]).map(([type, cfg]) => {
+            {(
+              Object.entries(typeConfig) as [DIDSearchType, (typeof typeConfig)[DIDSearchType]][]
+            ).map(([type, cfg]) => {
               const Icon = cfg.icon;
               return (
                 <button
@@ -152,11 +162,15 @@ function DIDExplorerPage() {
                         <span className={`text-[10px] font-medium ${cfg.color}`}>{cfg.label}</span>
                         <DIDStatusChip status={did.status} size="sm" />
                       </div>
-                      <div className="mt-0.5 font-mono text-xs text-muted-foreground">{did.did}</div>
+                      <div className="mt-0.5 font-mono text-xs text-muted-foreground">
+                        {did.did}
+                      </div>
                       <div className="mt-0.5 text-xs text-muted-foreground">{did.description}</div>
                     </div>
                     <div className="text-right shrink-0">
-                      <div className="text-xs font-medium text-foreground">{did.linkedCredentials} creds</div>
+                      <div className="text-xs font-medium text-foreground">
+                        {did.linkedCredentials} creds
+                      </div>
                       <div className="text-[10px] text-muted-foreground">{did.issuedAt}</div>
                     </div>
                   </div>
@@ -167,7 +181,9 @@ function DIDExplorerPage() {
             {filtered.length === 0 && (
               <div className="rounded-xl border border-dashed border-border p-12 text-center">
                 <Search className="h-10 w-10 mx-auto mb-3 text-muted-foreground/30" />
-                <div className="text-sm font-medium text-muted-foreground">No DIDs found for "{query}"</div>
+                <div className="text-sm font-medium text-muted-foreground">
+                  No DIDs found for "{query}"
+                </div>
               </div>
             )}
           </div>
@@ -176,22 +192,37 @@ function DIDExplorerPage() {
           <div className="lg:col-span-2 space-y-4">
             <AnimatePresence mode="wait">
               {selected ? (
-                <motion.div key={selected.did} initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}>
+                <motion.div
+                  key={selected.did}
+                  initial={{ opacity: 0, x: 8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0 }}
+                >
                   <DIDCard
                     did={selected.did}
                     subject={selected.subject}
-                    role={selected.type === "patient" || selected.type === "doctor" ? selected.type : "equipment"}
+                    role={
+                      selected.type === "patient" || selected.type === "doctor"
+                        ? selected.type
+                        : "equipment"
+                    }
                     subLabel={selected.description}
                     status={selected.status}
                   />
 
                   <div className="mt-4 rounded-xl border border-border bg-card p-4">
-                    <div className="text-xs font-semibold text-foreground mb-3">Activity Timeline</div>
+                    <div className="text-xs font-semibold text-foreground mb-3">
+                      Activity Timeline
+                    </div>
                     <AuditTimeline events={activityEvents} limit={8} />
                   </div>
                 </motion.div>
               ) : (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded-xl border border-dashed border-border p-10 text-center">
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="rounded-xl border border-dashed border-border p-10 text-center"
+                >
                   <ShieldCheck className="h-10 w-10 mx-auto mb-3 opacity-20" />
                   <div className="text-sm text-muted-foreground">Select a DID to view details</div>
                 </motion.div>

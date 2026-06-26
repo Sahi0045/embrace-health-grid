@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { FABRIC_BASE } from "@/lib/fabric-api";
+import { API_BASE_URL } from "@/lib/api";
 import {
   addNotification,
   getNotifications,
@@ -76,7 +76,7 @@ function initNotifWebSocket() {
   if (typeof window === "undefined" || _wsInitialized) return;
   _wsInitialized = true;
 
-  const wsUrl = FABRIC_BASE.replace("http", "ws");
+  const wsUrl = API_BASE_URL.replace("http", "ws");
   try {
     _notifWs = new WebSocket(wsUrl);
 
