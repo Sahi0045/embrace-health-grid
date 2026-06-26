@@ -250,7 +250,7 @@ function LabsPage() {
                           </div>
                         </div>
                         <div className="mt-3 flex flex-wrap gap-1.5">
-                          {o.tests.map((t) => (
+                          {o.tests.map((t: string) => (
                             <span
                               key={t}
                               className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-foreground"

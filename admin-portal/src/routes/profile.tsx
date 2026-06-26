@@ -191,7 +191,7 @@ function AdminProfile() {
 
         <div className="flex gap-3">
           <Button variant="outline" className="flex-1" asChild>
-            <Link to="/admin">
+            <Link to="/">
               Back to Console
             </Link>
           </Button>

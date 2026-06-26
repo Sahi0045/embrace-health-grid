@@ -15,6 +15,7 @@ export interface Prescription {
   }[];
   status: "active" | "completed" | "cancelled";
   nextReviewDate?: string;
+  notes?: string;
 }
 
 export interface MedicalDocument {
