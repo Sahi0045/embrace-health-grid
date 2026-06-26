@@ -21,7 +21,7 @@ import {
   getFraudAlerts,
   getAllPrescriptions,
   getVitals,
-  isOnline,
+  isBackendOnline as isOnline,
   getAllLabs,
 } from "@/lib/api";
 import {
