@@ -143,10 +143,10 @@ function PatientQr() {
           </span>
         </div>
 
-        {/* Fabric badge */}
+        {/* Solana badge */}
         <div className="mt-6 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
           <ShieldCheck className="h-3.5 w-3.5" />
-          Signed on Secure Registry · embrace-health-channel
+          Signed on Solana Devnet · embrace-health-anchor
         </div>
       </div>
     </RouteGuard>

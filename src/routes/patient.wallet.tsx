@@ -114,7 +114,7 @@ function Wallet() {
         {loading && (
           <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent mr-2" />
-            Loading credentials from Fabric ledger…
+            Loading credentials from Solana Devnet…
           </div>
         )}
 

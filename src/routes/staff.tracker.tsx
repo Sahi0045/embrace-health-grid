@@ -94,8 +94,8 @@ function DoctorLocatorPage() {
 
         <div className="flex items-start justify-between flex-wrap gap-3">
           <PageHeader
-            eyebrow="Staff Portal — Locator Tracker"
-            title="Real-Time Staff Location Tracker"
+            eyebrow="Staff Portal — Solana Tracker"
+            title="Real-Time Staff Location Ledger"
             description={`Live Smart-ID beacon data from ${staff.length} staff members. Last sync: ${lastUpdate}`}
           />
           <div className="flex gap-3 text-xs flex-wrap">

@@ -47,7 +47,7 @@ const medicationDb = [
   { name: "Azithromycin", strengths: ["250mg", "500mg"], route: "Oral" },
 ];
 
-// Fallback mock data shown only when Fabric is offline and world state is empty
+// Fallback mock data shown only when Solana is offline and world state is empty
 const mockPrescriptions = [
   {
     id: "rx1",
@@ -97,7 +97,7 @@ function PrescriptionsPage() {
   const [duration, setDuration] = useState<Duration>("7 days");
   const [instructions, setInstructions] = useState("");
 
-  // ─── Live prescription data from Fabric ──────────────────────────────────────
+  // ─── Live prescription data from Solana ──────────────────────────────────────
   const { data: rxData, loading: rxLoading, online, refetch } = useFabricPrescriptions();
 
   const livePrescriptions = ((rxData?.prescriptions ?? []) as any[]).map((rx: any) => ({
@@ -145,7 +145,7 @@ function PrescriptionsPage() {
               }`}
             >
               {online ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
-              {online ? "Fabric Live" : "Local Sim"}
+              {online ? "Solana Live" : "Local Sim"}
             </span>
             <button
               onClick={refetch}
@@ -180,7 +180,7 @@ function PrescriptionsPage() {
             {rxLoading && (
               <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
                 <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-                Loading prescriptions from Fabric ledger…
+                Loading prescriptions from Solana Devnet…
               </div>
             )}
 
@@ -495,7 +495,7 @@ function PrescriptionsPage() {
                   className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
                 >
                   <FileSignature className="h-4 w-4" />
-                  Sign & Issue on Fabric
+                  Sign & Issue on Solana
                 </Link>
               )}
             </div>

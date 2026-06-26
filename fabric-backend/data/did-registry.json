@@ -418,5 +418,26 @@
     "updatedAt": "2026-06-22T05:25:22.262Z",
     "txId": "6caeb18f-6f0c-41cd-95bc-719c6466db83",
     "docType": "did-registry"
+  },
+  "did:hosp:0x7a29fab1": {
+    "key": "did:hosp:0x7a29fab1",
+    "value": {
+      "did": "did:hosp:0x7a29fab1",
+      "publicKey": "MFkw4598FD3EDD6E2FF9071640DBB0BE88BA",
+      "controller": "did:hosp:consortium:authority",
+      "owner": "Staff One",
+      "ownerType": "doctor",
+      "status": "active",
+      "credentials": [],
+      "createdAt": "2026-06-23T11:53:59.418Z",
+      "updatedAt": "2026-06-23T11:53:59.418Z",
+      "serviceEndpoint": "https://did.apollohospitals.in/resolve/did:hosp:0x7a29fab1",
+      "ownerEmail": "staff1@example.com"
+    },
+    "namespace": "did-registry",
+    "version": "e24dcbe2-1591-43b4-8a9a-ae0c38eb2c31:1",
+    "updatedAt": "2026-06-23T11:53:59.418Z",
+    "txId": "e24dcbe2-1591-43b4-8a9a-ae0c38eb2c31",
+    "docType": "did-registry"
   }
 }

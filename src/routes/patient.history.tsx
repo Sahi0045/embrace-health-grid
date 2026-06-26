@@ -161,13 +161,13 @@ function History() {
           <div className="flex items-center gap-2">
             <span className="flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-semibold text-primary">
               <Fingerprint className="h-3 w-3" />
-              Secure Registry
+              Solana Devnet
             </span>
             <span
               className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold ${online ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"}`}
             >
               {online ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
-              {online ? "API Live" : "Local Sim"}
+              {online ? "Solana Live" : "Local Sim"}
             </span>
             <button
               onClick={refetch}
@@ -214,7 +214,7 @@ function History() {
             <div className="text-sm font-semibold text-foreground">DID-Protected Audit Log</div>
             <div className="mt-0.5 text-xs text-muted-foreground">
               Every access event is cryptographically signed and immutably recorded on the
-              Secure Audit ledger. You can dispute any unauthorized access using the "Report"
+              Solana Devnet ledger. You can dispute any unauthorized access using the "Report"
               button.
             </div>
           </div>

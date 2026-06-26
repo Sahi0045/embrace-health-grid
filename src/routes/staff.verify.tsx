@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHeader } from "@/components/PageHeader";
+import { RouteGuard } from "@/components/RouteGuard";
 import { useLivePatients } from "@/hooks/use-fabric";
 import { fabricLogAuditEvent, fabricVerifyNFCCard, fabricResolveDID } from "@/lib/fabric-api";
 import { currentPatient } from "@/lib/mock-data";
@@ -270,7 +271,7 @@ function VerifyPatient() {
   // ─────────────────────────────────────────────────────────────────────────
 
   return (
-    <>
+    <RouteGuard requiredRole="staff">
       <PageHeader
         eyebrow="Verification"
         title="Verify patient identity"
@@ -547,7 +548,7 @@ function VerifyPatient() {
                 {/* Access Granted banner */}
                 <div className="mt-4 flex items-center gap-2 rounded-lg border border-success/25 bg-success/8 px-4 py-2.5 text-xs font-medium text-success">
                   <CheckCircle2 className="h-4 w-4 shrink-0" />
-                  Access Granted — logged to secure audit ledger
+                  Access Granted — logged on Solana Devnet
                 </div>
 
                 <dl className="mt-5 grid grid-cols-2 gap-4 text-sm">
@@ -617,8 +618,8 @@ function VerifyPatient() {
                     desc: "Patient DID parsed from QR payload using base58 encoding.",
                   },
                   {
-                    title: "DID resolved on Decentralized Registry",
-                    desc: "DID document retrieved from registry via identity API query.",
+                    title: "DID resolved on Solana Devnet",
+                    desc: "DID document retrieved from Anchor program state.",
                   },
                   {
                     title: "Merkle proof verified against ledger root",
@@ -841,7 +842,7 @@ function VerifyPatient() {
           </div>
         </div>
       )}
-    </>
+    </RouteGuard>
   );
 }
 
@@ -961,8 +962,8 @@ function NfcContactlessReader({ status, errorText }: NfcReaderProps) {
 
             <div className="flex justify-between items-end">
               <div className="flex flex-col text-left">
-                <span className="font-mono text-xs tracking-wider text-foreground">did:hosp:patient:••••••••</span>
-                <span className="text-[9px] uppercase tracking-widest text-muted-foreground mt-1">SECURED BY SECURE LEDGER</span>
+                <span className="font-mono text-xs tracking-wider text-foreground">did:solana:patient:••••••••</span>
+                <span className="text-[9px] uppercase tracking-widest text-muted-foreground mt-1">SECURED BY SOLANA</span>
               </div>
               <div className="h-6 w-6 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center">
                 <ShieldCheck className="h-3.5 w-3.5 text-primary" />
@@ -991,8 +992,8 @@ function NfcContactlessReader({ status, errorText }: NfcReaderProps) {
             </div>
 
             <div className="flex justify-between items-center text-[7px] text-muted-foreground">
-              <span>SECURE AUDIT STATE</span>
-              <span>v1.0.0</span>
+              <span>SOLANA DEVNET STATE</span>
+              <span>v2.5.4</span>
             </div>
           </div>
         </motion.div>

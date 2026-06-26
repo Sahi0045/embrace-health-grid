@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHeader } from "@/components/PageHeader";
+import { RouteGuard } from "@/components/RouteGuard";
 import { stagger, fadeUp } from "@/components/Motion";
 import {
   FileSignature,
@@ -405,7 +406,7 @@ function SignPage() {
         "info",
       ).catch(() => {});
       toast.success(`Prescription ${res.rxId} signed & committed`, {
-        description: `Tx: ${res.txId.slice(0, 8)} · Ed25519 · Local Ledger`,
+        description: `Tx: ${res.txId.slice(0, 8)} · Ed25519 · Solana Ledger`,
       });
       setSigned(true);
     } catch (err) {
@@ -416,7 +417,7 @@ function SignPage() {
   };
 
   return (
-    <>
+    <RouteGuard requiredRole="staff">
       <PageHeader
         eyebrow="Digital Signature"
         title="Create & Sign Prescription"
@@ -723,7 +724,7 @@ function SignPage() {
                   <div className="mt-1.5 flex items-center justify-center gap-1.5">
                     <span className="flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-semibold text-success">
                       <Wifi className="h-2.5 w-2.5" />
-                      Local Ledger
+                      Solana Ledger
                     </span>
                   </div>
                   <div className="mt-1 font-mono text-[10px] text-muted-foreground/60 truncate">
@@ -825,6 +826,6 @@ function SignPage() {
           </AnimatePresence>
         </div>
       </div>
-    </>
+    </RouteGuard>
   );
 }
