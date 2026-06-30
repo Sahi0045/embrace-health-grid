@@ -505,3 +505,21 @@ export const getMe = () =>
 
 export const refreshToken = () =>
   apiFetch<{ token: string }>(`/auth/refresh`, { method: "POST", body: "{}" });
+
+export const signIdentityPayload = (data: {
+  did: string;
+  mrn?: string;
+  name?: string;
+  network?: string;
+}) =>
+  apiFetch<{ payload: any }>(`/identity/sign-payload`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+
+export const verifyIdentityPayload = (payload: any) =>
+  apiFetch<{ verified: boolean; payload: any }>(`/identity/verify-payload`, {
+    method: "POST",
+    body: JSON.stringify({ payload }),
+  });
+

@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { PageHeader } from "@/components/PageHeader";
 import { RouteGuard } from "@/components/RouteGuard";
 import { useLivePatients } from "@/hooks/use-api";
-import { logAuditEvent, verifyNFCCard, resolveDID } from "@/lib/api";
+import { logAuditEvent, verifyNFCCard, resolveDID, signIdentityPayload, verifyIdentityPayload } from "@/lib/api";
 import { currentPatient } from "@/lib/mock-data";
 import {
   ScanLine,
@@ -25,6 +25,7 @@ import {
   RefreshCw,
   CreditCard,
   Wifi,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -73,12 +74,13 @@ function VerifyPatient() {
   >("idle");
   const [nfcError, setNfcError] = useState<string | null>(null);
   const [manualMrn, setManualMrn] = useState("");
+  const [overrideReason, setOverrideReason] = useState("");
   const [isManualInputActive, setIsManualInputActive] = useState(false);
 
   // ── Scanner controls ──────────────────────────────────────────────────────
 
   const handleScanSuccess = useCallback(
-    (raw: string) => {
+    async (raw: string) => {
       let parsed: ScannedPayload;
       try {
         parsed = JSON.parse(raw) as ScannedPayload;
@@ -89,6 +91,17 @@ function VerifyPatient() {
 
       if (parsed.exp <= Date.now()) {
         setError("QR code has expired. Ask the patient to refresh their code.");
+        return;
+      }
+
+      try {
+        const verifyRes = await verifyIdentityPayload(parsed);
+        if (!verifyRes || !verifyRes.verified) {
+          setError("QR code signature verification failed.");
+          return;
+        }
+      } catch (err: any) {
+        setError(err.message || "Cryptographic signature verification failed.");
         return;
       }
 
@@ -131,7 +144,7 @@ function VerifyPatient() {
         videoRef.current,
         (result, err) => {
           if (result) {
-            handleScanSuccess(result.getText());
+            void handleScanSuccess(result.getText());
           }
           if (err && !(err instanceof Error && err.name === "NotFoundException")) {
             // NotFoundException fires every frame when no QR is in view — ignore it.
@@ -155,16 +168,23 @@ function VerifyPatient() {
 
   // ── Simulate scan (fallback for browsers without camera) ─────────────────
 
-  const simulateScan = useCallback(() => {
+  const simulateScan = useCallback(async () => {
     const target = patientsList?.[0] || currentPatient;
-    const fakePayload = JSON.stringify({
-      did: target.did,
-      mrn: target.mrn,
-      name: target.name,
-      exp: Date.now() + 60_000,
-      channel: "embrace-health-channel",
-    });
-    handleScanSuccess(fakePayload);
+    try {
+      const signRes = await signIdentityPayload({
+        did: target.did,
+        mrn: target.mrn,
+        name: target.name,
+        network: "embrace-health-network",
+      });
+      if (signRes && signRes.payload) {
+        void handleScanSuccess(JSON.stringify(signRes.payload));
+      } else {
+        setError("Failed to generate signed payload for QR simulation.");
+      }
+    } catch (err: any) {
+      setError(err.message || "Failed to generate signed payload for QR simulation.");
+    }
   }, [patientsList, handleScanSuccess]);
 
   // ── NFC & Manual handlers ────────────────────────────────────────────────
@@ -183,10 +203,25 @@ function VerifyPatient() {
         const target = patientsList?.[0] || currentPatient;
         // Resolve DID document from API
         await resolveDID(target.did).catch(() => null);
+
+        // Fetch real server-signed payload to verify
+        const signRes = await signIdentityPayload({
+          did: target.did,
+          mrn: target.mrn,
+          name: target.name,
+          network: "embrace-health-network",
+        });
+
+        if (!signRes || !signRes.payload) {
+          throw new Error("Failed to generate signed payload for NFC card simulation.");
+        }
+
         // Verify card
-        await verifyNFCCard({ cardId: "NFC-SIMULATED-CARD" }).catch(() => ({
-          verified: true,
-        }));
+        const nfcVerifyRes = await verifyNFCCard({ payload: signRes.payload });
+
+        if (!nfcVerifyRes || !nfcVerifyRes.verified) {
+          throw new Error("NFC card verification failed.");
+        }
 
         const payload: ScannedPayload = {
           did: target.did,
@@ -234,6 +269,10 @@ function VerifyPatient() {
       toast.error("Please enter a valid MRN.");
       return;
     }
+    if (!overrideReason.trim()) {
+      toast.error("Please enter a reason for manual override.");
+      return;
+    }
 
     const matched = patientsList?.find(
       (p) => p.mrn.toLowerCase() === manualMrn.trim().toLowerCase(),
@@ -255,7 +294,7 @@ function VerifyPatient() {
       if (activeTab === "nfc") {
         setNfcStatus("success");
       }
-      void logAuditEvent("staff", matched.did, "MANUAL_VERIFY", "success", "info");
+      void logAuditEvent("staff", matched.did, `MANUAL_OVERRIDE: ${overrideReason.trim()}`, "success", "warning");
       toast.success("Patient verified manually", {
         description: `${matched.name} · MRN ${matched.mrn}`,
       });
@@ -264,7 +303,7 @@ function VerifyPatient() {
         description: `No patient registered with MRN: ${manualMrn}`,
       });
     }
-  }, [manualMrn, patientsList, activeTab]);
+  }, [manualMrn, overrideReason, patientsList, activeTab]);
 
   // ── Derived display patient ───────────────────────────────────────────────
 
@@ -480,31 +519,45 @@ function VerifyPatient() {
               Trouble scanning? Check-in by MRN manually
             </button>
           ) : (
-            <div className="mt-5 border-t border-border pt-4">
-              <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                Manual Patient MRN Check-In
-              </label>
-              <div className="flex gap-2">
+            <div className="mt-5 border-t border-border pt-4 space-y-3">
+              <div>
+                <label className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                  Manual Patient MRN Check-In
+                </label>
                 <input
                   type="text"
                   placeholder="e.g. MRN-60914"
                   value={manualMrn}
                   onChange={(e) => setManualMrn(e.target.value)}
-                  className="flex-1 rounded-md border border-border bg-background px-3 py-1.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                 />
+              </div>
+              <div>
+                <label className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                  Reason for Manual Override
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Device failure, QR camera offline"
+                  value={overrideReason}
+                  onChange={(e) => setOverrideReason(e.target.value)}
+                  className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
+              <div className="flex gap-2 justify-end pt-1">
+                <button
+                  onClick={() => setIsManualInputActive(false)}
+                  className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-all"
+                >
+                  Cancel
+                </button>
                 <button
                   onClick={handleManualCheckin}
-                  className="rounded-md bg-secondary px-3 py-1.5 text-sm font-medium text-secondary-foreground hover:bg-secondary/90 transition-colors"
+                  className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
                 >
-                  Verify
+                  Verify Patient
                 </button>
               </div>
-              <button
-                onClick={() => setIsManualInputActive(false)}
-                className="mt-2.5 text-xs text-muted-foreground hover:text-foreground transition-colors hover:underline block"
-              >
-                Cancel manual input
-              </button>
             </div>
           )}
         </div>

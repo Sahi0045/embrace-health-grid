@@ -88,15 +88,10 @@ const wss = new WebSocketServer({ server: httpServer });
 
 app.use(
   cors({
-    origin: [
-      CORS_ORIGIN,
-      "http://localhost:5173",
-      "http://127.0.0.1:5173",
-      "http://localhost:8080",
-      "http://127.0.0.1:8080",
-      "http://localhost:3002",
-      "http://127.0.0.1:3002",
-    ],
+    origin: (origin, callback) => {
+      callback(null, true);
+    },
+    credentials: true,
   }),
 );
 app.use(helmet({ contentSecurityPolicy: false }));

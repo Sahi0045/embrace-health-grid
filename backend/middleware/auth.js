@@ -23,7 +23,6 @@ const STAFF_PREFIXES = [
   "/api/labs",
   "/api/consent/request",
   "/api/nfc/verify",
-  "/api/visitors",
   "/api/attendance",
   "/api/fraud/alert",
 ];

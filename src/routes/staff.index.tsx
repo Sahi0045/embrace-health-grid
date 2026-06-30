@@ -4,6 +4,7 @@ import { StaggerList, StaggerItem } from "@/components/Motion";
 import { useLivePatients, useLiveStaff, useConsents, useAudit, useBeds } from "@/hooks/use-api";
 import {
   Users,
+  Users2,
   ScanLine,
   CheckCircle2,
   Clock,
@@ -57,6 +58,12 @@ const quickLinks = [
     label: "Surgeries",
     icon: Scissors,
     color: "text-chart-4 bg-chart-4/10",
+  },
+  {
+    to: "/staff/visitors" as const,
+    label: "Visitors",
+    icon: Users2,
+    color: "text-amber-500 bg-amber-500/10",
   },
   {
     to: "/staff/emergency" as const,
