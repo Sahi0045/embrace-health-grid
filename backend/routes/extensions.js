@@ -121,6 +121,13 @@ export function registerExtensionRoutes(app, deps) {
     };
     putState("nfc-cards", cardId, card, txId);
     logAudit(req, { resource: cardId, action: "NFC_CARD_ISSUE" });
+    solana.scheduleAnchor(
+      { computeRecordHash },
+      card,
+      "nfc-issue",
+      req.user.did || null,
+    );
+    broadcast({ event: "nfc:updated", data: card });
     res.json({ card });
   });
 
@@ -143,6 +150,7 @@ export function registerExtensionRoutes(app, deps) {
       "nfc-revoke",
       req.user.did,
     );
+    broadcast({ event: "nfc:updated", data: entry.value });
     res.json({ success: true, cardId: req.params.cardId });
   });
 
@@ -160,11 +168,21 @@ export function registerExtensionRoutes(app, deps) {
     } else if (payload) {
       const result = verifyIdentityPayload(payload, IDENTITY_SECRET);
       if (!result.valid) return res.status(400).json({ error: result.error });
-      card = {
-        patientDid: result.payload.did,
-        mrn: result.payload.mrn,
-        patientName: result.payload.name,
-      };
+
+      const cardEntries = queryState("nfc-cards", (val) => val.patientDid === result.payload.did);
+      if (cardEntries.length === 0) {
+        return res.status(404).json({ error: "Card not registered in the system registry." });
+      }
+
+      // Sort by issuedAt descending to get the latest card
+      cardEntries.sort((a, b) => new Date(b.value.issuedAt).getTime() - new Date(a.value.issuedAt).getTime());
+      const latestCard = cardEntries[0].value;
+
+      if (latestCard.status === "revoked") {
+        return res.status(403).json({ error: "Card revoked", card: latestCard });
+      }
+
+      card = latestCard;
     } else {
       return res.status(400).json({ error: "cardId or payload required" });
     }

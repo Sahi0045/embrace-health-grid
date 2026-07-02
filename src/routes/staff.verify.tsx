@@ -76,6 +76,7 @@ function VerifyPatient() {
   const [manualMrn, setManualMrn] = useState("");
   const [overrideReason, setOverrideReason] = useState("");
   const [isManualInputActive, setIsManualInputActive] = useState(false);
+  const [selectedSimPatientDid, setSelectedSimPatientDid] = useState<string>("");
 
   // ── Scanner controls ──────────────────────────────────────────────────────
 
@@ -200,7 +201,8 @@ function VerifyPatient() {
       setNfcStatus("verifying");
 
       try {
-        const target = patientsList?.[0] || currentPatient;
+        const activeDid = selectedSimPatientDid || (patientsList?.[0]?.did || "");
+        const target = patientsList?.find((p: any) => p.did === activeDid) || currentPatient;
         // Resolve DID document from API
         await resolveDID(target.did).catch(() => null);
 
@@ -245,7 +247,7 @@ function VerifyPatient() {
         toast.error("NFC Verification Failed", { description: err.message });
       }
     }, 1000);
-  }, [patientsList]);
+  }, [patientsList, selectedSimPatientDid]);
 
   const handleNfcSimulateFailure = useCallback(() => {
     setNfcStatus("reading");
@@ -468,6 +470,30 @@ function VerifyPatient() {
                 <div className="mt-3 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
                   <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                   <span>{nfcError}</span>
+                </div>
+              )}
+
+              {/* Patient Selection Dropdown for NFC Simulation */}
+              {nfcStatus === "idle" && patientsList && patientsList.length > 0 && (
+                <div className="mt-4 space-y-1.5 text-left">
+                  <label htmlFor="sim-patient-select" className="text-[11px] font-semibold text-muted-foreground block">
+                    Select Patient to Simulate Tap
+                  </label>
+                  <div className="relative">
+                    <select
+                      id="sim-patient-select"
+                      value={selectedSimPatientDid || patientsList[0].did}
+                      onChange={(e) => setSelectedSimPatientDid(e.target.value)}
+                      className="w-full appearance-none rounded-lg border border-border bg-card px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary shadow-clinical"
+                    >
+                      {patientsList.map((p: any) => (
+                        <option key={p.did} value={p.did}>
+                          {p.name} ({p.mrn})
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-3 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                  </div>
                 </div>
               )}
 

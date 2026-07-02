@@ -23,6 +23,7 @@ import {
   getVitals,
   isBackendOnline as isOnline,
   getAllLabs,
+  getNamespace,
 } from "@/lib/api";
 import {
   getLivePatients,
@@ -167,6 +168,14 @@ export function useLedger(page = 0) {
 // ─── DID Registry ─────────────────────────────────────────────────────────────
 export function useDIDs() {
   return useApiData(getAllDIDs, () => ({ dids: [] as any[], total: 0 }), "did:created");
+}
+
+export function useNFCCards() {
+  return useApiData(
+    () => getNamespace("nfc-cards"),
+    () => [] as any[],
+    "nfc:updated"
+  );
 }
 
 // ─── Credentials ──────────────────────────────────────────────────────────────

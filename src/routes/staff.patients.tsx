@@ -2,12 +2,16 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { RouteGuard } from "@/components/RouteGuard";
-import { useLivePatients } from "@/hooks/use-api";
-import { Search, X, Activity, Pill, FlaskConical, AlertTriangle } from "lucide-react";
+import { useLivePatients, useNFCCards } from "@/hooks/use-api";
+import { Search, X, Activity, Pill, FlaskConical, AlertTriangle, Fingerprint, XCircle } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { vitalSigns, medications, labTests } from "@/lib/inpatient-data";
 import type { Patient } from "@/lib/mock-data";
+import { getCurrentUser } from "@/lib/auth";
+import { issueNFCCard, revokeNFCCard } from "@/lib/api";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/staff/patients")({
   head: () => ({ meta: [{ title: "Staff · Patients — DID Hospital" }] }),
@@ -17,8 +21,14 @@ export const Route = createFileRoute("/staff/patients")({
 function Patients() {
   const [q, setQ] = useState("");
   const [selected, setSelected] = useState<Patient | null>(null);
+  const [cardToRevoke, setCardToRevoke] = useState<string | null>(null);
   const { patients: patientsList } = useLivePatients();
   const patients = patientsList ?? [];
+
+  const currentUser = getCurrentUser();
+  const isAdmin = currentUser?.role === "admin";
+  const { data: nfcCardsData, refetch: refetchNFCCards } = useNFCCards();
+  const nfcCards = nfcCardsData || [];
 
   const filtered = patients.filter((p: any) =>
     [p.name, p.mrn, p.did, p.phone || ""].some((f) => f.toLowerCase().includes(q.toLowerCase())),
@@ -234,6 +244,110 @@ function Patients() {
                 </CardContent>
               </Card>
 
+              {/* NFC Security Management — Admin Only */}
+              {isAdmin && selected && (
+                (() => {
+                  const patientCardEntry = nfcCards.find((c: any) => c.value?.patientDid === selected.did);
+                  const patientCard = patientCardEntry?.value;
+                  return (
+                    <Card className="border-primary/20 shadow-clinical">
+                      <CardHeader className="pb-2">
+                        <div className="flex items-center gap-2">
+                          <Fingerprint className="h-4 w-4 text-primary animate-pulse" />
+                          <CardTitle className="text-sm">NFC Security & Identity Card</CardTitle>
+                          {patientCard ? (
+                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ml-auto ${patientCard.status === "active" ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}`}>
+                              {patientCard.status.toUpperCase()}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold bg-muted text-muted-foreground ml-auto">
+                              UNREGISTERED
+                            </span>
+                          )}
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        {patientCard ? (
+                          <div className="space-y-2 text-xs">
+                            <div className="grid grid-cols-3 py-1 border-b border-border/40">
+                              <span className="text-muted-foreground">Card ID</span>
+                              <span className="col-span-2 font-mono font-medium text-foreground">{patientCard.cardId}</span>
+                            </div>
+                            <div className="grid grid-cols-3 py-1 border-b border-border/40">
+                              <span className="text-muted-foreground">Issued At</span>
+                              <span className="col-span-2 text-foreground">{new Date(patientCard.issuedAt).toLocaleString()}</span>
+                            </div>
+                            <div className="grid grid-cols-3 py-1 border-b border-border/40">
+                              <span className="text-muted-foreground">Issued By</span>
+                              <span className="col-span-2 text-foreground">{patientCard.issuedBy}</span>
+                            </div>
+                            {patientCard.status === "revoked" && patientCard.revokedAt && (
+                              <div className="grid grid-cols-3 py-1 bg-destructive/5 px-1 rounded-sm border-b border-border/40">
+                                <span className="text-destructive font-medium">Revoked At</span>
+                                <span className="col-span-2 text-destructive font-medium">{new Date(patientCard.revokedAt).toLocaleString()}</span>
+                              </div>
+                            )}
+
+                            {patientCard.status === "active" ? (
+                              <button
+                                onClick={() => setCardToRevoke(patientCard.cardId)}
+                                className="mt-3 w-full inline-flex items-center justify-center gap-1.5 rounded-lg bg-destructive px-3 py-2 text-xs font-semibold text-white hover:bg-destructive/90 transition-colors shadow-clinical"
+                              >
+                                <XCircle className="h-3.5 w-3.5" />
+                                Revoke Identity Card
+                              </button>
+                            ) : (
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    const res = await issueNFCCard({
+                                      patientDid: selected.did,
+                                      patientName: selected.name,
+                                      mrn: selected.mrn,
+                                    });
+                                    toast.success("NFC Card Issued", { description: `New Card ${res.card.cardId} registered.` });
+                                    void refetchNFCCards();
+                                  } catch (err: any) {
+                                    toast.error("Failed to issue card", { description: err.message });
+                                  }
+                                }}
+                                className="mt-3 w-full inline-flex items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/95 transition-colors shadow-clinical"
+                              >
+                                <Fingerprint className="h-3.5 w-3.5" />
+                                Issue New Card
+                              </button>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="text-center py-4 space-y-3">
+                            <p className="text-xs text-muted-foreground">This patient has no active NFC Identity Card registered.</p>
+                            <button
+                              onClick={async () => {
+                                try {
+                                  const res = await issueNFCCard({
+                                    patientDid: selected.did,
+                                    patientName: selected.name,
+                                    mrn: selected.mrn,
+                                  });
+                                  toast.success("NFC Card Issued", { description: `New Card ${res.card.cardId} registered.` });
+                                  void refetchNFCCards();
+                                } catch (err: any) {
+                                  toast.error("Failed to issue card", { description: err.message });
+                                }
+                              }}
+                              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/95 transition-colors shadow-clinical"
+                            >
+                              <Fingerprint className="h-3.5 w-3.5" />
+                              Issue NFC Identity Card
+                            </button>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })()
+              )}
+
               <div className="flex justify-end pt-2 border-t border-border">
                 <button
                   onClick={() => setSelected(null)}
@@ -246,6 +360,56 @@ function Patients() {
           </div>
         </div>
       )}
+
+      {/* ── Professional Revocation Confirm Dialog ── */}
+      <AnimatePresence>
+        {cardToRevoke && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-background/40 backdrop-blur-sm p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative w-full max-w-md overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-clinical-md"
+            >
+              <div className="flex items-center gap-3 text-destructive">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-destructive/10">
+                  <AlertTriangle className="h-5 w-5" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground">Revoke Identity Card</h3>
+              </div>
+              <p className="mt-3 text-sm text-muted-foreground animate-pulse-subtle">
+                Are you sure you want to revoke this NFC card (<span className="font-mono font-medium text-foreground">{cardToRevoke}</span>)? This action is permanent and will prevent any future authentication using this card.
+              </p>
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  onClick={() => setCardToRevoke(null)}
+                  className="rounded-lg border border-border bg-card px-4 py-2 text-xs font-semibold text-foreground hover:bg-muted transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    const id = cardToRevoke;
+                    setCardToRevoke(null);
+                    try {
+                      await revokeNFCCard(id);
+                      toast.success("NFC Card Revoked", {
+                        description: `Card ${id} was successfully deactivated.`,
+                      });
+                      void refetchNFCCards();
+                    } catch (err: any) {
+                      toast.error("Failed to revoke card", { description: err.message });
+                    }
+                  }}
+                  className="rounded-lg bg-destructive px-4 py-2 text-xs font-semibold text-white hover:bg-destructive/90 transition-colors shadow-clinical cursor-pointer"
+                >
+                  Revoke Card
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </RouteGuard>
   );
 }
