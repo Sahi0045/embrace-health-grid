@@ -378,8 +378,12 @@ app.get("/api/did/:did", requireAuth, (req, res) => {
 });
 
 app.post("/api/did", requireAuth, requireRole(["admin"]), async (req, res) => {
-  const { owner, ownerType = "patient", controller, ownerEmail, ...extraFields } = req.body;
+  const { owner, ownerType = "patient", controller, ownerEmail, mrn, employeeId, ...extraFields } = req.body;
   if (!owner) return res.status(400).json({ error: "owner required" });
+
+  const assignedMrn = ownerType === "patient" ? (mrn || extraFields.mrn || `MRN-${Math.floor(100000 + Math.random() * 900000)}`) : null;
+  const assignedEmployeeId = ownerType !== "patient" ? (employeeId || extraFields.employeeId || `EMP-${Math.floor(1000 + Math.random() * 9000)}`) : null;
+
   const did = `did:hosp:0x${simHash(owner + Date.now()).slice(0, 8)}`;
   const txId = randomUUID();
   const doc = {
@@ -394,6 +398,8 @@ app.post("/api/did", requireAuth, requireRole(["admin"]), async (req, res) => {
     updatedAt: new Date().toISOString(),
     serviceEndpoint: `https://did.apollohospitals.in/resolve/${did}`,
     ownerEmail: ownerEmail || null,
+    mrn: assignedMrn,
+    employeeId: assignedEmployeeId,
     ...extraFields,
   };
   putState("did-registry", did, doc, txId);
@@ -402,6 +408,11 @@ app.post("/api/did", requireAuth, requireRole(["admin"]), async (req, res) => {
     const userEntry = getState("users", ownerEmail);
     if (userEntry) {
       userEntry.value.did = did;
+      if (ownerType === "patient") {
+        userEntry.value.mrn = assignedMrn;
+      } else {
+        userEntry.value.employeeId = assignedEmployeeId;
+      }
       putState("users", ownerEmail, userEntry.value, randomUUID());
     }
   }
@@ -457,7 +468,7 @@ app.patch("/api/credential/:id/revoke", requireAuth, requireRole(["admin"]), (re
   res.json({ success: true, id: req.params.id });
 });
 
-app.get("/api/credentials", requireAuth, requireRole(["admin"]), (_, res) => {
+app.get("/api/credentials", requireAuth, (_, res) => {
   const all = getAllState("credentials");
   res.json({ credentials: all.map((e) => e.value), total: all.length });
 });
@@ -823,7 +834,7 @@ app.post(
 );
 
 // ─── Auth APIs ────────────────────────────────────────────────────────────────
-app.post("/api/auth/signup", requireAuth, requireRole(["admin"]), async (req, res) => {
+app.post("/api/auth/signup", async (req, res) => {
   const { name, email, role, password } = req.body;
   if (!email || !role || !name) {
     return res.status(400).json({ error: "Name, email, and role are required" });
@@ -882,6 +893,9 @@ app.post("/api/auth/login", requireClientAuth, async (req, res) => {
     email: userEntry.value.email,
     role: userEntry.value.role,
     did: userEntry.value.did,
+    walletAddress: userEntry.value.walletAddress || null,
+    mrn: userEntry.value.mrn || null,
+    employeeId: userEntry.value.employeeId || null,
   };
   const token = jwt.sign(
     { email: user.email, role: user.role, name: user.name, did: user.did },
@@ -892,8 +906,132 @@ app.post("/api/auth/login", requireClientAuth, async (req, res) => {
 });
 
 app.get("/api/auth/me", requireAuth, (req, res) => {
-  res.json({ user: req.user });
+  const userEntry = getState("users", req.user.email);
+  if (!userEntry) {
+    return res.status(404).json({ error: "User not found" });
+  }
+  res.json({
+    user: {
+      name: userEntry.value.name,
+      email: userEntry.value.email,
+      role: userEntry.value.role,
+      did: userEntry.value.did,
+      walletAddress: userEntry.value.walletAddress || null,
+      mrn: userEntry.value.mrn || null,
+      employeeId: userEntry.value.employeeId || null,
+    }
+  });
 });
+
+app.post("/api/auth/link-wallet", requireAuth, (req, res) => {
+  const { walletAddress } = req.body;
+  if (!walletAddress) {
+    return res.status(400).json({ error: "walletAddress is required" });
+  }
+
+  const email = req.user.email;
+  const userEntry = getState("users", email);
+  if (!userEntry) {
+    return res.status(404).json({ error: "User not found" });
+  }
+
+  userEntry.value.walletAddress = walletAddress;
+  putState("users", email, userEntry.value, randomUUID());
+
+  if (userEntry.value.did) {
+    const didEntry = getState("did-registry", userEntry.value.did);
+    if (didEntry) {
+      didEntry.value.walletAddress = walletAddress;
+      putState("did-registry", userEntry.value.did, didEntry.value, randomUUID());
+      broadcast({ event: "did:updated", data: didEntry.value });
+    }
+  }
+
+  res.json({
+    success: true,
+    user: {
+      name: userEntry.value.name,
+      email: userEntry.value.email,
+      role: userEntry.value.role,
+      did: userEntry.value.did,
+      walletAddress,
+      mrn: userEntry.value.mrn || null,
+      employeeId: userEntry.value.employeeId || null,
+    }
+  });
+});
+
+app.post("/api/auth/update-profile", requireAuth, (req, res) => {
+  const { name, phone, age, gender, bloodGroup, allergies, department, role, specializations } = req.body;
+  const email = req.user.email;
+  const userEntry = getState("users", email);
+  if (!userEntry) {
+    return res.status(404).json({ error: "User not found" });
+  }
+
+  // Update main user account properties
+  if (name) userEntry.value.name = name;
+  if (phone) userEntry.value.phone = phone;
+  if (age) userEntry.value.age = parseInt(age) || userEntry.value.age;
+  if (gender) userEntry.value.gender = gender;
+  if (bloodGroup) userEntry.value.bloodGroup = bloodGroup;
+  if (allergies) {
+    userEntry.value.allergies = Array.isArray(allergies) 
+      ? allergies 
+      : String(allergies).split(",").map(s => s.trim()).filter(Boolean);
+  }
+  // Staff properties
+  if (department) userEntry.value.department = department;
+  if (role) userEntry.value.role = role;
+  if (specializations) {
+    userEntry.value.specializations = Array.isArray(specializations)
+      ? specializations
+      : String(specializations).split(",").map(s => s.trim()).filter(Boolean);
+  }
+
+  putState("users", email, userEntry.value, randomUUID());
+
+  // Also sync with DID document if active
+  if (userEntry.value.did) {
+    const didEntry = getState("did-registry", userEntry.value.did);
+    if (didEntry) {
+      if (name) didEntry.value.name = name;
+      if (phone) didEntry.value.phone = phone;
+      if (age) didEntry.value.age = parseInt(age) || didEntry.value.age;
+      if (gender) didEntry.value.gender = gender;
+      if (bloodGroup) didEntry.value.bloodGroup = bloodGroup;
+      if (allergies) {
+        didEntry.value.allergies = userEntry.value.allergies;
+      }
+      if (department) didEntry.value.department = department;
+      if (specializations) didEntry.value.specializations = userEntry.value.specializations;
+
+      putState("did-registry", userEntry.value.did, didEntry.value, randomUUID());
+      broadcast({ event: "did:updated", data: didEntry.value });
+    }
+  }
+
+  res.json({
+    success: true,
+    user: {
+      name: userEntry.value.name,
+      email: userEntry.value.email,
+      role: userEntry.value.role,
+      did: userEntry.value.did,
+      walletAddress: userEntry.value.walletAddress || null,
+      mrn: userEntry.value.mrn || null,
+      employeeId: userEntry.value.employeeId || null,
+      phone: userEntry.value.phone || null,
+      age: userEntry.value.age || null,
+      gender: userEntry.value.gender || null,
+      bloodGroup: userEntry.value.bloodGroup || null,
+      allergies: userEntry.value.allergies || [],
+      department: userEntry.value.department || null,
+      specializations: userEntry.value.specializations || [],
+    }
+  });
+});
+
 
 app.post("/api/auth/refresh", (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");

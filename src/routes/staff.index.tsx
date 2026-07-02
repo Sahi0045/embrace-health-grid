@@ -18,10 +18,12 @@ import {
   HeartPulse,
   Ambulance,
   Bed,
+  Wallet,
 } from "lucide-react";
 import { RouteGuard } from "@/components/RouteGuard";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
+import { getCurrentUser } from "@/lib/auth";
 
 export const Route = createFileRoute("/staff/")({
   head: () => ({ meta: [{ title: "Staff · Dashboard — DID Hospital" }] }),
@@ -151,6 +153,32 @@ function StaffDashboard() {
         />
 
         <div className="space-y-6 p-6">
+          {/* Solana Wallet Prompt Banner */}
+          {!getCurrentUser()?.walletAddress && (
+            <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-5 shadow-clinical">
+              <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/20 text-primary">
+                    <Wallet className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-foreground">
+                      Connect Clinic Wallet
+                    </h3>
+                    <p className="mt-1 text-xs text-muted-foreground leading-relaxed max-w-md">
+                      Link your Solana Wallet to sign prescriptions and record patient care transactions on the ledger.
+                    </p>
+                  </div>
+                </div>
+                <Button asChild size="sm" className="shrink-0 shadow-clinical">
+                  <Link to="/staff/profile">
+                    Link Wallet <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* KPI row */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard

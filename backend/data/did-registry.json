@@ -439,5 +439,33 @@
     "updatedAt": "2026-06-23T11:53:59.418Z",
     "txId": "e24dcbe2-1591-43b4-8a9a-ae0c38eb2c31",
     "docType": "did-registry"
+  },
+  "did:hosp:0x4ba0999d": {
+    "key": "did:hosp:0x4ba0999d",
+    "value": {
+      "did": "did:hosp:0x4ba0999d",
+      "publicKey": "MFkw6D846C159904903B5D6249D39B5278B4",
+      "controller": "did:hosp:consortium:authority",
+      "owner": "nithin",
+      "ownerType": "patient",
+      "status": "active",
+      "credentials": [],
+      "createdAt": "2026-07-01T16:21:43.934Z",
+      "updatedAt": "2026-07-01T16:21:43.934Z",
+      "serviceEndpoint": "https://did.apollohospitals.in/resolve/did:hosp:0x4ba0999d",
+      "ownerEmail": "soulnani2441@gmail.com",
+      "mrn": "MRN-983442",
+      "employeeId": null,
+      "name": "nithin",
+      "phone": "+91 98765 43210",
+      "age": 21,
+      "gender": "M",
+      "bloodGroup": "O+"
+    },
+    "namespace": "did-registry",
+    "version": "8e1c957a-ec46-42cf-b5de-57358adcc7fc:1",
+    "updatedAt": "2026-07-01T17:11:49.050Z",
+    "txId": "8e1c957a-ec46-42cf-b5de-57358adcc7fc",
+    "docType": "did-registry"
   }
 }

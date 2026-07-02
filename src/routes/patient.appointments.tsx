@@ -4,8 +4,9 @@ import { StaggerList, StaggerItem } from "@/components/Motion";
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
 import { appointments } from "@/lib/mock-data";
-import { useAppointments } from "@/hooks/use-api";
+import { useAppointments, useLiveStaff } from "@/hooks/use-api";
 import { bookAppointment } from "@/lib/api";
+import { getCurrentUser } from "@/lib/auth";
 import {
   CalendarDays,
   Video,
@@ -164,10 +165,11 @@ const recentLabReports = [
 
 function AppointmentsPage() {
   const { data: appointmentsData, refetch } = useAppointments();
-  const rawList = appointmentsData?.appointments || [];
+  const { staff: liveStaff } = useLiveStaff();
+  const currentUser = getCurrentUser();
 
   // Map raw appointments to UI structure
-  const liveList = rawList.map((a: any) => ({
+  const liveList = (appointmentsData?.appointments || []).map((a: any) => ({
     id: a.apptId || a.id || a.txId || String(Math.random()),
     doctor: a.doctorName || a.doctorDid || "Doctor",
     specialty: a.specialty || "General Medicine",
@@ -186,6 +188,28 @@ function AppointmentsPage() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSpecialty, setSelectedSpecialty] = useState("All");
+
+  // Construct dynamically registered doctor list from liveStaff
+  const registeredDoctors: Doctor[] = (liveStaff || [])
+    .filter((s: any) => s.role?.toLowerCase() === "doctor")
+    .map((s: any) => {
+      const seed = Math.abs(s.id ? s.id.charCodeAt(0) + (s.id.charCodeAt(1) || 0) : 100);
+      return {
+        id: s.id || `doc_${seed}`,
+        name: s.name || "Doctor",
+        specialty: s.specialty || s.department || "General Medicine",
+        did: s.did || "did:hosp:unknown",
+        hospital: "Apollo Hospitals · OPD Block",
+        status: (s.status === "active" ? "Available" : s.status === "on-leave" ? "Busy" : "Available") as "Available" | "Busy" | "Off Duty",
+        rating: 4.5 + ((seed % 5) / 10),
+        availableDays: [
+          { day: "Thu", date: "2026-07-02", slots: ["10:30 AM", "11:00 AM", "02:00 PM"] },
+          { day: "Fri", date: "2026-07-03", slots: ["09:00 AM", "10:00 AM", "03:30 PM"] },
+        ],
+      };
+    });
+
+  const allDoctors = registeredDoctors.length > 0 ? registeredDoctors : mockDoctors;
 
   // Booking flow state
   const [selectedDoc, setSelectedDoc] = useState<Doctor | null>(null);
@@ -226,7 +250,7 @@ function AppointmentsPage() {
     "Pediatrics",
   ];
 
-  const filteredDoctors = mockDoctors.filter((doc) => {
+  const filteredDoctors = allDoctors.filter((doc) => {
     const matchesSearch =
       doc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       doc.specialty.toLowerCase().includes(searchQuery.toLowerCase());
@@ -271,8 +295,8 @@ function AppointmentsPage() {
 
     try {
       await bookAppointment({
-        patientDid: "did:hosp:0x4a91…b7d2",
-        patientName: "Anika Sharma",
+        patientDid: currentUser?.did || "did:hosp:unknown",
+        patientName: currentUser?.name || "Patient",
         doctorDid: selectedDoc.did,
         doctorName: selectedDoc.name,
         slot: timeStr,

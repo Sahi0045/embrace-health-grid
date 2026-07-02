@@ -8,6 +8,7 @@ import {
 } from "@/components/emergency/EmergencyAccessCard";
 import { currentPatient } from "@/lib/mock-data";
 import { useLivePatients } from "@/hooks/use-api";
+import { getCurrentUser } from "@/lib/auth";
 import {
   Heart,
   AlertTriangle,
@@ -84,7 +85,9 @@ function SeverityBadge({ severity }: { severity: string }) {
 
 function EmergencyPage() {
   const { patients: patientsList } = useLivePatients();
-  const patient = patientsList?.[0] || currentPatient;
+  const currentUser = getCurrentUser();
+  const userEmail = currentUser?.email || "";
+  const patient = patientsList?.find((p: any) => p.email === userEmail) || patientsList?.[0] || currentPatient;
   const [showQr, setShowQr] = useState(false);
 
   return (
