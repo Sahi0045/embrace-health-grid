@@ -146,7 +146,7 @@ export function useStats() {
       throughputTps: 0,
       lastBlockTime: new Date().toISOString(),
     }),
-    "bed:updated",
+    "*",
   );
 }
 

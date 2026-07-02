@@ -47,14 +47,18 @@ export function resetBackendCache() {
   _lastCheck = 0;
 }
 
-export const getStats = async () => ({
-  blockHeight: 1,
-  txCount: 0,
-  peerCount: 3,
-  worldStateSize: 0,
-  throughputTps: 0,
-  lastBlockTime: new Date().toISOString(),
-});
+export const getStats = () => apiFetch<{
+  blockHeight: number;
+  txCount: number;
+  peerCount: number;
+  nodesCountUp: number;
+  nodesCountTotal: number;
+  worldStateSize: number;
+  throughputTps: number;
+  lastBlockTime: string;
+  latencyMs: number;
+  complianceScore: number;
+}>("/stats");
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const role = typeof window !== "undefined" ? localStorage.getItem("userRole") : null;

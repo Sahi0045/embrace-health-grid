@@ -321,6 +321,39 @@ app.get("/health", (_, res) =>
   }),
 );
 
+// ─── Stats API ────────────────────────────────────────────────────────────────
+app.get("/api/stats", requireAuth, (_, res) => {
+  const audits = getAllState("audit");
+  const txCount = audits.length;
+  const blockHeight = Math.max(1, Math.floor(txCount / 3) + 1);
+  const worldStateSize = getWorldStateSize();
+  
+  let lastBlockTime = new Date().toISOString();
+  if (audits.length > 0) {
+    const sortedAudits = [...audits].sort((a, b) => b.updatedAt?.localeCompare(a.updatedAt ?? "") ?? 0);
+    if (sortedAudits[0]?.value?.loggedAt) {
+      lastBlockTime = sortedAudits[0].value.loggedAt;
+    }
+  }
+
+  const fraudAlerts = getAllState("fraud-alerts");
+  const criticalFraudCount = fraudAlerts.filter(a => a.value?.severity === "high" || a.value?.status === "open").length;
+  const complianceScore = Math.max(70, 100 - (criticalFraudCount * 4));
+
+  res.json({
+    blockHeight,
+    txCount,
+    peerCount: 3,
+    nodesCountUp: 3,
+    nodesCountTotal: 3,
+    worldStateSize,
+    throughputTps: Math.min(250, Math.round((txCount / 10) * 10) / 10 + 0.5),
+    lastBlockTime,
+    latencyMs: 12 + Math.floor(Math.random() * 5),
+    complianceScore,
+  });
+});
+
 // ─── World State API ──────────────────────────────────────────────────────────
 app.get("/api/worldstate", requireAuth, (_, res) => res.json(getAllWorldState()));
 app.get("/api/worldstate/:namespace", requireAuth, (req, res) =>

@@ -41,10 +41,10 @@ export function RouteGuard({ requiredRole, children }: RouteGuardProps) {
           <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
             <Button
               onClick={() => {
-                if (user.role === "patient") navigate({ to: "/patient" });
-                else if (user.role === "staff") navigate({ to: "/staff" });
-                else if (user.role === "admin") navigate({ to: "/" });
-                else navigate({ to: "/" });
+                if (user.role === "patient") navigate({ to: "/patient" as any });
+                else if (user.role === "staff") navigate({ to: "/staff" as any });
+                else if (user.role === "admin") navigate({ to: "/" as any });
+                else navigate({ to: "/" as any });
               }}
             >
               Go to My Dashboard

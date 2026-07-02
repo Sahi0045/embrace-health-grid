@@ -34,39 +34,31 @@ export const Route = createFileRoute("/")({
   component: AdminOverview,
 });
 
-const quickLinks = [
+type QuickLink = 
+  | { to: "/command" | "/digital-twin" | "/credentials"; label: string; icon: React.ComponentType<{ className?: string }>; color: string }
+  | { href: string; label: string; icon: React.ComponentType<{ className?: string }>; color: string };
+
+const quickLinks: QuickLink[] = [
   {
-    to: "/admin/command" as const,
+    to: "/command",
     label: "Command Center",
     icon: Command,
     color: "text-primary bg-primary/10",
   },
   {
-    to: "/admin/digital-twin" as const,
+    to: "/digital-twin",
     label: "Digital Twin",
     icon: Network,
     color: "text-chart-2 bg-chart-2/10",
   },
   {
-    to: "/admin/resources" as const,
-    label: "Resources",
-    icon: Bed,
-    color: "text-success bg-success/10",
-  },
-  {
-    to: "/admin/credentials" as const,
+    to: "/credentials",
     label: "Credentials",
     icon: Award,
     color: "text-chart-3 bg-chart-3/10",
   },
   {
-    to: "/admin/federation" as const,
-    label: "Federation",
-    icon: Globe,
-    color: "text-chart-4 bg-chart-4/10",
-  },
-  {
-    to: "/audit-timeline" as const,
+    href: "/audit-timeline",
     label: "Audit Timeline",
     icon: GitBranch,
     color: "text-muted-foreground bg-muted",
@@ -103,7 +95,7 @@ function AdminOverview() {
           description="Real-time health of the DID infrastructure and identity operations."
           actions={
             <Link
-              to="/admin/command"
+              to="/command"
               className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
             >
               <Command className="h-4 w-4" />
@@ -147,19 +139,34 @@ function AdminOverview() {
           <StaggerList className="grid grid-cols-3 gap-3 sm:grid-cols-6">
             {quickLinks.map((l) => {
               const Icon = l.icon;
-              return (
-                <StaggerItem key={l.to}>
-                  <Link
-                    to={l.to}
-                    className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card p-4 text-center hover:shadow-clinical-md hover:-translate-y-0.5 transition-all"
+              const isExternal = "href" in l;
+              const content = (
+                <>
+                  <div
+                    className={`flex h-9 w-9 items-center justify-center rounded-lg ${l.color}`}
                   >
-                    <div
-                      className={`flex h-9 w-9 items-center justify-center rounded-lg ${l.color}`}
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <span className="text-xs font-medium text-foreground">{l.label}</span>
+                </>
+              );
+              return (
+                <StaggerItem key={isExternal ? l.href : l.to}>
+                  {isExternal ? (
+                    <a
+                      href={l.href}
+                      className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card p-4 text-center hover:shadow-clinical-md hover:-translate-y-0.5 transition-all w-full h-full"
                     >
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <span className="text-xs font-medium text-foreground">{l.label}</span>
-                  </Link>
+                      {content}
+                    </a>
+                  ) : (
+                    <Link
+                      to={l.to}
+                      className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card p-4 text-center hover:shadow-clinical-md hover:-translate-y-0.5 transition-all w-full h-full"
+                    >
+                      {content}
+                    </Link>
+                  )}
                 </StaggerItem>
               );
             })}
@@ -172,12 +179,6 @@ function AdminOverview() {
                 <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
                   <ServerCog className="h-4 w-4 text-primary" /> Infrastructure
                 </div>
-                <Link
-                  to="/admin/resources"
-                  className="text-xs text-primary hover:underline flex items-center gap-1"
-                >
-                  Resources <ArrowRight className="h-3 w-3" />
-                </Link>
               </div>
               <ul className="space-y-3 text-sm">
                 <Row
@@ -232,12 +233,6 @@ function AdminOverview() {
                   <span className="font-semibold text-foreground">97</span>
                 </div>
               </div>
-              <Link
-                to="/admin/compliance"
-                className="mt-4 flex items-center justify-center gap-1 text-xs text-primary hover:underline"
-              >
-                View compliance report <ArrowRight className="h-3 w-3" />
-              </Link>
             </div>
 
             {/* Fraud + critical alerts */}
@@ -248,7 +243,7 @@ function AdminOverview() {
                   Active fraud alerts
                 </div>
                 <Link
-                  to="/admin/fraud"
+                  to="/fraud"
                   className="text-xs text-primary hover:underline flex items-center gap-1"
                 >
                   All alerts <ArrowRight className="h-3 w-3" />
@@ -295,12 +290,12 @@ function AdminOverview() {
                 <Activity className="h-4 w-4 text-primary" />
                 Critical Audit Events
               </div>
-              <Link
-                to="/audit-timeline"
+              <a
+                href="/audit-timeline"
                 className="text-xs text-primary hover:underline flex items-center gap-1"
               >
                 Full timeline <ArrowRight className="h-3 w-3" />
-              </Link>
+              </a>
             </div>
             <div className="space-y-2">
               {criticalEvents.length === 0 ? (
