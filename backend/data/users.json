@@ -174,5 +174,27 @@
     "updatedAt": "2026-06-25T05:00:00.000Z",
     "txId": "genesis",
     "docType": "users"
+  },
+  "soulnani2441@gmail.com": {
+    "key": "soulnani2441@gmail.com",
+    "value": {
+      "name": "nithin",
+      "email": "soulnani2441@gmail.com",
+      "password": "$2b$10$RJjKhi0Bn.kdLEXx/fpJK.f0e7V2P4uHe3yBhoSF4s.d/xJKVW9fi",
+      "role": "patient",
+      "did": "did:hosp:0x4ba0999d",
+      "createdAt": "2026-07-01T16:12:52.570Z",
+      "walletAddress": "E92bLZaDwtGLAScWKyXT3z9cmMbsMKPbuJK5Z9jBsECq",
+      "mrn": "MRN-983442",
+      "phone": "+91 98765 43210",
+      "age": 21,
+      "gender": "M",
+      "bloodGroup": "O+"
+    },
+    "namespace": "users",
+    "version": "c9a19c8d-18e0-488c-808d-788f6c9daf3f:1",
+    "updatedAt": "2026-07-01T17:11:49.048Z",
+    "txId": "c9a19c8d-18e0-488c-808d-788f6c9daf3f",
+    "docType": "users"
   }
 }

@@ -5,6 +5,9 @@ export interface AuthUser {
   role: UserRole;
   name?: string;
   did?: string;
+  walletAddress?: string | null;
+  mrn?: string | null;
+  employeeId?: string | null;
 }
 
 const TOKEN_KEY = "authToken";
@@ -16,7 +19,15 @@ export function getToken(): string | null {
 
 export function setSession(
   token: string,
-  user: { name: string; email: string; role: string; did?: string },
+  user: {
+    name: string;
+    email: string;
+    role: string;
+    did?: string;
+    walletAddress?: string | null;
+    mrn?: string | null;
+    employeeId?: string | null;
+  },
 ): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(TOKEN_KEY, token);
@@ -27,6 +38,21 @@ export function setSession(
     localStorage.setItem("userDID", user.did);
   } else {
     localStorage.removeItem("userDID");
+  }
+  if (user.walletAddress) {
+    localStorage.setItem("userWalletAddress", user.walletAddress);
+  } else {
+    localStorage.removeItem("userWalletAddress");
+  }
+  if (user.mrn) {
+    localStorage.setItem("userMRN", user.mrn);
+  } else {
+    localStorage.removeItem("userMRN");
+  }
+  if (user.employeeId) {
+    localStorage.setItem("userEmployeeId", user.employeeId);
+  } else {
+    localStorage.removeItem("userEmployeeId");
   }
 }
 
@@ -40,8 +66,11 @@ export function getCurrentUser(): AuthUser | null {
 
   const name = localStorage.getItem("userName") ?? undefined;
   const did = localStorage.getItem("userDID") ?? undefined;
+  const walletAddress = localStorage.getItem("userWalletAddress") ?? undefined;
+  const mrn = localStorage.getItem("userMRN") ?? undefined;
+  const employeeId = localStorage.getItem("userEmployeeId") ?? undefined;
 
-  return { email, role, name, did };
+  return { email, role, name, did, walletAddress, mrn, employeeId };
 }
 
 export function isAuthenticated(): boolean {

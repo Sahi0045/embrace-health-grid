@@ -32,6 +32,14 @@ import { useState, useEffect } from "react";
 import { getUsers, createDID } from "@/lib/api";
 import { toast } from "sonner";
 import { useLivePatients, useLiveStaff } from "@/hooks/use-api";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/people")({
   head: () => ({
@@ -67,17 +75,42 @@ function PeopleManagement() {
     fetchUsers();
   }, []);
 
-  const handleIssueDID = async (user: any) => {
+  const [selectedUserForDID, setSelectedUserForDID] = useState<any | null>(null);
+  const [didDialogId, setDidDialogId] = useState("");
+  const [isDidDialogOpen, setIsDidDialogOpen] = useState(false);
+  const [isSubmittingDID, setIsSubmittingDID] = useState(false);
+
+  const handleIssueDIDClick = (user: any) => {
+    setSelectedUserForDID(user);
+    if (user.role === "patient") {
+      setDidDialogId(`MRN-${Math.floor(100000 + Math.random() * 900000)}`);
+    } else {
+      setDidDialogId(`EMP-${Math.floor(1000 + Math.random() * 9000)}`);
+    }
+    setIsDidDialogOpen(true);
+  };
+
+  const handleConfirmIssueDID = async () => {
+    if (!selectedUserForDID) return;
+    setIsSubmittingDID(true);
     try {
-      let didRole = user.role;
+      let didRole = selectedUserForDID.role;
       if (didRole === "staff") {
         didRole = "doctor";
       }
-      const res = await createDID(user.name, didRole, undefined, user.email);
-      toast.success(`DID issued successfully for ${user.name}!`, { description: res.did });
+      
+      const extraFields = didRole === "patient" 
+        ? { mrn: didDialogId }
+        : { employeeId: didDialogId };
+
+      const res = await createDID(selectedUserForDID.name, didRole, undefined, selectedUserForDID.email, extraFields);
+      toast.success(`DID issued successfully for ${selectedUserForDID.name}!`, { description: res.did });
+      setIsDidDialogOpen(false);
       fetchUsers();
     } catch (err: any) {
       toast.error(err.message || "Failed to issue DID");
+    } finally {
+      setIsSubmittingDID(false);
     }
   };
 
@@ -683,7 +716,7 @@ function PeopleManagement() {
                             {!u.did ? (
                               <Button
                                 size="sm"
-                                onClick={() => handleIssueDID(u)}
+                                onClick={() => handleIssueDIDClick(u)}
                                 className="inline-flex items-center gap-1 shadow-clinical"
                               >
                                 Issue DID
@@ -704,6 +737,51 @@ function PeopleManagement() {
           </Tabs>
         </div>
       </>
+
+      <Dialog open={isDidDialogOpen} onOpenChange={setIsDidDialogOpen}>
+        <DialogContent className="sm:max-w-md animate-in fade-in zoom-in duration-200">
+          <DialogHeader>
+            <DialogTitle>Assign Profile ID & Issue DID</DialogTitle>
+            <DialogDescription>
+              Assign a unique identifier for {selectedUserForDID?.name || "the user"} before registering their DID on the blockchain.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-muted-foreground">
+                {selectedUserForDID?.role === "patient" ? "Patient ID (MRN)" : "Employee ID"}
+              </label>
+              <Input
+                value={didDialogId}
+                onChange={(e) => setDidDialogId(e.target.value)}
+                placeholder={selectedUserForDID?.role === "patient" ? "e.g. MRN-204871" : "e.g. EMP-1029"}
+              />
+            </div>
+            <div className="rounded-lg bg-muted/50 p-3 space-y-1 text-xs">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">User Name:</span>
+                <span className="font-semibold">{selectedUserForDID?.name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">User Email:</span>
+                <span className="font-semibold">{selectedUserForDID?.email}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">System Role:</span>
+                <span className="font-semibold capitalize">{selectedUserForDID?.role}</span>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDidDialogOpen(false)} disabled={isSubmittingDID}>
+              Cancel
+            </Button>
+            <Button onClick={handleConfirmIssueDID} disabled={isSubmittingDID || !didDialogId.trim()}>
+              {isSubmittingDID ? "Issuing..." : "Confirm & Issue DID"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </RouteGuard>
   );
 }

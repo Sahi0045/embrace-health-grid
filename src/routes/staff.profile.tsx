@@ -4,8 +4,25 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Stethoscope, Mail, Phone, Calendar, Shield, LogOut, Edit, Award, Building2 } from "lucide-react";
+import { Stethoscope, Mail, Phone, Calendar, Shield, LogOut, Edit, Award, Building2, Wallet } from "lucide-react";
 import { RouteGuard } from "@/components/RouteGuard";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import { getCurrentUser, setSession } from "@/lib/auth";
+import { linkWalletAddress, updateProfile } from "@/lib/api";
+import { useLiveStaff } from "@/hooks/use-api";
+import { toast } from "sonner";
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export const Route = createFileRoute("/staff/profile")({
   head: () => ({
@@ -35,6 +52,89 @@ const staffData = {
 };
 
 function StaffProfile() {
+  const { staff } = useLiveStaff();
+  const [currentUser, setCurrentUser] = useState(getCurrentUser());
+  const { publicKey, connected } = useWallet();
+  const [linking, setLinking] = useState(false);
+
+  const userEmail = currentUser?.email || "";
+  const staffRecord = staff?.find((s: any) => s.email === userEmail) || {
+    name: currentUser?.name || staffData.name,
+    did: currentUser?.did || staffData.did,
+    employeeId: currentUser?.employeeId || staffData.employeeId,
+    email: currentUser?.email || staffData.email,
+    phone: currentUser?.phone || staffData.phone,
+    department: currentUser?.department || staffData.department,
+    role: currentUser?.role || staffData.role,
+    joinDate: staffData.joinDate,
+    specializations: currentUser?.specializations || staffData.specializations,
+    certifications: staffData.certifications,
+  };
+
+  const name = currentUser?.name || staffRecord.name;
+  const role = currentUser?.role || staffRecord.role || "Staff";
+  const phone = currentUser?.phone || staffRecord.phone || "+91 98765 43210";
+  const department = currentUser?.department || staffRecord.department || "General Medicine";
+  const specializations = currentUser?.specializations || staffRecord.specializations || [];
+
+  const employeeId = currentUser?.employeeId || staffRecord.employeeId;
+
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editName, setEditName] = useState(name);
+  const [editPhone, setEditPhone] = useState(phone);
+  const [editDepartment, setEditDepartment] = useState(department);
+  const [editRole, setEditRole] = useState(role);
+  const [editSpecializations, setEditSpecializations] = useState(specializations.join(", "));
+  const [updating, setUpdating] = useState(false);
+
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setUpdating(true);
+    try {
+      const res = await updateProfile({
+        name: editName,
+        phone: editPhone,
+        department: editDepartment,
+        role: editRole,
+        specializations: editSpecializations,
+      });
+      if (res.success && res.user) {
+        const token = localStorage.getItem("authToken") || "";
+        setSession(token, res.user);
+        setCurrentUser(getCurrentUser());
+        toast.success("Profile updated successfully!");
+        setIsEditOpen(false);
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update profile");
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+
+  const handleLinkWallet = async () => {
+    if (!publicKey) {
+      toast.error("Please connect your wallet first");
+      return;
+    }
+    setLinking(true);
+    try {
+      const address = publicKey.toBase58();
+      const res = await linkWalletAddress(address);
+      if (res.success && res.user) {
+        const token = localStorage.getItem("authToken") || "";
+        setSession(token, res.user);
+        setCurrentUser(getCurrentUser());
+        toast.success("Wallet linked successfully to your profile!");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to link wallet");
+    } finally {
+      setLinking(false);
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("userRole");
     localStorage.removeItem("userEmail");
@@ -58,13 +158,13 @@ function StaffProfile() {
                   <Stethoscope className="h-8 w-8" />
                 </div>
                 <div>
-                  <CardTitle className="text-2xl">{staffData.name}</CardTitle>
+                  <CardTitle className="text-2xl">{name}</CardTitle>
                   <CardDescription className="mt-1">
-                    {staffData.role} • {staffData.employeeId}
+                    {role} • {employeeId}
                   </CardDescription>
                 </div>
               </div>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={() => setIsEditOpen(true)}>
                 <Edit className="mr-2 h-4 w-4" />
                 Edit Profile
               </Button>
@@ -78,7 +178,7 @@ function StaffProfile() {
                 </div>
                 <div>
                   <div className="text-sm text-muted-foreground">Department</div>
-                  <div className="font-medium">{staffData.department}</div>
+                  <div className="font-medium">{department}</div>
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -101,7 +201,7 @@ function StaffProfile() {
                 </div>
                 <div>
                   <div className="text-sm text-muted-foreground">Email</div>
-                  <div className="font-medium text-sm">{staffData.email}</div>
+                  <div className="font-medium text-sm">{staffRecord.email}</div>
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -110,7 +210,7 @@ function StaffProfile() {
                 </div>
                 <div>
                   <div className="text-sm text-muted-foreground">Phone</div>
-                  <div className="font-medium">{staffData.phone}</div>
+                  <div className="font-medium">{phone}</div>
                 </div>
               </div>
             </div>
@@ -123,11 +223,15 @@ function StaffProfile() {
                 Specializations
               </div>
               <div className="flex flex-wrap gap-2">
-                {staffData.specializations.map((spec) => (
-                  <Badge key={spec} variant="secondary">
-                    {spec}
-                  </Badge>
-                ))}
+                {specializations.length > 0 ? (
+                  specializations.map((spec: string) => (
+                    <Badge key={spec} variant="secondary">
+                      {spec}
+                    </Badge>
+                  ))
+                ) : (
+                  <span className="text-xs text-muted-foreground">No specializations listed</span>
+                )}
               </div>
             </div>
           </CardContent>
@@ -146,10 +250,68 @@ function StaffProfile() {
           <CardContent>
             <div className="rounded-lg bg-muted p-4">
               <div className="text-sm text-muted-foreground">DID</div>
-              <div className="mt-1 font-mono text-sm font-medium">{staffData.did}</div>
+              <div className="mt-1 font-mono text-sm font-medium">{staffRecord.did}</div>
             </div>
             <div className="mt-4 text-xs text-muted-foreground">
               This DID verifies your credentials and authorizes access to patient records.
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Wallet className="h-5 w-5 text-primary" />
+              <CardTitle>Solana Wallet Integration</CardTitle>
+            </div>
+            <CardDescription>
+              Link a single Solana wallet address to sign prescriptions and write ledger audit events.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {currentUser?.walletAddress ? (
+              <div className="rounded-lg border border-success/25 bg-success/5 p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-success uppercase tracking-wider">
+                    Linked Address
+                  </span>
+                  <Badge className="bg-success/15 text-success border border-success/35">
+                    Verified Profile Link
+                  </Badge>
+                </div>
+                <div className="font-mono text-xs text-foreground select-all break-all">
+                  {currentUser.walletAddress}
+                </div>
+                {connected && publicKey?.toBase58() !== currentUser.walletAddress && (
+                  <div className="text-xs text-destructive font-medium mt-1">
+                    ⚠️ Mismatched Wallet: Currently connected to {publicKey.toBase58().slice(0, 6)}...{publicKey.toBase58().slice(-4)}. Please switch to your registered wallet.
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="rounded-lg border border-warning/20 bg-warning/5 p-4">
+                <div className="text-xs font-semibold text-warning uppercase tracking-wider mb-1">
+                  No Wallet Linked
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  You have not linked a Solana wallet to your profile yet. Connect your wallet and link it below to enable clinical ledger signatures.
+                </p>
+              </div>
+            )}
+
+            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+              <div className="wallet-adapter-button-trigger">
+                <WalletMultiButton className="!bg-primary hover:!bg-primary/90 !rounded-lg !h-10 !text-sm !font-semibold !px-4" />
+              </div>
+              {connected && publicKey?.toBase58() !== currentUser?.walletAddress && (
+                <Button
+                  onClick={handleLinkWallet}
+                  disabled={linking}
+                  className="h-10 text-sm font-semibold shadow-clinical cursor-pointer"
+                >
+                  {linking ? "Linking..." : "Link Connected Wallet"}
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -182,6 +344,74 @@ function StaffProfile() {
             </div>
           </CardContent>
         </Card>
+
+        <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Edit Profile</DialogTitle>
+              <DialogDescription>
+                Update your professional and department details. Some parameters are synced on-chain.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleUpdateProfile} className="space-y-4 py-4">
+              <div className="space-y-1">
+                <Label htmlFor="name">Full Name</Label>
+                <Input
+                  id="name"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <Label htmlFor="role">Role / Title</Label>
+                  <Input
+                    id="role"
+                    value={editRole}
+                    onChange={(e) => setEditRole(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="dept">Department</Label>
+                  <Input
+                    id="dept"
+                    value={editDepartment}
+                    onChange={(e) => setEditDepartment(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="phone">Phone</Label>
+                <Input
+                  id="phone"
+                  value={editPhone}
+                  onChange={(e) => setEditPhone(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="specializations">Specializations (comma separated)</Label>
+                <Input
+                  id="specializations"
+                  placeholder="e.g. Cardiology, Echocardiography"
+                  value={editSpecializations}
+                  onChange={(e) => setEditSpecializations(e.target.value)}
+                />
+              </div>
+              <DialogFooter className="pt-2">
+                <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={updating}>
+                  {updating ? "Saving..." : "Save Changes"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
 
         <div className="flex gap-3">
           <Button variant="outline" className="flex-1" asChild>

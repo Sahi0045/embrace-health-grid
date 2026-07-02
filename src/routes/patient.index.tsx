@@ -22,6 +22,7 @@ import { motion } from "framer-motion";
 import { RouteGuard } from "@/components/RouteGuard";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
+import { getCurrentUser } from "@/lib/auth";
 
 export const Route = createFileRoute("/patient/")({
   head: () => ({ meta: [{ title: "Patient · Home — DID Hospital" }] }),
@@ -123,6 +124,34 @@ function PatientHome() {
         />
 
         <StaggerList className="mt-6 space-y-5">
+          {/* Solana Wallet Prompt Banner */}
+          {!getCurrentUser()?.walletAddress && (
+            <StaggerItem>
+              <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-5 shadow-clinical">
+                <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/20 text-primary">
+                      <Wallet className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-semibold text-foreground">
+                        Secure Your Digital Identity
+                      </h3>
+                      <p className="mt-1 text-xs text-muted-foreground leading-relaxed max-w-md">
+                        Link your Solana Wallet to sign consents and verify medical credentials immutably on-chain.
+                      </p>
+                    </div>
+                  </div>
+                  <Button asChild size="sm" className="shrink-0 shadow-clinical">
+                    <Link to="/patient/profile">
+                      Link Wallet <ChevronRight className="ml-1 h-3.5 w-3.5" />
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            </StaggerItem>
+          )}
+
           {/* DID Card */}
           <StaggerItem>
             <motion.div

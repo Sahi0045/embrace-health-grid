@@ -441,11 +441,56 @@ export const login = (data: { email: string; password?: string }) =>
   apiFetch<{
     success: boolean;
     token: string;
-    user: { name: string; email: string; role: string; did?: string };
+    user: {
+      name: string;
+      email: string;
+      role: string;
+      did?: string;
+      walletAddress?: string | null;
+      mrn?: string | null;
+      employeeId?: string | null;
+    };
   }>(`/auth/login`, {
     method: "POST",
     body: JSON.stringify(data),
   });
+
+export const linkWalletAddress = (walletAddress: string) =>
+  apiFetch<{
+    success: boolean;
+    user: {
+      name: string;
+      email: string;
+      role: string;
+      did?: string | null;
+      walletAddress: string;
+      mrn?: string | null;
+      employeeId?: string | null;
+    };
+  }>(`/auth/link-wallet`, {
+    method: "POST",
+    body: JSON.stringify({ walletAddress }),
+  });
+
+export const updateProfile = (data: {
+  name?: string;
+  phone?: string;
+  age?: number;
+  gender?: string;
+  bloodGroup?: string;
+  allergies?: string[] | string;
+  department?: string;
+  role?: string;
+  specializations?: string[] | string;
+}) =>
+  apiFetch<{
+    success: boolean;
+    user: any;
+  }>(`/auth/update-profile`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+
 
 export const getUsers = () =>
   apiFetch<{

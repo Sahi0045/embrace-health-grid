@@ -29,6 +29,7 @@ function DIDManagement() {
     email: "",
     role: "patient",
     // Patient specific fields:
+    mrn: "",
     age: "",
     gender: "M",
     bloodGroup: "O+",
@@ -77,6 +78,7 @@ function DIDManagement() {
     let extraFields: any = {};
     if (role === "patient") {
       extraFields = {
+        mrn: rest.mrn,
         age: rest.age,
         gender: rest.gender,
         bloodGroup: rest.bloodGroup,
@@ -102,6 +104,7 @@ function DIDManagement() {
         name: "",
         email: "",
         role: "patient",
+        mrn: "",
         age: "",
         gender: "M",
         bloodGroup: "O+",
@@ -287,6 +290,22 @@ function DIDManagement() {
                 <h4 className="text-xs font-bold uppercase tracking-wider text-primary">
                   Patient Medical Profile
                 </h4>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-semibold text-muted-foreground">
+                      Patient ID (MRN)
+                    </label>
+                    <input
+                      type="text"
+                      name="mrn"
+                      value={formData.mrn}
+                      onChange={handleInputChange}
+                      placeholder="e.g. MRN-204871 (optional)"
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
+                    />
+                  </div>
+                </div>
 
                 <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-1">
