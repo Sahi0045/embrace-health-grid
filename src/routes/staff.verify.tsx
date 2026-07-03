@@ -4,8 +4,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { PageHeader } from "@/components/PageHeader";
 import { RouteGuard } from "@/components/RouteGuard";
 import { useLivePatients } from "@/hooks/use-api";
-import { logAuditEvent, verifyNFCCard, resolveDID } from "@/lib/api";
+import { logAuditEvent, verifyNFCCard, resolveDID, API_BASE_URL } from "@/lib/api";
 import { currentPatient } from "@/lib/mock-data";
+import { PublicKey, Connection } from "@solana/web3.js";
+import { MerkleTree } from "@/lib/merkle";
 import {
   ScanLine,
   CheckCircle2,
@@ -62,9 +64,80 @@ function VerifyPatient() {
   const [error, setError] = useState<string | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
 
-  // UI state
   const [chartOpen, setChartOpen] = useState(false);
   const [zkpOpen, setZkpOpen] = useState(false);
+
+  const [solanaVerifying, setSolanaVerifying] = useState(false);
+  const [solanaVerified, setSolanaVerified] = useState(false);
+  const [solanaRoot, setSolanaRoot] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!scanResult?.did) {
+      setSolanaVerified(false);
+      setSolanaRoot(null);
+      return;
+    }
+
+    const verifyOnChain = async () => {
+      setSolanaVerifying(true);
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/medical-records/${encodeURIComponent(scanResult.did)}`, {
+          headers: {
+            "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
+          }
+        });
+        if (!response.ok) throw new Error("Failed to fetch medical records");
+        const data = await response.json();
+        const records = data.records || [];
+
+        if (records.length === 0) {
+          setSolanaVerified(false);
+          setSolanaRoot(null);
+          return;
+        }
+
+        const hashes = records.map((r: any) => r.hash || `sha256:${r.recordId}`);
+        const tree = new MerkleTree(hashes);
+        await tree.build();
+        const localRoot = tree.getRoot();
+
+        const PROGRAM_ID = new PublicKey("BxkLrjBYdb3nh2m9GCfpLXBWrAj3s9MqnRbwktLqSfN3");
+        const [patientRootPda] = PublicKey.findProgramAddressSync(
+          [Buffer.from("patient-root"), Buffer.from(scanResult.did)],
+          PROGRAM_ID
+        );
+
+        const connection = new Connection("https://api.devnet.solana.com", "confirmed");
+        const accountInfo = await connection.getAccountInfo(patientRootPda);
+
+        if (accountInfo) {
+          const didLen = accountInfo.data.readUInt32LE(8);
+          const rootOffset = 8 + 4 + didLen;
+          const rootBytes = accountInfo.data.slice(rootOffset, rootOffset + 32);
+          const chainRoot = Buffer.from(rootBytes).toString("hex");
+          
+          setSolanaRoot(chainRoot);
+          if (chainRoot === localRoot) {
+            setSolanaVerified(true);
+            toast.success("Medical records cryptographically verified on Solana Devnet!");
+          } else {
+            setSolanaVerified(false);
+            toast.warning("On-chain root mismatch! Records might be out of sync or modified.");
+          }
+        } else {
+          setSolanaRoot(null);
+          setSolanaVerified(false);
+        }
+      } catch (err) {
+        console.warn("Solana verification failed:", err);
+        setSolanaVerified(false);
+      } finally {
+        setSolanaVerifying(false);
+      }
+    };
+
+    verifyOnChain();
+  }, [scanResult?.did]);
 
   // NFC & Fallback States
   const [activeTab, setActiveTab] = useState<"qr" | "nfc">("qr");
@@ -544,9 +617,24 @@ function VerifyPatient() {
                       {displayPatient.age} · {displayPatient.gender} · MRN {displayPatient.mrn}
                     </div>
                   </div>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-3 py-1 text-xs font-medium text-success">
-                    <ShieldCheck className="h-3 w-3" /> Verified
-                  </span>
+                  <div className="flex flex-col items-end gap-1.5">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-3 py-1 text-xs font-medium text-success">
+                      <ShieldCheck className="h-3 w-3" /> Verified
+                    </span>
+                    {solanaVerifying ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-warning/15 px-3 py-1 text-xs font-medium text-warning border border-warning/30 animate-pulse">
+                        <RefreshCw className="h-3 w-3 animate-spin" /> Checking Solana...
+                      </span>
+                    ) : solanaVerified ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-3 py-1 text-xs font-medium text-success border border-success/30">
+                        <ShieldCheck className="h-3 w-3" /> Solana Secured
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground border">
+                        <Lock className="h-3 w-3" /> Root Unanchored
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Access Granted banner */}

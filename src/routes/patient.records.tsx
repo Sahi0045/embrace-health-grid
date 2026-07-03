@@ -22,7 +22,13 @@ import {
   ShoppingBag,
   AlertCircle,
   CheckCircle2,
+  Loader2,
+  Lock,
+  Share2,
 } from "lucide-react";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { PublicKey, Transaction, Connection } from "@solana/web3.js";
+import { API_BASE_URL } from "@/lib/api";
 import {
   prescriptions,
   medicalDocuments,
@@ -61,6 +67,90 @@ function MedicalRecords() {
   const [loading, setLoading] = useState(true);
 
   const patientDid = typeof window !== "undefined" ? localStorage.getItem("userDID") || "" : "";
+
+  const { publicKey, signTransaction, connected } = useWallet();
+  const [anchoring, setAnchoring] = useState(false);
+  const [onChainRoot, setOnChainRoot] = useState<string | null>(null);
+  const [onChainTx, setOnChainTx] = useState<string | null>(null);
+
+  const fetchOnChainRoot = useCallback(async () => {
+    if (!publicKey || !patientDid) return;
+    try {
+      const PROGRAM_ID = new PublicKey("BxkLrjBYdb3nh2m9GCfpLXBWrAj3s9MqnRbwktLqSfN3");
+      const [patientRootPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("patient-root"), Buffer.from(patientDid)],
+        PROGRAM_ID
+      );
+      const connection = new Connection("https://api.devnet.solana.com", "confirmed");
+      const accountInfo = await connection.getAccountInfo(patientRootPda);
+      if (accountInfo) {
+        const didLen = accountInfo.data.readUInt32LE(8);
+        const rootOffset = 8 + 4 + didLen;
+        const rootBytes = accountInfo.data.slice(rootOffset, rootOffset + 32);
+        setOnChainRoot(Buffer.from(rootBytes).toString("hex"));
+      } else {
+        setOnChainRoot(null);
+      }
+    } catch (err) {
+      console.warn("Could not load on-chain Merkle Root:", err);
+    }
+  }, [publicKey, patientDid]);
+
+  useEffect(() => {
+    fetchOnChainRoot();
+  }, [fetchOnChainRoot]);
+
+  const handleAnchorRecords = async () => {
+    if (!publicKey || !signTransaction) {
+      toast.error("Please connect your Phantom wallet first");
+      return;
+    }
+    setAnchoring(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/medical-records/${encodeURIComponent(patientDid)}/anchor`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
+        },
+        body: JSON.stringify({
+          authorityPubkey: publicKey.toBase58(),
+          isUpdate: !!onChainRoot,
+        }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Failed to generate anchoring transaction");
+      }
+
+      const res = await response.json();
+      const tx = Transaction.from(Buffer.from(res.transactionPayload, "base64"));
+
+      toast.info("Requesting signature from Phantom wallet...");
+      const connection = new Connection("https://api.devnet.solana.com", "confirmed");
+      
+      const { blockhash } = await connection.getLatestBlockhash("confirmed");
+      tx.recentBlockhash = blockhash;
+
+      const signedTx = await signTransaction(tx);
+      toast.info("Broadcasting transaction to Solana Devnet...");
+      
+      const txid = await connection.sendRawTransaction(signedTx.serialize());
+      toast.info("Awaiting transaction confirmation on-chain...");
+      
+      await connection.confirmTransaction(txid, "confirmed");
+      
+      setOnChainRoot(res.merkleRoot);
+      setOnChainTx(txid);
+      toast.success("Medical records successfully anchored on Solana Devnet!");
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Failed to anchor medical records");
+    } finally {
+      setAnchoring(false);
+    }
+  };
 
   useEffect(() => {
     if (!patientDid) {
@@ -127,6 +217,80 @@ function MedicalRecords() {
           title="Medical Records"
           description="Prescriptions, reports, health metrics, pharmacy and rehabilitation"
         />
+
+        {/* Solana On-Chain Merkle Ledger Registry */}
+        <Card className="mt-6 border-primary/20 bg-primary/5 shadow-clinical">
+          <CardHeader className="pb-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <Lock className="h-6 w-6" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg">Solana On-Chain Medical Registry</CardTitle>
+                  <CardDescription>
+                    Anchor the cryptographic proof (Merkle Root) of your medical records on Solana.
+                  </CardDescription>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 self-start sm:self-center">
+                {connected ? (
+                  <Button
+                    onClick={handleAnchorRecords}
+                    disabled={anchoring || apiRecords.length === 0}
+                    className="cursor-pointer"
+                  >
+                    {anchoring ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Anchoring...
+                      </>
+                    ) : onChainRoot ? (
+                      "Update On-Chain Root"
+                    ) : (
+                      "Anchor Records"
+                    )}
+                  </Button>
+                ) : (
+                  <span className="text-xs text-muted-foreground italic">Connect Phantom wallet on profile page to anchor</span>
+                )}
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="text-sm space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-lg border bg-card p-3">
+                <div className="text-xs text-muted-foreground">Current Medical Records Hash Count</div>
+                <div className="text-lg font-bold text-foreground mt-1">
+                  {apiRecords.length} Records
+                </div>
+              </div>
+              <div className="rounded-lg border bg-card p-3">
+                <div className="text-xs text-muted-foreground">On-Chain Merkle Root</div>
+                <div className="text-sm font-semibold font-mono text-primary truncate mt-1">
+                  {onChainRoot ? `0x${onChainRoot.slice(0, 10)}...${onChainRoot.slice(-10)}` : "Not Anchored"}
+                </div>
+              </div>
+            </div>
+            {onChainTx && (
+              <div className="mt-2 flex items-center justify-between rounded-lg bg-success/10 p-2.5 text-xs text-success-foreground border border-success/20">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-success" />
+                  <span>Records successfully anchored on Solana Devnet!</span>
+                </div>
+                <a
+                  href={`https://solscan.io/tx/${onChainTx}?cluster=devnet`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-1 font-semibold underline text-primary hover:text-primary/80"
+                >
+                  <Share2 className="h-3 w-3" />
+                  View on Solscan
+                </a>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         <div className="mt-6">
           <Tabs defaultValue="prescriptions" className="w-full">

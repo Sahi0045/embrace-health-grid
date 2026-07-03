@@ -28,6 +28,8 @@ import {
 import { buildAuth } from "./middleware/auth.js";
 import { createAuditHelper } from "./lib/audit.js";
 import { registerExtensionRoutes } from "./routes/extensions.js";
+import { MerkleTree, sha256 } from "./merkle.js";
+import { PublicKey, Transaction, TransactionInstruction, Connection } from "@solana/web3.js";
 import { signCredential } from "./lib/vc-sign.js";
 import * as notificationStore from "./lib/notifications.js";
 import { splitRecord } from "./lib/hash.js";
@@ -459,13 +461,28 @@ app.post("/api/consent/grant", requireAuth, requireRole(["patient"]), (req, res)
     grantId,
     patientDid,
     doctorDid,
-    resource,
+    resource: resource || "Medical Records",
     status: "active",
     expiry: expiry || new Date(Date.now() + 7 * 86400000).toISOString(),
     grantedAt: new Date().toISOString(),
   };
   putState("consent-manager", grantId, grant, txId);
   broadcast({ event: "consent:granted", data: grant });
+
+  // Update matching pending consent request to approved
+  const requests = getAllState("consent-requests");
+  const pending = requests.find(
+    (r) =>
+      r.value &&
+      r.value.patientDid === patientDid &&
+      r.value.doctorDid === doctorDid &&
+      r.value.status === "pending"
+  );
+  if (pending) {
+    pending.value.status = "approved";
+    putState("consent-requests", pending.key, pending.value, txId);
+  }
+
   res.json(grant);
 });
 
@@ -476,6 +493,14 @@ app.patch("/api/consent/:id/revoke", requireAuth, requireRole(["patient"]), (req
   entry.value.revokedAt = new Date().toISOString();
   putState("consent-manager", req.params.id, entry.value, randomUUID());
   broadcast({ event: "consent:revoked", data: { id: req.params.id } });
+  res.json({ success: true });
+});
+
+app.patch("/api/consent/requests/:id/deny", requireAuth, requireRole(["patient"]), (req, res) => {
+  const entry = getState("consent-requests", req.params.id);
+  if (!entry) return res.status(404).json({ error: "Request not found" });
+  entry.value.status = "denied";
+  putState("consent-requests", req.params.id, entry.value, randomUUID());
   res.json({ success: true });
 });
 
@@ -674,6 +699,189 @@ app.get("/api/labs/:patientDid", requireAuth, (req, res) => {
   }
   const all = queryState("lab-results", (v) => v.patientDid === req.params.patientDid);
   res.json({ labs: all.map((e) => e.value) });
+});
+
+// ─── Medical Records ──────────────────────────────────────────────────────────
+async function getAnchorDiscriminator(name) {
+  const hash = await sha256(`global:${name}`);
+  return Buffer.from(hash.substring(0, 16), "hex");
+}
+
+async function buildAnchorTransaction(patientDid, merkleRootHex, authorityPubkeyStr, isUpdate = false) {
+  const PROGRAM_ID = new PublicKey("BxkLrjBYdb3nh2m9GCfpLXBWrAj3s9MqnRbwktLqSfN3");
+  const authority = new PublicKey(authorityPubkeyStr);
+
+  const [patientRootPda] = PublicKey.findProgramAddressSync(
+    [Buffer.from("patient-root"), Buffer.from(patientDid)],
+    PROGRAM_ID
+  );
+
+  const discriminator = await getAnchorDiscriminator(
+    isUpdate ? "update_patient_root" : "register_patient_root"
+  );
+
+  const didBytes = Buffer.from(patientDid);
+  const didLen = Buffer.alloc(4);
+  didLen.writeUInt32LE(didBytes.length);
+  const rootBytes = Buffer.from(merkleRootHex, "hex");
+
+  const data = Buffer.concat([discriminator, didLen, didBytes, rootBytes]);
+
+  const keys = [
+    { pubkey: patientRootPda, isSigner: false, isWritable: true },
+  ];
+
+  if (!isUpdate) {
+    keys.push({ pubkey: authority, isSigner: true, isWritable: true });
+    keys.push({ pubkey: new PublicKey("11111111111111111111111111111111"), isSigner: false, isWritable: false });
+  } else {
+    keys.push({ pubkey: authority, isSigner: true, isWritable: false });
+  }
+
+  const instruction = new TransactionInstruction({
+    keys,
+    programId: PROGRAM_ID,
+    data,
+  });
+
+  const tx = new Transaction().add(instruction);
+  tx.feePayer = authority;
+  tx.recentBlockhash = "11111111111111111111111111111111";
+
+  const serialized = tx.serialize({
+    requireAllSignatures: false,
+    verifySignatures: false,
+  });
+
+  return serialized.toString("base64");
+}
+
+app.get("/api/medical-records/:patientDid", requireAuth, (req, res) => {
+  if (req.user.role === "patient" && req.user.did !== req.params.patientDid) {
+    return res.status(403).json({ error: "Access Denied: Cannot view other patients' records" });
+  }
+
+  let all = queryState("medical-records", (v) => v.patientDid === req.params.patientDid);
+  
+  if (all.length === 0) {
+    const defaultDocs = [
+      {
+        id: "REC-INITIAL-DISCHARGE",
+        title: "Initial Discharge Summary",
+        type: "discharge-summary",
+        date: new Date(Date.now() - 30 * 86400000).toISOString(),
+        issuedBy: "Dr. Ravi Menon",
+        fileSize: "14 KB",
+        summary: "Patient admitted with symptoms of angina. Angiography showed clear coronary pathways. Discharged with beta-blockers.",
+        isNew: false,
+      },
+      {
+        id: "REC-INITIAL-ECG",
+        title: "Routine ECG Diagnostic",
+        type: "imaging",
+        date: new Date(Date.now() - 15 * 86400000).toISOString(),
+        issuedBy: "Dr. Ravi Menon",
+        fileSize: "45 KB",
+        summary: "Sinus rhythm at 72 bpm. Ejection fraction at 60%. Cardiomegaly ruled out.",
+        isNew: false,
+      },
+      {
+        id: "REC-INITIAL-LIPID",
+        title: "Standard Lipid Panel",
+        type: "lab-report",
+        date: new Date(Date.now() - 7 * 86400000).toISOString(),
+        issuedBy: "Dr. Sameer Khan",
+        fileSize: "8 KB",
+        summary: "Total Cholesterol: 180 mg/dL, HDL: 45 mg/dL, LDL: 92 mg/dL. Triglycerides normal.",
+        isNew: true,
+      }
+    ];
+
+    defaultDocs.forEach((doc) => {
+      const txId = randomUUID();
+      const val = {
+        recordId: doc.id,
+        patientDid: req.params.patientDid,
+        title: doc.title,
+        type: doc.type,
+        content: doc.summary,
+        doctorName: doc.issuedBy,
+        createdAt: doc.date,
+        hash: `sha256:d8c0b56${randomUUID().slice(0, 8)}`,
+      };
+      putState("medical-records", doc.id, val, txId);
+    });
+
+    all = queryState("medical-records", (v) => v.patientDid === req.params.patientDid);
+  }
+
+  res.json({ records: all.map((e) => e.value), total: all.length });
+});
+
+app.post("/api/medical-records/:patientDid", requireAuth, requireRole(["doctor", "staff"]), async (req, res) => {
+  const { patientDid } = req.params;
+  const { title, type, content, doctorDid, doctorName } = req.body;
+
+  if (!title || !type || !content) {
+    return res.status(400).json({ error: "title, type, and content are required" });
+  }
+
+  const recordId = `REC-${Date.now().toString(36).toUpperCase()}`;
+  const txId = randomUUID();
+  const hash = await sha256(recordId + title + type + content);
+
+  const record = {
+    recordId,
+    patientDid,
+    title,
+    type,
+    content,
+    doctorDid: doctorDid || req.user.did || "did:hosp:unknown",
+    doctorName: doctorName || req.user.name || "Doctor",
+    createdAt: new Date().toISOString(),
+    hash: `sha256:${hash}`,
+  };
+
+  putState("medical-records", recordId, record, txId);
+  broadcast({ event: "record:created", data: record });
+
+  res.json({ record, txId });
+});
+
+app.post("/api/medical-records/:patientDid/anchor", requireAuth, async (req, res) => {
+  const { patientDid } = req.params;
+  const { authorityPubkey, isUpdate = false } = req.body;
+
+  if (!authorityPubkey) {
+    return res.status(400).json({ error: "authorityPubkey is required" });
+  }
+
+  const records = queryState("medical-records", (v) => v.patientDid === patientDid).map((e) => e.value);
+  if (records.length === 0) {
+    return res.status(400).json({ error: "No medical records found to anchor" });
+  }
+
+  const hashes = records.map((r) => r.hash || `sha256:${r.recordId}`);
+  const tree = new MerkleTree(hashes);
+  await tree.build();
+  const root = tree.getRoot();
+
+  try {
+    const transactionPayload = await buildAnchorTransaction(
+      patientDid,
+      root,
+      authorityPubkey,
+      isUpdate
+    );
+    res.json({
+      success: true,
+      merkleRoot: root,
+      hashes,
+      transactionPayload,
+    });
+  } catch (err) {
+    res.status(500).json({ error: `Solana transaction serialization failed: ${err.message}` });
+  }
 });
 
 // ─── Fraud alerts ─────────────────────────────────────────────────────────────
