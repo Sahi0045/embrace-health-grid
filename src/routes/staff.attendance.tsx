@@ -60,7 +60,7 @@ function StaffAttendance() {
         }
       }
     } catch (err) {
-      console.warn("Could not load attendance from API, using local mock status:", err);
+      console.warn("Could not load attendance from API:", err);
     } finally {
       setLoading(false);
     }

@@ -90,7 +90,7 @@ function MedicalRecords() {
           setApiFeedbackList(fbRes.feedback || []);
         }
       } catch (err) {
-        console.warn("Could not load medical records from API, using mock data:", err);
+        console.warn("Could not load medical records from API:", err);
       } finally {
         if (mounted) setLoading(false);
       }
