@@ -24,7 +24,6 @@ import {
   AlertCircle,
   Clock,
 } from "lucide-react";
-import { peopleStats } from "@/lib/people-data";
 import { DIDBadge } from "@/components/did/DIDBadge";
 import { DIDStatusChip } from "@/components/did/DIDStatusChip";
 import { useState, useEffect } from "react";

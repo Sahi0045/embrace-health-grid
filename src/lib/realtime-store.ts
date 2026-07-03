@@ -542,29 +542,27 @@ function handleStoreWebSocketMessage(event: string, data: any) {
           if (patient) {
             _vitals.set(patient.id, mappedVitals);
 
-            // TODO: Sync vitals to Convex
-            // Uncomment when ready:
-            // try {
-            //   const client = getConvexClient();
-            //   await client.mutation(api.records.updatePatientVitals, {
-            //     patientDid: patient.did,
-            //     vitals: {
-            //       heartRate: mappedVitals.heartRate,
-            //       bloodPressure: {
-            //         systolic: parseInt(mappedVitals.bp.split('/')[0]),
-            //         diastolic: parseInt(mappedVitals.bp.split('/')[1]),
-            //       },
-            //       temperature: mappedVitals.temp,
-            //       respiratoryRate: mappedVitals.respRate,
-            //       oxygenSaturation: mappedVitals.spo2,
-            //     },
-            //     txId: `ws_${Date.now()}`,
-            //     version: '1.0',
-            //     recordedAt: new Date().toISOString(),
-            //   });
-            // } catch (error) {
-            //   console.error('[Store] Error syncing vitals to Convex:', error);
-            // }
+            try {
+              const client = getConvexClient();
+              await client.mutation(api.records.updatePatientVitals, {
+                patientDid: patient.did,
+                vitals: {
+                  heartRate: mappedVitals.heartRate,
+                  bloodPressure: {
+                    systolic: parseInt(mappedVitals.bp.split('/')[0]),
+                    diastolic: parseInt(mappedVitals.bp.split('/')[1]),
+                  },
+                  temperature: mappedVitals.temp,
+                  respiratoryRate: mappedVitals.respRate,
+                  oxygenSaturation: mappedVitals.spo2,
+                },
+                txId: `ws_${Date.now()}`,
+                version: '1.0',
+                recordedAt: new Date().toISOString(),
+              });
+            } catch (error) {
+              console.error('[Store] Error syncing vitals to Convex:', error);
+            }
           }
         }
       });
@@ -601,22 +599,20 @@ function handleStoreWebSocketMessage(event: string, data: any) {
         beacon: beaconStrength,
       });
 
-      // TODO: Sync staff location to Convex
-      // Uncomment when ready:
-      // (async () => {
-      //   try {
-      //     const client = getConvexClient();
-      //     await client.mutation(api.records.updateStaffLocation, {
-      //       did: staffMember.did,
-      //       location,
-      //       beaconStrength,
-      //       txId: `ws_${Date.now()}`,
-      //       version: '1.0',
-      //     });
-      //   } catch (error) {
-      //     console.error('[Store] Error syncing staff location to Convex:', error);
-      //   }
-      // })();
+      (async () => {
+        try {
+          const client = getConvexClient();
+          await client.mutation(api.records.updateStaffLocation, {
+            did: staffMember.did,
+            location,
+            beaconStrength,
+            txId: `ws_${Date.now()}`,
+            version: '1.0',
+          });
+        } catch (error) {
+          console.error('[Store] Error syncing staff location to Convex:', error);
+        }
+      })();
 
       emitStoreEvent("staff:location:update", {
         memberId: staffMember.id,
@@ -663,16 +659,14 @@ function handleStoreWebSocketMessage(event: string, data: any) {
   } else if (event === "did:created" || event === "did:updated") {
     const doc = data;
     if (doc && doc.did) {
-      // TODO: Sync DID update to Convex and rebuild lists
-      // Uncomment when ready:
-      // (async () => {
-      //   try {
-      //     await rebuildLiveListsFromConvex();
-      //     emitStoreEvent("store:ready");
-      //   } catch (error) {
-      //     console.error('[Store] Error syncing DID to Convex:', error);
-      //   }
-      // })();
+      (async () => {
+        try {
+          await rebuildLiveListsFromConvex();
+          emitStoreEvent("store:ready");
+        } catch (error) {
+          console.error('[Store] Error syncing DID to Convex:', error);
+        }
+      })();
     }
   }
 }

@@ -1,0 +1,23 @@
+{
+  "diet1": {
+    "key": "diet1",
+    "value": {
+      "id": "diet1",
+      "patientDid": "did:hosp:0x643a3a37",
+      "type": "Cardiac Diet (Low-sodium, Diabetic)",
+      "restrictions": [
+        "Low sodium (< 2g/day)",
+        "Low saturated fat",
+        "Controlled carbohydrates"
+      ],
+      "startDate": "2026-05-27",
+      "orderedBy": "Dr. Ravi Menon",
+      "specialInstructions": "Small frequent meals. Monitor blood sugar before meals."
+    },
+    "namespace": "diet-orders",
+    "version": "3835b207-caa3-4b49-872d-2d3829367414:1",
+    "updatedAt": "2026-07-03T16:41:44.576Z",
+    "txId": "3835b207-caa3-4b49-872d-2d3829367414",
+    "docType": "diet-orders"
+  }
+}
