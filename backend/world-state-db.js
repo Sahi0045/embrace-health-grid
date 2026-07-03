@@ -109,24 +109,48 @@ function flushNamespace(namespace) {
 // World State API
 // ---------------------------------------------------------------------------
 
+const ALL_NAMESPACES = [
+  "did-registry",
+  "consent-manager",
+  "billing",
+  "tracker",
+  "appointments",
+  "audit",
+  "financial",
+  "medical-records",
+  "medical-records-anchor",
+  "consent-requests",
+  "nfc-cards",
+  "ambulances",
+  "insurance-claims",
+  "vaccines",
+  "visitors",
+  "attendance",
+  "users",
+  "beds",
+  "prescriptions",
+  "lab-results",
+  "fraud-alerts",
+  "equipment",
+  "zkproofs",
+  "admissions",
+  "medications",
+  "nursing-notes",
+  "daily-checkups",
+  "procedures",
+  "diet-orders",
+  "vitals-history",
+  "health-metrics",
+  "pharmacy-orders",
+  "rehab-sessions",
+  "feedback"
+];
+
 // 🔄 Synchronously initialize/replicate from Convex database on boot
 export async function bootstrapFromConvex() {
   if (!convexClient) return;
   console.log("🔄 Replicating World State from Convex to local cache...");
-  const namespaces = [
-    "did-registry",
-    "consent-manager",
-    "billing",
-    "tracker",
-    "appointments",
-    "audit",
-    "financial",
-    "medical-records",
-    "prescriptions",
-    "lab-results",
-    "beds",
-    "fraud-alerts",
-  ];
+  const namespaces = ALL_NAMESPACES;
   for (const ns of namespaces) {
     try {
       const list = await convexClient.query("records:getAllGenericWorldState", { namespace: ns });
@@ -263,18 +287,7 @@ export function getWorldStateSize() {
  */
 export function getAllWorldState() {
   const result = {};
-  const namespaces = [
-    "did-registry",
-    "consent-manager",
-    "billing",
-    "tracker",
-    "appointments",
-    "audit",
-    "financial",
-    "medical-records",
-    "prescriptions",
-    "lab-results",
-  ];
+  const namespaces = ALL_NAMESPACES;
   for (const ns of namespaces) {
     const data = getNamespaceCache(ns);
     for (const [key, entry] of Object.entries(data)) {

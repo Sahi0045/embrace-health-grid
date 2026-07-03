@@ -10,9 +10,8 @@ import {
   Receipt, CreditCard, FileText, Calendar,
   AlertCircle, CheckCircle, Clock, Download, Shield
 } from "lucide-react";
-import {
-  billSummary, billItems, dailyCharges, insuranceInfo, paymentRecords
-} from "@/lib/billing-data";
+import { useState, useEffect } from "react";
+import { getBilling } from "@/lib/api";
 
 export const Route = createFileRoute("/patient/billing")({
   head: () => ({
@@ -25,6 +24,50 @@ export const Route = createFileRoute("/patient/billing")({
 });
 
 function PatientBilling() {
+  const [billingData, setBillingData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  const patientDid = typeof window !== "undefined" ? localStorage.getItem("userDID") || "" : "";
+
+  useEffect(() => {
+    if (!patientDid) {
+      setLoading(false);
+      return;
+    }
+    getBilling(patientDid)
+      .then((res) => {
+        setBillingData(res);
+      })
+      .catch((err) => console.error("Billing load error:", err))
+      .finally(() => setLoading(false));
+  }, [patientDid]);
+
+  const billSummary = billingData?.billSummary || {
+    billNumber: "—",
+    status: "pending",
+    totalCharges: 0,
+    fromDate: new Date().toISOString(),
+    toDate: new Date().toISOString(),
+    insuranceClaimed: 0,
+    patientResponsibility: 0,
+    amountPaid: 0,
+    balanceDue: 0,
+    insurancePending: 0,
+    categoryTotals: [],
+  };
+  const billItems = billingData?.billItems || [];
+  const dailyCharges = billingData?.dailyCharges || [];
+  const insuranceInfo = billingData?.insuranceInfo || {
+    provider: "—",
+    policyNumber: "—",
+    coveragePercentage: 0,
+    deductibleMet: 0,
+    deductible: 1,
+    outOfPocketMet: 0,
+    outOfPocketMax: 1,
+  };
+  const paymentRecords = billingData?.paymentRecords || [];
+
   const fmt = (amount: number) => `₹${amount.toLocaleString('en-IN')}`;
 
   const statusColor = (status: string) => {

@@ -16,7 +16,6 @@ import {
   AlertCircle,
   Timer,
 } from "lucide-react";
-import { myAttendanceHistory } from "@/lib/attendance-data";
 import { toast } from "sonner";
 import { getAttendance, clockAttendance } from "@/lib/api";
 
@@ -116,31 +115,45 @@ function StaffAttendance() {
     }
   };
 
-  const present = myAttendanceHistory.filter((d) => d.status === "present").length;
-  const absent = myAttendanceHistory.filter((d) => d.status === "absent").length;
-  const onLeave = myAttendanceHistory.filter((d) => d.status === "on-leave").length;
-
-  const displayHistory = [
-    ...apiHistory.map((rec) => {
+  const grouped: Record<string, any> = {};
+  apiHistory.forEach((rec) => {
+    try {
       const dt = new Date(rec.timestamp);
-      return {
-        day: dt.toLocaleDateString("en-IN", { weekday: "short" }),
-        date: dt.toLocaleDateString("en-IN", { day: "numeric", month: "short" }),
-        shift: "08:00–16:00",
-        checkIn:
-          rec.action === "in"
-            ? dt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })
-            : "–",
-        checkOut:
-          rec.action === "out"
-            ? dt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })
-            : "",
-        hours: rec.action === "out" ? "8h" : "–",
-        status: "present",
-      };
-    }),
-    ...myAttendanceHistory,
-  ];
+      const dateStr = dt.toISOString().split("T")[0]; // YYYY-MM-DD
+      const dayName = dt.toLocaleDateString("en-IN", { weekday: "short" });
+      const formattedDate = dt.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+      const timeStr = dt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+
+      if (!grouped[dateStr]) {
+        grouped[dateStr] = {
+          date: dateStr,
+          day: dayName,
+          dateLabel: formattedDate,
+          shift: "08:00–16:00",
+          checkIn: "–",
+          checkOut: "–",
+          hours: "–",
+          status: "present",
+        };
+      }
+
+      if (rec.action === "in") {
+        grouped[dateStr].checkIn = timeStr;
+      } else if (rec.action === "out") {
+        grouped[dateStr].checkOut = timeStr;
+        grouped[dateStr].hours = "8h";
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  });
+
+  const displayHistory = Object.values(grouped).sort((a: any, b: any) => b.date.localeCompare(a.date));
+
+  const present = displayHistory.filter((d: any) => d.status === "present").length;
+  const absent = displayHistory.filter((d: any) => d.status === "absent").length;
+  const onLeave = displayHistory.filter((d: any) => d.status === "on-leave").length;
+
 
   return (
     <RouteGuard requiredRole="staff">

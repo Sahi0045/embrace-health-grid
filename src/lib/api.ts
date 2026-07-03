@@ -214,6 +214,19 @@ export const updateMedicalRecord = (recordId: string, data: Record<string, any>)
     body: JSON.stringify(data),
   });
 
+export const getHealthMetrics = (patientDid: string) =>
+  apiFetch<{ metrics: any[] }>(`/medical-records/${encodeURIComponent(patientDid)}/metrics`);
+
+export const getPharmacyOrders = (patientDid: string) =>
+  apiFetch<{ orders: any[] }>(`/pharmacy-orders/${encodeURIComponent(patientDid)}`);
+
+export const getRehabSessions = (patientDid: string) =>
+  apiFetch<{ sessions: any[] }>(`/rehab-sessions/${encodeURIComponent(patientDid)}`);
+
+export const getFeedbackList = (patientDid: string) =>
+  apiFetch<{ feedback: any[] }>(`/feedback/${encodeURIComponent(patientDid)}`);
+
+
 // ─── NFC Cards ────────────────────────────────────────────────────────────────
 export const issueNFCCard = (data: {
   patientDid: string;

@@ -4,7 +4,7 @@ import { StaggerList, StaggerItem } from "@/components/Motion";
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
 import { useAppointments, useLiveStaff } from "@/hooks/use-api";
-import { bookAppointment } from "@/lib/api";
+import { bookAppointment, getMedicalRecords, getPrescriptions, getLabs } from "@/lib/api";
 import { getCurrentUser } from "@/lib/auth";
 import {
   CalendarDays,
@@ -55,54 +55,60 @@ interface Doctor {
 // Doctor list is populated entirely from the live staff registry API
 // No hardcoded mock doctors — empty state shown when no doctors registered
 
-const medicalHistory = [
-  {
-    id: "h1",
-    date: "2026-05-18",
-    condition: "Type 2 Diabetes Checkup",
-    doctor: "Dr. Sameer Khan",
-    status: "Controlled",
-  },
-  {
-    id: "h2",
-    date: "2026-04-12",
-    condition: "Routine Cardiac Echo",
-    doctor: "Dr. Ravi Menon",
-    status: "Healthy Ejection Fraction",
-  },
-];
-
-const currentMedications = [
-  { id: "m1", name: "Metoprolol 50mg", frequency: "Once daily (Morning)", purpose: "Hypertension" },
-  {
-    id: "m2",
-    name: "Metformin 1000mg",
-    frequency: "Twice daily (With meals)",
-    purpose: "Type 2 Diabetes",
-  },
-];
-
-const recentLabReports = [
-  {
-    id: "l1",
-    date: "2026-05-20",
-    test: "HbA1c Glycated Hemoglobin",
-    result: "6.4%",
-    status: "Optimal",
-  },
-  {
-    id: "l2",
-    date: "2026-04-12",
-    test: "Lipid Profile Panel",
-    result: "LDL 92 mg/dL",
-    status: "Desirable",
-  },
-];
-
 function AppointmentsPage() {
   const { data: appointmentsData, refetch } = useAppointments();
   const { staff: liveStaff } = useLiveStaff();
   const currentUser = getCurrentUser();
+
+  const [medicalHistory, setMedicalHistory] = useState<any[]>([]);
+  const [currentMedications, setCurrentMedications] = useState<any[]>([]);
+  const [recentLabReports, setRecentLabReports] = useState<any[]>([]);
+
+  const patientDid = currentUser?.did || "";
+
+  useEffect(() => {
+    if (!patientDid) return;
+
+    getMedicalRecords(patientDid)
+      .then((res) => {
+        const history = (res.records || []).map((r: any) => ({
+          id: r.recordId,
+          date: r.createdAt?.split("T")[0] || "—",
+          condition: r.title,
+          doctor: r.doctorName || "—",
+          status: r.status || "Controlled",
+        }));
+        setMedicalHistory(history);
+      })
+      .catch((err) => console.error(err));
+
+    getPrescriptions(patientDid)
+      .then((res) => {
+        const meds = (res.prescriptions || []).flatMap((rx: any, rxIdx: number) =>
+          (rx.drugs || []).map((d: any, idx: number) => ({
+            id: `${rx.rxId || rxIdx}-${idx}`,
+            name: d.name || d,
+            frequency: d.frequency || rx.notes || "As directed",
+            purpose: rx.diagnosis || "Treatment",
+          }))
+        );
+        setCurrentMedications(meds);
+      })
+      .catch((err) => console.error(err));
+
+    getLabs(patientDid)
+      .then((res) => {
+        const labs = (res.labs || []).map((l: any) => ({
+          id: l.labId,
+          date: l.completedAt?.split("T")[0] || l.orderedAt?.split("T")[0] || "—",
+          test: l.testName || l.tests?.join(", ") || "Lab Test",
+          result: l.results?.[0] ? `${l.results[0].parameter}: ${l.results[0].value} ${l.results[0].unit}` : "Pending",
+          status: l.status || "Pending",
+        }));
+        setRecentLabReports(labs);
+      })
+      .catch((err) => console.error(err));
+  }, [patientDid]);
 
   // Map raw appointments to UI structure
   const liveList = (appointmentsData?.appointments || []).map((a: any) => ({

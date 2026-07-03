@@ -80,6 +80,69 @@ export default defineSchema({
     bookedAt: v.string(),
   }).index("by_apptId", ["apptId"]),
 
+  patients: defineTable({
+    patientId: v.string(),
+    did: v.string(),
+    name: v.string(),
+    mrn: v.string(),
+    age: v.number(),
+    gender: v.string(),
+    bloodGroup: v.string(),
+    allergies: v.array(v.string()),
+    phone: v.string(),
+    email: v.string(),
+    address: v.string(),
+    dob: v.string(),
+    ward: v.string(),
+    bed: v.string(),
+    admitDate: v.string(),
+    status: v.string(),
+    primaryDoctor: v.string(),
+    conditions: v.array(v.string()),
+    insuranceProvider: v.string(),
+    insurancePolicyNo: v.string(),
+    emergencyContact: v.object({
+      name: v.string(),
+      relation: v.string(),
+      phone: v.string(),
+    }),
+    organDonor: v.boolean(),
+    nationality: v.string(),
+    totalVisits: v.number(),
+    outstandingBills: v.number(),
+    createdAt: v.string(),
+    updatedAt: v.string(),
+  })
+    .index("by_did", ["did"])
+    .index("by_mrn", ["mrn"])
+    .index("by_email", ["email"]),
+
+  staff: defineTable({
+    staffId: v.string(),
+    did: v.string(),
+    name: v.string(),
+    employeeId: v.string(),
+    role: v.string(),
+    department: v.string(),
+    specialty: v.optional(v.string()),
+    email: v.string(),
+    phone: v.string(),
+    shift: v.string(),
+    onDuty: v.boolean(),
+    joinedDate: v.string(),
+    status: v.string(),
+    credentials: v.number(),
+    patientsToday: v.number(),
+    currentLocation: v.optional(v.string()),
+    lastSignal: v.optional(v.string()),
+    beaconStrength: v.optional(v.string()),
+    createdAt: v.string(),
+    updatedAt: v.string(),
+  })
+    .index("by_did", ["did"])
+    .index("by_employeeId", ["employeeId"])
+    .index("by_email", ["email"]),
+
   worldState: defineTable({
     namespace: v.string(),
     key: v.string(),
@@ -91,4 +154,3 @@ export default defineSchema({
     .index("by_ns_key", ["namespace", "key"])
     .index("by_ns", ["namespace"]),
 });
-

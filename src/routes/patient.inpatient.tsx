@@ -21,8 +21,9 @@ import {
   Droplet,
   Receipt,
 } from "lucide-react";
+import { useState, useEffect } from "react";
 import { usePatientVitals, useInpatientData } from "@/hooks/use-api";
-import { billSummary } from "@/lib/billing-data";
+import { getBilling, getLabs } from "@/lib/api";
 
 export const Route = createFileRoute("/patient/inpatient")({
   head: () => ({
@@ -39,10 +40,28 @@ function InpatientCare() {
   const { vitals: liveVitals } = usePatientVitals(patientDid);
   const { data: inpatientData } = useInpatientData(patientDid);
 
+  const [billSummary, setBillSummary] = useState<any>({ totalCharges: 0, balanceDue: 0 });
+  const [labTests, setLabTests] = useState<any[]>([]);
+
+  useEffect(() => {
+    getBilling(patientDid)
+      .then((res) => {
+        if (res?.billSummary) {
+          setBillSummary(res.billSummary);
+        }
+      })
+      .catch((err) => console.error(err));
+
+    getLabs(patientDid)
+      .then((res) => {
+        setLabTests(res?.labs || []);
+      })
+      .catch((err) => console.error(err));
+  }, [patientDid]);
+
   const apiVitalSigns = inpatientData?.vitalSigns ?? [];
   const medications = inpatientData?.medications ?? [];
   const dailyCheckups = inpatientData?.checkups ?? [];
-  const labTests: any[] = []; // Lab tests will come from a dedicated API endpoint
   const procedures = inpatientData?.procedures ?? [];
   const nursingNotes = inpatientData?.nursingNotes ?? [];
   const dietOrder = inpatientData?.dietOrder ?? { type: "Regular", restrictions: [], specialInstructions: "" };

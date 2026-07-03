@@ -24,13 +24,14 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { useState, useEffect } from "react";
-import { getPrescriptions, getMedicalRecords } from "@/lib/api";
 import {
-  healthMetrics,
-  pharmacyOrders,
-  rehabSessions,
-  feedbackList,
-} from "@/lib/medical-records-data";
+  getPrescriptions,
+  getMedicalRecords,
+  getHealthMetrics,
+  getPharmacyOrders,
+  getRehabSessions,
+  getFeedbackList,
+} from "@/lib/api";
 
 export const Route = createFileRoute("/patient/records")({
   head: () => ({
@@ -56,6 +57,10 @@ function MedicalRecords() {
   const [feedbackRating, setFeedbackRating] = useState(0);
   const [apiPrescriptions, setApiPrescriptions] = useState<any[]>([]);
   const [apiRecords, setApiRecords] = useState<any[]>([]);
+  const [apiHealthMetrics, setApiHealthMetrics] = useState<any[]>([]);
+  const [apiPharmacyOrders, setApiPharmacyOrders] = useState<any[]>([]);
+  const [apiRehabSessions, setApiRehabSessions] = useState<any[]>([]);
+  const [apiFeedbackList, setApiFeedbackList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const patientDid = typeof window !== "undefined" ? localStorage.getItem("userDID") || "" : "";
@@ -68,13 +73,21 @@ function MedicalRecords() {
     let mounted = true;
     const fetchData = async () => {
       try {
-        const [rxRes, recRes] = await Promise.all([
+        const [rxRes, recRes, hmRes, poRes, rsRes, fbRes] = await Promise.all([
           getPrescriptions(patientDid),
           getMedicalRecords(patientDid),
+          getHealthMetrics(patientDid),
+          getPharmacyOrders(patientDid),
+          getRehabSessions(patientDid),
+          getFeedbackList(patientDid),
         ]);
         if (mounted) {
           setApiPrescriptions(rxRes.prescriptions || []);
           setApiRecords(recRes.records || []);
+          setApiHealthMetrics(hmRes.metrics || []);
+          setApiPharmacyOrders(poRes.orders || []);
+          setApiRehabSessions(rsRes.sessions || []);
+          setApiFeedbackList(fbRes.feedback || []);
         }
       } catch (err) {
         console.warn("Could not load medical records from API, using mock data:", err);
@@ -87,6 +100,11 @@ function MedicalRecords() {
       mounted = false;
     };
   }, [patientDid]);
+
+  const healthMetrics = apiHealthMetrics;
+  const pharmacyOrders = apiPharmacyOrders;
+  const rehabSessions = apiRehabSessions;
+  const feedbackList = apiFeedbackList;
 
   const displayPrescriptions = [
     ...apiPrescriptions.map((rx) => ({

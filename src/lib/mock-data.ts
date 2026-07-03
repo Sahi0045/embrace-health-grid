@@ -1,3 +1,5 @@
+// Type definitions only - all data now comes from Convex database
+
 export type Patient = {
   id: string;
   did: string;
@@ -54,35 +56,6 @@ export type FraudAlert = {
   at: string;
 };
 
-export const currentPatient: Patient = {
-  id: "",
-  did: "",
-  name: "",
-  mrn: "",
-  age: 0,
-  gender: "F",
-  bloodGroup: "",
-  allergies: [],
-  phone: "",
-};
-
-export const credentials: Credential[] = [];
-export const consents: ConsentGrant[] = [];
-export const accessHistory: AccessEvent[] = [];
-export const staffPatients: Patient[] = [];
-export const dids: DIDRecord[] = [];
-export const fraudAlerts: FraudAlert[] = [];
-
-export const systemStats = {
-  totalDIDs: 0,
-  activeUsers: 0,
-  consentsToday: 0,
-  avgCheckInSec: 0,
-  complianceScore: 100,
-  blockchainNodes: { up: 7, total: 7 },
-  apiLatencyMs: 0,
-};
-
 export type Appointment = {
   id: string;
   doctor: string;
@@ -94,9 +67,6 @@ export type Appointment = {
   mode: "in-person" | "tele";
 };
 
-export const appointments: Appointment[] = [];
-export const availableSlots: { id: string; date: string; day: string; times: string[] }[] = [];
-
 export type Shift = {
   id: string;
   day: string;
@@ -107,8 +77,6 @@ export type Shift = {
   role: "On-call" | "OPD" | "Ward rounds" | "Surgery" | "Off";
 };
 
-export const staffSchedule: Shift[] = [];
-
 export type Policy = {
   id: string;
   name: string;
@@ -118,5 +86,4 @@ export type Policy = {
   description: string;
 };
 
-export const policies: Policy[] = [];
-
+// All data is now fetched from Convex - use the hooks in use-convex-api.ts
