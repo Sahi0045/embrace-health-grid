@@ -16,7 +16,6 @@ import {
   Edit,
   Wallet,
 } from "lucide-react";
-import { currentPatient } from "@/lib/mock-data";
 import { useLivePatients, useCredentials } from "@/hooks/use-api";
 import { RouteGuard } from "@/components/RouteGuard";
 import { useWallet } from "@solana/wallet-adapter-react";
@@ -60,7 +59,7 @@ function PatientProfile() {
   const [linking, setLinking] = useState(false);
 
   const userEmail = currentUser?.email || "";
-  const patientRecord = patients?.find((p: any) => p.email === userEmail || p.id === "pat_001") || currentPatient;
+  const patientRecord = patients?.find((p: any) => p.email === userEmail || p.id === "pat_001") || { name: "", mrn: "", did: "", bloodGroup: "", age: 0, gender: "M" as const, allergies: [] as string[], phone: "" };
   const mrn = currentUser?.mrn || patientRecord.mrn;
 
   const name = currentUser?.name || patientRecord.name;
@@ -286,7 +285,7 @@ function PatientProfile() {
                   </div>
                   {connected && publicKey?.toBase58() !== currentUser.walletAddress && (
                     <div className="text-xs text-destructive font-medium mt-1">
-                      ⚠️ Mismatched Wallet: Currently connected to {publicKey.toBase58().slice(0, 6)}...{publicKey.toBase58().slice(-4)}. Please switch to your registered wallet.
+                      ⚠️ Mismatched Wallet: Currently connected to {publicKey!.toBase58().slice(0, 6)}...{publicKey!.toBase58().slice(-4)}. Please switch to your registered wallet.
                     </div>
                   )}
                 </div>

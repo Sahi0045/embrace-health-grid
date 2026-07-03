@@ -1,5 +1,5 @@
 import { Ambulance, MapPin, User } from "lucide-react";
-import type { AmbulanceRecord } from "@/lib/mock-infrastructure";
+import type { AmbulanceRecord } from "@/lib/types";
 
 interface AmbulanceCardProps {
   ambulance: AmbulanceRecord;

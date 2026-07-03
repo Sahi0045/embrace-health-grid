@@ -23,14 +23,6 @@ import {
   AlertCircle,
   CheckCircle2,
 } from "lucide-react";
-import {
-  prescriptions,
-  medicalDocuments,
-  healthMetrics,
-  pharmacyOrders,
-  rehabSessions,
-  feedbackList,
-} from "@/lib/medical-records-data";
 import { useState, useEffect } from "react";
 import { getPrescriptions, getMedicalRecords } from "@/lib/api";
 
@@ -102,22 +94,25 @@ function MedicalRecords() {
       nextReviewDate: "",
       notes: rx.notes,
     })),
-    ...prescriptions,
   ];
 
   const displayDocuments = [
     ...apiRecords.map((rec) => ({
       id: rec.recordId,
       title: rec.title,
-      type: rec.type, // e.g. "lab-report"
+      type: rec.type,
       date: rec.createdAt || new Date().toISOString(),
       issuedBy: rec.doctorName || "Doctor",
       fileSize: "N/A",
       summary: rec.content,
       isNew: true,
     })),
-    ...medicalDocuments,
   ];
+
+  const healthMetrics: any[] = [];
+  const pharmacyOrders: any[] = [];
+  const rehabSessions: any[] = [];
+  const feedbackList: any[] = [];
 
   return (
     <RouteGuard requiredRole="patient">
@@ -367,7 +362,7 @@ function MedicalRecords() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      {order.medicines.map((m, i) => (
+                      {order.medicines.map((m: any, i: number) => (
                         <div
                           key={i}
                           className="flex items-center justify-between rounded-lg border p-3"

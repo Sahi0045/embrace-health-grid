@@ -572,3 +572,54 @@ export const verifyIdentityPayload = (payload: any) =>
     body: JSON.stringify({ payload }),
   });
 
+// ─── Infrastructure ───────────────────────────────────────────────────────
+export const getInfrastructure = () =>
+  apiFetch<{ beds: any[]; equipment: any[]; ambulances: any[] }>(`/infrastructure`);
+
+export const getAmbulances = () =>
+  apiFetch<{ ambulances: any[]; total: number }>(`/infrastructure/ambulances`);
+
+export const getEquipment = () =>
+  apiFetch<{ equipment: any[]; total: number }>(`/infrastructure/equipment`);
+
+// ─── Insurance Claims ─────────────────────────────────────────────────────
+export const getInsuranceClaims = (patientDid?: string) =>
+  apiFetch<{ claims: any[]; total: number }>(
+    `/insurance/claims${patientDid ? `?patientDid=${encodeURIComponent(patientDid)}` : ""}`,
+  );
+
+export const submitInsuranceClaim = (data: {
+  patientDid: string;
+  patientName: string;
+  patientMRN: string;
+  insuranceProvider: string;
+  policyNo: string;
+  claimType: string;
+  amount: number;
+  remarks?: string;
+}) =>
+  apiFetch<{ claim: any }>(`/insurance/claims`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+
+// ─── Vaccines ─────────────────────────────────────────────────────────────
+export const getVaccines = (patientDid: string) =>
+  apiFetch<{ vaccines: any[]; total: number }>(`/vaccines/${encodeURIComponent(patientDid)}`);
+
+// ─── Doctors ──────────────────────────────────────────────────────────────
+export const getDoctors = () =>
+  apiFetch<{ doctors: any[]; total: number }>(`/doctors`);
+
+// ─── Inpatient ────────────────────────────────────────────────────────────
+export const getInpatientData = (patientDid: string) =>
+  apiFetch<{
+    admission: any | null;
+    medications: any[];
+    nursingNotes: any[];
+    checkups: any[];
+    procedures: any[];
+    dietOrder: any | null;
+    vitalSigns: any[];
+  }>(`/inpatient/${encodeURIComponent(patientDid)}`);
+

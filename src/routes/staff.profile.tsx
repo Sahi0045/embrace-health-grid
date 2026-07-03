@@ -75,7 +75,7 @@ function StaffProfile() {
   const role = currentUser?.role || staffRecord.role || "Staff";
   const phone = currentUser?.phone || staffRecord.phone || "+91 98765 43210";
   const department = currentUser?.department || staffRecord.department || "General Medicine";
-  const specializations = currentUser?.specializations || staffRecord.specializations || [];
+  const specializations = currentUser?.specializations || (staffRecord as any).specializations || [];
 
   const employeeId = currentUser?.employeeId || staffRecord.employeeId;
 
@@ -284,7 +284,7 @@ function StaffProfile() {
                 </div>
                 {connected && publicKey?.toBase58() !== currentUser.walletAddress && (
                   <div className="text-xs text-destructive font-medium mt-1">
-                    ⚠️ Mismatched Wallet: Currently connected to {publicKey.toBase58().slice(0, 6)}...{publicKey.toBase58().slice(-4)}. Please switch to your registered wallet.
+                    ⚠️ Mismatched Wallet: Currently connected to {publicKey!.toBase58().slice(0, 6)}...{publicKey!.toBase58().slice(-4)}. Please switch to your registered wallet.
                   </div>
                 )}
               </div>

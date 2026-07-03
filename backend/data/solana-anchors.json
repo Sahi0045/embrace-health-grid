@@ -1,0 +1,192 @@
+{
+  "anchor_7606a0de": {
+    "key": "anchor_7606a0de",
+    "value": {
+      "anchorId": "anchor_7606a0de",
+      "recordHash": "ad5260092b68ab0fac920839bceca11e53e32f8e5ea57aff8af398656aa8ae0d",
+      "recordType": "nfc-issue",
+      "actorDid": "system",
+      "recordId": null,
+      "signature": "sim_ad5260092b68ab0f_mr39pcan",
+      "slot": 4457456076,
+      "network": "devnet-simulated",
+      "anchoredAt": "2026-07-02T08:53:50.591Z"
+    },
+    "namespace": "solana-anchors",
+    "version": "anchor_7606a0de:1",
+    "updatedAt": "2026-07-02T08:53:50.591Z",
+    "txId": "anchor_7606a0de",
+    "docType": "solana-anchors"
+  },
+  "anchor_a42900a7": {
+    "key": "anchor_a42900a7",
+    "value": {
+      "anchorId": "anchor_a42900a7",
+      "recordHash": "aa0c731aa3255de4bfecc79b048d3526b87f80a129088c09a7199b1e0baebfb2",
+      "recordType": "nfc-issue",
+      "actorDid": "system",
+      "recordId": null,
+      "signature": "sim_aa0c731aa3255de4_mr3a9024",
+      "slot": 4457458369,
+      "network": "devnet-simulated",
+      "anchoredAt": "2026-07-02T09:09:07.852Z"
+    },
+    "namespace": "solana-anchors",
+    "version": "anchor_a42900a7:1",
+    "updatedAt": "2026-07-02T09:09:07.852Z",
+    "txId": "anchor_a42900a7",
+    "docType": "solana-anchors"
+  },
+  "anchor_51f66609": {
+    "key": "anchor_51f66609",
+    "value": {
+      "anchorId": "anchor_51f66609",
+      "recordHash": "48c1077e8524ec924c3fc3462e0b4209b1a0f8dd72c6bf687fdf27e25b0df9e2",
+      "recordType": "nfc-revoke",
+      "actorDid": "system",
+      "recordId": "NFC-EFC2B6EC",
+      "signature": "sim_48c1077e8524ec92_mr3ao6n8",
+      "slot": 4457460140,
+      "network": "devnet-simulated",
+      "anchoredAt": "2026-07-02T09:20:56.228Z"
+    },
+    "namespace": "solana-anchors",
+    "version": "anchor_51f66609:1",
+    "updatedAt": "2026-07-02T09:20:56.229Z",
+    "txId": "anchor_51f66609",
+    "docType": "solana-anchors"
+  },
+  "anchor_92a5343c": {
+    "key": "anchor_92a5343c",
+    "value": {
+      "anchorId": "anchor_92a5343c",
+      "recordHash": "57a35f7888338a6fade36c12e351e1043af71a1e96f20ae3edf14042ee617f4f",
+      "recordType": "nfc-issue",
+      "actorDid": "system",
+      "recordId": null,
+      "signature": "sim_57a35f7888338a6f_mr3auof6",
+      "slot": 4457460898,
+      "network": "devnet-simulated",
+      "anchoredAt": "2026-07-02T09:25:59.202Z"
+    },
+    "namespace": "solana-anchors",
+    "version": "anchor_92a5343c:1",
+    "updatedAt": "2026-07-02T09:25:59.202Z",
+    "txId": "anchor_92a5343c",
+    "docType": "solana-anchors"
+  },
+  "anchor_90b6074e": {
+    "key": "anchor_90b6074e",
+    "value": {
+      "anchorId": "anchor_90b6074e",
+      "recordHash": "7a9f7b0551c547b1a5b64b09b735b395110e94f636ac5313cc2b64d3041ada5b",
+      "recordType": "nfc-revoke",
+      "actorDid": "system",
+      "recordId": "NFC-AD2BC8CB",
+      "signature": "sim_7a9f7b0551c547b1_mr3auqsm",
+      "slot": 4457460905,
+      "network": "devnet-simulated",
+      "anchoredAt": "2026-07-02T09:26:02.278Z"
+    },
+    "namespace": "solana-anchors",
+    "version": "anchor_90b6074e:1",
+    "updatedAt": "2026-07-02T09:26:02.278Z",
+    "txId": "anchor_90b6074e",
+    "docType": "solana-anchors"
+  },
+  "anchor_0237eac3": {
+    "key": "anchor_0237eac3",
+    "value": {
+      "anchorId": "anchor_0237eac3",
+      "recordHash": "f9a1c5c0f1aef7a0ce224beabaddd556b38c9d013f1426b84e331b72a3a80691",
+      "recordType": "nfc-issue",
+      "actorDid": "system",
+      "recordId": null,
+      "signature": "sim_f9a1c5c0f1aef7a0_mr3ava52",
+      "slot": 4457460968,
+      "network": "devnet-simulated",
+      "anchoredAt": "2026-07-02T09:26:27.350Z"
+    },
+    "namespace": "solana-anchors",
+    "version": "anchor_0237eac3:1",
+    "updatedAt": "2026-07-02T09:26:27.350Z",
+    "txId": "anchor_0237eac3",
+    "docType": "solana-anchors"
+  },
+  "anchor_a46f36e0": {
+    "key": "anchor_a46f36e0",
+    "value": {
+      "anchorId": "anchor_a46f36e0",
+      "recordHash": "31d15c8efa2bfcd3bad0824f3ec7d85d47d6eff3bd8749cd11a6a810fbfe1f3a",
+      "recordType": "nfc-issue",
+      "actorDid": "system",
+      "recordId": null,
+      "signature": "sim_31d15c8efa2bfcd3_mr3avccz",
+      "slot": 4457460975,
+      "network": "devnet-simulated",
+      "anchoredAt": "2026-07-02T09:26:30.227Z"
+    },
+    "namespace": "solana-anchors",
+    "version": "anchor_a46f36e0:1",
+    "updatedAt": "2026-07-02T09:26:30.227Z",
+    "txId": "anchor_a46f36e0",
+    "docType": "solana-anchors"
+  },
+  "anchor_d8ac3449": {
+    "key": "anchor_d8ac3449",
+    "value": {
+      "anchorId": "anchor_d8ac3449",
+      "recordHash": "e6cc1511ba6372338b64d0152607215a99cb65fbeaa9d7f82423be7d9fa6a0f7",
+      "recordType": "nfc-issue",
+      "actorDid": "system",
+      "recordId": null,
+      "signature": "sim_e6cc1511ba637233_mr3avdk1",
+      "slot": 4457460979,
+      "network": "devnet-simulated",
+      "anchoredAt": "2026-07-02T09:26:31.777Z"
+    },
+    "namespace": "solana-anchors",
+    "version": "anchor_d8ac3449:1",
+    "updatedAt": "2026-07-02T09:26:31.777Z",
+    "txId": "anchor_d8ac3449",
+    "docType": "solana-anchors"
+  },
+  "anchor_b30427e4": {
+    "key": "anchor_b30427e4",
+    "value": {
+      "anchorId": "anchor_b30427e4",
+      "recordHash": "ea289339e7c9631a2018fcb64792c14bafff4c8c4c1ce9f5d7f9aaeb9c6846b8",
+      "recordType": "nfc-issue",
+      "actorDid": "system",
+      "recordId": null,
+      "signature": "sim_ea289339e7c9631a_mr3avh68",
+      "slot": 4457460991,
+      "network": "devnet-simulated",
+      "anchoredAt": "2026-07-02T09:26:36.464Z"
+    },
+    "namespace": "solana-anchors",
+    "version": "anchor_b30427e4:1",
+    "updatedAt": "2026-07-02T09:26:36.464Z",
+    "txId": "anchor_b30427e4",
+    "docType": "solana-anchors"
+  },
+  "anchor_2481c4a9": {
+    "key": "anchor_2481c4a9",
+    "value": {
+      "anchorId": "anchor_2481c4a9",
+      "recordHash": "de21f3d93fe75952b25d157d4b93c310cadda3953851d55f7abf51405acfc4d5",
+      "recordType": "nfc-issue",
+      "actorDid": "system",
+      "recordId": null,
+      "signature": "sim_de21f3d93fe75952_mr3avjt1",
+      "slot": 4457460999,
+      "network": "devnet-simulated",
+      "anchoredAt": "2026-07-02T09:26:39.877Z"
+    },
+    "namespace": "solana-anchors",
+    "version": "anchor_2481c4a9:1",
+    "updatedAt": "2026-07-02T09:26:39.877Z",
+    "txId": "anchor_2481c4a9",
+    "docType": "solana-anchors"
+  }
+}

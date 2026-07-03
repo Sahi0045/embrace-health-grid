@@ -21,18 +21,8 @@ import {
   Droplet,
   Receipt,
 } from "lucide-react";
-import {
-  currentAdmission,
-  vitalSigns,
-  medications,
-  dailyCheckups,
-  labTests,
-  procedures,
-  nursingNotes,
-  dietOrder,
-} from "@/lib/inpatient-data";
+import { usePatientVitals, useInpatientData } from "@/hooks/use-api";
 import { billSummary } from "@/lib/billing-data";
-import { usePatientVitals } from "@/hooks/use-api";
 
 export const Route = createFileRoute("/patient/inpatient")({
   head: () => ({
@@ -45,11 +35,41 @@ export const Route = createFileRoute("/patient/inpatient")({
 });
 
 function InpatientCare() {
-  const { vitals: liveVitals } = usePatientVitals("pat_001");
+  const patientDid = typeof window !== "undefined" ? localStorage.getItem("userDID") || "pat_001" : "pat_001";
+  const { vitals: liveVitals } = usePatientVitals(patientDid);
+  const { data: inpatientData } = useInpatientData(patientDid);
+
+  const apiVitalSigns = inpatientData?.vitalSigns ?? [];
+  const medications = inpatientData?.medications ?? [];
+  const dailyCheckups = inpatientData?.checkups ?? [];
+  const labTests: any[] = []; // Lab tests will come from a dedicated API endpoint
+  const procedures = inpatientData?.procedures ?? [];
+  const nursingNotes = inpatientData?.nursingNotes ?? [];
+  const dietOrder = inpatientData?.dietOrder ?? { type: "Regular", restrictions: [], specialInstructions: "" };
+  const currentAdmission = inpatientData?.admission ?? {
+    admissionDate: new Date().toISOString(),
+    expectedDischargeDate: null,
+    ward: "—",
+    room: "—",
+    bed: "—",
+    primaryDiagnosis: "—",
+    admittingDoctor: "—",
+  };
+
+  const defaultVital = {
+    id: "v0",
+    heartRate: 72,
+    bloodPressure: { systolic: 120, diastolic: 80 },
+    oxygenSaturation: 98,
+    temperature: 36.6,
+    respiratoryRate: 16,
+    timestamp: "—",
+    recordedBy: "—",
+  };
 
   const latestVitals = liveVitals
     ? {
-        ...vitalSigns[0],
+        ...(apiVitalSigns[0] || defaultVital),
         heartRate: liveVitals.heartRate,
         bloodPressure: {
           systolic: parseInt(liveVitals.bp) || 120,
@@ -60,11 +80,11 @@ function InpatientCare() {
         respiratoryRate: liveVitals.respRate,
         timestamp: "Live telemetry (WS)",
       }
-    : vitalSigns[0];
+    : (apiVitalSigns[0] || defaultVital);
 
-  const activeMeds = medications.filter((m) => m.status === "active");
-  const todayCheckups = dailyCheckups.filter((c) => c.date === "2026-05-30");
-  const upcomingProcedures = procedures.filter((p) => p.status === "scheduled");
+  const activeMeds = medications.filter((m: any) => m.status === "active");
+  const todayCheckups = dailyCheckups.filter((c: any) => c.date === new Date().toISOString().split("T")[0]);
+  const upcomingProcedures = procedures.filter((p: any) => p.status === "scheduled");
 
   return (
     <RouteGuard requiredRole="patient">
@@ -293,7 +313,7 @@ function InpatientCare() {
                       <CardContent>
                         <div className="font-medium">{dietOrder.type}</div>
                         <div className="mt-2 space-y-1">
-                          {dietOrder.restrictions.map((r, idx) => (
+                          {dietOrder.restrictions.map((r: any, idx: number) => (
                             <div
                               key={idx}
                               className="text-sm text-muted-foreground flex items-center gap-1"
@@ -370,7 +390,7 @@ function InpatientCare() {
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-2">
-                      {vitalSigns.slice(1, 4).map((vital) => (
+                      {apiVitalSigns.slice(1, 4).map((vital: any) => (
                         <div
                           key={vital.id}
                           className="flex items-center justify-between text-sm border-b pb-2"
@@ -464,7 +484,7 @@ function InpatientCare() {
                           </div>
                           {test.results && (
                             <div className="mt-2 space-y-1">
-                              {test.results.map((result, idx) => (
+                              {test.results.map((result: any, idx: number) => (
                                 <div
                                   key={idx}
                                   className="flex items-center justify-between text-sm"

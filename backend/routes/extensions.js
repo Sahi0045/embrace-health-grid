@@ -191,6 +191,136 @@ export function registerExtensionRoutes(app, deps) {
     res.json({ verified: true, card });
   });
 
+  // ─── Infrastructure ─────────────────────────────────────────────────────────
+  app.get("/api/infrastructure", requireRole("staff", "admin"), (req, res) => {
+    const beds = getAllState("beds").map((e) => e.value);
+    const equipment = getAllState("equipment").map((e) => e.value);
+    const ambulances = getAllState("ambulances").map((e) => e.value);
+    res.json({ beds, equipment, ambulances });
+  });
+
+  app.get("/api/infrastructure/ambulances", requireRole("staff", "admin"), (req, res) => {
+    const all = getAllState("ambulances");
+    res.json({ ambulances: all.map((e) => e.value), total: all.length });
+  });
+
+  app.post("/api/infrastructure/ambulances", requireRole("admin"), (req, res) => {
+    const { vehicleNo, type, driver, paramedic, status, location } = req.body;
+    const id = `amb_${randomUUID().slice(0, 8)}`;
+    const ambulance = {
+      id, vehicleNo, type, driver, paramedic,
+      status: status || "available",
+      location: location || "Hospital Bay",
+      lastDeployment: new Date().toISOString(),
+      did: `did:hosp:ambulance:${id}`,
+    };
+    putState("ambulances", id, ambulance, randomUUID());
+    broadcast({ event: "ambulance:updated", data: ambulance });
+    res.json({ ambulance });
+  });
+
+  app.get("/api/infrastructure/equipment", requireRole("staff", "admin"), (req, res) => {
+    const all = getAllState("equipment");
+    res.json({ equipment: all.map((e) => e.value), total: all.length });
+  });
+
+  // ─── Insurance Claims ──────────────────────────────────────────────────────
+  app.get("/api/insurance/claims", (req, res) => {
+    const patientDid = req.query.patientDid;
+    let all = getAllState("insurance-claims");
+    if (patientDid) {
+      all = all.filter((e) => e.value.patientDid === patientDid);
+    }
+    res.json({ claims: all.map((e) => e.value), total: all.length });
+  });
+
+  app.post("/api/insurance/claims", requireRole("patient", "staff", "admin"), (req, res) => {
+    const { patientDid, patientName, patientMRN, insuranceProvider, policyNo, claimType, amount, remarks } = req.body;
+    const claimId = `CLM-${Date.now().toString(36).toUpperCase()}`;
+    const claim = {
+      id: claimId, claimNo: claimId, patientDid, patientName, patientMRN,
+      insuranceProvider, policyNo, claimType, amount,
+      status: "pending",
+      submittedDate: new Date().toISOString(),
+      remarks: remarks || "",
+    };
+    putState("insurance-claims", claimId, claim, randomUUID());
+    broadcast({ event: "insurance:claimed", data: claim });
+    res.json({ claim });
+  });
+
+  // ─── Vaccine Records ───────────────────────────────────────────────────────
+  app.get("/api/vaccines/:patientDid", (req, res) => {
+    if (req.user.role === "patient" && req.user.did !== req.params.patientDid) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+    const all = queryState("vaccines", (v) => v.patientDid === req.params.patientDid);
+    res.json({ vaccines: all.map((e) => e.value), total: all.length });
+  });
+
+  app.post("/api/vaccines", requireRole("staff", "admin"), (req, res) => {
+    const { patientDid, vaccine, doses, lastDose, nextDue, manufacturer, batchNo, issuer, status } = req.body;
+    const id = `vax_${randomUUID().slice(0, 8)}`;
+    const record = {
+      id, patientDid, vaccine, doses, lastDose, nextDue,
+      manufacturer, batchNo, issuer,
+      status: status || "complete",
+      credential: `VCI-${Date.now().toString(36).toUpperCase()}`,
+      recordedAt: new Date().toISOString(),
+    };
+    putState("vaccines", id, record, randomUUID());
+    broadcast({ event: "vaccine:recorded", data: record });
+    res.json({ vaccine: record });
+  });
+
+  // ─── Doctors List ──────────────────────────────────────────────────────────
+  app.get("/api/doctors", (req, res) => {
+    const dids = getAllState("did-registry");
+    const users = getAllState("users");
+    const doctors = [];
+
+    for (const entry of users) {
+      const u = entry.value;
+      if (u.role === "doctor" || u.role === "staff") {
+        const didEntry = dids.find((d) => d.value.ownerEmail === u.email);
+        doctors.push({
+          id: u.did || didEntry?.value?.did || entry.key,
+          did: u.did || didEntry?.value?.did || "",
+          name: u.name,
+          email: u.email,
+          specialty: u.specializations?.[0] || u.department || "General Medicine",
+          department: u.department || "General Medicine",
+          status: u.status || "active",
+        });
+      }
+    }
+    res.json({ doctors, total: doctors.length });
+  });
+
+  // ─── Inpatient Data ────────────────────────────────────────────────────────
+  app.get("/api/inpatient/:patientDid", (req, res) => {
+    if (req.user.role === "patient" && req.user.did !== req.params.patientDid) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+    const admissions = queryState("admissions", (v) => v.patientDid === req.params.patientDid);
+    const medications = queryState("medications", (v) => v.patientDid === req.params.patientDid);
+    const nursingNotes = queryState("nursing-notes", (v) => v.patientDid === req.params.patientDid);
+    const checkups = queryState("daily-checkups", (v) => v.patientDid === req.params.patientDid);
+    const procedures = queryState("procedures", (v) => v.patientDid === req.params.patientDid);
+    const dietOrders = queryState("diet-orders", (v) => v.patientDid === req.params.patientDid);
+    const vitalsHistory = queryState("vitals-history", (v) => v.patientDid === req.params.patientDid);
+
+    res.json({
+      admission: admissions.length > 0 ? admissions.sort((a, b) => (b.value.admissionDate || "").localeCompare(a.value.admissionDate || ""))[0].value : null,
+      medications: medications.map((e) => e.value),
+      nursingNotes: nursingNotes.map((e) => e.value),
+      checkups: checkups.map((e) => e.value),
+      procedures: procedures.map((e) => e.value),
+      dietOrder: dietOrders.length > 0 ? dietOrders[dietOrders.length - 1].value : null,
+      vitalSigns: vitalsHistory.map((e) => e.value),
+    });
+  });
+
   // ─── Identity signed payloads ───────────────────────────────────────────────
   app.post("/api/identity/sign-payload", requireRole("patient", "staff", "admin"), (req, res) => {
     const { did, mrn, name, network } = req.body;

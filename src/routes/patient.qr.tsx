@@ -6,7 +6,6 @@ import { PageHeader } from "@/components/PageHeader";
 import { RouteGuard } from "@/components/RouteGuard";
 import { useLivePatients } from "@/hooks/use-api";
 import { getCurrentUser } from "@/lib/auth";
-import { currentPatient } from "@/lib/mock-data";
 import { RefreshCw, ShieldCheck, Droplets, CreditCard, BadgeCheck, Timer, Loader2 } from "lucide-react";
 import { signIdentityPayload } from "@/lib/api";
 
@@ -21,7 +20,7 @@ function PatientQr() {
   const { patients: patientsList } = useLivePatients();
   const currentUser = getCurrentUser();
   const userEmail = currentUser?.email || "";
-  const patient = patientsList?.find((p: any) => p.email === userEmail) || patientsList?.[0] || currentPatient;
+  const patient = patientsList?.find((p: any) => p.email === userEmail) || patientsList?.[0] || { name: "", mrn: "", did: "", bloodGroup: "", age: 0, gender: "F" as const, allergies: [] as string[] };
 
   const [payload, setPayload] = useState("");
   const [timeLeft, setTimeLeft] = useState(ROTATION_SECONDS);

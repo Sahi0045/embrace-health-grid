@@ -3,9 +3,8 @@ import { useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHeader } from "@/components/PageHeader";
 import { RouteGuard } from "@/components/RouteGuard";
-import { useLivePatients } from "@/hooks/use-api";
+import { useLivePatients, useInpatientData } from "@/hooks/use-api";
 import { logAuditEvent, verifyNFCCard, resolveDID, signIdentityPayload, verifyIdentityPayload } from "@/lib/api";
-import { currentPatient } from "@/lib/mock-data";
 import {
   ScanLine,
   CheckCircle2,
@@ -30,7 +29,7 @@ import {
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { vitalSigns, medications, labTests } from "@/lib/inpatient-data";
+
 
 // @zxing/browser is ESM-only; safe to import at module level —
 // actual camera usage is gated by `typeof window !== "undefined"` at call sites.
@@ -51,7 +50,8 @@ interface ScannedPayload {
 
 function VerifyPatient() {
   const { patients: patientsList } = useLivePatients();
-  const patient = patientsList?.[0] || currentPatient;
+  const emptyPatient = { name: "", mrn: "", did: "", age: 0, gender: "M" as const, bloodGroup: "", allergies: [] as string[], phone: "" };
+  const patient = patientsList?.[0] || emptyPatient;
 
   // Scanner state
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -106,7 +106,7 @@ function VerifyPatient() {
         return;
       }
 
-      const matched = patientsList?.find((p) => p.did === parsed.did) || currentPatient;
+      const matched = patientsList?.find((p) => p.did === parsed.did) || emptyPatient;
 
       setScanResult(parsed);
       setVerified(true);
@@ -170,7 +170,7 @@ function VerifyPatient() {
   // ── Simulate scan (fallback for browsers without camera) ─────────────────
 
   const simulateScan = useCallback(async () => {
-    const target = patientsList?.[0] || currentPatient;
+    const target = patientsList?.[0] || emptyPatient;
     try {
       const signRes = await signIdentityPayload({
         did: target.did,
@@ -202,7 +202,7 @@ function VerifyPatient() {
 
       try {
         const activeDid = selectedSimPatientDid || (patientsList?.[0]?.did || "");
-        const target = patientsList?.find((p: any) => p.did === activeDid) || currentPatient;
+        const target = patientsList?.find((p: any) => p.did === activeDid) || emptyPatient;
         // Resolve DID document from API
         await resolveDID(target.did).catch(() => null);
 
@@ -310,7 +310,7 @@ function VerifyPatient() {
   // ── Derived display patient ───────────────────────────────────────────────
 
   const displayPatient = scanResult
-    ? patientsList?.find((p) => p.did === scanResult.did) || currentPatient
+    ? patientsList?.find((p) => p.did === scanResult.did) || emptyPatient
     : patient;
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -812,98 +812,8 @@ function VerifyPatient() {
                 </div>
               )}
 
-              {/* Latest vitals */}
-              <Card>
-                <CardHeader className="pb-2">
-                  <div className="flex items-center gap-2">
-                    <Activity className="h-4 w-4 text-primary" />
-                    <CardTitle className="text-sm">Latest Vitals</CardTitle>
-                    <span className="text-xs text-muted-foreground ml-auto">
-                      {vitalSigns[0].timestamp}
-                    </span>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-                    {[
-                      { label: "Temp", value: `${vitalSigns[0].temperature}°C` },
-                      {
-                        label: "BP",
-                        value: `${vitalSigns[0].bloodPressure.systolic}/${vitalSigns[0].bloodPressure.diastolic}`,
-                      },
-                      { label: "HR", value: `${vitalSigns[0].heartRate} bpm` },
-                      { label: "RR", value: `${vitalSigns[0].respiratoryRate}/min` },
-                      { label: "SpO₂", value: `${vitalSigns[0].oxygenSaturation}%` },
-                    ].map((v) => (
-                      <div key={v.label} className="rounded-lg bg-muted p-2 text-center">
-                        <div className="text-xs text-muted-foreground">{v.label}</div>
-                        <div className="font-semibold text-sm mt-0.5">{v.value}</div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Active medications */}
-              <Card>
-                <CardHeader className="pb-2">
-                  <div className="flex items-center gap-2">
-                    <Pill className="h-4 w-4 text-primary" />
-                    <CardTitle className="text-sm">Active Medications</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {medications
-                    .filter((m) => m.status === "active")
-                    .map((med) => (
-                      <div
-                        key={med.id}
-                        className="flex items-center justify-between rounded-lg border p-2 text-sm"
-                      >
-                        <div>
-                          <span className="font-medium">{med.name}</span>
-                          <span className="text-muted-foreground ml-2">
-                            {med.dosage} · {med.frequency}
-                          </span>
-                        </div>
-                        <Badge variant="outline" className="text-xs">
-                          Active
-                        </Badge>
-                      </div>
-                    ))}
-                </CardContent>
-              </Card>
-
-              {/* Recent lab tests */}
-              <Card>
-                <CardHeader className="pb-2">
-                  <div className="flex items-center gap-2">
-                    <FlaskConical className="h-4 w-4 text-primary" />
-                    <CardTitle className="text-sm">Recent Lab Tests</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {labTests.slice(0, 3).map((test) => (
-                    <div
-                      key={test.id}
-                      className="flex items-center justify-between rounded-lg border p-2 text-sm"
-                    >
-                      <div>
-                        <span className="font-medium">{test.testName}</span>
-                        <span className="text-muted-foreground ml-2 text-xs">
-                          {test.orderedDate}
-                        </span>
-                      </div>
-                      <Badge
-                        variant={test.status === "completed" ? "default" : "secondary"}
-                        className="text-xs"
-                      >
-                        {test.status}
-                      </Badge>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
+              {/* Vitals, Medications, Lab Tests — from inpatient API */}
+              <VerifyPatientChartCards patientDid={displayPatient.did} />
 
               {/* Footer actions */}
               <div className="flex gap-2 pt-2 border-t border-border">
@@ -1166,5 +1076,85 @@ function NfcContactlessReader({ status, errorText }: NfcReaderProps) {
         )}
       </div>
     </div>
+  );
+}
+
+function VerifyPatientChartCards({ patientDid }: { patientDid: string }) {
+  const { data: inpatientData } = useInpatientData(patientDid);
+  const vitalSigns = inpatientData?.vitalSigns ?? [];
+  const medications = inpatientData?.medications ?? [];
+  const checkups = inpatientData?.checkups ?? [];
+  const latestVital = vitalSigns[0] as any;
+
+  return (
+    <>
+      <Card>
+        <CardHeader className="pb-2">
+          <div className="flex items-center gap-2">
+            <Activity className="h-4 w-4 text-primary" />
+            <CardTitle className="text-sm">Latest Vitals</CardTitle>
+            {latestVital && <span className="text-xs text-muted-foreground ml-auto">{latestVital.timestamp}</span>}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {latestVital ? (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+              {[
+                { label: "Temp", value: `${latestVital.temperature ?? "—"}°C` },
+                { label: "BP", value: latestVital.bloodPressure ? `${latestVital.bloodPressure.systolic}/${latestVital.bloodPressure.diastolic}` : "—" },
+                { label: "HR", value: `${latestVital.heartRate ?? "—"} bpm` },
+                { label: "RR", value: `${latestVital.respiratoryRate ?? "—"}/min` },
+                { label: "SpO₂", value: `${latestVital.oxygenSaturation ?? "—"}%` },
+              ].map((v) => (
+                <div key={v.label} className="rounded-lg bg-muted p-2 text-center">
+                  <div className="text-xs text-muted-foreground">{v.label}</div>
+                  <div className="font-semibold text-sm mt-0.5">{v.value}</div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-xs text-muted-foreground text-center py-4">No vitals recorded</div>
+          )}
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader className="pb-2">
+          <div className="flex items-center gap-2">
+            <Pill className="h-4 w-4 text-primary" />
+            <CardTitle className="text-sm">Active Medications</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {medications.length > 0 ? medications.filter((m: any) => m.status === "active").map((med: any) => (
+            <div key={med.id} className="flex items-center justify-between rounded-lg border p-2 text-sm">
+              <div>
+                <span className="font-medium">{med.name}</span>
+                <span className="text-muted-foreground ml-2">{med.dosage} · {med.frequency}</span>
+              </div>
+              <Badge variant="outline" className="text-xs">Active</Badge>
+            </div>
+          )) : <div className="text-xs text-muted-foreground text-center py-4">No medications recorded</div>}
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader className="pb-2">
+          <div className="flex items-center gap-2">
+            <FlaskConical className="h-4 w-4 text-primary" />
+            <CardTitle className="text-sm">Recent Lab Tests</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {checkups.length > 0 ? checkups.slice(0, 3).map((test: any) => (
+            <div key={test.id} className="flex items-center justify-between rounded-lg border p-2 text-sm">
+              <div>
+                <span className="font-medium">{test.testName || test.type || "Lab Test"}</span>
+                <span className="text-muted-foreground ml-2 text-xs">{test.orderedDate || test.date}</span>
+              </div>
+              <Badge variant={test.status === "completed" ? "default" : "secondary"} className="text-xs">{test.status || "pending"}</Badge>
+            </div>
+          )) : <div className="text-xs text-muted-foreground text-center py-4">No lab tests recorded</div>}
+        </CardContent>
+      </Card>
+    </>
   );
 }

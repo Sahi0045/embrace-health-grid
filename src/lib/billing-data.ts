@@ -81,7 +81,7 @@ export interface BillSummary {
   }[];
 }
 
-// Mock Insurance Data
+// Insurance Configuration
 export const insuranceInfo: InsuranceInfo = {
   provider: "Star Health Insurance",
   policyNumber: "SH-2024-789456",
@@ -95,7 +95,7 @@ export const insuranceInfo: InsuranceInfo = {
   coveragePercentage: 80, // 80% coverage after deductible
 };
 
-// Mock Bill Items
+// Itemized Bill Charges
 export const billItems: BillItem[] = [
   // Room Charges
   {

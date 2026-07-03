@@ -64,44 +64,7 @@ const urgencyConfig = {
   stat: "bg-destructive/10 text-destructive",
 };
 
-const mockLabOrders = [
-  {
-    id: "lo1",
-    patient: "Anika Sharma",
-    mrn: "MRN-204871",
-    tests: ["CBC", "HbA1c", "Lipid Panel"],
-    urgency: "routine",
-    status: "pending",
-    ordered: "2026-06-02 08:30",
-  },
-  {
-    id: "lo2",
-    patient: "Rohan Iyer",
-    mrn: "MRN-204902",
-    tests: ["Troponin I", "D-Dimer", "BNP"],
-    urgency: "urgent",
-    status: "in-progress",
-    ordered: "2026-06-02 07:12",
-  },
-  {
-    id: "lo3",
-    patient: "Meera Pillai",
-    mrn: "MRN-205110",
-    tests: ["TSH", "FT4", "FT3"],
-    urgency: "routine",
-    status: "completed",
-    ordered: "2026-06-01 16:45",
-  },
-  {
-    id: "lo4",
-    patient: "Karthik Rao",
-    mrn: "MRN-205288",
-    tests: ["Urine R&M", "Urine Culture", "Serum Creatinine"],
-    urgency: "stat",
-    status: "completed",
-    ordered: "2026-06-01 14:20",
-  },
-];
+// Lab orders sourced entirely from backend API — no local fallback
 
 function LabsPage() {
   const [tab, setTab] = useState<"orders" | "builder">("orders");
@@ -160,7 +123,7 @@ function LabsPage() {
   };
 
   // Map API lab orders to view model
-  const apiOrders = ((labsData?.labs ?? []) as any[]).map((lab) => {
+  const displayOrders = ((labsData?.labs ?? []) as any[]).map((lab: any) => {
     const pt = (patientsList || []).find((p) => p.did === lab.patientDid);
     return {
       id: lab.labId ?? lab.id ?? String(Math.random()),
@@ -172,8 +135,6 @@ function LabsPage() {
       ordered: lab.orderedAt ? new Date(lab.orderedAt).toLocaleString("en-IN") : "—",
     };
   });
-
-  const displayOrders = apiOrders.length > 0 ? apiOrders : mockLabOrders;
 
   return (
     <RouteGuard requiredRole="staff">

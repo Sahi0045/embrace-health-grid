@@ -7,8 +7,8 @@
  * - Handles local fallback when backend is offline
  */
 
-import { generatePatients, type PatientFull } from "./mock-patients";
-import { generateStaff, type StaffMember } from "./mock-staff";
+import type { PatientFull } from "./types";
+import type { StaffMember } from "./types";
 import { isBackendOnline } from "./api";
 
 // ---------------------------------------------------------------------------
@@ -26,6 +26,18 @@ export interface DIDDocument {
   updatedAt: string;
   serviceEndpoint?: string;
   ownerEmail?: string | null;
+  // Extended metadata populated from backend DID registration
+  name?: string;
+  mrn?: string;
+  age?: number;
+  gender?: "M" | "F";
+  bloodGroup?: string;
+  allergies?: string[];
+  phone?: string;
+  employeeId?: string;
+  role?: string;
+  department?: string;
+  specialty?: string;
 }
 
 export interface VerifiableCredential {
@@ -98,11 +110,9 @@ export function emitStoreEvent(event: string, detail?: unknown) {
   storeEvents.dispatchEvent(new CustomEvent(event, { detail }));
 }
 
-// ---------------------------------------------------------------------------
-// Base data
-// ---------------------------------------------------------------------------
-const _allPatients: PatientFull[] = generatePatients(500);
-const _allStaff: StaffMember[] = generateStaff(100);
+// Base data — initialized empty, populated from API / DID registry
+const _allPatients: PatientFull[] = [];
+const _allStaff: StaffMember[] = [];
 
 // ---------------------------------------------------------------------------
 // Real-time vital sign simulator (local fallback)
@@ -243,36 +253,8 @@ function runStaffTick() {
 const _appointments: Map<string, LiveAppointment> = new Map();
 
 function seedAppointments() {
-  if (_appointments.size > 0) return;
-  const doctors = _allStaff.filter((s) => s.role === "Doctor").slice(0, 10);
-  const patientsToBook = _allPatients.slice(0, 25);
-  const modes: LiveAppointment["mode"][] = ["in-person", "telemedicine"];
-  const statuses: LiveAppointment["status"][] = [
-    "confirmed",
-    "confirmed",
-    "pending",
-    "completed",
-    "cancelled",
-  ];
-
-  patientsToBook.forEach((p, i) => {
-    const doc = doctors[i % doctors.length];
-    const apptId = `appt_${p.id}_${i}`;
-    const slotDate = new Date(Date.now() - (i * 86400000) / 3).toLocaleDateString("en-IN");
-    const slotTime = `${9 + (i % 8)}:${i % 2 === 0 ? "00" : "30"} ${i < 12 ? "AM" : "PM"}`;
-    _appointments.set(apptId, {
-      id: apptId,
-      patientDid: p.did,
-      patientName: p.name,
-      doctorDid: doc.did,
-      doctorName: doc.name,
-      specialty: doc.specialty || "General Medicine",
-      slot: `${slotDate}, ${slotTime}`,
-      mode: modes[i % 2],
-      status: statuses[i % statuses.length],
-      bookedAt: new Date(Date.now() - i * 3600000).toLocaleString("en-IN"),
-    });
-  });
+  // Appointments are fetched from backend API — no local seeding
+  // Kept as no-op for initialization compatibility
 }
 
 // ---------------------------------------------------------------------------
@@ -296,21 +278,8 @@ const TX_STATUSES: LiveTransaction["status"][] = [
 ];
 
 function seedTransactions() {
-  if (_transactions.size > 0) return;
-  _allPatients.slice(0, 60).forEach((p, i) => {
-    const txId = `tx_seed_${p.id}_${i}`;
-    const amounts = [1500, 4820, 15000, 3500, 85000, 7200, 12000, 900, 45000, 2800];
-    _transactions.set(txId, {
-      id: txId,
-      patientDid: p.did,
-      patientName: p.name,
-      amount: amounts[i % amounts.length],
-      category: TX_CATEGORIES[i % TX_CATEGORIES.length],
-      status: TX_STATUSES[i % TX_STATUSES.length],
-      date: new Date(Date.now() - (i * 86400000) / 2).toLocaleDateString("en-IN"),
-      reference: `REF-${(100000 + i * 7).toString(36).toUpperCase()}`,
-    });
-  });
+  // Transactions are fetched from backend API — no local seeding
+  // Kept as no-op for initialization compatibility
 }
 
 // ---------------------------------------------------------------------------

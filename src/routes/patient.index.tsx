@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { StaggerList, StaggerItem } from "@/components/Motion";
-import { currentPatient } from "@/lib/mock-data";
 import { useLivePatients, useConsents, useAppointments } from "@/hooks/use-api";
 import {
   QrCode,

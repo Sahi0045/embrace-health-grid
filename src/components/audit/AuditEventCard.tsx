@@ -1,5 +1,5 @@
 import { ShieldCheck, ShieldX, AlertTriangle, Info } from "lucide-react";
-import type { AuditEvent } from "@/lib/mock-audit";
+import type { AuditEvent } from "@/lib/types";
 
 interface AuditEventCardProps {
   event: AuditEvent;

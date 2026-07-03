@@ -47,36 +47,8 @@ const medicationDb = [
   { name: "Azithromycin", strengths: ["250mg", "500mg"], route: "Oral" },
 ];
 
-// Fallback mock data shown only when Solana is offline and world state is empty
-const mockPrescriptions = [
-  {
-    id: "rx1",
-    patient: "Anika Sharma",
-    mrn: "MRN-204871",
-    meds: ["Metoprolol 50mg OD", "Aspirin 75mg OD"],
-    signed: true,
-    date: "2026-06-01",
-    rxNo: "RX-2026-06-001",
-  },
-  {
-    id: "rx2",
-    patient: "Rohan Iyer",
-    mrn: "MRN-204902",
-    meds: ["Atorvastatin 40mg HS", "Amlodipine 5mg OD"],
-    signed: true,
-    date: "2026-06-01",
-    rxNo: "RX-2026-06-002",
-  },
-  {
-    id: "rx3",
-    patient: "Meera Pillai",
-    mrn: "MRN-205110",
-    meds: ["Azithromycin 500mg OD × 3d"],
-    signed: false,
-    date: "2026-06-02",
-    rxNo: "RX-2026-06-003",
-  },
-];
+// Prescription list is sourced entirely from Solana / backend API
+// No local fallback — empty state shown when no data exists
 
 interface RxLine {
   medication: string;
@@ -100,7 +72,7 @@ function PrescriptionsPage() {
   // ─── Live prescription data from Solana ──────────────────────────────────────
   const { data: rxData, loading: rxLoading, online, refetch } = usePrescriptions();
 
-  const livePrescriptions = ((rxData?.prescriptions ?? []) as any[]).map((rx: any) => ({
+  const rxList = ((rxData?.prescriptions ?? []) as any[]).map((rx: any) => ({
     id: rx.id ?? rx.rxId ?? rx.txId ?? String(Math.random()),
     patient: rx.patientName ?? rx.patientDid ?? "Unknown Patient",
     mrn: rx.mrn ?? rx.patientDid ?? "—",
@@ -111,8 +83,6 @@ function PrescriptionsPage() {
     date: rx.timestamp ? new Date(rx.timestamp).toLocaleDateString("en-IN") : (rx.signedAt ?? "—"),
     rxNo: rx.rxId ?? rx.id ?? "—",
   }));
-
-  const rxList = livePrescriptions.length > 0 ? livePrescriptions : mockPrescriptions;
 
   const filteredMeds = medicationDb.filter((m) =>
     m.name.toLowerCase().includes(medSearch.toLowerCase()),

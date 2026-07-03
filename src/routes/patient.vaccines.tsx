@@ -5,7 +5,9 @@ import { StaggerList, StaggerItem } from "@/components/Motion";
 import { CredentialCard } from "@/components/credentials/CredentialCard";
 import { CredentialTimeline } from "@/components/credentials/CredentialTimeline";
 import { CredentialIssuerBadge } from "@/components/credentials/CredentialIssuerBadge";
-import { vaccineCredentials } from "@/lib/mock-credentials";
+import { useVaccineRecords } from "@/hooks/use-api";
+import { useLivePatients } from "@/hooks/use-api";
+import { getCurrentUser } from "@/lib/auth";
 import { ShieldCheck, Syringe, Calendar, TrendingUp, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState } from "react";
@@ -31,9 +33,15 @@ const statusBadge: Record<string, string> = {
 };
 
 function VaccinesPage() {
-  const [selected, setSelected] = useState<typeof vaccineCredentials[0] | null>(null);
-  const complete = vaccineCredentials.filter(v => v.status === "complete").length;
-  const dueSoon = vaccineCredentials.filter(v => v.status === "due-soon").length;
+  const currentUser = getCurrentUser();
+  const { patients } = useLivePatients();
+  const patientRecord = patients?.find((p: any) => p.email === currentUser?.email) || patients?.[0];
+  const patientDid = patientRecord?.did || currentUser?.did || "";
+  const { data: vaccineData } = useVaccineRecords(patientDid);
+  const vaccineCredentials = vaccineData?.vaccines ?? [];
+  const [selected, setSelected] = useState<any | null>(null);
+  const complete = vaccineCredentials.filter((v: any) => v.status === "complete").length;
+  const dueSoon = vaccineCredentials.filter((v: any) => v.status === "due-soon").length;
 
   return (
     <RouteGuard requiredRole="patient">

@@ -2,8 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { RouteGuard } from "@/components/RouteGuard";
 import { PageHeader, StatCard } from "@/components/PageHeader";
 import { StaggerList, StaggerItem } from "@/components/Motion";
-import { mockBeds, mockAmbulances } from "@/lib/mock-infrastructure";
-import { useLivePatients } from "@/hooks/use-api";
+import { useLivePatients, useAmbulances } from "@/hooks/use-api";
+import { useBeds } from "@/hooks/use-api";
 import {
   AlertTriangle,
   Activity,
@@ -24,7 +24,7 @@ export const Route = createFileRoute("/staff/command")({
   component: StaffCommandCenter,
 });
 
-const icuBeds = mockBeds.filter((b) => b.type === "icu").slice(0, 8);
+
 const pendingSignatures = [
   {
     id: "ps1",
@@ -120,6 +120,11 @@ function UrgencyDot({ urgency }: { urgency: string }) {
 
 function StaffCommandCenter() {
   const { patients: livePatients = [] } = useLivePatients();
+  const { data: bedsData } = useBeds();
+  const { data: ambulancesData } = useAmbulances();
+  const allBeds = bedsData?.beds ?? [];
+  const allAmbulances = ambulancesData?.ambulances ?? [];
+  const icuBeds = allBeds.filter((b: any) => b.type === "icu").slice(0, 8);
   const criticalPatients = livePatients.filter((p) => {
     return (
       (p.conditions || []).some(
@@ -128,8 +133,8 @@ function StaffCommandCenter() {
     );
   });
 
-  const occupiedICU = icuBeds.filter((b) => b.status === "occupied").length;
-  const availableAmbulances = mockAmbulances.filter((a) => a.status === "available").length;
+  const occupiedICU = icuBeds.filter((b: any) => b.status === "occupied").length;
+  const availableAmbulances = allAmbulances.filter((a: any) => a.status === "available").length;
 
   return (
     <RouteGuard requiredRole="staff">

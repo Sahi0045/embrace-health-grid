@@ -6,7 +6,6 @@ import {
   EmergencyAccessCard,
   type EmergencyAccessEvent,
 } from "@/components/emergency/EmergencyAccessCard";
-import { currentPatient } from "@/lib/mock-data";
 import { useLivePatients } from "@/hooks/use-api";
 import { getCurrentUser } from "@/lib/auth";
 import {
@@ -87,7 +86,7 @@ function EmergencyPage() {
   const { patients: patientsList } = useLivePatients();
   const currentUser = getCurrentUser();
   const userEmail = currentUser?.email || "";
-  const patient = patientsList?.find((p: any) => p.email === userEmail) || patientsList?.[0] || currentPatient;
+  const patient = patientsList?.find((p: any) => p.email === userEmail) || patientsList?.[0] || { name: "", mrn: "", age: 0, gender: "F" as const, bloodGroup: "", allergies: [] as string[], did: "" };
   const [showQr, setShowQr] = useState(false);
 
   return (
