@@ -25,6 +25,12 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { getPrescriptions, getMedicalRecords } from "@/lib/api";
+import {
+  healthMetrics,
+  pharmacyOrders,
+  rehabSessions,
+  feedbackList,
+} from "@/lib/medical-records-data";
 
 export const Route = createFileRoute("/patient/records")({
   head: () => ({
@@ -108,11 +114,6 @@ function MedicalRecords() {
       isNew: true,
     })),
   ];
-
-  const healthMetrics: any[] = [];
-  const pharmacyOrders: any[] = [];
-  const rehabSessions: any[] = [];
-  const feedbackList: any[] = [];
 
   return (
     <RouteGuard requiredRole="patient">
@@ -252,25 +253,25 @@ function MedicalRecords() {
                 {[
                   {
                     label: "Latest Weight",
-                    value: `${healthMetrics[0].weight} kg`,
-                    sub: `BMI ${healthMetrics[0].bmi}`,
+                    value: `${healthMetrics[0]?.weight ?? "—"} kg`,
+                    sub: `BMI ${healthMetrics[0]?.bmi ?? "—"}`,
                     trend: -1,
                   },
                   {
                     label: "Blood Pressure",
-                    value: `${healthMetrics[0].bloodPressure?.systolic}/${healthMetrics[0].bloodPressure?.diastolic}`,
+                    value: `${healthMetrics[0]?.bloodPressure?.systolic ?? "—"}/${healthMetrics[0]?.bloodPressure?.diastolic ?? "—"}`,
                     sub: "mmHg",
                     trend: -1,
                   },
                   {
                     label: "Blood Sugar (F)",
-                    value: `${healthMetrics[0].bloodSugar?.fasting} mg/dL`,
+                    value: `${healthMetrics[0]?.bloodSugar?.fasting ?? "—"} mg/dL`,
                     sub: "Fasting",
                     trend: -1,
                   },
                   {
                     label: "HbA1c",
-                    value: `${healthMetrics[0].hba1c}%`,
+                    value: `${healthMetrics[0]?.hba1c ?? "—"}%`,
                     sub: "3-month avg",
                     trend: -1,
                   },
