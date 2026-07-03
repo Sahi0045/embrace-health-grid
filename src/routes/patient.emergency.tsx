@@ -6,7 +6,7 @@ import {
   EmergencyAccessCard,
   type EmergencyAccessEvent,
 } from "@/components/emergency/EmergencyAccessCard";
-import { useLivePatients } from "@/hooks/use-api";
+import { useLivePatients, useLiveStaff, useAudit } from "@/hooks/use-api";
 import { getCurrentUser } from "@/lib/auth";
 import {
   Heart,
@@ -25,42 +25,6 @@ export const Route = createFileRoute("/patient/emergency")({
   head: () => ({ meta: [{ title: "Emergency Profile — DID Hospital" }] }),
   component: EmergencyPage,
 });
-
-const emergencyContacts = [
-  { name: "Sunil Sharma", relation: "Spouse", phone: "+91 98765 43210", primary: true },
-  {
-    name: "Dr. Ravi Menon",
-    relation: "Primary Physician",
-    phone: "+91 11-2345-6789",
-    primary: false,
-  },
-];
-
-const criticalConditions = [
-  { label: "Type 2 Diabetes", severity: "managed", since: "2019" },
-  { label: "Hypertension", severity: "controlled", since: "2021" },
-  { label: "Penicillin Allergy", severity: "critical", since: "childhood" },
-  { label: "Sulfa Drug Allergy", severity: "critical", since: "2018" },
-];
-
-const breakGlassEvents: EmergencyAccessEvent[] = [
-  {
-    id: "bg1",
-    actor: "Dr. Priya Nair",
-    actorRole: "ER Physician",
-    reason: "Patient unconscious at arrival, no prior consent available",
-    at: "2026-04-14 22:31",
-    autoAudited: true,
-  },
-  {
-    id: "bg2",
-    actor: "Dr. Sameer Khan",
-    actorRole: "ICU Resident",
-    reason: "Cardiac event — immediate allergy check required",
-    at: "2025-11-03 03:45",
-    autoAudited: true,
-  },
-];
 
 function SeverityBadge({ severity }: { severity: string }) {
   if (severity === "critical")
@@ -84,10 +48,54 @@ function SeverityBadge({ severity }: { severity: string }) {
 
 function EmergencyPage() {
   const { patients: patientsList } = useLivePatients();
+  const { staff } = useLiveStaff();
+  const { data: auditData } = useAudit();
   const currentUser = getCurrentUser();
   const userEmail = currentUser?.email || "";
-  const patient = patientsList?.find((p: any) => p.email === userEmail) || patientsList?.[0] || { name: "", mrn: "", age: 0, gender: "F" as const, bloodGroup: "", allergies: [] as string[], did: "" };
+  const patient = patientsList?.find((p: any) => p.email === userEmail) || patientsList?.[0] || { name: "", mrn: "", age: 0, gender: "F" as const, bloodGroup: "", allergies: [] as string[], did: "", primaryDoctor: "", conditions: [] as string[], organDonor: false };
   const [showQr, setShowQr] = useState(false);
+
+  // Live Emergency Contacts
+  const emergencyContactsList = [];
+  if (patient.emergencyContact?.name) {
+    emergencyContactsList.push({
+      name: patient.emergencyContact.name,
+      relation: patient.emergencyContact.relation || "Emergency Contact",
+      phone: patient.emergencyContact.phone || "N/A",
+      primary: true,
+    });
+  }
+  if (patient.primaryDoctor) {
+    const doc = staff?.find((s: any) => s.name === patient.primaryDoctor || s.did === patient.primaryDoctor);
+    emergencyContactsList.push({
+      name: doc ? doc.name : patient.primaryDoctor,
+      relation: "Primary Physician",
+      phone: doc ? doc.phone : "+91 11-2345-6789",
+      primary: false,
+    });
+  }
+
+  // Live Critical Conditions
+  const criticalConditionsList = patient.conditions
+    ? patient.conditions.map((cond: string) => ({
+        label: cond,
+        severity: cond.toLowerCase().includes("allergy") || cond.toLowerCase().includes("diabet") ? "critical" : "controlled",
+        since: "N/A",
+      }))
+    : [];
+
+  // Live Break Glass Events
+  const allEvents = auditData?.events || [];
+  const breakGlassEventsList: EmergencyAccessEvent[] = allEvents
+    .filter((e: any) => e.severity === "critical" || e.action.toLowerCase().includes("break_glass") || e.action.toLowerCase().includes("emergency"))
+    .map((e: any) => ({
+      id: e.txId || e._id,
+      actor: e.actor || "Emergency Responder",
+      actorRole: e.actor.includes("doc") || e.actor.includes("Dr") ? "Physician" : "Staff",
+      reason: e.resource || "Emergency medical records access",
+      at: e.loggedAt ? new Date(e.loggedAt).toLocaleString("en-IN") : "N/A",
+      autoAudited: true,
+    }));
 
   return (
     <RouteGuard requiredRole="patient">
@@ -132,7 +140,7 @@ function EmergencyPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Droplets className="h-5 w-5 text-red-200" />
-                    <span className="text-3xl font-bold">{patient.bloodGroup}</span>
+                    <span className="text-3xl font-bold">{patient.bloodGroup || "N/A"}</span>
                   </div>
                 </div>
                 <div>
@@ -141,7 +149,7 @@ function EmergencyPage() {
                   </div>
                   <div className="flex items-center gap-1.5 text-lg font-bold">
                     <Heart className="h-5 w-5 text-pink-300" />
-                    Yes — Registered
+                    {patient.organDonor ? "Yes — Registered" : "No / Not Declared"}
                   </div>
                 </div>
               </div>
@@ -156,7 +164,7 @@ function EmergencyPage() {
                 Known Allergies
               </div>
               <div className="flex flex-wrap gap-2">
-                {patient.allergies &&
+                {patient.allergies && patient.allergies.length > 0 ? (
                   patient.allergies.map((a: string) => (
                     <span
                       key={a}
@@ -164,7 +172,10 @@ function EmergencyPage() {
                     >
                       {a}
                     </span>
-                  ))}
+                  ))
+                ) : (
+                  <span className="text-xs text-muted-foreground">No documented allergies</span>
+                )}
               </div>
             </div>
           </StaggerItem>
@@ -178,7 +189,7 @@ function EmergencyPage() {
                   Critical Conditions
                 </div>
                 <div className="space-y-2">
-                  {criticalConditions.map((c) => (
+                  {criticalConditionsList.map((c) => (
                     <div
                       key={c.label}
                       className="flex items-center justify-between rounded-lg bg-muted px-3 py-2"
@@ -190,6 +201,11 @@ function EmergencyPage() {
                       <SeverityBadge severity={c.severity} />
                     </div>
                   ))}
+                  {criticalConditionsList.length === 0 && (
+                    <div className="py-6 text-center text-sm text-muted-foreground">
+                      No documented critical conditions
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -199,7 +215,7 @@ function EmergencyPage() {
                   Emergency Contacts
                 </div>
                 <div className="space-y-2">
-                  {emergencyContacts.map((ec) => (
+                  {emergencyContactsList.map((ec) => (
                     <div
                       key={ec.name}
                       className="flex items-center justify-between rounded-lg bg-muted px-3 py-2"
@@ -223,6 +239,11 @@ function EmergencyPage() {
                       </div>
                     </div>
                   ))}
+                  {emergencyContactsList.length === 0 && (
+                    <div className="py-6 text-center text-sm text-muted-foreground">
+                      No emergency contacts configured
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -237,13 +258,18 @@ function EmergencyPage() {
                   Break-Glass Access History
                 </span>
                 <span className="ml-auto rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive">
-                  {breakGlassEvents.length} events
+                  {breakGlassEventsList.length} events
                 </span>
               </div>
               <div className="space-y-3">
-                {breakGlassEvents.map((ev) => (
+                {breakGlassEventsList.map((ev) => (
                   <EmergencyAccessCard key={ev.id} event={ev} />
                 ))}
+                {breakGlassEventsList.length === 0 && (
+                  <div className="py-8 text-center text-sm text-muted-foreground border border-dashed border-border rounded-xl">
+                    No emergency break-glass access events logged
+                  </div>
+                )}
               </div>
             </div>
           </StaggerItem>
