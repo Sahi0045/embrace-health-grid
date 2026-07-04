@@ -490,7 +490,7 @@ function AdminFinancialPage() {
                 </button>
                 <button
                   onClick={() => {
-                    toast.success("Sent to printer queue");
+                    window.print();
                     setShowInvoice(null);
                   }}
                   className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-primary text-primary-foreground py-2 text-xs font-bold hover:bg-primary/90"

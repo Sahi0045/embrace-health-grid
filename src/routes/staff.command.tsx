@@ -18,6 +18,9 @@ import {
   Users,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
+import { getAllPrescriptions, getSurgeries, signPrescription } from "@/lib/api";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/staff/command")({
   head: () => ({ meta: [{ title: "Command Center — Staff Portal" }] }),
@@ -25,67 +28,7 @@ export const Route = createFileRoute("/staff/command")({
 });
 
 
-const pendingSignatures = [
-  {
-    id: "ps1",
-    type: "Prescription",
-    patient: "Anika Sharma",
-    requestedBy: "Nurse Priya K.",
-    urgency: "high",
-    time: "08:42",
-  },
-  {
-    id: "ps2",
-    type: "Discharge Order",
-    patient: "Rohan Iyer",
-    requestedBy: "Ward Resident",
-    urgency: "medium",
-    time: "09:15",
-  },
-  {
-    id: "ps3",
-    type: "Lab Order",
-    patient: "Karthik Rao",
-    requestedBy: "Nurse Ananya V.",
-    urgency: "low",
-    time: "10:03",
-  },
-  {
-    id: "ps4",
-    type: "Consent Form",
-    patient: "Meera Pillai",
-    requestedBy: "Dr. Aanya Verma",
-    urgency: "high",
-    time: "10:28",
-  },
-];
-
-const todayProcedures = [
-  {
-    id: "pr1",
-    patient: "Anika Sharma",
-    procedure: "Cardiac Catheterization",
-    room: "Cath Lab 2",
-    time: "11:00",
-    status: "upcoming",
-  },
-  {
-    id: "pr2",
-    patient: "Rohan Iyer",
-    procedure: "Hip Replacement (Left)",
-    room: "OR-4",
-    time: "13:30",
-    status: "upcoming",
-  },
-  {
-    id: "pr3",
-    patient: "Deepak Joshi",
-    procedure: "Appendectomy",
-    room: "OR-2",
-    time: "09:00",
-    status: "in-progress",
-  },
-];
+// Dynamic pendingSignatures and todayProcedures loaded from database APIs
 
 const emergencyAlerts = [
   {
@@ -135,6 +78,70 @@ function StaffCommandCenter() {
 
   const occupiedICU = icuBeds.filter((b: any) => b.status === "occupied").length;
   const availableAmbulances = allAmbulances.filter((a: any) => a.status === "available").length;
+
+  const [prescriptions, setPrescriptions] = useState<any[]>([]);
+  const [surgeries, setSurgeries] = useState<any[]>([]);
+  const [loadingData, setLoadingData] = useState(true);
+
+  const staffDid = typeof window !== "undefined" ? localStorage.getItem("userDID") || "did:hosp:staff:current" : "did:hosp:staff:current";
+
+  const fetchData = () => {
+    setLoadingData(true);
+    Promise.all([getAllPrescriptions(), getSurgeries()])
+      .then(([rxRes, surgRes]) => {
+        setPrescriptions(rxRes.prescriptions || []);
+        setSurgeries(surgRes.surgeries || []);
+      })
+      .catch((err) => console.error("Error loading staff command data:", err))
+      .finally(() => setLoadingData(false));
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const handleSign = async (rxId: string) => {
+    try {
+      toast.promise(
+        new Promise(async (resolve, reject) => {
+          try {
+            await signPrescription({ rxId, staffDid });
+            fetchData();
+            resolve(true);
+          } catch (err) {
+            reject(err);
+          }
+        }),
+        {
+          loading: "Signing prescription using clinician credential...",
+          success: "Prescription signed and logged on ledger!",
+          error: "Failed to sign prescription",
+        }
+      );
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const pendingSignatures = prescriptions
+    .filter((p) => !p.signed && p.status !== "signed")
+    .map((p) => ({
+      id: p.rxId,
+      type: "Prescription",
+      patient: p.patientName || "Unknown Patient",
+      requestedBy: p.clinicName || "OPD Desk",
+      urgency: "medium",
+      time: p.date ? p.date.split("T")[0] : "Today",
+    }));
+
+  const todayProcedures = surgeries.map((s) => ({
+    id: s.id,
+    patient: s.patient,
+    procedure: s.procedure,
+    room: s.room,
+    time: s.time,
+    status: s.status,
+  }));
 
   return (
     <RouteGuard requiredRole="staff">
@@ -218,7 +225,10 @@ function StaffCommandCenter() {
                   </div>
                   <div className="text-right shrink-0">
                     <div className="text-xs text-muted-foreground">{s.time}</div>
-                    <button className="mt-0.5 text-[10px] font-semibold text-primary hover:underline">
+                    <button
+                      onClick={() => handleSign(s.id)}
+                      className="mt-0.5 text-[10px] font-semibold text-primary hover:underline"
+                    >
                       Sign now
                     </button>
                   </div>

@@ -4,50 +4,15 @@ import { PageHeader } from "@/components/PageHeader";
 import { StaggerList, StaggerItem } from "@/components/Motion";
 import { Activity, Clock, User, Wrench, Calendar, MapPin } from "lucide-react";
 import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
+import { getSurgeries } from "@/lib/api";
 
 export const Route = createFileRoute("/staff/surgeries")({
   head: () => ({ meta: [{ title: "Surgeries — Staff Portal" }] }),
   component: SurgeriesPage,
 });
 
-const surgeries = [
-  {
-    id: "s1", patient: "Anika Sharma", mrn: "MRN-204871",
-    procedure: "Cardiac Catheterization (PCI)",
-    room: "Cath Lab 2", date: "2026-06-04", time: "11:00",
-    surgeon: "Dr. Ravi Menon", anesthesiologist: "Dr. Deepak Joshi",
-    nurses: ["Nurse Priya K.", "Nurse Ananya V."],
-    equipment: ["Cath Lab C-Arm", "Defibrillator", "Hemodynamic Monitor", "Infusion Pump ×3"],
-    status: "scheduled", estDuration: "90 min",
-  },
-  {
-    id: "s2", patient: "Rohan Iyer", mrn: "MRN-204902",
-    procedure: "Total Hip Replacement (Left)",
-    room: "OR-4", date: "2026-06-04", time: "13:30",
-    surgeon: "Dr. Priya Nair", anesthesiologist: "Dr. Sunita Kapoor",
-    nurses: ["Nurse Rekha S.", "Nurse Vijay T."],
-    equipment: ["Orthopedic Power Tools Set", "C-Arm", "Cell Saver", "Electrosurgical Unit"],
-    status: "scheduled", estDuration: "3 hours",
-  },
-  {
-    id: "s3", patient: "Deepak Joshi", mrn: "MRN-203001",
-    procedure: "Laparoscopic Appendectomy",
-    room: "OR-2", date: "2026-06-02", time: "09:00",
-    surgeon: "Dr. Kiran Bose", anesthesiologist: "Dr. Alok Sharma",
-    nurses: ["Nurse Sunita V.", "Nurse Ram K."],
-    equipment: ["Laparoscopic Tower", "Ultrasonic Scalpel", "Electrosurgical Unit"],
-    status: "in-progress", estDuration: "45 min",
-  },
-  {
-    id: "s4", patient: "Kavya Reddy", mrn: "MRN-206114",
-    procedure: "LASIK Eye Surgery (Bilateral)",
-    room: "Eye Suite 1", date: "2026-06-01", time: "14:00",
-    surgeon: "Dr. Reena Pillai", anesthesiologist: "Local Anesthesia",
-    nurses: ["Nurse Pooja A."],
-    equipment: ["LASIK Excimer Laser", "Microkeratome", "Aberrometer"],
-    status: "completed", estDuration: "30 min",
-  },
-];
+// Dynamic surgeries loaded from API
 
 const statusConfig = {
   scheduled: { label: "Scheduled", badge: "bg-primary/10 text-primary", dot: "bg-primary" },
@@ -57,6 +22,18 @@ const statusConfig = {
 };
 
 function SurgeriesPage() {
+  const [surgeries, setSurgeries] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getSurgeries()
+      .then((res) => {
+        setSurgeries(res.surgeries || []);
+      })
+      .catch((err) => console.error("Error loading surgeries:", err))
+      .finally(() => setLoading(false));
+  }, []);
+
   return (
     <RouteGuard requiredRole="staff">
       <PageHeader
@@ -66,8 +43,14 @@ function SurgeriesPage() {
       />
 
       <div className="p-6 space-y-4">
-        <StaggerList className="space-y-4">
-          {surgeries.map((s) => {
+        {loading && (
+          <div className="text-sm text-muted-foreground py-8 text-center animate-pulse">
+            Loading surgeries from secure clinic database...
+          </div>
+        )}
+        {!loading && (
+          <StaggerList className="space-y-4">
+            {surgeries.map((s) => {
             const cfg = statusConfig[s.status as keyof typeof statusConfig];
             return (
               <StaggerItem key={s.id}>
@@ -98,7 +81,7 @@ function SurgeriesPage() {
                       <div className="space-y-1">
                         <div className="flex items-center gap-1.5"><User className="h-3 w-3 text-primary" /><span className="font-medium text-foreground">{s.surgeon}</span><span className="text-muted-foreground">(Surgeon)</span></div>
                         <div className="flex items-center gap-1.5"><User className="h-3 w-3 text-chart-2" /><span className="font-medium text-foreground">{s.anesthesiologist}</span></div>
-                        {s.nurses.map((n) => (
+                        {s.nurses.map((n: string) => (
                           <div key={n} className="flex items-center gap-1.5"><User className="h-3 w-3 text-muted-foreground" /><span className="text-foreground">{n}</span></div>
                         ))}
                       </div>
@@ -106,7 +89,7 @@ function SurgeriesPage() {
                     <div className="sm:col-span-2">
                       <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1.5">Equipment</div>
                       <div className="flex flex-wrap gap-1.5">
-                        {s.equipment.map((e) => (
+                        {s.equipment.map((e: string) => (
                           <span key={e} className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-[10px] font-medium text-foreground">
                             <Wrench className="h-2.5 w-2.5" />{e}
                           </span>
@@ -119,6 +102,7 @@ function SurgeriesPage() {
             );
           })}
         </StaggerList>
+        )}
       </div>
     </RouteGuard>
   );

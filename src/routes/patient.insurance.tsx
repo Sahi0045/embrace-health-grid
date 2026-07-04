@@ -6,35 +6,13 @@ import { InsuranceCard } from "@/components/insurance/InsuranceCard";
 import { ClaimsCard } from "@/components/insurance/ClaimsCard";
 import { useInsuranceClaims } from "@/hooks/use-api";
 import { ShieldCheck, FileText, TrendingUp, IndianRupee, Clock } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { getInsurancePolicies } from "@/lib/api";
 
 export const Route = createFileRoute("/patient/insurance")({
   head: () => ({ meta: [{ title: "Insurance — DID Hospital" }] }),
   component: InsurancePage,
 });
-
-const policies = [
-  {
-    provider: "Star Health Insurance",
-    policyNo: "POL-2025-STAR-00881",
-    type: "Comprehensive Health Plan",
-    sumInsured: 1000000,
-    used: 145000,
-    validFrom: "2025-04-01",
-    validTo: "2026-03-31",
-    status: "active" as const,
-  },
-  {
-    provider: "HDFC Ergo",
-    policyNo: "POL-2024-HDFC-44201",
-    type: "Top-Up Policy (₹5L)",
-    sumInsured: 500000,
-    used: 0,
-    validFrom: "2024-07-15",
-    validTo: "2025-07-14",
-    status: "expired" as const,
-  },
-];
 
 const tabs = ["Overview", "Policies", "Claims"] as const;
 type Tab = typeof tabs[number];
@@ -46,6 +24,17 @@ function InsurancePage() {
   const activeClaims = patientClaims.filter((c: any) => c.status === "pending" || c.status === "under-review");
   const totalClaimed = patientClaims.reduce((s: number, c: any) => s + (c.amount || 0), 0);
   const totalApproved = patientClaims.filter((c: any) => c.approvedAmount).reduce((s: number, c: any) => s + (c.approvedAmount ?? 0), 0);
+
+  const [policies, setPolicies] = useState<any[]>([]);
+  const patientDid = typeof window !== "undefined" ? localStorage.getItem("userDID") || "" : "";
+
+  useEffect(() => {
+    if (!patientDid) return;
+    getInsurancePolicies(patientDid)
+      .then((res) => setPolicies(res.policies || []))
+      .catch((err) => console.error("Error loading policies:", err));
+  }, [patientDid]);
+
 
   return (
     <RouteGuard requiredRole="patient">

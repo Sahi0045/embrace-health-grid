@@ -7,6 +7,8 @@ import { EmptyState } from "@/components/EmptyState";
 import { BookLock, Search, Plus, Pencil, Archive } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { useEffect } from "react";
+import { getPolicies, createPolicy, updatePolicy } from "@/lib/api";
 
 export const Route = createFileRoute("/policies")({
   head: () => ({ meta: [{ title: "Admin · Policies — DID Hospital" }] }),
@@ -33,18 +35,24 @@ const statusTone: Record<Policy["status"], string> = {
 };
 
 function PoliciesPage() {
-  const loading = useSimulatedLoading(450);
-  const [list, setList] = useState<Policy[]>(() => {
-    const saved = localStorage.getItem("did_hospital_policies");
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [list, setList] = useState<Policy[]>([]);
+  const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<Category>("All");
 
-  const saveList = (newList: Policy[]) => {
-    setList(newList);
-    localStorage.setItem("did_hospital_policies", JSON.stringify(newList));
+  const fetchPolicies = () => {
+    setLoading(true);
+    getPolicies()
+      .then((res) => {
+        setList(res.policies || []);
+      })
+      .catch((err) => console.error("Error loading policies:", err))
+      .finally(() => setLoading(false));
   };
+
+  useEffect(() => {
+    fetchPolicies();
+  }, []);
 
   const filtered = list.filter((p) => {
     const matchesCat = cat === "All" || p.category === cat;
@@ -52,25 +60,23 @@ function PoliciesPage() {
     return matchesCat && matchesQ;
   });
 
-  const toggleArchive = (id: string) => {
-    const updated = list.map((p) =>
-      p.id === id
-        ? {
-            ...p,
-            status: (p.status === "archived" ? "active" : "archived") as Policy["status"],
-            updatedAt: new Date().toISOString().slice(0, 10),
-          }
-        : p,
-    );
-    saveList(updated);
-    toast("Policy updated");
-
-    import("@/lib/api").then(({ logAuditEvent }) => {
-      logAuditEvent("admin", `policy:${id}`, "toggle_policy_archive", "success", "info");
-    });
+  const toggleArchive = async (id: string) => {
+    const policy = list.find(p => p.id === id);
+    if (!policy) return;
+    const newStatus = policy.status === "archived" ? "active" : "archived";
+    try {
+      await updatePolicy(id, { status: newStatus });
+      toast.success(`Policy updated to ${newStatus}`);
+      fetchPolicies();
+      import("@/lib/api").then(({ logAuditEvent }) => {
+        logAuditEvent("admin", `policy:${id}`, `toggle_policy_archive_${newStatus}`, "success", "info");
+      });
+    } catch (err: any) {
+      toast.error(`Failed to update policy: ${err.message}`);
+    }
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     const name = prompt("Policy name?");
     if (!name) return;
     const description = prompt("Policy description?");
@@ -81,21 +87,36 @@ function PoliciesPage() {
     );
     if (!categoryInput) return;
 
-    const newPol: Policy = {
-      id: `p_${Date.now()}`,
-      name,
-      category: categoryInput as Policy["category"],
-      status: "draft",
-      updatedAt: new Date().toISOString().slice(0, 10),
-      description,
-    };
+    try {
+      const res = await createPolicy({
+        name,
+        description,
+        category: categoryInput,
+        status: "draft",
+      });
+      toast.success("Policy created in Draft status");
+      fetchPolicies();
+      import("@/lib/api").then(({ logAuditEvent }) => {
+        logAuditEvent("admin", `policy:${res.policy?.id || "new"}`, "create_policy", "success", "info");
+      });
+    } catch (err: any) {
+      toast.error(`Failed to create policy: ${err.message}`);
+    }
+  };
 
-    saveList([newPol, ...list]);
-    toast.success("Policy created in Draft status");
-
-    import("@/lib/api").then(({ logAuditEvent }) => {
-      logAuditEvent("admin", `policy:${newPol.id}`, "create_policy", "success", "info");
-    });
+  const handleEdit = async (policy: Policy) => {
+    const newDescription = prompt("Enter new policy description:", policy.description);
+    if (newDescription === null) return;
+    try {
+      await updatePolicy(policy.id, { description: newDescription });
+      toast.success("Policy description updated");
+      fetchPolicies();
+      import("@/lib/api").then(({ logAuditEvent }) => {
+        logAuditEvent("admin", `policy:${policy.id}`, "edit_policy_description", "success", "info");
+      });
+    } catch (err: any) {
+      toast.error(`Failed to edit policy: ${err.message}`);
+    }
   };
 
   return (
@@ -181,7 +202,10 @@ function PoliciesPage() {
                   <div className="mt-4 flex items-center justify-between border-t border-border pt-3 text-xs">
                     <span className="text-muted-foreground">Updated {p.updatedAt}</span>
                     <div className="flex gap-2">
-                      <button className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2.5 py-1 font-medium text-foreground hover:bg-muted">
+                      <button
+                        onClick={() => handleEdit(p)}
+                        className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2.5 py-1 font-medium text-foreground hover:bg-muted"
+                      >
                         <Pencil className="h-3 w-3" /> Edit
                       </button>
                       <button

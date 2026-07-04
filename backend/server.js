@@ -749,7 +749,43 @@ app.post("/api/fraud/alert", requireAuth, (req, res) => {
 });
 
 app.get("/api/fraud/alerts", requireAuth, requireRole(["admin"]), (_, res) => {
-  const all = getAllState("fraud-alerts");
+  let all = getAllState("fraud-alerts");
+  if (all.length === 0) {
+    const defaultAlerts = [
+      {
+        alertId: "fa001",
+        severity: "critical",
+        status: "open",
+        type: "Break-Glass Abuse",
+        message: "Emergency override used outside declared emergency window",
+        actor: "Dr. Sanjay Mehta",
+        riskScore: 97,
+        detectedAt: "2026-06-08T02:14:00.000Z",
+        details: "Break-glass access invoked at 02:14 with no active emergency declaration. Access lasted 22 minutes. 14 records downloaded.",
+        affectedResource: "Patient MRN-201884 · ICU records",
+        actorRole: "General Physician",
+        location: "OPD Block 2",
+        ip: "10.14.2.88",
+      },
+      {
+        alertId: "fa002",
+        severity: "critical",
+        status: "investigating",
+        type: "Credential Replay Attack",
+        message: "Identical credential presentation from two geographically distant endpoints",
+        actor: "did:hosp:0x9af2…cc01",
+        riskScore: 99,
+        detectedAt: "2026-06-08T02:22:00.000Z",
+        details: "Credential did:hosp:0x9af2... presented at Delhi and Mumbai endpoints within a 4-minute interval. Physical travel impossible.",
+        affectedResource: "Clinician Identity Token",
+        actorRole: "Security Monitor",
+        location: "Gateway Router",
+        ip: "125.16.88.2",
+      }
+    ];
+    defaultAlerts.forEach(a => putState("fraud-alerts", a.alertId, a, randomUUID()));
+    all = getAllState("fraud-alerts");
+  }
   res.json({ alerts: all.map((e) => e.value), total: all.length });
 });
 

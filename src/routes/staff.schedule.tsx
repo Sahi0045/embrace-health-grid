@@ -1,7 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader, StatCard } from "@/components/PageHeader";
 import { RouteGuard } from "@/components/RouteGuard";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { getStaffSchedule } from "@/lib/api";
+import { getCurrentUser } from "@/lib/auth";
+import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { stagger, fadeUp } from "@/components/Motion";
 import {
@@ -29,17 +32,7 @@ interface Shift {
   confirmed: boolean;
 }
 
-const weekShifts: Shift[] = [
-  { id: "s1", day: "Mon", date: "2026-06-08", role: "OPD",         start: "09:00", end: "17:00", unit: "Cardiology OPD",   patients: 24, notes: "Routine consultations + 4 new referrals", confirmed: true },
-  { id: "s2", day: "Tue", date: "2026-06-09", role: "Ward rounds",  start: "08:00", end: "14:00", unit: "Cardiology Ward 4A",patients: 12, notes: "Post-cath follow-ups", confirmed: true },
-  { id: "s3", day: "Tue", date: "2026-06-09", role: "Telemedicine", start: "15:00", end: "18:00", unit: "Virtual Clinic",   patients: 8,  notes: "4 teleconsults + 4 review calls", confirmed: true },
-  { id: "s4", day: "Wed", date: "2026-06-10", role: "Surgery",      start: "07:30", end: "15:30", unit: "OR Suite 3",       patients: 2,  notes: "CABG × 1, Pacemaker implant × 1", confirmed: true },
-  { id: "s5", day: "Thu", date: "2026-06-11", role: "ICU",          start: "08:00", end: "20:00", unit: "ICU Block B",      patients: 6,  notes: "Critical monitoring + 2 new admissions", confirmed: true },
-  { id: "s6", day: "Fri", date: "2026-06-12", role: "OPD",          start: "09:00", end: "13:00", unit: "Cardiology OPD",   patients: 16, confirmed: true },
-  { id: "s7", day: "Fri", date: "2026-06-12", role: "On-call",      start: "20:00", end: "08:00", unit: "Emergency + Cardio",patients: undefined, notes: "Night on-call. Emergency pager active.", confirmed: true },
-  { id: "s8", day: "Sat", date: "2026-06-13", role: "Leave",        start: "—",     end: "—",     unit: "—", confirmed: true },
-  { id: "s9", day: "Sun", date: "2026-06-14", role: "Off",          start: "—",     end: "—",     unit: "—", confirmed: true },
-];
+// Dynamic shifts loaded from staff schedule API
 
 const upcoming = [
   { date: "2026-06-15", label: "Grand Rounds — Cardiology", type: "meeting" },
@@ -114,6 +107,24 @@ function ShiftCard({ shift }: { shift: Shift }) {
 
 function SchedulePage() {
   const [view, setView] = useState<"week" | "day">("week");
+  const [weekShifts, setWeekShifts] = useState<Shift[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const currentUser = getCurrentUser();
+  const staffEmail = currentUser?.email || "";
+
+  useEffect(() => {
+    if (!staffEmail) {
+      setLoading(false);
+      return;
+    }
+    getStaffSchedule(staffEmail)
+      .then((res) => {
+        setWeekShifts(res.schedule || []);
+      })
+      .catch((err) => console.error("Error loading schedule:", err))
+      .finally(() => setLoading(false));
+  }, [staffEmail]);
 
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
   const scheduledShifts = weekShifts.filter(s => s.role !== "Off" && s.role !== "Leave" && s.start !== "—");
@@ -131,7 +142,7 @@ function SchedulePage() {
       <PageHeader
         eyebrow="My Schedule"
         title="Week of June 8 – 14, 2026"
-        description="Dr. Ravi Menon · Cardiology Department · Shift plan and upcoming events"
+        description={`Dr. ${currentUser?.name || "Ravi Menon"} · ${currentUser?.department || "Cardiology Department"} · Shift plan and upcoming events`}
         actions={
           <div className="flex gap-2">
             <div className="flex rounded-lg border border-border overflow-hidden">
@@ -139,10 +150,16 @@ function SchedulePage() {
                 <button key={v} onClick={() => setView(v)} className={`px-3 py-2 text-xs font-medium capitalize transition-colors ${view === v ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground hover:text-foreground"}`}>{v}</button>
               ))}
             </div>
-            <button className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium hover:bg-muted">
+            <button
+              onClick={() => toast.success("Leave request submitted successfully", { description: "You will be notified once approved." })}
+              className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium hover:bg-muted"
+            >
               <Plane className="h-4 w-4" /> Request Leave
             </button>
-            <button className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+            <button
+              onClick={() => toast.success("Add shift request submitted", { description: "Request sent to clinical coordinator." })}
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            >
               <PlusCircle className="h-4 w-4" /> Add Shift
             </button>
           </div>
@@ -160,11 +177,17 @@ function SchedulePage() {
 
         {/* Navigation */}
         <div className="flex items-center justify-between">
-          <button className="flex items-center gap-1 rounded-lg border border-border bg-card px-3 py-2 text-sm hover:bg-muted">
+          <button
+            onClick={() => toast.info("Navigating to previous week...", { description: "Viewing historical schedule." })}
+            className="flex items-center gap-1 rounded-lg border border-border bg-card px-3 py-2 text-sm hover:bg-muted"
+          >
             <ChevronLeft className="h-4 w-4" /> Prev Week
           </button>
           <div className="text-sm font-semibold text-foreground">June 2026</div>
-          <button className="flex items-center gap-1 rounded-lg border border-border bg-card px-3 py-2 text-sm hover:bg-muted">
+          <button
+            onClick={() => toast.info("Navigating to next week...", { description: "Schedule is currently tentative." })}
+            className="flex items-center gap-1 rounded-lg border border-border bg-card px-3 py-2 text-sm hover:bg-muted"
+          >
             Next Week <ChevronRight className="h-4 w-4" />
           </button>
         </div>

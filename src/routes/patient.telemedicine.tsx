@@ -4,81 +4,77 @@ import { PageHeader } from "@/components/PageHeader";
 import { StaggerList, StaggerItem } from "@/components/Motion";
 import { Video, Calendar, Clock, User, FileText, ShieldCheck, Pill, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { getAppointments, getPrescriptions } from "@/lib/api";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/patient/telemedicine")({
   head: () => ({ meta: [{ title: "Telemedicine — DID Hospital" }] }),
   component: TelemedicinePage,
 });
 
-const upcoming = [
-  {
-    id: "tc1",
-    doctor: "Dr. Aanya Verma",
-    specialty: "Radiology Follow-up",
-    date: "2026-06-09",
-    time: "4:15 PM",
+function TelemedicinePage() {
+  const [tab, setTab] = useState<"upcoming" | "history" | "prescriptions">("upcoming");
+  const [appointments, setAppointments] = useState<any[]>([]);
+  const [prescriptions, setPrescriptions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const patientDid = typeof window !== "undefined" ? localStorage.getItem("userDID") || "" : "";
+
+  useEffect(() => {
+    if (!patientDid) {
+      setLoading(false);
+      return;
+    }
+    Promise.all([getAppointments(), getPrescriptions(patientDid)])
+      .then(([apptRes, rxRes]) => {
+        setAppointments(apptRes.appointments || []);
+        setPrescriptions(rxRes.prescriptions || []);
+      })
+      .catch((err) => console.error("Error loading telemedicine data:", err))
+      .finally(() => setLoading(false));
+  }, [patientDid]);
+
+  const patientTeleAppts = appointments.filter(
+    (a) => a.patientDid === patientDid && a.mode === "telemedicine"
+  );
+  
+  const upcoming = patientTeleAppts.filter(
+    (a) => a.status === "scheduled" || a.status === "confirmed" || !a.status
+  ).map((a, i) => ({
+    id: a.apptId || `up_${i}`,
+    doctor: a.doctorName,
+    specialty: a.specialty,
+    date: a.slot.split(" ")[0] || "2026-06-09",
+    time: a.slot.split(" ").slice(1).join(" ") || "4:15 PM",
     duration: "30 min",
     mode: "video",
     link: "#",
     status: "scheduled",
-  },
-  {
-    id: "tc2",
-    doctor: "Dr. Sameer Khan",
-    specialty: "General Check-up",
-    date: "2026-06-18",
-    time: "10:00 AM",
-    duration: "20 min",
-    mode: "video",
-    link: "#",
-    status: "scheduled",
-  },
-];
+  }));
 
-const previous = [
-  {
-    id: "tp1",
-    doctor: "Dr. Ravi Menon",
-    specialty: "Cardiology",
-    date: "2026-05-22",
-    time: "10:30 AM",
-    duration: "45 min",
-    summary: "ECG review and medication adjustment — increased Metoprolol to 50mg OD",
-    prescription: "RX-2026-05-9821",
+  const previous = patientTeleAppts.filter(
+    (a) => a.status === "completed" || a.status === "done"
+  ).map((a, i) => ({
+    id: a.apptId || `prev_${i}`,
+    doctor: a.doctorName,
+    specialty: a.specialty,
+    date: a.slot.split(" ")[0] || "2026-05-22",
+    time: a.slot.split(" ").slice(1).join(" ") || "10:30 AM",
+    duration: "30 min",
+    summary: a.summary || "Routine telemedicine review.",
+    prescription: a.rxId || null,
     signed: true,
-  },
-  {
-    id: "tp2",
-    doctor: "Dr. Aanya Verma",
-    specialty: "Radiology",
-    date: "2026-04-08",
-    time: "2:00 PM",
-    duration: "20 min",
-    summary: "Chest X-ray review — no active lesions, follow-up in 2 months",
-    prescription: null,
-    signed: true,
-  },
-  {
-    id: "tp3",
-    doctor: "Dr. Sameer Khan",
-    specialty: "General Medicine",
-    date: "2026-03-15",
-    time: "9:00 AM",
-    duration: "15 min",
-    summary: "Annual wellness check — all vitals normal, continue current medications",
-    prescription: "RX-2026-03-8814",
-    signed: true,
-  },
-];
+  }));
 
-const prescriptionCredentials = [
-  { id: "pc1", rx: "RX-2026-05-9821", medication: "Metoprolol 50mg OD", issuer: "Dr. Ravi Menon", date: "2026-05-22", valid: true },
-  { id: "pc2", rx: "RX-2026-03-8814", medication: "Multivitamin once daily", issuer: "Dr. Sameer Khan", date: "2026-03-15", valid: false },
-];
-
-function TelemedicinePage() {
-  const [tab, setTab] = useState<"upcoming" | "history" | "prescriptions">("upcoming");
+  const prescriptionCredentials = prescriptions.map((p, i) => ({
+    id: p.rxId || `pc_${i}`,
+    rx: p.rxId,
+    medication: p.drugs?.map((d: any) => `${d.name} ${d.dosage}`).join(", ") || "Medication prescribed",
+    issuer: p.signedBy || "Doctor Specialist",
+    date: p.date || "N/A",
+    valid: true,
+  }));
 
   return (
     <RouteGuard requiredRole="patient">
@@ -131,7 +127,10 @@ function TelemedicinePage() {
                     <div className="flex items-center gap-1.5"><Clock className="h-3 w-3" />{c.duration}</div>
                   </div>
 
-                  <button className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors">
+                  <button
+                    onClick={() => toast.success("Connecting to secure video call...", { description: `Session with ${c.doctor}` })}
+                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+                  >
                     <Video className="h-4 w-4" />
                     Join Video Call
                   </button>
