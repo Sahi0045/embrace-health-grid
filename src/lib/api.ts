@@ -691,5 +691,12 @@ export const payBill = (data: { patientDid: string; patientName: string; amount:
     body: JSON.stringify(data),
   });
 
+export const createStaffRequest = (data: any) =>
+  apiFetch<any>("/staff-requests", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+
+
 
 

@@ -667,6 +667,31 @@ export function registerExtensionRoutes(app, deps) {
     res.json({ record });
   });
 
+  app.post("/api/staff-requests", requireRole("staff", "admin"), (req, res) => {
+    const { requestType, leaveType, fromDate, toDate, reason, shiftDate, shiftType, unit } = req.body;
+    if (!requestType) return res.status(400).json({ error: "requestType required" });
+    const id = `REQ-${Date.now().toString(36).toUpperCase()}`;
+    const record = {
+      id,
+      staffEmail: req.user.email,
+      staffDid: req.user.did,
+      requestType,
+      leaveType: leaveType || null,
+      fromDate: fromDate || null,
+      toDate: toDate || null,
+      reason: reason || null,
+      shiftDate: shiftDate || null,
+      shiftType: shiftType || null,
+      unit: unit || null,
+      status: "pending",
+      createdAt: new Date().toISOString(),
+    };
+    putState("staff-requests", id, record, randomUUID());
+    logAudit(req, { resource: id, action: `STAFF_REQUEST_CREATE_${requestType.toUpperCase()}` });
+    res.json({ success: true, record });
+  });
+
+
   // ─── Solana ─────────────────────────────────────────────────────────────────
   app.post("/api/solana/anchor", requireRole("staff", "admin"), async (req, res) => {
     const { recordHash, recordType, actorDid, recordId } = req.body;

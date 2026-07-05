@@ -17,8 +17,11 @@ import { Route as FraudRouteImport } from './routes/fraud'
 import { Route as FinancialRouteImport } from './routes/financial'
 import { Route as DigitalTwinRouteImport } from './routes/digital-twin'
 import { Route as DidsRouteImport } from './routes/dids'
+import { Route as DidExplorerRouteImport } from './routes/did-explorer'
 import { Route as CredentialsRouteImport } from './routes/credentials'
+import { Route as CredentialExplorerRouteImport } from './routes/credential-explorer'
 import { Route as CommandRouteImport } from './routes/command'
+import { Route as AuditTimelineRouteImport } from './routes/audit-timeline'
 import { Route as AuditRouteImport } from './routes/audit'
 import { Route as IndexRouteImport } from './routes/index'
 
@@ -62,14 +65,29 @@ const DidsRoute = DidsRouteImport.update({
   path: '/dids',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DidExplorerRoute = DidExplorerRouteImport.update({
+  id: '/did-explorer',
+  path: '/did-explorer',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CredentialsRoute = CredentialsRouteImport.update({
   id: '/credentials',
   path: '/credentials',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CredentialExplorerRoute = CredentialExplorerRouteImport.update({
+  id: '/credential-explorer',
+  path: '/credential-explorer',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CommandRoute = CommandRouteImport.update({
   id: '/command',
   path: '/command',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuditTimelineRoute = AuditTimelineRouteImport.update({
+  id: '/audit-timeline',
+  path: '/audit-timeline',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuditRoute = AuditRouteImport.update({
@@ -86,8 +104,11 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/audit': typeof AuditRoute
+  '/audit-timeline': typeof AuditTimelineRoute
   '/command': typeof CommandRoute
+  '/credential-explorer': typeof CredentialExplorerRoute
   '/credentials': typeof CredentialsRoute
+  '/did-explorer': typeof DidExplorerRoute
   '/dids': typeof DidsRoute
   '/digital-twin': typeof DigitalTwinRoute
   '/financial': typeof FinancialRoute
@@ -100,8 +121,11 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/audit': typeof AuditRoute
+  '/audit-timeline': typeof AuditTimelineRoute
   '/command': typeof CommandRoute
+  '/credential-explorer': typeof CredentialExplorerRoute
   '/credentials': typeof CredentialsRoute
+  '/did-explorer': typeof DidExplorerRoute
   '/dids': typeof DidsRoute
   '/digital-twin': typeof DigitalTwinRoute
   '/financial': typeof FinancialRoute
@@ -115,8 +139,11 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/audit': typeof AuditRoute
+  '/audit-timeline': typeof AuditTimelineRoute
   '/command': typeof CommandRoute
+  '/credential-explorer': typeof CredentialExplorerRoute
   '/credentials': typeof CredentialsRoute
+  '/did-explorer': typeof DidExplorerRoute
   '/dids': typeof DidsRoute
   '/digital-twin': typeof DigitalTwinRoute
   '/financial': typeof FinancialRoute
@@ -131,8 +158,11 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/audit'
+    | '/audit-timeline'
     | '/command'
+    | '/credential-explorer'
     | '/credentials'
+    | '/did-explorer'
     | '/dids'
     | '/digital-twin'
     | '/financial'
@@ -145,8 +175,11 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/audit'
+    | '/audit-timeline'
     | '/command'
+    | '/credential-explorer'
     | '/credentials'
+    | '/did-explorer'
     | '/dids'
     | '/digital-twin'
     | '/financial'
@@ -159,8 +192,11 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/audit'
+    | '/audit-timeline'
     | '/command'
+    | '/credential-explorer'
     | '/credentials'
+    | '/did-explorer'
     | '/dids'
     | '/digital-twin'
     | '/financial'
@@ -174,8 +210,11 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuditRoute: typeof AuditRoute
+  AuditTimelineRoute: typeof AuditTimelineRoute
   CommandRoute: typeof CommandRoute
+  CredentialExplorerRoute: typeof CredentialExplorerRoute
   CredentialsRoute: typeof CredentialsRoute
+  DidExplorerRoute: typeof DidExplorerRoute
   DidsRoute: typeof DidsRoute
   DigitalTwinRoute: typeof DigitalTwinRoute
   FinancialRoute: typeof FinancialRoute
@@ -244,6 +283,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DidsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/did-explorer': {
+      id: '/did-explorer'
+      path: '/did-explorer'
+      fullPath: '/did-explorer'
+      preLoaderRoute: typeof DidExplorerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/credentials': {
       id: '/credentials'
       path: '/credentials'
@@ -251,11 +297,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CredentialsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/credential-explorer': {
+      id: '/credential-explorer'
+      path: '/credential-explorer'
+      fullPath: '/credential-explorer'
+      preLoaderRoute: typeof CredentialExplorerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/command': {
       id: '/command'
       path: '/command'
       fullPath: '/command'
       preLoaderRoute: typeof CommandRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/audit-timeline': {
+      id: '/audit-timeline'
+      path: '/audit-timeline'
+      fullPath: '/audit-timeline'
+      preLoaderRoute: typeof AuditTimelineRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/audit': {
@@ -278,8 +338,11 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuditRoute: AuditRoute,
+  AuditTimelineRoute: AuditTimelineRoute,
   CommandRoute: CommandRoute,
+  CredentialExplorerRoute: CredentialExplorerRoute,
   CredentialsRoute: CredentialsRoute,
+  DidExplorerRoute: DidExplorerRoute,
   DidsRoute: DidsRoute,
   DigitalTwinRoute: DigitalTwinRoute,
   FinancialRoute: FinancialRoute,

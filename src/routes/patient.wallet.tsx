@@ -26,8 +26,8 @@ function Wallet() {
     id: c.id ?? c.txId ?? String(Math.random()),
     type: c.type ?? "Verifiable Credential",
     issuer: c.issuer ?? "Apollo Hospitals",
-    issuedAt: c.issuedAt ?? c.timestamp ?? "2025-01-12",
-    expiresAt: c.expiresAt ?? "2026-01-12",
+    issuedAt: c.issuedAt ?? c.timestamp ?? new Date().toISOString().split("T")[0],
+    expiresAt: c.expiresAt ?? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
     status: (c.status === "revoked" ? "revoked" : "active") as "active" | "revoked" | "expired",
     claims: c.claims || {},
   }));

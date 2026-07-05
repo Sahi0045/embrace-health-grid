@@ -76,18 +76,67 @@ function PatientBilling() {
   };
 
   const handleExport = () => {
+    const headers = ["Date", "Description", "Category", "Quantity", "Total Price", "Covered By Insurance"];
+    const rows = billItems.map((item: any) => [
+      new Date(item.date).toLocaleDateString(),
+      item.description,
+      item.category,
+      item.quantity,
+      item.totalPrice,
+      item.coveredByInsurance ? "Yes" : "No"
+    ]);
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((row: any) => row.map((val: any) => `"${String(val ?? "").replace(/"/g, '""')}"`).join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `billing_export_${patientDid}_${new Date().toISOString().slice(0,10)}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
     toast.success("Billing log exported", { description: "Format: CSV. File saved to downloads." });
   };
 
   const handleDownloadBill = () => {
-    toast.promise(
-      new Promise((resolve) => setTimeout(resolve, 1000)),
-      {
-        loading: "Generating PDF Bill receipt...",
-        success: "PDF Downloaded successfully",
-        error: "Generation failed",
-      }
-    );
+    const textContent = `
+=========================================
+      EMBRACE HEALTH HOSPITAL INVOICE
+=========================================
+Patient DID: ${patientDid}
+Date: ${new Date().toLocaleDateString()}
+Status: ${billSummary?.status?.toUpperCase()}
+
+TOTAL CHARGES: ${fmt(billSummary?.totalCharges ?? 0)}
+INSURANCE PAID: ${fmt(billSummary?.insurancePaid ?? 0)}
+PATIENT RESPONSIBILITY: ${fmt(billSummary?.patientResponsibility ?? 0)}
+PATIENT PAID: ${fmt(billSummary?.patientPaid ?? 0)}
+BALANCE DUE: ${fmt(billSummary?.balanceDue ?? 0)}
+
+Itemized breakdown:
+${billItems.map((item: any) => `- ${new Date(item.date).toLocaleDateString()} | ${item.description} | Qty: ${item.quantity} | Total: ${fmt(item.totalPrice)}`).join("\n")}
+
+Thank you for choosing Embrace Health.
+=========================================
+`;
+
+    const blob = new Blob([textContent], { type: "text/plain;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `hospital_invoice_${patientDid}.txt`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast.success("Invoice generated & downloaded", { description: "Format: TXT. File saved to downloads." });
   };
 
   const handleEmailBill = () => {

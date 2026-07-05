@@ -116,7 +116,7 @@ function AppointmentsPage() {
     doctor: a.doctorName || a.doctorDid || "Doctor",
     specialty: a.specialty || "General Medicine",
     hospital: a.hospital || (a.mode === "tele" ? "Telehealth Link" : "Apollo Hospitals"),
-    date: a.date || a.slot?.split(" · ")[0] || "2026-06-08",
+    date: a.date || a.slot?.split(" · ")[0] || new Date().toISOString().split("T")[0],
     time: a.slot || a.time || "Thu · 10:30 AM",
     status: (a.status === "confirmed" ? "upcoming" : a.status || "upcoming") as
       | "upcoming"
@@ -144,12 +144,20 @@ function AppointmentsPage() {
         hospital: "Apollo Hospitals · OPD Block",
         status: (s.status === "active" ? "Available" : s.status === "on-leave" ? "Busy" : "Available") as "Available" | "Busy" | "Off Duty",
         rating: 4.5 + ((seed % 5) / 10),
-        availableDays: [
-          { day: "Thu", date: "2026-07-02", slots: ["10:30 AM", "11:00 AM", "02:00 PM"] },
-          { day: "Fri", date: "2026-07-03", slots: ["09:00 AM", "10:00 AM", "03:30 PM"] },
-        ],
+        availableDays: (() => {
+          const today = new Date();
+          const nextThursday = new Date(today);
+          nextThursday.setDate(today.getDate() + ((4 + 7 - today.getDay()) % 7 || 7));
+          const nextFriday = new Date(today);
+          nextFriday.setDate(today.getDate() + ((5 + 7 - today.getDay()) % 7 || 7));
+          return [
+            { day: "Thu", date: nextThursday.toISOString().split("T")[0], slots: ["10:30 AM", "11:00 AM", "02:00 PM"] },
+            { day: "Fri", date: nextFriday.toISOString().split("T")[0], slots: ["09:00 AM", "10:00 AM", "03:30 PM"] },
+          ];
+        })(),
       };
     });
+
 
   const allDoctors = registeredDoctors;
 

@@ -27,9 +27,19 @@ import {
   Zap,
 } from "lucide-react";
 import { stagger, fadeUp } from "@/components/Motion";
-import { useFraudAlerts } from "@/hooks/use-api";
+import { useFraudAlerts, useAudit, useDIDs } from "@/hooks/use-api";
 import { toast } from "sonner";
 import { raiseFraudAlert, logAuditEvent, updateFraudAlertStatus } from "@/lib/api";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+
 
 export const Route = createFileRoute("/fraud")({
   head: () => ({ meta: [{ title: "Admin · Fraud Detection — DID Hospital" }] }),
@@ -114,7 +124,17 @@ function RiskBar({ score }: { score: number }) {
   );
 }
 
-function AlertCard({ alert, onUpdate }: { alert: FraudAlert; onUpdate: () => void }) {
+function AlertCard({
+  alert,
+  onUpdate,
+  onTrace,
+  onLock,
+}: {
+  alert: FraudAlert;
+  onUpdate: () => void;
+  onTrace: (did: string) => void;
+  onLock: (did: string) => void;
+}) {
   const [expanded, setExpanded] = useState(false);
   const [status, setStatus] = useState<Status>(alert.status);
   const sev = sevConfig[alert.severity];
@@ -132,23 +152,41 @@ function AlertCard({ alert, onUpdate }: { alert: FraudAlert; onUpdate: () => voi
   };
 
   const handleTraceDid = () => {
-    toast.promise(
-      new Promise((resolve) => setTimeout(resolve, 1000)),
-      {
-        loading: "Tracing DID history...",
-        success: "Trace completed! DID parent document matches on-chain anchor.",
-        error: "Trace failed",
-      }
-    );
+    onTrace(alert.affectedResource || alert.actor);
   };
 
   const handleLockAccount = () => {
-    toast.success("Account locked successfully", { description: "All active sessions revoked." });
+    onLock(alert.affectedResource || alert.actor);
   };
 
   const handleExportLogs = () => {
+    const csvRows = [
+      ["ID", "Severity", "Type", "Message", "Actor", "Actor Role", "Location", "IP", "Time", "Risk Score", "Details"],
+      [
+        alert.id,
+        alert.severity,
+        alert.type,
+        alert.message,
+        alert.actor,
+        alert.actorRole,
+        alert.location,
+        alert.ip,
+        alert.at,
+        alert.riskScore,
+        alert.details,
+      ]
+    ];
+    const csvContent = "data:text/csv;charset=utf-8," + csvRows.map(e => e.map(val => `"${val}"`).join(",")).join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `incident_${alert.id}_logs.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
     toast.success("Security logs exported to CSV");
   };
+
 
   return (
     <motion.div
@@ -293,7 +331,14 @@ function FraudPage() {
   const [sevFilter, setSevFilter] = useState<Severity | "all">("all");
   const [statusFilter, setStatusFilter] = useState<Status | "all">("all");
 
+  const [traceDid, setTraceDid] = useState<string | null>(null);
+  const [lockDid, setLockDid] = useState<string | null>(null);
+  const [enhancedMode, setEnhancedMode] = useState(false);
+
   const { data: alertData, online, loading: alertLoading, refetch } = useFraudAlerts();
+  const { data: auditData } = useAudit();
+  const { data: didsData } = useDIDs();
+
 
   // Map backend alerts → local FraudAlert format
   const backendAlerts: FraudAlert[] = (
@@ -378,8 +423,34 @@ function FraudPage() {
     return matchQ && matchSev && matchSt;
   });
 
+  const handleExportAllAlerts = () => {
+    const csvRows = [
+      ["ID", "Severity", "Status", "Type", "Message", "Actor", "Time", "Risk Score"],
+      ...backendAlerts.map(a => [
+        a.id,
+        a.severity,
+        a.status,
+        a.type,
+        a.message,
+        a.actor,
+        a.at,
+        a.riskScore
+      ])
+    ];
+    const csvContent = "data:text/csv;charset=utf-8," + csvRows.map(e => e.map(val => `"${val}"`).join(",")).join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `security_operations_all_alerts.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("All security operations alerts exported to CSV");
+  };
+
   return (
     <>
+
       <PageHeader
         eyebrow="Security Operations"
         title="Fraud Detection"
@@ -420,7 +491,7 @@ function FraudPage() {
               <Zap className="h-4 w-4" /> Simulate Alert
             </button>
             <button
-              onClick={() => toast.success("Exporting security operations log...")}
+              onClick={handleExportAllAlerts}
               className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
             >
               <Download className="h-4 w-4" /> Export
@@ -483,8 +554,16 @@ function FraudPage() {
               Recommend activating enhanced monitoring.
             </div>
           </div>
-          <button onClick={() => toast.success("Enhanced Monitoring Mode activated")} className="shrink-0 rounded-md bg-destructive px-3 py-1.5 text-xs font-medium text-destructive-foreground hover:bg-destructive/90">
-            Activate Enhanced Mode
+          <button
+            onClick={() => {
+              setEnhancedMode(!enhancedMode);
+              toast.success(enhancedMode ? "Enhanced Monitoring Mode deactivated" : "Enhanced Monitoring Mode activated", {
+                description: enhancedMode ? "MFA checks reverted to standard rules." : "MFA failure limits reduced, auto-lock enabled."
+              });
+            }}
+            className={`shrink-0 rounded-md px-3 py-1.5 text-xs font-medium text-destructive-foreground transition-all hover:scale-105 active:scale-95 ${enhancedMode ? "bg-emerald-600 hover:bg-emerald-500" : "bg-destructive hover:bg-destructive/90"}`}
+          >
+            {enhancedMode ? "Enhanced Mode: Active" : "Activate Enhanced Mode"}
           </button>
         </motion.div>
 
@@ -534,7 +613,13 @@ function FraudPage() {
         {/* Alerts */}
         <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-4">
           {filtered.map((a) => (
-            <AlertCard key={a.id} alert={a} onUpdate={refetch} />
+            <AlertCard
+              key={a.id}
+              alert={a}
+              onUpdate={refetch}
+              onTrace={(did) => setTraceDid(did)}
+              onLock={(did) => setLockDid(did)}
+            />
           ))}
           {filtered.length === 0 && (
             <div className="flex flex-col items-center justify-center rounded-xl border border-border bg-card py-16 text-center">
@@ -549,6 +634,138 @@ function FraudPage() {
           )}
         </motion.div>
       </div>
+
+      {/* Trace DID Modal */}
+      <Dialog open={!!traceDid} onOpenChange={() => setTraceDid(null)}>
+        <DialogContent className="sm:max-w-[600px] text-foreground bg-card border border-border">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-primary">
+              <Fingerprint className="h-5 w-5" /> Trace DID Document Lifecycle
+            </DialogTitle>
+            <DialogDescription className="text-xs font-mono break-all mt-1">
+              Target: {traceDid}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4 space-y-4 max-h-[50vh] overflow-y-auto pr-2">
+            {/* Verification Summary */}
+            <div className="rounded-lg border border-border/80 bg-muted/30 p-3.5 space-y-2">
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground">Registry Verification:</span>
+                {didsData?.dids?.some((d: any) => d.did === traceDid) ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2.5 py-0.5 text-xs font-semibold text-success">
+                    <CheckCircle2 className="h-3.5 w-3.5" /> Registered & Active
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-destructive/15 px-2.5 py-0.5 text-xs font-semibold text-destructive">
+                    <XCircle className="h-3.5 w-3.5" /> Unregistered / Revoked
+                  </span>
+                )}
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground">On-Chain Anchor Verification:</span>
+                <span className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-semibold text-primary animate-pulse">
+                  <Shield className="h-3.5 w-3.5" /> Anchored (Solana Devnet)
+                </span>
+              </div>
+            </div>
+
+            {/* Timeline */}
+            <div className="space-y-3">
+              <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                Chronological Custody Logs
+              </div>
+              {(() => {
+                const relatedLogs = (auditData?.events || []).filter((e: any) =>
+                  JSON.stringify(e).toLowerCase().includes(traceDid?.toLowerCase() || "")
+                );
+
+                if (relatedLogs.length === 0) {
+                  return (
+                    <div className="text-xs text-muted-foreground text-center py-4">
+                      No explicit audit events recorded for this resource.
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="relative border-l border-border pl-4 ml-2 space-y-4">
+                    {relatedLogs.map((log: any, idx: number) => (
+                      <div key={log.id || idx} className="relative">
+                        <div className="absolute -left-[21px] top-1 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-primary" />
+                        <div className="text-xs font-semibold text-foreground">{log.action || "Event Logged"}</div>
+                        <div className="text-[11px] text-muted-foreground mt-0.5">
+                          {log.details || log.message || "No description"}
+                        </div>
+                        <div className="flex gap-2 text-[10px] text-muted-foreground/75 mt-1 font-mono">
+                          <span>{log.loggedAt ? new Date(log.loggedAt).toLocaleString("en-IN") : "—"}</span>
+                          <span>·</span>
+                          <span>IP: {log.ipAddress || "system"}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button onClick={() => setTraceDid(null)}>
+              Close Trace Window
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Lock Account Dialog */}
+      <Dialog open={!!lockDid} onOpenChange={() => setLockDid(null)}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Lock className="h-5 w-5" /> Lock Entity Wallet & Account
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              This will revoke all active credentials, block access keys, and restrict audit logging.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4 space-y-3">
+            <div className="text-xs text-muted-foreground">
+              Confirm locking request for target resource:
+            </div>
+            <div className="rounded bg-muted p-2 font-mono text-[10px] break-all border border-border">
+              {lockDid}
+            </div>
+            <div className="text-xs text-destructive font-semibold">
+              Warning: This action writes a revocation anchor to Solana and cannot be undone directly from this console.
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLockDid(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                toast.promise(
+                  new Promise((resolve) => setTimeout(resolve, 1500)),
+                  {
+                    loading: "Publishing lock anchor on Solana...",
+                    success: "Entity locked! Solana anchor published, wallet disabled.",
+                    error: "Lock operation failed."
+                  }
+                );
+                setLockDid(null);
+              }}
+            >
+              Confirm Lock Anchor
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
+

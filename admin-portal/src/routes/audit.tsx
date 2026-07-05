@@ -24,6 +24,7 @@ import {
   WifiOff,
 } from "lucide-react";
 import { useAudit } from "@/hooks/use-api";
+import { toast } from "sonner";
 import { logAuditEvent } from "@/lib/api";
 
 export const Route = createFileRoute("/audit")({
@@ -152,6 +153,36 @@ function AuditLogs() {
   const paginated = filtered.slice(page * pageSize, (page + 1) * pageSize);
   const totalPages = Math.ceil(filtered.length / pageSize);
 
+  const handleExportCSV = () => {
+    const headers = ["Timestamp", "User/Actor", "Role", "Action", "Category", "Resource"];
+    const rows = filtered.map((e) => [
+      e.at,
+      e.actor,
+      e.actorRole,
+      e.action,
+      e.category,
+      e.resource,
+    ]);
+    
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((row: any) => row.map((val: any) => `"${String(val ?? "").replace(/"/g, '""')}"`).join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `audit_logs_${new Date().toISOString().slice(0,10)}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast.success("Audit logs exported to CSV successfully");
+    logAuditEvent("Admin Console", "Audit export", "exported", "success", "info").catch(() => {});
+  };
+
   const toggleSort = (field: SortField) => {
     if (sortField === field) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     else {
@@ -190,11 +221,7 @@ function AuditLogs() {
               <RefreshCw className={`h-4 w-4 ${auditLoading ? "animate-spin" : ""}`} /> Refresh
             </button>
             <button
-              onClick={() =>
-                logAuditEvent("Admin Console", "Audit export", "exported", "success", "info").catch(
-                  () => {},
-                )
-              }
+              onClick={handleExportCSV}
               className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
             >
               <Download className="h-4 w-4" /> Export CSV

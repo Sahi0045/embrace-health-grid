@@ -123,8 +123,8 @@ function Consent() {
     requester: c.requester ?? c.doctorName ?? c.doctorDid ?? "Doctor Specialist",
     requesterRole: c.requesterRole ?? "Medical Specialist",
     reason: c.reason ?? "Patient Care and Record Access",
-    grantedAt: c.grantedAt ?? c.timestamp ?? "2026-06-08",
-    expiresAt: c.expiresAt ?? "2026-07-08",
+    grantedAt: c.grantedAt ?? c.timestamp ?? new Date(Date.now() - 26 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+    expiresAt: c.expiresAt ?? new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
     status: (c.status === "granted" || c.status === "active"
       ? "active"
       : c.status === "requested" || c.status === "pending"

@@ -307,7 +307,7 @@ const hospitalTree: TwinNode = {
               type: "bed",
               did: "did:hosp:bed:A1",
               status: "occupied",
-              meta: { since: "2026-05-28" },
+              meta: { since: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split("T")[0] },
               children: [
                 {
                   id: "pat_anika",
@@ -642,7 +642,7 @@ function DigitalTwinPage() {
               label: "Ward 4A",
               type: "ward",
               did: "did:hosp:ward:4a",
-              status: cardiologyWardBeds.some((b) => b.status === "occupied")
+              status: cardiologyWardBeds.some((b: any) => b.status === "occupied")
                 ? "occupied"
                 : "available",
               meta: { beds: String(cardiologyWardBeds.length), status: "Active" },

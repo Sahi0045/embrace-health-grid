@@ -2,8 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { RouteGuard } from "@/components/RouteGuard";
 import { PageHeader } from "@/components/PageHeader";
 import { StaggerList, StaggerItem } from "@/components/Motion";
-import { Video, Calendar, Clock, User, FileText, ShieldCheck, Pill, ChevronRight } from "lucide-react";
-import { motion } from "framer-motion";
+import { Video, Calendar, Clock, User, FileText, ShieldCheck, Pill, ChevronRight, Mic, MicOff, VideoOff, PhoneOff, Volume2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import { getAppointments, getPrescriptions } from "@/lib/api";
 import { toast } from "sonner";
@@ -18,6 +18,7 @@ function TelemedicinePage() {
   const [appointments, setAppointments] = useState<any[]>([]);
   const [prescriptions, setPrescriptions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeCall, setActiveCall] = useState<any | null>(null);
 
   const patientDid = typeof window !== "undefined" ? localStorage.getItem("userDID") || "" : "";
 
@@ -45,7 +46,7 @@ function TelemedicinePage() {
     id: a.apptId || `up_${i}`,
     doctor: a.doctorName,
     specialty: a.specialty,
-    date: a.slot.split(" ")[0] || "2026-06-09",
+    date: a.slot.split(" ")[0] || new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
     time: a.slot.split(" ").slice(1).join(" ") || "4:15 PM",
     duration: "30 min",
     mode: "video",
@@ -59,7 +60,7 @@ function TelemedicinePage() {
     id: a.apptId || `prev_${i}`,
     doctor: a.doctorName,
     specialty: a.specialty,
-    date: a.slot.split(" ")[0] || "2026-05-22",
+    date: a.slot.split(" ")[0] || new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
     time: a.slot.split(" ").slice(1).join(" ") || "10:30 AM",
     duration: "30 min",
     summary: a.summary || "Routine telemedicine review.",
@@ -128,7 +129,10 @@ function TelemedicinePage() {
                   </div>
 
                   <button
-                    onClick={() => toast.success("Connecting to secure video call...", { description: `Session with ${c.doctor}` })}
+                    onClick={() => {
+                      toast.success("Connecting to secure video call...", { description: `Session with ${c.doctor}` });
+                      setActiveCall(c);
+                    }}
                     className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
                   >
                     <Video className="h-4 w-4" />
@@ -196,6 +200,129 @@ function TelemedicinePage() {
           </StaggerList>
         )}
       </div>
+
+      <AnimatePresence>
+        {activeCall && (
+          <TelemedicineCallModal call={activeCall} onClose={() => setActiveCall(null)} />
+        )}
+      </AnimatePresence>
     </RouteGuard>
   );
 }
+
+function TelemedicineCallModal({ call, onClose }: { call: any; onClose: () => void }) {
+  const [muted, setMuted] = useState(false);
+  const [videoOff, setVideoOff] = useState(false);
+  const [seconds, setSeconds] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setSeconds(prev => prev + 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatTime = (totalSec: number) => {
+    const mins = Math.floor(totalSec / 60);
+    const secs = totalSec % 60;
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md text-white"
+    >
+      <motion.div
+        initial={{ scale: 0.95, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.95, y: 20 }}
+        className="relative flex h-[80vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-slate-900 border border-slate-800 text-white shadow-2xl"
+      >
+        {/* Main Video Screen */}
+        <div className="relative flex-1 flex items-center justify-center bg-slate-950">
+          {videoOff ? (
+            <div className="flex h-24 w-24 items-center justify-center rounded-full bg-slate-800 text-slate-400 text-2xl font-bold">
+              {call.doctor ? call.doctor.split(" ").map((n: string) => n[0]).join("") : "DOC"}
+            </div>
+          ) : (
+            // Simulated Doctor Video Feed
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+              {/* Doctor Avatar / Pulsing Indicator */}
+              <div className="relative flex h-32 w-32 items-center justify-center rounded-full bg-primary/20 border border-primary/40 animate-pulse">
+                <span className="text-3xl font-bold text-primary">
+                  {call.doctor ? call.doctor.split(" ").map((n: string) => n[0]).join("") : "DOC"}
+                </span>
+                {/* Audio wave effect */}
+                <div className="absolute -inset-4 rounded-full border border-primary/20 animate-ping opacity-40" />
+              </div>
+              <h3 className="mt-6 text-xl font-bold">{call.doctor}</h3>
+              <p className="text-sm text-slate-400 mt-1">{call.specialty} · Live Session</p>
+            </div>
+          )}
+
+          {/* Time Counter */}
+          <div className="absolute top-4 left-4 flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 text-xs font-semibold tabular-nums text-white">
+            <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+            {formatTime(seconds)}
+          </div>
+
+          {/* Patient Self-View Window (Webcam preview) */}
+          <div className="absolute top-4 right-4 h-32 w-48 overflow-hidden rounded-xl border border-slate-700 bg-slate-900 shadow-lg flex items-center justify-center text-center">
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-xs text-slate-400 font-semibold">You (Patient)</span>
+            </div>
+            {/* Audio Indicator */}
+            <div className="absolute bottom-2 left-2 flex gap-0.5">
+              <div className="h-2 w-0.5 bg-emerald-500 animate-bounce" style={{ animationDelay: '0.1s' }} />
+              <div className="h-3 w-0.5 bg-emerald-500 animate-bounce" style={{ animationDelay: '0.3s' }} />
+              <div className="h-1.5 w-0.5 bg-emerald-500 animate-bounce" style={{ animationDelay: '0.5s' }} />
+            </div>
+          </div>
+        </div>
+
+        {/* Controls Bar */}
+        <div className="flex h-20 items-center justify-center gap-4 bg-slate-950/80 px-6 border-t border-slate-800/60 backdrop-blur-sm">
+          <button
+            onClick={() => {
+              setMuted(!muted);
+              toast(muted ? "Microphone unmuted" : "Microphone muted");
+            }}
+            className={`flex h-12 w-12 items-center justify-center rounded-full transition-all ${muted ? 'bg-red-500 text-white' : 'bg-slate-800 text-slate-200 hover:bg-slate-700'}`}
+          >
+            {muted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+          </button>
+
+          <button
+            onClick={() => {
+              setVideoOff(!videoOff);
+              toast(videoOff ? "Camera turned on" : "Camera turned off");
+            }}
+            className={`flex h-12 w-12 items-center justify-center rounded-full transition-all ${videoOff ? 'bg-red-500 text-white' : 'bg-slate-800 text-slate-200 hover:bg-slate-700'}`}
+          >
+            {videoOff ? <VideoOff className="h-5 w-5" /> : <Video className="h-5 w-5" />}
+          </button>
+
+          <button
+            onClick={() => {
+              toast.info("Volume adjusted");
+            }}
+            className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-800 text-slate-200 hover:bg-slate-700 transition-all text-white"
+          >
+            <Volume2 className="h-5 w-5" />
+          </button>
+
+          <button
+            onClick={onClose}
+            className="flex h-12 w-12 items-center justify-center rounded-full bg-red-600 text-white hover:bg-red-500 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-red-900/25"
+          >
+            <PhoneOff className="h-5 w-5" />
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+

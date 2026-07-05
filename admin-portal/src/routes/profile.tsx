@@ -36,11 +36,12 @@ const adminData = {
     "Compliance Reporting",
   ],
   recentActivity: [
-    { action: "Issued DID", target: "Karthik Rao (MRN-205288)", timestamp: "2026-05-29 14:32" },
-    { action: "Updated Policy", target: "Default consent expiry", timestamp: "2026-05-28 11:15" },
-    { action: "Reviewed Audit", target: "Fraud Alert #F1", timestamp: "2026-05-27 16:48" },
+    { action: "Issued DID", target: "Karthik Rao (MRN-205288)", timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toLocaleString().replace(/\//g, "-") },
+    { action: "Updated Policy", target: "Default consent expiry", timestamp: new Date(Date.now() - 48 * 60 * 60 * 1000).toLocaleString().replace(/\//g, "-") },
+    { action: "Reviewed Audit", target: "Fraud Alert #F1", timestamp: new Date(Date.now() - 72 * 60 * 60 * 1000).toLocaleString().replace(/\//g, "-") },
   ],
 };
+
 
 function AdminProfile() {
   const handleLogout = () => {
