@@ -46,17 +46,12 @@ const adminNav: Item[] = [
   { title: "Digital Twin", url: "/digital-twin", icon: Network },
   { title: "Financials", url: "/financial", icon: Receipt },
   { title: "My Profile", url: "/profile", icon: User },
-  { title: "Infrastructure", url: "/infrastructure", icon: Building2 },
-  { title: "Resources", url: "/resources", icon: Bed },
   { title: "People", url: "/people", icon: Users },
-  { title: "Attendance", url: "/attendance", icon: UserCheck },
   { title: "DID Management", url: "/dids", icon: KeyRound },
   { title: "Credentials", url: "/credentials", icon: Award },
   { title: "Policies", url: "/policies", icon: BookLock },
   { title: "Audit Logs", url: "/audit", icon: Activity },
   { title: "Fraud Detection", url: "/fraud", icon: AlertTriangle },
-  { title: "Compliance", url: "/compliance", icon: BarChart3 },
-  { title: "Federation", url: "/federation", icon: Globe },
 ];
 
 const globalNav: Item[] = [

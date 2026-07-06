@@ -12,7 +12,7 @@ Comprehensive hospital admission and inpatient care tracking system for patients
 - **Admission Status**: Real-time admission status (Currently Admitted, Discharged, Scheduled)
 - **Ward & Room Information**: Current location (Ward, Room, Bed number)
 - **Admission Timeline**: 
-  - Admission date and time
+  - Admission date and timE
   - Days of stay counter
   - Expected discharge date
 - **Medical Information**:

@@ -6,8 +6,23 @@ import { CredentialIssuerBadge } from "@/components/credentials/CredentialIssuer
 import { Search, ShieldCheck, Award, Filter } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import type { CredentialFull } from "@/lib/mock-credentials";
 import { useCredentials } from "@/hooks/use-api";
+
+interface CredentialFull {
+  id: string;
+  type: string;
+  typeLabel: string;
+  issuer: string;
+  issuerDID: string;
+  holder: string;
+  holderDID: string;
+  issuedAt: string;
+  expiresAt: string;
+  status: string;
+  schema: string;
+  verificationCount: number;
+  lastVerified: string;
+}
 
 export const Route = createFileRoute("/credential-explorer")({
   head: () => ({ meta: [{ title: "Credential Explorer — DID Hospital" }] }),
@@ -156,7 +171,7 @@ function CredentialExplorerPage() {
                   holder={c.holder}
                   issuedAt={c.issuedAt}
                   expiresAt={c.expiresAt}
-                  status={c.status}
+                  status={c.status as "active" | "expired" | "revoked"}
                   onClick={() => setSelected(selected?.id === c.id ? null : c)}
                 />
               ))}

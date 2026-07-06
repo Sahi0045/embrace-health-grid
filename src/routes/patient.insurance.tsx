@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { StaggerList, StaggerItem } from "@/components/Motion";
 import { InsuranceCard } from "@/components/insurance/InsuranceCard";
 import { ClaimsCard } from "@/components/insurance/ClaimsCard";
-import { mockInsuranceClaims } from "@/lib/mock-infrastructure";
+import { useInsuranceClaims } from "@/hooks/use-api";
 import { ShieldCheck, FileText, TrendingUp, IndianRupee, Clock } from "lucide-react";
 import { useState } from "react";
 
@@ -41,10 +41,11 @@ type Tab = typeof tabs[number];
 
 function InsurancePage() {
   const [tab, setTab] = useState<Tab>("Overview");
-  const patientClaims = mockInsuranceClaims.slice(0, 10);
-  const activeClaims = patientClaims.filter(c => c.status === "pending" || c.status === "under-review");
-  const totalClaimed = patientClaims.reduce((s, c) => s + c.amount, 0);
-  const totalApproved = patientClaims.filter(c => c.approvedAmount).reduce((s, c) => s + (c.approvedAmount ?? 0), 0);
+  const { data: claimsData } = useInsuranceClaims();
+  const patientClaims = (claimsData?.claims ?? []).slice(0, 10);
+  const activeClaims = patientClaims.filter((c: any) => c.status === "pending" || c.status === "under-review");
+  const totalClaimed = patientClaims.reduce((s: number, c: any) => s + (c.amount || 0), 0);
+  const totalApproved = patientClaims.filter((c: any) => c.approvedAmount).reduce((s: number, c: any) => s + (c.approvedAmount ?? 0), 0);
 
   return (
     <RouteGuard requiredRole="patient">

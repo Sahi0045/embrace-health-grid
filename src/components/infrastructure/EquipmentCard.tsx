@@ -1,5 +1,5 @@
 import { Wrench, CheckCircle, AlertTriangle, XCircle, Activity } from "lucide-react";
-import type { EquipmentRecord } from "@/lib/mock-infrastructure";
+import type { EquipmentRecord } from "@/lib/types";
 
 interface EquipmentCardProps {
   equipment: EquipmentRecord;

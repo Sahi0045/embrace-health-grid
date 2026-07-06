@@ -3,8 +3,8 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHeader } from "@/components/PageHeader";
 import { RouteGuard } from "@/components/RouteGuard";
-import { useLivePatients } from "@/hooks/use-api";
-import { logAuditEvent, verifyNFCCard, resolveDID, API_BASE_URL } from "@/lib/api";
+import { useLivePatients, useInpatientData } from "@/hooks/use-api";
+import { logAuditEvent, verifyNFCCard, resolveDID, signIdentityPayload, verifyIdentityPayload, API_BASE_URL } from "@/lib/api";
 import { currentPatient } from "@/lib/mock-data";
 import { PublicKey, Connection } from "@solana/web3.js";
 import { MerkleTree } from "@/lib/merkle";
@@ -28,11 +28,12 @@ import {
   RefreshCw,
   CreditCard,
   Wifi,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { vitalSigns, medications, labTests } from "@/lib/inpatient-data";
+
 
 // @zxing/browser is ESM-only; safe to import at module level —
 // actual camera usage is gated by `typeof window !== "undefined"` at call sites.
@@ -53,7 +54,8 @@ interface ScannedPayload {
 
 function VerifyPatient() {
   const { patients: patientsList } = useLivePatients();
-  const patient = patientsList?.[0] || currentPatient;
+  const emptyPatient = { name: "", mrn: "", did: "", age: 0, gender: "M" as const, bloodGroup: "", allergies: [] as string[], phone: "" };
+  const patient = patientsList?.[0] || emptyPatient;
 
   // Scanner state
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -159,12 +161,14 @@ function VerifyPatient() {
   >("idle");
   const [nfcError, setNfcError] = useState<string | null>(null);
   const [manualMrn, setManualMrn] = useState("");
+  const [overrideReason, setOverrideReason] = useState("");
   const [isManualInputActive, setIsManualInputActive] = useState(false);
+  const [selectedSimPatientDid, setSelectedSimPatientDid] = useState<string>("");
 
   // ── Scanner controls ──────────────────────────────────────────────────────
 
   const handleScanSuccess = useCallback(
-    (raw: string) => {
+    async (raw: string) => {
       let parsed: ScannedPayload;
       try {
         parsed = JSON.parse(raw) as ScannedPayload;
@@ -178,7 +182,18 @@ function VerifyPatient() {
         return;
       }
 
-      const matched = patientsList?.find((p) => p.did === parsed.did) || currentPatient;
+      try {
+        const verifyRes = await verifyIdentityPayload(parsed);
+        if (!verifyRes || !verifyRes.verified) {
+          setError("QR code signature verification failed.");
+          return;
+        }
+      } catch (err: any) {
+        setError(err.message || "Cryptographic signature verification failed.");
+        return;
+      }
+
+      const matched = patientsList?.find((p) => p.did === parsed.did) || emptyPatient;
 
       setScanResult(parsed);
       setVerified(true);
@@ -217,7 +232,7 @@ function VerifyPatient() {
         videoRef.current,
         (result, err) => {
           if (result) {
-            handleScanSuccess(result.getText());
+            void handleScanSuccess(result.getText());
           }
           if (err && !(err instanceof Error && err.name === "NotFoundException")) {
             // NotFoundException fires every frame when no QR is in view — ignore it.
@@ -241,16 +256,23 @@ function VerifyPatient() {
 
   // ── Simulate scan (fallback for browsers without camera) ─────────────────
 
-  const simulateScan = useCallback(() => {
-    const target = patientsList?.[0] || currentPatient;
-    const fakePayload = JSON.stringify({
-      did: target.did,
-      mrn: target.mrn,
-      name: target.name,
-      exp: Date.now() + 60_000,
-      channel: "embrace-health-channel",
-    });
-    handleScanSuccess(fakePayload);
+  const simulateScan = useCallback(async () => {
+    const target = patientsList?.[0] || emptyPatient;
+    try {
+      const signRes = await signIdentityPayload({
+        did: target.did,
+        mrn: target.mrn,
+        name: target.name,
+        network: "embrace-health-network",
+      });
+      if (signRes && signRes.payload) {
+        void handleScanSuccess(JSON.stringify(signRes.payload));
+      } else {
+        setError("Failed to generate signed payload for QR simulation.");
+      }
+    } catch (err: any) {
+      setError(err.message || "Failed to generate signed payload for QR simulation.");
+    }
   }, [patientsList, handleScanSuccess]);
 
   // ── NFC & Manual handlers ────────────────────────────────────────────────
@@ -266,13 +288,29 @@ function VerifyPatient() {
       setNfcStatus("verifying");
 
       try {
-        const target = patientsList?.[0] || currentPatient;
+        const activeDid = selectedSimPatientDid || (patientsList?.[0]?.did || "");
+        const target = patientsList?.find((p: any) => p.did === activeDid) || emptyPatient;
         // Resolve DID document from API
         await resolveDID(target.did).catch(() => null);
+
+        // Fetch real server-signed payload to verify
+        const signRes = await signIdentityPayload({
+          did: target.did,
+          mrn: target.mrn,
+          name: target.name,
+          network: "embrace-health-network",
+        });
+
+        if (!signRes || !signRes.payload) {
+          throw new Error("Failed to generate signed payload for NFC card simulation.");
+        }
+
         // Verify card
-        await verifyNFCCard({ cardId: "NFC-SIMULATED-CARD" }).catch(() => ({
-          verified: true,
-        }));
+        const nfcVerifyRes = await verifyNFCCard({ payload: signRes.payload });
+
+        if (!nfcVerifyRes || !nfcVerifyRes.verified) {
+          throw new Error("NFC card verification failed.");
+        }
 
         const payload: ScannedPayload = {
           did: target.did,
@@ -296,7 +334,7 @@ function VerifyPatient() {
         toast.error("NFC Verification Failed", { description: err.message });
       }
     }, 1000);
-  }, [patientsList]);
+  }, [patientsList, selectedSimPatientDid]);
 
   const handleNfcSimulateFailure = useCallback(() => {
     setNfcStatus("reading");
@@ -320,6 +358,10 @@ function VerifyPatient() {
       toast.error("Please enter a valid MRN.");
       return;
     }
+    if (!overrideReason.trim()) {
+      toast.error("Please enter a reason for manual override.");
+      return;
+    }
 
     const matched = patientsList?.find(
       (p) => p.mrn.toLowerCase() === manualMrn.trim().toLowerCase(),
@@ -341,7 +383,7 @@ function VerifyPatient() {
       if (activeTab === "nfc") {
         setNfcStatus("success");
       }
-      void logAuditEvent("staff", matched.did, "MANUAL_VERIFY", "success", "info");
+      void logAuditEvent("staff", matched.did, `MANUAL_OVERRIDE: ${overrideReason.trim()}`, "success", "warning");
       toast.success("Patient verified manually", {
         description: `${matched.name} · MRN ${matched.mrn}`,
       });
@@ -350,12 +392,12 @@ function VerifyPatient() {
         description: `No patient registered with MRN: ${manualMrn}`,
       });
     }
-  }, [manualMrn, patientsList, activeTab]);
+  }, [manualMrn, overrideReason, patientsList, activeTab]);
 
   // ── Derived display patient ───────────────────────────────────────────────
 
   const displayPatient = scanResult
-    ? patientsList?.find((p) => p.did === scanResult.did) || currentPatient
+    ? patientsList?.find((p) => p.did === scanResult.did) || emptyPatient
     : patient;
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -518,6 +560,30 @@ function VerifyPatient() {
                 </div>
               )}
 
+              {/* Patient Selection Dropdown for NFC Simulation */}
+              {nfcStatus === "idle" && patientsList && patientsList.length > 0 && (
+                <div className="mt-4 space-y-1.5 text-left">
+                  <label htmlFor="sim-patient-select" className="text-[11px] font-semibold text-muted-foreground block">
+                    Select Patient to Simulate Tap
+                  </label>
+                  <div className="relative">
+                    <select
+                      id="sim-patient-select"
+                      value={selectedSimPatientDid || patientsList[0].did}
+                      onChange={(e) => setSelectedSimPatientDid(e.target.value)}
+                      className="w-full appearance-none rounded-lg border border-border bg-card px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary shadow-clinical"
+                    >
+                      {patientsList.map((p: any) => (
+                        <option key={p.did} value={p.did}>
+                          {p.name} ({p.mrn})
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-3 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                  </div>
+                </div>
+              )}
+
               {/* NFC Controls */}
               <div className="mt-5 flex flex-col gap-2">
                 {nfcStatus === "idle" && (
@@ -566,31 +632,45 @@ function VerifyPatient() {
               Trouble scanning? Check-in by MRN manually
             </button>
           ) : (
-            <div className="mt-5 border-t border-border pt-4">
-              <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                Manual Patient MRN Check-In
-              </label>
-              <div className="flex gap-2">
+            <div className="mt-5 border-t border-border pt-4 space-y-3">
+              <div>
+                <label className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                  Manual Patient MRN Check-In
+                </label>
                 <input
                   type="text"
                   placeholder="e.g. MRN-60914"
                   value={manualMrn}
                   onChange={(e) => setManualMrn(e.target.value)}
-                  className="flex-1 rounded-md border border-border bg-background px-3 py-1.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                 />
+              </div>
+              <div>
+                <label className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                  Reason for Manual Override
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Device failure, QR camera offline"
+                  value={overrideReason}
+                  onChange={(e) => setOverrideReason(e.target.value)}
+                  className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
+              <div className="flex gap-2 justify-end pt-1">
+                <button
+                  onClick={() => setIsManualInputActive(false)}
+                  className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-all"
+                >
+                  Cancel
+                </button>
                 <button
                   onClick={handleManualCheckin}
-                  className="rounded-md bg-secondary px-3 py-1.5 text-sm font-medium text-secondary-foreground hover:bg-secondary/90 transition-colors"
+                  className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
                 >
-                  Verify
+                  Verify Patient
                 </button>
               </div>
-              <button
-                onClick={() => setIsManualInputActive(false)}
-                className="mt-2.5 text-xs text-muted-foreground hover:text-foreground transition-colors hover:underline block"
-              >
-                Cancel manual input
-              </button>
             </div>
           )}
         </div>
@@ -834,98 +914,8 @@ function VerifyPatient() {
                 </div>
               )}
 
-              {/* Latest vitals */}
-              <Card>
-                <CardHeader className="pb-2">
-                  <div className="flex items-center gap-2">
-                    <Activity className="h-4 w-4 text-primary" />
-                    <CardTitle className="text-sm">Latest Vitals</CardTitle>
-                    <span className="text-xs text-muted-foreground ml-auto">
-                      {vitalSigns[0].timestamp}
-                    </span>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-                    {[
-                      { label: "Temp", value: `${vitalSigns[0].temperature}°C` },
-                      {
-                        label: "BP",
-                        value: `${vitalSigns[0].bloodPressure.systolic}/${vitalSigns[0].bloodPressure.diastolic}`,
-                      },
-                      { label: "HR", value: `${vitalSigns[0].heartRate} bpm` },
-                      { label: "RR", value: `${vitalSigns[0].respiratoryRate}/min` },
-                      { label: "SpO₂", value: `${vitalSigns[0].oxygenSaturation}%` },
-                    ].map((v) => (
-                      <div key={v.label} className="rounded-lg bg-muted p-2 text-center">
-                        <div className="text-xs text-muted-foreground">{v.label}</div>
-                        <div className="font-semibold text-sm mt-0.5">{v.value}</div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Active medications */}
-              <Card>
-                <CardHeader className="pb-2">
-                  <div className="flex items-center gap-2">
-                    <Pill className="h-4 w-4 text-primary" />
-                    <CardTitle className="text-sm">Active Medications</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {medications
-                    .filter((m) => m.status === "active")
-                    .map((med) => (
-                      <div
-                        key={med.id}
-                        className="flex items-center justify-between rounded-lg border p-2 text-sm"
-                      >
-                        <div>
-                          <span className="font-medium">{med.name}</span>
-                          <span className="text-muted-foreground ml-2">
-                            {med.dosage} · {med.frequency}
-                          </span>
-                        </div>
-                        <Badge variant="outline" className="text-xs">
-                          Active
-                        </Badge>
-                      </div>
-                    ))}
-                </CardContent>
-              </Card>
-
-              {/* Recent lab tests */}
-              <Card>
-                <CardHeader className="pb-2">
-                  <div className="flex items-center gap-2">
-                    <FlaskConical className="h-4 w-4 text-primary" />
-                    <CardTitle className="text-sm">Recent Lab Tests</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {labTests.slice(0, 3).map((test) => (
-                    <div
-                      key={test.id}
-                      className="flex items-center justify-between rounded-lg border p-2 text-sm"
-                    >
-                      <div>
-                        <span className="font-medium">{test.testName}</span>
-                        <span className="text-muted-foreground ml-2 text-xs">
-                          {test.orderedDate}
-                        </span>
-                      </div>
-                      <Badge
-                        variant={test.status === "completed" ? "default" : "secondary"}
-                        className="text-xs"
-                      >
-                        {test.status}
-                      </Badge>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
+              {/* Vitals, Medications, Lab Tests — from inpatient API */}
+              <VerifyPatientChartCards patientDid={displayPatient.did} />
 
               {/* Footer actions */}
               <div className="flex gap-2 pt-2 border-t border-border">
@@ -1188,5 +1178,85 @@ function NfcContactlessReader({ status, errorText }: NfcReaderProps) {
         )}
       </div>
     </div>
+  );
+}
+
+function VerifyPatientChartCards({ patientDid }: { patientDid: string }) {
+  const { data: inpatientData } = useInpatientData(patientDid);
+  const vitalSigns = inpatientData?.vitalSigns ?? [];
+  const medications = inpatientData?.medications ?? [];
+  const checkups = inpatientData?.checkups ?? [];
+  const latestVital = vitalSigns[0] as any;
+
+  return (
+    <>
+      <Card>
+        <CardHeader className="pb-2">
+          <div className="flex items-center gap-2">
+            <Activity className="h-4 w-4 text-primary" />
+            <CardTitle className="text-sm">Latest Vitals</CardTitle>
+            {latestVital && <span className="text-xs text-muted-foreground ml-auto">{latestVital.timestamp}</span>}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {latestVital ? (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+              {[
+                { label: "Temp", value: `${latestVital.temperature ?? "—"}°C` },
+                { label: "BP", value: latestVital.bloodPressure ? `${latestVital.bloodPressure.systolic}/${latestVital.bloodPressure.diastolic}` : "—" },
+                { label: "HR", value: `${latestVital.heartRate ?? "—"} bpm` },
+                { label: "RR", value: `${latestVital.respiratoryRate ?? "—"}/min` },
+                { label: "SpO₂", value: `${latestVital.oxygenSaturation ?? "—"}%` },
+              ].map((v) => (
+                <div key={v.label} className="rounded-lg bg-muted p-2 text-center">
+                  <div className="text-xs text-muted-foreground">{v.label}</div>
+                  <div className="font-semibold text-sm mt-0.5">{v.value}</div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-xs text-muted-foreground text-center py-4">No vitals recorded</div>
+          )}
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader className="pb-2">
+          <div className="flex items-center gap-2">
+            <Pill className="h-4 w-4 text-primary" />
+            <CardTitle className="text-sm">Active Medications</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {medications.length > 0 ? medications.filter((m: any) => m.status === "active").map((med: any) => (
+            <div key={med.id} className="flex items-center justify-between rounded-lg border p-2 text-sm">
+              <div>
+                <span className="font-medium">{med.name}</span>
+                <span className="text-muted-foreground ml-2">{med.dosage} · {med.frequency}</span>
+              </div>
+              <Badge variant="outline" className="text-xs">Active</Badge>
+            </div>
+          )) : <div className="text-xs text-muted-foreground text-center py-4">No medications recorded</div>}
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader className="pb-2">
+          <div className="flex items-center gap-2">
+            <FlaskConical className="h-4 w-4 text-primary" />
+            <CardTitle className="text-sm">Recent Lab Tests</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {checkups.length > 0 ? checkups.slice(0, 3).map((test: any) => (
+            <div key={test.id} className="flex items-center justify-between rounded-lg border p-2 text-sm">
+              <div>
+                <span className="font-medium">{test.testName || test.type || "Lab Test"}</span>
+                <span className="text-muted-foreground ml-2 text-xs">{test.orderedDate || test.date}</span>
+              </div>
+              <Badge variant={test.status === "completed" ? "default" : "secondary"} className="text-xs">{test.status || "pending"}</Badge>
+            </div>
+          )) : <div className="text-xs text-muted-foreground text-center py-4">No lab tests recorded</div>}
+        </CardContent>
+      </Card>
+    </>
   );
 }

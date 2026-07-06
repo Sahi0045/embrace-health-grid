@@ -9,7 +9,7 @@ import { useCredentials } from "@/hooks/use-api";
 import { RouteGuard } from "@/components/RouteGuard";
 import { Wallet as WalletIcon, ShieldCheck, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
-import { credentials } from "@/lib/mock-data";
+
 
 export const Route = createFileRoute("/patient/wallet")({
   head: () => ({ meta: [{ title: "Patient · Credentials Wallet — DID Hospital" }] }),
@@ -91,8 +91,7 @@ function Wallet() {
     status: (c.status === "revoked" ? "revoked" : "active") as "active" | "revoked" | "expired",
   }));
 
-  // Use live credentials; fall back to empty mock array (defined in mock-data)
-  const list = liveCredentials.length > 0 ? liveCredentials : credentials;
+  const list = liveCredentials;
   const [selected, setSelected] = useState<(typeof list)[0] | null>(null);
 
   return (

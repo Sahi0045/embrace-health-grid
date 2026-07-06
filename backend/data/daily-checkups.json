@@ -1,0 +1,73 @@
+{
+  "dc1": {
+    "key": "dc1",
+    "value": {
+      "id": "dc1",
+      "patientDid": "did:hosp:0x643a3a37",
+      "date": "2026-05-30",
+      "time": "08:00",
+      "type": "routine",
+      "doctor": "Dr. Ravi Menon",
+      "specialty": "Cardiology",
+      "notes": "Patient stable, chest pain resolved. Continue current medications.",
+      "findings": [
+        "Heart sounds normal",
+        "No respiratory distress",
+        "Wound healing well"
+      ],
+      "status": "completed"
+    },
+    "namespace": "daily-checkups",
+    "version": "da7299b6-1eb3-4429-9747-ef0a35c84aee:1",
+    "updatedAt": "2026-07-03T16:41:44.575Z",
+    "txId": "da7299b6-1eb3-4429-9747-ef0a35c84aee",
+    "docType": "daily-checkups"
+  },
+  "dc2": {
+    "key": "dc2",
+    "value": {
+      "id": "dc2",
+      "patientDid": "did:hosp:0x643a3a37",
+      "date": "2026-05-30",
+      "time": "14:00",
+      "type": "specialist",
+      "doctor": "Dr. Sameer Khan",
+      "specialty": "Endocrinology",
+      "notes": "Blood sugar levels improving with insulin therapy.",
+      "findings": [
+        "HbA1c trending down",
+        "No hypoglycemic episodes"
+      ],
+      "status": "scheduled"
+    },
+    "namespace": "daily-checkups",
+    "version": "64235539-2e9a-4854-b9f4-d3bd52355fbe:1",
+    "updatedAt": "2026-07-03T16:41:44.575Z",
+    "txId": "64235539-2e9a-4854-b9f4-d3bd52355fbe",
+    "docType": "daily-checkups"
+  },
+  "dc3": {
+    "key": "dc3",
+    "value": {
+      "id": "dc3",
+      "patientDid": "did:hosp:0x643a3a37",
+      "date": "2026-05-29",
+      "time": "08:30",
+      "type": "routine",
+      "doctor": "Dr. Ravi Menon",
+      "specialty": "Cardiology",
+      "notes": "Post-procedure check. Patient recovering well.",
+      "findings": [
+        "Vital signs stable",
+        "No complications",
+        "Pain managed"
+      ],
+      "status": "completed"
+    },
+    "namespace": "daily-checkups",
+    "version": "2ca1f5f8-97d2-4292-88f5-dbd1ae9319e1:1",
+    "updatedAt": "2026-07-03T16:41:44.576Z",
+    "txId": "2ca1f5f8-97d2-4292-88f5-dbd1ae9319e1",
+    "docType": "daily-checkups"
+  }
+}

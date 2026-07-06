@@ -125,7 +125,7 @@ export default function Home() {
       >
         {[
           { label: "DIDs Issued", value: "12,847", sub: "+128 today" },
-          { label: "Mock Patients", value: "500", sub: "Full dataset" },
+          { label: "Registered Patients", value: "500", sub: "Full dataset" },
           { label: "Credentials", value: "1,000", sub: "12 types" },
           { label: "Audit Events", value: "5,000", sub: "Immutable log" },
         ].map(s => (

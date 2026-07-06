@@ -247,5 +247,21 @@
     "updatedAt": "2026-07-03T15:03:57.110Z",
     "txId": "ed0f849a-3dee-4921-8b0d-d8a245bc1ae4",
     "docType": "users"
+  },
+  "test@apollo.in": {
+    "key": "test@apollo.in",
+    "value": {
+      "name": "Test Doctor",
+      "email": "test@apollo.in",
+      "password": "$2b$10$AX0rY2004bPfhCTw94aa3OuPqtv0fKMOUwde9HMug3xVIhiam5tIa",
+      "role": "staff",
+      "did": null,
+      "createdAt": "2026-07-02T16:58:52.861Z"
+    },
+    "namespace": "users",
+    "version": "c091c632-d860-4300-bf30-c8cfb2a70cf8:1",
+    "updatedAt": "2026-07-02T16:58:52.861Z",
+    "txId": "c091c632-d860-4300-bf30-c8cfb2a70cf8",
+    "docType": "users"
   }
 }

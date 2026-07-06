@@ -3,9 +3,8 @@ import { useState, useEffect } from "react";
 import { StaggerList, StaggerItem } from "@/components/Motion";
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
-import { appointments } from "@/lib/mock-data";
 import { useAppointments, useLiveStaff } from "@/hooks/use-api";
-import { bookAppointment } from "@/lib/api";
+import { bookAppointment, getMedicalRecords, getPrescriptions, getLabs } from "@/lib/api";
 import { getCurrentUser } from "@/lib/auth";
 import {
   CalendarDays,
@@ -53,120 +52,63 @@ interface Doctor {
   }[];
 }
 
-const mockDoctors: Doctor[] = [
-  {
-    id: "doc1",
-    name: "Dr. Ravi Menon",
-    specialty: "Cardiology",
-    did: "did:hosp:0xd103…99aa",
-    hospital: "Apollo Hospitals · OPD-3",
-    status: "Available",
-    rating: 4.9,
-    availableDays: [
-      { day: "Thu", date: "2026-06-04", slots: ["10:30 AM", "11:00 AM", "02:00 PM"] },
-      { day: "Fri", date: "2026-06-05", slots: ["09:00 AM", "10:00 AM", "03:30 PM"] },
-    ],
-  },
-  {
-    id: "doc2",
-    name: "Dr. Sameer Khan",
-    specialty: "General Medicine",
-    did: "did:hosp:0x34bd…12ef",
-    hospital: "Apollo Hospitals · OPD-2",
-    status: "Busy",
-    rating: 4.8,
-    availableDays: [
-      { day: "Thu", date: "2026-06-04", slots: ["09:30 AM", "11:30 AM", "03:00 PM"] },
-      { day: "Fri", date: "2026-06-05", slots: ["08:30 AM", "01:00 PM", "04:30 PM"] },
-    ],
-  },
-  {
-    id: "doc3",
-    name: "Dr. Aanya Verma",
-    specialty: "Radiology",
-    did: "did:hosp:0x55ef…7711",
-    hospital: "Apollo Hospitals · Diagnostics Block",
-    status: "Available",
-    rating: 4.9,
-    availableDays: [
-      { day: "Fri", date: "2026-06-05", slots: ["10:00 AM", "11:30 AM", "02:30 PM", "04:15 PM"] },
-      { day: "Sat", date: "2026-06-06", slots: ["09:00 AM", "11:00 AM"] },
-    ],
-  },
-  {
-    id: "doc4",
-    name: "Dr. Priya Nair",
-    specialty: "Emergency Medicine",
-    did: "did:hosp:0x88ea…029a",
-    hospital: "Apollo Hospitals · Trauma ER",
-    status: "Available",
-    rating: 5.0,
-    availableDays: [
-      { day: "Thu", date: "2026-06-04", slots: ["08:00 AM", "12:00 PM", "04:00 PM", "08:00 PM"] },
-    ],
-  },
-  {
-    id: "doc5",
-    name: "Dr. Kiran Bose",
-    specialty: "Pediatrics",
-    did: "did:hosp:0x77aa…bb21",
-    hospital: "Apollo Hospitals · Pediatrics Wing",
-    status: "Off Duty",
-    rating: 4.7,
-    availableDays: [
-      { day: "Mon", date: "2026-06-08", slots: ["09:00 AM", "10:30 AM", "02:00 PM"] },
-    ],
-  },
-];
-
-const medicalHistory = [
-  {
-    id: "h1",
-    date: "2026-05-18",
-    condition: "Type 2 Diabetes Checkup",
-    doctor: "Dr. Sameer Khan",
-    status: "Controlled",
-  },
-  {
-    id: "h2",
-    date: "2026-04-12",
-    condition: "Routine Cardiac Echo",
-    doctor: "Dr. Ravi Menon",
-    status: "Healthy Ejection Fraction",
-  },
-];
-
-const currentMedications = [
-  { id: "m1", name: "Metoprolol 50mg", frequency: "Once daily (Morning)", purpose: "Hypertension" },
-  {
-    id: "m2",
-    name: "Metformin 1000mg",
-    frequency: "Twice daily (With meals)",
-    purpose: "Type 2 Diabetes",
-  },
-];
-
-const recentLabReports = [
-  {
-    id: "l1",
-    date: "2026-05-20",
-    test: "HbA1c Glycated Hemoglobin",
-    result: "6.4%",
-    status: "Optimal",
-  },
-  {
-    id: "l2",
-    date: "2026-04-12",
-    test: "Lipid Profile Panel",
-    result: "LDL 92 mg/dL",
-    status: "Desirable",
-  },
-];
+// Doctor list is populated entirely from the live staff registry API
+// No hardcoded mock doctors — empty state shown when no doctors registered
 
 function AppointmentsPage() {
   const { data: appointmentsData, refetch } = useAppointments();
   const { staff: liveStaff } = useLiveStaff();
   const currentUser = getCurrentUser();
+
+  const [medicalHistory, setMedicalHistory] = useState<any[]>([]);
+  const [currentMedications, setCurrentMedications] = useState<any[]>([]);
+  const [recentLabReports, setRecentLabReports] = useState<any[]>([]);
+
+  const patientDid = currentUser?.did || "";
+
+  useEffect(() => {
+    if (!patientDid) return;
+
+    getMedicalRecords(patientDid)
+      .then((res) => {
+        const history = (res.records || []).map((r: any) => ({
+          id: r.recordId,
+          date: r.createdAt?.split("T")[0] || "—",
+          condition: r.title,
+          doctor: r.doctorName || "—",
+          status: r.status || "Controlled",
+        }));
+        setMedicalHistory(history);
+      })
+      .catch((err) => console.error(err));
+
+    getPrescriptions(patientDid)
+      .then((res) => {
+        const meds = (res.prescriptions || []).flatMap((rx: any, rxIdx: number) =>
+          (rx.drugs || []).map((d: any, idx: number) => ({
+            id: `${rx.rxId || rxIdx}-${idx}`,
+            name: d.name || d,
+            frequency: d.frequency || rx.notes || "As directed",
+            purpose: rx.diagnosis || "Treatment",
+          }))
+        );
+        setCurrentMedications(meds);
+      })
+      .catch((err) => console.error(err));
+
+    getLabs(patientDid)
+      .then((res) => {
+        const labs = (res.labs || []).map((l: any) => ({
+          id: l.labId,
+          date: l.completedAt?.split("T")[0] || l.orderedAt?.split("T")[0] || "—",
+          test: l.testName || l.tests?.join(", ") || "Lab Test",
+          result: l.results?.[0] ? `${l.results[0].parameter}: ${l.results[0].value} ${l.results[0].unit}` : "Pending",
+          status: l.status || "Pending",
+        }));
+        setRecentLabReports(labs);
+      })
+      .catch((err) => console.error(err));
+  }, [patientDid]);
 
   // Map raw appointments to UI structure
   const liveList = (appointmentsData?.appointments || []).map((a: any) => ({
@@ -184,7 +126,7 @@ function AppointmentsPage() {
   }));
 
   const [localList, setLocalList] = useState<any[]>([]);
-  const list = [...localList, ...liveList].length > 0 ? [...localList, ...liveList] : appointments;
+  const list = [...localList, ...liveList];
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSpecialty, setSelectedSpecialty] = useState("All");
@@ -209,7 +151,7 @@ function AppointmentsPage() {
       };
     });
 
-  const allDoctors = registeredDoctors.length > 0 ? registeredDoctors : mockDoctors;
+  const allDoctors = registeredDoctors;
 
   // Booking flow state
   const [selectedDoc, setSelectedDoc] = useState<Doctor | null>(null);
@@ -258,7 +200,7 @@ function AppointmentsPage() {
     return matchesSearch && matchesSpecialty;
   });
 
-  const triggerMockNotifications = (
+  const triggerBookingNotifications = (
     doctorName: string,
     date: string,
     time: string,
@@ -269,7 +211,7 @@ function AppointmentsPage() {
       day: "numeric",
       month: "short",
     });
-    const msg = `Appointment Confirmed! Date: ${formattedDate} at ${time}. Doctor: ${doctorName} (${mode === "tele" ? "Telehealth" : "In-Person"}). Check-in details: did:hosp:0x4a91…b7d2`;
+    const msg = `Appointment Confirmed! Date: ${formattedDate} at ${time}. Doctor: ${doctorName} (${mode === "tele" ? "Telehealth" : "In-Person"}). Check-in details: ${currentUser?.did ?? "did:hosp:pending"}`;
     setNotificationPreview({
       show: true,
       channels: { sms: true, email: true, whatsapp: true },
@@ -312,7 +254,7 @@ function AppointmentsPage() {
       });
     }
 
-    triggerMockNotifications(selectedDoc.name, selectedDay, selectedSlot, consultMode);
+    triggerBookingNotifications(selectedDoc.name, selectedDay, selectedSlot, consultMode);
 
     // reset state
     setSelectedDoc(null);
@@ -321,7 +263,7 @@ function AppointmentsPage() {
   };
 
   const triggerEmergencyBooking = async () => {
-    const erDoc = mockDoctors.find((d) => d.specialty === "Emergency Medicine") || mockDoctors[0];
+    const erDoc = allDoctors.find((d) => d.specialty === "Emergency Medicine") || allDoctors[0];
     const id = `ap_er_${Date.now()}`;
     const emergencyAppointment = {
       id,
@@ -353,7 +295,7 @@ function AppointmentsPage() {
       });
     }
 
-    triggerMockNotifications(
+    triggerBookingNotifications(
       erDoc.name,
       new Date().toISOString().split("T")[0],
       "IMMEDIATE",
@@ -926,7 +868,7 @@ function AppointmentsPage() {
               </div>
             </div>
 
-            {/* Video Viewport Mockup */}
+            {/* Video Viewport Preview */}
             <div className="flex-1 my-6 rounded-2xl bg-muted/10 border border-white/10 overflow-hidden relative flex items-center justify-center">
               {/* Main Doctor Screen */}
               <div className="absolute inset-0 flex flex-col items-center justify-center space-y-4">

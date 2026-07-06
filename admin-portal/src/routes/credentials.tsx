@@ -5,8 +5,23 @@ import { CredentialCard } from "@/components/credentials/CredentialCard";
 import { CredentialIssuerBadge } from "@/components/credentials/CredentialIssuerBadge";
 import { ShieldCheck, ShieldX, Search, TrendingUp, Eye, Award, AlertTriangle } from "lucide-react";
 import { useState } from "react";
-import type { CredentialFull } from "@/lib/mock-credentials";
+import type { CredentialFull, CredentialType } from "@/lib/types";
 import { useCredentials } from "@/hooks/use-api";
+
+// Type for raw credential data from the API
+interface ApiCredential {
+  id: string;
+  type?: string;
+  issuer?: string;
+  subject?: string;
+  issuedAt?: string;
+  expiresAt?: string;
+  status?: "active" | "expired" | "revoked";
+  claims?: {
+    subjectDid?: string;
+    [key: string]: unknown;
+  };
+}
 
 export const Route = createFileRoute("/credentials")({
   head: () => ({ meta: [{ title: "Credentials — Admin Console" }] }),
@@ -52,7 +67,7 @@ function CredentialsPage() {
   const { data: credentialsData } = useCredentials();
 
   const displayCredentials: CredentialFull[] = (credentialsData?.credentials ?? []).map(
-    (c: any) => {
+    (c: ApiCredential) => {
       return {
         id: c.id,
         type: c.type || "PatientIdentity",

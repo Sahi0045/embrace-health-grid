@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
-import { type DIDRecord } from "@/lib/mock-data";
 import { useDIDs } from "@/hooks/use-api";
 import { createDID } from "@/lib/api";
 import { Plus, Upload, Search, X } from "lucide-react";
@@ -15,6 +14,15 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+
+// Type definition for DID records
+type DIDRecord = {
+  did: string;
+  subject: string;
+  type: "patient" | "doctor" | "nurse" | "admin";
+  issuedAt: string;
+  status: "active" | "revoked";
+};
 
 export const Route = createFileRoute("/dids")({
   head: () => ({ meta: [{ title: "Admin · DID Management — DID Hospital" }] }),

@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { ShieldCheck, ShieldX, AlertTriangle, Info, Key, FileText, Ambulance, Pill } from "lucide-react";
-import type { AuditEvent } from "@/lib/mock-audit";
+import type { AuditEvent } from "@/lib/types";
 
 interface AuditTimelineProps {
   events: AuditEvent[];

@@ -8,6 +8,14 @@ export interface AuthUser {
   walletAddress?: string | null;
   mrn?: string | null;
   employeeId?: string | null;
+  // Extended profile fields (populated from backend/DID registry)
+  age?: number;
+  gender?: string;
+  bloodGroup?: string;
+  phone?: string;
+  allergies?: string[];
+  department?: string;
+  specializations?: string[];
 }
 
 const TOKEN_KEY = "authToken";
@@ -23,7 +31,7 @@ export function setSession(
     name: string;
     email: string;
     role: string;
-    did?: string;
+    did?: string | null;
     walletAddress?: string | null;
     mrn?: string | null;
     employeeId?: string | null;

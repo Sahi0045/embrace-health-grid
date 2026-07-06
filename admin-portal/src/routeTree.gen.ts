@@ -9,29 +9,19 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as ResourcesRouteImport } from './routes/resources'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as PoliciesRouteImport } from './routes/policies'
 import { Route as PeopleRouteImport } from './routes/people'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as InfrastructureRouteImport } from './routes/infrastructure'
 import { Route as FraudRouteImport } from './routes/fraud'
 import { Route as FinancialRouteImport } from './routes/financial'
-import { Route as FederationRouteImport } from './routes/federation'
 import { Route as DigitalTwinRouteImport } from './routes/digital-twin'
 import { Route as DidsRouteImport } from './routes/dids'
 import { Route as CredentialsRouteImport } from './routes/credentials'
-import { Route as ComplianceRouteImport } from './routes/compliance'
 import { Route as CommandRouteImport } from './routes/command'
 import { Route as AuditRouteImport } from './routes/audit'
-import { Route as AttendanceRouteImport } from './routes/attendance'
 import { Route as IndexRouteImport } from './routes/index'
 
-const ResourcesRoute = ResourcesRouteImport.update({
-  id: '/resources',
-  path: '/resources',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
@@ -52,11 +42,6 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const InfrastructureRoute = InfrastructureRouteImport.update({
-  id: '/infrastructure',
-  path: '/infrastructure',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const FraudRoute = FraudRouteImport.update({
   id: '/fraud',
   path: '/fraud',
@@ -65,11 +50,6 @@ const FraudRoute = FraudRouteImport.update({
 const FinancialRoute = FinancialRouteImport.update({
   id: '/financial',
   path: '/financial',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FederationRoute = FederationRouteImport.update({
-  id: '/federation',
-  path: '/federation',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DigitalTwinRoute = DigitalTwinRouteImport.update({
@@ -87,11 +67,6 @@ const CredentialsRoute = CredentialsRouteImport.update({
   path: '/credentials',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ComplianceRoute = ComplianceRouteImport.update({
-  id: '/compliance',
-  path: '/compliance',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const CommandRoute = CommandRouteImport.update({
   id: '/command',
   path: '/command',
@@ -102,11 +77,6 @@ const AuditRoute = AuditRouteImport.update({
   path: '/audit',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AttendanceRoute = AttendanceRouteImport.update({
-  id: '/attendance',
-  path: '/attendance',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -115,151 +85,109 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/attendance': typeof AttendanceRoute
   '/audit': typeof AuditRoute
   '/command': typeof CommandRoute
-  '/compliance': typeof ComplianceRoute
   '/credentials': typeof CredentialsRoute
   '/dids': typeof DidsRoute
   '/digital-twin': typeof DigitalTwinRoute
-  '/federation': typeof FederationRoute
   '/financial': typeof FinancialRoute
   '/fraud': typeof FraudRoute
-  '/infrastructure': typeof InfrastructureRoute
   '/login': typeof LoginRoute
   '/people': typeof PeopleRoute
   '/policies': typeof PoliciesRoute
   '/profile': typeof ProfileRoute
-  '/resources': typeof ResourcesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/attendance': typeof AttendanceRoute
   '/audit': typeof AuditRoute
   '/command': typeof CommandRoute
-  '/compliance': typeof ComplianceRoute
   '/credentials': typeof CredentialsRoute
   '/dids': typeof DidsRoute
   '/digital-twin': typeof DigitalTwinRoute
-  '/federation': typeof FederationRoute
   '/financial': typeof FinancialRoute
   '/fraud': typeof FraudRoute
-  '/infrastructure': typeof InfrastructureRoute
   '/login': typeof LoginRoute
   '/people': typeof PeopleRoute
   '/policies': typeof PoliciesRoute
   '/profile': typeof ProfileRoute
-  '/resources': typeof ResourcesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/attendance': typeof AttendanceRoute
   '/audit': typeof AuditRoute
   '/command': typeof CommandRoute
-  '/compliance': typeof ComplianceRoute
   '/credentials': typeof CredentialsRoute
   '/dids': typeof DidsRoute
   '/digital-twin': typeof DigitalTwinRoute
-  '/federation': typeof FederationRoute
   '/financial': typeof FinancialRoute
   '/fraud': typeof FraudRoute
-  '/infrastructure': typeof InfrastructureRoute
   '/login': typeof LoginRoute
   '/people': typeof PeopleRoute
   '/policies': typeof PoliciesRoute
   '/profile': typeof ProfileRoute
-  '/resources': typeof ResourcesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/attendance'
     | '/audit'
     | '/command'
-    | '/compliance'
     | '/credentials'
     | '/dids'
     | '/digital-twin'
-    | '/federation'
     | '/financial'
     | '/fraud'
-    | '/infrastructure'
     | '/login'
     | '/people'
     | '/policies'
     | '/profile'
-    | '/resources'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/attendance'
     | '/audit'
     | '/command'
-    | '/compliance'
     | '/credentials'
     | '/dids'
     | '/digital-twin'
-    | '/federation'
     | '/financial'
     | '/fraud'
-    | '/infrastructure'
     | '/login'
     | '/people'
     | '/policies'
     | '/profile'
-    | '/resources'
   id:
     | '__root__'
     | '/'
-    | '/attendance'
     | '/audit'
     | '/command'
-    | '/compliance'
     | '/credentials'
     | '/dids'
     | '/digital-twin'
-    | '/federation'
     | '/financial'
     | '/fraud'
-    | '/infrastructure'
     | '/login'
     | '/people'
     | '/policies'
     | '/profile'
-    | '/resources'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AttendanceRoute: typeof AttendanceRoute
   AuditRoute: typeof AuditRoute
   CommandRoute: typeof CommandRoute
-  ComplianceRoute: typeof ComplianceRoute
   CredentialsRoute: typeof CredentialsRoute
   DidsRoute: typeof DidsRoute
   DigitalTwinRoute: typeof DigitalTwinRoute
-  FederationRoute: typeof FederationRoute
   FinancialRoute: typeof FinancialRoute
   FraudRoute: typeof FraudRoute
-  InfrastructureRoute: typeof InfrastructureRoute
   LoginRoute: typeof LoginRoute
   PeopleRoute: typeof PeopleRoute
   PoliciesRoute: typeof PoliciesRoute
   ProfileRoute: typeof ProfileRoute
-  ResourcesRoute: typeof ResourcesRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/resources': {
-      id: '/resources'
-      path: '/resources'
-      fullPath: '/resources'
-      preLoaderRoute: typeof ResourcesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/profile': {
       id: '/profile'
       path: '/profile'
@@ -288,13 +216,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/infrastructure': {
-      id: '/infrastructure'
-      path: '/infrastructure'
-      fullPath: '/infrastructure'
-      preLoaderRoute: typeof InfrastructureRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/fraud': {
       id: '/fraud'
       path: '/fraud'
@@ -307,13 +228,6 @@ declare module '@tanstack/react-router' {
       path: '/financial'
       fullPath: '/financial'
       preLoaderRoute: typeof FinancialRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/federation': {
-      id: '/federation'
-      path: '/federation'
-      fullPath: '/federation'
-      preLoaderRoute: typeof FederationRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/digital-twin': {
@@ -337,13 +251,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CredentialsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/compliance': {
-      id: '/compliance'
-      path: '/compliance'
-      fullPath: '/compliance'
-      preLoaderRoute: typeof ComplianceRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/command': {
       id: '/command'
       path: '/command'
@@ -358,13 +265,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuditRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/attendance': {
-      id: '/attendance'
-      path: '/attendance'
-      fullPath: '/attendance'
-      preLoaderRoute: typeof AttendanceRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
@@ -377,22 +277,17 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AttendanceRoute: AttendanceRoute,
   AuditRoute: AuditRoute,
   CommandRoute: CommandRoute,
-  ComplianceRoute: ComplianceRoute,
   CredentialsRoute: CredentialsRoute,
   DidsRoute: DidsRoute,
   DigitalTwinRoute: DigitalTwinRoute,
-  FederationRoute: FederationRoute,
   FinancialRoute: FinancialRoute,
   FraudRoute: FraudRoute,
-  InfrastructureRoute: InfrastructureRoute,
   LoginRoute: LoginRoute,
   PeopleRoute: PeopleRoute,
   PoliciesRoute: PoliciesRoute,
   ProfileRoute: ProfileRoute,
-  ResourcesRoute: ResourcesRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

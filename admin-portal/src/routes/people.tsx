@@ -24,8 +24,6 @@ import {
   AlertCircle,
   Clock,
 } from "lucide-react";
-import { peopleStats } from "@/lib/people-data";
-import { mockStaff } from "@/lib/mock-staff";
 import { DIDBadge } from "@/components/did/DIDBadge";
 import { DIDStatusChip } from "@/components/did/DIDStatusChip";
 import { useState, useEffect } from "react";
@@ -98,13 +96,20 @@ function PeopleManagement() {
       if (didRole === "staff") {
         didRole = "doctor";
       }
-      
-      const extraFields = didRole === "patient" 
-        ? { mrn: didDialogId }
-        : { employeeId: didDialogId };
 
-      const res = await createDID(selectedUserForDID.name, didRole, undefined, selectedUserForDID.email, extraFields);
-      toast.success(`DID issued successfully for ${selectedUserForDID.name}!`, { description: res.did });
+      const extraFields =
+        didRole === "patient" ? { mrn: didDialogId } : { employeeId: didDialogId };
+
+      const res = await createDID(
+        selectedUserForDID.name,
+        didRole,
+        undefined,
+        selectedUserForDID.email,
+        extraFields,
+      );
+      toast.success(`DID issued successfully for ${selectedUserForDID.name}!`, {
+        description: res.did,
+      });
       setIsDidDialogOpen(false);
       fetchUsers();
     } catch (err: any) {
@@ -753,7 +758,8 @@ function PeopleManagement() {
           <DialogHeader>
             <DialogTitle>Assign Profile ID & Issue DID</DialogTitle>
             <DialogDescription>
-              Assign a unique identifier for {selectedUserForDID?.name || "the user"} before registering their DID on the blockchain.
+              Assign a unique identifier for {selectedUserForDID?.name || "the user"} before
+              registering their DID on the blockchain.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -764,7 +770,9 @@ function PeopleManagement() {
               <Input
                 value={didDialogId}
                 onChange={(e) => setDidDialogId(e.target.value)}
-                placeholder={selectedUserForDID?.role === "patient" ? "e.g. MRN-204871" : "e.g. EMP-1029"}
+                placeholder={
+                  selectedUserForDID?.role === "patient" ? "e.g. MRN-204871" : "e.g. EMP-1029"
+                }
               />
             </div>
             <div className="rounded-lg bg-muted/50 p-3 space-y-1 text-xs">
@@ -783,10 +791,17 @@ function PeopleManagement() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDidDialogOpen(false)} disabled={isSubmittingDID}>
+            <Button
+              variant="outline"
+              onClick={() => setIsDidDialogOpen(false)}
+              disabled={isSubmittingDID}
+            >
               Cancel
             </Button>
-            <Button onClick={handleConfirmIssueDID} disabled={isSubmittingDID || !didDialogId.trim()}>
+            <Button
+              onClick={handleConfirmIssueDID}
+              disabled={isSubmittingDID || !didDialogId.trim()}
+            >
               {isSubmittingDID ? "Issuing..." : "Confirm & Issue DID"}
             </Button>
           </DialogFooter>
@@ -796,10 +811,10 @@ function PeopleManagement() {
   );
 }
 
-function StaffDIDsPanel({ searchTerm }: { searchTerm: string }) {
+function StaffDIDsPanel({ searchTerm, liveStaff }: { searchTerm: string; liveStaff: any[] }) {
   const [roleFilter, setRoleFilter] = useState("all");
 
-  const filtered = mockStaff.filter(
+  const filtered = liveStaff.filter(
     (s) =>
       (roleFilter === "all" || s.role === roleFilter) &&
       (s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -808,24 +823,24 @@ function StaffDIDsPanel({ searchTerm }: { searchTerm: string }) {
         s.did.toLowerCase().includes(searchTerm.toLowerCase())),
   );
 
-  const onDuty = mockStaff.filter((s) => s.onDuty).length;
-  const roles = [...new Set(mockStaff.map((s) => s.role))].sort();
+  const onDuty = liveStaff.filter((s) => s.onDuty).length;
+  const roles = [...new Set(liveStaff.map((s) => s.role))].sort();
 
   return (
     <div className="space-y-4">
       {/* Summary */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
-          { label: "Total Staff", value: mockStaff.length, color: "text-primary bg-primary/10" },
+          { label: "Total Staff", value: liveStaff.length, color: "text-primary bg-primary/10" },
           { label: "On Duty", value: onDuty, color: "text-success bg-success/10" },
           {
             label: "Doctors",
-            value: mockStaff.filter((s) => s.role === "Doctor" || s.role === "Surgeon").length,
+            value: liveStaff.filter((s) => s.role === "Doctor" || s.role === "Surgeon").length,
             color: "text-chart-2 bg-chart-2/10",
           },
           {
             label: "Nurses",
-            value: mockStaff.filter((s) => s.role === "Nurse").length,
+            value: liveStaff.filter((s) => s.role === "Nurse").length,
             color: "text-chart-3 bg-chart-3/10",
           },
         ].map((s) => (
@@ -843,7 +858,7 @@ function StaffDIDsPanel({ searchTerm }: { searchTerm: string }) {
           onClick={() => setRoleFilter("all")}
           className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors ${roleFilter === "all" ? "bg-foreground text-background border-foreground" : "border-border text-muted-foreground hover:border-foreground"}`}
         >
-          All ({mockStaff.length})
+          All ({liveStaff.length})
         </button>
         {roles.map((role) => (
           <button
@@ -851,7 +866,7 @@ function StaffDIDsPanel({ searchTerm }: { searchTerm: string }) {
             onClick={() => setRoleFilter(role)}
             className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors ${roleFilter === role ? "bg-foreground text-background border-foreground" : "border-border text-muted-foreground hover:border-foreground"}`}
           >
-            {role} ({mockStaff.filter((s) => s.role === role).length})
+            {role} ({liveStaff.filter((s) => s.role === role).length})
           </button>
         ))}
       </div>
@@ -935,7 +950,7 @@ function StaffDIDsPanel({ searchTerm }: { searchTerm: string }) {
       </div>
 
       <div className="text-xs text-muted-foreground">
-        Showing {filtered.length} of {mockStaff.length} staff members — each staff member has a
+        Showing {filtered.length} of {liveStaff.length} staff members — each staff member has a
         unique hospital DID
       </div>
     </div>

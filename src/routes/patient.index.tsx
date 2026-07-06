@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { StaggerList, StaggerItem } from "@/components/Motion";
-import { currentPatient } from "@/lib/mock-data";
 import { useLivePatients, useConsents, useAppointments } from "@/hooks/use-api";
 import {
   QrCode,
@@ -45,7 +44,7 @@ const quickActions: {
   { to: "/patient/vaccines", label: "Vaccines", icon: Syringe },
   { to: "/patient/insurance", label: "Insurance", icon: CreditCard },
   { to: "/patient/telemedicine", label: "Tele", icon: Video },
-  { to: "/patient/family", label: "Family", icon: Users2 },
+  { to: "/patient/visitors", label: "Visitors", icon: Users2 },
 ];
 
 function PatientHome() {

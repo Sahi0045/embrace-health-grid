@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
-import { policies, type Policy } from "@/lib/mock-data";
 import { useSimulatedLoading } from "@/hooks/use-simulated-loading";
 import { ListSkeleton } from "@/components/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
@@ -13,6 +12,16 @@ export const Route = createFileRoute("/policies")({
   head: () => ({ meta: [{ title: "Admin · Policies — DID Hospital" }] }),
   component: PoliciesPage,
 });
+
+// Local type definition for Policy
+type Policy = {
+  id: string;
+  name: string;
+  category: "Consent" | "Retention" | "Access control" | "Audit";
+  status: "active" | "draft" | "archived";
+  updatedAt: string;
+  description: string;
+};
 
 const categories = ["All", "Consent", "Access control", "Retention", "Audit"] as const;
 type Category = (typeof categories)[number];
@@ -27,7 +36,7 @@ function PoliciesPage() {
   const loading = useSimulatedLoading(450);
   const [list, setList] = useState<Policy[]>(() => {
     const saved = localStorage.getItem("did_hospital_policies");
-    return saved ? JSON.parse(saved) : policies;
+    return saved ? JSON.parse(saved) : [];
   });
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<Category>("All");

@@ -7,49 +7,15 @@ import { DIDStatusChip } from "@/components/did/DIDStatusChip";
 import { Users, ShieldCheck, Shield, Baby, User, Plus } from "lucide-react";
 import { motion } from "framer-motion";
 
+import { useLivePatients, useLiveStaff, useConsents } from "@/hooks/use-api";
+import { getCurrentUser } from "@/lib/auth";
+import { revokeConsent } from "@/lib/api";
+import { toast } from "sonner";
+
 export const Route = createFileRoute("/patient/family")({
   head: () => ({ meta: [{ title: "Family & Guardians — DID Hospital" }] }),
   component: FamilyPage,
 });
-
-const familyMembers = [
-  {
-    id: "f1",
-    name: "Sunil Sharma",
-    relation: "Spouse",
-    did: "did:hosp:0xb812…1a04",
-    role: "patient" as const,
-    accessLevel: "Full healthcare access",
-    permissions: ["View records", "Sign consents", "Emergency access", "Billing"],
-    status: "active" as const,
-  },
-  {
-    id: "f2",
-    name: "Aarav Sharma",
-    relation: "Son (Minor)",
-    did: "did:hosp:0xc044…fe21",
-    role: "patient" as const,
-    accessLevel: "Guardian delegation",
-    permissions: ["View pediatric records", "Emergency access"],
-    status: "active" as const,
-  },
-  {
-    id: "f3",
-    name: "Rekha Sharma",
-    relation: "Mother (Elder care)",
-    did: "did:hosp:0x3311…9d00",
-    role: "patient" as const,
-    accessLevel: "Elder care access",
-    permissions: ["View records", "Manage medications", "Emergency access"],
-    status: "active" as const,
-  },
-];
-
-const delegations = [
-  { id: "d1", delegateTo: "Sunil Sharma", scope: "All medical records", expiry: "2026-12-31", status: "active" },
-  { id: "d2", delegateTo: "Sunil Sharma", scope: "Billing & Insurance", expiry: "2026-12-31", status: "active" },
-  { id: "d3", delegateTo: "Dr. Ravi Menon", scope: "Cardiology records only", expiry: "2026-07-15", status: "active" },
-];
 
 function RelationIcon({ relation }: { relation: string }) {
   if (relation.includes("Son") || relation.includes("Minor")) return <Baby className="h-5 w-5 text-chart-2" />;
@@ -58,6 +24,85 @@ function RelationIcon({ relation }: { relation: string }) {
 }
 
 function FamilyPage() {
+  const { patients } = useLivePatients();
+  const { staff } = useLiveStaff();
+  const { data: consentsData, refetch: refetchConsents } = useConsents();
+
+  const currentUser = getCurrentUser();
+  const userEmail = currentUser?.email || "";
+  const patient = patients?.find((p: any) => p.email === userEmail);
+
+  const lastName = patient ? patient.name.split(" ").slice(-1)[0] : "";
+  const familyFromPatients = patients
+    ? patients
+        .filter((p: any) => p.email !== userEmail && lastName && p.name.endsWith(lastName))
+        .map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          relation: p.gender === "M" ? "Spouse/Relative" : "Spouse/Relative",
+          did: p.did,
+          role: "patient" as const,
+          accessLevel: "Full healthcare access",
+          permissions: ["View records", "Sign consents", "Emergency access"],
+          status: p.status === "active" || p.status === "inpatient" ? ("active" as const) : ("inactive" as const),
+        }))
+    : [];
+
+  const emergencyMember = patient?.emergencyContact?.name
+    ? (() => {
+        const foundFamilyPatient = patients?.find(
+          (p: any) =>
+            p.name.toLowerCase() === patient.emergencyContact.name.toLowerCase() ||
+            p.phone === patient.emergencyContact.phone
+        );
+        return [
+          {
+            id: "emergency",
+            name: patient.emergencyContact.name,
+            relation: patient.emergencyContact.relation || "Emergency Contact",
+            did: foundFamilyPatient ? foundFamilyPatient.did : "did:hosp:unknown",
+            role: "patient" as const,
+            accessLevel: "Emergency contact access",
+            permissions: ["Emergency access"],
+            status: foundFamilyPatient
+              ? (foundFamilyPatient.status === "active" || foundFamilyPatient.status === "inpatient" ? ("active" as const) : ("inactive" as const))
+              : ("active" as const),
+          },
+        ];
+      })()
+    : [];
+
+  const familyMembersList = [...emergencyMember, ...familyFromPatients];
+
+  const getDoctorName = (did: string) => {
+    const doc = staff?.find((s: any) => s.did === did);
+    return doc ? doc.name : did;
+  };
+
+  const patientConsents = consentsData?.consents?.filter((c: any) => c.patientDid === patient?.did) || [];
+
+  const delegationsList = patientConsents.map((c: any) => ({
+    id: c.grantId,
+    delegateTo: getDoctorName(c.doctorDid),
+    scope: c.resource,
+    expiry: c.expiry ? new Date(c.expiry).toLocaleDateString("en-IN") : "Never",
+    status: c.status,
+  }));
+
+  const handleRevoke = async (grantId: string) => {
+    try {
+      await revokeConsent(grantId);
+      toast.success("Consent revoked successfully");
+      refetchConsents();
+    } catch (err: any) {
+      toast.error("Failed to revoke consent", { description: err.message });
+    }
+  };
+
+  const handleAddFamilyMember = () => {
+    toast.info("Update your Emergency Contact in the Profile tab to link family members.");
+  };
+
   return (
     <RouteGuard requiredRole="patient">
       <PageHeader
@@ -65,7 +110,10 @@ function FamilyPage() {
         title="Family & Guardians"
         description="Manage family DIDs, guardian access, and delegation permissions"
         actions={
-          <button className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors">
+          <button
+            onClick={handleAddFamilyMember}
+            className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+          >
             <Plus className="h-4 w-4" />
             Add Family Member
           </button>
@@ -78,7 +126,7 @@ function FamilyPage() {
           <StaggerItem>
             <div className="text-sm font-semibold text-foreground mb-3">Family Members</div>
             <div className="space-y-4">
-              {familyMembers.map((m) => (
+              {familyMembersList.map((m) => (
                 <div key={m.id} className="rounded-xl border border-border bg-card p-4 shadow-clinical">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
@@ -104,6 +152,11 @@ function FamilyPage() {
                   </div>
                 </div>
               ))}
+              {familyMembersList.length === 0 && (
+                <div className="rounded-xl border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground">
+                  No family members linked to your profile
+                </div>
+              )}
             </div>
           </StaggerItem>
 
@@ -115,17 +168,25 @@ function FamilyPage() {
                 Access Delegations
               </div>
               <div className="space-y-2">
-                {delegations.map((d) => (
+                {delegationsList.map((d) => (
                   <div key={d.id} className="flex items-center justify-between rounded-lg bg-muted px-3 py-2.5">
                     <div>
                       <div className="text-sm font-medium text-foreground">{d.delegateTo}</div>
                       <div className="text-xs text-muted-foreground">{d.scope} · Expires {d.expiry}</div>
                     </div>
-                    <button className="rounded-lg border border-border px-2.5 py-1 text-xs text-muted-foreground hover:text-destructive hover:border-destructive/30 transition-colors">
+                    <button
+                      onClick={() => handleRevoke(d.id)}
+                      className="rounded-lg border border-border px-2.5 py-1 text-xs text-muted-foreground hover:text-destructive hover:border-destructive/30 transition-colors"
+                    >
                       Revoke
                     </button>
                   </div>
                 ))}
+                {delegationsList.length === 0 && (
+                  <div className="py-6 text-center text-sm text-muted-foreground">
+                    No active access delegations
+                  </div>
+                )}
               </div>
             </div>
           </StaggerItem>

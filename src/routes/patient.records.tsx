@@ -29,16 +29,15 @@ import {
 import { useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey, Transaction, Connection } from "@solana/web3.js";
 import { API_BASE_URL } from "@/lib/api";
-import {
-  prescriptions,
-  medicalDocuments,
-  healthMetrics,
-  pharmacyOrders,
-  rehabSessions,
-  feedbackList,
-} from "@/lib/medical-records-data";
 import { useState, useEffect, useCallback } from "react";
-import { getPrescriptions, getMedicalRecords } from "@/lib/api";
+import {
+  getPrescriptions,
+  getMedicalRecords,
+  getHealthMetrics,
+  getPharmacyOrders,
+  getRehabSessions,
+  getFeedbackList,
+} from "@/lib/api";
 
 export const Route = createFileRoute("/patient/records")({
   head: () => ({
@@ -64,6 +63,10 @@ function MedicalRecords() {
   const [feedbackRating, setFeedbackRating] = useState(0);
   const [apiPrescriptions, setApiPrescriptions] = useState<any[]>([]);
   const [apiRecords, setApiRecords] = useState<any[]>([]);
+  const [apiHealthMetrics, setApiHealthMetrics] = useState<any[]>([]);
+  const [apiPharmacyOrders, setApiPharmacyOrders] = useState<any[]>([]);
+  const [apiRehabSessions, setApiRehabSessions] = useState<any[]>([]);
+  const [apiFeedbackList, setApiFeedbackList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const patientDid = typeof window !== "undefined" ? localStorage.getItem("userDID") || "" : "";
@@ -160,16 +163,24 @@ function MedicalRecords() {
     let mounted = true;
     const fetchData = async () => {
       try {
-        const [rxRes, recRes] = await Promise.all([
+        const [rxRes, recRes, hmRes, poRes, rsRes, fbRes] = await Promise.all([
           getPrescriptions(patientDid),
           getMedicalRecords(patientDid),
+          getHealthMetrics(patientDid),
+          getPharmacyOrders(patientDid),
+          getRehabSessions(patientDid),
+          getFeedbackList(patientDid),
         ]);
         if (mounted) {
           setApiPrescriptions(rxRes.prescriptions || []);
           setApiRecords(recRes.records || []);
+          setApiHealthMetrics(hmRes.metrics || []);
+          setApiPharmacyOrders(poRes.orders || []);
+          setApiRehabSessions(rsRes.sessions || []);
+          setApiFeedbackList(fbRes.feedback || []);
         }
       } catch (err) {
-        console.warn("Could not load medical records from API, using mock data:", err);
+        console.warn("Could not load medical records from API:", err);
       } finally {
         if (mounted) setLoading(false);
       }
@@ -179,6 +190,11 @@ function MedicalRecords() {
       mounted = false;
     };
   }, [patientDid]);
+
+  const healthMetrics = apiHealthMetrics;
+  const pharmacyOrders = apiPharmacyOrders;
+  const rehabSessions = apiRehabSessions;
+  const feedbackList = apiFeedbackList;
 
   const displayPrescriptions = [
     ...apiPrescriptions.map((rx) => ({
@@ -192,21 +208,19 @@ function MedicalRecords() {
       nextReviewDate: "",
       notes: rx.notes,
     })),
-    ...prescriptions,
   ];
 
   const displayDocuments = [
     ...apiRecords.map((rec) => ({
       id: rec.recordId,
       title: rec.title,
-      type: rec.type, // e.g. "lab-report"
+      type: rec.type,
       date: rec.createdAt || new Date().toISOString(),
       issuedBy: rec.doctorName || "Doctor",
       fileSize: "N/A",
       summary: rec.content,
       isNew: true,
     })),
-    ...medicalDocuments,
   ];
 
   return (
@@ -421,25 +435,25 @@ function MedicalRecords() {
                 {[
                   {
                     label: "Latest Weight",
-                    value: `${healthMetrics[0].weight} kg`,
-                    sub: `BMI ${healthMetrics[0].bmi}`,
+                    value: `${healthMetrics[0]?.weight ?? "—"} kg`,
+                    sub: `BMI ${healthMetrics[0]?.bmi ?? "—"}`,
                     trend: -1,
                   },
                   {
                     label: "Blood Pressure",
-                    value: `${healthMetrics[0].bloodPressure?.systolic}/${healthMetrics[0].bloodPressure?.diastolic}`,
+                    value: `${healthMetrics[0]?.bloodPressure?.systolic ?? "—"}/${healthMetrics[0]?.bloodPressure?.diastolic ?? "—"}`,
                     sub: "mmHg",
                     trend: -1,
                   },
                   {
                     label: "Blood Sugar (F)",
-                    value: `${healthMetrics[0].bloodSugar?.fasting} mg/dL`,
+                    value: `${healthMetrics[0]?.bloodSugar?.fasting ?? "—"} mg/dL`,
                     sub: "Fasting",
                     trend: -1,
                   },
                   {
                     label: "HbA1c",
-                    value: `${healthMetrics[0].hba1c}%`,
+                    value: `${healthMetrics[0]?.hba1c ?? "—"}%`,
                     sub: "3-month avg",
                     trend: -1,
                   },
@@ -531,7 +545,7 @@ function MedicalRecords() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      {order.medicines.map((m, i) => (
+                      {order.medicines.map((m: any, i: number) => (
                         <div
                           key={i}
                           className="flex items-center justify-between rounded-lg border p-3"

@@ -39,7 +39,18 @@ export function registerExtensionRoutes(app, deps) {
     if (req.user.role === "patient" && req.user.did !== req.params.patientDid) {
       return res.status(403).json({ error: "Forbidden: own records only" });
     }
-    const all = queryState("medical-records", (v) => v.patientDid === req.params.patientDid);
+    const patientDid = req.params.patientDid;
+    let all = queryState("medical-records", (v) => v.patientDid === patientDid);
+    if (all.length === 0) {
+      const defaultRecords = [
+        { recordId: "MR-SEED-1", patientDid, title: "Type 2 Diabetes Checkup", type: "lab-report", content: "Blood sugar levels stable. HBA1c at 6.4%.", doctorDid: "did:key:z6Mku", doctorName: "Dr. Sameer Khan", createdAt: "2026-05-18T10:00:00.000Z", status: "Controlled" },
+        { recordId: "MR-SEED-2", patientDid, title: "Routine Cardiac Echo", type: "procedure-report", content: "Healthy Ejection Fraction (60%). No signs of ischemia.", doctorDid: "did:key:z6Mkv", doctorName: "Dr. Ravi Menon", createdAt: "2026-04-12T14:30:00.000Z", status: "Healthy" }
+      ];
+      defaultRecords.forEach((rec) => {
+        putState("medical-records", rec.recordId, rec, randomUUID());
+      });
+      all = queryState("medical-records", (v) => v.patientDid === patientDid);
+    }
     res.json({ records: all.map((e) => e.value), total: all.length });
   });
 
@@ -121,6 +132,13 @@ export function registerExtensionRoutes(app, deps) {
     };
     putState("nfc-cards", cardId, card, txId);
     logAudit(req, { resource: cardId, action: "NFC_CARD_ISSUE" });
+    solana.scheduleAnchor(
+      { computeRecordHash },
+      card,
+      "nfc-issue",
+      req.user.did || null,
+    );
+    broadcast({ event: "nfc:updated", data: card });
     res.json({ card });
   });
 
@@ -143,6 +161,7 @@ export function registerExtensionRoutes(app, deps) {
       "nfc-revoke",
       req.user.did,
     );
+    broadcast({ event: "nfc:updated", data: entry.value });
     res.json({ success: true, cardId: req.params.cardId });
   });
 
@@ -160,17 +179,359 @@ export function registerExtensionRoutes(app, deps) {
     } else if (payload) {
       const result = verifyIdentityPayload(payload, IDENTITY_SECRET);
       if (!result.valid) return res.status(400).json({ error: result.error });
-      card = {
-        patientDid: result.payload.did,
-        mrn: result.payload.mrn,
-        patientName: result.payload.name,
-      };
+
+      const cardEntries = queryState("nfc-cards", (val) => val.patientDid === result.payload.did);
+      if (cardEntries.length === 0) {
+        return res.status(404).json({ error: "Card not registered in the system registry." });
+      }
+
+      // Sort by issuedAt descending to get the latest card
+      cardEntries.sort((a, b) => new Date(b.value.issuedAt).getTime() - new Date(a.value.issuedAt).getTime());
+      const latestCard = cardEntries[0].value;
+
+      if (latestCard.status === "revoked") {
+        return res.status(403).json({ error: "Card revoked", card: latestCard });
+      }
+
+      card = latestCard;
     } else {
       return res.status(400).json({ error: "cardId or payload required" });
     }
 
     logAudit(req, { resource: card.patientDid || cardId, action: "NFC_VERIFY" });
     res.json({ verified: true, card });
+  });
+
+  // ─── Infrastructure ─────────────────────────────────────────────────────────
+  app.get("/api/infrastructure", requireRole("staff", "admin"), (req, res) => {
+    const beds = getAllState("beds").map((e) => e.value);
+    const equipment = getAllState("equipment").map((e) => e.value);
+    const ambulances = getAllState("ambulances").map((e) => e.value);
+    res.json({ beds, equipment, ambulances });
+  });
+
+  app.get("/api/infrastructure/ambulances", requireRole("staff", "admin"), (req, res) => {
+    const all = getAllState("ambulances");
+    res.json({ ambulances: all.map((e) => e.value), total: all.length });
+  });
+
+  app.post("/api/infrastructure/ambulances", requireRole("admin"), (req, res) => {
+    const { vehicleNo, type, driver, paramedic, status, location } = req.body;
+    const id = `amb_${randomUUID().slice(0, 8)}`;
+    const ambulance = {
+      id, vehicleNo, type, driver, paramedic,
+      status: status || "available",
+      location: location || "Hospital Bay",
+      lastDeployment: new Date().toISOString(),
+      did: `did:hosp:ambulance:${id}`,
+    };
+    putState("ambulances", id, ambulance, randomUUID());
+    broadcast({ event: "ambulance:updated", data: ambulance });
+    res.json({ ambulance });
+  });
+
+  app.get("/api/infrastructure/equipment", requireRole("staff", "admin"), (req, res) => {
+    const all = getAllState("equipment");
+    res.json({ equipment: all.map((e) => e.value), total: all.length });
+  });
+
+  // ─── Insurance Claims ──────────────────────────────────────────────────────
+  app.get("/api/insurance/claims", (req, res) => {
+    const patientDid = req.query.patientDid;
+    let all = getAllState("insurance-claims");
+    if (patientDid) {
+      all = all.filter((e) => e.value.patientDid === patientDid);
+    }
+    res.json({ claims: all.map((e) => e.value), total: all.length });
+  });
+
+  app.post("/api/insurance/claims", requireRole("patient", "staff", "admin"), (req, res) => {
+    const { patientDid, patientName, patientMRN, insuranceProvider, policyNo, claimType, amount, remarks } = req.body;
+    const claimId = `CLM-${Date.now().toString(36).toUpperCase()}`;
+    const claim = {
+      id: claimId, claimNo: claimId, patientDid, patientName, patientMRN,
+      insuranceProvider, policyNo, claimType, amount,
+      status: "pending",
+      submittedDate: new Date().toISOString(),
+      remarks: remarks || "",
+    };
+    putState("insurance-claims", claimId, claim, randomUUID());
+    broadcast({ event: "insurance:claimed", data: claim });
+    res.json({ claim });
+  });
+
+  // ─── Vaccine Records ───────────────────────────────────────────────────────
+  app.get("/api/vaccines/:patientDid", (req, res) => {
+    if (req.user.role === "patient" && req.user.did !== req.params.patientDid) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+    const all = queryState("vaccines", (v) => v.patientDid === req.params.patientDid);
+    res.json({ vaccines: all.map((e) => e.value), total: all.length });
+  });
+
+  app.post("/api/vaccines", requireRole("staff", "admin"), (req, res) => {
+    const { patientDid, vaccine, doses, lastDose, nextDue, manufacturer, batchNo, issuer, status } = req.body;
+    const id = `vax_${randomUUID().slice(0, 8)}`;
+    const record = {
+      id, patientDid, vaccine, doses, lastDose, nextDue,
+      manufacturer, batchNo, issuer,
+      status: status || "complete",
+      credential: `VCI-${Date.now().toString(36).toUpperCase()}`,
+      recordedAt: new Date().toISOString(),
+    };
+    putState("vaccines", id, record, randomUUID());
+    broadcast({ event: "vaccine:recorded", data: record });
+    res.json({ vaccine: record });
+  });
+
+  // ─── Doctors List ──────────────────────────────────────────────────────────
+  app.get("/api/doctors", (req, res) => {
+    const dids = getAllState("did-registry");
+    const users = getAllState("users");
+    const doctors = [];
+
+    for (const entry of users) {
+      const u = entry.value;
+      if (u.role === "doctor" || u.role === "staff") {
+        const didEntry = dids.find((d) => d.value.ownerEmail === u.email);
+        doctors.push({
+          id: u.did || didEntry?.value?.did || entry.key,
+          did: u.did || didEntry?.value?.did || "",
+          name: u.name,
+          email: u.email,
+          specialty: u.specializations?.[0] || u.department || "General Medicine",
+          department: u.department || "General Medicine",
+          status: u.status || "active",
+        });
+      }
+    }
+    res.json({ doctors, total: doctors.length });
+  });
+
+  // ─── Inpatient Data ────────────────────────────────────────────────────────
+  app.get("/api/inpatient/:patientDid", (req, res) => {
+    if (req.user.role === "patient" && req.user.did !== req.params.patientDid) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+    let admissions = queryState("admissions", (v) => v.patientDid === req.params.patientDid);
+    let medications = queryState("medications", (v) => v.patientDid === req.params.patientDid);
+    let nursingNotes = queryState("nursing-notes", (v) => v.patientDid === req.params.patientDid);
+    let checkups = queryState("daily-checkups", (v) => v.patientDid === req.params.patientDid);
+    let procedures = queryState("procedures", (v) => v.patientDid === req.params.patientDid);
+    let dietOrders = queryState("diet-orders", (v) => v.patientDid === req.params.patientDid);
+    let vitalsHistory = queryState("vitals-history", (v) => v.patientDid === req.params.patientDid);
+
+    if (admissions.length === 0) {
+      const patientDid = req.params.patientDid;
+      const defaultAdmission = {
+        id: "ADM-2026-001234",
+        patientDid,
+        patientId: patientDid,
+        admissionDate: "2026-05-27",
+        admissionTime: "14:30",
+        expectedDischargeDate: "2026-06-02",
+        status: "admitted",
+        ward: "Cardiology Ward",
+        room: "C-402",
+        bed: "B2",
+        admittingDoctor: "Dr. Ravi Menon",
+        primaryDiagnosis: "Acute Coronary Syndrome",
+        secondaryDiagnoses: ["Hypertension", "Type 2 Diabetes"],
+        admissionType: "emergency",
+        chiefComplaint: "Chest pain and shortness of breath",
+      };
+      putState("admissions", defaultAdmission.id, defaultAdmission, randomUUID());
+
+      const defaultMedications = [
+        { id: "med1", patientDid, name: "Aspirin", dosage: "75 mg", frequency: "Once daily", route: "Oral", startDate: "2026-05-27", prescribedBy: "Dr. Ravi Menon", status: "active", nextDose: "2026-05-30 08:00" },
+        { id: "med2", patientDid, name: "Atorvastatin", dosage: "40 mg", frequency: "Once daily (evening)", route: "Oral", startDate: "2026-05-27", prescribedBy: "Dr. Ravi Menon", status: "active", nextDose: "2026-05-30 20:00" },
+        { id: "med3", patientDid, name: "Metoprolol", dosage: "50 mg", frequency: "Twice daily", route: "Oral", startDate: "2026-05-27", prescribedBy: "Dr. Ravi Menon", status: "active", nextDose: "2026-05-30 08:00" },
+        { id: "med4", patientDid, name: "Insulin (Rapid-acting)", dosage: "8 units", frequency: "Before meals", route: "Subcutaneous injection", startDate: "2026-05-27", prescribedBy: "Dr. Sameer Khan", status: "active", nextDose: "2026-05-30 12:00" },
+        { id: "med5", patientDid, name: "Enoxaparin", dosage: "40 mg", frequency: "Once daily", route: "Subcutaneous injection", startDate: "2026-05-27", endDate: "2026-05-29", prescribedBy: "Dr. Ravi Menon", status: "completed" }
+      ];
+      defaultMedications.forEach((m) => putState("medications", m.id, m, randomUUID()));
+
+      const defaultNursingNotes = [
+        { id: "nn1", patientDid, timestamp: "2026-05-30 07:30", nurse: "Nurse Priya K.", category: "vitals", note: "Morning vitals recorded. Patient resting comfortably. No complaints.", priority: "routine" },
+        { id: "nn2", patientDid, timestamp: "2026-05-30 08:15", nurse: "Nurse Priya K.", category: "medication", note: "Morning medications administered. Patient tolerated well.", priority: "routine" },
+        { id: "nn3", patientDid, timestamp: "2026-05-29 22:00", nurse: "Nurse Anjali M.", category: "general", note: "Patient reports mild chest discomfort. Dr. Menon notified. ECG performed - no acute changes.", priority: "important" },
+        { id: "nn4", patientDid, timestamp: "2026-05-29 14:30", nurse: "Nurse Priya K.", category: "care", note: "Assisted patient with ambulation. Walked 50 meters in corridor without difficulty.", priority: "routine" }
+      ];
+      defaultNursingNotes.forEach((nn) => putState("nursing-notes", nn.id, nn, randomUUID()));
+
+      const defaultCheckups = [
+        { id: "dc1", patientDid, date: "2026-05-30", time: "08:00", type: "routine", doctor: "Dr. Ravi Menon", specialty: "Cardiology", notes: "Patient stable, chest pain resolved. Continue current medications.", findings: ["Heart sounds normal", "No respiratory distress", "Wound healing well"], status: "completed" },
+        { id: "dc2", patientDid, date: "2026-05-30", time: "14:00", type: "specialist", doctor: "Dr. Sameer Khan", specialty: "Endocrinology", notes: "Blood sugar levels improving with insulin therapy.", findings: ["HbA1c trending down", "No hypoglycemic episodes"], status: "scheduled" },
+        { id: "dc3", patientDid, date: "2026-05-29", time: "08:30", type: "routine", doctor: "Dr. Ravi Menon", specialty: "Cardiology", notes: "Post-procedure check. Patient recovering well.", findings: ["Vital signs stable", "No complications", "Pain managed"], status: "completed" }
+      ];
+      defaultCheckups.forEach((c) => putState("daily-checkups", c.id, c, randomUUID()));
+
+      const defaultProcedures = [
+        { id: "proc1", patientDid, name: "Coronary Angiography", scheduledDate: "2026-05-28", scheduledTime: "10:00", completedDate: "2026-05-28", status: "completed", performedBy: "Dr. Ravi Menon", location: "Cath Lab 2", notes: "Procedure successful. 70% stenosis in LAD, stent placed.", requiresFasting: true },
+        { id: "proc2", patientDid, name: "Echocardiogram", scheduledDate: "2026-05-31", scheduledTime: "09:30", status: "scheduled", location: "Cardiology Imaging", requiresFasting: false },
+        { id: "proc3", patientDid, name: "Stress Test", scheduledDate: "2026-06-01", scheduledTime: "11:00", status: "scheduled", location: "Cardiac Rehab Center", notes: "Pre-discharge evaluation", requiresFasting: false }
+      ];
+      defaultProcedures.forEach((p) => putState("procedures", p.id, p, randomUUID()));
+
+      const defaultDietOrder = {
+        id: "diet1",
+        patientDid,
+        type: "Cardiac Diet (Low-sodium, Diabetic)",
+        restrictions: ["Low sodium (< 2g/day)", "Low saturated fat", "Controlled carbohydrates"],
+        startDate: "2026-05-27",
+        orderedBy: "Dr. Ravi Menon",
+        specialInstructions: "Small frequent meals. Monitor blood sugar before meals.",
+      };
+      putState("diet-orders", defaultDietOrder.id, defaultDietOrder, randomUUID());
+
+      const defaultVitalsHistory = [
+        { id: "v1", patientDid, timestamp: "2026-05-30 06:00", temperature: 37.2, bloodPressure: { systolic: 128, diastolic: 82 }, heartRate: 76, respiratoryRate: 16, oxygenSaturation: 98, recordedBy: "Nurse Priya K." },
+        { id: "v2", patientDid, timestamp: "2026-05-30 12:00", temperature: 37.4, bloodPressure: { systolic: 132, diastolic: 84 }, heartRate: 78, respiratoryRate: 17, oxygenSaturation: 97, recordedBy: "Nurse Priya K." },
+        { id: "v3", patientDid, timestamp: "2026-05-29 18:00", temperature: 37.1, bloodPressure: { systolic: 125, diastolic: 80 }, heartRate: 74, respiratoryRate: 16, oxygenSaturation: 98, recordedBy: "Nurse Anjali M." },
+        { id: "v4", patientDid, timestamp: "2026-05-29 12:00", temperature: 37.3, bloodPressure: { systolic: 130, diastolic: 85 }, heartRate: 80, respiratoryRate: 18, oxygenSaturation: 96, recordedBy: "Nurse Priya K." }
+      ];
+      defaultVitalsHistory.forEach((v) => putState("vitals-history", v.id, v, randomUUID()));
+
+      admissions = queryState("admissions", (v) => v.patientDid === patientDid);
+      medications = queryState("medications", (v) => v.patientDid === patientDid);
+      nursingNotes = queryState("nursing-notes", (v) => v.patientDid === patientDid);
+      checkups = queryState("daily-checkups", (v) => v.patientDid === patientDid);
+      procedures = queryState("procedures", (v) => v.patientDid === patientDid);
+      dietOrders = queryState("diet-orders", (v) => v.patientDid === patientDid);
+      vitalsHistory = queryState("vitals-history", (v) => v.patientDid === patientDid);
+    }
+
+    res.json({
+      admission: admissions.length > 0 ? admissions.sort((a, b) => (b.value.admissionDate || "").localeCompare(a.value.admissionDate || ""))[0].value : null,
+      medications: medications.map((e) => e.value),
+      nursingNotes: nursingNotes.map((e) => e.value),
+      checkups: checkups.map((e) => e.value),
+      procedures: procedures.map((e) => e.value),
+      dietOrder: dietOrders.length > 0 ? dietOrders[dietOrders.length - 1].value : null,
+      vitalSigns: vitalsHistory.map((e) => e.value),
+    });
+  });
+
+  // ─── Health Metrics ─────────────────────────────────────────────────────────
+  app.get("/api/medical-records/:patientDid/metrics", consentGate, (req, res) => {
+    if (req.user.role === "patient" && req.user.did !== req.params.patientDid) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+    let all = queryState("health-metrics", (v) => v.patientDid === req.params.patientDid);
+    
+    if (all.length === 0) {
+      const defaultMetrics = [
+        { date: "2026-06-01", weight: 68.5, bmi: 25.2, bloodSugar: { fasting: 112, postMeal: 148 }, bloodPressure: { systolic: 138, diastolic: 88 }, cholesterol: { total: 210, hdl: 42, ldl: 142 }, hba1c: 7.2, patientDid: req.params.patientDid },
+        { date: "2026-05-01", weight: 69.2, bmi: 25.4, bloodSugar: { fasting: 118, postMeal: 154 }, bloodPressure: { systolic: 142, diastolic: 90 }, cholesterol: { total: 218, hdl: 40, ldl: 150 }, hba1c: 7.4, patientDid: req.params.patientDid },
+        { date: "2026-04-01", weight: 70.1, bmi: 25.8, bloodSugar: { fasting: 124, postMeal: 162 }, bloodPressure: { systolic: 145, diastolic: 92 }, cholesterol: { total: 225, hdl: 38, ldl: 158 }, hba1c: 7.6, patientDid: req.params.patientDid },
+        { date: "2026-03-01", weight: 70.8, bmi: 26.0, bloodSugar: { fasting: 130, postMeal: 170 }, bloodPressure: { systolic: 148, diastolic: 95 }, cholesterol: { total: 232, hdl: 36, ldl: 166 }, hba1c: 7.9, patientDid: req.params.patientDid },
+        { date: "2026-02-01", weight: 71.5, bmi: 26.3, bloodSugar: { fasting: 135, postMeal: 178 }, bloodPressure: { systolic: 152, diastolic: 98 }, cholesterol: { total: 240, hdl: 35, ldl: 175 }, hba1c: 8.2, patientDid: req.params.patientDid }
+      ];
+      defaultMetrics.forEach((m, idx) => {
+        putState("health-metrics", `HM-${req.params.patientDid}-${idx}`, m, randomUUID());
+      });
+      all = queryState("health-metrics", (v) => v.patientDid === req.params.patientDid);
+    }
+    res.json({ metrics: all.map((e) => e.value) });
+  });
+
+  // ─── Pharmacy Orders ────────────────────────────────────────────────────────
+  app.get("/api/pharmacy-orders/:patientDid", consentGate, (req, res) => {
+    if (req.user.role === "patient" && req.user.did !== req.params.patientDid) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+    let all = queryState("pharmacy-orders", (v) => v.patientDid === req.params.patientDid);
+    
+    if (all.length === 0) {
+      const defaultOrders = [
+        {
+          id: "pho_001",
+          patientDid: req.params.patientDid,
+          orderedOn: "2026-05-29",
+          status: "dispensed",
+          medicines: [
+            { name: "Aspirin 75mg", quantity: 30, instruction: "Once daily (Morning)" },
+            { name: "Atorvastatin 40mg", quantity: 30, instruction: "Once daily (Evening)" }
+          ]
+        },
+        {
+          id: "pho_002",
+          patientDid: req.params.patientDid,
+          orderedOn: "2026-05-20",
+          status: "dispensed",
+          medicines: [
+            { name: "Metformin 1000mg", quantity: 60, instruction: "Twice daily with meals" }
+          ]
+        }
+      ];
+      defaultOrders.forEach((o) => {
+        putState("pharmacy-orders", o.id, o, randomUUID());
+      });
+      all = queryState("pharmacy-orders", (v) => v.patientDid === req.params.patientDid);
+    }
+    res.json({ orders: all.map((e) => e.value) });
+  });
+
+  // ─── Rehab Sessions ─────────────────────────────────────────────────────────
+  app.get("/api/rehab-sessions/:patientDid", consentGate, (req, res) => {
+    if (req.user.role === "patient" && req.user.did !== req.params.patientDid) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+    let all = queryState("rehab-sessions", (v) => v.patientDid === req.params.patientDid);
+    
+    if (all.length === 0) {
+      const defaultSessions = [
+        {
+          id: "reh_001",
+          patientDid: req.params.patientDid,
+          sessionType: "Cardiac Rehabilitation Phase II",
+          date: "2026-05-28",
+          therapist: "Dr. Ananya Sen",
+          status: "completed",
+          notes: "Treadmill test 15 mins (moderate). Heart rate response normal. BP stable."
+        },
+        {
+          id: "reh_002",
+          patientDid: req.params.patientDid,
+          sessionType: "Cardiac Rehabilitation Phase II",
+          date: "2026-05-26",
+          therapist: "Dr. Ananya Sen",
+          status: "completed",
+          notes: "Initial assessment. Target training zones defined. Warm-up exercises."
+        }
+      ];
+      defaultSessions.forEach((s) => {
+        putState("rehab-sessions", s.id, s, randomUUID());
+      });
+      all = queryState("rehab-sessions", (v) => v.patientDid === req.params.patientDid);
+    }
+    res.json({ sessions: all.map((e) => e.value) });
+  });
+
+  // ─── Feedback List ──────────────────────────────────────────────────────────
+  app.get("/api/feedback/:patientDid", consentGate, (req, res) => {
+    if (req.user.role === "patient" && req.user.did !== req.params.patientDid) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+    let all = queryState("feedback", (v) => v.patientDid === req.params.patientDid);
+    
+    if (all.length === 0) {
+      const defaultFeedback = [
+        {
+          id: "fb_001",
+          patientDid: req.params.patientDid,
+          date: "2026-05-29",
+          doctor: "Dr. Ravi Menon",
+          rating: 5,
+          comments: "Excellent care during my angiogram. Explained everything clearly."
+        }
+      ];
+      defaultFeedback.forEach((f) => {
+        putState("feedback", f.id, f, randomUUID());
+      });
+      all = queryState("feedback", (v) => v.patientDid === req.params.patientDid);
+    }
+    res.json({ feedback: all.map((e) => e.value) });
   });
 
   // ─── Identity signed payloads ───────────────────────────────────────────────
@@ -246,7 +607,25 @@ export function registerExtensionRoutes(app, deps) {
     if (req.user.role === "staff" && req.user.email !== email) {
       return res.status(403).json({ error: "Forbidden: own attendance only" });
     }
-    const all = queryState("attendance", (v) => v.staffEmail === email);
+    let all = queryState("attendance", (v) => v.staffEmail === email);
+    
+    if (all.length === 0) {
+      const defaultHistory = [
+        { staffEmail: email, action: "in", timestamp: "2026-06-02T07:52:00.000Z", location: "Cardiology OPD" },
+        { staffEmail: email, action: "in", timestamp: "2026-06-01T07:58:00.000Z", location: "Cardiology OPD" },
+        { staffEmail: email, action: "out", timestamp: "2026-06-01T16:14:00.000Z", location: "Cardiology OPD" },
+        { staffEmail: email, action: "in", timestamp: "2026-05-30T08:05:00.000Z", location: "Cardiology OPD" },
+        { staffEmail: email, action: "out", timestamp: "2026-05-30T16:02:00.000Z", location: "Cardiology OPD" },
+        { staffEmail: email, action: "in", timestamp: "2026-05-29T08:10:00.000Z", location: "Cardiology OPD" },
+        { staffEmail: email, action: "out", timestamp: "2026-05-29T19:22:00.000Z", location: "Cardiology OPD" },
+        { staffEmail: email, action: "in", timestamp: "2026-05-28T07:45:00.000Z", location: "Cardiology OPD" },
+        { staffEmail: email, action: "out", timestamp: "2026-05-28T16:00:00.000Z", location: "Cardiology OPD" }
+      ];
+      defaultHistory.forEach((h, idx) => {
+        putState("attendance", `ATT-SEED-${email}-${idx}`, h, randomUUID());
+      });
+      all = queryState("attendance", (v) => v.staffEmail === email);
+    }
     res.json({ records: all.map((e) => e.value), total: all.length });
   });
 

@@ -1,4 +1,4 @@
-import type { InsuranceClaim } from "@/lib/mock-infrastructure";
+import type { InsuranceClaim } from "@/lib/types";
 import { Clock, CheckCircle, XCircle, Eye } from "lucide-react";
 
 interface ClaimsCardProps {

@@ -52,5 +52,43 @@
     "updatedAt": "2026-07-03T09:32:27.959Z",
     "txId": "e4381e79-e8d6-421d-991e-ca8af19c65b2",
     "docType": "medical-records"
+  },
+  "MR-SEED-1": {
+    "key": "MR-SEED-1",
+    "value": {
+      "recordId": "MR-SEED-1",
+      "patientDid": "did:hosp:0x643a3a37",
+      "title": "Type 2 Diabetes Checkup",
+      "type": "lab-report",
+      "content": "Blood sugar levels stable. HBA1c at 6.4%.",
+      "doctorDid": "did:key:z6Mku",
+      "doctorName": "Dr. Sameer Khan",
+      "createdAt": "2026-05-18T10:00:00.000Z",
+      "status": "Controlled"
+    },
+    "namespace": "medical-records",
+    "version": "2fbe40a5-fe6b-49a4-b7d2-451b5ebe38f7:1",
+    "updatedAt": "2026-07-03T16:16:13.092Z",
+    "txId": "2fbe40a5-fe6b-49a4-b7d2-451b5ebe38f7",
+    "docType": "medical-records"
+  },
+  "MR-SEED-2": {
+    "key": "MR-SEED-2",
+    "value": {
+      "recordId": "MR-SEED-2",
+      "patientDid": "did:hosp:0x643a3a37",
+      "title": "Routine Cardiac Echo",
+      "type": "procedure-report",
+      "content": "Healthy Ejection Fraction (60%). No signs of ischemia.",
+      "doctorDid": "did:key:z6Mkv",
+      "doctorName": "Dr. Ravi Menon",
+      "createdAt": "2026-04-12T14:30:00.000Z",
+      "status": "Healthy"
+    },
+    "namespace": "medical-records",
+    "version": "d1eedffa-c789-48b5-9fa4-e3494eacdb37:1",
+    "updatedAt": "2026-07-03T16:16:13.094Z",
+    "txId": "d1eedffa-c789-48b5-9fa4-e3494eacdb37",
+    "docType": "medical-records"
   }
 }

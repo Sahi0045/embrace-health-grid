@@ -1,5 +1,5 @@
 import { Bed } from "lucide-react";
-import type { BedRecord } from "@/lib/mock-infrastructure";
+import type { BedRecord } from "@/lib/types";
 
 interface BedStatusCardProps {
   bed: BedRecord;

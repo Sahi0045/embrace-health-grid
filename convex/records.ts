@@ -308,3 +308,556 @@ export const getAllGenericWorldState = query({
   },
 });
 
+// ─── Staff ────────────────────────────────────────────────────────────────────
+export const getStaff = query({
+  args: {
+    role: v.optional(v.string()),
+    department: v.optional(v.string()),
+    onDuty: v.optional(v.boolean()),
+    status: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    let staff = await ctx.db.query("staff").order("desc").collect();
+
+    if (args.role) {
+      staff = staff.filter((s) => s.role === args.role);
+    }
+    if (args.department) {
+      staff = staff.filter((s) => s.department === args.department);
+    }
+    if (args.onDuty !== undefined) {
+      staff = staff.filter((s) => s.onDuty === args.onDuty);
+    }
+    if (args.status) {
+      staff = staff.filter((s) => s.status === args.status);
+    }
+
+    return staff;
+  },
+});
+
+export const getStaffByDID = query({
+  args: { did: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("staff")
+      .withIndex("by_did", (q) => q.eq("did", args.did))
+      .unique();
+  },
+});
+
+export const getStaffByEmployeeId = query({
+  args: { employeeId: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("staff")
+      .withIndex("by_employeeId", (q) => q.eq("employeeId", args.employeeId))
+      .unique();
+  },
+});
+
+export const getStaffByEmail = query({
+  args: { email: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("staff")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .unique();
+  },
+});
+
+export const createStaff = mutation({
+  args: {
+    staffId: v.string(),
+    did: v.string(),
+    name: v.string(),
+    employeeId: v.string(),
+    role: v.string(),
+    department: v.string(),
+    specialty: v.optional(v.string()),
+    email: v.string(),
+    phone: v.string(),
+    shift: v.string(),
+    onDuty: v.boolean(),
+    joinedDate: v.string(),
+    status: v.string(),
+    credentials: v.number(),
+    patientsToday: v.number(),
+    currentLocation: v.optional(v.string()),
+    lastSignal: v.optional(v.string()),
+    beaconStrength: v.optional(v.string()),
+    createdAt: v.string(),
+    updatedAt: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const existingByDID = await ctx.db
+      .query("staff")
+      .withIndex("by_did", (q) => q.eq("did", args.did))
+      .unique();
+    if (existingByDID) {
+      throw new Error("Staff member with this DID already exists");
+    }
+
+    const existingByEmployeeId = await ctx.db
+      .query("staff")
+      .withIndex("by_employeeId", (q) => q.eq("employeeId", args.employeeId))
+      .unique();
+    if (existingByEmployeeId) {
+      throw new Error("Staff member with this employee ID already exists");
+    }
+
+    const existingByEmail = await ctx.db
+      .query("staff")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .unique();
+    if (existingByEmail) {
+      throw new Error("Staff member with this email already exists");
+    }
+
+    return await ctx.db.insert("staff", args);
+  },
+});
+
+export const updateStaff = mutation({
+  args: {
+    did: v.string(),
+    name: v.optional(v.string()),
+    role: v.optional(v.string()),
+    department: v.optional(v.string()),
+    specialty: v.optional(v.string()),
+    email: v.optional(v.string()),
+    phone: v.optional(v.string()),
+    shift: v.optional(v.string()),
+    onDuty: v.optional(v.boolean()),
+    status: v.optional(v.string()),
+    credentials: v.optional(v.number()),
+    patientsToday: v.optional(v.number()),
+    currentLocation: v.optional(v.string()),
+    lastSignal: v.optional(v.string()),
+    beaconStrength: v.optional(v.string()),
+    updatedAt: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const staff = await ctx.db
+      .query("staff")
+      .withIndex("by_did", (q) => q.eq("did", args.did))
+      .unique();
+    if (!staff) {
+      throw new Error("Staff member not found");
+    }
+
+    if (args.email && args.email !== staff.email) {
+      const existingByEmail = await ctx.db
+        .query("staff")
+        .withIndex("by_email", (q) => q.eq("email", args.email))
+        .unique();
+      if (existingByEmail && existingByEmail._id !== staff._id) {
+        throw new Error("Another staff member with this email already exists");
+      }
+    }
+
+    const { did, ...updates } = args;
+    await ctx.db.patch(staff._id, updates);
+    return staff._id;
+  },
+});
+
+export const deleteStaff = mutation({
+  args: { did: v.string() },
+  handler: async (ctx, args) => {
+    const staff = await ctx.db
+      .query("staff")
+      .withIndex("by_did", (q) => q.eq("did", args.did))
+      .unique();
+    if (staff) {
+      await ctx.db.delete(staff._id);
+      return true;
+    }
+    return false;
+  },
+});
+
+export const updateStaffLocation = mutation({
+  args: {
+    did: v.string(),
+    location: v.string(),
+    beaconStrength: v.optional(v.string()),
+    txId: v.string(),
+    version: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const staff = await ctx.db
+      .query("staff")
+      .withIndex("by_did", (q) => q.eq("did", args.did))
+      .unique();
+    if (!staff) {
+      throw new Error("Staff member not found");
+    }
+
+    const updatedAt = new Date().toISOString();
+
+    await ctx.db.patch(staff._id, {
+      currentLocation: args.location,
+      beaconStrength: args.beaconStrength,
+      lastSignal: updatedAt,
+      updatedAt,
+    });
+
+    const locationKey = `${staff.employeeId}_location`;
+    await ctx.db
+      .query("worldState")
+      .withIndex("by_ns_key", (q) => q.eq("namespace", "staff_location").eq("key", locationKey))
+      .unique()
+      .then(async (existing) => {
+        const locationData = {
+          staffId: staff.staffId,
+          employeeId: staff.employeeId,
+          name: staff.name,
+          did: staff.did,
+          location: args.location,
+          beaconStrength: args.beaconStrength,
+          timestamp: updatedAt,
+        };
+
+        if (existing) {
+          await ctx.db.patch(existing._id, {
+            value: locationData,
+            txId: args.txId,
+            version: args.version,
+            updatedAt,
+          });
+        } else {
+          await ctx.db.insert("worldState", {
+            namespace: "staff_location",
+            key: locationKey,
+            value: locationData,
+            txId: args.txId,
+            version: args.version,
+            updatedAt,
+          });
+        }
+      });
+
+    return staff._id;
+  },
+});
+
+// ─── Patients ─────────────────────────────────────────────────────────────────
+
+/**
+ * Query to get all patients with optional filtering
+ */
+export const getPatients = query({
+  args: {
+    status: v.optional(v.string()),
+    ward: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    let patients = await ctx.db.query("patients").order("desc").collect();
+
+    // Apply optional filters
+    if (args.status) {
+      patients = patients.filter((p) => p.status === args.status);
+    }
+    if (args.ward) {
+      patients = patients.filter((p) => p.ward === args.ward);
+    }
+
+    return patients;
+  },
+});
+
+/**
+ * Query to get a patient by their DID (Decentralized Identifier)
+ */
+export const getPatientByDID = query({
+  args: { did: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("patients")
+      .withIndex("by_did", (q) => q.eq("did", args.did))
+      .unique();
+  },
+});
+
+/**
+ * Query to get a patient by their Medical Record Number (MRN)
+ */
+export const getPatientByMRN = query({
+  args: { mrn: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("patients")
+      .withIndex("by_mrn", (q) => q.eq("mrn", args.mrn))
+      .unique();
+  },
+});
+
+/**
+ * Query to get a patient by their email address
+ */
+export const getPatientByEmail = query({
+  args: { email: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("patients")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .unique();
+  },
+});
+
+/**
+ * Mutation to create a new patient
+ */
+export const createPatient = mutation({
+  args: {
+    patientId: v.string(),
+    did: v.string(),
+    name: v.string(),
+    mrn: v.string(),
+    age: v.number(),
+    gender: v.string(),
+    bloodGroup: v.string(),
+    allergies: v.array(v.string()),
+    phone: v.string(),
+    email: v.string(),
+    address: v.string(),
+    dob: v.string(),
+    ward: v.string(),
+    bed: v.string(),
+    admitDate: v.string(),
+    status: v.string(),
+    primaryDoctor: v.string(),
+    conditions: v.array(v.string()),
+    insuranceProvider: v.string(),
+    insurancePolicyNo: v.string(),
+    emergencyContact: v.object({
+      name: v.string(),
+      relation: v.string(),
+      phone: v.string(),
+    }),
+    organDonor: v.boolean(),
+    nationality: v.string(),
+    totalVisits: v.number(),
+    outstandingBills: v.number(),
+    createdAt: v.string(),
+    updatedAt: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Check if patient with same DID already exists
+    const existingByDID = await ctx.db
+      .query("patients")
+      .withIndex("by_did", (q) => q.eq("did", args.did))
+      .unique();
+    if (existingByDID) {
+      throw new Error(`Patient with DID ${args.did} already exists`);
+    }
+
+    // Check if patient with same MRN already exists
+    const existingByMRN = await ctx.db
+      .query("patients")
+      .withIndex("by_mrn", (q) => q.eq("mrn", args.mrn))
+      .unique();
+    if (existingByMRN) {
+      throw new Error(`Patient with MRN ${args.mrn} already exists`);
+    }
+
+    // Check if patient with same email already exists
+    const existingByEmail = await ctx.db
+      .query("patients")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .unique();
+    if (existingByEmail) {
+      throw new Error(`Patient with email ${args.email} already exists`);
+    }
+
+    return await ctx.db.insert("patients", args);
+  },
+});
+
+/**
+ * Mutation to update patient data
+ */
+export const updatePatient = mutation({
+  args: {
+    did: v.string(),
+    name: v.optional(v.string()),
+    age: v.optional(v.number()),
+    gender: v.optional(v.string()),
+    bloodGroup: v.optional(v.string()),
+    allergies: v.optional(v.array(v.string())),
+    phone: v.optional(v.string()),
+    email: v.optional(v.string()),
+    address: v.optional(v.string()),
+    dob: v.optional(v.string()),
+    ward: v.optional(v.string()),
+    bed: v.optional(v.string()),
+    admitDate: v.optional(v.string()),
+    status: v.optional(v.string()),
+    primaryDoctor: v.optional(v.string()),
+    conditions: v.optional(v.array(v.string())),
+    insuranceProvider: v.optional(v.string()),
+    insurancePolicyNo: v.optional(v.string()),
+    emergencyContact: v.optional(
+      v.object({
+        name: v.string(),
+        relation: v.string(),
+        phone: v.string(),
+      }),
+    ),
+    organDonor: v.optional(v.boolean()),
+    nationality: v.optional(v.string()),
+    totalVisits: v.optional(v.number()),
+    outstandingBills: v.optional(v.number()),
+    updatedAt: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const patient = await ctx.db
+      .query("patients")
+      .withIndex("by_did", (q) => q.eq("did", args.did))
+      .unique();
+
+    if (!patient) {
+      throw new Error(`Patient with DID ${args.did} not found`);
+    }
+
+    // If email is being updated, check for conflicts
+    if (args.email && args.email !== patient.email) {
+      const existingByEmail = await ctx.db
+        .query("patients")
+        .withIndex("by_email", (q) => q.eq("email", args.email))
+        .unique();
+      if (existingByEmail && existingByEmail._id !== patient._id) {
+        throw new Error(`Patient with email ${args.email} already exists`);
+      }
+    }
+
+    // Build update object with only provided fields
+    const updateData: Record<string, any> = { updatedAt: args.updatedAt };
+
+    const optionalFields = [
+      "name",
+      "age",
+      "gender",
+      "bloodGroup",
+      "allergies",
+      "phone",
+      "email",
+      "address",
+      "dob",
+      "ward",
+      "bed",
+      "admitDate",
+      "status",
+      "primaryDoctor",
+      "conditions",
+      "insuranceProvider",
+      "insurancePolicyNo",
+      "emergencyContact",
+      "organDonor",
+      "nationality",
+      "totalVisits",
+      "outstandingBills",
+    ];
+
+    for (const field of optionalFields) {
+      if (args[field as keyof typeof args] !== undefined) {
+        updateData[field] = args[field as keyof typeof args];
+      }
+    }
+
+    await ctx.db.patch(patient._id, updateData);
+    return patient._id;
+  },
+});
+
+/**
+ * Mutation to delete a patient
+ */
+export const deletePatient = mutation({
+  args: { did: v.string() },
+  handler: async (ctx, args) => {
+    const patient = await ctx.db
+      .query("patients")
+      .withIndex("by_did", (q) => q.eq("did", args.did))
+      .unique();
+
+    if (!patient) {
+      throw new Error(`Patient with DID ${args.did} not found`);
+    }
+
+    await ctx.db.delete(patient._id);
+    return true;
+  },
+});
+
+/**
+ * Mutation to update patient vitals
+ * Stores vitals in worldState namespace "vitals" with key as patient DID
+ */
+export const updatePatientVitals = mutation({
+  args: {
+    patientDid: v.string(),
+    vitals: v.object({
+      heartRate: v.optional(v.number()),
+      bloodPressure: v.optional(
+        v.object({
+          systolic: v.number(),
+          diastolic: v.number(),
+        }),
+      ),
+      temperature: v.optional(v.number()),
+      respiratoryRate: v.optional(v.number()),
+      oxygenSaturation: v.optional(v.number()),
+      weight: v.optional(v.number()),
+      height: v.optional(v.number()),
+      bmi: v.optional(v.number()),
+      glucoseLevel: v.optional(v.number()),
+      notes: v.optional(v.string()),
+    }),
+    txId: v.string(),
+    version: v.string(),
+    recordedAt: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Verify patient exists
+    const patient = await ctx.db
+      .query("patients")
+      .withIndex("by_did", (q) => q.eq("did", args.patientDid))
+      .unique();
+
+    if (!patient) {
+      throw new Error(`Patient with DID ${args.patientDid} not found`);
+    }
+
+    // Store vitals in worldState with namespace "vitals"
+    const existing = await ctx.db
+      .query("worldState")
+      .withIndex("by_ns_key", (q) => q.eq("namespace", "vitals").eq("key", args.patientDid))
+      .unique();
+
+    const vitalsData = {
+      ...args.vitals,
+      recordedAt: args.recordedAt,
+    };
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        value: vitalsData,
+        txId: args.txId,
+        version: args.version,
+        updatedAt: args.recordedAt,
+      });
+      return existing._id;
+    }
+
+    return await ctx.db.insert("worldState", {
+      namespace: "vitals",
+      key: args.patientDid,
+      value: vitalsData,
+      txId: args.txId,
+      version: args.version,
+      updatedAt: args.recordedAt,
+    });
+  },
+});

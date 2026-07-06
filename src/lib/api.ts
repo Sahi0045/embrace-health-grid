@@ -47,14 +47,18 @@ export function resetBackendCache() {
   _lastCheck = 0;
 }
 
-export const getStats = async () => ({
-  blockHeight: 1,
-  txCount: 0,
-  peerCount: 3,
-  worldStateSize: 0,
-  throughputTps: 0,
-  lastBlockTime: new Date().toISOString(),
-});
+export const getStats = () => apiFetch<{
+  blockHeight: number;
+  txCount: number;
+  peerCount: number;
+  nodesCountUp: number;
+  nodesCountTotal: number;
+  worldStateSize: number;
+  throughputTps: number;
+  lastBlockTime: string;
+  latencyMs: number;
+  complianceScore: number;
+}>("/stats");
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const role = typeof window !== "undefined" ? localStorage.getItem("userRole") : null;
@@ -209,6 +213,19 @@ export const updateMedicalRecord = (recordId: string, data: Record<string, any>)
     method: "PATCH",
     body: JSON.stringify(data),
   });
+
+export const getHealthMetrics = (patientDid: string) =>
+  apiFetch<{ metrics: any[] }>(`/medical-records/${encodeURIComponent(patientDid)}/metrics`);
+
+export const getPharmacyOrders = (patientDid: string) =>
+  apiFetch<{ orders: any[] }>(`/pharmacy-orders/${encodeURIComponent(patientDid)}`);
+
+export const getRehabSessions = (patientDid: string) =>
+  apiFetch<{ sessions: any[] }>(`/rehab-sessions/${encodeURIComponent(patientDid)}`);
+
+export const getFeedbackList = (patientDid: string) =>
+  apiFetch<{ feedback: any[] }>(`/feedback/${encodeURIComponent(patientDid)}`);
+
 
 // ─── NFC Cards ────────────────────────────────────────────────────────────────
 export const issueNFCCard = (data: {
@@ -550,3 +567,72 @@ export const getMe = () =>
 
 export const refreshToken = () =>
   apiFetch<{ token: string }>(`/auth/refresh`, { method: "POST", body: "{}" });
+
+export const signIdentityPayload = (data: {
+  did: string;
+  mrn?: string;
+  name?: string;
+  network?: string;
+}) =>
+  apiFetch<{ payload: any }>(`/identity/sign-payload`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+
+export const verifyIdentityPayload = (payload: any) =>
+  apiFetch<{ verified: boolean; payload: any }>(`/identity/verify-payload`, {
+    method: "POST",
+    body: JSON.stringify({ payload }),
+  });
+
+// ─── Infrastructure ───────────────────────────────────────────────────────
+export const getInfrastructure = () =>
+  apiFetch<{ beds: any[]; equipment: any[]; ambulances: any[] }>(`/infrastructure`);
+
+export const getAmbulances = () =>
+  apiFetch<{ ambulances: any[]; total: number }>(`/infrastructure/ambulances`);
+
+export const getEquipment = () =>
+  apiFetch<{ equipment: any[]; total: number }>(`/infrastructure/equipment`);
+
+// ─── Insurance Claims ─────────────────────────────────────────────────────
+export const getInsuranceClaims = (patientDid?: string) =>
+  apiFetch<{ claims: any[]; total: number }>(
+    `/insurance/claims${patientDid ? `?patientDid=${encodeURIComponent(patientDid)}` : ""}`,
+  );
+
+export const submitInsuranceClaim = (data: {
+  patientDid: string;
+  patientName: string;
+  patientMRN: string;
+  insuranceProvider: string;
+  policyNo: string;
+  claimType: string;
+  amount: number;
+  remarks?: string;
+}) =>
+  apiFetch<{ claim: any }>(`/insurance/claims`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+
+// ─── Vaccines ─────────────────────────────────────────────────────────────
+export const getVaccines = (patientDid: string) =>
+  apiFetch<{ vaccines: any[]; total: number }>(`/vaccines/${encodeURIComponent(patientDid)}`);
+
+// ─── Doctors ──────────────────────────────────────────────────────────────
+export const getDoctors = () =>
+  apiFetch<{ doctors: any[]; total: number }>(`/doctors`);
+
+// ─── Inpatient ────────────────────────────────────────────────────────────
+export const getInpatientData = (patientDid: string) =>
+  apiFetch<{
+    admission: any | null;
+    medications: any[];
+    nursingNotes: any[];
+    checkups: any[];
+    procedures: any[];
+    dietOrder: any | null;
+    vitalSigns: any[];
+  }>(`/inpatient/${encodeURIComponent(patientDid)}`);
+

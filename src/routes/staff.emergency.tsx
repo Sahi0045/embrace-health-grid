@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { StaggerList, StaggerItem } from "@/components/Motion";
 import { EmergencyAccessCard, type EmergencyAccessEvent } from "@/components/emergency/EmergencyAccessCard";
 import { BreakGlassRequestCard, type BreakGlassRequest } from "@/components/emergency/BreakGlassRequestCard";
-import { mockAmbulances } from "@/lib/mock-infrastructure";
+import { useAmbulances } from "@/hooks/use-api";
 import { AlertTriangle, Ambulance, ShieldAlert } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState } from "react";
@@ -52,7 +52,9 @@ const severityConfig = {
 
 function StaffEmergencyPage() {
   const [bgRequests, setBgRequests] = useState(pendingBreakGlass);
-  const incomingAmbulances = mockAmbulances.filter(a => a.status === "en-route" || a.status === "at-scene").slice(0, 3);
+  const { data: ambulancesData } = useAmbulances();
+  const allAmbulances = ambulancesData?.ambulances ?? [];
+  const incomingAmbulances = allAmbulances.filter((a: any) => a.status === "en-route" || a.status === "at-scene").slice(0, 3);
 
   return (
     <RouteGuard requiredRole="staff">

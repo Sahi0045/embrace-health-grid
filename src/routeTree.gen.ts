@@ -16,6 +16,7 @@ import { Route as AuditTimelineRouteImport } from './routes/audit-timeline'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StaffIndexRouteImport } from './routes/staff.index'
 import { Route as PatientIndexRouteImport } from './routes/patient.index'
+import { Route as StaffVisitorsRouteImport } from './routes/staff.visitors'
 import { Route as StaffVerifyRouteImport } from './routes/staff.verify'
 import { Route as StaffTrackerRouteImport } from './routes/staff.tracker'
 import { Route as StaffSurgeriesRouteImport } from './routes/staff.surgeries'
@@ -30,6 +31,7 @@ import { Route as StaffCommandRouteImport } from './routes/staff.command'
 import { Route as StaffAttendanceRouteImport } from './routes/staff.attendance'
 import { Route as PatientZkproofRouteImport } from './routes/patient.zkproof'
 import { Route as PatientWalletRouteImport } from './routes/patient.wallet'
+import { Route as PatientVisitorsRouteImport } from './routes/patient.visitors'
 import { Route as PatientVaccinesRouteImport } from './routes/patient.vaccines'
 import { Route as PatientTelemedicineRouteImport } from './routes/patient.telemedicine'
 import { Route as PatientRecordsRouteImport } from './routes/patient.records'
@@ -77,6 +79,11 @@ const StaffIndexRoute = StaffIndexRouteImport.update({
 const PatientIndexRoute = PatientIndexRouteImport.update({
   id: '/patient/',
   path: '/patient/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StaffVisitorsRoute = StaffVisitorsRouteImport.update({
+  id: '/staff/visitors',
+  path: '/staff/visitors',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StaffVerifyRoute = StaffVerifyRouteImport.update({
@@ -147,6 +154,11 @@ const PatientZkproofRoute = PatientZkproofRouteImport.update({
 const PatientWalletRoute = PatientWalletRouteImport.update({
   id: '/patient/wallet',
   path: '/patient/wallet',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PatientVisitorsRoute = PatientVisitorsRouteImport.update({
+  id: '/patient/visitors',
+  path: '/patient/visitors',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PatientVaccinesRoute = PatientVaccinesRouteImport.update({
@@ -234,6 +246,7 @@ export interface FileRoutesByFullPath {
   '/patient/records': typeof PatientRecordsRoute
   '/patient/telemedicine': typeof PatientTelemedicineRoute
   '/patient/vaccines': typeof PatientVaccinesRoute
+  '/patient/visitors': typeof PatientVisitorsRoute
   '/patient/wallet': typeof PatientWalletRoute
   '/patient/zkproof': typeof PatientZkproofRoute
   '/staff/attendance': typeof StaffAttendanceRoute
@@ -248,6 +261,7 @@ export interface FileRoutesByFullPath {
   '/staff/surgeries': typeof StaffSurgeriesRoute
   '/staff/tracker': typeof StaffTrackerRoute
   '/staff/verify': typeof StaffVerifyRoute
+  '/staff/visitors': typeof StaffVisitorsRoute
   '/patient/': typeof PatientIndexRoute
   '/staff/': typeof StaffIndexRoute
 }
@@ -270,6 +284,7 @@ export interface FileRoutesByTo {
   '/patient/records': typeof PatientRecordsRoute
   '/patient/telemedicine': typeof PatientTelemedicineRoute
   '/patient/vaccines': typeof PatientVaccinesRoute
+  '/patient/visitors': typeof PatientVisitorsRoute
   '/patient/wallet': typeof PatientWalletRoute
   '/patient/zkproof': typeof PatientZkproofRoute
   '/staff/attendance': typeof StaffAttendanceRoute
@@ -284,6 +299,7 @@ export interface FileRoutesByTo {
   '/staff/surgeries': typeof StaffSurgeriesRoute
   '/staff/tracker': typeof StaffTrackerRoute
   '/staff/verify': typeof StaffVerifyRoute
+  '/staff/visitors': typeof StaffVisitorsRoute
   '/patient': typeof PatientIndexRoute
   '/staff': typeof StaffIndexRoute
 }
@@ -307,6 +323,7 @@ export interface FileRoutesById {
   '/patient/records': typeof PatientRecordsRoute
   '/patient/telemedicine': typeof PatientTelemedicineRoute
   '/patient/vaccines': typeof PatientVaccinesRoute
+  '/patient/visitors': typeof PatientVisitorsRoute
   '/patient/wallet': typeof PatientWalletRoute
   '/patient/zkproof': typeof PatientZkproofRoute
   '/staff/attendance': typeof StaffAttendanceRoute
@@ -321,6 +338,7 @@ export interface FileRoutesById {
   '/staff/surgeries': typeof StaffSurgeriesRoute
   '/staff/tracker': typeof StaffTrackerRoute
   '/staff/verify': typeof StaffVerifyRoute
+  '/staff/visitors': typeof StaffVisitorsRoute
   '/patient/': typeof PatientIndexRoute
   '/staff/': typeof StaffIndexRoute
 }
@@ -345,6 +363,7 @@ export interface FileRouteTypes {
     | '/patient/records'
     | '/patient/telemedicine'
     | '/patient/vaccines'
+    | '/patient/visitors'
     | '/patient/wallet'
     | '/patient/zkproof'
     | '/staff/attendance'
@@ -359,6 +378,7 @@ export interface FileRouteTypes {
     | '/staff/surgeries'
     | '/staff/tracker'
     | '/staff/verify'
+    | '/staff/visitors'
     | '/patient/'
     | '/staff/'
   fileRoutesByTo: FileRoutesByTo
@@ -381,6 +401,7 @@ export interface FileRouteTypes {
     | '/patient/records'
     | '/patient/telemedicine'
     | '/patient/vaccines'
+    | '/patient/visitors'
     | '/patient/wallet'
     | '/patient/zkproof'
     | '/staff/attendance'
@@ -395,6 +416,7 @@ export interface FileRouteTypes {
     | '/staff/surgeries'
     | '/staff/tracker'
     | '/staff/verify'
+    | '/staff/visitors'
     | '/patient'
     | '/staff'
   id:
@@ -417,6 +439,7 @@ export interface FileRouteTypes {
     | '/patient/records'
     | '/patient/telemedicine'
     | '/patient/vaccines'
+    | '/patient/visitors'
     | '/patient/wallet'
     | '/patient/zkproof'
     | '/staff/attendance'
@@ -431,6 +454,7 @@ export interface FileRouteTypes {
     | '/staff/surgeries'
     | '/staff/tracker'
     | '/staff/verify'
+    | '/staff/visitors'
     | '/patient/'
     | '/staff/'
   fileRoutesById: FileRoutesById
@@ -454,6 +478,7 @@ export interface RootRouteChildren {
   PatientRecordsRoute: typeof PatientRecordsRoute
   PatientTelemedicineRoute: typeof PatientTelemedicineRoute
   PatientVaccinesRoute: typeof PatientVaccinesRoute
+  PatientVisitorsRoute: typeof PatientVisitorsRoute
   PatientWalletRoute: typeof PatientWalletRoute
   PatientZkproofRoute: typeof PatientZkproofRoute
   StaffAttendanceRoute: typeof StaffAttendanceRoute
@@ -468,6 +493,7 @@ export interface RootRouteChildren {
   StaffSurgeriesRoute: typeof StaffSurgeriesRoute
   StaffTrackerRoute: typeof StaffTrackerRoute
   StaffVerifyRoute: typeof StaffVerifyRoute
+  StaffVisitorsRoute: typeof StaffVisitorsRoute
   PatientIndexRoute: typeof PatientIndexRoute
   StaffIndexRoute: typeof StaffIndexRoute
 }
@@ -521,6 +547,13 @@ declare module '@tanstack/react-router' {
       path: '/patient'
       fullPath: '/patient/'
       preLoaderRoute: typeof PatientIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/staff/visitors': {
+      id: '/staff/visitors'
+      path: '/staff/visitors'
+      fullPath: '/staff/visitors'
+      preLoaderRoute: typeof StaffVisitorsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/staff/verify': {
@@ -619,6 +652,13 @@ declare module '@tanstack/react-router' {
       path: '/patient/wallet'
       fullPath: '/patient/wallet'
       preLoaderRoute: typeof PatientWalletRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/patient/visitors': {
+      id: '/patient/visitors'
+      path: '/patient/visitors'
+      fullPath: '/patient/visitors'
+      preLoaderRoute: typeof PatientVisitorsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/patient/vaccines': {
@@ -734,6 +774,7 @@ const rootRouteChildren: RootRouteChildren = {
   PatientRecordsRoute: PatientRecordsRoute,
   PatientTelemedicineRoute: PatientTelemedicineRoute,
   PatientVaccinesRoute: PatientVaccinesRoute,
+  PatientVisitorsRoute: PatientVisitorsRoute,
   PatientWalletRoute: PatientWalletRoute,
   PatientZkproofRoute: PatientZkproofRoute,
   StaffAttendanceRoute: StaffAttendanceRoute,
@@ -748,6 +789,7 @@ const rootRouteChildren: RootRouteChildren = {
   StaffSurgeriesRoute: StaffSurgeriesRoute,
   StaffTrackerRoute: StaffTrackerRoute,
   StaffVerifyRoute: StaffVerifyRoute,
+  StaffVisitorsRoute: StaffVisitorsRoute,
   PatientIndexRoute: PatientIndexRoute,
   StaffIndexRoute: StaffIndexRoute,
 }

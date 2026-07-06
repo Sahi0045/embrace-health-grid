@@ -23,7 +23,15 @@ import {
   getVitals,
   isBackendOnline as isOnline,
   getAllLabs,
+  getNamespace,
+  getInsuranceClaims,
+  getVaccines,
+  getDoctors,
+  getInpatientData as fetchInpatientData,
+  getAmbulances,
+  getEquipment,
 } from "@/lib/api";
+
 import {
   getLivePatients,
   getLiveStaff,
@@ -146,7 +154,7 @@ export function useStats() {
       throughputTps: 0,
       lastBlockTime: new Date().toISOString(),
     }),
-    "bed:updated",
+    "*",
   );
 }
 
@@ -167,6 +175,14 @@ export function useLedger(page = 0) {
 // ─── DID Registry ─────────────────────────────────────────────────────────────
 export function useDIDs() {
   return useApiData(getAllDIDs, () => ({ dids: [] as any[], total: 0 }), "did:created");
+}
+
+export function useNFCCards() {
+  return useApiData(
+    () => getNamespace("nfc-cards"),
+    () => [] as any[],
+    "nfc:updated"
+  );
 }
 
 // ─── Credentials ──────────────────────────────────────────────────────────────
@@ -410,3 +426,57 @@ export function usePatientVitals(patientId: string) {
 
   return { vitals, source };
 }
+
+// ─── Insurance Claims ─────────────────────────────────────────────────────
+export function useInsuranceClaims(patientDid?: string) {
+  return useApiData(
+    () => getInsuranceClaims(patientDid),
+    () => ({ claims: [] as any[], total: 0 }),
+    "insurance:claimed",
+    [patientDid],
+  );
+}
+
+// ─── Vaccine Records ──────────────────────────────────────────────────────
+export function useVaccineRecords(patientDid: string) {
+  return useApiData(
+    () => getVaccines(patientDid),
+    () => ({ vaccines: [] as any[], total: 0 }),
+    "vaccine:recorded",
+    [patientDid],
+  );
+}
+
+// ─── Doctors ──────────────────────────────────────────────────────────────
+export function useDoctors() {
+  return useApiData(getDoctors, () => ({ doctors: [] as any[], total: 0 }), "did:created");
+}
+
+// ─── Inpatient Data ───────────────────────────────────────────────────────
+export function useInpatientData(patientDid: string) {
+  return useApiData(
+    () => fetchInpatientData(patientDid),
+    () => ({
+      admission: null,
+      medications: [] as any[],
+      nursingNotes: [] as any[],
+      checkups: [] as any[],
+      procedures: [] as any[],
+      dietOrder: null,
+      vitalSigns: [] as any[],
+    }),
+    undefined,
+    [patientDid],
+  );
+}
+
+// ─── Ambulances ───────────────────────────────────────────────────────────
+export function useAmbulances() {
+  return useApiData(getAmbulances, () => ({ ambulances: [] as any[], total: 0 }), "ambulance:updated");
+}
+
+// ─── Equipment ────────────────────────────────────────────────────────────
+export function useEquipment() {
+  return useApiData(getEquipment, () => ({ equipment: [] as any[], total: 0 }), undefined);
+}
+

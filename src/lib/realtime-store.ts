@@ -2,14 +2,44 @@
  * Real-Time Hospital Data Store
  *
  * - Single source of truth for ALL live data
- * - Backed by REST API & WebSocket synchronization
+ * - Backed by Convex database & WebSocket synchronization
  * - Emits real-time events via custom EventTarget
  * - Handles local fallback when backend is offline
+ *
+ * ## Convex Integration
+ *
+ * This store now uses Convex as the primary data source instead of localStorage.
+ *
+ * ### Data Flow:
+ * 1. **Initialization**: Fetches all patient/staff data from Convex on startup
+ * 2. **Real-time Updates**: WebSocket events update local cache instantly
+ * 3. **Persistence**: WebSocket updates can be synced back to Convex (see TODO comments)
+ * 4. **Queries**: Uses ConvexHttpClient for direct database queries
+ *
+ * ### Key Changes:
+ * - `getDIDRegistry()` → `fetchDIDsFromConvex()`: Fetch DIDs from Convex
+ * - `rebuildLiveListsFromRegistry()` → `rebuildLiveListsFromConvex()`: Load from Convex
+ * - `getLivePatients()`: Returns cached data (refresh from Convex as needed)
+ * - `getLiveStaff()`: Returns cached data with real-time location updates
+ * - New: `refreshFromConvex()`: Manually refresh all data
+ * - New: `getPatientFromConvex()`: Fetch single patient directly from Convex
+ * - New: `getStaffFromConvex()`: Fetch single staff directly from Convex
+ *
+ * ### TODO:
+ * - Set NEXT_PUBLIC_CONVEX_URL in your .env.local
+ * - Uncomment Convex sync code in handleStoreWebSocketMessage()
+ * - Optionally add periodic refresh from Convex in getLivePatients/Staff
  */
 
-import { generatePatients, type PatientFull } from "./mock-patients";
-import { generateStaff, type StaffMember } from "./mock-staff";
+import type { PatientFull } from "./types";
+import type { StaffMember } from "./types";
 import { isBackendOnline } from "./api";
+import { ConvexHttpClient } from "convex/browser";
+
+// TODO: Generate Convex API types by running: npx convex dev
+// This will create convex/_generated/api.ts
+// @ts-ignore - Convex API will be generated
+import { api } from "../../convex/_generated/api";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -26,6 +56,18 @@ export interface DIDDocument {
   updatedAt: string;
   serviceEndpoint?: string;
   ownerEmail?: string | null;
+  // Extended metadata populated from backend DID registration
+  name?: string;
+  mrn?: string;
+  age?: number;
+  gender?: "M" | "F";
+  bloodGroup?: string;
+  allergies?: string[];
+  phone?: string;
+  employeeId?: string;
+  role?: string;
+  department?: string;
+  specialty?: string;
 }
 
 export interface VerifiableCredential {
@@ -98,11 +140,22 @@ export function emitStoreEvent(event: string, detail?: unknown) {
   storeEvents.dispatchEvent(new CustomEvent(event, { detail }));
 }
 
-// ---------------------------------------------------------------------------
-// Base data
-// ---------------------------------------------------------------------------
-const _allPatients: PatientFull[] = generatePatients(500);
-const _allStaff: StaffMember[] = generateStaff(100);
+// Convex HTTP client for queries (since this is not a React component)
+let _convexClient: ConvexHttpClient | null = null;
+
+// Initialize Convex client
+function getConvexClient(): ConvexHttpClient {
+  if (!_convexClient) {
+    // TODO: Replace with your actual Convex deployment URL
+    const CONVEX_URL = process.env.NEXT_PUBLIC_CONVEX_URL || "";
+    _convexClient = new ConvexHttpClient(CONVEX_URL);
+  }
+  return _convexClient;
+}
+
+// Base data — initialized empty, populated from Convex
+const _allPatients: PatientFull[] = [];
+const _allStaff: StaffMember[] = [];
 
 // ---------------------------------------------------------------------------
 // Real-time vital sign simulator (local fallback)
@@ -243,36 +296,8 @@ function runStaffTick() {
 const _appointments: Map<string, LiveAppointment> = new Map();
 
 function seedAppointments() {
-  if (_appointments.size > 0) return;
-  const doctors = _allStaff.filter((s) => s.role === "Doctor").slice(0, 10);
-  const patientsToBook = _allPatients.slice(0, 25);
-  const modes: LiveAppointment["mode"][] = ["in-person", "telemedicine"];
-  const statuses: LiveAppointment["status"][] = [
-    "confirmed",
-    "confirmed",
-    "pending",
-    "completed",
-    "cancelled",
-  ];
-
-  patientsToBook.forEach((p, i) => {
-    const doc = doctors[i % doctors.length];
-    const apptId = `appt_${p.id}_${i}`;
-    const slotDate = new Date(Date.now() - (i * 86400000) / 3).toLocaleDateString("en-IN");
-    const slotTime = `${9 + (i % 8)}:${i % 2 === 0 ? "00" : "30"} ${i < 12 ? "AM" : "PM"}`;
-    _appointments.set(apptId, {
-      id: apptId,
-      patientDid: p.did,
-      patientName: p.name,
-      doctorDid: doc.did,
-      doctorName: doc.name,
-      specialty: doc.specialty || "General Medicine",
-      slot: `${slotDate}, ${slotTime}`,
-      mode: modes[i % 2],
-      status: statuses[i % statuses.length],
-      bookedAt: new Date(Date.now() - i * 3600000).toLocaleString("en-IN"),
-    });
-  });
+  // Appointments are fetched from backend API — no local seeding
+  // Kept as no-op for initialization compatibility
 }
 
 // ---------------------------------------------------------------------------
@@ -296,21 +321,8 @@ const TX_STATUSES: LiveTransaction["status"][] = [
 ];
 
 function seedTransactions() {
-  if (_transactions.size > 0) return;
-  _allPatients.slice(0, 60).forEach((p, i) => {
-    const txId = `tx_seed_${p.id}_${i}`;
-    const amounts = [1500, 4820, 15000, 3500, 85000, 7200, 12000, 900, 45000, 2800];
-    _transactions.set(txId, {
-      id: txId,
-      patientDid: p.did,
-      patientName: p.name,
-      amount: amounts[i % amounts.length],
-      category: TX_CATEGORIES[i % TX_CATEGORIES.length],
-      status: TX_STATUSES[i % TX_STATUSES.length],
-      date: new Date(Date.now() - (i * 86400000) / 2).toLocaleDateString("en-IN"),
-      reference: `REF-${(100000 + i * 7).toString(36).toUpperCase()}`,
-    });
-  });
+  // Transactions are fetched from backend API — no local seeding
+  // Kept as no-op for initialization compatibility
 }
 
 // ---------------------------------------------------------------------------
@@ -322,12 +334,49 @@ let _liveStaff: LiveStaff[] = [];
 let _wsConnected = false;
 let _socket: WebSocket | null = null;
 
-function getDIDRegistry(): Record<string, DIDDocument> {
-  if (typeof window === "undefined") return {};
+/**
+ * Fetch DIDs from Convex database
+ * Replaces the old getDIDRegistry() that used localStorage
+ */
+async function fetchDIDsFromConvex(): Promise<Record<string, DIDDocument>> {
+  // TODO: Implement Convex query to fetch DIDs
   try {
-    const raw = localStorage.getItem("hl:didregistry");
-    return raw ? JSON.parse(raw) : {};
-  } catch {
+    const client = getConvexClient();
+    const dids = await client.query(api.records.getDIDs);
+    const credentials = await client.query(api.records.getCredentials);
+
+    // Build registry mapping DID -> DIDDocument
+    const registry: Record<string, DIDDocument> = {};
+
+    for (const did of dids) {
+      const relatedCredentials = credentials.filter((c) => c.subject === did.did);
+      registry[did.did] = {
+        did: did.did,
+        publicKey: did.publicKey,
+        controller: did.controller,
+        owner: did.owner,
+        ownerType: did.ownerType as "patient" | "staff" | "device" | "org",
+        status: did.status as "active" | "revoked" | "suspended",
+        credentials: relatedCredentials.map((c) => ({
+          id: c.id,
+          type: c.type as any,
+          issuer: c.issuer,
+          subject: c.subject,
+          issuedAt: c.issuedAt,
+          expiresAt: c.expiresAt,
+          claims: c.claims || {},
+          signature: c.signature,
+          status: c.status as "active" | "expired" | "revoked",
+        })),
+        createdAt: did.createdAt,
+        updatedAt: did.updatedAt,
+        serviceEndpoint: did.serviceEndpoint,
+      };
+    }
+
+    return registry;
+  } catch (error) {
+    console.error("[Store] Error fetching DIDs from Convex:", error);
     return {};
   }
 }
@@ -338,50 +387,86 @@ function hashInt(s: string): number {
   return Math.abs(h);
 }
 
-export function rebuildLiveListsFromRegistry() {
-  const registry = getDIDRegistry();
-  const patientsTemp: LivePatient[] = [];
-  const staffTemp: LiveStaff[] = [];
+/**
+ * Rebuild live lists from Convex database
+ * Replaces the old rebuildLiveListsFromRegistry() that used localStorage
+ */
+export async function rebuildLiveListsFromConvex() {
+  // TODO: Fetch data from Convex instead of localStorage
+  try {
+    const client = getConvexClient();
 
-  Object.keys(registry).forEach((did) => {
-    const doc = registry[did];
-    if (!doc) return;
-    const name = doc.owner || "Unknown";
-    const type = doc.ownerType || "patient";
+    // Fetch patients and staff from Convex
+    const patientsData = await client.query(api.records.getPatients, {});
+    const staffData = await client.query(api.records.getStaff, {});
+    const didsData = await client.query(api.records.getDIDs);
+    const credentialsData = await client.query(api.records.getCredentials);
 
-    if (type === "patient") {
-      const seed = Math.abs(hashInt(did));
+    // Build DID registry for quick lookups
+    const registry: Record<string, DIDDocument> = {};
+    for (const did of didsData) {
+      const relatedCredentials = credentialsData.filter((c) => c.subject === did.did);
+      registry[did.did] = {
+        did: did.did,
+        publicKey: did.publicKey,
+        controller: did.controller,
+        owner: did.owner,
+        ownerType: did.ownerType as "patient" | "staff" | "device" | "org",
+        status: did.status as "active" | "revoked" | "suspended",
+        credentials: relatedCredentials.map((c) => ({
+          id: c.id,
+          type: c.type as any,
+          issuer: c.issuer,
+          subject: c.subject,
+          issuedAt: c.issuedAt,
+          expiresAt: c.expiresAt,
+          claims: c.claims || {},
+          signature: c.signature,
+          status: c.status as "active" | "expired" | "revoked",
+        })),
+        createdAt: did.createdAt,
+        updatedAt: did.updatedAt,
+        serviceEndpoint: did.serviceEndpoint,
+      };
+    }
+
+    const patientsTemp: LivePatient[] = [];
+    const staffTemp: LiveStaff[] = [];
+
+    // Build LivePatient objects from Convex data
+    for (const patient of patientsData) {
+      const doc = registry[patient.did];
       patientsTemp.push({
-        id: `pat_${seed.toString().slice(0, 4)}`,
-        did: did,
-        name: doc.name || name,
-        mrn: doc.mrn || doc.ownerEmail || `MRN-${200000 + (seed % 100000)}`,
-        age: doc.age || (18 + (seed % 70)),
-        gender: doc.gender || (seed % 2 === 0 ? "M" : "F"),
-        bloodGroup: doc.bloodGroup || "O+",
-        allergies: Array.isArray(doc.allergies) ? doc.allergies : [],
-        phone: doc.phone || `+91 9${seed.toString().slice(0, 9).padEnd(9, "0")}`,
-        email: doc.ownerEmail || `${name.toLowerCase().replace(/\s+/g, ".")}@email.com`,
-        address: `${100 + (seed % 900)}, Landmark Street, Mumbai`,
-        dob: `${1950 + (18 + (seed % 70))}-01-01`,
-        ward: "General Ward",
-        bed: `B-${seed % 100}`,
-        admitDate: new Date().toISOString().slice(0, 10),
-        status: "outpatient",
-        primaryDoctor: "Dr. Ravi Menon",
-        conditions: [],
-        insuranceProvider: "None",
-        insurancePolicyNo: "",
-        emergencyContact: { name: "Guardian", relation: "Spouse", phone: "" },
-        organDonor: false,
-        nationality: "Indian",
-        totalVisits: 1 + (seed % 10),
-        outstandingBills: 0,
-        didDocument: doc,
-        activeCredentials: doc.credentials?.filter((c) => c.status === "active") ?? [],
-        isOnChain: true,
-        lastActivity: new Date().toLocaleString("en-IN"),
-        vitals: _vitals.get(did) ?? {
+        id: patient.patientId,
+        did: patient.did,
+        name: patient.name,
+        mrn: patient.mrn,
+        age: patient.age,
+        gender: patient.gender as "M" | "F",
+        bloodGroup: patient.bloodGroup,
+        allergies: patient.allergies,
+        phone: patient.phone,
+        email: patient.email,
+        address: patient.address,
+        dob: patient.dob,
+        ward: patient.ward,
+        bed: patient.bed,
+        admitDate: patient.admitDate,
+        status: patient.status as any,
+        primaryDoctor: patient.primaryDoctor,
+        conditions: patient.conditions,
+        insuranceProvider: patient.insuranceProvider,
+        insurancePolicyNo: patient.insurancePolicyNo,
+        emergencyContact: patient.emergencyContact,
+        organDonor: patient.organDonor,
+        nationality: patient.nationality,
+        totalVisits: patient.totalVisits,
+        outstandingBills: patient.outstandingBills,
+        didDocument: doc || null,
+        activeCredentials: doc?.credentials?.filter((c) => c.status === "active") ?? [],
+        isOnChain: !!doc,
+        lastActivity: patient.updatedAt || new Date().toLocaleString("en-IN"),
+        vitals: _vitals.get(patient.did) ?? {
           heartRate: 72,
           bp: "120/80",
           spo2: 98,
@@ -389,42 +474,61 @@ export function rebuildLiveListsFromRegistry() {
           respRate: 16,
         },
       });
-    } else {
-      const seed = Math.abs(hashInt(did));
+    }
+
+    // Build LiveStaff objects from Convex data
+    for (const staff of staffData) {
+      const doc = registry[staff.did];
       staffTemp.push({
-        id: `staff_${seed.toString().slice(0, 4)}`,
-        did: did,
-        name: doc.name || name,
-        employeeId: doc.employeeId || `EMP-${1000 + (seed % 10000)}`,
-        role: (doc.role || (doc.ownerType === "staff" ? "Nurse" : doc.ownerType)) as any,
-        department: doc.department || "General Medicine",
-        specialty: doc.specialty || "General Medicine",
-        email: doc.ownerEmail || `${name.toLowerCase().replace(/\s+/g, ".")}@apollohospitals.in`,
-        phone: doc.phone || `+91 9${seed.toString().slice(0, 9).padEnd(9, "0")}`,
-        shift: "morning",
-        onDuty: true,
-        joinedDate: new Date().toISOString().slice(0, 10),
-        status: "active",
-        credentials: doc.credentials?.length || 0,
-        patientsToday: 0,
-        didDocument: doc,
-        activeCredentials: doc.credentials?.filter((c) => c.status === "active") ?? [],
-        isOnChain: true,
-        currentLocation: _staffLocations.get(did)?.location ?? "Nursing Station",
-        lastSignal: _staffLocations.get(did)?.lastSignal ?? new Date().toLocaleTimeString("en-IN"),
-        beaconStrength: _staffLocations.get(did)?.beacon ?? "90%",
+        id: staff.staffId,
+        did: staff.did,
+        name: staff.name,
+        employeeId: staff.employeeId,
+        role: staff.role as any,
+        department: staff.department,
+        specialty: staff.specialty,
+        email: staff.email,
+        phone: staff.phone,
+        shift: staff.shift as any,
+        onDuty: staff.onDuty,
+        joinedDate: staff.joinedDate,
+        status: staff.status as any,
+        credentials: staff.credentials,
+        patientsToday: staff.patientsToday,
+        didDocument: doc || null,
+        activeCredentials: doc?.credentials?.filter((c) => c.status === "active") ?? [],
+        isOnChain: !!doc,
+        currentLocation:
+          (staff.currentLocation || _staffLocations.get(staff.did)?.location) ?? "Nursing Station",
+        lastSignal:
+          (staff.lastSignal || _staffLocations.get(staff.did)?.lastSignal) ??
+          new Date().toLocaleTimeString("en-IN"),
+        beaconStrength: (staff.beaconStrength || _staffLocations.get(staff.did)?.beacon) ?? "90%",
       });
     }
-  });
 
-  _livePatients = patientsTemp;
-  _liveStaff = staffTemp;
+    _livePatients = patientsTemp;
+    _liveStaff = staffTemp;
+
+    console.log(
+      `[Store] Loaded ${_livePatients.length} patients and ${_liveStaff.length} staff from Convex`,
+    );
+  } catch (error) {
+    console.error("[Store] Error rebuilding lists from Convex:", error);
+    // Fallback to empty lists if Convex fetch fails
+    _livePatients = [];
+    _liveStaff = [];
+  }
 }
 
+/**
+ * Handle WebSocket messages and sync with Convex
+ * Updates local cache and persists to Convex database
+ */
 function handleStoreWebSocketMessage(event: string, data: any) {
   if (event === "vitals:update") {
     if (Array.isArray(data)) {
-      data.forEach((update) => {
+      data.forEach(async (update) => {
         if (update && update.id) {
           const mappedVitals = {
             heartRate: update.heartRate,
@@ -437,6 +541,28 @@ function handleStoreWebSocketMessage(event: string, data: any) {
           const patient = _livePatients.find((p) => p.did === update.id || p.id === update.id);
           if (patient) {
             _vitals.set(patient.id, mappedVitals);
+
+            try {
+              const client = getConvexClient();
+              await client.mutation(api.records.updatePatientVitals, {
+                patientDid: patient.did,
+                vitals: {
+                  heartRate: mappedVitals.heartRate,
+                  bloodPressure: {
+                    systolic: parseInt(mappedVitals.bp.split('/')[0]),
+                    diastolic: parseInt(mappedVitals.bp.split('/')[1]),
+                  },
+                  temperature: mappedVitals.temp,
+                  respiratoryRate: mappedVitals.respRate,
+                  oxygenSaturation: mappedVitals.spo2,
+                },
+                txId: `ws_${Date.now()}`,
+                version: '1.0',
+                recordedAt: new Date().toISOString(),
+              });
+            } catch (error) {
+              console.error('[Store] Error syncing vitals to Convex:', error);
+            }
           }
         }
       });
@@ -465,12 +591,29 @@ function handleStoreWebSocketMessage(event: string, data: any) {
             minute: "2-digit",
             second: "2-digit",
           });
+      const beaconStrength = `${70 + Math.floor(Math.random() * 30)}%`;
       _staffLocations.set(staffMember.id, {
         location,
         status: newStatus,
         lastSignal: now,
-        beacon: `${70 + Math.floor(Math.random() * 30)}%`,
+        beacon: beaconStrength,
       });
+
+      (async () => {
+        try {
+          const client = getConvexClient();
+          await client.mutation(api.records.updateStaffLocation, {
+            did: staffMember.did,
+            location,
+            beaconStrength,
+            txId: `ws_${Date.now()}`,
+            version: '1.0',
+          });
+        } catch (error) {
+          console.error('[Store] Error syncing staff location to Convex:', error);
+        }
+      })();
+
       emitStoreEvent("staff:location:update", {
         memberId: staffMember.id,
         location,
@@ -516,11 +659,14 @@ function handleStoreWebSocketMessage(event: string, data: any) {
   } else if (event === "did:created" || event === "did:updated") {
     const doc = data;
     if (doc && doc.did) {
-      const registry = getDIDRegistry();
-      registry[doc.did] = doc;
-      localStorage.setItem("hl:didregistry", JSON.stringify(registry));
-      rebuildLiveListsFromRegistry();
-      emitStoreEvent("store:ready");
+      (async () => {
+        try {
+          await rebuildLiveListsFromConvex();
+          emitStoreEvent("store:ready");
+        } catch (error) {
+          console.error('[Store] Error syncing DID to Convex:', error);
+        }
+      })();
     }
   }
 }
@@ -534,23 +680,17 @@ function setupWebSocket() {
     const socket = new WebSocket(wsUrl);
     _socket = socket;
 
-    socket.onopen = () => {
+    socket.onopen = async () => {
       _wsConnected = true;
       storeEvents.dispatchEvent(new CustomEvent("ws:status", { detail: true }));
-      // Fetch initial registry from backend
-      import("./api").then(({ getAllDIDs }) => {
-        getAllDIDs()
-          .then(({ dids }) => {
-            const registry: Record<string, DIDDocument> = {};
-            dids.forEach((d: any) => {
-              registry[d.did] = d;
-            });
-            localStorage.setItem("hl:didregistry", JSON.stringify(registry));
-            rebuildLiveListsFromRegistry();
-            emitStoreEvent("store:ready");
-          })
-          .catch(() => {});
-      });
+      // TODO: Sync with Convex on WebSocket connection
+      // Rebuild lists from Convex when connection is established
+      try {
+        await rebuildLiveListsFromConvex();
+        emitStoreEvent("store:ready");
+      } catch (error) {
+        console.error("[Store] Error syncing with Convex on WebSocket connect:", error);
+      }
     };
 
     socket.onmessage = (event) => {
@@ -586,8 +726,8 @@ export async function initializeStore(): Promise<void> {
 
   console.log("[Store] Initializing real-time hospital data store…");
 
-  // Rebuild lists from localStorage cache first
-  rebuildLiveListsFromRegistry();
+  // TODO: Rebuild lists from Convex instead of localStorage
+  await rebuildLiveListsFromConvex();
 
   // Initialize sub-systems
   initStaffLocations(_liveStaff);
@@ -609,37 +749,33 @@ export async function initializeStore(): Promise<void> {
 // ---------------------------------------------------------------------------
 // Public Accessors
 // ---------------------------------------------------------------------------
+/**
+ * Get live patients with real-time vitals
+ * Now returns data from Convex + local real-time updates
+ */
 export function getLivePatients(): LivePatient[] {
-  const registry = getDIDRegistry();
+  // TODO: Optionally refresh from Convex periodically
   return _livePatients.map((p) => {
-    const doc = registry[p.did] ?? p.didDocument;
     return {
       ...p,
       vitals: _vitals.get(p.id) ?? _vitals.get(p.did) ?? p.vitals,
-      didDocument: doc,
-      activeCredentials: (doc?.credentials ?? p.activeCredentials).filter(
-        (c) => c.status === "active",
-      ),
-      isOnChain: !!doc,
     };
   });
 }
 
+/**
+ * Get live staff with real-time location tracking
+ * Now returns data from Convex + local real-time updates
+ */
 export function getLiveStaff(): LiveStaff[] {
-  const registry = getDIDRegistry();
+  // TODO: Optionally refresh from Convex periodically
   return _liveStaff.map((s) => {
     const loc = _staffLocations.get(s.id) ?? _staffLocations.get(s.did);
-    const doc = registry[s.did] ?? s.didDocument;
     return {
       ...s,
       currentLocation: loc?.location ?? s.currentLocation,
       lastSignal: loc?.lastSignal ?? s.lastSignal,
       beaconStrength: loc?.beacon ?? s.beaconStrength,
-      didDocument: doc,
-      activeCredentials: (doc?.credentials ?? s.activeCredentials).filter(
-        (c) => c.status === "active",
-      ),
-      isOnChain: !!doc,
     };
   });
 }
@@ -658,6 +794,173 @@ export function getPatientByDID(did: string): LivePatient | null {
 
 export function getPatientByMRN(mrn: string): LivePatient | null {
   return getLivePatients().find((p) => p.mrn === mrn) ?? null;
+}
+
+/**
+ * Manually refresh all data from Convex
+ * Useful for forcing a sync when needed
+ */
+export async function refreshFromConvex(): Promise<void> {
+  try {
+    console.log("[Store] Manually refreshing data from Convex...");
+    await rebuildLiveListsFromConvex();
+    emitStoreEvent("store:refreshed");
+    console.log("[Store] Refresh complete");
+  } catch (error) {
+    console.error("[Store] Error refreshing from Convex:", error);
+    throw error;
+  }
+}
+
+/**
+ * Get a specific patient from Convex by DID
+ * Bypasses local cache and fetches directly from Convex
+ */
+export async function getPatientFromConvex(did: string): Promise<LivePatient | null> {
+  try {
+    const client = getConvexClient();
+    const patient = await client.query(api.records.getPatientByDID, { did });
+    if (!patient) return null;
+
+    const didDoc = await client.query(api.records.getDIDByURI, { did });
+    const credentials = await client.query(api.records.getCredentials);
+    const relatedCredentials = credentials.filter((c) => c.subject === did);
+
+    const doc: DIDDocument | null = didDoc
+      ? {
+          did: didDoc.did,
+          publicKey: didDoc.publicKey,
+          controller: didDoc.controller,
+          owner: didDoc.owner,
+          ownerType: didDoc.ownerType as "patient" | "staff" | "device" | "org",
+          status: didDoc.status as "active" | "revoked" | "suspended",
+          credentials: relatedCredentials.map((c) => ({
+            id: c.id,
+            type: c.type as any,
+            issuer: c.issuer,
+            subject: c.subject,
+            issuedAt: c.issuedAt,
+            expiresAt: c.expiresAt,
+            claims: c.claims || {},
+            signature: c.signature,
+            status: c.status as "active" | "expired" | "revoked",
+          })),
+          createdAt: didDoc.createdAt,
+          updatedAt: didDoc.updatedAt,
+          serviceEndpoint: didDoc.serviceEndpoint,
+        }
+      : null;
+
+    return {
+      id: patient.patientId,
+      did: patient.did,
+      name: patient.name,
+      mrn: patient.mrn,
+      age: patient.age,
+      gender: patient.gender as "M" | "F",
+      bloodGroup: patient.bloodGroup,
+      allergies: patient.allergies,
+      phone: patient.phone,
+      email: patient.email,
+      address: patient.address,
+      dob: patient.dob,
+      ward: patient.ward,
+      bed: patient.bed,
+      admitDate: patient.admitDate,
+      status: patient.status as any,
+      primaryDoctor: patient.primaryDoctor,
+      conditions: patient.conditions,
+      insuranceProvider: patient.insuranceProvider,
+      insurancePolicyNo: patient.insurancePolicyNo,
+      emergencyContact: patient.emergencyContact,
+      organDonor: patient.organDonor,
+      nationality: patient.nationality,
+      totalVisits: patient.totalVisits,
+      outstandingBills: patient.outstandingBills,
+      didDocument: doc,
+      activeCredentials: doc?.credentials?.filter((c) => c.status === "active") ?? [],
+      isOnChain: !!doc,
+      lastActivity: patient.updatedAt || new Date().toLocaleString("en-IN"),
+      vitals: _vitals.get(patient.did) ?? {
+        heartRate: 72,
+        bp: "120/80",
+        spo2: 98,
+        temp: 36.6,
+        respRate: 16,
+      },
+    };
+  } catch (error) {
+    console.error("[Store] Error fetching patient from Convex:", error);
+    return null;
+  }
+}
+
+/**
+ * Get a specific staff member from Convex by DID
+ * Bypasses local cache and fetches directly from Convex
+ */
+export async function getStaffFromConvex(did: string): Promise<LiveStaff | null> {
+  try {
+    const client = getConvexClient();
+    const staff = await client.query(api.records.getStaffByDID, { did });
+    if (!staff) return null;
+
+    const didDoc = await client.query(api.records.getDIDByURI, { did });
+    const credentials = await client.query(api.records.getCredentials);
+    const relatedCredentials = credentials.filter((c) => c.subject === did);
+
+    const doc: DIDDocument | null = didDoc
+      ? {
+          did: didDoc.did,
+          publicKey: didDoc.publicKey,
+          controller: didDoc.controller,
+          owner: didDoc.owner,
+          ownerType: didDoc.ownerType as "patient" | "staff" | "device" | "org",
+          status: didDoc.status as "active" | "revoked" | "suspended",
+          credentials: relatedCredentials.map((c) => ({
+            id: c.id,
+            type: c.type as any,
+            issuer: c.issuer,
+            subject: c.subject,
+            issuedAt: c.issuedAt,
+            expiresAt: c.expiresAt,
+            claims: c.claims || {},
+            signature: c.signature,
+            status: c.status as "active" | "expired" | "revoked",
+          })),
+          createdAt: didDoc.createdAt,
+          updatedAt: didDoc.updatedAt,
+          serviceEndpoint: didDoc.serviceEndpoint,
+        }
+      : null;
+
+    return {
+      id: staff.staffId,
+      did: staff.did,
+      name: staff.name,
+      employeeId: staff.employeeId,
+      role: staff.role as any,
+      department: staff.department,
+      specialty: staff.specialty,
+      email: staff.email,
+      phone: staff.phone,
+      shift: staff.shift as any,
+      onDuty: staff.onDuty,
+      joinedDate: staff.joinedDate,
+      status: staff.status as any,
+      credentials: staff.credentials,
+      patientsToday: staff.patientsToday,
+      didDocument: doc,
+      activeCredentials: doc?.credentials?.filter((c) => c.status === "active") ?? [],
+      isOnChain: !!doc,
+      currentLocation: staff.currentLocation || "Unknown",
+      lastSignal: staff.lastSignal || new Date().toLocaleTimeString("en-IN"),
+      beaconStrength: staff.beaconStrength || "0%",
+    };
+  } catch (error) {
+    console.error("[Store] Error fetching staff from Convex:", error);
+    return null;
+  }
 }
 
 // ---------------------------------------------------------------------------

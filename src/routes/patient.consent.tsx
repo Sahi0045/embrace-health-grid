@@ -6,7 +6,7 @@ import { StaggerList, StaggerItem } from "@/components/Motion";
 import { ConsentCard, type ConsentRecord } from "@/components/consent/ConsentCard";
 import { ConsentHistory } from "@/components/consent/ConsentHistory";
 import { ConsentToggle } from "@/components/consent/ConsentToggle";
-import { consents as initial } from "@/lib/mock-data";
+
 import { useConsents } from "@/hooks/use-api";
 import { revokeConsent, grantConsent, getConsentRequests, denyConsentRequest } from "@/lib/api";
 import { toast } from "sonner";
@@ -132,10 +132,7 @@ function Consent() {
         : c.status) as ConsentRecord["status"],
   }));
 
-  const list =
-    liveList.length > 0
-      ? liveList
-      : initial.map((c) => ({ ...c, status: c.status as ConsentRecord["status"] }));
+  const list = liveList;
 
   const handleRevoke = async (id: string) => {
     try {

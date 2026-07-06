@@ -6,8 +6,8 @@ import { PageHeader } from "@/components/PageHeader";
 import { RouteGuard } from "@/components/RouteGuard";
 import { useLivePatients } from "@/hooks/use-api";
 import { getCurrentUser } from "@/lib/auth";
-import { currentPatient } from "@/lib/mock-data";
-import { RefreshCw, ShieldCheck, Droplets, CreditCard, BadgeCheck, Timer } from "lucide-react";
+import { RefreshCw, ShieldCheck, Droplets, CreditCard, BadgeCheck, Timer, Loader2 } from "lucide-react";
+import { signIdentityPayload } from "@/lib/api";
 
 export const Route = createFileRoute("/patient/qr")({
   head: () => ({ meta: [{ title: "Patient · QR Code — DID Hospital" }] }),
@@ -16,52 +16,73 @@ export const Route = createFileRoute("/patient/qr")({
 
 const ROTATION_SECONDS = 60;
 
-function buildPayload(patient: { did: string; mrn: string; name: string }) {
-  return JSON.stringify({
-    did: patient.did,
-    mrn: patient.mrn,
-    name: patient.name,
-    exp: Date.now() + 60_000,
-    channel: "embrace-health-channel",
-  });
-}
-
 function PatientQr() {
   const { patients: patientsList } = useLivePatients();
   const currentUser = getCurrentUser();
   const userEmail = currentUser?.email || "";
-  const patient = patientsList?.find((p: any) => p.email === userEmail) || patientsList?.[0] || currentPatient;
+  const patient = patientsList?.find((p: any) => p.email === userEmail) || patientsList?.[0] || { name: "", mrn: "", did: "", bloodGroup: "", age: 0, gender: "F" as const, allergies: [] as string[] };
 
-  const [payload, setPayload] = useState(() => buildPayload(patient));
+  const [payload, setPayload] = useState("");
   const [timeLeft, setTimeLeft] = useState(ROTATION_SECONDS);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [loading, setLoading] = useState(true);
 
-  const refresh = useCallback(() => {
-    setPayload(buildPayload(patient));
-    setTimeLeft(ROTATION_SECONDS);
-    setRefreshKey((k) => k + 1);
+  const refresh = useCallback(async () => {
+    if (!patient.did) return;
+    setLoading(true);
+    try {
+      const res = await signIdentityPayload({
+        did: patient.did,
+        mrn: patient.mrn,
+        name: patient.name,
+        network: "embrace-health-network",
+      });
+      if (res && res.payload) {
+        setPayload(JSON.stringify(res.payload));
+      } else {
+        setPayload(
+          JSON.stringify({
+            did: patient.did,
+            mrn: patient.mrn,
+            name: patient.name,
+            exp: Date.now() + 60_000,
+            network: "embrace-health-network",
+          })
+        );
+      }
+    } catch {
+      setPayload(
+        JSON.stringify({
+          did: patient.did,
+          mrn: patient.mrn,
+          name: patient.name,
+          exp: Date.now() + 60_000,
+          network: "embrace-health-network",
+        })
+      );
+    } finally {
+      setLoading(false);
+      setTimeLeft(ROTATION_SECONDS);
+      setRefreshKey((k) => k + 1);
+    }
   }, [patient]);
 
-  // Re-build payload only when the DID identity changes, not on every patient object update.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    setPayload(buildPayload(patient));
-  }, [patient.did]);
+    refresh();
+  }, [patient.did, refresh]);
 
-  // Countdown + auto-rotate
   useEffect(() => {
     const id = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
-          setPayload(buildPayload(patient));
-          setRefreshKey((k) => k + 1);
+          refresh();
           return ROTATION_SECONDS;
         }
         return prev - 1;
       });
     }, 1_000);
     return () => clearInterval(id);
-  }, [patient]);
+  }, [refresh]);
 
   const urgency =
     timeLeft <= 10 ? "text-destructive" : timeLeft <= 20 ? "text-warning" : "text-muted-foreground";
@@ -95,15 +116,21 @@ function PatientQr() {
         {/* QR card with framer-motion fade/scale on refresh */}
         <div className="mt-6 flex flex-col items-center">
           <AnimatePresence mode="wait">
-            <motion.div
-              key={refreshKey}
-              initial={{ opacity: 0, scale: 0.94 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.94 }}
-              transition={{ duration: 0.25, ease: "easeOut" }}
-            >
-              <QrCode value={payload} size={260} bgColor="#ffffff" fgColor="#000000" />
-            </motion.div>
+            {payload ? (
+              <motion.div
+                key={refreshKey}
+                initial={{ opacity: 0, scale: 0.94 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.94 }}
+                transition={{ duration: 0.25, ease: "easeOut" }}
+              >
+                <QrCode value={payload} size={260} bgColor="#ffffff" fgColor="#000000" />
+              </motion.div>
+            ) : (
+              <div className="flex h-[260px] w-[260px] items-center justify-center rounded-xl border border-dashed border-border bg-card">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            )}
           </AnimatePresence>
 
           {/* DID monospace */}
@@ -124,9 +151,15 @@ function PatientQr() {
         <div className="mt-4 flex justify-center">
           <button
             onClick={refresh}
-            className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground shadow-clinical hover:bg-primary/90 transition-colors"
+            disabled={loading}
+            className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground shadow-clinical hover:bg-primary/90 transition-colors disabled:opacity-50"
           >
-            <RefreshCw className="h-4 w-4" /> Refresh Now
+            {loading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
+            {loading ? "Generating..." : "Refresh Now"}
           </button>
         </div>
 
