@@ -358,6 +358,14 @@ app.post("/api/did", requireAuth, requireRole(["admin"]), async (req, res) => {
   const assignedMrn = ownerType === "patient" ? (mrn || extraFields.mrn || `MRN-${Math.floor(100000 + Math.random() * 900000)}`) : null;
   const assignedEmployeeId = ownerType !== "patient" ? (employeeId || extraFields.employeeId || `EMP-${Math.floor(1000 + Math.random() * 9000)}`) : null;
 
+  let preLinkedWallet = null;
+  if (ownerEmail) {
+    const userEntry = getState("users", ownerEmail);
+    if (userEntry) {
+      preLinkedWallet = userEntry.value.walletAddress || null;
+    }
+  }
+
   const did = `did:hosp:0x${simHash(owner + Date.now()).slice(0, 8)}`;
   const txId = randomUUID();
   const doc = {
@@ -374,6 +382,7 @@ app.post("/api/did", requireAuth, requireRole(["admin"]), async (req, res) => {
     ownerEmail: ownerEmail || null,
     mrn: assignedMrn,
     employeeId: assignedEmployeeId,
+    walletAddress: preLinkedWallet,
     ...extraFields,
   };
   putState("did-registry", did, doc, txId);
@@ -857,11 +866,16 @@ app.post("/api/medical-records/:patientDid/anchor", requireAuth, async (req, res
   }
 
   const records = queryState("medical-records", (v) => v.patientDid === patientDid).map((e) => e.value);
-  if (records.length === 0) {
-    return res.status(400).json({ error: "No medical records found to anchor" });
+  const prescriptions = queryState("prescriptions", (v) => v.patientDid === patientDid).map((e) => e.value);
+
+  if (records.length === 0 && prescriptions.length === 0) {
+    return res.status(400).json({ error: "No medical records or prescriptions found to anchor" });
   }
 
-  const hashes = records.map((r) => r.hash || `sha256:${r.recordId}`);
+  const recordHashes = records.map((r) => r.hash || `sha256:${r.recordId}`);
+  const rxHashes = prescriptions.map((p) => p.hash || `sha256:${p.rxId}`);
+  const hashes = [...recordHashes, ...rxHashes];
+
   const tree = new MerkleTree(hashes);
   await tree.build();
   const root = tree.getRoot();

@@ -3,11 +3,13 @@ import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { RouteGuard } from "@/components/RouteGuard";
 import { useLivePatients } from "@/hooks/use-api";
-import { Search, X, Activity, Pill, FlaskConical, AlertTriangle } from "lucide-react";
+import { Search, X, Activity, Pill, FlaskConical, AlertTriangle, Loader2, Plus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { vitalSigns, medications, labTests } from "@/lib/inpatient-data";
 import type { Patient } from "@/lib/mock-data";
+import { toast } from "sonner";
+import { API_BASE_URL } from "@/lib/api";
 
 export const Route = createFileRoute("/staff/patients")({
   head: () => ({ meta: [{ title: "Staff · Patients — DID Hospital" }] }),
@@ -17,6 +19,47 @@ export const Route = createFileRoute("/staff/patients")({
 function Patients() {
   const [q, setQ] = useState("");
   const [selected, setSelected] = useState<Patient | null>(null);
+
+  // New record form states
+  const [recordTitle, setRecordTitle] = useState("");
+  const [recordType, setRecordType] = useState("lab-report");
+  const [recordSummary, setRecordSummary] = useState("");
+  const [addingRecord, setAddingRecord] = useState(false);
+
+  const handleAddRecord = async (patientDid: string) => {
+    if (!recordTitle || !recordSummary) {
+      toast.error("Please enter both a title and summary details.");
+      return;
+    }
+    setAddingRecord(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/medical-records/${encodeURIComponent(patientDid)}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
+        },
+        body: JSON.stringify({
+          title: recordTitle,
+          type: recordType,
+          content: recordSummary,
+        }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Failed to add record");
+      }
+
+      toast.success("Medical record added successfully!");
+      setRecordTitle("");
+      setRecordSummary("");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to add medical record");
+    } finally {
+      setAddingRecord(false);
+    }
+  };
   const { patients: patientsList } = useLivePatients();
   const patients = patientsList ?? [];
 
@@ -231,6 +274,74 @@ function Patients() {
                       </Badge>
                     </div>
                   ))}
+                </CardContent>
+              </Card>
+              {/* Add New Medical Record Form */}
+              <Card className="border-primary/20 bg-primary/5">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center gap-2">
+                    <Plus className="h-4 w-4 text-primary" />
+                    <CardTitle className="text-sm font-semibold">Add New Medical Record / Report</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div>
+                      <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider block mb-1">
+                        Report Title
+                      </label>
+                      <input
+                        type="text"
+                        value={recordTitle}
+                        onChange={(e) => setRecordTitle(e.target.value)}
+                        placeholder="e.g. Brain MRI Scan, Lipid Profile"
+                        className="w-full rounded-md border bg-card px-3 py-1.5 text-xs text-foreground outline-none focus:border-primary"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider block mb-1">
+                        Record Category
+                      </label>
+                      <select
+                        value={recordType}
+                        onChange={(e) => setRecordType(e.target.value)}
+                        className="w-full rounded-md border bg-card px-3 py-1.5 text-xs text-foreground outline-none focus:border-primary"
+                      >
+                        <option value="lab-report">Lab Report</option>
+                        <option value="imaging">Imaging (ECG, X-Ray, MRI)</option>
+                        <option value="discharge-summary">Discharge Summary</option>
+                        <option value="referral">Referral Letter</option>
+                        <option value="procedure-report">Procedure Report</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider block mb-1">
+                      Clinical Summary / Diagnostic Findings
+                    </label>
+                    <textarea
+                      value={recordSummary}
+                      onChange={(e) => setRecordSummary(e.target.value)}
+                      placeholder="Enter detailed diagnostic notes, impressions, and recommendations..."
+                      rows={3}
+                      className="w-full rounded-md border bg-card px-3 py-1.5 text-xs text-foreground outline-none focus:border-primary resize-none"
+                    />
+                  </div>
+                  <button
+                    onClick={() => handleAddRecord(selected.did)}
+                    disabled={addingRecord}
+                    className="flex w-full items-center justify-center gap-1.5 rounded-md bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-colors cursor-pointer"
+                  >
+                    {addingRecord ? (
+                      <>
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" /> Adding...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="h-3.5 w-3.5" /> Save & Add Record
+                      </>
+                    )}
+                  </button>
                 </CardContent>
               </Card>
 

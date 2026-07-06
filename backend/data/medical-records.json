@@ -1,0 +1,56 @@
+{
+  "REC-INITIAL-DISCHARGE": {
+    "key": "REC-INITIAL-DISCHARGE",
+    "value": {
+      "recordId": "REC-INITIAL-DISCHARGE",
+      "patientDid": "did:hosp:0x4ba0999d",
+      "title": "Initial Discharge Summary",
+      "type": "discharge-summary",
+      "content": "Patient admitted with symptoms of angina. Angiography showed clear coronary pathways. Discharged with beta-blockers.",
+      "doctorName": "Dr. Ravi Menon",
+      "createdAt": "2026-06-03T09:32:27.931Z",
+      "hash": "sha256:d8c0b564ba2ceaf"
+    },
+    "namespace": "medical-records",
+    "version": "7d9fcc94-01fe-4f77-8195-a9c9ad903643:1",
+    "updatedAt": "2026-07-03T09:32:27.932Z",
+    "txId": "7d9fcc94-01fe-4f77-8195-a9c9ad903643",
+    "docType": "medical-records"
+  },
+  "REC-INITIAL-ECG": {
+    "key": "REC-INITIAL-ECG",
+    "value": {
+      "recordId": "REC-INITIAL-ECG",
+      "patientDid": "did:hosp:0x4ba0999d",
+      "title": "Routine ECG Diagnostic",
+      "type": "imaging",
+      "content": "Sinus rhythm at 72 bpm. Ejection fraction at 60%. Cardiomegaly ruled out.",
+      "doctorName": "Dr. Ravi Menon",
+      "createdAt": "2026-06-18T09:32:27.931Z",
+      "hash": "sha256:d8c0b56a7ec13bd"
+    },
+    "namespace": "medical-records",
+    "version": "cb234ea4-f5b6-44f5-b1ae-43fbf2132b25:1",
+    "updatedAt": "2026-07-03T09:32:27.941Z",
+    "txId": "cb234ea4-f5b6-44f5-b1ae-43fbf2132b25",
+    "docType": "medical-records"
+  },
+  "REC-INITIAL-LIPID": {
+    "key": "REC-INITIAL-LIPID",
+    "value": {
+      "recordId": "REC-INITIAL-LIPID",
+      "patientDid": "did:hosp:0x4ba0999d",
+      "title": "Standard Lipid Panel",
+      "type": "lab-report",
+      "content": "Total Cholesterol: 180 mg/dL, HDL: 45 mg/dL, LDL: 92 mg/dL. Triglycerides normal.",
+      "doctorName": "Dr. Sameer Khan",
+      "createdAt": "2026-06-26T09:32:27.931Z",
+      "hash": "sha256:d8c0b569346b740"
+    },
+    "namespace": "medical-records",
+    "version": "e4381e79-e8d6-421d-991e-ca8af19c65b2:1",
+    "updatedAt": "2026-07-03T09:32:27.959Z",
+    "txId": "e4381e79-e8d6-421d-991e-ca8af19c65b2",
+    "docType": "medical-records"
+  }
+}

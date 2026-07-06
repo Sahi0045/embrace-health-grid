@@ -702,6 +702,16 @@ function PeopleManagement() {
                               {u.email} · Role:{" "}
                               <span className="capitalize font-medium">{u.role}</span>
                             </div>
+                            {u.walletAddress ? (
+                              <div className="mt-1 text-[10px] font-mono text-primary flex items-center gap-1">
+                                <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary" />
+                                Wallet linked: {u.walletAddress.slice(0, 6)}...{u.walletAddress.slice(-6)}
+                              </div>
+                            ) : (
+                              <div className="mt-1 text-[10px] text-muted-foreground italic">
+                                No wallet linked
+                              </div>
+                            )}
                             {u.did ? (
                               <div className="mt-1 text-[10px] font-mono text-success">
                                 On-chain DID: {u.did}

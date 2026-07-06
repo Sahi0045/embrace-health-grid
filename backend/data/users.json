@@ -196,5 +196,56 @@
     "updatedAt": "2026-07-01T17:11:49.048Z",
     "txId": "c9a19c8d-18e0-488c-808d-788f6c9daf3f",
     "docType": "users"
+  },
+  "soulnani241@gmail.com": {
+    "key": "soulnani241@gmail.com",
+    "value": {
+      "name": "nithin doctor",
+      "email": "soulnani241@gmail.com",
+      "password": "$2b$10$A6mpi44QQiWznXFDczrxoOxNc5iyv7vduEAeoBddW0w393OADWWeu",
+      "role": "staff",
+      "did": null,
+      "createdAt": "2026-07-03T14:32:18.312Z"
+    },
+    "namespace": "users",
+    "version": "dadf491b-6999-4ee7-8a0e-44076849c333:1",
+    "updatedAt": "2026-07-03T14:32:18.312Z",
+    "txId": "dadf491b-6999-4ee7-8a0e-44076849c333",
+    "docType": "users"
+  },
+  "doctor_test@hospital.com": {
+    "key": "doctor_test@hospital.com",
+    "value": {
+      "name": "doctor nithin",
+      "email": "doctor_test@hospital.com",
+      "password": "$2b$10$2VQ5tjXOlAfWEFqggI4wFO9nsBsb9JvnkDth8q/OvMgc3.UaoMXqi",
+      "role": "staff",
+      "did": null,
+      "createdAt": "2026-07-03T14:37:32.858Z",
+      "walletAddress": "7QMfCjCQjsoVmnNGa5ka7dqXYBNqNQLTrkosLypKjrRG"
+    },
+    "namespace": "users",
+    "version": "348284b4-b500-45c3-882a-22b633bb5079:1",
+    "updatedAt": "2026-07-03T14:47:06.764Z",
+    "txId": "348284b4-b500-45c3-882a-22b633bb5079",
+    "docType": "users"
+  },
+  "doctor_test1@hospital.com": {
+    "key": "doctor_test1@hospital.com",
+    "value": {
+      "name": "dr.SOUL",
+      "email": "doctor_test1@hospital.com",
+      "password": "$2b$10$4EwzQamfMF98F8YyfWfDn.Iyc7dhkOAfPrT4sx6RH4YtAECrYN88K",
+      "role": "staff",
+      "did": "did:hosp:0x0827eac7",
+      "createdAt": "2026-07-03T15:02:59.890Z",
+      "walletAddress": "FoLsJWRSFm62y9TrTYf5KnevXHit5T4brrgq85oJmgWZ",
+      "employeeId": "EMP-9617"
+    },
+    "namespace": "users",
+    "version": "ed0f849a-3dee-4921-8b0d-d8a245bc1ae4:1",
+    "updatedAt": "2026-07-03T15:03:57.110Z",
+    "txId": "ed0f849a-3dee-4921-8b0d-d8a245bc1ae4",
+    "docType": "users"
   }
 }

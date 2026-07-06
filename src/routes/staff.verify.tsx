@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHeader } from "@/components/PageHeader";
 import { RouteGuard } from "@/components/RouteGuard";
@@ -8,6 +8,7 @@ import { logAuditEvent, verifyNFCCard, resolveDID, API_BASE_URL } from "@/lib/ap
 import { currentPatient } from "@/lib/mock-data";
 import { PublicKey, Connection } from "@solana/web3.js";
 import { MerkleTree } from "@/lib/merkle";
+import { Buffer } from "buffer";
 import {
   ScanLine,
   CheckCircle2,
@@ -81,22 +82,34 @@ function VerifyPatient() {
     const verifyOnChain = async () => {
       setSolanaVerifying(true);
       try {
-        const response = await fetch(`${API_BASE_URL}/api/medical-records/${encodeURIComponent(scanResult.did)}`, {
-          headers: {
-            "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
-          }
-        });
-        if (!response.ok) throw new Error("Failed to fetch medical records");
-        const data = await response.json();
-        const records = data.records || [];
+        const [recordsResponse, prescriptionsResponse] = await Promise.all([
+          fetch(`${API_BASE_URL}/api/medical-records/${encodeURIComponent(scanResult.did)}`, {
+            headers: { "Authorization": `Bearer ${localStorage.getItem("authToken")}` }
+          }),
+          fetch(`${API_BASE_URL}/api/prescriptions/${encodeURIComponent(scanResult.did)}`, {
+            headers: { "Authorization": `Bearer ${localStorage.getItem("authToken")}` }
+          })
+        ]);
 
-        if (records.length === 0) {
+        if (!recordsResponse.ok || !prescriptionsResponse.ok) {
+          throw new Error("Failed to fetch patient data");
+        }
+
+        const recordsData = await recordsResponse.json();
+        const prescriptionsData = await prescriptionsResponse.json();
+        const records = recordsData.records || [];
+        const prescriptions = prescriptionsData.prescriptions || [];
+
+        if (records.length === 0 && prescriptions.length === 0) {
           setSolanaVerified(false);
           setSolanaRoot(null);
           return;
         }
 
-        const hashes = records.map((r: any) => r.hash || `sha256:${r.recordId}`);
+        const recordHashes = records.map((r: any) => r.hash || `sha256:${r.recordId}`);
+        const rxHashes = prescriptions.map((p: any) => p.hash || `sha256:${p.rxId}`);
+        const hashes = [...recordHashes, ...rxHashes];
+
         const tree = new MerkleTree(hashes);
         await tree.build();
         const localRoot = tree.getRoot();

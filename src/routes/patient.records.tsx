@@ -37,7 +37,7 @@ import {
   rehabSessions,
   feedbackList,
 } from "@/lib/medical-records-data";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { getPrescriptions, getMedicalRecords } from "@/lib/api";
 
 export const Route = createFileRoute("/patient/records")({
@@ -237,7 +237,7 @@ function MedicalRecords() {
                 {connected ? (
                   <Button
                     onClick={handleAnchorRecords}
-                    disabled={anchoring || apiRecords.length === 0}
+                    disabled={anchoring || (apiRecords.length === 0 && apiPrescriptions.length === 0)}
                     className="cursor-pointer"
                   >
                     {anchoring ? (
@@ -262,7 +262,7 @@ function MedicalRecords() {
               <div className="rounded-lg border bg-card p-3">
                 <div className="text-xs text-muted-foreground">Current Medical Records Hash Count</div>
                 <div className="text-lg font-bold text-foreground mt-1">
-                  {apiRecords.length} Records
+                  {apiRecords.length + apiPrescriptions.length} items (Records & Prescriptions)
                 </div>
               </div>
               <div className="rounded-lg border bg-card p-3">
