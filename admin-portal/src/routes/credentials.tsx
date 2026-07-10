@@ -30,7 +30,7 @@ export const Route = createFileRoute("/credentials")({
 
 const issuers = [
   {
-    name: "Apollo Hospitals",
+    name: "Embrace Health Consortium",
     did: "did:hosp:issuer:apollo001",
     issued: 312,
     active: 298,
@@ -51,7 +51,7 @@ const issuers = [
     revoked: 9,
   },
   {
-    name: "Apollo Diagnostics",
+    name: "Embrace Diagnostics",
     did: "did:hosp:issuer:apollodx001",
     issued: 174,
     active: 154,
@@ -81,7 +81,7 @@ function CredentialsPage() {
                 : c.type === "ProfessionalVC"
                   ? "Professional Credential"
                   : "Verifiable Credential",
-        issuer: c.issuer || "Apollo Hospitals",
+        issuer: c.issuer || "Embrace Health Consortium",
         issuerDID: `did:hosp:issuer:${c.issuer || "apollo"}`,
         holder: c.subject || "Unknown Holder",
         holderDID: c.claims?.subjectDid || "did:hosp:unknown",

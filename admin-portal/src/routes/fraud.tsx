@@ -31,7 +31,7 @@ import { useFraudAlerts } from "@/hooks/use-api";
 import { raiseFraudAlert, logAuditEvent } from "@/lib/api";
 
 export const Route = createFileRoute("/fraud")({
-  head: () => ({ meta: [{ title: "Admin · Fraud Detection — DID Hospital" }] }),
+  head: () => ({ meta: [{ title: "Admin · Fraud Detection — Embrace Health Grid" }] }),
   component: FraudPage,
 });
 

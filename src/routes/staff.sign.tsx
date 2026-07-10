@@ -31,7 +31,7 @@ import { toast } from "sonner";
 import { signPrescription, logAuditEvent, requestConsent } from "@/lib/api";
 
 export const Route = createFileRoute("/staff/sign")({
-  head: () => ({ meta: [{ title: "Staff · Sign & Prescribe — DID Hospital" }] }),
+  head: () => ({ meta: [{ title: "Staff · Sign & Prescribe — Embrace Health Grid" }] }),
   component: SignPage,
 });
 

@@ -442,8 +442,8 @@ function AdminFinancialPage() {
               <div className="border border-border rounded-xl p-5 space-y-4 font-mono text-xs">
                 <div className="flex justify-between border-b border-border pb-3">
                   <div>
-                    <h3 className="font-black text-sm">DID HOSPITAL</h3>
-                    <p className="text-[10px] text-muted-foreground">Apollo Campus, Mumbai</p>
+                    <h3 className="font-black text-sm">EMBRACE HEALTH GRID</h3>
+                    <p className="text-[10px] text-muted-foreground">Embrace Health Campus</p>
                   </div>
                   <div className="text-right">
                     <p className="font-bold">INVOICE</p>

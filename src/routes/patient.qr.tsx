@@ -10,7 +10,7 @@ import { RefreshCw, ShieldCheck, Droplets, CreditCard, BadgeCheck, Timer, Loader
 import { signIdentityPayload } from "@/lib/api";
 
 export const Route = createFileRoute("/patient/qr")({
-  head: () => ({ meta: [{ title: "Patient · QR Code — DID Hospital" }] }),
+  head: () => ({ meta: [{ title: "Patient · QR Code — Embrace Health Grid" }] }),
   component: PatientQr,
 });
 

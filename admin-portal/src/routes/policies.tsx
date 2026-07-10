@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
-import { useSimulatedLoading } from "@/hooks/use-simulated-loading";
 import { ListSkeleton } from "@/components/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { BookLock, Search, Plus, Pencil, Archive } from "lucide-react";
@@ -9,7 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/policies")({
-  head: () => ({ meta: [{ title: "Admin · Policies — DID Hospital" }] }),
+  head: () => ({ meta: [{ title: "Admin · Policies — Embrace Health Grid" }] }),
   component: PoliciesPage,
 });
 
@@ -33,7 +32,7 @@ const statusTone: Record<Policy["status"], string> = {
 };
 
 function PoliciesPage() {
-  const loading = useSimulatedLoading(450);
+  const loading = false;
   const [list, setList] = useState<Policy[]>(() => {
     const saved = localStorage.getItem("did_hospital_policies");
     return saved ? JSON.parse(saved) : [];

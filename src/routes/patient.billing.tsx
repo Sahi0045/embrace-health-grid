@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { getBilling } from "@/lib/api";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/patient/billing")({
   head: () => ({
@@ -38,7 +39,10 @@ function PatientBilling() {
       .then((res) => {
         setBillingData(res);
       })
-      .catch((err) => console.error("Billing load error:", err))
+      .catch((err) => {
+        console.error("Billing load error:", err);
+        toast.error("Failed to load billing details", { description: err.message });
+      })
       .finally(() => setLoading(false));
   }, [patientDid]);
 

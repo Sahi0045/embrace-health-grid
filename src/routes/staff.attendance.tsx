@@ -59,8 +59,9 @@ function StaffAttendance() {
           setClockedIn(false);
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.warn("Could not load attendance from API:", err);
+      toast.error("Failed to load attendance history", { description: err.message });
     } finally {
       setLoading(false);
     }

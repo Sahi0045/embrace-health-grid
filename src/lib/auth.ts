@@ -104,5 +104,8 @@ export function logout() {
   localStorage.removeItem("userEmail");
   localStorage.removeItem("userName");
   localStorage.removeItem("userDID");
+  localStorage.removeItem("userMRN");
+  localStorage.removeItem("userEmployeeId");
+  localStorage.removeItem("userWalletAddress");
   window.location.href = "/login";
 }

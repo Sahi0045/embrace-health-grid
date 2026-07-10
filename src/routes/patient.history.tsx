@@ -28,7 +28,7 @@ import { useAudit } from "@/hooks/use-api";
 import { logAuditEvent } from "@/lib/api";
 
 export const Route = createFileRoute("/patient/history")({
-  head: () => ({ meta: [{ title: "Patient · Access History — DID Hospital" }] }),
+  head: () => ({ meta: [{ title: "Patient · Access History — Embrace Health Grid" }] }),
   component: History,
 });
 

@@ -393,9 +393,9 @@ function PrescriptionsPage() {
                 <div className="flex justify-between">
                   <div>
                     <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      DID Hospital
+                      Embrace Health Grid
                     </div>
-                    <div className="text-xs text-muted-foreground">Apollo Campus, Mumbai</div>
+                    <div className="text-xs text-muted-foreground">Embrace Health Campus</div>
                   </div>
                   <div className="text-right">
                     <div className="text-[10px] text-muted-foreground">

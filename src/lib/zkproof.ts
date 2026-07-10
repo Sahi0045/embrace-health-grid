@@ -309,7 +309,7 @@ export function getDefaultClaims(
     {
       attribute: "hospitalPatient",
       label: "Registered Hospital Patient",
-      value: "Apollo Hospitals · Verified",
+      value: "Embrace Health Grid · Verified",
       disclosed: false,
       category: "credentials",
     },
