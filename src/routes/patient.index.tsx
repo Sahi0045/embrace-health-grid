@@ -24,7 +24,7 @@ import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/auth";
 
 export const Route = createFileRoute("/patient/")({
-  head: () => ({ meta: [{ title: "Patient · Home — DID Hospital" }] }),
+  head: () => ({ meta: [{ title: "Patient · Home — Embrace Health Grid" }] }),
   component: PatientHome,
 });
 

@@ -26,7 +26,7 @@ import { motion } from "framer-motion";
 import { getCurrentUser } from "@/lib/auth";
 
 export const Route = createFileRoute("/staff/")({
-  head: () => ({ meta: [{ title: "Staff · Dashboard — DID Hospital" }] }),
+  head: () => ({ meta: [{ title: "Staff · Dashboard — Embrace Health Grid" }] }),
   component: StaffDashboard,
 });
 
@@ -141,7 +141,7 @@ function StaffDashboard() {
         <PageHeader
           eyebrow="Staff portal"
           title={`Good morning, ${staffRecord.name}`}
-          description={`${staffRecord.specialty || "Medical Specialist"} · Apollo Hospitals · Shift 08:00 – 16:00`}
+          description={`${staffRecord.specialty || "Medical Specialist"} · Embrace Health Grid · Shift 08:00 – 16:00`}
           actions={
             <Link
               to="/staff/verify"

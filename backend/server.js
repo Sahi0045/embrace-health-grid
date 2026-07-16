@@ -9,6 +9,7 @@ import { WebSocketServer } from "ws";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
+import rateLimit from "express-rate-limit";
 import { randomUUID } from "crypto";
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
@@ -33,7 +34,47 @@ import * as notificationStore from "./lib/notifications.js";
 import { splitRecord } from "./lib/hash.js";
 import * as solanaLib from "./lib/solana.js";
 
-const CLIENT_KEY = process.env.CLIENT_KEY || "apollo-consortium-client-secret-2026";
+// Load Environment Variables first
+function loadEnv() {
+  const envPaths = [
+    join(process.cwd(), ".env"),
+    join(process.cwd(), ".env.local")
+  ];
+  envPaths.forEach((envPath) => {
+    if (existsSync(envPath)) {
+      try {
+        const content = readFileSync(envPath, "utf8");
+        content.split("\n").forEach((line) => {
+          if (line.trim().startsWith("#") || !line.includes("=")) return;
+          const parts = line.split("=");
+          if (parts.length >= 2) {
+            const key = parts[0].trim();
+            const val = parts
+              .slice(1)
+              .join("=")
+              .trim()
+              .replace(/^['"]|['"]$/g, "");
+            process.env[key] = val;
+          }
+        });
+      } catch (e) {
+        console.warn(`Could not read ${envPath} file:`, e.message);
+      }
+    }
+  });
+}
+loadEnv();
+
+let CLIENT_KEY = process.env.CLIENT_KEY;
+if (!CLIENT_KEY) {
+  if (process.env.NODE_ENV === "production") {
+    console.error("FATAL: CLIENT_KEY environment variable is not set.");
+    process.exit(1);
+  } else {
+    CLIENT_KEY = "apollo-consortium-client-secret-2026";
+    console.warn("⚠️ CLIENT_KEY environment variable is not set. Falling back to development key.");
+  }
+}
 
 function requireClientAuth(req, res, next) {
   const clientKey = req.headers["x-client-key"];
@@ -45,36 +86,15 @@ function requireClientAuth(req, res, next) {
   next();
 }
 
-function loadEnv() {
-  const envPath = join(process.cwd(), ".env");
-  if (existsSync(envPath)) {
-    try {
-      const content = readFileSync(envPath, "utf8");
-      content.split("\n").forEach((line) => {
-        const parts = line.split("=");
-        if (parts.length >= 2) {
-          const key = parts[0].trim();
-          const val = parts
-            .slice(1)
-            .join("=")
-            .trim()
-            .replace(/^['"]|['"]$/g, "");
-          process.env[key] = val;
-        }
-      });
-    } catch (e) {
-      console.warn("Could not read .env file:", e.message);
-    }
-  }
-}
-loadEnv();
-
-const JWT_SECRET =
-  process.env.JWT_SECRET ||
-  (process.env.NODE_ENV === "production" ? null : "dev-only-jwt-secret-change-before-production");
+let JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
-  console.error("FATAL: JWT_SECRET must be set in production");
-  process.exit(1);
+  if (process.env.NODE_ENV === "production") {
+    console.error("FATAL: JWT_SECRET environment variable is not set.");
+    process.exit(1);
+  } else {
+    JWT_SECRET = "dev-only-jwt-secret-change-before-production";
+    console.warn("⚠️ JWT_SECRET environment variable is not set. Falling back to development secret.");
+  }
 }
 const IDENTITY_SECRET = process.env.IDENTITY_SECRET || JWT_SECRET + "-identity";
 const JWT_EXPIRES = "8h";
@@ -83,20 +103,84 @@ const CORS_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:5173";
 const { requireAuth, requireRole, globalApiAuth } = buildAuth(jwt, JWT_SECRET);
 
 const app = express();
+if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1);
+}
 const httpServer = createServer(app);
 const wss = new WebSocketServer({ server: httpServer });
+
+const allowedOrigins = CORS_ORIGIN.split(",").map((o) => o.trim());
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      callback(null, true);
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else if (allowedOrigins.includes("*") && process.env.NODE_ENV !== "production") {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
     },
     credentials: true,
   }),
 );
-app.use(helmet({ contentSecurityPolicy: false }));
+
+const getCSPConnectSrc = () => {
+  const sources = [
+    "'self'",
+    "http://localhost:3001",
+    "ws://localhost:3001",
+    "https://*.convex.cloud",
+    "wss://*.convex.cloud",
+    "https://api.devnet.solana.com"
+  ];
+  if (process.env.VITE_CONVEX_URL) {
+    try {
+      const url = new URL(process.env.VITE_CONVEX_URL);
+      sources.push(`https://*.${url.host}`);
+      sources.push(`wss://*.${url.host}`);
+    } catch (_) {}
+  }
+  if (process.env.SOLANA_RPC_URL) {
+    try {
+      const url = new URL(process.env.SOLANA_RPC_URL);
+      sources.push(`https://${url.host}`);
+    } catch (_) {}
+  }
+  allowedOrigins.forEach((o) => {
+    if (o !== "*") sources.push(o);
+  });
+  return [...new Set(sources)];
+};
+
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        connectSrc: getCSPConnectSrc(),
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "blob:"]
+      }
+    }
+  })
+);
 app.use(morgan("tiny"));
 app.use(express.json({ limit: "2mb" }));
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { error: "Too many login/signup attempts, please try again after 15 minutes" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use("/api/auth/login", authLimiter);
+app.use("/api/auth/signup", authLimiter);
+
 app.use(globalApiAuth);
 
 // Initialize Convex Client
@@ -107,10 +191,20 @@ if (convexUrl && convexUrl !== "https://dummy-url.convex.cloud") {
     convexClient = new ConvexHttpClient(convexUrl);
     console.log(`📡 Connected to Live Convex Database at: ${convexUrl}`);
   } catch (err) {
-    console.error("⚠️ Failed to connect Convex Client:", err.message);
+    if (process.env.NODE_ENV === "production") {
+      console.error("FATAL: Failed to connect to Convex Database in production:", err.message);
+      process.exit(1);
+    } else {
+      console.error("⚠️ Failed to connect Convex Client:", err.message);
+    }
   }
 } else {
-  console.log("ℹ️ Convex URL not configured. Operating in local simulated storage mode.");
+  if (process.env.NODE_ENV === "production") {
+    console.error("FATAL: Convex database URL is not configured in production environment.");
+    process.exit(1);
+  } else {
+    console.log("ℹ️ Convex URL not configured. Operating in local simulated storage mode.");
+  }
 }
 
 async function syncToConvex(namespace, key, value, txId) {
@@ -386,6 +480,7 @@ app.post("/api/did", requireAuth, requireRole(["admin"]), async (req, res) => {
 
   const did = `did:hosp:0x${simHash(owner + Date.now()).slice(0, 8)}`;
   const txId = randomUUID();
+  const DID_RESOLVER_BASE = process.env.DID_RESOLVER_BASE || "https://did.embracehealth.in";
   const doc = {
     did,
     publicKey: `MFkw${simHash(did).slice(0, 32).toUpperCase()}`,
@@ -396,7 +491,7 @@ app.post("/api/did", requireAuth, requireRole(["admin"]), async (req, res) => {
     credentials: [],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    serviceEndpoint: `https://did.apollohospitals.in/resolve/${did}`,
+    serviceEndpoint: `${DID_RESOLVER_BASE}/resolve/${did}`,
     ownerEmail: ownerEmail || null,
     mrn: assignedMrn,
     employeeId: assignedEmployeeId,
@@ -441,7 +536,7 @@ app.post("/api/credential/issue", requireAuth, requireRole(["admin"]), async (re
   const vc = {
     id: `vc_${txId.slice(0, 8)}`,
     type,
-    issuer: issuer || "Apollo Hospital Authority",
+    issuer: issuer || "Embrace Health Authority",
     subject: did,
     issuedAt: new Date().toISOString(),
     expiresAt: new Date(Date.now() + 365 * 86400000).toISOString(),
@@ -749,7 +844,43 @@ app.post("/api/fraud/alert", requireAuth, (req, res) => {
 });
 
 app.get("/api/fraud/alerts", requireAuth, requireRole(["admin"]), (_, res) => {
-  const all = getAllState("fraud-alerts");
+  let all = getAllState("fraud-alerts");
+  if (all.length === 0) {
+    const defaultAlerts = [
+      {
+        alertId: "fa001",
+        severity: "critical",
+        status: "open",
+        type: "Break-Glass Abuse",
+        message: "Emergency override used outside declared emergency window",
+        actor: "Dr. Sanjay Mehta",
+        riskScore: 97,
+        detectedAt: "2026-06-08T02:14:00.000Z",
+        details: "Break-glass access invoked at 02:14 with no active emergency declaration. Access lasted 22 minutes. 14 records downloaded.",
+        affectedResource: "Patient MRN-201884 · ICU records",
+        actorRole: "General Physician",
+        location: "OPD Block 2",
+        ip: "10.14.2.88",
+      },
+      {
+        alertId: "fa002",
+        severity: "critical",
+        status: "investigating",
+        type: "Credential Replay Attack",
+        message: "Identical credential presentation from two geographically distant endpoints",
+        actor: "did:hosp:0x9af2…cc01",
+        riskScore: 99,
+        detectedAt: "2026-06-08T02:22:00.000Z",
+        details: "Credential did:hosp:0x9af2... presented at Delhi and Mumbai endpoints within a 4-minute interval. Physical travel impossible.",
+        affectedResource: "Clinician Identity Token",
+        actorRole: "Security Monitor",
+        location: "Gateway Router",
+        ip: "125.16.88.2",
+      }
+    ];
+    defaultAlerts.forEach(a => putState("fraud-alerts", a.alertId, a, randomUUID()));
+    all = getAllState("fraud-alerts");
+  }
   res.json({ alerts: all.map((e) => e.value), total: all.length });
 });
 
@@ -918,6 +1049,54 @@ app.get("/api/appointments", requireAuth, (_, res) => {
   res.json({ appointments: all.map((e) => e.value), total: all.length });
 });
 
+// ─── Surgeries ────────────────────────────────────────────────────────────────
+app.get("/api/surgeries", requireAuth, (_, res) => {
+  const defaultSurgeries = [
+    {
+      id: "s1", patient: "Anika Sharma", mrn: "MRN-204871",
+      procedure: "Cardiac Catheterization (PCI)",
+      room: "Cath Lab 2", date: "2026-06-04", time: "11:00",
+      surgeon: "Dr. Ravi Menon", anesthesiologist: "Dr. Deepak Joshi",
+      nurses: ["Nurse Priya K.", "Nurse Ananya V."],
+      equipment: ["Cath Lab C-Arm", "Defibrillator", "Hemodynamic Monitor", "Infusion Pump ×3"],
+      status: "scheduled", estDuration: "90 min",
+    },
+    {
+      id: "s2", patient: "Rohan Iyer", mrn: "MRN-204902",
+      procedure: "Total Hip Replacement (Left)",
+      room: "OR-4", date: "2026-06-04", time: "13:30",
+      surgeon: "Dr. Priya Nair", anesthesiologist: "Dr. Sunita Kapoor",
+      nurses: ["Nurse Rekha S.", "Nurse Vijay T."],
+      equipment: ["Orthopedic Power Tools Set", "C-Arm", "Cell Saver", "Electrosurgical Unit"],
+      status: "scheduled", estDuration: "3 hours",
+    },
+    {
+      id: "s3", patient: "Deepak Joshi", mrn: "MRN-203001",
+      procedure: "Laparoscopic Appendectomy",
+      room: "OR-2", date: "2026-06-02", time: "09:00",
+      surgeon: "Dr. Kiran Bose", anesthesiologist: "Dr. Alok Sharma",
+      nurses: ["Nurse Sunita V.", "Nurse Ram K."],
+      equipment: ["Laparoscopic Tower", "Ultrasonic Scalpel", "Electrosurgical Unit"],
+      status: "in-progress", estDuration: "45 min",
+    },
+    {
+      id: "s4", patient: "Kavya Reddy", mrn: "MRN-206114",
+      procedure: "LASIK Eye Surgery (Bilateral)",
+      room: "Eye Suite 1", date: "2026-06-01", time: "14:00",
+      surgeon: "Dr. Reena Pillai", anesthesiologist: "Local Anesthesia",
+      nurses: ["Nurse Pooja A."],
+      equipment: ["LASIK Excimer Laser", "Microkeratome", "Aberrometer"],
+      status: "completed", estDuration: "30 min",
+    },
+  ];
+  const all = getAllState("surgeries");
+  if (all.length === 0) {
+    res.json({ surgeries: defaultSurgeries, total: defaultSurgeries.length });
+  } else {
+    res.json({ surgeries: all.map((e) => e.value), total: all.length });
+  }
+});
+
 app.post("/api/appointments", requireAuth, (req, res) => {
   const { patientDid, patientName, doctorDid, doctorName, slot, mode, specialty } = req.body;
 
@@ -986,12 +1165,26 @@ app.post("/api/auth/signup", async (req, res) => {
     return res.status(400).json({ error: "Name, email, and role are required" });
   }
 
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({ error: "Invalid email format" });
+  }
+
+  if (!password || password.length < 8) {
+    return res.status(400).json({ error: "Password must be at least 8 characters long" });
+  }
+  const hasNumber = /\d/.test(password);
+  const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+  if (!hasNumber || !hasSpecial) {
+    return res.status(400).json({ error: "Password must contain at least one number and one special character" });
+  }
+
   const existingUser = getState("users", email);
   if (existingUser) {
     return res.status(400).json({ error: "User already exists" });
   }
 
-  const hashedPassword = password ? await bcrypt.hash(password, 10) : "";
+  const hashedPassword = await bcrypt.hash(password, 10);
   const txId = randomUUID();
   const user = {
     name,

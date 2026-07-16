@@ -5,94 +5,60 @@ import { PageHeader } from "@/components/PageHeader";
 import { CredentialCard } from "@/components/credentials/CredentialCard";
 import { CredentialPreview } from "@/components/credentials/CredentialPreview";
 import { CredentialTimeline } from "@/components/credentials/CredentialTimeline";
-import { useCredentials } from "@/hooks/use-api";
+import { useCredentials, useLivePatients } from "@/hooks/use-api";
+import { getCurrentUser } from "@/lib/auth";
 import { RouteGuard } from "@/components/RouteGuard";
 import { Wallet as WalletIcon, ShieldCheck, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 
-
 export const Route = createFileRoute("/patient/wallet")({
-  head: () => ({ meta: [{ title: "Patient · Credentials Wallet — DID Hospital" }] }),
+  head: () => ({ meta: [{ title: "Patient · Credentials Wallet — Embrace Health Grid" }] }),
   component: Wallet,
 });
 
-const timelineEvents = [
-  {
-    id: "t1",
-    action: "issued" as const,
-    label: "Patient Identity credential issued",
-    issuer: "Apollo Hospitals",
-    at: "2025-01-12",
-  },
-  {
-    id: "t2",
-    action: "verified" as const,
-    label: "Identity verified at OPD check-in",
-    issuer: "Apollo Hospitals OPD Desk",
-    at: "2025-06-02",
-  },
-  {
-    id: "t3",
-    action: "issued" as const,
-    label: "Health Insurance credential issued",
-    issuer: "Star Health Insurance",
-    at: "2025-04-02",
-  },
-  {
-    id: "t4",
-    action: "verified" as const,
-    label: "Insurance verified for cashless admission",
-    issuer: "Apollo Billing Dept.",
-    at: "2025-11-18",
-  },
-  {
-    id: "t5",
-    action: "expired" as const,
-    label: "Lab Report Access credential expired",
-    issuer: "Apollo Diagnostics",
-    at: "2025-09-21",
-  },
-];
-
-const previewFields: Record<string, { label: string; value: string }[]> = {
-  c1: [
-    { label: "Full Name", value: "Anika Sharma" },
-    { label: "MRN", value: "MRN-204871" },
-    { label: "Blood Group", value: "O+" },
-    { label: "Date of Birth", value: "1992-03-14" },
-  ],
-  c2: [
-    { label: "Policy No.", value: "POL-2025-STAR-00881" },
-    { label: "Sum Insured", value: "₹10,00,000" },
-    { label: "Coverage Type", value: "Comprehensive" },
-  ],
-  c3: [
-    { label: "Vaccines", value: "COVID-19, Hep-B, Tetanus, OPV" },
-    { label: "Issuing Authority", value: "Govt. of India — NHM" },
-    { label: "Last Updated", value: "2024-03-10" },
-  ],
-  c4: [
-    { label: "Lab", value: "Apollo Diagnostics" },
-    { label: "Tests", value: "CBC, HbA1c, Lipid Panel" },
-    { label: "Report Date", value: "2025-03-21" },
-  ],
-};
-
 function Wallet() {
   const { data: credentialsData, loading } = useCredentials();
+  const { patients } = useLivePatients();
+  const currentUser = getCurrentUser();
+  const patient = patients?.find((p: any) => p.email === currentUser?.email);
+  const holderName = patient ? patient.name : "Anika Sharma";
+
   const rawCredentials = credentialsData?.credentials ?? [];
 
   const liveCredentials = rawCredentials.map((c: any) => ({
     id: c.id ?? c.txId ?? String(Math.random()),
     type: c.type ?? "Verifiable Credential",
-    issuer: c.issuer ?? "Apollo Hospitals",
-    issuedAt: c.issuedAt ?? c.timestamp ?? "2025-01-12",
-    expiresAt: c.expiresAt ?? "2026-01-12",
+    issuer: c.issuer ?? "Embrace Health Consortium",
+    issuedAt: c.issuedAt ?? c.timestamp ?? new Date().toISOString().split("T")[0],
+    expiresAt: c.expiresAt ?? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
     status: (c.status === "revoked" ? "revoked" : "active") as "active" | "revoked" | "expired",
+    claims: c.claims || {},
   }));
 
   const list = liveCredentials;
   const [selected, setSelected] = useState<(typeof list)[0] | null>(null);
+
+  const timelineEvents = list.map((c: any, i: number) => ({
+    id: `wallet_event_${c.id || i}`,
+    action: c.status === "revoked" ? "expired" as const : "issued" as const,
+    label: `${c.type === "IdentityVC" ? "Identity" : c.type === "InsuranceVC" ? "Insurance" : c.type} credential ${c.status === "revoked" ? "revoked" : "issued"}`,
+    issuer: c.issuer,
+    at: c.issuedAt ? c.issuedAt.split("T")[0] : "N/A",
+  }));
+
+  const getPreviewFields = (selectedCred: any) => {
+    const raw = rawCredentials.find((rc: any) => rc.id === selectedCred.id);
+    if (!raw || !raw.claims) return [];
+    
+    return Object.entries(raw.claims)
+      .filter(([k]) => k !== "subjectDid")
+      .map(([key, val]) => {
+        const label = key
+          .replace(/([A-Z])/g, " $1")
+          .replace(/^./, (str) => str.toUpperCase());
+        return { label, value: String(val) };
+      });
+  };
 
   return (
     <RouteGuard requiredRole="patient">
@@ -175,13 +141,13 @@ function Wallet() {
                   <CredentialPreview
                     type={selected.type}
                     issuer={selected.issuer}
-                    holder="Anika Sharma"
+                    holder={holderName}
                     issuedAt={selected.issuedAt}
                     expiresAt={selected.expiresAt}
                     status={selected.status}
                     credentialId={selected.id}
-                    schema={`https://schema.did-hospital.in/v1/${selected.type.toLowerCase().replace(/\s/g, "-")}`}
-                    fields={previewFields[selected.id]}
+                    schema={`https://schema.embracehealth.in/v1/${selected.type.toLowerCase().replace(/\s/g, "-")}`}
+                    fields={getPreviewFields(selected)}
                   />
                 </motion.div>
               )}

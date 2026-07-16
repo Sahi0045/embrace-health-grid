@@ -24,6 +24,7 @@ import {
 import { useState, useEffect } from "react";
 import { usePatientVitals, useInpatientData } from "@/hooks/use-api";
 import { getBilling, getLabs } from "@/lib/api";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/patient/inpatient")({
   head: () => ({
@@ -50,13 +51,19 @@ function InpatientCare() {
           setBillSummary(res.billSummary);
         }
       })
-      .catch((err) => console.error(err));
+      .catch((err) => {
+        console.error(err);
+        toast.error("Failed to load billing summary", { description: err.message });
+      });
 
     getLabs(patientDid)
       .then((res) => {
         setLabTests(res?.labs || []);
       })
-      .catch((err) => console.error(err));
+      .catch((err) => {
+        console.error(err);
+        toast.error("Failed to load lab tests", { description: err.message });
+      });
   }, [patientDid]);
 
   const apiVitalSigns = inpatientData?.vitalSigns ?? [];
@@ -127,7 +134,7 @@ function InpatientCare() {
                   <span className="text-xs text-muted-foreground">
                     Day{" "}
                     {Math.ceil(
-                      (new Date("2026-05-30").getTime() -
+                      (new Date().getTime() -
                         new Date(currentAdmission.admissionDate).getTime()) /
                         (1000 * 60 * 60 * 24),
                     )}{" "}
@@ -259,7 +266,7 @@ function InpatientCare() {
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-2">
-                      {todayCheckups.map((checkup) => (
+                      {todayCheckups.map((checkup: any) => (
                         <div
                           key={checkup.id}
                           className="flex items-start justify-between rounded-lg border p-3"
@@ -296,7 +303,7 @@ function InpatientCare() {
                       </CardHeader>
                       <CardContent className="space-y-2">
                         {upcomingProcedures.length > 0 ? (
-                          upcomingProcedures.map((proc) => (
+                          upcomingProcedures.map((proc: any) => (
                             <div key={proc.id} className="rounded-lg border p-3">
                               <div className="flex items-center justify-between">
                                 <div className="font-medium text-sm">{proc.name}</div>
@@ -440,7 +447,7 @@ function InpatientCare() {
                       </div>
                     </CardHeader>
                     <CardContent className="grid gap-3 sm:grid-cols-2">
-                      {activeMeds.map((med) => (
+                      {activeMeds.map((med: any) => (
                         <div key={med.id} className="rounded-lg border p-3">
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
@@ -537,7 +544,7 @@ function InpatientCare() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  {nursingNotes.slice(0, 3).map((note) => (
+                  {nursingNotes.slice(0, 3).map((note: any) => (
                     <div key={note.id} className="rounded-lg border p-3">
                       <div className="flex items-center justify-between">
                         <div className="text-xs font-medium">{note.timestamp}</div>

@@ -168,5 +168,221 @@
     "updatedAt": "2026-06-23T13:22:30.172Z",
     "txId": "2f7d2b5a-4b3b-4b67-95c0-274f9971cc69",
     "docType": "audit"
+  },
+  "audit_d0171c9a-75bb-4e98-a789-d695873b7f92": {
+    "key": "audit_d0171c9a-75bb-4e98-a789-d695873b7f92",
+    "value": {
+      "txId": "d0171c9a-75bb-4e98-a789-d695873b7f92",
+      "actor": "admin@example.com",
+      "actorDid": null,
+      "resource": "p_1783151963812",
+      "action": "POLICY_CREATE",
+      "outcome": "success",
+      "severity": "info",
+      "loggedAt": "2026-07-04T07:59:23.812Z"
+    },
+    "namespace": "audit",
+    "version": "d0171c9a-75bb-4e98-a789-d695873b7f92:1",
+    "updatedAt": "2026-07-04T07:59:23.812Z",
+    "txId": "d0171c9a-75bb-4e98-a789-d695873b7f92",
+    "docType": "audit"
+  },
+  "audit_ac1e8f78-cbc8-4727-bdc0-78ec61949c29": {
+    "key": "audit_ac1e8f78-cbc8-4727-bdc0-78ec61949c29",
+    "value": {
+      "txId": "ac1e8f78-cbc8-4727-bdc0-78ec61949c29",
+      "actor": "admin@example.com",
+      "actorDid": null,
+      "resource": "p_1783151963812",
+      "action": "POLICY_UPDATE",
+      "outcome": "success",
+      "severity": "info",
+      "loggedAt": "2026-07-04T07:59:23.814Z"
+    },
+    "namespace": "audit",
+    "version": "ac1e8f78-cbc8-4727-bdc0-78ec61949c29:1",
+    "updatedAt": "2026-07-04T07:59:23.814Z",
+    "txId": "ac1e8f78-cbc8-4727-bdc0-78ec61949c29",
+    "docType": "audit"
+  },
+  "audit_34d6428f-540d-4432-9c02-a33bc1178b8d": {
+    "key": "audit_34d6428f-540d-4432-9c02-a33bc1178b8d",
+    "value": {
+      "txId": "34d6428f-540d-4432-9c02-a33bc1178b8d",
+      "actor": "admin@example.com",
+      "actorDid": null,
+      "resource": "p_1783151963812",
+      "action": "POLICY_UPDATE",
+      "outcome": "success",
+      "severity": "info",
+      "loggedAt": "2026-07-04T07:59:23.816Z"
+    },
+    "namespace": "audit",
+    "version": "34d6428f-540d-4432-9c02-a33bc1178b8d:1",
+    "updatedAt": "2026-07-04T07:59:23.816Z",
+    "txId": "34d6428f-540d-4432-9c02-a33bc1178b8d",
+    "docType": "audit"
+  },
+  "audit_5e2bd2d9-c6e2-4827-816b-832a01b58bd5": {
+    "key": "audit_5e2bd2d9-c6e2-4827-816b-832a01b58bd5",
+    "value": {
+      "txId": "5e2bd2d9-c6e2-4827-816b-832a01b58bd5",
+      "actor": "admin@example.com",
+      "actorDid": null,
+      "resource": "fa001",
+      "action": "FRAUD_ALERT_UPDATE",
+      "outcome": "success",
+      "severity": "info",
+      "loggedAt": "2026-07-04T07:59:23.818Z"
+    },
+    "namespace": "audit",
+    "version": "5e2bd2d9-c6e2-4827-816b-832a01b58bd5:1",
+    "updatedAt": "2026-07-04T07:59:23.818Z",
+    "txId": "5e2bd2d9-c6e2-4827-816b-832a01b58bd5",
+    "docType": "audit"
+  },
+  "audit_54906eef-b7a7-4f64-8f7d-ac105876c0ef": {
+    "key": "audit_54906eef-b7a7-4f64-8f7d-ac105876c0ef",
+    "value": {
+      "txId": "54906eef-b7a7-4f64-8f7d-ac105876c0ef",
+      "actor": "admin@example.com",
+      "actorDid": null,
+      "resource": "p_1783151975174",
+      "action": "POLICY_CREATE",
+      "outcome": "success",
+      "severity": "info",
+      "loggedAt": "2026-07-04T07:59:35.174Z"
+    },
+    "namespace": "audit",
+    "version": "54906eef-b7a7-4f64-8f7d-ac105876c0ef:1",
+    "updatedAt": "2026-07-04T07:59:35.174Z",
+    "txId": "54906eef-b7a7-4f64-8f7d-ac105876c0ef",
+    "docType": "audit"
+  },
+  "audit_6680e984-6f04-4175-843c-9814b76bfb04": {
+    "key": "audit_6680e984-6f04-4175-843c-9814b76bfb04",
+    "value": {
+      "txId": "6680e984-6f04-4175-843c-9814b76bfb04",
+      "actor": "admin@example.com",
+      "actorDid": null,
+      "resource": "p_1783151975174",
+      "action": "POLICY_UPDATE",
+      "outcome": "success",
+      "severity": "info",
+      "loggedAt": "2026-07-04T07:59:35.175Z"
+    },
+    "namespace": "audit",
+    "version": "6680e984-6f04-4175-843c-9814b76bfb04:1",
+    "updatedAt": "2026-07-04T07:59:35.175Z",
+    "txId": "6680e984-6f04-4175-843c-9814b76bfb04",
+    "docType": "audit"
+  },
+  "audit_6c43825e-90de-4eb8-90c7-5cde99a7e0bd": {
+    "key": "audit_6c43825e-90de-4eb8-90c7-5cde99a7e0bd",
+    "value": {
+      "txId": "6c43825e-90de-4eb8-90c7-5cde99a7e0bd",
+      "actor": "admin@example.com",
+      "actorDid": null,
+      "resource": "p_1783151975174",
+      "action": "POLICY_UPDATE",
+      "outcome": "success",
+      "severity": "info",
+      "loggedAt": "2026-07-04T07:59:35.176Z"
+    },
+    "namespace": "audit",
+    "version": "6c43825e-90de-4eb8-90c7-5cde99a7e0bd:1",
+    "updatedAt": "2026-07-04T07:59:35.176Z",
+    "txId": "6c43825e-90de-4eb8-90c7-5cde99a7e0bd",
+    "docType": "audit"
+  },
+  "audit_e71fffd0-f8b0-43fb-8daf-47c8dadc5a8e": {
+    "key": "audit_e71fffd0-f8b0-43fb-8daf-47c8dadc5a8e",
+    "value": {
+      "txId": "e71fffd0-f8b0-43fb-8daf-47c8dadc5a8e",
+      "actor": "admin@example.com",
+      "actorDid": null,
+      "resource": "fa001",
+      "action": "FRAUD_ALERT_UPDATE",
+      "outcome": "success",
+      "severity": "info",
+      "loggedAt": "2026-07-04T07:59:35.179Z"
+    },
+    "namespace": "audit",
+    "version": "e71fffd0-f8b0-43fb-8daf-47c8dadc5a8e:1",
+    "updatedAt": "2026-07-04T07:59:35.179Z",
+    "txId": "e71fffd0-f8b0-43fb-8daf-47c8dadc5a8e",
+    "docType": "audit"
+  },
+  "audit_94a7324c-21be-41c5-aaec-e92ee472110e": {
+    "key": "audit_94a7324c-21be-41c5-aaec-e92ee472110e",
+    "value": {
+      "txId": "94a7324c-21be-41c5-aaec-e92ee472110e",
+      "actor": "admin@example.com",
+      "actorDid": null,
+      "resource": "p_1783152016335",
+      "action": "POLICY_CREATE",
+      "outcome": "success",
+      "severity": "info",
+      "loggedAt": "2026-07-04T08:00:16.335Z"
+    },
+    "namespace": "audit",
+    "version": "94a7324c-21be-41c5-aaec-e92ee472110e:1",
+    "updatedAt": "2026-07-04T08:00:16.335Z",
+    "txId": "94a7324c-21be-41c5-aaec-e92ee472110e",
+    "docType": "audit"
+  },
+  "audit_6be39f79-28a1-4810-89cf-44a6b350cd6b": {
+    "key": "audit_6be39f79-28a1-4810-89cf-44a6b350cd6b",
+    "value": {
+      "txId": "6be39f79-28a1-4810-89cf-44a6b350cd6b",
+      "actor": "admin@example.com",
+      "actorDid": null,
+      "resource": "p_1783152016335",
+      "action": "POLICY_UPDATE",
+      "outcome": "success",
+      "severity": "info",
+      "loggedAt": "2026-07-04T08:00:16.337Z"
+    },
+    "namespace": "audit",
+    "version": "6be39f79-28a1-4810-89cf-44a6b350cd6b:1",
+    "updatedAt": "2026-07-04T08:00:16.337Z",
+    "txId": "6be39f79-28a1-4810-89cf-44a6b350cd6b",
+    "docType": "audit"
+  },
+  "audit_cf14426a-7490-4934-8289-8bff5d40c435": {
+    "key": "audit_cf14426a-7490-4934-8289-8bff5d40c435",
+    "value": {
+      "txId": "cf14426a-7490-4934-8289-8bff5d40c435",
+      "actor": "admin@example.com",
+      "actorDid": null,
+      "resource": "p_1783152016335",
+      "action": "POLICY_UPDATE",
+      "outcome": "success",
+      "severity": "info",
+      "loggedAt": "2026-07-04T08:00:16.338Z"
+    },
+    "namespace": "audit",
+    "version": "cf14426a-7490-4934-8289-8bff5d40c435:1",
+    "updatedAt": "2026-07-04T08:00:16.338Z",
+    "txId": "cf14426a-7490-4934-8289-8bff5d40c435",
+    "docType": "audit"
+  },
+  "audit_a94f8356-67e9-42e9-b999-4839767e8f94": {
+    "key": "audit_a94f8356-67e9-42e9-b999-4839767e8f94",
+    "value": {
+      "txId": "a94f8356-67e9-42e9-b999-4839767e8f94",
+      "actor": "admin@example.com",
+      "actorDid": null,
+      "resource": "fa001",
+      "action": "FRAUD_ALERT_UPDATE",
+      "outcome": "success",
+      "severity": "info",
+      "loggedAt": "2026-07-04T08:00:16.340Z"
+    },
+    "namespace": "audit",
+    "version": "a94f8356-67e9-42e9-b999-4839767e8f94:1",
+    "updatedAt": "2026-07-04T08:00:16.340Z",
+    "txId": "a94f8356-67e9-42e9-b999-4839767e8f94",
+    "docType": "audit"
   }
 }

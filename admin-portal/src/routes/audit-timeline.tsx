@@ -6,7 +6,7 @@ import { useState, useMemo } from "react";
 import { useAudit } from "@/hooks/use-api";
 
 export const Route = createFileRoute("/audit-timeline")({
-  head: () => ({ meta: [{ title: "Audit Timeline — Embrace Health Grid" }] }),
+  head: () => ({ meta: [{ title: "Audit Timeline — DID Hospital" }] }),
   component: AuditTimelinePage,
 });
 

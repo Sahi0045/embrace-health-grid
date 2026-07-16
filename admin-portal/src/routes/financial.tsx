@@ -59,6 +59,54 @@ function AdminFinancialPage() {
     };
   }, [refresh]);
 
+  const handleDownloadStatement = () => {
+    if (!selectedPatient) return;
+    const ptTx = transactions.filter(t => t.patientDid === selectedPatient.did);
+    const totalAmount = ptTx.reduce((sum, t) => sum + t.amount, 0);
+
+    const statementLines = [
+      "==========================================================================",
+      "                      EMBRACE HEALTH HOSPITAL STATEMENT                   ",
+      "==========================================================================",
+      `Statement Date: ${new Date().toLocaleDateString()}`,
+      `Patient Name  : ${selectedPatient.name}`,
+      `DID Document  : ${selectedPatient.did}`,
+      `MRN           : ${selectedPatient.mrn}`,
+      `Age / Gender  : ${selectedPatient.age}y / ${selectedPatient.gender}`,
+      `Contact       : ${selectedPatient.phone}`,
+      `Insurance     : ${selectedPatient.insuranceProvider} (${selectedPatient.insurancePolicyNo})`,
+      "--------------------------------------------------------------------------",
+      "                            TRANSACTION HISTORY                           ",
+      "--------------------------------------------------------------------------",
+      "DATE        | CATEGORY     | REFERENCE        | STATUS      | AMOUNT",
+      "--------------------------------------------------------------------------",
+      ...ptTx.map(t => {
+        const dateStr = new Date().toLocaleDateString().padEnd(11);
+        const catStr = t.category.toUpperCase().padEnd(12);
+        const refStr = (t.reference || "N/A").padEnd(16);
+        const statusStr = (t.status || "UNPAID").toUpperCase().padEnd(11);
+        const amtStr = `$${t.amount.toFixed(2)}`;
+        return `${dateStr} | ${catStr} | ${refStr} | ${statusStr} | ${amtStr}`;
+      }),
+      "--------------------------------------------------------------------------",
+      `TOTAL OUTSTANDING / RECORDED: $${totalAmount.toFixed(2)}`,
+      "==========================================================================",
+      "               This is a secure verifiable statement from DID Hospital.   ",
+      "=========================================================================="
+    ];
+
+    const element = document.createElement("a");
+    const file = new Blob([statementLines.join("\n")], { type: 'text/plain' });
+    element.href = URL.createObjectURL(file);
+    element.download = `${selectedPatient.name.replace(/\s+/g, '_')}_hospital_statement.txt`;
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+    toast.success("Statement generated & downloaded", {
+      description: `${selectedPatient.name}'s medical bill statement.`
+    });
+  };
+
   const handleSearch = () => {
     const q = didQuery.trim().toLowerCase();
     if (!q) return;
@@ -76,6 +124,7 @@ function AdminFinancialPage() {
       toast.error("Not found", { description: "No patient matches that DID, name, or MRN." });
     }
   };
+
 
   const handleRecordPayment = async (category: LiveTransaction["category"]) => {
     if (!selectedPatient) return;
@@ -221,15 +270,12 @@ function AdminFinancialPage() {
                       </p>
                     </div>
                     <button
-                      onClick={() =>
-                        toast.success("Statement generated", {
-                          description: `PDF for ${selectedPatient.name}`,
-                        })
-                      }
+                      onClick={handleDownloadStatement}
                       className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-bold hover:bg-muted"
                     >
                       <Download className="h-3.5 w-3.5" /> Download
                     </button>
+
                   </div>
 
                   <div className="grid gap-4 sm:grid-cols-3 text-xs">
@@ -442,8 +488,8 @@ function AdminFinancialPage() {
               <div className="border border-border rounded-xl p-5 space-y-4 font-mono text-xs">
                 <div className="flex justify-between border-b border-border pb-3">
                   <div>
-                    <h3 className="font-black text-sm">DID HOSPITAL</h3>
-                    <p className="text-[10px] text-muted-foreground">Apollo Campus, Mumbai</p>
+                    <h3 className="font-black text-sm">EMBRACE HEALTH GRID</h3>
+                    <p className="text-[10px] text-muted-foreground">Embrace Health Campus</p>
                   </div>
                   <div className="text-right">
                     <p className="font-bold">INVOICE</p>
@@ -490,7 +536,7 @@ function AdminFinancialPage() {
                 </button>
                 <button
                   onClick={() => {
-                    toast.success("Sent to printer queue");
+                    window.print();
                     setShowInvoice(null);
                   }}
                   className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-primary text-primary-foreground py-2 text-xs font-bold hover:bg-primary/90"

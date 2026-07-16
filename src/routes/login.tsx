@@ -12,8 +12,8 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
-      { title: "Login — DID Hospital" },
-      { name: "description", content: "Login to DID Hospital Infrastructure" },
+      { title: "Login — Embrace Health Grid" },
+      { name: "description", content: "Login to Embrace Health Grid Platform" },
     ],
   }),
   component: LoginPage,
@@ -67,6 +67,18 @@ function LoginPage() {
           setIsLoading(false);
           return;
         }
+        if (password.length < 8) {
+          toast.error("Password must be at least 8 characters long");
+          setIsLoading(false);
+          return;
+        }
+        const hasNumber = /\d/.test(password);
+        const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+        if (!hasNumber || !hasSpecial) {
+          toast.error("Password must contain at least one number and one special character");
+          setIsLoading(false);
+          return;
+        }
         const signupRes = await signup({ name, email, role: selectedRole, password });
         if (signupRes.success && signupRes.user) {
           setSession(signupRes.token, signupRes.user);
@@ -94,7 +106,7 @@ function LoginPage() {
         <div className="mb-8 text-center">
           <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
             <Hospital className="h-4 w-4" />
-            DID Hospital Infrastructure
+            Embrace Health Grid
           </div>
           <h1 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
             Welcome Back

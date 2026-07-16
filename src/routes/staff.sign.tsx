@@ -31,7 +31,7 @@ import { toast } from "sonner";
 import { signPrescription, logAuditEvent, requestConsent } from "@/lib/api";
 
 export const Route = createFileRoute("/staff/sign")({
-  head: () => ({ meta: [{ title: "Staff · Sign & Prescribe — DID Hospital" }] }),
+  head: () => ({ meta: [{ title: "Staff · Sign & Prescribe — Embrace Health Grid" }] }),
   component: SignPage,
 });
 
@@ -98,7 +98,7 @@ const recentPrescriptions: RecentPrescription[] = [
     patient: "Anika Sharma",
     mrn: "MRN-204871",
     drugs: ["Atorvastatin 20mg", "Aspirin 75mg"],
-    signedAt: "2026-06-08 10:12",
+    signedAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toLocaleString().replace(/\//g, "-"),
     hash: "0x9f3a…c821",
     status: "active",
   },
@@ -107,7 +107,7 @@ const recentPrescriptions: RecentPrescription[] = [
     patient: "Rohan Iyer",
     mrn: "MRN-201440",
     drugs: ["Metformin 500mg", "Pantoprazole 40mg", "Atenolol 50mg"],
-    signedAt: "2026-06-08 09:30",
+    signedAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toLocaleString().replace(/\//g, "-"),
     hash: "0x7b2e…a419",
     status: "dispensed",
   },
@@ -116,7 +116,7 @@ const recentPrescriptions: RecentPrescription[] = [
     patient: "Meera Pillai",
     mrn: "MRN-200788",
     drugs: ["Losartan 50mg"],
-    signedAt: "2026-06-07 16:45",
+    signedAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toLocaleString().replace(/\//g, "-"),
     hash: "0x4a1c…f830",
     status: "active",
   },
@@ -125,11 +125,12 @@ const recentPrescriptions: RecentPrescription[] = [
     patient: "Karthik Rao",
     mrn: "MRN-199320",
     drugs: ["Furosemide 40mg", "Spironolactone 25mg", "Ramipril 5mg"],
-    signedAt: "2026-06-07 11:00",
+    signedAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toLocaleString().replace(/\//g, "-"),
     hash: "0x2d0f…b994",
     status: "dispensed",
   },
 ];
+
 
 const statusConfig = {
   active: { bg: "bg-primary/10", text: "text-primary" },

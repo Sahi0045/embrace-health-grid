@@ -22,7 +22,7 @@ import { motion } from "framer-motion";
 import { useState } from "react";
 
 export const Route = createFileRoute("/patient/emergency")({
-  head: () => ({ meta: [{ title: "Emergency Profile — DID Hospital" }] }),
+  head: () => ({ meta: [{ title: "Emergency Profile — Embrace Health Grid" }] }),
   component: EmergencyPage,
 });
 

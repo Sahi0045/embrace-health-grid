@@ -349,7 +349,7 @@ async function fetchDIDsFromConvex(): Promise<Record<string, DIDDocument>> {
     const registry: Record<string, DIDDocument> = {};
 
     for (const did of dids) {
-      const relatedCredentials = credentials.filter((c) => c.subject === did.did);
+      const relatedCredentials = credentials.filter((c: any) => c.subject === did.did);
       registry[did.did] = {
         did: did.did,
         publicKey: did.publicKey,
@@ -357,7 +357,7 @@ async function fetchDIDsFromConvex(): Promise<Record<string, DIDDocument>> {
         owner: did.owner,
         ownerType: did.ownerType as "patient" | "staff" | "device" | "org",
         status: did.status as "active" | "revoked" | "suspended",
-        credentials: relatedCredentials.map((c) => ({
+        credentials: relatedCredentials.map((c: any) => ({
           id: c.id,
           type: c.type as any,
           issuer: c.issuer,
@@ -405,7 +405,7 @@ export async function rebuildLiveListsFromConvex() {
     // Build DID registry for quick lookups
     const registry: Record<string, DIDDocument> = {};
     for (const did of didsData) {
-      const relatedCredentials = credentialsData.filter((c) => c.subject === did.did);
+      const relatedCredentials = credentialsData.filter((c: any) => c.subject === did.did);
       registry[did.did] = {
         did: did.did,
         publicKey: did.publicKey,
@@ -413,7 +413,7 @@ export async function rebuildLiveListsFromConvex() {
         owner: did.owner,
         ownerType: did.ownerType as "patient" | "staff" | "device" | "org",
         status: did.status as "active" | "revoked" | "suspended",
-        credentials: relatedCredentials.map((c) => ({
+        credentials: relatedCredentials.map((c: any) => ({
           id: c.id,
           type: c.type as any,
           issuer: c.issuer,
@@ -510,7 +510,7 @@ export async function rebuildLiveListsFromConvex() {
     _livePatients = patientsTemp;
     _liveStaff = staffTemp;
 
-    console.log(
+    console.debug(
       `[Store] Loaded ${_livePatients.length} patients and ${_liveStaff.length} staff from Convex`,
     );
   } catch (error) {
@@ -724,7 +724,7 @@ export async function initializeStore(): Promise<void> {
   if (_initialized) return;
   _initialized = true;
 
-  console.log("[Store] Initializing real-time hospital data store…");
+  console.debug("[Store] Initializing real-time hospital data store…");
 
   // TODO: Rebuild lists from Convex instead of localStorage
   await rebuildLiveListsFromConvex();
@@ -743,7 +743,7 @@ export async function initializeStore(): Promise<void> {
   setInterval(runStaffTick, 8000);
 
   emitStoreEvent("store:ready");
-  console.log("[Store] Ready ✓");
+  console.debug("[Store] Ready ✓");
 }
 
 // ---------------------------------------------------------------------------
@@ -802,10 +802,10 @@ export function getPatientByMRN(mrn: string): LivePatient | null {
  */
 export async function refreshFromConvex(): Promise<void> {
   try {
-    console.log("[Store] Manually refreshing data from Convex...");
+    console.debug("[Store] Manually refreshing data from Convex...");
     await rebuildLiveListsFromConvex();
     emitStoreEvent("store:refreshed");
-    console.log("[Store] Refresh complete");
+    console.debug("[Store] Refresh complete");
   } catch (error) {
     console.error("[Store] Error refreshing from Convex:", error);
     throw error;
@@ -824,7 +824,7 @@ export async function getPatientFromConvex(did: string): Promise<LivePatient | n
 
     const didDoc = await client.query(api.records.getDIDByURI, { did });
     const credentials = await client.query(api.records.getCredentials);
-    const relatedCredentials = credentials.filter((c) => c.subject === did);
+    const relatedCredentials = credentials.filter((c: any) => c.subject === did);
 
     const doc: DIDDocument | null = didDoc
       ? {
@@ -834,7 +834,7 @@ export async function getPatientFromConvex(did: string): Promise<LivePatient | n
           owner: didDoc.owner,
           ownerType: didDoc.ownerType as "patient" | "staff" | "device" | "org",
           status: didDoc.status as "active" | "revoked" | "suspended",
-          credentials: relatedCredentials.map((c) => ({
+          credentials: relatedCredentials.map((c: any) => ({
             id: c.id,
             type: c.type as any,
             issuer: c.issuer,
@@ -907,7 +907,7 @@ export async function getStaffFromConvex(did: string): Promise<LiveStaff | null>
 
     const didDoc = await client.query(api.records.getDIDByURI, { did });
     const credentials = await client.query(api.records.getCredentials);
-    const relatedCredentials = credentials.filter((c) => c.subject === did);
+    const relatedCredentials = credentials.filter((c: any) => c.subject === did);
 
     const doc: DIDDocument | null = didDoc
       ? {
@@ -917,7 +917,7 @@ export async function getStaffFromConvex(did: string): Promise<LiveStaff | null>
           owner: didDoc.owner,
           ownerType: didDoc.ownerType as "patient" | "staff" | "device" | "org",
           status: didDoc.status as "active" | "revoked" | "suspended",
-          credentials: relatedCredentials.map((c) => ({
+          credentials: relatedCredentials.map((c: any) => ({
             id: c.id,
             type: c.type as any,
             issuer: c.issuer,

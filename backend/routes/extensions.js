@@ -99,6 +99,23 @@ export function registerExtensionRoutes(app, deps) {
     res.json({ prescriptions: all.map((e) => e.value), total: all.length });
   });
 
+  app.post("/api/prescriptions/sign", requireRole("staff", "admin", "doctor"), (req, res) => {
+    const { rxId, staffDid } = req.body;
+    if (!rxId) return res.status(400).json({ error: "rxId required" });
+
+    const entry = getState("prescriptions", rxId);
+    if (!entry) return res.status(404).json({ error: "Prescription not found" });
+
+    entry.value.signed = true;
+    entry.value.status = "active";
+    entry.value.signedBy = staffDid;
+    entry.value.signedAt = new Date().toISOString();
+
+    putState("prescriptions", rxId, entry.value, randomUUID());
+    broadcast({ event: "prescription:signed", data: { rxId } });
+    res.json({ success: true, rx: entry.value });
+  });
+
   // ─── Consent request deny ───────────────────────────────────────────────────
   app.patch("/api/consent/requests/:id/deny", requireRole("patient", "admin"), (req, res) => {
     const entry = getState("consent-requests", req.params.id);
@@ -650,6 +667,31 @@ export function registerExtensionRoutes(app, deps) {
     res.json({ record });
   });
 
+  app.post("/api/staff-requests", requireRole("staff", "admin"), (req, res) => {
+    const { requestType, leaveType, fromDate, toDate, reason, shiftDate, shiftType, unit } = req.body;
+    if (!requestType) return res.status(400).json({ error: "requestType required" });
+    const id = `REQ-${Date.now().toString(36).toUpperCase()}`;
+    const record = {
+      id,
+      staffEmail: req.user.email,
+      staffDid: req.user.did,
+      requestType,
+      leaveType: leaveType || null,
+      fromDate: fromDate || null,
+      toDate: toDate || null,
+      reason: reason || null,
+      shiftDate: shiftDate || null,
+      shiftType: shiftType || null,
+      unit: unit || null,
+      status: "pending",
+      createdAt: new Date().toISOString(),
+    };
+    putState("staff-requests", id, record, randomUUID());
+    logAudit(req, { resource: id, action: `STAFF_REQUEST_CREATE_${requestType.toUpperCase()}` });
+    res.json({ success: true, record });
+  });
+
+
   // ─── Solana ─────────────────────────────────────────────────────────────────
   app.post("/api/solana/anchor", requireRole("staff", "admin"), async (req, res) => {
     const { recordHash, recordType, actorDid, recordId } = req.body;
@@ -686,6 +728,204 @@ export function registerExtensionRoutes(app, deps) {
       req.user.email,
     );
     res.json({ notifications: list, unreadCount });
+  });
+
+  // ─── Insurance Policies ─────────────────────────────────────────────────────
+  app.get("/api/insurance/policies/:patientDid", (req, res) => {
+    let all = queryState("insurance-policies", (v) => v.patientDid === req.params.patientDid);
+    if (all.length === 0) {
+      const defaultPolicies = [
+        {
+          id: "pol1",
+          patientDid: req.params.patientDid,
+          provider: "Star Health Insurance",
+          policyNo: "POL-2025-STAR-00881",
+          type: "Comprehensive Health Plan",
+          sumInsured: 1000000,
+          used: 145000,
+          validFrom: "2025-04-01",
+          validTo: "2026-03-31",
+          status: "active",
+        },
+        {
+          id: "pol2",
+          patientDid: req.params.patientDid,
+          provider: "HDFC Ergo",
+          policyNo: "POL-2024-HDFC-44201",
+          type: "Top-Up Policy (₹5L)",
+          sumInsured: 500000,
+          used: 0,
+          validFrom: "2024-07-15",
+          validTo: "2025-07-14",
+          status: "expired",
+        }
+      ];
+      defaultPolicies.forEach((p) => putState("insurance-policies", p.id, p, randomUUID()));
+      all = queryState("insurance-policies", (v) => v.patientDid === req.params.patientDid);
+    }
+    res.json({ policies: all.map((e) => e.value), total: all.length });
+  });
+
+  // ─── Consent Preferences ────────────────────────────────────────────────────
+  app.get("/api/preferences/:patientDid", (req, res) => {
+    const entry = getState("patient-preferences", req.params.patientDid);
+    if (!entry) {
+      const defaultPrefs = {
+        patientDid: req.params.patientDid,
+        emergencyAccess: true,
+        insuranceVerification: true,
+        researchSharing: false,
+        crossHospital: false,
+      };
+      putState("patient-preferences", req.params.patientDid, defaultPrefs, randomUUID());
+      return res.json({ preferences: defaultPrefs });
+    }
+    res.json({ preferences: entry.value });
+  });
+
+  app.post("/api/preferences/:patientDid", (req, res) => {
+    const { emergencyAccess, insuranceVerification, researchSharing, crossHospital } = req.body;
+    const preferences = {
+      patientDid: req.params.patientDid,
+      emergencyAccess: typeof emergencyAccess === "boolean" ? emergencyAccess : true,
+      insuranceVerification: typeof insuranceVerification === "boolean" ? insuranceVerification : true,
+      researchSharing: typeof researchSharing === "boolean" ? researchSharing : false,
+      crossHospital: typeof crossHospital === "boolean" ? crossHospital : false,
+    };
+    putState("patient-preferences", req.params.patientDid, preferences, randomUUID());
+    res.json({ preferences });
+  });
+
+  // ─── Staff Schedules ────────────────────────────────────────────────────────
+  app.get("/api/staff/schedule/:staffEmail", (req, res) => {
+    const email = req.params.staffEmail;
+    let all = queryState("staff-schedule", (v) => v.staffEmail === email);
+    if (all.length === 0) {
+      const defaultShifts = [
+        { id: "s1", staffEmail: email, day: "Mon", date: "2026-06-08", role: "OPD",         start: "09:00", end: "17:00", unit: "Cardiology OPD",   patients: 24, notes: "Routine consultations + 4 new referrals", confirmed: true },
+        { id: "s2", staffEmail: email, day: "Tue", date: "2026-06-09", role: "Ward rounds",  start: "08:00", end: "14:00", unit: "Cardiology Ward 4A",patients: 12, notes: "Post-cath follow-ups", confirmed: true },
+        { id: "s3", staffEmail: email, day: "Tue", date: "2026-06-09", role: "Telemedicine", start: "15:00", end: "18:00", unit: "Virtual Clinic",   patients: 8,  notes: "4 teleconsults + 4 review calls", confirmed: true },
+        { id: "s4", staffEmail: email, day: "Wed", date: "2026-06-10", role: "Surgery",      start: "07:30", end: "15:30", unit: "OR Suite 3",       patients: 2,  notes: "CABG × 1, Pacemaker implant × 1", confirmed: true },
+        { id: "s5", staffEmail: email, day: "Thu", date: "2026-06-11", role: "ICU",          start: "08:00", end: "20:00", unit: "ICU Block B",      patients: 6,  notes: "Critical monitoring + 2 new admissions", confirmed: true },
+        { id: "s6", staffEmail: email, day: "Fri", date: "2026-06-12", role: "OPD",          start: "09:00", end: "13:00", unit: "Cardiology OPD",   patients: 16, confirmed: true },
+        { id: "s7", staffEmail: email, day: "Fri", date: "2026-06-12", role: "On-call",      start: "20:00", end: "08:00", unit: "Emergency + Cardio",patients: null, notes: "Night on-call. Emergency pager active.", confirmed: true },
+        { id: "s8", staffEmail: email, day: "Sat", date: "2026-06-13", role: "Leave",        start: "—",     end: "—",     unit: "—", confirmed: true },
+        { id: "s9", staffEmail: email, day: "Sun", date: "2026-06-14", role: "Off",          start: "—",     end: "—",     unit: "—", confirmed: true },
+      ];
+      defaultShifts.forEach((s) => putState("staff-schedule", s.id, s, randomUUID()));
+      all = queryState("staff-schedule", (v) => v.staffEmail === email);
+    }
+    res.json({ schedule: all.map((e) => e.value) });
+  });
+
+  // ─── Surgeries List ──────────────────────────────────────────────────────────
+  app.get("/api/staff/surgeries", (req, res) => {
+    let all = getAllState("surgeries");
+    if (all.length === 0) {
+      const defaultSurgeries = [
+        {
+          id: "s1", patient: "Anika Sharma", mrn: "MRN-204871",
+          procedure: "Cardiac Catheterization (PCI)",
+          room: "Cath Lab 2", date: "2026-06-04", time: "11:00",
+          surgeon: "Dr. Ravi Menon", anesthesiologist: "Dr. Deepak Joshi",
+          nurses: ["Nurse Priya K.", "Nurse Ananya V."],
+          equipment: ["Cath Lab C-Arm", "Defibrillator", "Hemodynamic Monitor", "Infusion Pump ×3"],
+          status: "scheduled", estDuration: "90 min",
+        },
+        {
+          id: "s2", patient: "Rohan Iyer", mrn: "MRN-204902",
+          procedure: "Total Hip Replacement (Left)",
+          room: "OR-4", date: "2026-06-04", time: "13:30",
+          surgeon: "Dr. Priya Nair", anesthesiologist: "Dr. Sunita Kapoor",
+          nurses: ["Nurse Rekha S.", "Nurse Vijay T."],
+          equipment: ["Orthopedic Power Tools Set", "C-Arm", "Cell Saver", "Electrosurgical Unit"],
+          status: "scheduled", estDuration: "3 hours",
+        },
+        {
+          id: "s3", patient: "Deepak Joshi", mrn: "MRN-203001",
+          procedure: "Laparoscopic Appendectomy",
+          room: "OR-2", date: "2026-06-02", time: "09:00",
+          surgeon: "Dr. Kiran Bose", anesthesiologist: "Dr. Alok Sharma",
+          nurses: ["Nurse Sunita V.", "Nurse Ram K."],
+          equipment: ["Laparoscopic Tower", "Ultrasonic Scalpel", "Electrosurgical Unit"],
+          status: "in-progress", estDuration: "45 min",
+        },
+        {
+          id: "s4", patient: "Kavya Reddy", mrn: "MRN-206114",
+          procedure: "LASIK Eye Surgery (Bilateral)",
+          room: "Eye Suite 1", date: "2026-06-01", time: "14:00",
+          surgeon: "Dr. Reena Pillai", anesthesiologist: "Local Anesthesia",
+          nurses: ["Nurse Pooja A."],
+          equipment: ["LASIK Excimer Laser", "Microkeratome", "Aberrometer"],
+          status: "completed", estDuration: "30 min",
+        }
+      ];
+      defaultSurgeries.forEach((s) => putState("surgeries", s.id, s, randomUUID()));
+      all = getAllState("surgeries");
+    }
+    res.json({ surgeries: all.map((e) => e.value), total: all.length });
+  });
+
+  // ─── Policies ───────────────────────────────────────────────────────────────
+  app.get("/api/policies", (req, res) => {
+    let all = getAllState("governance-policies");
+    if (all.length === 0) {
+      const defaultPolicies = [
+        {
+          id: "p1",
+          name: "Patient Consent Policy",
+          category: "Consent",
+          status: "active",
+          updatedAt: "2026-06-08",
+          description: "Enforce patient consent verification for all electronic medical records access requests by physicians.",
+        },
+        {
+          id: "p2",
+          name: "Audit Logging Policy",
+          category: "Audit",
+          status: "active",
+          updatedAt: "2026-06-08",
+          description: "Every read and write access on medical records must be immutably anchored on the decentralized ledger.",
+        }
+      ];
+      defaultPolicies.forEach((p) => putState("governance-policies", p.id, p, randomUUID()));
+      all = getAllState("governance-policies");
+    }
+    res.json({ policies: all.map((e) => e.value), total: all.length });
+  });
+
+  app.post("/api/policies", requireRole("admin"), (req, res) => {
+    const { name, category, description, status } = req.body;
+    const id = `p_${Date.now()}`;
+    const policy = {
+      id, name, category, description,
+      status: status || "draft",
+      updatedAt: new Date().toISOString().slice(0, 10),
+    };
+    putState("governance-policies", id, policy, randomUUID());
+    logAudit(req, { resource: id, action: "POLICY_CREATE" });
+    res.json({ policy });
+  });
+
+  app.patch("/api/policies/:id", requireRole("admin"), (req, res) => {
+    const entry = getState("governance-policies", req.params.id);
+    if (!entry) return res.status(404).json({ error: "Policy not found" });
+    Object.assign(entry.value, req.body, { updatedAt: new Date().toISOString().slice(0, 10) });
+    putState("governance-policies", req.params.id, entry.value, randomUUID());
+    logAudit(req, { resource: req.params.id, action: "POLICY_UPDATE" });
+    res.json({ policy: entry.value });
+  });
+
+  // ─── Fraud Alerts status update ──────────────────────────────────────────────
+  app.patch("/api/fraud/alerts/:id", requireRole("admin"), (req, res) => {
+    const entry = getState("fraud-alerts", req.params.id);
+    if (entry) {
+      Object.assign(entry.value, req.body);
+      putState("fraud-alerts", req.params.id, entry.value, randomUUID());
+      logAudit(req, { resource: req.params.id, action: "FRAUD_ALERT_UPDATE" });
+      return res.json({ alert: entry.value });
+    }
+    res.json({ success: true, id: req.params.id, updatedFields: req.body });
   });
 
   // Export helpers for server.js to use

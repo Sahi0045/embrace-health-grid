@@ -1,15 +1,34 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
-import { useSimulatedLoading } from "@/hooks/use-simulated-loading";
 import { ListSkeleton } from "@/components/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { BookLock, Search, Plus, Pencil, Archive } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { useEffect } from "react";
+import { getPolicies, createPolicy, updatePolicy } from "@/lib/api";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export const Route = createFileRoute("/policies")({
-  head: () => ({ meta: [{ title: "Admin · Policies — DID Hospital" }] }),
+  head: () => ({ meta: [{ title: "Admin · Policies — Embrace Health Grid" }] }),
   component: PoliciesPage,
 });
 
@@ -33,18 +52,24 @@ const statusTone: Record<Policy["status"], string> = {
 };
 
 function PoliciesPage() {
-  const loading = useSimulatedLoading(450);
-  const [list, setList] = useState<Policy[]>(() => {
-    const saved = localStorage.getItem("did_hospital_policies");
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [list, setList] = useState<Policy[]>([]);
+  const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<Category>("All");
 
-  const saveList = (newList: Policy[]) => {
-    setList(newList);
-    localStorage.setItem("did_hospital_policies", JSON.stringify(newList));
+  const fetchPolicies = () => {
+    setLoading(true);
+    getPolicies()
+      .then((res) => {
+        setList(res.policies || []);
+      })
+      .catch((err) => console.error("Error loading policies:", err))
+      .finally(() => setLoading(false));
   };
+
+  useEffect(() => {
+    fetchPolicies();
+  }, []);
 
   const filtered = list.filter((p) => {
     const matchesCat = cat === "All" || p.category === cat;
@@ -52,50 +77,89 @@ function PoliciesPage() {
     return matchesCat && matchesQ;
   });
 
-  const toggleArchive = (id: string) => {
-    const updated = list.map((p) =>
-      p.id === id
-        ? {
-            ...p,
-            status: (p.status === "archived" ? "active" : "archived") as Policy["status"],
-            updatedAt: new Date().toISOString().slice(0, 10),
-          }
-        : p,
-    );
-    saveList(updated);
-    toast("Policy updated");
-
-    import("@/lib/api").then(({ logAuditEvent }) => {
-      logAuditEvent("admin", `policy:${id}`, "toggle_policy_archive", "success", "info");
-    });
+  const toggleArchive = async (id: string) => {
+    const policy = list.find(p => p.id === id);
+    if (!policy) return;
+    const newStatus = policy.status === "archived" ? "active" : "archived";
+    try {
+      await updatePolicy(id, { status: newStatus });
+      toast.success(`Policy updated to ${newStatus}`);
+      fetchPolicies();
+      import("@/lib/api").then(({ logAuditEvent }) => {
+        logAuditEvent("admin", `policy:${id}`, `toggle_policy_archive_${newStatus}`, "success", "info");
+      });
+    } catch (err: any) {
+      toast.error(`Failed to update policy: ${err.message}`);
+    }
   };
 
-  const handleCreate = () => {
-    const name = prompt("Policy name?");
-    if (!name) return;
-    const description = prompt("Policy description?");
-    if (!description) return;
-    const categoryInput = prompt(
-      "Category? (Consent / Access control / Retention / Audit)",
-      "Consent",
-    );
-    if (!categoryInput) return;
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editingPolicy, setEditingPolicy] = useState<Policy | null>(null);
 
-    const newPol: Policy = {
-      id: `p_${Date.now()}`,
-      name,
-      category: categoryInput as Policy["category"],
-      status: "draft",
-      updatedAt: new Date().toISOString().slice(0, 10),
-      description,
-    };
+  // Form states
+  const [newName, setNewName] = useState("");
+  const [newCategory, setNewCategory] = useState<Policy["category"]>("Consent");
+  const [newDescription, setNewDescription] = useState("");
+  const [editDescription, setEditDescription] = useState("");
 
-    saveList([newPol, ...list]);
-    toast.success("Policy created in Draft status");
+  const handleCreateOpen = () => {
+    setNewName("");
+    setNewCategory("Consent");
+    setNewDescription("");
+    setIsCreateOpen(true);
+  };
 
-    import("@/lib/api").then(({ logAuditEvent }) => {
-      logAuditEvent("admin", `policy:${newPol.id}`, "create_policy", "success", "info");
-    });
+  const submitCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newName || !newDescription) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+
+    try {
+      const res = await createPolicy({
+        name: newName,
+        description: newDescription,
+        category: newCategory,
+        status: "draft",
+      });
+      toast.success("Policy created in Draft status");
+      setIsCreateOpen(false);
+      fetchPolicies();
+      import("@/lib/api").then(({ logAuditEvent }) => {
+        logAuditEvent("admin", `policy:${res.policy?.id || "new"}`, "create_policy", "success", "info");
+      });
+    } catch (err: any) {
+      toast.error(`Failed to create policy: ${err.message}`);
+    }
+  };
+
+  const handleEditOpen = (policy: Policy) => {
+    setEditingPolicy(policy);
+    setEditDescription(policy.description);
+    setIsEditOpen(true);
+  };
+
+  const submitEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingPolicy) return;
+    if (!editDescription) {
+      toast.error("Description cannot be empty");
+      return;
+    }
+
+    try {
+      await updatePolicy(editingPolicy.id, { description: editDescription });
+      toast.success("Policy description updated");
+      setIsEditOpen(false);
+      fetchPolicies();
+      import("@/lib/api").then(({ logAuditEvent }) => {
+        logAuditEvent("admin", `policy:${editingPolicy.id}`, "edit_policy_description", "success", "info");
+      });
+    } catch (err: any) {
+      toast.error(`Failed to edit policy: ${err.message}`);
+    }
   };
 
   return (
@@ -106,7 +170,7 @@ function PoliciesPage() {
         description="Define and audit the rules that govern identity, consent, and data access across the hospital."
         actions={
           <button
-            onClick={handleCreate}
+            onClick={handleCreateOpen}
             className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-clinical hover:bg-primary/90"
           >
             <Plus className="h-4 w-4" /> New policy
@@ -181,7 +245,10 @@ function PoliciesPage() {
                   <div className="mt-4 flex items-center justify-between border-t border-border pt-3 text-xs">
                     <span className="text-muted-foreground">Updated {p.updatedAt}</span>
                     <div className="flex gap-2">
-                      <button className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2.5 py-1 font-medium text-foreground hover:bg-muted">
+                      <button
+                        onClick={() => handleEditOpen(p)}
+                        className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2.5 py-1 font-medium text-foreground hover:bg-muted"
+                      >
                         <Pencil className="h-3 w-3" /> Edit
                       </button>
                       <button
@@ -199,6 +266,97 @@ function PoliciesPage() {
           </AnimatePresence>
         )}
       </div>
+
+      {/* Create Dialog */}
+      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+        <DialogContent className="sm:max-w-[425px] bg-card border border-border text-foreground">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-foreground">Create New Policy</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={submitCreate} className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="name" className="text-sm font-semibold">Policy Name</Label>
+              <Input
+                id="name"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder="e.g. Patient MFA Enforcement"
+                required
+                className="bg-background border border-border"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="category" className="text-sm font-semibold">Category</Label>
+              <Select
+                value={newCategory}
+                onValueChange={(v) => setNewCategory(v as Policy["category"])}
+              >
+                <SelectTrigger id="category" className="bg-background border border-border">
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent className="bg-card border border-border text-foreground">
+                  <SelectItem value="Consent">Consent</SelectItem>
+                  <SelectItem value="Access control">Access control</SelectItem>
+                  <SelectItem value="Retention">Retention</SelectItem>
+                  <SelectItem value="Audit">Audit</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="description" className="text-sm font-semibold">Description</Label>
+              <Textarea
+                id="description"
+                value={newDescription}
+                onChange={(e) => setNewDescription(e.target.value)}
+                placeholder="Detailed description of the governance rules..."
+                rows={3}
+                required
+                className="bg-background border border-border"
+              />
+            </div>
+            <DialogFooter className="pt-2 gap-2">
+              <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)} className="border-border">
+                Cancel
+              </Button>
+              <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90">Create Policy</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="sm:max-w-[425px] bg-card border border-border text-foreground">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-foreground">Edit Policy Description</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={submitEdit} className="space-y-4 py-4">
+            <div className="space-y-1">
+              <Label className="text-muted-foreground text-xs uppercase tracking-wide">
+                Policy:
+              </Label>
+              <div className="text-sm font-semibold text-foreground">{editingPolicy?.name}</div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-desc" className="text-sm font-semibold">Description</Label>
+              <Textarea
+                id="edit-desc"
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                rows={4}
+                required
+                className="bg-background border border-border"
+              />
+            </div>
+            <DialogFooter className="pt-2 gap-2">
+              <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)} className="border-border">
+                Cancel
+              </Button>
+              <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90">Save Changes</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

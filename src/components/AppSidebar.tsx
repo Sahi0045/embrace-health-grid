@@ -166,7 +166,7 @@ export function AppSidebar() {
           </div>
           {!collapsed && (
             <div className="leading-tight">
-              <div className="text-sm font-semibold">DID Hospital</div>
+              <div className="text-sm font-semibold">Embrace Health Grid</div>
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
                 Infrastructure
               </div>

@@ -8,7 +8,7 @@ import { ConsentHistory } from "@/components/consent/ConsentHistory";
 import { ConsentToggle } from "@/components/consent/ConsentToggle";
 
 import { useConsents } from "@/hooks/use-api";
-import { revokeConsent, grantConsent, getConsentRequests, denyConsentRequest } from "@/lib/api";
+import { revokeConsent, grantConsent, getConsentRequests, denyConsentRequest, getPreferences, updatePreferences } from "@/lib/api";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import {
@@ -26,37 +26,11 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/patient/consent")({
-  head: () => ({ meta: [{ title: "Patient · Consent — DID Hospital" }] }),
+  head: () => ({ meta: [{ title: "Patient · Consent — Embrace Health Grid" }] }),
   component: Consent,
 });
 
-// Global consent preferences
-const globalPreferences = [
-  {
-    id: "gp1",
-    label: "Emergency Access (Break-Glass)",
-    description: "Allow emergency override when you are incapacitated",
-    defaultEnabled: true,
-  },
-  {
-    id: "gp2",
-    label: "Insurance Claim Verification",
-    description: "Allow your insurer to verify credentials for claims",
-    defaultEnabled: true,
-  },
-  {
-    id: "gp3",
-    label: "Research Data Sharing",
-    description: "Anonymised data may be used for medical research",
-    defaultEnabled: false,
-  },
-  {
-    id: "gp4",
-    label: "Cross-Hospital Record Access",
-    description: "Allow federated hospitals to resolve your DID",
-    defaultEnabled: false,
-  },
-];
+// Global consent preferences managed dynamically via preferences API
 
 interface ConsentRequest {
   id: string;
@@ -79,6 +53,32 @@ function Consent() {
     typeof window !== "undefined"
       ? (localStorage.getItem("userDID") ?? "did:hosp:patient:current")
       : "did:hosp:patient:current";
+
+  const [preferences, setPreferences] = useState<any>({
+    emergencyAccess: true,
+    insuranceVerification: true,
+    researchSharing: false,
+    crossHospital: false,
+  });
+
+  useEffect(() => {
+    if (patientDid && tab === "preferences") {
+      getPreferences(patientDid)
+        .then((res) => setPreferences(res.preferences))
+        .catch((err) => console.error("Error loading preferences:", err));
+    }
+  }, [patientDid, tab]);
+
+  const handleTogglePreference = async (key: string, enabled: boolean) => {
+    try {
+      const updated = { ...preferences, [key]: enabled };
+      setPreferences(updated);
+      await updatePreferences(patientDid, updated);
+      toast.success("Preferences updated successfully");
+    } catch (err: any) {
+      toast.error(`Failed to update preferences: ${err.message}`);
+    }
+  };
 
   // ─── Pending consent requests from staff ────────────────────────────────────
   const [requests, setRequests] = useState<ConsentRequest[]>([]);
@@ -123,8 +123,8 @@ function Consent() {
     requester: c.requester ?? c.doctorName ?? c.doctorDid ?? "Doctor Specialist",
     requesterRole: c.requesterRole ?? "Medical Specialist",
     reason: c.reason ?? "Patient Care and Record Access",
-    grantedAt: c.grantedAt ?? c.timestamp ?? "2026-06-08",
-    expiresAt: c.expiresAt ?? "2026-07-08",
+    grantedAt: c.grantedAt ?? c.timestamp ?? new Date(Date.now() - 26 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+    expiresAt: c.expiresAt ?? new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
     status: (c.status === "granted" || c.status === "active"
       ? "active"
       : c.status === "requested" || c.status === "pending"
@@ -418,17 +418,30 @@ function Consent() {
             <div className="text-xs text-muted-foreground mb-4">
               Global consent preferences apply across all healthcare providers in your network
             </div>
-            {globalPreferences.map((p) => (
-              <ConsentToggle
-                key={p.id}
-                label={p.label}
-                description={p.description}
-                defaultEnabled={p.defaultEnabled}
-                onToggle={(enabled) =>
-                  toast(enabled ? `${p.label} enabled` : `${p.label} disabled`)
-                }
-              />
-            ))}
+            <ConsentToggle
+              label="Emergency Access (Break-Glass)"
+              description="Allow emergency override when you are incapacitated"
+              defaultEnabled={preferences.emergencyAccess}
+              onToggle={(enabled) => handleTogglePreference("emergencyAccess", enabled)}
+            />
+            <ConsentToggle
+              label="Insurance Claim Verification"
+              description="Allow your insurer to verify credentials for claims"
+              defaultEnabled={preferences.insuranceVerification}
+              onToggle={(enabled) => handleTogglePreference("insuranceVerification", enabled)}
+            />
+            <ConsentToggle
+              label="Research Data Sharing"
+              description="Anonymised data may be used for medical research"
+              defaultEnabled={preferences.researchSharing}
+              onToggle={(enabled) => handleTogglePreference("researchSharing", enabled)}
+            />
+            <ConsentToggle
+              label="Cross-Hospital Record Access"
+              description="Allow federated hospitals to resolve your DID"
+              defaultEnabled={preferences.crossHospital}
+              onToggle={(enabled) => handleTogglePreference("crossHospital", enabled)}
+            />
           </div>
         )}
       </div>

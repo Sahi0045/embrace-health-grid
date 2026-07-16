@@ -13,7 +13,7 @@ import { revokeConsent } from "@/lib/api";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/patient/family")({
-  head: () => ({ meta: [{ title: "Family & Guardians — DID Hospital" }] }),
+  head: () => ({ meta: [{ title: "Family & Guardians — Embrace Health Grid" }] }),
   component: FamilyPage,
 });
 
@@ -65,7 +65,7 @@ function FamilyPage() {
             accessLevel: "Emergency contact access",
             permissions: ["Emergency access"],
             status: foundFamilyPatient
-              ? (foundFamilyPatient.status === "active" || foundFamilyPatient.status === "inpatient" ? ("active" as const) : ("inactive" as const))
+              ? (((foundFamilyPatient.status as string) === "active" || foundFamilyPatient.status === "inpatient") ? ("active" as const) : ("inactive" as const))
               : ("active" as const),
           },
         ];
@@ -139,7 +139,7 @@ function FamilyPage() {
                         <div className="mt-0.5 font-mono text-[10px] text-muted-foreground/60">{m.did}</div>
                       </div>
                     </div>
-                    <DIDStatusChip status={m.status} />
+                    <DIDStatusChip status={m.status === "active" ? "active" : "suspended"} />
                   </div>
 
                   <div className="mt-3 rounded-lg bg-muted/50 px-3 py-2">

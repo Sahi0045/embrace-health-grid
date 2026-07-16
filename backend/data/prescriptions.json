@@ -1,0 +1,29 @@
+{
+  "PR-MR62O5HX": {
+    "key": "PR-MR62O5HX",
+    "value": {
+      "rxId": "PR-MR62O5HX",
+      "patientDid": "did:hosp:patient:test",
+      "doctorDid": "did:hosp:doctor:test",
+      "drugs": [
+        {
+          "name": "Paracetamol 500mg",
+          "dosage": "500mg",
+          "frequency": "Three times daily"
+        }
+      ],
+      "diagnosis": "Fever",
+      "notes": "Take after meals",
+      "signedBy": "did:hosp:staff:test",
+      "signedAt": "2026-07-04T08:00:16.342Z",
+      "status": "active",
+      "hash": "sha256:2737726057aff6e69e5d47d2832d8e91",
+      "signed": true
+    },
+    "namespace": "prescriptions",
+    "version": "a2efd394-c1f0-49a2-b26d-003d52dcb67a:1",
+    "updatedAt": "2026-07-04T08:00:16.342Z",
+    "txId": "a2efd394-c1f0-49a2-b26d-003d52dcb67a",
+    "docType": "prescriptions"
+  }
+}

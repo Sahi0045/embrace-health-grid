@@ -20,7 +20,7 @@ import { useLivePatients, useCredentials } from "@/hooks/use-api";
 import { RouteGuard } from "@/components/RouteGuard";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
-import { getCurrentUser, setSession } from "@/lib/auth";
+import { getCurrentUser, setSession, logout } from "@/lib/auth";
 import { linkWalletAddress, updateProfile } from "@/lib/api";
 import { toast } from "sonner";
 import { useState } from "react";
@@ -133,7 +133,7 @@ function PatientProfile() {
   const liveCredentials = rawCredentials.map((c: any) => ({
     id: c.id || c.txId || String(Math.random()),
     type: c.type || "Verifiable Credential",
-    issuer: c.issuer || "Apollo Hospitals",
+    issuer: c.issuer || "Embrace Health Consortium",
     status: (c.status === "revoked" ? "revoked" : "active") as "active" | "revoked",
   }));
 
@@ -141,15 +141,13 @@ function PatientProfile() {
     liveCredentials.length > 0
       ? liveCredentials.filter((c) => c.status === "active")
       : [
-          { id: "c1", type: "Patient Identity", issuer: "Apollo Hospitals" },
+          { id: "c1", type: "Patient Identity", issuer: "Embrace Health Consortium" },
           { id: "c2", type: "Health Insurance", issuer: "Star Health" },
           { id: "c3", type: "Vaccination Record", issuer: "Govt. of India" },
         ];
 
   const handleLogout = () => {
-    localStorage.removeItem("userRole");
-    localStorage.removeItem("userEmail");
-    window.location.href = "/login";
+    logout();
   };
 
   return (
