@@ -24,6 +24,7 @@ import {
 import { useState, useEffect } from "react";
 import { usePatientVitals, useInpatientData } from "@/hooks/use-api";
 import { getBilling, getLabs } from "@/lib/api";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/patient/inpatient")({
   head: () => ({
@@ -50,13 +51,19 @@ function InpatientCare() {
           setBillSummary(res.billSummary);
         }
       })
-      .catch((err) => console.error(err));
+      .catch((err) => {
+        console.error(err);
+        toast.error("Failed to load billing summary", { description: err.message });
+      });
 
     getLabs(patientDid)
       .then((res) => {
         setLabTests(res?.labs || []);
       })
-      .catch((err) => console.error(err));
+      .catch((err) => {
+        console.error(err);
+        toast.error("Failed to load lab tests", { description: err.message });
+      });
   }, [patientDid]);
 
   const apiVitalSigns = inpatientData?.vitalSigns ?? [];

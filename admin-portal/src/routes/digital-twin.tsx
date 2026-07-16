@@ -37,7 +37,7 @@ const graphNodes: GraphNode[] = [
   // Hospital (root)
   {
     id: "hosp",
-    label: "Apollo Hospitals",
+    label: "Embrace Health Consortium",
     did: "did:hosp:hospital:apollo-mumbai",
     type: "hospital",
     status: "active",
@@ -279,7 +279,7 @@ const statusDot: Record<string, string> = {
 
 const hospitalTree: TwinNode = {
   id: "hosp_001",
-  label: "Apollo Hospitals, Mumbai",
+  label: "Embrace Health Consortium, Mumbai",
   type: "hospital",
   did: "did:hosp:hospital:apollo-mumbai",
   status: "active",
@@ -619,7 +619,7 @@ function DigitalTwinPage() {
 
     return {
       id: "hosp_001",
-      label: "Apollo Hospitals, Mumbai",
+      label: "Embrace Health Consortium, Mumbai",
       type: "hospital",
       did: "did:hosp:hospital:apollo-mumbai",
       status: "active",

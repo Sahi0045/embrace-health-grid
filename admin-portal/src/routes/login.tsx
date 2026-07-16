@@ -48,7 +48,7 @@ function LoginPage() {
         <div className="mb-8 text-center">
           <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
             <Hospital className="h-4 w-4" />
-            DID Hospital Administration
+            Embrace Health Administration
           </div>
           <h1 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
             Admin Portal

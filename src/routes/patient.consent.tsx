@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/patient/consent")({
-  head: () => ({ meta: [{ title: "Patient · Consent — DID Hospital" }] }),
+  head: () => ({ meta: [{ title: "Patient · Consent — Embrace Health Grid" }] }),
   component: Consent,
 });
 

@@ -5,27 +5,30 @@ import { PageHeader } from "@/components/PageHeader";
 import { CredentialCard } from "@/components/credentials/CredentialCard";
 import { CredentialPreview } from "@/components/credentials/CredentialPreview";
 import { CredentialTimeline } from "@/components/credentials/CredentialTimeline";
-import { useCredentials } from "@/hooks/use-api";
-import { RouteGuard } from "@/components/RouteGuard";
+import { useCredentials, useLivePatients } from "@/hooks/use-api";
 import { getCurrentUser } from "@/lib/auth";
+import { RouteGuard } from "@/components/RouteGuard";
 import { Wallet as WalletIcon, ShieldCheck, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 
-
 export const Route = createFileRoute("/patient/wallet")({
-  head: () => ({ meta: [{ title: "Patient · Credentials Wallet — DID Hospital" }] }),
+  head: () => ({ meta: [{ title: "Patient · Credentials Wallet — Embrace Health Grid" }] }),
   component: Wallet,
 });
 
 function Wallet() {
   const { data: credentialsData, loading } = useCredentials();
-  const rawCredentials = credentialsData?.credentials ?? [];
+  const { patients } = useLivePatients();
   const currentUser = getCurrentUser();
+  const patient = patients?.find((p: any) => p.email === currentUser?.email);
+  const holderName = patient ? patient.name : "Anika Sharma";
+
+  const rawCredentials = credentialsData?.credentials ?? [];
 
   const liveCredentials = rawCredentials.map((c: any) => ({
     id: c.id ?? c.txId ?? String(Math.random()),
     type: c.type ?? "Verifiable Credential",
-    issuer: c.issuer ?? "Apollo Hospitals",
+    issuer: c.issuer ?? "Embrace Health Consortium",
     issuedAt: c.issuedAt ?? c.timestamp ?? new Date().toISOString().split("T")[0],
     expiresAt: c.expiresAt ?? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
     status: (c.status === "revoked" ? "revoked" : "active") as "active" | "revoked" | "expired",
@@ -56,8 +59,6 @@ function Wallet() {
         return { label, value: String(val) };
       });
   };
-
-
 
   return (
     <RouteGuard requiredRole="patient">
@@ -140,12 +141,12 @@ function Wallet() {
                   <CredentialPreview
                     type={selected.type}
                     issuer={selected.issuer}
-                    holder={currentUser?.name || "Anika Sharma"}
+                    holder={holderName}
                     issuedAt={selected.issuedAt}
                     expiresAt={selected.expiresAt}
                     status={selected.status}
                     credentialId={selected.id}
-                    schema={`https://schema.did-hospital.in/v1/${selected.type.toLowerCase().replace(/\s/g, "-")}`}
+                    schema={`https://schema.embracehealth.in/v1/${selected.type.toLowerCase().replace(/\s/g, "-")}`}
                     fields={getPreviewFields(selected)}
                   />
                 </motion.div>

@@ -33,7 +33,7 @@ import {
 
 
 export const Route = createFileRoute("/staff/schedule")({
-  head: () => ({ meta: [{ title: "Staff · Schedule — DID Hospital" }] }),
+  head: () => ({ meta: [{ title: "Staff · Schedule — Embrace Health Grid" }] }),
   component: SchedulePage,
 });
 

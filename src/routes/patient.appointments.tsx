@@ -33,7 +33,7 @@ import { toast } from "sonner";
 import { RouteGuard } from "@/components/RouteGuard";
 
 export const Route = createFileRoute("/patient/appointments")({
-  head: () => ({ meta: [{ title: "Patient · Appointments — DID Hospital" }] }),
+  head: () => ({ meta: [{ title: "Patient · Appointments — Embrace Health Grid" }] }),
   component: AppointmentsPage,
 });
 
@@ -80,7 +80,10 @@ function AppointmentsPage() {
         }));
         setMedicalHistory(history);
       })
-      .catch((err) => console.error(err));
+      .catch((err) => {
+        console.error(err);
+        toast.error("Failed to load medical history", { description: err.message });
+      });
 
     getPrescriptions(patientDid)
       .then((res) => {
@@ -94,7 +97,10 @@ function AppointmentsPage() {
         );
         setCurrentMedications(meds);
       })
-      .catch((err) => console.error(err));
+      .catch((err) => {
+        console.error(err);
+        toast.error("Failed to load prescriptions", { description: err.message });
+      });
 
     getLabs(patientDid)
       .then((res) => {
@@ -107,7 +113,10 @@ function AppointmentsPage() {
         }));
         setRecentLabReports(labs);
       })
-      .catch((err) => console.error(err));
+      .catch((err) => {
+        console.error(err);
+        toast.error("Failed to load lab reports", { description: err.message });
+      });
   }, [patientDid]);
 
   // Map raw appointments to UI structure
@@ -115,7 +124,7 @@ function AppointmentsPage() {
     id: a.apptId || a.id || a.txId || String(Math.random()),
     doctor: a.doctorName || a.doctorDid || "Doctor",
     specialty: a.specialty || "General Medicine",
-    hospital: a.hospital || (a.mode === "tele" ? "Telehealth Link" : "Apollo Hospitals"),
+    hospital: a.hospital || (a.mode === "tele" ? "Telehealth Link" : "Embrace Health Grid"),
     date: a.date || a.slot?.split(" · ")[0] || new Date().toISOString().split("T")[0],
     time: a.slot || a.time || "Thu · 10:30 AM",
     status: (a.status === "confirmed" ? "upcoming" : a.status || "upcoming") as
@@ -141,7 +150,7 @@ function AppointmentsPage() {
         name: s.name || "Doctor",
         specialty: s.specialty || s.department || "General Medicine",
         did: s.did || "did:hosp:unknown",
-        hospital: "Apollo Hospitals · OPD Block",
+        hospital: "Embrace Health Grid · OPD Block",
         status: (s.status === "active" ? "Available" : s.status === "on-leave" ? "Busy" : "Available") as "Available" | "Busy" | "Off Duty",
         rating: 4.5 + ((seed % 5) / 10),
         availableDays: (() => {
@@ -277,7 +286,7 @@ function AppointmentsPage() {
       id,
       doctor: erDoc.name,
       specialty: "ER / Triage Urgent Consult",
-      hospital: "Apollo Hospitals · Emergency Ward Trauma ER",
+      hospital: "Embrace Health Grid · Emergency Ward Trauma ER",
       date: new Date().toISOString().split("T")[0],
       time: "Immediate Triage Priority",
       status: "upcoming" as const,

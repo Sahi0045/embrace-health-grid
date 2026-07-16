@@ -4,13 +4,14 @@ import { PageHeader } from "@/components/PageHeader";
 import { StaggerList, StaggerItem } from "@/components/Motion";
 import { InsuranceCard } from "@/components/insurance/InsuranceCard";
 import { ClaimsCard } from "@/components/insurance/ClaimsCard";
-import { useInsuranceClaims } from "@/hooks/use-api";
+import { useInsuranceClaims, useLivePatients } from "@/hooks/use-api";
+import { getCurrentUser } from "@/lib/auth";
 import { ShieldCheck, FileText, TrendingUp, IndianRupee, Clock } from "lucide-react";
 import { useState, useEffect } from "react";
 import { getInsurancePolicies } from "@/lib/api";
 
 export const Route = createFileRoute("/patient/insurance")({
-  head: () => ({ meta: [{ title: "Insurance — DID Hospital" }] }),
+  head: () => ({ meta: [{ title: "Insurance — Embrace Health Grid" }] }),
   component: InsurancePage,
 });
 
@@ -20,6 +21,50 @@ type Tab = typeof tabs[number];
 function InsurancePage() {
   const [tab, setTab] = useState<Tab>("Overview");
   const { data: claimsData } = useInsuranceClaims();
+  const { patients, loading } = useLivePatients();
+  const currentUser = getCurrentUser();
+  const patient = patients?.find((p: any) => p.email === currentUser?.email);
+
+  if (loading) {
+    return (
+      <RouteGuard requiredRole="patient">
+        <PageHeader
+          eyebrow="Patient app"
+          title="Insurance"
+          description="Your coverage, claims, and insurance credentials"
+        />
+        <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent mr-2" />
+          Loading insurance details…
+        </div>
+      </RouteGuard>
+    );
+  }
+
+  const livePolicies = patient?.insuranceProvider ? [
+    {
+      provider: patient.insuranceProvider,
+      policyNo: patient.insurancePolicyNo || "POL-UNKNOWN-001",
+      type: "Comprehensive Health Plan",
+      sumInsured: 1000000,
+      used: 0,
+      validFrom: "2025-04-01",
+      validTo: "2026-03-31",
+      status: "active" as const,
+    }
+  ] : [
+    {
+      provider: "Embrace Health Insurance",
+      policyNo: "POL-EMBRACE-DEFAULT",
+      type: "Comprehensive Health Plan",
+      sumInsured: 1000000,
+      used: 145000,
+      validFrom: "2025-04-01",
+      validTo: "2026-03-31",
+      status: "active" as const,
+    }
+  ];
+
   const patientClaims = (claimsData?.claims ?? []).slice(0, 10);
   const activeClaims = patientClaims.filter((c: any) => c.status === "pending" || c.status === "under-review");
   const totalClaimed = patientClaims.reduce((s: number, c: any) => s + (c.amount || 0), 0);
@@ -63,7 +108,7 @@ function InsurancePage() {
             <StaggerItem>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 {[
-                  { label: "Active Policies", value: policies.filter(p => p.status === "active").length, icon: ShieldCheck, color: "text-success bg-success/10" },
+                  { label: "Active Policies", value: livePolicies.filter(p => p.status === "active").length, icon: ShieldCheck, color: "text-success bg-success/10" },
                   { label: "Total Claimed", value: `₹${(totalClaimed / 1000).toFixed(0)}K`, icon: IndianRupee, color: "text-primary bg-primary/10" },
                   { label: "Total Approved", value: `₹${(totalApproved / 1000).toFixed(0)}K`, icon: TrendingUp, color: "text-chart-2 bg-chart-2/10" },
                   { label: "Pending Claims", value: activeClaims.length, icon: Clock, color: "text-warning-foreground bg-warning/10" },
@@ -87,7 +132,7 @@ function InsurancePage() {
             <StaggerItem>
               <div className="space-y-4">
                 <div className="text-sm font-semibold text-foreground">Active Coverage</div>
-                {policies.filter(p => p.status === "active").map((p, i) => (
+                {livePolicies.filter(p => p.status === "active").map((p, i) => (
                   <InsuranceCard key={i} {...p} />
                 ))}
               </div>
@@ -109,7 +154,7 @@ function InsurancePage() {
 
         {tab === "Policies" && (
           <div className="space-y-4">
-            {policies.map((p, i) => <InsuranceCard key={i} {...p} />)}
+            {livePolicies.map((p, i) => <InsuranceCard key={i} {...p} />)}
           </div>
         )}
 

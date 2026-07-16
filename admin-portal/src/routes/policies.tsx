@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
-import { useSimulatedLoading } from "@/hooks/use-simulated-loading";
 import { ListSkeleton } from "@/components/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { BookLock, Search, Plus, Pencil, Archive } from "lucide-react";
@@ -29,7 +28,7 @@ import {
 } from "@/components/ui/select";
 
 export const Route = createFileRoute("/policies")({
-  head: () => ({ meta: [{ title: "Admin · Policies — DID Hospital" }] }),
+  head: () => ({ meta: [{ title: "Admin · Policies — Embrace Health Grid" }] }),
   component: PoliciesPage,
 });
 

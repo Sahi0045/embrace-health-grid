@@ -39,7 +39,10 @@ function PatientBilling() {
       .then((res) => {
         setBillingData(res);
       })
-      .catch((err) => console.error("Billing load error:", err))
+      .catch((err) => {
+        console.error("Billing load error:", err);
+        toast.error("Failed to load billing details", { description: err.message });
+      })
       .finally(() => setLoading(false));
   };
 

@@ -13,7 +13,7 @@ import { revokeConsent } from "@/lib/api";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/patient/family")({
-  head: () => ({ meta: [{ title: "Family & Guardians — DID Hospital" }] }),
+  head: () => ({ meta: [{ title: "Family & Guardians — Embrace Health Grid" }] }),
   component: FamilyPage,
 });
 

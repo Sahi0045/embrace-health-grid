@@ -36,7 +36,7 @@ import { Badge } from "@/components/ui/badge";
 import { BrowserQRCodeReader, type IScannerControls } from "@zxing/browser";
 
 export const Route = createFileRoute("/staff/verify")({
-  head: () => ({ meta: [{ title: "Staff · Verify Patient — DID Hospital" }] }),
+  head: () => ({ meta: [{ title: "Staff · Verify Patient — Embrace Health Grid" }] }),
   component: VerifyPatient,
 });
 

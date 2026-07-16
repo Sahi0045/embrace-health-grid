@@ -29,7 +29,7 @@ import { logAuditEvent } from "@/lib/api";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/patient/history")({
-  head: () => ({ meta: [{ title: "Patient · Access History — DID Hospital" }] }),
+  head: () => ({ meta: [{ title: "Patient · Access History — Embrace Health Grid" }] }),
   component: History,
 });
 

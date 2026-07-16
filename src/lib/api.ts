@@ -7,8 +7,8 @@ const getApiBaseUrl = (): string => {
   const envUrl =
     typeof process !== "undefined" && process?.env ? process.env.VITE_API_BASE_URL : undefined;
   const viteEnvUrl =
-    typeof import.meta !== "undefined" && (import.meta as any).env
-      ? (import.meta as any).env.VITE_API_BASE_URL
+    typeof import.meta !== "undefined" && import.meta.env
+      ? import.meta.env.VITE_API_BASE_URL
       : undefined;
   const configUrl = viteEnvUrl || envUrl;
   if (configUrl) return configUrl;
@@ -65,7 +65,7 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const email = typeof window !== "undefined" ? localStorage.getItem("userEmail") : null;
   const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
   const clientKey =
-    (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_CLIENT_KEY) ||
+    (typeof import.meta !== "undefined" && import.meta.env?.VITE_CLIENT_KEY) ||
     "apollo-consortium-client-secret-2026";
 
   const authHeaders: Record<string, string> = {};
@@ -341,6 +341,9 @@ export const getPrescriptions = (patientDid: string) =>
 
 export const getAllPrescriptions = () =>
   apiFetch<{ prescriptions: any[]; total: number }>(`/prescriptions`);
+
+export const getSurgeries = () =>
+  apiFetch<{ surgeries: any[]; total: number }>(`/surgeries`);
 
 // ─── Labs ─────────────────────────────────────────────────────────────────────
 export const orderLab = (

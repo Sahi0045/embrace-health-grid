@@ -42,7 +42,7 @@ import { Button } from "@/components/ui/button";
 
 
 export const Route = createFileRoute("/fraud")({
-  head: () => ({ meta: [{ title: "Admin · Fraud Detection — DID Hospital" }] }),
+  head: () => ({ meta: [{ title: "Admin · Fraud Detection — Embrace Health Grid" }] }),
   component: FraudPage,
 });
 

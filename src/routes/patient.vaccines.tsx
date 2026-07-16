@@ -13,7 +13,7 @@ import { motion } from "framer-motion";
 import { useState } from "react";
 
 export const Route = createFileRoute("/patient/vaccines")({
-  head: () => ({ meta: [{ title: "Vaccine Passport — DID Hospital" }] }),
+  head: () => ({ meta: [{ title: "Vaccine Passport — Embrace Health Grid" }] }),
   component: VaccinesPage,
 });
 

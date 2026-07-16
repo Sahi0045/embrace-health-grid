@@ -28,7 +28,7 @@ import { toast } from "sonner";
 import { logAuditEvent } from "@/lib/api";
 
 export const Route = createFileRoute("/audit")({
-  head: () => ({ meta: [{ title: "Admin · Audit Logs — DID Hospital" }] }),
+  head: () => ({ meta: [{ title: "Admin · Audit Logs — Embrace Health Grid" }] }),
   component: AuditLogs,
 });
 

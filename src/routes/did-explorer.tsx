@@ -12,7 +12,7 @@ import { issueNFCCard, revokeNFCCard } from "@/lib/api";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/did-explorer")({
-  head: () => ({ meta: [{ title: "DID Explorer — DID Hospital" }] }),
+  head: () => ({ meta: [{ title: "DID Explorer — Embrace Health Grid" }] }),
   component: DIDExplorerPage,
 });
 

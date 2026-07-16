@@ -27,7 +27,6 @@ export const Route = createFileRoute("/credentials")({
   head: () => ({ meta: [{ title: "Credentials — Admin Console" }] }),
   component: CredentialsPage,
 });
-
 // Dynamic issuers list calculated inside component
 
 function CredentialsPage() {
@@ -52,7 +51,7 @@ function CredentialsPage() {
                 : c.type === "ProfessionalVC"
                   ? "Professional Credential"
                   : "Verifiable Credential",
-        issuer: c.issuer || "Apollo Hospitals",
+        issuer: c.issuer || "Embrace Health Consortium",
         issuerDID: `did:hosp:issuer:${c.issuer || "apollo"}`,
         holder: c.subject || "Unknown Holder",
         holderDID: c.claims?.subjectDid || "did:hosp:unknown",
