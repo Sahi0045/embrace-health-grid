@@ -23,6 +23,7 @@ import {
   GitBranch,
   Hospital,
   LogOut,
+  Fingerprint,
 } from "lucide-react";
 import {
   Sidebar,
@@ -52,6 +53,7 @@ const adminNav: Item[] = [
   { title: "Policies", url: "/policies", icon: BookLock },
   { title: "Audit Logs", url: "/audit", icon: Activity },
   { title: "Fraud Detection", url: "/fraud", icon: AlertTriangle },
+  { title: "NFC Cards", url: "/nfc-cards", icon: Fingerprint },
 ];
 
 const globalNav: Item[] = [

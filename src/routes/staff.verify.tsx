@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHeader } from "@/components/PageHeader";
 import { RouteGuard } from "@/components/RouteGuard";
@@ -77,6 +77,27 @@ function VerifyPatient() {
   const [overrideReason, setOverrideReason] = useState("");
   const [isManualInputActive, setIsManualInputActive] = useState(false);
   const [selectedSimPatientDid, setSelectedSimPatientDid] = useState<string>("");
+
+  // NFC failure retry counter
+  const [nfcFailCount, setNfcFailCount] = useState(0);
+
+  // NFC capability detection
+  const nfcSupported = typeof window !== "undefined" && "NDEFReader" in window;
+
+  // NFC auto-fallback timeout: after 15s of reading → suggest QR
+  useEffect(() => {
+    if (nfcStatus !== "reading") return;
+    const timer = setTimeout(() => {
+      if (nfcStatus === "reading") {
+        setNfcStatus("error");
+        setNfcError("NFC read timed out after 15 seconds. Try using QR code instead.");
+        toast.error("NFC Timeout", {
+          description: "No NFC card detected. Switch to QR tab for verification.",
+        });
+      }
+    }, 15_000);
+    return () => clearTimeout(timer);
+  }, [nfcStatus]);
 
   // ── Scanner controls ──────────────────────────────────────────────────────
 
@@ -242,9 +263,35 @@ function VerifyPatient() {
           description: `${target.name} · MRN ${target.mrn}`,
         });
       } catch (err: any) {
+        const failCount = nfcFailCount + 1;
+        setNfcFailCount(failCount);
         setNfcStatus("error");
-        setNfcError(err.message || "NFC card verification failed.");
-        toast.error("NFC Verification Failed", { description: err.message });
+
+        // Parse structured error codes from backend
+        const errorCode = err.code || "";
+        let errorMsg = err.message || "NFC card verification failed.";
+        if (errorCode === "CARD_REVOKED") {
+          errorMsg = "This card has been revoked. Use QR code or manual MRN instead.";
+        } else if (errorCode === "CARD_NOT_FOUND") {
+          errorMsg = "No NFC card registered for this patient. Try manual MRN input.";
+        } else if (errorCode === "SIGNATURE_INVALID") {
+          errorMsg = "Signature verification failed. Contact IT support.";
+        } else if (errorCode === "DID_EXPIRED") {
+          errorMsg = "Patient DID credential has expired. Request credential renewal.";
+        }
+
+        // After 3 failures, force suggest QR
+        if (failCount >= 3) {
+          errorMsg += " Multiple failures detected — please switch to QR or manual verification.";
+        }
+
+        setNfcError(errorMsg);
+        void logAuditEvent("staff", selectedSimPatientDid || "unknown", "NFC_VERIFY_FAILED", "failure", "warning");
+        toast.error("NFC Verification Failed", { description: errorMsg });
+
+        if (failCount >= 3) {
+          setIsManualInputActive(true);
+        }
       }
     }, 1000);
   }, [patientsList, selectedSimPatientDid]);
@@ -257,14 +304,22 @@ function VerifyPatient() {
     setScanResult(null);
 
     setTimeout(() => {
+      const failCount = nfcFailCount + 1;
+      setNfcFailCount(failCount);
       setNfcStatus("error");
-      setNfcError("NDEF signature verification failed. Card payload is unsigned or tampered.");
+      const errorMsg = failCount >= 3
+        ? "NDEF signature verification failed. Multiple failures — please switch to QR or manual verification."
+        : "NDEF signature verification failed. Card payload is unsigned or tampered.";
+      setNfcError(errorMsg);
+      void logAuditEvent("staff", selectedSimPatientDid || "unknown", "NFC_VERIFY_FAILED", "failure", "warning");
       toast.error("NFC Verification Failed", {
         description: "Signature mismatch or invalid issuer.",
       });
-      setIsManualInputActive(true);
+      if (failCount >= 3) {
+        setIsManualInputActive(true);
+      }
     }, 1200);
-  }, []);
+  }, [nfcFailCount, selectedSimPatientDid]);
 
   const handleManualCheckin = useCallback(() => {
     if (!manualMrn.trim()) {
@@ -463,6 +518,26 @@ function VerifyPatient() {
           {/* NFC Tap Interface */}
           {activeTab === "nfc" && (
             <div>
+              {/* NFC Capability Badge */}
+              <div className="mb-4 flex items-center justify-center gap-2">
+                {nfcSupported ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-success/10 px-3 py-1 text-xs font-medium text-success">
+                    <Wifi className="h-3 w-3" /> NFC Available
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-warning/10 px-3 py-1 text-xs font-medium text-warning-foreground">
+                    <AlertTriangle className="h-3 w-3" /> NFC Not Supported — Simulation Mode
+                  </span>
+                )}
+              </div>
+
+              {/* Browser guidance when NFC unavailable */}
+              {!nfcSupported && nfcStatus === "idle" && (
+                <div className="mb-3 rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground text-center">
+                  Web NFC requires <span className="font-semibold">Chrome on Android 89+</span>. Desktop and iOS browsers use simulation mode with backend verification.
+                </div>
+              )}
+
               <NfcContactlessReader status={nfcStatus} errorText={nfcError} />
 
               {/* NFC status error message */}
@@ -515,7 +590,7 @@ function VerifyPatient() {
                     </button>
                   </>
                 )}
-                {(nfcStatus === "success" || nfcStatus === "error") && (
+                {nfcStatus === "success" && (
                   <button
                     onClick={() => {
                       setNfcStatus("idle");
@@ -528,10 +603,35 @@ function VerifyPatient() {
                     Reset Reader
                   </button>
                 )}
+                {nfcStatus === "error" && (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        setNfcStatus("idle");
+                        setNfcError(null);
+                        setVerified(false);
+                        setScanResult(null);
+                      }}
+                      className="flex flex-1 items-center justify-center gap-2 rounded-md border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+                    >
+                      Clear & Retry
+                    </button>
+                    <button
+                      onClick={() => {
+                        setNfcStatus("idle");
+                        setNfcError(null);
+                        setActiveTab("qr");
+                      }}
+                      className="flex flex-1 items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+                    >
+                      Switch to QR
+                    </button>
+                  </div>
+                )}
               </div>
 
               <p className="mt-3 text-center text-xs text-muted-foreground">
-                Simulate NFC tap to verify Patient DID document.
+                {nfcSupported ? "Tap patient NFC card on device to verify identity." : "Simulate NFC tap to verify Patient DID document."}
               </p>
             </div>
           )}

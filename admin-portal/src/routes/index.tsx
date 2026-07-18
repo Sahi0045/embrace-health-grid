@@ -5,6 +5,8 @@ import {
   useCredentials,
   useAudit,
   useBeds,
+  useAmbulances,
+  useEquipment,
   useFraudAlerts,
 } from "@/hooks/use-api";
 import {
@@ -71,6 +73,8 @@ function AdminOverview() {
   const { data: credsData } = useCredentials();
   const { data: auditData } = useAudit();
   const { data: bedsData } = useBeds();
+  const { data: ambulancesData } = useAmbulances();
+  const { data: equipmentData } = useEquipment();
   const { data: fraudData } = useFraudAlerts();
 
   const totalDIDs = didsData?.total ?? 0;
@@ -80,6 +84,12 @@ function AdminOverview() {
 
   const totalBeds = bedsData?.total ?? 0;
   const occupiedBeds = bedsData?.beds?.filter((b: any) => b.status === "occupied")?.length ?? 0;
+
+  const allAmbulances = ambulancesData?.ambulances ?? [];
+  const availableAmbulances = allAmbulances.filter((a: any) => a.status === "available").length;
+
+  const allEquipment = equipmentData?.equipment ?? [];
+  const operationalEquipment = allEquipment.filter((e: any) => e.status === "operational" || e.status === "active").length;
 
   const activeFraudAlerts = fraudData?.alerts ?? [];
   const criticalEvents = (auditData?.events ?? [])
@@ -192,8 +202,16 @@ function AdminOverview() {
                   value={`${occupiedBeds}/${totalBeds} (${totalBeds > 0 ? Math.round((occupiedBeds / totalBeds) * 100) : 0}%)`}
                   good
                 />
-                <Row label="Ambulances ready" value="4/5" good />
-                <Row label="Equipment operational" value="98/100" good />
+                <Row
+                  label="Ambulances ready"
+                  value={allAmbulances.length > 0 ? `${availableAmbulances}/${allAmbulances.length}` : "—"}
+                  good={allAmbulances.length > 0}
+                />
+                <Row
+                  label="Equipment operational"
+                  value={allEquipment.length > 0 ? `${operationalEquipment}/${allEquipment.length}` : "—"}
+                  good={allEquipment.length > 0}
+                />
               </ul>
             </div>
 

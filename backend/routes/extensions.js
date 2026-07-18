@@ -188,18 +188,27 @@ export function registerExtensionRoutes(app, deps) {
 
     if (cardId) {
       const entry = getState("nfc-cards", cardId);
-      if (!entry) return res.status(404).json({ error: "Card not found" });
+      if (!entry) {
+        logAudit(req, { resource: cardId, action: "NFC_VERIFY_FAILED", outcome: "failure", severity: "warning" });
+        return res.status(404).json({ error: "Card not found in registry", code: "CARD_NOT_FOUND" });
+      }
       card = entry.value;
       if (card.status === "revoked") {
-        return res.status(403).json({ error: "Card revoked", card });
+        logAudit(req, { resource: cardId, action: "NFC_VERIFY_FAILED", outcome: "failure", severity: "warning" });
+        return res.status(403).json({ error: "Card has been revoked", code: "CARD_REVOKED", card });
       }
     } else if (payload) {
       const result = verifyIdentityPayload(payload, IDENTITY_SECRET);
-      if (!result.valid) return res.status(400).json({ error: result.error });
+      if (!result.valid) {
+        const errorCode = result.error && result.error.includes("expired") ? "DID_EXPIRED" : "SIGNATURE_INVALID";
+        logAudit(req, { resource: payload.did || "unknown", action: "NFC_VERIFY_FAILED", outcome: "failure", severity: "warning" });
+        return res.status(400).json({ error: result.error, code: errorCode });
+      }
 
       const cardEntries = queryState("nfc-cards", (val) => val.patientDid === result.payload.did);
       if (cardEntries.length === 0) {
-        return res.status(404).json({ error: "Card not registered in the system registry." });
+        logAudit(req, { resource: result.payload.did, action: "NFC_VERIFY_FAILED", outcome: "failure", severity: "warning" });
+        return res.status(404).json({ error: "No NFC card registered for this patient", code: "CARD_NOT_FOUND" });
       }
 
       // Sort by issuedAt descending to get the latest card
@@ -207,16 +216,28 @@ export function registerExtensionRoutes(app, deps) {
       const latestCard = cardEntries[0].value;
 
       if (latestCard.status === "revoked") {
-        return res.status(403).json({ error: "Card revoked", card: latestCard });
+        logAudit(req, { resource: latestCard.cardId, action: "NFC_VERIFY_FAILED", outcome: "failure", severity: "warning" });
+        return res.status(403).json({ error: "Card has been revoked", code: "CARD_REVOKED", card: latestCard });
       }
 
       card = latestCard;
     } else {
-      return res.status(400).json({ error: "cardId or payload required" });
+      return res.status(400).json({ error: "cardId or payload required", code: "INVALID_REQUEST" });
     }
 
     logAudit(req, { resource: card.patientDid || cardId, action: "NFC_VERIFY" });
     res.json({ verified: true, card });
+  });
+
+  app.get("/api/nfc/status/:patientDid", requireRole("patient", "staff", "admin"), (req, res) => {
+    const did = decodeURIComponent(req.params.patientDid);
+    const cardEntries = queryState("nfc-cards", (val) => val.patientDid === did);
+    if (cardEntries.length === 0) {
+      return res.json({ hasCard: false, card: null });
+    }
+    cardEntries.sort((a, b) => new Date(b.value.issuedAt).getTime() - new Date(a.value.issuedAt).getTime());
+    const latestCard = cardEntries[0].value;
+    res.json({ hasCard: true, card: latestCard });
   });
 
   // ─── Infrastructure ─────────────────────────────────────────────────────────
@@ -664,7 +685,17 @@ export function registerExtensionRoutes(app, deps) {
     putState("attendance", id, record, randomUUID());
     logAudit(req, { resource: id, action: `ATTENDANCE_CLOCK_${action.toUpperCase()}` });
     solana.scheduleAnchor({ computeRecordHash }, record, "attendance", req.user.did);
+    broadcast({ event: "attendance:clocked", data: record });
     res.json({ record });
+  });
+
+  app.get("/api/staff-requests/:staffEmail", requireRole("staff", "admin"), (req, res) => {
+    const email = req.params.staffEmail;
+    if (req.user.role === "staff" && req.user.email !== email) {
+      return res.status(403).json({ error: "Forbidden: own requests only" });
+    }
+    const all = queryState("staff-requests", (v) => v.staffEmail === email);
+    res.json({ requests: all.map((e) => e.value), total: all.length });
   });
 
   app.post("/api/staff-requests", requireRole("staff", "admin"), (req, res) => {
@@ -688,6 +719,7 @@ export function registerExtensionRoutes(app, deps) {
     };
     putState("staff-requests", id, record, randomUUID());
     logAudit(req, { resource: id, action: `STAFF_REQUEST_CREATE_${requestType.toUpperCase()}` });
+    broadcast({ event: "staff-request:created", data: record });
     res.json({ success: true, record });
   });
 

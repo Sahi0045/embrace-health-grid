@@ -32,6 +32,8 @@ import {
   getInpatientData as fetchInpatientData,
   getAmbulances,
   getEquipment,
+  getAttendance,
+  getStaffRequests,
 } from "@/lib/api";
 
 import {
@@ -637,4 +639,23 @@ export function useEquipment() {
   );
 }
 
+// ─── Attendance ───────────────────────────────────────────────────────────
+export function useAttendance(staffEmail: string) {
+  return useApiData(
+    () => getAttendance(staffEmail),
+    () => ({ records: [] as any[], total: 0 }),
+    "attendance:clocked",
+    [staffEmail],
+  );
+}
+
+// ─── Staff Requests (Leave / Shift) ───────────────────────────────────────
+export function useStaffRequests(staffEmail: string) {
+  return useApiData(
+    () => getStaffRequests(staffEmail),
+    () => ({ requests: [] as any[], total: 0 }),
+    "staff-request:created",
+    [staffEmail],
+  );
+}
 

@@ -252,6 +252,9 @@ export const verifyNFCCard = (data: { cardId?: string; payload?: string }) =>
     body: JSON.stringify(data),
   });
 
+export const getNFCCardStatus = (patientDid: string) =>
+  apiFetch<{ hasCard: boolean; card: any }>(`/nfc/status/${encodeURIComponent(patientDid)}`);
+
 // ─── Visitors ─────────────────────────────────────────────────────────────────
 export const getVisitors = (patientDid: string) =>
   apiFetch<{ visitors: any[]; total: number }>(`/visitors/${encodeURIComponent(patientDid)}`);
@@ -284,6 +287,22 @@ export const clockAttendance = (data: {
   location?: string;
 }) =>
   apiFetch<{ record: any }>(`/attendance/clock`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+
+// ─── Staff Requests (Leave / Shift) ───────────────────────────────────────────
+export const getStaffRequests = (staffEmail: string) =>
+  apiFetch<{ requests: any[]; total: number }>(`/staff-requests/${encodeURIComponent(staffEmail)}`);
+
+export const createStaffRequest = (data: {
+  requestType: string;
+  leaveType?: string;
+  fromDate?: string;
+  toDate?: string;
+  reason?: string;
+}) =>
+  apiFetch<{ success: boolean; record: any }>(`/staff-requests`, {
     method: "POST",
     body: JSON.stringify(data),
   });
@@ -664,9 +683,6 @@ export const updatePreferences = (patientDid: string, data: any) =>
 export const getStaffSchedule = (staffEmail: string) =>
   apiFetch<{ schedule: any[] }>(`/staff/schedule/${encodeURIComponent(staffEmail)}`);
 
-export const getSurgeries = () =>
-  apiFetch<{ surgeries: any[]; total: number }>("/staff/surgeries");
-
 export const getPolicies = () =>
   apiFetch<{ policies: any[]; total: number }>("/policies");
 
@@ -693,13 +709,3 @@ export const payBill = (data: { patientDid: string; patientName: string; amount:
     method: "POST",
     body: JSON.stringify(data),
   });
-
-export const createStaffRequest = (data: any) =>
-  apiFetch<any>("/staff-requests", {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-
-
-
-
