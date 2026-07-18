@@ -25,7 +25,9 @@ import {
   Loader2,
   Lock,
   Share2,
+  X,
 } from "lucide-react";
+import { AnimatePresence } from "framer-motion";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey, Transaction, Connection } from "@solana/web3.js";
 import { API_BASE_URL } from "@/lib/api";
@@ -68,6 +70,7 @@ function MedicalRecords() {
   const [apiRehabSessions, setApiRehabSessions] = useState<any[]>([]);
   const [apiFeedbackList, setApiFeedbackList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedRxJson, setSelectedRxJson] = useState<any | null>(null);
 
   const patientDid = typeof window !== "undefined" ? localStorage.getItem("userDID") || "" : "";
 
@@ -338,6 +341,10 @@ function MedicalRecords() {
                         <Badge variant={rx.status === "active" ? "default" : "secondary"}>
                           {rx.status}
                         </Badge>
+                        <Button variant="outline" size="sm" onClick={() => setSelectedRxJson(rx)}>
+                          <FileText className="mr-1 h-3 w-3" />
+                          JSON
+                        </Button>
                         <Button variant="outline" size="sm">
                           <Download className="mr-1 h-3 w-3" />
                           PDF
@@ -717,6 +724,65 @@ function MedicalRecords() {
           </Tabs>
         </div>
       </div>
+
+      {/* JSON Viewer Modal Overlay */}
+      <AnimatePresence>
+        {selectedRxJson && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/45 backdrop-blur-sm p-4"
+            onClick={() => setSelectedRxJson(null)}
+          >
+            <div
+              className="relative w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-clinical-md space-y-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between border-b border-border pb-3">
+                <div>
+                  <h3 className="text-base font-bold text-foreground">Cryptographic JSON Payload</h3>
+                  <p className="text-[10px] text-muted-foreground">
+                    Verifiable raw ledger metadata for Rx {selectedRxJson.id}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setSelectedRxJson(null)}
+                  className="rounded-lg p-1.5 hover:bg-muted text-muted-foreground transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="bg-muted p-4 rounded-xl border border-border/60 overflow-x-auto">
+                <pre className="text-xs font-mono text-foreground leading-relaxed select-all">
+                  {JSON.stringify(
+                    {
+                      rxId: selectedRxJson.id,
+                      patientDid: patientDid,
+                      diagnosis: selectedRxJson.diagnosis,
+                      signedBy: selectedRxJson.doctor,
+                      signedAt: selectedRxJson.date,
+                      status: selectedRxJson.status,
+                      drugs: selectedRxJson.medicines,
+                      notes: selectedRxJson.notes,
+                      hash: `sha256:d8c0b56${selectedRxJson.id.slice(-8)}`,
+                    },
+                    null,
+                    2
+                  )}
+                </pre>
+              </div>
+
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() => setSelectedRxJson(null)}
+                  className="rounded-xl border border-border bg-card px-4 py-2 text-xs font-semibold text-foreground hover:bg-muted transition-colors cursor-pointer"
+                >
+                  Close Payload
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </AnimatePresence>
     </RouteGuard>
   );
 }

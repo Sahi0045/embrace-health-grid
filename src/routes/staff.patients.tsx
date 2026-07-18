@@ -1,14 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { RouteGuard } from "@/components/RouteGuard";
 import { useLivePatients, useNFCCards, useInpatientData } from "@/hooks/use-api";
-import { Search, X, Activity, Pill, FlaskConical, AlertTriangle, Loader2, Plus, Fingerprint, XCircle } from "lucide-react";
+import { Search, X, Activity, Pill, FlaskConical, AlertTriangle, Loader2, Plus, Fingerprint, XCircle, ShieldAlert, Lock, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getCurrentUser } from "@/lib/auth";
-import { issueNFCCard, revokeNFCCard, API_BASE_URL } from "@/lib/api";
+import { issueNFCCard, revokeNFCCard, getPrescriptions, API_BASE_URL } from "@/lib/api";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/staff/patients")({
@@ -439,6 +439,27 @@ function PatientChartCards({ patientDid }: { patientDid: string }) {
 
   const latestVital = vitalSigns[0] as any;
 
+  // Consent-guarded prescription ledger states
+  const [prescriptions, setPrescriptions] = useState<any[]>([]);
+  const [loadingRx, setLoadingRx] = useState(false);
+  const [rxError, setRxError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!patientDid) return;
+    setLoadingRx(true);
+    setRxError(null);
+    getPrescriptions(patientDid)
+      .then((res) => {
+        setPrescriptions(res.prescriptions || []);
+      })
+      .catch((err: any) => {
+        setRxError(err.message || "Failed to retrieve prescription ledger.");
+      })
+      .finally(() => {
+        setLoadingRx(false);
+      });
+  }, [patientDid]);
+
   return (
     <>
       {/* Latest vitals */}
@@ -474,27 +495,86 @@ function PatientChartCards({ patientDid }: { patientDid: string }) {
         </CardContent>
       </Card>
 
+      {/* On-Chain Prescription Ledger (Consent-Guarded) */}
+      <Card className="border border-border">
+        <CardHeader className="pb-2">
+          <div className="flex items-center gap-2">
+            <Lock className="h-4 w-4 text-primary" />
+            <CardTitle className="text-sm">Prescription Ledger History (On-Chain)</CardTitle>
+          </div>
+          <CardDescription className="text-[10px]">
+            Requires patient-granted consent during appointment schedule block.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {loadingRx ? (
+            <div className="flex items-center justify-center py-4 text-xs text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin mr-2" /> Checking ledger access consent...
+            </div>
+          ) : rxError ? (
+            <div className="flex items-start gap-3 rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-xs">
+              <ShieldAlert className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold text-destructive">On-Chain Access Blocked</span>
+                <p className="text-muted-foreground mt-0.5 leading-normal">{rxError}</p>
+              </div>
+            </div>
+          ) : prescriptions.length > 0 ? (
+            <div className="space-y-2">
+              {prescriptions.map((rx: any) => (
+                <div key={rx.rxId} className="rounded-lg border p-3 text-xs space-y-2 bg-card">
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-foreground">{rx.diagnosis || "General Consult"}</span>
+                    <Badge variant="outline" className="bg-success/5 text-success border-success/20 text-[9px] flex items-center gap-1">
+                      <CheckCircle2 className="h-3 w-3" /> Verifiable Root
+                    </Badge>
+                  </div>
+                  <div className="space-y-1">
+                    {Array.isArray(rx.drugs) ? (
+                      rx.drugs.map((d: any, idx: number) => (
+                        <div key={idx} className="flex justify-between text-muted-foreground">
+                          <span>• {d.name} {d.dosage}</span>
+                          <span>{d.frequency} ({d.duration})</span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-muted-foreground italic">No drugs listed</div>
+                    )}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground border-t border-border/40 pt-1.5 flex justify-between">
+                    <span>Issued By: {rx.signedBy || "Staff"}</span>
+                    <span>Date: {rx.signedAt ? new Date(rx.signedAt).toLocaleDateString("en-IN") : "—"}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-xs text-muted-foreground text-center py-4">No historical prescriptions found.</div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Active medications */}
       <Card>
         <CardHeader className="pb-2">
           <div className="flex items-center gap-2">
             <Pill className="h-4 w-4 text-primary" />
-            <CardTitle className="text-sm">Active Medications</CardTitle>
+            <CardTitle className="text-sm">Active Medications (Inpatient)</CardTitle>
           </div>
         </CardHeader>
         <CardContent className="space-y-2">
           {medications.length > 0 ? medications
-            .filter((m: any) => m.status === "active")
-            .map((med: any) => (
-              <div key={med.id} className="flex items-center justify-between rounded-lg border p-2 text-sm">
-                <div>
-                  <span className="font-medium">{med.name}</span>
-                  <span className="text-muted-foreground ml-2">{med.dosage} · {med.frequency}</span>
-                </div>
-                <Badge variant="outline" className="text-xs">Active</Badge>
-              </div>
-            )) : (
-            <div className="text-xs text-muted-foreground text-center py-4">No medications recorded</div>
+             .filter((m: any) => m.status === "active")
+             .map((med: any) => (
+               <div key={med.id} className="flex items-center justify-between rounded-lg border p-2 text-sm">
+                 <div>
+                   <span className="font-medium">{med.name}</span>
+                   <span className="text-muted-foreground ml-2">{med.dosage} · {med.frequency}</span>
+                 </div>
+                 <Badge variant="outline" className="text-xs">Active</Badge>
+               </div>
+             )) : (
+             <div className="text-xs text-muted-foreground text-center py-4">No medications recorded</div>
           )}
         </CardContent>
       </Card>

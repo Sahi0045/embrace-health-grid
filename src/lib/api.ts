@@ -374,6 +374,7 @@ export const bookAppointment = (data: {
   slot: string;
   mode: string;
   specialty: string;
+  consentGranted?: boolean;
 }) =>
   apiFetch<any>(`/appointments`, {
     method: "POST",
@@ -663,9 +664,6 @@ export const updatePreferences = (patientDid: string, data: any) =>
 
 export const getStaffSchedule = (staffEmail: string) =>
   apiFetch<{ schedule: any[] }>(`/staff/schedule/${encodeURIComponent(staffEmail)}`);
-
-export const getSurgeries = () =>
-  apiFetch<{ surgeries: any[]; total: number }>("/staff/surgeries");
 
 export const getPolicies = () =>
   apiFetch<{ policies: any[]; total: number }>("/policies");

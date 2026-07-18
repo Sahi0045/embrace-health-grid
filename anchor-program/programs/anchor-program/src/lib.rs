@@ -59,6 +59,36 @@ pub mod anchor_program {
         msg!("Revoked consent and closed account. Rent reclaimed by patient.");
         Ok(())
     }
+
+    pub fn register_doctor_location(
+        ctx: Context<RegisterDoctorLocation>,
+        doctor_did: String,
+        initial_root: [u8; 32],
+    ) -> Result<()> {
+        let location_account = &mut ctx.accounts.doctor_location;
+        location_account.doctor_did = doctor_did;
+        location_account.location_merkle_root = initial_root;
+        location_account.last_updated = Clock::get()?.unix_timestamp;
+        location_account.authority = ctx.accounts.authority.key();
+        location_account.bump = ctx.bumps.doctor_location;
+
+        msg!("Registered Location Merkle Root for doctor: {}", location_account.doctor_did);
+        Ok(())
+    }
+
+    pub fn update_doctor_location(
+        ctx: Context<UpdateDoctorLocation>,
+        _doctor_did: String,
+        new_root: [u8; 32],
+    ) -> Result<()> {
+        let location_account = &mut ctx.accounts.doctor_location;
+        location_account.location_merkle_root = new_root;
+        location_account.last_updated = Clock::get()?.unix_timestamp;
+        location_account.authority = ctx.accounts.authority.key();
+
+        msg!("Updated Location Merkle Root for doctor: {}", location_account.doctor_did);
+        Ok(())
+    }
 }
 
 #[derive(Accounts)]
@@ -140,5 +170,45 @@ pub struct ConsentRecord {
     pub resource: String,
     pub expiry: i64,
     pub granted_at: i64,
+    pub bump: u8,
+}
+
+#[derive(Accounts)]
+#[instruction(doctor_did: String, initial_root: [u8; 32])]
+pub struct RegisterDoctorLocation<'info> {
+    #[account(
+        init,
+        payer = authority,
+        space = 8 + 68 + 32 + 8 + 32 + 1,
+        seeds = [b"doctor-location", doctor_did.as_bytes()],
+        bump
+    )]
+    pub doctor_location: Account<'info, DoctorLocationRoot>,
+
+    #[account(mut)]
+    pub authority: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+#[instruction(doctor_did: String, new_root: [u8; 32])]
+pub struct UpdateDoctorLocation<'info> {
+    #[account(
+        mut,
+        seeds = [b"doctor-location", doctor_did.as_bytes()],
+        bump = doctor_location.bump,
+        constraint = doctor_location.authority == authority.key()
+    )]
+    pub doctor_location: Account<'info, DoctorLocationRoot>,
+
+    pub authority: Signer<'info>,
+}
+
+#[account]
+pub struct DoctorLocationRoot {
+    pub doctor_did: String,
+    pub location_merkle_root: [u8; 32],
+    pub last_updated: i64,
+    pub authority: Pubkey,
     pub bump: u8,
 }

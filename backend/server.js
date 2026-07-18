@@ -343,7 +343,7 @@ const logAudit = createAuditHelper({
 function simHash(s) {
   let h = 0;
   for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0;
-  return Math.abs(h).toString(16).padStart(8, "0") + randomUUID().replace(/-/g, "").slice(0, 24);
+  return Math.abs(h).toString(16).padStart(8, "0") + "a1b2c3d4e5f67890a1b2c3d4";
 }
 
 function broadcast(msg) {
@@ -790,12 +790,30 @@ app.post("/api/prescriptions", requireAuth, requireRole(["doctor", "staff"]), (r
 });
 
 app.get("/api/prescriptions/:patientDid", requireAuth, (req, res) => {
-  if (req.user.role === "patient" && req.user.did !== req.params.patientDid) {
+  const patientDid = req.params.patientDid;
+
+  if (req.user.role === "patient" && req.user.did !== patientDid) {
     return res
       .status(403)
       .json({ error: "Access Denied: Cannot view other patients' prescriptions" });
   }
-  const patientDid = req.params.patientDid;
+
+  if (req.user.role === "doctor" || req.user.role === "staff") {
+    const doctorDid = req.user.did || `did:hosp:0x${simHash(req.user.email).slice(0, 8)}`;
+    const consents = queryState("consent-manager", (v) => 
+      v.patientDid === patientDid &&
+      v.doctorDid === doctorDid &&
+      v.status === "active" &&
+      new Date(v.expiry) > new Date()
+    );
+
+    if (consents.length === 0) {
+      return res.status(403).json({
+        error: "Access Denied: No active consent from this patient. Consent must be granted during appointment booking."
+      });
+    }
+  }
+
   let all = queryState("prescriptions", (v) => v.patientDid === patientDid);
   if (all.length === 0) {
     const defaultPrescriptions = [
@@ -810,6 +828,194 @@ app.get("/api/prescriptions/:patientDid", requireAuth, (req, res) => {
     all = queryState("prescriptions", (v) => v.patientDid === patientDid);
   }
   res.json({ prescriptions: all.map((e) => e.value) });
+});
+
+// ─── Doctor Location Check-In & Tracking ────────────────────────────────────
+app.post("/api/hardware/scan", (req, res) => {
+  const { doctorDid, roomNumber } = req.body;
+  if (!doctorDid || !roomNumber) {
+    return res.status(400).json({ error: "doctorDid and roomNumber are required" });
+  }
+
+  // 1. Fetch doctor details from database
+  const allUsers = getAllState("users");
+  const doctorUserEntry = allUsers.find(
+    (u) =>
+      u.value?.did === doctorDid ||
+      `did:hosp:0x${simHash(u.value?.email || "").slice(0, 8)}` === doctorDid
+  );
+
+  if (!doctorUserEntry) {
+    return res.status(404).json({ error: "Doctor not found in system registry" });
+  }
+  const doctorUser = doctorUserEntry.value;
+
+  // 2. Fetch history logs to check previous status
+  const all = queryState("doctor-locations", (v) => v.doctorDid === doctorDid);
+  const sortedLogs = [...all].sort((a, b) => b.value.timestamp.localeCompare(a.value.timestamp));
+  const lastLog = sortedLogs[0]?.value;
+
+  // Toggle action
+  let action = "enter";
+  if (lastLog && lastLog.roomNumber === roomNumber && lastLog.action === "enter") {
+    action = "exit";
+  }
+
+  // 3. Create log
+  const logId = `LOC-${Date.now().toString(36).toUpperCase()}`;
+  const timestamp = new Date().toISOString();
+  const leafContent = `${logId}:${doctorDid}:${roomNumber}:${action}:${timestamp}`;
+  const hash = `sha256:${simHash(leafContent)}`;
+
+  const log = {
+    logId,
+    doctorDid,
+    doctorName: doctorUser.name || "Dr. Staff",
+    roomNumber,
+    action,
+    timestamp,
+    hash
+  };
+
+  const txId = randomUUID();
+  putState("doctor-locations", logId, log, txId);
+
+  // 4. Update doctor status
+  doctorUser.activeRoom = action === "enter" ? roomNumber : "None";
+  doctorUser.roomStatus = action;
+  doctorUser.lastLocationChange = timestamp;
+  putState("users", doctorUser.email, doctorUser, randomUUID());
+
+  // 5. Broadcast to update staff tracker instantly
+  broadcast({
+    event: "staff:location",
+    data: {
+      id: doctorDid,
+      location: action === "enter" ? roomNumber : "Nursing Station",
+      lastSignal: timestamp
+    }
+  });
+
+  // 6. Generate updated Merkle Tree and anchor root to Solana
+  const updatedEntries = queryState("doctor-locations", (v) => v.doctorDid === doctorDid);
+  const updatedLogs = updatedEntries.map((e) => e.value);
+  const leaves = updatedLogs.map((l) => `${l.logId}:${l.doctorDid}:${l.roomNumber}:${l.action}:${l.timestamp}`);
+  const tree = new MerkleTree(leaves);
+
+  tree.build().then(() => {
+    const rootHex = tree.getRoot();
+    const anchorId = `loc_${randomUUID().slice(0, 8)}`;
+    const anchorEntry = {
+      anchorId,
+      recordHash: rootHex,
+      recordType: "doctor-location",
+      actorDid: doctorDid,
+      signature: `solana_loc_${rootHex.slice(0, 12)}_${Date.now().toString(36)}`,
+      slot: Math.floor(Date.now() / 400),
+      network: "devnet-simulated",
+      anchoredAt: timestamp
+    };
+    putState("solana-anchors", anchorId, anchorEntry, anchorId);
+
+    // Save location root status
+    putState("doctor-location-roots", doctorDid, {
+      doctorDid,
+      merkleRoot: rootHex,
+      lastUpdated: timestamp,
+      signature: anchorEntry.signature
+    }, randomUUID());
+  });
+
+  res.json({ success: true, action, log, txId });
+});
+
+app.post("/api/doctor/check-in", requireAuth, requireRole(["doctor", "staff"]), (req, res) => {
+  const { roomNumber } = req.body;
+  if (!roomNumber) {
+    return res.status(400).json({ error: "roomNumber is required" });
+  }
+
+  const doctorDid = req.user.did || `did:hosp:0x${simHash(req.user.email).slice(0, 8)}`;
+  
+  // Call unified scan route logic directly
+  req.url = "/api/hardware/scan";
+  req.body = { doctorDid, roomNumber };
+  app._router.handle(req, res);
+});
+
+app.get("/api/doctor/location-history/:doctorDid", requireAuth, (req, res) => {
+  const { doctorDid } = req.params;
+  let all = queryState("doctor-locations", (v) => v.doctorDid === doctorDid);
+  
+  if (all.length === 0) {
+    const defaultLog = {
+      logId: "LOC-INIT",
+      doctorDid,
+      doctorName: "Dr. Staff",
+      roomNumber: "Room 101 - Outpatient Clinic",
+      action: "enter",
+      timestamp: new Date(Date.now() - 3600000).toISOString(),
+      hash: `sha256:${simHash("LOC-INIT:" + doctorDid + ":Room 101 - Outpatient Clinic:enter")}`
+    };
+    putState("doctor-locations", "LOC-INIT", defaultLog, randomUUID());
+    all = queryState("doctor-locations", (v) => v.doctorDid === doctorDid);
+  }
+
+  res.json({ logs: all.map((e) => e.value) });
+});
+
+app.post("/api/doctor/anchor-location", requireAuth, requireRole(["doctor", "staff"]), async (req, res) => {
+  const { authorityPubkey } = req.body;
+  if (!authorityPubkey) {
+    return res.status(400).json({ error: "authorityPubkey is required" });
+  }
+
+  const doctorDid = req.user.did || `did:hosp:0x${simHash(req.user.email).slice(0, 8)}`;
+  
+  // Fetch all logs
+  const entries = queryState("doctor-locations", (v) => v.doctorDid === doctorDid);
+  const logs = entries.map((e) => e.value);
+
+  if (logs.length === 0) {
+    const defaultLog = {
+      logId: "LOC-INIT",
+      doctorDid,
+      doctorName: req.user.name || "Dr. Staff",
+      roomNumber: "Room 101 - Outpatient Clinic",
+      action: "enter",
+      timestamp: new Date(Date.now() - 3600000).toISOString(),
+      hash: `sha256:${simHash("LOC-INIT:" + doctorDid + ":Room 101 - Outpatient Clinic:enter")}`
+    };
+    putState("doctor-locations", "LOC-INIT", defaultLog, randomUUID());
+    logs.push(defaultLog);
+  }
+
+  const leaves = logs.map((l) => `${l.logId}:${l.doctorDid}:${l.roomNumber}:${l.action}:${l.timestamp}`);
+  const tree = new MerkleTree(leaves);
+  await tree.build();
+  const rootHex = tree.getRoot();
+
+  let isUpdate = false;
+  try {
+    const connection = new Connection("https://api.devnet.solana.com", "confirmed");
+    const programId = new PublicKey("BxkLrjBYdb3nh2m9GCfpLXBWrAj3s9MqnRbwktLqSfN3");
+    const [locationPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("doctor-location"), Buffer.from(doctorDid)],
+      programId
+    );
+    const accountInfo = await connection.getAccountInfo(locationPda);
+    if (accountInfo) isUpdate = true;
+  } catch (err) {
+    console.warn("Could not fetch location account status:", err.message);
+  }
+
+  const txId = randomUUID();
+  res.json({
+    merkleRoot: rootHex,
+    isUpdate,
+    transaction: Buffer.from(`solana_tx_placeholder_location:${rootHex}:${isUpdate}`).toString("base64"),
+    txId
+  });
 });
 
 // ─── Lab results ──────────────────────────────────────────────────────────────
@@ -1320,7 +1526,7 @@ app.get("/api/surgeries", requireAuth, (_, res) => {
 });
 
 app.post("/api/appointments", requireAuth, (req, res) => {
-  const { patientDid, patientName, doctorDid, doctorName, slot, mode, specialty } = req.body;
+  const { patientDid, patientName, doctorDid, doctorName, slot, mode, specialty, consentGranted } = req.body;
 
   if (req.user.role === "patient" && req.user.did !== patientDid) {
     return res
@@ -1344,6 +1550,22 @@ app.post("/api/appointments", requireAuth, (req, res) => {
   };
   putState("appointments", apptId, appt, txId);
   broadcast({ event: "appointment:booked", data: appt });
+
+  if (consentGranted) {
+    const grantId = `consent_${randomUUID().slice(0, 8)}`;
+    const grant = {
+      grantId,
+      patientDid,
+      doctorDid,
+      resource: "Prescription Ledger",
+      status: "active",
+      expiry: new Date(Date.now() + 24 * 3600000).toISOString(),
+      grantedAt: new Date().toISOString(),
+    };
+    putState("consent-manager", grantId, grant, txId);
+    broadcast({ event: "consent:granted", data: grant });
+  }
+
   res.json(appt);
 });
 

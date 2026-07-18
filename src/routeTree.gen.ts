@@ -22,6 +22,7 @@ import { Route as StaffTrackerRouteImport } from './routes/staff.tracker'
 import { Route as StaffSurgeriesRouteImport } from './routes/staff.surgeries'
 import { Route as StaffSignRouteImport } from './routes/staff.sign'
 import { Route as StaffScheduleRouteImport } from './routes/staff.schedule'
+import { Route as StaffRoomsRouteImport } from './routes/staff.rooms'
 import { Route as StaffProfileRouteImport } from './routes/staff.profile'
 import { Route as StaffPrescriptionsRouteImport } from './routes/staff.prescriptions'
 import { Route as StaffPatientsRouteImport } from './routes/staff.patients'
@@ -109,6 +110,11 @@ const StaffSignRoute = StaffSignRouteImport.update({
 const StaffScheduleRoute = StaffScheduleRouteImport.update({
   id: '/staff/schedule',
   path: '/staff/schedule',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StaffRoomsRoute = StaffRoomsRouteImport.update({
+  id: '/staff/rooms',
+  path: '/staff/rooms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StaffProfileRoute = StaffProfileRouteImport.update({
@@ -256,6 +262,7 @@ export interface FileRoutesByFullPath {
   '/staff/patients': typeof StaffPatientsRoute
   '/staff/prescriptions': typeof StaffPrescriptionsRoute
   '/staff/profile': typeof StaffProfileRoute
+  '/staff/rooms': typeof StaffRoomsRoute
   '/staff/schedule': typeof StaffScheduleRoute
   '/staff/sign': typeof StaffSignRoute
   '/staff/surgeries': typeof StaffSurgeriesRoute
@@ -294,6 +301,7 @@ export interface FileRoutesByTo {
   '/staff/patients': typeof StaffPatientsRoute
   '/staff/prescriptions': typeof StaffPrescriptionsRoute
   '/staff/profile': typeof StaffProfileRoute
+  '/staff/rooms': typeof StaffRoomsRoute
   '/staff/schedule': typeof StaffScheduleRoute
   '/staff/sign': typeof StaffSignRoute
   '/staff/surgeries': typeof StaffSurgeriesRoute
@@ -333,6 +341,7 @@ export interface FileRoutesById {
   '/staff/patients': typeof StaffPatientsRoute
   '/staff/prescriptions': typeof StaffPrescriptionsRoute
   '/staff/profile': typeof StaffProfileRoute
+  '/staff/rooms': typeof StaffRoomsRoute
   '/staff/schedule': typeof StaffScheduleRoute
   '/staff/sign': typeof StaffSignRoute
   '/staff/surgeries': typeof StaffSurgeriesRoute
@@ -373,6 +382,7 @@ export interface FileRouteTypes {
     | '/staff/patients'
     | '/staff/prescriptions'
     | '/staff/profile'
+    | '/staff/rooms'
     | '/staff/schedule'
     | '/staff/sign'
     | '/staff/surgeries'
@@ -411,6 +421,7 @@ export interface FileRouteTypes {
     | '/staff/patients'
     | '/staff/prescriptions'
     | '/staff/profile'
+    | '/staff/rooms'
     | '/staff/schedule'
     | '/staff/sign'
     | '/staff/surgeries'
@@ -449,6 +460,7 @@ export interface FileRouteTypes {
     | '/staff/patients'
     | '/staff/prescriptions'
     | '/staff/profile'
+    | '/staff/rooms'
     | '/staff/schedule'
     | '/staff/sign'
     | '/staff/surgeries'
@@ -488,6 +500,7 @@ export interface RootRouteChildren {
   StaffPatientsRoute: typeof StaffPatientsRoute
   StaffPrescriptionsRoute: typeof StaffPrescriptionsRoute
   StaffProfileRoute: typeof StaffProfileRoute
+  StaffRoomsRoute: typeof StaffRoomsRoute
   StaffScheduleRoute: typeof StaffScheduleRoute
   StaffSignRoute: typeof StaffSignRoute
   StaffSurgeriesRoute: typeof StaffSurgeriesRoute
@@ -589,6 +602,13 @@ declare module '@tanstack/react-router' {
       path: '/staff/schedule'
       fullPath: '/staff/schedule'
       preLoaderRoute: typeof StaffScheduleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/staff/rooms': {
+      id: '/staff/rooms'
+      path: '/staff/rooms'
+      fullPath: '/staff/rooms'
+      preLoaderRoute: typeof StaffRoomsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/staff/profile': {
@@ -784,6 +804,7 @@ const rootRouteChildren: RootRouteChildren = {
   StaffPatientsRoute: StaffPatientsRoute,
   StaffPrescriptionsRoute: StaffPrescriptionsRoute,
   StaffProfileRoute: StaffProfileRoute,
+  StaffRoomsRoute: StaffRoomsRoute,
   StaffScheduleRoute: StaffScheduleRoute,
   StaffSignRoute: StaffSignRoute,
   StaffSurgeriesRoute: StaffSurgeriesRoute,
