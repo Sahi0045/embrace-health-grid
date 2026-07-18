@@ -7,8 +7,8 @@ const getApiBaseUrl = (): string => {
   const envUrl =
     typeof process !== "undefined" && process?.env ? process.env.VITE_API_BASE_URL : undefined;
   const viteEnvUrl =
-    typeof import.meta !== "undefined" && (import.meta as any).env
-      ? (import.meta as any).env.VITE_API_BASE_URL
+    typeof import.meta !== "undefined" && import.meta.env
+      ? import.meta.env.VITE_API_BASE_URL
       : undefined;
   const configUrl = viteEnvUrl || envUrl;
   if (configUrl) return configUrl;
@@ -65,7 +65,7 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const email = typeof window !== "undefined" ? localStorage.getItem("userEmail") : null;
   const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
   const clientKey =
-    (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_CLIENT_KEY) ||
+    (typeof import.meta !== "undefined" && import.meta.env?.VITE_CLIENT_KEY) ||
     "apollo-consortium-client-secret-2026";
 
   const authHeaders: Record<string, string> = {};
@@ -315,23 +315,35 @@ export const solanaGetAnchors = (limit = 50) =>
 
 // ─── Prescriptions ────────────────────────────────────────────────────────────
 export const signPrescription = (data: {
-  patientDid: string;
-  doctorDid: string;
-  drugs: any[];
-  diagnosis: string;
-  notes: string;
-  signedBy: string;
-}) =>
-  apiFetch<{ rxId: string; rx: any; txId: string }>(`/prescriptions`, {
+  patientDid?: string;
+  doctorDid?: string;
+  drugs?: any[];
+  diagnosis?: string;
+  notes?: string;
+  signedBy?: string;
+  rxId?: string;
+  staffDid?: string;
+}) => {
+  if (data.rxId) {
+    return apiFetch<any>("/prescriptions/sign", {
+      method: "POST",
+      body: JSON.stringify({ rxId: data.rxId, staffDid: data.staffDid }),
+    });
+  }
+  return apiFetch<any>(`/prescriptions`, {
     method: "POST",
     body: JSON.stringify(data),
   });
+};
 
 export const getPrescriptions = (patientDid: string) =>
   apiFetch<{ prescriptions: any[] }>(`/prescriptions/${encodeURIComponent(patientDid)}`);
 
 export const getAllPrescriptions = () =>
   apiFetch<{ prescriptions: any[]; total: number }>(`/prescriptions`);
+
+export const getSurgeries = () =>
+  apiFetch<{ surgeries: any[]; total: number }>(`/surgeries`);
 
 // ─── Labs ─────────────────────────────────────────────────────────────────────
 export const orderLab = (
@@ -391,7 +403,7 @@ export const recordPayment = (data: {
   });
 
 export const getBilling = (patientDid: string) =>
-  apiFetch<{ payments: any[] }>(`/billing/${encodeURIComponent(patientDid)}`);
+  apiFetch<any>(`/billing/${encodeURIComponent(patientDid)}`);
 
 // ─── Fraud ────────────────────────────────────────────────────────────────────
 export const getFraudAlerts = () => apiFetch<{ alerts: any[]; total: number }>(`/fraud/alerts`);
@@ -635,4 +647,59 @@ export const getInpatientData = (patientDid: string) =>
     dietOrder: any | null;
     vitalSigns: any[];
   }>(`/inpatient/${encodeURIComponent(patientDid)}`);
+
+// ─── Extended API clients for live sync ─────────────────────────────────────
+export const getInsurancePolicies = (patientDid: string) =>
+  apiFetch<{ policies: any[]; total: number }>(`/insurance/policies/${encodeURIComponent(patientDid)}`);
+
+export const getPreferences = (patientDid: string) =>
+  apiFetch<{ preferences: any }>(`/preferences/${encodeURIComponent(patientDid)}`);
+
+export const updatePreferences = (patientDid: string, data: any) =>
+  apiFetch<{ preferences: any }>(`/preferences/${encodeURIComponent(patientDid)}`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+
+export const getStaffSchedule = (staffEmail: string) =>
+  apiFetch<{ schedule: any[] }>(`/staff/schedule/${encodeURIComponent(staffEmail)}`);
+
+export const getSurgeries = () =>
+  apiFetch<{ surgeries: any[]; total: number }>("/staff/surgeries");
+
+export const getPolicies = () =>
+  apiFetch<{ policies: any[]; total: number }>("/policies");
+
+export const createPolicy = (data: any) =>
+  apiFetch<{ policy: any }>("/policies", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+
+export const updatePolicy = (id: string, data: any) =>
+  apiFetch<{ policy: any }>(`/policies/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+
+export const updateFraudAlertStatus = (id: string, status: string) =>
+  apiFetch<{ alert: any }>(`/fraud/alerts/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  });
+
+export const payBill = (data: { patientDid: string; patientName: string; amount: number; category: string; reference?: string }) =>
+  apiFetch<any>("/billing/payment", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+
+export const createStaffRequest = (data: any) =>
+  apiFetch<any>("/staff-requests", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+
+
+
 

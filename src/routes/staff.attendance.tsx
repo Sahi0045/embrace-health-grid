@@ -59,8 +59,9 @@ function StaffAttendance() {
           setClockedIn(false);
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.warn("Could not load attendance from API:", err);
+      toast.error("Failed to load attendance history", { description: err.message });
     } finally {
       setLoading(false);
     }
@@ -295,8 +296,8 @@ function StaffAttendance() {
                       {
                         id: "LV-001",
                         type: "Casual Leave",
-                        from: "2026-05-27",
-                        to: "2026-05-27",
+                        from: new Date(Date.now() - 38 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+                        to: new Date(Date.now() - 38 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
                         days: 1,
                         reason: "Personal work",
                         status: "approved",
@@ -304,8 +305,8 @@ function StaffAttendance() {
                       {
                         id: "LV-002",
                         type: "Medical Leave",
-                        from: "2026-06-10",
-                        to: "2026-06-11",
+                        from: new Date(Date.now() - 24 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+                        to: new Date(Date.now() - 23 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
                         days: 2,
                         reason: "Medical consultation",
                         status: "pending",

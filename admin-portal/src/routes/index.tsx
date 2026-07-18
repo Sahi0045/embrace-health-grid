@@ -30,7 +30,7 @@ import { StaggerList, StaggerItem } from "@/components/Motion";
 import { motion } from "framer-motion";
 
 export const Route = createFileRoute("/")({
-  head: () => ({ meta: [{ title: "Admin · Overview — DID Hospital" }] }),
+  head: () => ({ meta: [{ title: "Admin · Overview — Embrace Health Grid" }] }),
   component: AdminOverview,
 });
 

@@ -89,12 +89,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "DID Hospital — Decentralized Identity Infrastructure" },
+      { title: "Embrace Health Grid — Decentralized Identity Infrastructure" },
       {
         name: "description",
         content:
-          "Unified demo of the patient app, staff portal, and admin console for the DID Hospital Infrastructure.",
+          "Unified patient, staff, and admin portals powered by Decentralized Identity (DIDs) and Verifiable Credentials.",
       },
+      { name: "og:title", content: "Embrace Health Grid — Decentralized Identity Infrastructure" },
+      { name: "og:description", content: "Unified patient, staff, and admin portals powered by Decentralized Identity (DIDs) and Verifiable Credentials." },
+      { name: "og:image", content: "/og-image.png" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "robots", content: "index, follow" },
     ],
     links: [
       { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
@@ -144,7 +149,7 @@ function RootComponent() {
                   <SidebarTrigger />
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <span className="inline-block h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
-                    <span>Solana Devnet — embrace-health-anchor — Live</span>
+                    <span>Solana {(import.meta.env.VITE_SOLANA_NETWORK || "devnet").replace("-beta", "")} — Live</span>
                   </div>
                   <span className="ml-auto" />
                   <NotificationBell />

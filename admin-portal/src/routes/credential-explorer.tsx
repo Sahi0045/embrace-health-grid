@@ -25,7 +25,7 @@ interface CredentialFull {
 }
 
 export const Route = createFileRoute("/credential-explorer")({
-  head: () => ({ meta: [{ title: "Credential Explorer — Embrace Health Grid" }] }),
+  head: () => ({ meta: [{ title: "Credential Explorer — DID Hospital" }] }),
   component: CredentialExplorerPage,
 });
 
@@ -33,8 +33,8 @@ const credentialTimeline = [
   {
     id: "ct1",
     action: "issued" as const,
-    label: "Credential issued by Embrace Health Consortium",
-    issuer: "Embrace Health Consortium",
+    label: "Credential issued by Apollo Hospitals",
+    issuer: "Apollo Hospitals",
     at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
   },
   {
@@ -48,7 +48,7 @@ const credentialTimeline = [
     id: "ct3",
     action: "verified" as const,
     label: "Verified during hospital admission",
-    issuer: "Embrace ER Desk",
+    issuer: "Apollo ER Desk",
     at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
   },
   {
@@ -83,14 +83,14 @@ function CredentialExplorerPage() {
                 : c.type === "ProfessionalVC"
                   ? "Professional Credential"
                   : "Verifiable Credential",
-        issuer: c.issuer || "Embrace Health Consortium",
-        issuerDID: `did:hosp:issuer:${c.issuer || "embrace"}`,
+        issuer: c.issuer || "Apollo Hospitals",
+        issuerDID: `did:hosp:issuer:${c.issuer || "apollo"}`,
         holder: c.subject || "Unknown Holder",
         holderDID: c.claims?.subjectDid || "did:hosp:unknown",
         issuedAt: c.issuedAt ? c.issuedAt.split("T")[0] : new Date().toISOString().split("T")[0],
         expiresAt: c.expiresAt ? c.expiresAt.split("T")[0] : new Date().toISOString().split("T")[0],
         status: c.status || "active",
-        schema: `https://schema.embracehealth.in/v1/${(c.type || "").toLowerCase()}`,
+        schema: `https://schema.did-hospital.in/v1/${(c.type || "").toLowerCase()}`,
         verificationCount: 1,
         lastVerified: c.issuedAt
           ? c.issuedAt.split("T")[0]

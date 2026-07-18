@@ -13,17 +13,9 @@ import { motion } from "framer-motion";
 import { useState } from "react";
 
 export const Route = createFileRoute("/patient/vaccines")({
-  head: () => ({ meta: [{ title: "Vaccine Passport — DID Hospital" }] }),
+  head: () => ({ meta: [{ title: "Vaccine Passport — Embrace Health Grid" }] }),
   component: VaccinesPage,
 });
-
-const timelineEvents = [
-  { id: "t1", action: "issued" as const, label: "COVID-19 Booster Dose 3 issued", issuer: "Govt. of India — CoWIN", at: "2023-10-15" },
-  { id: "t2", action: "verified" as const, label: "Vaccination credential verified by Apollo Hospitals", issuer: "Apollo Hospitals", at: "2024-03-22" },
-  { id: "t3", action: "issued" as const, label: "Tetanus (Td) vaccination credential issued", issuer: "Govt. of India — NHM", at: "2024-03-10" },
-  { id: "t4", action: "issued" as const, label: "Influenza seasonal vaccine credential issued", issuer: "Apollo Hospitals", at: "2025-11-05" },
-  { id: "t5", action: "verified" as const, label: "International travel vaccination verified", issuer: "Delhi Airport Health Desk", at: "2025-12-14" },
-];
 
 const statusBadge: Record<string, string> = {
   complete: "bg-success/10 text-success",
@@ -42,6 +34,14 @@ function VaccinesPage() {
   const [selected, setSelected] = useState<any | null>(null);
   const complete = vaccineCredentials.filter((v: any) => v.status === "complete").length;
   const dueSoon = vaccineCredentials.filter((v: any) => v.status === "due-soon").length;
+
+  const timelineEvents = vaccineCredentials.map((v: any, i: number) => ({
+    id: `vax_event_${v.id || i}`,
+    action: "issued" as const,
+    label: `${v.vaccine} dose issued`,
+    issuer: v.issuer,
+    at: v.lastDose || "N/A",
+  }));
 
   return (
     <RouteGuard requiredRole="patient">
@@ -148,7 +148,7 @@ function VaccinesPage() {
             </div>
 
             <div className="space-y-4">
-              <CredentialIssuerBadge issuer={selected.issuer} did={`did:hosp:issuer:${selected.id}`} />
+              <CredentialIssuerBadge issuer={selected.issuer} did={selected.issuerDid || `did:hosp:issuer:${selected.issuer.toLowerCase().replace(/[^a-z0-9]/g, "")}`} />
 
               <div className="grid grid-cols-2 gap-3 text-sm">
                 {[

@@ -10,8 +10,8 @@ import { motion } from "framer-motion";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "DID Hospital Infrastructure — Demo" },
-      { name: "description", content: "Healthcare Identity Infrastructure Platform — patient, staff, and admin portals." },
+      { title: "Embrace Health Grid" },
+      { name: "description", content: "Decentralized Healthcare Identity Infrastructure — patient, staff, and admin portals." },
     ],
   }),
   component: Home,
@@ -70,7 +70,7 @@ export default function Home() {
           className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-sm font-medium text-primary mb-4"
         >
           <Hospital className="h-4 w-4" />
-          DID Hospital — Healthcare Identity Infrastructure
+          Embrace Health Grid — Healthcare Identity Infrastructure
         </motion.div>
 
         <motion.h1
@@ -90,8 +90,7 @@ export default function Home() {
           className="mt-4 max-w-2xl text-base text-muted-foreground"
         >
           A complete healthcare DID platform: patient mobile app, clinician portal, and admin
-          console unified under verifiable credentials — built for investors, executives, and
-          hackathon judges.
+          console unified under verifiable credentials — built for modern, secure, and compliant health systems.
         </motion.p>
 
         <motion.div

@@ -12,7 +12,7 @@
         {
           "id": "vc_identity_pat_001",
           "type": "IdentityVC",
-          "issuer": "Apollo Hospital Authority",
+          "issuer": "Embrace Health Authority",
           "subject": "did:hosp:0x4a91b7d2",
           "issuedAt": "2026-06-08T07:29:06.696Z",
           "expiresAt": "2027-06-08T07:29:06.696Z",
@@ -41,7 +41,7 @@
       ],
       "createdAt": "2026-06-08T07:29:06.696Z",
       "updatedAt": "2026-06-08T07:29:06.696Z",
-      "serviceEndpoint": "https://did.apollohospitals.in/resolve/did:hosp:0x4a91b7d2"
+      "serviceEndpoint": "https://did.embracehealth.in/resolve/did:hosp:0x4a91b7d2"
     },
     "namespace": "did-registry",
     "version": "genesis_seed_19ea6229c88:1",
@@ -62,7 +62,7 @@
         {
           "id": "vc_identity_pat_002",
           "type": "IdentityVC",
-          "issuer": "Apollo Hospital Authority",
+          "issuer": "Embrace Health Authority",
           "subject": "did:hosp:0x91c2ee04",
           "issuedAt": "2026-06-08T07:29:06.696Z",
           "expiresAt": "2027-06-08T07:29:06.697Z",
@@ -91,7 +91,7 @@
       ],
       "createdAt": "2026-06-08T07:29:06.696Z",
       "updatedAt": "2026-06-08T07:29:06.696Z",
-      "serviceEndpoint": "https://did.apollohospitals.in/resolve/did:hosp:0x91c2ee04"
+      "serviceEndpoint": "https://did.embracehealth.in/resolve/did:hosp:0x91c2ee04"
     },
     "namespace": "did-registry",
     "version": "genesis_seed_19ea6229c88:1",
@@ -112,7 +112,7 @@
         {
           "id": "vc_identity_pat_003",
           "type": "IdentityVC",
-          "issuer": "Apollo Hospital Authority",
+          "issuer": "Embrace Health Authority",
           "subject": "did:hosp:0x77a312fa",
           "issuedAt": "2026-06-08T07:29:06.696Z",
           "expiresAt": "2027-06-08T07:29:06.699Z",
@@ -141,7 +141,7 @@
       ],
       "createdAt": "2026-06-08T07:29:06.696Z",
       "updatedAt": "2026-06-08T07:29:06.696Z",
-      "serviceEndpoint": "https://did.apollohospitals.in/resolve/did:hosp:0x77a312fa"
+      "serviceEndpoint": "https://did.embracehealth.in/resolve/did:hosp:0x77a312fa"
     },
     "namespace": "did-registry",
     "version": "genesis_seed_19ea6229c88:1",
@@ -162,7 +162,7 @@
         {
           "id": "vc_identity_pat_004",
           "type": "IdentityVC",
-          "issuer": "Apollo Hospital Authority",
+          "issuer": "Embrace Health Authority",
           "subject": "did:hosp:0xbe493c20",
           "issuedAt": "2026-06-08T07:29:06.696Z",
           "expiresAt": "2027-06-08T07:29:06.700Z",
@@ -191,7 +191,7 @@
       ],
       "createdAt": "2026-06-08T07:29:06.696Z",
       "updatedAt": "2026-06-08T07:29:06.696Z",
-      "serviceEndpoint": "https://did.apollohospitals.in/resolve/did:hosp:0xbe493c20"
+      "serviceEndpoint": "https://did.embracehealth.in/resolve/did:hosp:0xbe493c20"
     },
     "namespace": "did-registry",
     "version": "genesis_seed_19ea6229c88:1",
@@ -228,7 +228,7 @@
       ],
       "createdAt": "2026-06-08T07:29:06.696Z",
       "updatedAt": "2026-06-08T07:29:06.696Z",
-      "serviceEndpoint": "https://did.apollohospitals.in/resolve/did:hosp:0xd10399aa"
+      "serviceEndpoint": "https://did.embracehealth.in/resolve/did:hosp:0xd10399aa"
     },
     "namespace": "did-registry",
     "version": "genesis_seed_19ea6229c88:1",
@@ -264,7 +264,7 @@
       ],
       "createdAt": "2026-06-08T07:29:06.696Z",
       "updatedAt": "2026-06-08T07:29:06.696Z",
-      "serviceEndpoint": "https://did.apollohospitals.in/resolve/did:hosp:0x55ef7711"
+      "serviceEndpoint": "https://did.embracehealth.in/resolve/did:hosp:0x55ef7711"
     },
     "namespace": "did-registry",
     "version": "genesis_seed_19ea6229c88:1",
@@ -301,7 +301,7 @@
       ],
       "createdAt": "2026-06-08T07:29:06.696Z",
       "updatedAt": "2026-06-08T07:29:06.696Z",
-      "serviceEndpoint": "https://did.apollohospitals.in/resolve/did:hosp:0x22bd44c1"
+      "serviceEndpoint": "https://did.embracehealth.in/resolve/did:hosp:0x22bd44c1"
     },
     "namespace": "did-registry",
     "version": "genesis_seed_19ea6229c88:1",
@@ -338,7 +338,7 @@
       "credentials": [],
       "createdAt": "2026-06-08T11:26:20.657Z",
       "updatedAt": "2026-06-08T11:26:20.657Z",
-      "serviceEndpoint": "https://did.apollohospitals.in/resolve/did:hosp:0x5cbb30af"
+      "serviceEndpoint": "https://did.embracehealth.in/resolve/did:hosp:0x5cbb30af"
     },
     "namespace": "did-registry",
     "version": "74142986-938c-4634-af7a-004eb17d1b5f:1",
@@ -358,7 +358,7 @@
       "credentials": [],
       "createdAt": "2026-06-08T13:39:13.234Z",
       "updatedAt": "2026-06-08T13:39:13.235Z",
-      "serviceEndpoint": "https://did.apollohospitals.in/resolve/did:hosp:0x5ecf72fd",
+      "serviceEndpoint": "https://did.embracehealth.in/resolve/did:hosp:0x5ecf72fd",
       "ownerEmail": null
     },
     "namespace": "did-registry",
@@ -379,7 +379,7 @@
       "credentials": [],
       "createdAt": "2026-06-08T13:42:55.448Z",
       "updatedAt": "2026-06-08T13:42:55.448Z",
-      "serviceEndpoint": "https://did.apollohospitals.in/resolve/did:hosp:0x643a3a37",
+      "serviceEndpoint": "https://did.embracehealth.in/resolve/did:hosp:0x643a3a37",
       "ownerEmail": "sahi0046@yahoo.com",
       "age": "25",
       "gender": "M",
@@ -405,7 +405,7 @@
       "credentials": [],
       "createdAt": "2026-06-22T05:25:22.262Z",
       "updatedAt": "2026-06-22T05:25:22.262Z",
-      "serviceEndpoint": "https://did.apollohospitals.in/resolve/did:hosp:0x2297f6ac",
+      "serviceEndpoint": "https://did.embracehealth.in/resolve/did:hosp:0x2297f6ac",
       "ownerEmail": "testpatient@example.com",
       "age": "30",
       "gender": "M",
@@ -431,7 +431,7 @@
       "credentials": [],
       "createdAt": "2026-06-23T11:53:59.418Z",
       "updatedAt": "2026-06-23T11:53:59.418Z",
-      "serviceEndpoint": "https://did.apollohospitals.in/resolve/did:hosp:0x7a29fab1",
+      "serviceEndpoint": "https://did.embracehealth.in/resolve/did:hosp:0x7a29fab1",
       "ownerEmail": "staff1@example.com"
     },
     "namespace": "did-registry",
@@ -452,7 +452,7 @@
       "credentials": [],
       "createdAt": "2026-07-01T16:21:43.934Z",
       "updatedAt": "2026-07-01T16:21:43.934Z",
-      "serviceEndpoint": "https://did.apollohospitals.in/resolve/did:hosp:0x4ba0999d",
+      "serviceEndpoint": "https://did.embracehealth.in/resolve/did:hosp:0x4ba0999d",
       "ownerEmail": "soulnani2441@gmail.com",
       "mrn": "MRN-983442",
       "employeeId": null,

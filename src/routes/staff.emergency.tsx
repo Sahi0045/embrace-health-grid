@@ -23,8 +23,8 @@ const traumaQueue = [
 ];
 
 const breakGlassRequests: EmergencyAccessEvent[] = [
-  { id: "bg1", actor: "Dr. Priya Nair", actorRole: "ER Physician", reason: "Unconscious polytrauma patient, no consent, need allergy + blood group", at: "2026-06-02 10:22", autoAudited: true },
-  { id: "bg2", actor: "Dr. Ravi Menon", actorRole: "Cardiologist", reason: "STEMI patient, urgent medication history needed", at: "2026-06-02 10:35", autoAudited: true },
+  { id: "bg1", actor: "Dr. Priya Nair", actorRole: "ER Physician", reason: "Unconscious polytrauma patient, no consent, need allergy + blood group", at: new Date(Date.now() - 4 * 60 * 60 * 1000).toLocaleString().replace(/\//g, "-"), autoAudited: true },
+  { id: "bg2", actor: "Dr. Ravi Menon", actorRole: "Cardiologist", reason: "STEMI patient, urgent medication history needed", at: new Date(Date.now() - 3 * 60 * 60 * 1000).toLocaleString().replace(/\//g, "-"), autoAudited: true },
 ];
 
 const pendingBreakGlass: BreakGlassRequest[] = [
@@ -32,17 +32,18 @@ const pendingBreakGlass: BreakGlassRequest[] = [
     id: "pbg1", requestedBy: "Dr. Sameer Khan", requestorRole: "General Physician",
     patientName: "Unknown Male ~40y", patientMRN: "MRN-UNKNOWN",
     reason: "Unconscious trauma patient — need full medical history and allergies",
-    urgency: "critical", requestedAt: "2026-06-02 10:22",
+    urgency: "critical", requestedAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toLocaleString().replace(/\//g, "-"),
     status: "pending", autoApproved: false,
   },
   {
     id: "pbg2", requestedBy: "Nurse Priya K.", requestorRole: "ICU Nursing",
     patientName: "Sunita Verma", patientMRN: "MRN-208441",
     reason: "Cardiac arrest — need medication contraindications immediately",
-    urgency: "critical", requestedAt: "2026-06-02 10:38",
+    urgency: "critical", requestedAt: new Date(Date.now() - 3.5 * 60 * 60 * 1000).toLocaleString().replace(/\//g, "-"),
     status: "approved", autoApproved: true, approvedBy: "System (Auto — Critical)",
   },
 ];
+
 
 const severityConfig = {
   critical: { badge: "bg-destructive/15 text-destructive", dot: "bg-destructive" },
@@ -90,7 +91,7 @@ function StaffEmergencyPage() {
             <div className="py-6 text-center text-sm text-muted-foreground">No incoming ambulances</div>
           ) : (
             <div className="space-y-2">
-              {incomingAmbulances.map((a) => (
+              {incomingAmbulances.map((a: any) => (
                 <motion.div
                   key={a.id}
                   initial={{ opacity: 0, x: -6 }}

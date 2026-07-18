@@ -12,7 +12,7 @@ import { issueNFCCard, revokeNFCCard, API_BASE_URL } from "@/lib/api";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/staff/patients")({
-  head: () => ({ meta: [{ title: "Staff · Patients — DID Hospital" }] }),
+  head: () => ({ meta: [{ title: "Staff · Patients — Embrace Health Grid" }] }),
   component: Patients,
 });
 

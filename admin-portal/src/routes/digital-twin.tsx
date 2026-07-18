@@ -7,7 +7,7 @@ import {
   type GraphEdge,
 } from "@/components/did/DIDRelationshipGraph";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Building2,
   Bed,
@@ -24,7 +24,8 @@ import {
   WifiOff,
   RefreshCw,
 } from "lucide-react";
-import { useBeds, useLivePatients } from "@/hooks/use-api";
+import { useBeds, useLivePatients, useAmbulances } from "@/hooks/use-api";
+import { getEquipment } from "@/lib/api";
 
 export const Route = createFileRoute("/digital-twin")({
   head: () => ({ meta: [{ title: "Digital Twin — Admin Console" }] }),
@@ -36,7 +37,7 @@ const graphNodes: GraphNode[] = [
   // Hospital (root)
   {
     id: "hosp",
-    label: "Apollo Hospitals",
+    label: "Embrace Health Consortium",
     did: "did:hosp:hospital:apollo-mumbai",
     type: "hospital",
     status: "active",
@@ -278,7 +279,7 @@ const statusDot: Record<string, string> = {
 
 const hospitalTree: TwinNode = {
   id: "hosp_001",
-  label: "Apollo Hospitals, Mumbai",
+  label: "Embrace Health Consortium, Mumbai",
   type: "hospital",
   did: "did:hosp:hospital:apollo-mumbai",
   status: "active",
@@ -306,7 +307,7 @@ const hospitalTree: TwinNode = {
               type: "bed",
               did: "did:hosp:bed:A1",
               status: "occupied",
-              meta: { since: "2026-05-28" },
+              meta: { since: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split("T")[0] },
               children: [
                 {
                   id: "pat_anika",
@@ -525,6 +526,18 @@ function DigitalTwinPage() {
 
   const { data: bedsData, online, loading: bedsLoading, refetch: refetchBeds } = useBeds();
   const { patients: livePatients, loading: patientsLoading } = useLivePatients();
+  const { data: ambulancesData } = useAmbulances();
+  const liveAmbulances = ambulancesData?.ambulances ?? [];
+
+  const [equipmentList, setEquipmentList] = useState<any[]>([]);
+
+  useEffect(() => {
+    getEquipment()
+      .then((res) => {
+        setEquipmentList(res.equipment || []);
+      })
+      .catch((err) => console.error("Error loading equipment infrastructure:", err));
+  }, []);
 
   const allNodeTypes: NodeType[] = [
     "hospital",
@@ -606,7 +619,7 @@ function DigitalTwinPage() {
 
     return {
       id: "hosp_001",
-      label: "Apollo Hospitals, Mumbai",
+      label: "Embrace Health Consortium, Mumbai",
       type: "hospital",
       did: "did:hosp:hospital:apollo-mumbai",
       status: "active",
@@ -629,7 +642,7 @@ function DigitalTwinPage() {
               label: "Ward 4A",
               type: "ward",
               did: "did:hosp:ward:4a",
-              status: cardiologyWardBeds.some((b) => b.status === "occupied")
+              status: cardiologyWardBeds.some((b: any) => b.status === "occupied")
                 ? "occupied"
                 : "available",
               meta: { beds: String(cardiologyWardBeds.length), status: "Active" },
@@ -652,16 +665,14 @@ function DigitalTwinPage() {
           did: "did:hosp:dept:emergency",
           status: "active",
           meta: { trauma_bays: "6" },
-          children: [
-            {
-              id: "amb_001",
-              label: "Ambulance MH-01-AM-1000",
-              type: "ambulance",
-              did: "did:hosp:ambulance:amb_001",
-              status: "available",
-              meta: { type: "ALS", status: "Available" },
-            },
-          ],
+          children: liveAmbulances.map((a: any) => ({
+            id: a.id || a.licensePlate,
+            label: `Ambulance ${a.licensePlate || "MH-01-AM-1000"}`,
+            type: "ambulance",
+            did: a.did || `did:hosp:ambulance:${a.id}`,
+            status: a.status === "available" ? "available" : "occupied",
+            meta: { type: a.type || "ALS", status: a.status },
+          })),
         },
         {
           id: "dept_rad",
@@ -669,20 +680,18 @@ function DigitalTwinPage() {
           type: "department",
           did: "did:hosp:dept:radiology",
           status: "active",
-          children: [
-            {
-              id: "equip_mri",
-              label: "SIEMENS MRI 3T #001",
-              type: "equipment",
-              did: "did:hosp:equipment:equip_0001",
-              status: "occupied",
-              meta: { model: "MAGNETOM Vida", status: "Occupied" },
-            },
-          ],
+          children: equipmentList.map((e: any) => ({
+            id: e.id || e.serialNo,
+            label: `${e.name || "Equipment"} #${e.serialNo || "001"}`,
+            type: "equipment",
+            did: e.did || `did:hosp:equipment:${e.id}`,
+            status: e.status === "available" ? "available" : "occupied",
+            meta: { model: e.model || "General", status: e.status },
+          })),
         },
       ],
     } as TwinNode;
-  }, [liveBeds, livePatients, occupiedBeds.length]);
+  }, [liveBeds, livePatients, occupiedBeds.length, liveAmbulances, equipmentList]);
 
   // Convert Tree to Flat Graph Nodes / Edges for visual graph layout
   const { dynamicGraphNodes, dynamicGraphEdges } = useMemo(() => {

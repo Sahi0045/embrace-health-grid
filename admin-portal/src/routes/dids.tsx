@@ -25,7 +25,7 @@ type DIDRecord = {
 };
 
 export const Route = createFileRoute("/dids")({
-  head: () => ({ meta: [{ title: "Admin · DID Management — DID Hospital" }] }),
+  head: () => ({ meta: [{ title: "Admin · DID Management — Embrace Health Grid" }] }),
   component: DIDManagement,
 });
 
