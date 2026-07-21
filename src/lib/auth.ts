@@ -174,8 +174,7 @@ async function _autoRefresh(): Promise<void> {
   if (!rt) throw new Error("No refresh token");
 
   const clientKey =
-    (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_CLIENT_KEY) ||
-    "apollo-consortium-client-secret-2026";
+    (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_CLIENT_KEY) || "";
 
   const apiBase =
     (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_API_BASE_URL) ||
@@ -256,8 +255,7 @@ export async function logout(redirectToLogin = true): Promise<void> {
     const rt = getRefreshToken();
     if (token) {
       const clientKey =
-        (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_CLIENT_KEY) ||
-        "apollo-consortium-client-secret-2026";
+        (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_CLIENT_KEY) || "";
       const apiBase =
         (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_API_BASE_URL) ||
         "http://localhost:3001";
