@@ -6,8 +6,9 @@ import { PageHeader } from "@/components/PageHeader";
 import { RouteGuard } from "@/components/RouteGuard";
 import { useLivePatients } from "@/hooks/use-api";
 import { getCurrentUser } from "@/lib/auth";
-import { RefreshCw, ShieldCheck, Droplets, CreditCard, BadgeCheck, Timer, Loader2 } from "lucide-react";
+import { RefreshCw, ShieldCheck, Droplets, CreditCard, BadgeCheck, Timer, Loader2, Fingerprint, AlertTriangle } from "lucide-react";
 import { signIdentityPayload } from "@/lib/api";
+import { useNFCCards } from "@/hooks/use-api";
 
 export const Route = createFileRoute("/patient/qr")({
   head: () => ({ meta: [{ title: "Patient · QR Code — Embrace Health Grid" }] }),
@@ -179,6 +180,14 @@ function PatientQr() {
           </span>
         </div>
 
+        {/* NFC Card Status Section */}
+        {patient.did && <NfcCardStatus patientDid={patient.did} />}
+
+        {/* NFC guidance */}
+        <div className="mt-4 rounded-lg border border-border bg-muted/30 px-4 py-2.5 text-center text-xs text-muted-foreground">
+          If NFC is unavailable at kiosk, show this QR code to staff for verification.
+        </div>
+
         {/* Solana badge */}
         <div className="mt-6 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
           <ShieldCheck className="h-3.5 w-3.5" />
@@ -186,5 +195,60 @@ function PatientQr() {
         </div>
       </div>
     </RouteGuard>
+  );
+}
+
+function NfcCardStatus({ patientDid }: { patientDid: string }) {
+  const { data: nfcData } = useNFCCards();
+  const cards = nfcData || [];
+  const cardEntry = cards.find((c: any) => c.value?.patientDid === patientDid);
+  const card = cardEntry?.value;
+
+  if (!card) {
+    return (
+      <div className="mt-6 rounded-xl border border-border bg-card p-4 text-center">
+        <div className="flex items-center justify-center gap-2 text-muted-foreground">
+          <Fingerprint className="h-4 w-4" />
+          <span className="text-xs font-medium">No NFC Identity Card</span>
+        </div>
+        <p className="mt-1 text-[11px] text-muted-foreground">
+          Request an NFC card at the front desk for contactless check-in.
+        </p>
+      </div>
+    );
+  }
+
+  const isRevoked = card.status === "revoked";
+
+  return (
+    <div className={`mt-6 rounded-xl border p-4 ${
+      isRevoked
+        ? "border-destructive/30 bg-destructive/5"
+        : "border-success/30 bg-success/5"
+    }`}>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Fingerprint className={`h-4 w-4 ${isRevoked ? "text-destructive" : "text-success"}`} />
+          <span className="text-xs font-semibold text-foreground">NFC Identity Card</span>
+        </div>
+        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+          isRevoked ? "bg-destructive/10 text-destructive" : "bg-success/10 text-success"
+        }`}>
+          {card.status.toUpperCase()}
+        </span>
+      </div>
+      <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+        <span className="text-muted-foreground">Card ID</span>
+        <span className="font-mono font-medium text-foreground">{card.cardId}</span>
+        <span className="text-muted-foreground">Issued</span>
+        <span className="text-foreground">{new Date(card.issuedAt).toLocaleDateString()}</span>
+      </div>
+      {isRevoked && (
+        <div className="mt-2 flex items-center gap-1.5 text-xs text-destructive">
+          <AlertTriangle className="h-3 w-3" />
+          This card has been revoked. Contact the front desk for a replacement.
+        </div>
+      )}
+    </div>
   );
 }

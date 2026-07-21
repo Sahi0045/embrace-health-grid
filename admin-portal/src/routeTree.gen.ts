@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as PoliciesRouteImport } from './routes/policies'
 import { Route as PeopleRouteImport } from './routes/people'
+import { Route as NfcCardsRouteImport } from './routes/nfc-cards'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as FraudRouteImport } from './routes/fraud'
 import { Route as FinancialRouteImport } from './routes/financial'
@@ -38,6 +39,11 @@ const PoliciesRoute = PoliciesRouteImport.update({
 const PeopleRoute = PeopleRouteImport.update({
   id: '/people',
   path: '/people',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NfcCardsRoute = NfcCardsRouteImport.update({
+  id: '/nfc-cards',
+  path: '/nfc-cards',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -114,6 +120,7 @@ export interface FileRoutesByFullPath {
   '/financial': typeof FinancialRoute
   '/fraud': typeof FraudRoute
   '/login': typeof LoginRoute
+  '/nfc-cards': typeof NfcCardsRoute
   '/people': typeof PeopleRoute
   '/policies': typeof PoliciesRoute
   '/profile': typeof ProfileRoute
@@ -131,6 +138,7 @@ export interface FileRoutesByTo {
   '/financial': typeof FinancialRoute
   '/fraud': typeof FraudRoute
   '/login': typeof LoginRoute
+  '/nfc-cards': typeof NfcCardsRoute
   '/people': typeof PeopleRoute
   '/policies': typeof PoliciesRoute
   '/profile': typeof ProfileRoute
@@ -149,6 +157,7 @@ export interface FileRoutesById {
   '/financial': typeof FinancialRoute
   '/fraud': typeof FraudRoute
   '/login': typeof LoginRoute
+  '/nfc-cards': typeof NfcCardsRoute
   '/people': typeof PeopleRoute
   '/policies': typeof PoliciesRoute
   '/profile': typeof ProfileRoute
@@ -168,6 +177,7 @@ export interface FileRouteTypes {
     | '/financial'
     | '/fraud'
     | '/login'
+    | '/nfc-cards'
     | '/people'
     | '/policies'
     | '/profile'
@@ -185,6 +195,7 @@ export interface FileRouteTypes {
     | '/financial'
     | '/fraud'
     | '/login'
+    | '/nfc-cards'
     | '/people'
     | '/policies'
     | '/profile'
@@ -202,6 +213,7 @@ export interface FileRouteTypes {
     | '/financial'
     | '/fraud'
     | '/login'
+    | '/nfc-cards'
     | '/people'
     | '/policies'
     | '/profile'
@@ -220,6 +232,7 @@ export interface RootRouteChildren {
   FinancialRoute: typeof FinancialRoute
   FraudRoute: typeof FraudRoute
   LoginRoute: typeof LoginRoute
+  NfcCardsRoute: typeof NfcCardsRoute
   PeopleRoute: typeof PeopleRoute
   PoliciesRoute: typeof PoliciesRoute
   ProfileRoute: typeof ProfileRoute
@@ -246,6 +259,13 @@ declare module '@tanstack/react-router' {
       path: '/people'
       fullPath: '/people'
       preLoaderRoute: typeof PeopleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/nfc-cards': {
+      id: '/nfc-cards'
+      path: '/nfc-cards'
+      fullPath: '/nfc-cards'
+      preLoaderRoute: typeof NfcCardsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -348,6 +368,7 @@ const rootRouteChildren: RootRouteChildren = {
   FinancialRoute: FinancialRoute,
   FraudRoute: FraudRoute,
   LoginRoute: LoginRoute,
+  NfcCardsRoute: NfcCardsRoute,
   PeopleRoute: PeopleRoute,
   PoliciesRoute: PoliciesRoute,
   ProfileRoute: ProfileRoute,
