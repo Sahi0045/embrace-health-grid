@@ -190,16 +190,10 @@ export function useLedger(page = 0) {
 
 // ─── DID Registry ─────────────────────────────────────────────────────────────
 export function useDIDs() {
-  return useApiData(
-    getAllDIDs,
-    () => ({ dids: [] as any[], total: 0 }),
-    "did:created",
-    [],
-    {
-      query: api.records.getDIDs,
-      mapFn: (raw: any) => ({ dids: raw, total: raw.length }),
-    },
-  );
+  return useApiData(getAllDIDs, () => ({ dids: [] as any[], total: 0 }), "did:created", [], {
+    query: api.records.getDIDs,
+    mapFn: (raw: any) => ({ dids: raw, total: raw.length }),
+  });
 }
 
 export function useNFCCards() {
@@ -276,16 +270,10 @@ export function useAppointments() {
 
 // ─── Beds ─────────────────────────────────────────────────────────────────────
 export function useBeds() {
-  return useApiData(
-    getBeds,
-    () => ({ beds: [] as any[], total: 0 }),
-    "bed:updated",
-    [],
-    {
-      query: api.records.getBeds,
-      mapFn: (raw: any) => ({ beds: raw, total: raw.length }),
-    },
-  );
+  return useApiData(getBeds, () => ({ beds: [] as any[], total: 0 }), "bed:updated", [], {
+    query: api.records.getBeds,
+    mapFn: (raw: any) => ({ beds: raw, total: raw.length }),
+  });
 }
 
 // ─── Staff Tracker ────────────────────────────────────────────────────────────
@@ -352,17 +340,11 @@ export function usePrescriptions() {
 
 // ─── Labs (staff overview) ──────────────────────────────────────────────────────
 export function useLabs() {
-  return useApiData(
-    getAllLabs,
-    () => ({ labs: [] as any[], total: 0 }),
-    "lab:ordered",
-    [],
-    {
-      query: api.records.getAllGenericWorldState,
-      args: { namespace: "labs" },
-      mapFn: (raw: any) => ({ labs: raw.map((e: any) => e.value), total: raw.length }),
-    },
-  );
+  return useApiData(getAllLabs, () => ({ labs: [] as any[], total: 0 }), "lab:ordered", [], {
+    query: api.records.getAllGenericWorldState,
+    args: { namespace: "labs" },
+    mapFn: (raw: any) => ({ labs: raw.map((e: any) => e.value), total: raw.length }),
+  });
 }
 
 // ─── Live Patients (store-driven + WS vitals) ─────────────────────────────────
@@ -538,7 +520,9 @@ export function useInsuranceClaims(patientDid?: string) {
       query: api.records.getAllGenericWorldState,
       args: { namespace: "insurance-claims" },
       mapFn: (raw: any) => {
-        const filtered = raw.map((d: any) => d.value).filter((c: any) => !patientDid || c.patientDid === patientDid);
+        const filtered = raw
+          .map((d: any) => d.value)
+          .filter((c: any) => !patientDid || c.patientDid === patientDid);
         return { claims: filtered, total: filtered.length };
       },
     },
@@ -556,7 +540,9 @@ export function useVaccineRecords(patientDid: string) {
       query: api.records.getAllGenericWorldState,
       args: { namespace: "vaccines" },
       mapFn: (raw: any) => {
-        const filtered = raw.map((d: any) => d.value).filter((v: any) => v.patientDid === patientDid);
+        const filtered = raw
+          .map((d: any) => d.value)
+          .filter((v: any) => v.patientDid === patientDid);
         return { vaccines: filtered, total: filtered.length };
       },
     },
@@ -565,19 +551,13 @@ export function useVaccineRecords(patientDid: string) {
 
 // ─── Doctors ──────────────────────────────────────────────────────────────
 export function useDoctors() {
-  return useApiData(
-    getDoctors,
-    () => ({ doctors: [] as any[], total: 0 }),
-    "did:created",
-    [],
-    {
-      query: api.records.getStaff,
-      mapFn: (raw: any) => {
-        const docs = raw.filter((s: any) => s.role === "doctor" || s.role === "staff");
-        return { doctors: docs, total: docs.length };
-      },
+  return useApiData(getDoctors, () => ({ doctors: [] as any[], total: 0 }), "did:created", [], {
+    query: api.records.getStaff,
+    mapFn: (raw: any) => {
+      const docs = raw.filter((s: any) => s.role === "doctor" || s.role === "staff");
+      return { doctors: docs, total: docs.length };
     },
-  );
+  });
 }
 
 // ─── Inpatient Data ───────────────────────────────────────────────────────
@@ -626,17 +606,11 @@ export function useAmbulances() {
 
 // ─── Equipment ────────────────────────────────────────────────────────────
 export function useEquipment() {
-  return useApiData(
-    getEquipment,
-    () => ({ equipment: [] as any[], total: 0 }),
-    undefined,
-    [],
-    {
-      query: api.records.getAllGenericWorldState,
-      args: { namespace: "equipment" },
-      mapFn: (raw: any) => ({ equipment: raw.map((e: any) => e.value), total: raw.length }),
-    },
-  );
+  return useApiData(getEquipment, () => ({ equipment: [] as any[], total: 0 }), undefined, [], {
+    query: api.records.getAllGenericWorldState,
+    args: { namespace: "equipment" },
+    mapFn: (raw: any) => ({ equipment: raw.map((e: any) => e.value), total: raw.length }),
+  });
 }
 
 // ─── Attendance ───────────────────────────────────────────────────────────
@@ -658,4 +632,3 @@ export function useStaffRequests(staffEmail: string) {
     [staffEmail],
   );
 }
-

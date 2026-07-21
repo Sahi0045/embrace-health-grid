@@ -112,7 +112,15 @@ export type PatientFull = {
   outstandingBills?: number;
 };
 
-export type StaffRole = "Doctor" | "Nurse" | "Technician" | "Pharmacist" | "Admin" | "Radiologist" | "Anesthesiologist" | "Surgeon";
+export type StaffRole =
+  | "Doctor"
+  | "Nurse"
+  | "Technician"
+  | "Pharmacist"
+  | "Admin"
+  | "Radiologist"
+  | "Anesthesiologist"
+  | "Surgeon";
 
 export type StaffMember = {
   id: string;
@@ -162,7 +170,14 @@ export type CredentialFull = {
   lastVerified?: string;
 };
 
-export type AuditEventCategory = "access" | "consent" | "credential" | "infrastructure" | "auth" | "prescription" | "emergency";
+export type AuditEventCategory =
+  | "access"
+  | "consent"
+  | "credential"
+  | "infrastructure"
+  | "auth"
+  | "prescription"
+  | "emergency";
 
 export type AuditEvent = {
   id: string;
@@ -204,7 +219,18 @@ export type BedRecord = {
 export type EquipmentRecord = {
   id: string;
   name: string;
-  type: "mri" | "ct" | "xray" | "ventilator" | "ecg" | "ultrasound" | "dialysis" | "defibrillator" | "infusion" | "wheelchair" | "oxygen-cylinder";
+  type:
+    | "mri"
+    | "ct"
+    | "xray"
+    | "ventilator"
+    | "ecg"
+    | "ultrasound"
+    | "dialysis"
+    | "defibrillator"
+    | "infusion"
+    | "wheelchair"
+    | "oxygen-cylinder";
   manufacturer: string;
   model: string;
   serial: string;

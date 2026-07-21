@@ -40,7 +40,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
-
 export const Route = createFileRoute("/fraud")({
   head: () => ({ meta: [{ title: "Admin · Fraud Detection — Embrace Health Grid" }] }),
   component: FraudPage,
@@ -161,7 +160,19 @@ function AlertCard({
 
   const handleExportLogs = () => {
     const csvRows = [
-      ["ID", "Severity", "Type", "Message", "Actor", "Actor Role", "Location", "IP", "Time", "Risk Score", "Details"],
+      [
+        "ID",
+        "Severity",
+        "Type",
+        "Message",
+        "Actor",
+        "Actor Role",
+        "Location",
+        "IP",
+        "Time",
+        "Risk Score",
+        "Details",
+      ],
       [
         alert.id,
         alert.severity,
@@ -174,9 +185,11 @@ function AlertCard({
         alert.at,
         alert.riskScore,
         alert.details,
-      ]
+      ],
     ];
-    const csvContent = "data:text/csv;charset=utf-8," + csvRows.map(e => e.map(val => `"${val}"`).join(",")).join("\n");
+    const csvContent =
+      "data:text/csv;charset=utf-8," +
+      csvRows.map((e) => e.map((val) => `"${val}"`).join(",")).join("\n");
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
@@ -186,7 +199,6 @@ function AlertCard({
     document.body.removeChild(link);
     toast.success("Security logs exported to CSV");
   };
-
 
   return (
     <motion.div
@@ -308,13 +320,22 @@ function AlertCard({
                 </div>
               </div>
               <div className="flex gap-2 pt-1">
-                <button onClick={handleTraceDid} className="flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted">
+                <button
+                  onClick={handleTraceDid}
+                  className="flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted"
+                >
                   <Fingerprint className="h-3.5 w-3.5" /> Trace DID
                 </button>
-                <button onClick={handleLockAccount} className="flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted">
+                <button
+                  onClick={handleLockAccount}
+                  className="flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted"
+                >
                   <Lock className="h-3.5 w-3.5" /> Lock Account
                 </button>
-                <button onClick={handleExportLogs} className="flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted">
+                <button
+                  onClick={handleExportLogs}
+                  className="flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted"
+                >
                   <Download className="h-3.5 w-3.5" /> Export Logs
                 </button>
               </div>
@@ -338,7 +359,6 @@ function FraudPage() {
   const { data: alertData, online, loading: alertLoading, refetch } = useFraudAlerts();
   const { data: auditData } = useAudit();
   const { data: didsData } = useDIDs();
-
 
   // Map backend alerts → local FraudAlert format
   const backendAlerts: FraudAlert[] = (
@@ -370,11 +390,13 @@ function FraudPage() {
 
   const allAlerts = backendAlerts;
 
-  const openAlerts = allAlerts.filter(a => a.status === "open").length;
-  const criticalCount = allAlerts.filter(a => a.status === "open" && a.severity === "critical").length;
-  const investigatingAlerts = allAlerts.filter(a => a.status === "investigating").length;
-  const resolvedToday = allAlerts.filter(a => a.status === "resolved").length;
-  const maxRiskScore = allAlerts.length > 0 ? Math.max(...allAlerts.map(a => a.riskScore)) : 0;
+  const openAlerts = allAlerts.filter((a) => a.status === "open").length;
+  const criticalCount = allAlerts.filter(
+    (a) => a.status === "open" && a.severity === "critical",
+  ).length;
+  const investigatingAlerts = allAlerts.filter((a) => a.status === "investigating").length;
+  const resolvedToday = allAlerts.filter((a) => a.status === "resolved").length;
+  const maxRiskScore = allAlerts.length > 0 ? Math.max(...allAlerts.map((a) => a.riskScore)) : 0;
 
   const riskMetrics = [
     {
@@ -426,7 +448,7 @@ function FraudPage() {
   const handleExportAllAlerts = () => {
     const csvRows = [
       ["ID", "Severity", "Status", "Type", "Message", "Actor", "Time", "Risk Score"],
-      ...backendAlerts.map(a => [
+      ...backendAlerts.map((a) => [
         a.id,
         a.severity,
         a.status,
@@ -434,10 +456,12 @@ function FraudPage() {
         a.message,
         a.actor,
         a.at,
-        a.riskScore
-      ])
+        a.riskScore,
+      ]),
     ];
-    const csvContent = "data:text/csv;charset=utf-8," + csvRows.map(e => e.map(val => `"${val}"`).join(",")).join("\n");
+    const csvContent =
+      "data:text/csv;charset=utf-8," +
+      csvRows.map((e) => e.map((val) => `"${val}"`).join(",")).join("\n");
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
@@ -450,7 +474,6 @@ function FraudPage() {
 
   return (
     <>
-
       <PageHeader
         eyebrow="Security Operations"
         title="Fraud Detection"
@@ -482,8 +505,8 @@ function FraudPage() {
                   {
                     loading: "Raising simulation alert...",
                     success: "Simulation alert raised and loaded!",
-                    error: "Failed to simulate alert."
-                  }
+                    error: "Failed to simulate alert.",
+                  },
                 );
               }}
               className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm font-medium hover:bg-muted"
@@ -557,9 +580,16 @@ function FraudPage() {
           <button
             onClick={() => {
               setEnhancedMode(!enhancedMode);
-              toast.success(enhancedMode ? "Enhanced Monitoring Mode deactivated" : "Enhanced Monitoring Mode activated", {
-                description: enhancedMode ? "MFA checks reverted to standard rules." : "MFA failure limits reduced, auto-lock enabled."
-              });
+              toast.success(
+                enhancedMode
+                  ? "Enhanced Monitoring Mode deactivated"
+                  : "Enhanced Monitoring Mode activated",
+                {
+                  description: enhancedMode
+                    ? "MFA checks reverted to standard rules."
+                    : "MFA failure limits reduced, auto-lock enabled.",
+                },
+              );
             }}
             className={`shrink-0 rounded-md px-3 py-1.5 text-xs font-medium text-destructive-foreground transition-all hover:scale-105 active:scale-95 ${enhancedMode ? "bg-emerald-600 hover:bg-emerald-500" : "bg-destructive hover:bg-destructive/90"}`}
           >
@@ -677,7 +707,9 @@ function FraudPage() {
               </div>
               {(() => {
                 const relatedLogs = (auditData?.events || []).filter((e: any) =>
-                  JSON.stringify(e).toLowerCase().includes(traceDid?.toLowerCase() || "")
+                  JSON.stringify(e)
+                    .toLowerCase()
+                    .includes(traceDid?.toLowerCase() || ""),
                 );
 
                 if (relatedLogs.length === 0) {
@@ -693,12 +725,16 @@ function FraudPage() {
                     {relatedLogs.map((log: any, idx: number) => (
                       <div key={log.id || idx} className="relative">
                         <div className="absolute -left-[21px] top-1 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-primary" />
-                        <div className="text-xs font-semibold text-foreground">{log.action || "Event Logged"}</div>
+                        <div className="text-xs font-semibold text-foreground">
+                          {log.action || "Event Logged"}
+                        </div>
                         <div className="text-[11px] text-muted-foreground mt-0.5">
                           {log.details || log.message || "No description"}
                         </div>
                         <div className="flex gap-2 text-[10px] text-muted-foreground/75 mt-1 font-mono">
-                          <span>{log.loggedAt ? new Date(log.loggedAt).toLocaleString("en-IN") : "—"}</span>
+                          <span>
+                            {log.loggedAt ? new Date(log.loggedAt).toLocaleString("en-IN") : "—"}
+                          </span>
                           <span>·</span>
                           <span>IP: {log.ipAddress || "system"}</span>
                         </div>
@@ -711,9 +747,7 @@ function FraudPage() {
           </div>
 
           <DialogFooter>
-            <Button onClick={() => setTraceDid(null)}>
-              Close Trace Window
-            </Button>
+            <Button onClick={() => setTraceDid(null)}>Close Trace Window</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -726,7 +760,8 @@ function FraudPage() {
               <Lock className="h-5 w-5" /> Lock Entity Wallet & Account
             </DialogTitle>
             <DialogDescription className="text-xs">
-              This will revoke all active credentials, block access keys, and restrict audit logging.
+              This will revoke all active credentials, block access keys, and restrict audit
+              logging.
             </DialogDescription>
           </DialogHeader>
 
@@ -738,7 +773,8 @@ function FraudPage() {
               {lockDid}
             </div>
             <div className="text-xs text-destructive font-semibold">
-              Warning: This action writes a revocation anchor to Solana and cannot be undone directly from this console.
+              Warning: This action writes a revocation anchor to Solana and cannot be undone
+              directly from this console.
             </div>
           </div>
 
@@ -749,14 +785,11 @@ function FraudPage() {
             <Button
               variant="destructive"
               onClick={async () => {
-                toast.promise(
-                  new Promise((resolve) => setTimeout(resolve, 1500)),
-                  {
-                    loading: "Publishing lock anchor on Solana...",
-                    success: "Entity locked! Solana anchor published, wallet disabled.",
-                    error: "Lock operation failed."
-                  }
-                );
+                toast.promise(new Promise((resolve) => setTimeout(resolve, 1500)), {
+                  loading: "Publishing lock anchor on Solana...",
+                  success: "Entity locked! Solana anchor published, wallet disabled.",
+                  error: "Lock operation failed.",
+                });
                 setLockDid(null);
               }}
             >
@@ -768,4 +801,3 @@ function FraudPage() {
     </>
   );
 }
-

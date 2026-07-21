@@ -5,11 +5,7 @@
       "id": "diet1",
       "patientDid": "did:hosp:0x643a3a37",
       "type": "Cardiac Diet (Low-sodium, Diabetic)",
-      "restrictions": [
-        "Low sodium (< 2g/day)",
-        "Low saturated fat",
-        "Controlled carbohydrates"
-      ],
+      "restrictions": ["Low sodium (< 2g/day)", "Low saturated fat", "Controlled carbohydrates"],
       "startDate": "2026-05-27",
       "orderedBy": "Dr. Ravi Menon",
       "specialInstructions": "Small frequent meals. Monitor blood sugar before meals."

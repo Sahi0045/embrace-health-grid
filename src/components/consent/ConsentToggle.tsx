@@ -10,7 +10,13 @@ interface ConsentToggleProps {
   disabled?: boolean;
 }
 
-export function ConsentToggle({ label, description, defaultEnabled = false, onToggle, disabled }: ConsentToggleProps) {
+export function ConsentToggle({
+  label,
+  description,
+  defaultEnabled = false,
+  onToggle,
+  disabled,
+}: ConsentToggleProps) {
   const [enabled, setEnabled] = useState(defaultEnabled);
 
   const handleToggle = () => {
@@ -21,9 +27,13 @@ export function ConsentToggle({ label, description, defaultEnabled = false, onTo
   };
 
   return (
-    <div className={`flex items-center justify-between gap-4 rounded-xl border p-4 transition-colors ${enabled ? "border-success/30 bg-success/5" : "border-border bg-card"} ${disabled ? "opacity-60" : ""}`}>
+    <div
+      className={`flex items-center justify-between gap-4 rounded-xl border p-4 transition-colors ${enabled ? "border-success/30 bg-success/5" : "border-border bg-card"} ${disabled ? "opacity-60" : ""}`}
+    >
       <div className="flex items-center gap-3">
-        <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors ${enabled ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"}`}>
+        <div
+          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors ${enabled ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"}`}
+        >
           {enabled ? <ShieldCheck className="h-4 w-4" /> : <ShieldX className="h-4 w-4" />}
         </div>
         <div>

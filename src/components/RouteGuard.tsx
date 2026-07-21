@@ -36,7 +36,8 @@ export function RouteGuard({ requiredRole, children }: RouteGuardProps) {
           </div>
           <h1 className="mt-6 text-2xl font-bold text-foreground">Access Denied</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            This area is restricted to <span className="font-medium capitalize">{requiredRole}</span> users only.
+            This area is restricted to{" "}
+            <span className="font-medium capitalize">{requiredRole}</span> users only.
           </p>
           <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
             <Button

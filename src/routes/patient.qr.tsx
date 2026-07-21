@@ -6,7 +6,17 @@ import { PageHeader } from "@/components/PageHeader";
 import { RouteGuard } from "@/components/RouteGuard";
 import { useLivePatients } from "@/hooks/use-api";
 import { getCurrentUser } from "@/lib/auth";
-import { RefreshCw, ShieldCheck, Droplets, CreditCard, BadgeCheck, Timer, Loader2, Fingerprint, AlertTriangle } from "lucide-react";
+import {
+  RefreshCw,
+  ShieldCheck,
+  Droplets,
+  CreditCard,
+  BadgeCheck,
+  Timer,
+  Loader2,
+  Fingerprint,
+  AlertTriangle,
+} from "lucide-react";
 import { signIdentityPayload } from "@/lib/api";
 import { useNFCCards } from "@/hooks/use-api";
 
@@ -21,7 +31,16 @@ function PatientQr() {
   const { patients: patientsList } = useLivePatients();
   const currentUser = getCurrentUser();
   const userEmail = currentUser?.email || "";
-  const patient = patientsList?.find((p: any) => p.email === userEmail) || patientsList?.[0] || { name: "", mrn: "", did: "", bloodGroup: "", age: 0, gender: "F" as const, allergies: [] as string[] };
+  const patient = patientsList?.find((p: any) => p.email === userEmail) ||
+    patientsList?.[0] || {
+      name: "",
+      mrn: "",
+      did: "",
+      bloodGroup: "",
+      age: 0,
+      gender: "F" as const,
+      allergies: [] as string[],
+    };
 
   const [payload, setPayload] = useState("");
   const [timeLeft, setTimeLeft] = useState(ROTATION_SECONDS);
@@ -48,7 +67,7 @@ function PatientQr() {
             name: patient.name,
             exp: Date.now() + 60_000,
             network: "embrace-health-network",
-          })
+          }),
         );
       }
     } catch {
@@ -59,7 +78,7 @@ function PatientQr() {
           name: patient.name,
           exp: Date.now() + 60_000,
           network: "embrace-health-network",
-        })
+        }),
       );
     } finally {
       setLoading(false);
@@ -221,19 +240,21 @@ function NfcCardStatus({ patientDid }: { patientDid: string }) {
   const isRevoked = card.status === "revoked";
 
   return (
-    <div className={`mt-6 rounded-xl border p-4 ${
-      isRevoked
-        ? "border-destructive/30 bg-destructive/5"
-        : "border-success/30 bg-success/5"
-    }`}>
+    <div
+      className={`mt-6 rounded-xl border p-4 ${
+        isRevoked ? "border-destructive/30 bg-destructive/5" : "border-success/30 bg-success/5"
+      }`}
+    >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Fingerprint className={`h-4 w-4 ${isRevoked ? "text-destructive" : "text-success"}`} />
           <span className="text-xs font-semibold text-foreground">NFC Identity Card</span>
         </div>
-        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-          isRevoked ? "bg-destructive/10 text-destructive" : "bg-success/10 text-success"
-        }`}>
+        <span
+          className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+            isRevoked ? "bg-destructive/10 text-destructive" : "bg-success/10 text-success"
+          }`}
+        >
           {card.status.toUpperCase()}
         </span>
       </div>

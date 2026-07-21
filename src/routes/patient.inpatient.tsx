@@ -37,7 +37,8 @@ export const Route = createFileRoute("/patient/inpatient")({
 });
 
 function InpatientCare() {
-  const patientDid = typeof window !== "undefined" ? localStorage.getItem("userDID") || "pat_001" : "pat_001";
+  const patientDid =
+    typeof window !== "undefined" ? localStorage.getItem("userDID") || "pat_001" : "pat_001";
   const { vitals: liveVitals } = usePatientVitals(patientDid);
   const { data: inpatientData } = useInpatientData(patientDid);
 
@@ -71,7 +72,11 @@ function InpatientCare() {
   const dailyCheckups = inpatientData?.checkups ?? [];
   const procedures = inpatientData?.procedures ?? [];
   const nursingNotes = inpatientData?.nursingNotes ?? [];
-  const dietOrder = inpatientData?.dietOrder ?? { type: "Regular", restrictions: [], specialInstructions: "" };
+  const dietOrder = inpatientData?.dietOrder ?? {
+    type: "Regular",
+    restrictions: [],
+    specialInstructions: "",
+  };
   const currentAdmission = inpatientData?.admission ?? {
     admissionDate: new Date().toISOString(),
     expectedDischargeDate: null,
@@ -106,10 +111,12 @@ function InpatientCare() {
         respiratoryRate: liveVitals.respRate,
         timestamp: "Live telemetry (WS)",
       }
-    : (apiVitalSigns[0] || defaultVital);
+    : apiVitalSigns[0] || defaultVital;
 
   const activeMeds = medications.filter((m: any) => m.status === "active");
-  const todayCheckups = dailyCheckups.filter((c: any) => c.date === new Date().toISOString().split("T")[0]);
+  const todayCheckups = dailyCheckups.filter(
+    (c: any) => c.date === new Date().toISOString().split("T")[0],
+  );
   const upcomingProcedures = procedures.filter((p: any) => p.status === "scheduled");
 
   return (
@@ -134,8 +141,7 @@ function InpatientCare() {
                   <span className="text-xs text-muted-foreground">
                     Day{" "}
                     {Math.ceil(
-                      (new Date().getTime() -
-                        new Date(currentAdmission.admissionDate).getTime()) /
+                      (new Date().getTime() - new Date(currentAdmission.admissionDate).getTime()) /
                         (1000 * 60 * 60 * 24),
                     )}{" "}
                     of stay

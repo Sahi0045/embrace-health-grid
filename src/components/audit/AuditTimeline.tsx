@@ -1,5 +1,14 @@
 import { motion } from "framer-motion";
-import { ShieldCheck, ShieldX, AlertTriangle, Info, Key, FileText, Ambulance, Pill } from "lucide-react";
+import {
+  ShieldCheck,
+  ShieldX,
+  AlertTriangle,
+  Info,
+  Key,
+  FileText,
+  Ambulance,
+  Pill,
+} from "lucide-react";
 import type { AuditEvent } from "@/lib/types";
 
 interface AuditTimelineProps {
@@ -39,7 +48,9 @@ export function AuditTimeline({ events, limit = 50 }: AuditTimelineProps) {
             transition={{ delay: Math.min(i * 0.02, 0.5) }}
             className="flex items-start gap-3"
           >
-            <div className={`relative z-10 mt-1 h-2.5 w-2.5 shrink-0 rounded-full ring-2 ring-background ${severityDot[ev.severity]}`} />
+            <div
+              className={`relative z-10 mt-1 h-2.5 w-2.5 shrink-0 rounded-full ring-2 ring-background ${severityDot[ev.severity]}`}
+            />
             <div className="flex-1 min-w-0 rounded-lg border border-border bg-card px-3 py-2.5">
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <div className="flex items-center gap-2">

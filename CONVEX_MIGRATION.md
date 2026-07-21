@@ -27,14 +27,14 @@ The realtime store has been updated to use **Convex** as the primary data source
        ├─→ Query Patient/Staff Data
        │
        └─→ Persist WebSocket Updates (TODO)
-          
+
 ┌──────────────┐
 │  WebSocket   │ ← Real-time events
 │    Server    │
 └──────┬───────┘
        │
        └─→ Vitals/Location Updates
-          
+
 ┌──────────────┐
 │ Local Cache  │ ← Fast reads
 │ (_liveData)  │
@@ -64,13 +64,13 @@ The realtime store has been updated to use **Convex** as the primary data source
 
 ### 3. Updated Functions
 
-| Function | Before | After |
-|----------|--------|-------|
-| `initializeStore()` | Used localStorage | Calls `rebuildLiveListsFromConvex()` |
-| `getLivePatients()` | Merged localStorage + cache | Returns cache (synced with Convex) |
-| `getLiveStaff()` | Merged localStorage + cache | Returns cache (synced with Convex) |
-| `handleStoreWebSocketMessage()` | Updated localStorage | TODO: Sync to Convex |
-| `setupWebSocket()` | Synced to localStorage | TODO: Sync to Convex |
+| Function                        | Before                      | After                                |
+| ------------------------------- | --------------------------- | ------------------------------------ |
+| `initializeStore()`             | Used localStorage           | Calls `rebuildLiveListsFromConvex()` |
+| `getLivePatients()`             | Merged localStorage + cache | Returns cache (synced with Convex)   |
+| `getLiveStaff()`                | Merged localStorage + cache | Returns cache (synced with Convex)   |
+| `handleStoreWebSocketMessage()` | Updated localStorage        | TODO: Sync to Convex                 |
+| `setupWebSocket()`              | Synced to localStorage      | TODO: Sync to Convex                 |
 
 ## Setup Instructions
 

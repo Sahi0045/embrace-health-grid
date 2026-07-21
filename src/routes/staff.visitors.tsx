@@ -46,7 +46,7 @@ type Tab = "active" | "new";
 function StaffVisitors() {
   const [tab, setTab] = useState<Tab>("active");
   const { patients: patientsList } = useLivePatients();
-  
+
   const [visitors, setVisitors] = useState<Visitor[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
@@ -88,7 +88,13 @@ function StaffVisitors() {
 
   const handleRegisterRequest = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedPatientDid || !visitorName.trim() || !relation.trim() || !visitDate || !purpose.trim()) {
+    if (
+      !selectedPatientDid ||
+      !visitorName.trim() ||
+      !relation.trim() ||
+      !visitDate ||
+      !purpose.trim()
+    ) {
       toast.error("Please fill in all registration fields.");
       return;
     }
@@ -133,11 +139,15 @@ function StaffVisitors() {
         visitor.id,
         `VISITOR_CHECKIN: ${visitor.visitorName} entered ward room for patient ${visitor.patientDid}`,
         "success",
-        "info"
+        "info",
       );
 
       // Local state update update locally for visual feedback
-      setVisitors(prev => prev.map(v => v.id === visitor.id ? { ...v, checkedInAt: new Date().toISOString() } : v));
+      setVisitors((prev) =>
+        prev.map((v) =>
+          v.id === visitor.id ? { ...v, checkedInAt: new Date().toISOString() } : v,
+        ),
+      );
 
       toast.success("Visitor Checked-In Successfully", {
         description: `${visitor.visitorName} check-in registered and audited.`,
@@ -237,9 +247,12 @@ function StaffVisitors() {
                     <div className="rounded-full bg-primary/10 p-3 text-primary">
                       <Users2 className="h-6 w-6" />
                     </div>
-                    <h3 className="mt-4 text-sm font-semibold text-foreground">No Visitors Found</h3>
+                    <h3 className="mt-4 text-sm font-semibold text-foreground">
+                      No Visitors Found
+                    </h3>
                     <p className="mt-1 text-xs text-muted-foreground max-w-sm">
-                      No visitor records found matching your search. Create a new request to get started.
+                      No visitor records found matching your search. Create a new request to get
+                      started.
                     </p>
                   </div>
                 ) : (
@@ -248,29 +261,49 @@ function StaffVisitors() {
                       <table className="w-full border-collapse text-left text-sm">
                         <thead className="bg-muted/50 border-b border-border">
                           <tr>
-                            <th className="px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Visitor</th>
-                            <th className="px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Patient (DID)</th>
-                            <th className="px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Purpose</th>
-                            <th className="px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
-                            <th className="px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider text-right">Actions</th>
+                            <th className="px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                              Visitor
+                            </th>
+                            <th className="px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                              Patient (DID)
+                            </th>
+                            <th className="px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                              Purpose
+                            </th>
+                            <th className="px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                              Status
+                            </th>
+                            <th className="px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider text-right">
+                              Actions
+                            </th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
                           {filteredVisitors.map((v) => {
-                            const pName = patientsList?.find((p) => p.did === v.patientDid)?.name || "Unknown Patient";
+                            const pName =
+                              patientsList?.find((p) => p.did === v.patientDid)?.name ||
+                              "Unknown Patient";
                             return (
                               <tr key={v.id} className="hover:bg-muted/20 transition-colors">
                                 <td className="px-6 py-4">
                                   <div className="font-medium text-foreground">{v.visitorName}</div>
-                                  <div className="text-xs text-muted-foreground capitalize">{v.relation}</div>
+                                  <div className="text-xs text-muted-foreground capitalize">
+                                    {v.relation}
+                                  </div>
                                 </td>
                                 <td className="px-6 py-4">
                                   <div className="text-foreground font-medium">{pName}</div>
-                                  <div className="text-[10px] font-mono text-muted-foreground max-w-[150px] truncate">{v.patientDid}</div>
+                                  <div className="text-[10px] font-mono text-muted-foreground max-w-[150px] truncate">
+                                    {v.patientDid}
+                                  </div>
                                 </td>
                                 <td className="px-6 py-4">
-                                  <div className="text-xs text-muted-foreground">{new Date(v.visitDate).toLocaleDateString()}</div>
-                                  <div className="text-xs text-foreground font-medium">{v.purpose}</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {new Date(v.visitDate).toLocaleDateString()}
+                                  </div>
+                                  <div className="text-xs text-foreground font-medium">
+                                    {v.purpose}
+                                  </div>
                                 </td>
                                 <td className="px-6 py-4">
                                   {v.status === "approved" ? (
@@ -291,7 +324,11 @@ function StaffVisitors() {
                                   {v.status === "approved" ? (
                                     v.checkedInAt ? (
                                       <span className="text-xs text-muted-foreground font-medium">
-                                        Checked In · {new Date(v.checkedInAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        Checked In ·{" "}
+                                        {new Date(v.checkedInAt).toLocaleTimeString([], {
+                                          hour: "2-digit",
+                                          minute: "2-digit",
+                                        })}
                                       </span>
                                     ) : (
                                       <button
@@ -302,7 +339,9 @@ function StaffVisitors() {
                                       </button>
                                     )
                                   ) : (
-                                    <span className="text-xs text-muted-foreground">No Actions</span>
+                                    <span className="text-xs text-muted-foreground">
+                                      No Actions
+                                    </span>
                                   )}
                                 </td>
                               </tr>
@@ -330,8 +369,12 @@ function StaffVisitors() {
                     <UserPlus2 className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="text-base font-semibold text-foreground font-clinical font-medium">New Visitor Pass Request</h3>
-                    <p className="text-xs text-muted-foreground">Register request for hospital reception desk.</p>
+                    <h3 className="text-base font-semibold text-foreground font-clinical font-medium">
+                      New Visitor Pass Request
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      Register request for hospital reception desk.
+                    </p>
                   </div>
                 </div>
 

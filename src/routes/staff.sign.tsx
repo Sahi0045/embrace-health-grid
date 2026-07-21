@@ -131,7 +131,6 @@ const recentPrescriptions: RecentPrescription[] = [
   },
 ];
 
-
 const statusConfig = {
   active: { bg: "bg-primary/10", text: "text-primary" },
   dispensed: { bg: "bg-success/15", text: "text-success" },

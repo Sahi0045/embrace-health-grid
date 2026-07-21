@@ -23,7 +23,10 @@ interface BreakGlassRequestCardProps {
 }
 
 const urgencyConfig = {
-  critical: { badge: "bg-destructive/15 text-destructive border-destructive/30", dot: "bg-destructive" },
+  critical: {
+    badge: "bg-destructive/15 text-destructive border-destructive/30",
+    dot: "bg-destructive",
+  },
   high: { badge: "bg-warning/15 text-warning-foreground border-warning/30", dot: "bg-warning" },
   medium: { badge: "bg-primary/10 text-primary border-primary/20", dot: "bg-primary" },
 };
@@ -64,7 +67,9 @@ export function BreakGlassRequestCard({ request, onApprove, onDeny }: BreakGlass
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-semibold text-foreground">Break-Glass Request</span>
-            <span className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${urg.badge}`}>
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${urg.badge}`}
+            >
               <div className={`h-1.5 w-1.5 rounded-full ${urg.dot}`} />
               {request.urgency}
             </span>
@@ -74,7 +79,8 @@ export function BreakGlassRequestCard({ request, onApprove, onDeny }: BreakGlass
           <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
             <div className="flex items-center gap-1.5">
               <User className="h-3 w-3 shrink-0" />
-              <span className="font-medium text-foreground">{request.requestedBy}</span> · {request.requestorRole}
+              <span className="font-medium text-foreground">{request.requestedBy}</span> ·{" "}
+              {request.requestorRole}
             </div>
             <div className="flex items-center gap-1.5">
               <Clock className="h-3 w-3 shrink-0" />
@@ -83,7 +89,8 @@ export function BreakGlassRequestCard({ request, onApprove, onDeny }: BreakGlass
           </div>
 
           <div className="mt-2 rounded-lg bg-background/60 px-3 py-2 text-xs text-muted-foreground">
-            <span className="font-medium text-foreground">Patient:</span> {request.patientName} · {request.patientMRN}
+            <span className="font-medium text-foreground">Patient:</span> {request.patientName} ·{" "}
+            {request.patientMRN}
             <br />
             <span className="font-medium text-foreground">Reason:</span> {request.reason}
           </div>

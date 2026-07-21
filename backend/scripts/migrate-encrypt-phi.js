@@ -31,14 +31,18 @@ if (existsSync(envPath)) {
       const parts = line.split("=");
       if (parts.length >= 2 && !line.trim().startsWith("#")) {
         const key = parts[0].trim();
-        const val = parts.slice(1).join("=").trim().replace(/^['"]|['"]$/g, "");
+        const val = parts
+          .slice(1)
+          .join("=")
+          .trim()
+          .replace(/^['"]|['"]$/g, "");
         if (!process.env[key]) process.env[key] = val;
       }
     });
 }
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const DATA_DIR  = join(__dirname, "..", "data");
+const DATA_DIR = join(__dirname, "..", "data");
 
 // Import after env is loaded
 const { encryptValue, decryptValue, isPHINamespace, isEncrypted, getKeyFingerprint } =
@@ -72,8 +76,8 @@ if (!DRY_RUN) {
 const files = readdirSync(DATA_DIR).filter((f) => f.endsWith(".json") && !f.startsWith("backup-"));
 
 let totalMigrated = 0;
-let totalSkipped  = 0;
-let totalErrors   = 0;
+let totalSkipped = 0;
+let totalErrors = 0;
 
 for (const file of files) {
   const namespace = basename(file, ".json");
@@ -120,7 +124,9 @@ for (const file of files) {
           try {
             valToEncrypt = decryptValue(valToEncrypt);
           } catch {
-            console.error(`    ⚠️  [${namespace}:${key}] Cannot decrypt with current key — skipping`);
+            console.error(
+              `    ⚠️  [${namespace}:${key}] Cannot decrypt with current key — skipping`,
+            );
             errors++;
             continue;
           }
@@ -134,7 +140,6 @@ for (const file of files) {
     }
   }
 
-
   if (!DRY_RUN && migrated > 0) {
     writeFileSync(filePath, JSON.stringify(data, null, 2), "utf8");
   }
@@ -145,8 +150,8 @@ for (const file of files) {
   );
 
   totalMigrated += migrated;
-  totalSkipped  += alreadyEncrypted;
-  totalErrors   += errors;
+  totalSkipped += alreadyEncrypted;
+  totalErrors += errors;
 }
 
 console.log(`

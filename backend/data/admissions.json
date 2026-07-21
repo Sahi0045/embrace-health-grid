@@ -14,10 +14,7 @@
       "bed": "B2",
       "admittingDoctor": "Dr. Ravi Menon",
       "primaryDiagnosis": "Acute Coronary Syndrome",
-      "secondaryDiagnoses": [
-        "Hypertension",
-        "Type 2 Diabetes"
-      ],
+      "secondaryDiagnoses": ["Hypertension", "Type 2 Diabetes"],
       "admissionType": "emergency",
       "chiefComplaint": "Chest pain and shortness of breath"
     },

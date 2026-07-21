@@ -1,24 +1,29 @@
 # Role-Based Access Control (RBAC) Implementation
 
 ## Overview
+
 This application implements a comprehensive RBAC system with three user roles:
+
 - **Patient**: Can only access patient routes
-- **Staff**: Can only access staff routes  
+- **Staff**: Can only access staff routes
 - **Admin**: Can access ALL routes (patient, staff, and admin)
 
 ## Access Control Rules
 
 ### Patient Role
+
 - ✅ Can access: `/patient/*` routes
 - ❌ Cannot access: `/staff/*` or `/admin/*` routes
 - Redirected to access denied page if attempting to access restricted routes
 
 ### Staff Role
+
 - ✅ Can access: `/staff/*` routes
 - ❌ Cannot access: `/patient/*` or `/admin/*` routes
 - Redirected to access denied page if attempting to access restricted routes
 
 ### Admin Role (Super User)
+
 - ✅ Can access: ALL routes (`/patient/*`, `/staff/*`, `/admin/*`)
 - Can switch between all three role views using the role switcher
 - Has full system access for oversight and management
@@ -26,24 +31,28 @@ This application implements a comprehensive RBAC system with three user roles:
 ## Implementation Details
 
 ### 1. Authentication Module (`src/lib/auth.ts`)
+
 - `getCurrentUser()`: Retrieves current user from localStorage
 - `isAuthenticated()`: Checks if user is logged in
 - `hasAccess(userRole, requiredRole)`: Validates role-based access
 - `logout()`: Clears session and redirects to login
 
 ### 2. Route Guard Component (`src/components/RouteGuard.tsx`)
+
 - Wraps protected routes to enforce access control
 - Redirects unauthenticated users to `/login`
 - Shows "Access Denied" page for unauthorized access attempts
 - Provides navigation back to user's appropriate dashboard
 
 ### 3. Role Switcher (`src/components/RoleSwitcher.tsx`)
+
 - Displays available roles based on user permissions
 - Admin sees all three roles (Patient, Staff, Admin)
 - Non-admin users see only their assigned role
 - Locked roles shown with lock icon for non-admin users
 
 ### 4. Sidebar Navigation (`src/components/AppSidebar.tsx`)
+
 - Dynamically shows navigation based on user role
 - Admin can see navigation for any section they're viewing
 - Non-admin users only see their role-specific navigation
@@ -53,6 +62,7 @@ This application implements a comprehensive RBAC system with three user roles:
 All role-specific routes are protected with `<RouteGuard>`:
 
 ### Patient Routes
+
 - `/patient` - Patient home
 - `/patient/profile` - Patient profile
 - `/patient/qr` - QR code
@@ -62,6 +72,7 @@ All role-specific routes are protected with `<RouteGuard>`:
 - `/patient/history` - Access history
 
 ### Staff Routes
+
 - `/staff` - Staff dashboard
 - `/staff/profile` - Staff profile
 - `/staff/verify` - Verify patient
@@ -70,6 +81,7 @@ All role-specific routes are protected with `<RouteGuard>`:
 - `/staff/sign` - Sign & prescribe
 
 ### Admin Routes
+
 - `/admin` - Admin overview
 - `/admin/profile` - Admin profile
 - `/admin/dids` - DID management
@@ -81,16 +93,19 @@ All role-specific routes are protected with `<RouteGuard>`:
 ## Testing RBAC
 
 ### Test as Patient
+
 1. Login with role: Patient
 2. Try accessing `/staff` or `/admin` → Should see "Access Denied"
 3. Can only access `/patient/*` routes
 
 ### Test as Staff
+
 1. Login with role: Staff
 2. Try accessing `/patient` or `/admin` → Should see "Access Denied"
 3. Can only access `/staff/*` routes
 
 ### Test as Admin
+
 1. Login with role: Admin
 2. Can access `/patient`, `/staff`, and `/admin` routes
 3. Role switcher shows all three roles

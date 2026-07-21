@@ -149,7 +149,9 @@ function History() {
         "flagged",
         "warning",
       );
-      toast.success("Dispute filed successfully", { description: "Security team will investigate." });
+      toast.success("Dispute filed successfully", {
+        description: "Security team will investigate.",
+      });
       refetch();
     } catch (err: any) {
       toast.error("Failed to submit dispute", { description: err.message });
@@ -157,25 +159,19 @@ function History() {
   };
 
   const handleVerifyChain = async () => {
-    toast.promise(
-      new Promise((resolve) => setTimeout(resolve, 1500)),
-      {
-        loading: "Verifying Merkle proof tree on Solana Devnet...",
-        success: "Audit chain successfully verified! 0 discrepancies found.",
-        error: "Verification failed",
-      }
-    );
+    toast.promise(new Promise((resolve) => setTimeout(resolve, 1500)), {
+      loading: "Verifying Merkle proof tree on Solana Devnet...",
+      success: "Audit chain successfully verified! 0 discrepancies found.",
+      error: "Verification failed",
+    });
   };
 
   const handleVerifyEventOnLedger = async (eventId: string) => {
-    toast.promise(
-      new Promise((resolve) => setTimeout(resolve, 1200)),
-      {
-        loading: `Locating tx 0x${eventId.slice(0, 8)}... on ledger...`,
-        success: "Transaction hash matched state DB anchor! Validated.",
-        error: "Failed to verify transaction",
-      }
-    );
+    toast.promise(new Promise((resolve) => setTimeout(resolve, 1200)), {
+      loading: `Locating tx 0x${eventId.slice(0, 8)}... on ledger...`,
+      success: "Transaction hash matched state DB anchor! Validated.",
+      error: "Failed to verify transaction",
+    });
   };
 
   return (

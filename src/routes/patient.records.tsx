@@ -87,7 +87,7 @@ function MedicalRecords() {
       const PROGRAM_ID = new PublicKey("BxkLrjBYdb3nh2m9GCfpLXBWrAj3s9MqnRbwktLqSfN3");
       const [patientRootPda] = PublicKey.findProgramAddressSync(
         [Buffer.from("patient-root"), Buffer.from(patientDid)],
-        PROGRAM_ID
+        PROGRAM_ID,
       );
       const connection = new Connection("https://api.devnet.solana.com", "confirmed");
       const accountInfo = await connection.getAccountInfo(patientRootPda);
@@ -115,17 +115,20 @@ function MedicalRecords() {
     }
     setAnchoring(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/medical-records/${encodeURIComponent(patientDid)}/anchor`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
+      const response = await fetch(
+        `${API_BASE_URL}/api/medical-records/${encodeURIComponent(patientDid)}/anchor`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+          },
+          body: JSON.stringify({
+            authorityPubkey: publicKey.toBase58(),
+            isUpdate: !!onChainRoot,
+          }),
         },
-        body: JSON.stringify({
-          authorityPubkey: publicKey.toBase58(),
-          isUpdate: !!onChainRoot,
-        }),
-      });
+      );
 
       if (!response.ok) {
         const err = await response.json();
@@ -137,18 +140,18 @@ function MedicalRecords() {
 
       toast.info("Requesting signature from Phantom wallet...");
       const connection = new Connection("https://api.devnet.solana.com", "confirmed");
-      
+
       const { blockhash } = await connection.getLatestBlockhash("confirmed");
       tx.recentBlockhash = blockhash;
 
       const signedTx = await signTransaction(tx);
       toast.info("Broadcasting transaction to Solana Devnet...");
-      
+
       const txid = await connection.sendRawTransaction(signedTx.serialize());
       toast.info("Awaiting transaction confirmation on-chain...");
-      
+
       await connection.confirmTransaction(txid, "confirmed");
-      
+
       setOnChainRoot(res.merkleRoot);
       setOnChainTx(txid);
       toast.success("Medical records successfully anchored on Solana Devnet!");
@@ -256,7 +259,9 @@ function MedicalRecords() {
                 {connected ? (
                   <Button
                     onClick={handleAnchorRecords}
-                    disabled={anchoring || (apiRecords.length === 0 && apiPrescriptions.length === 0)}
+                    disabled={
+                      anchoring || (apiRecords.length === 0 && apiPrescriptions.length === 0)
+                    }
                     className="cursor-pointer"
                   >
                     {anchoring ? (
@@ -271,7 +276,9 @@ function MedicalRecords() {
                     )}
                   </Button>
                 ) : (
-                  <span className="text-xs text-muted-foreground italic">Connect Phantom wallet on profile page to anchor</span>
+                  <span className="text-xs text-muted-foreground italic">
+                    Connect Phantom wallet on profile page to anchor
+                  </span>
                 )}
               </div>
             </div>
@@ -279,7 +286,9 @@ function MedicalRecords() {
           <CardContent className="text-sm space-y-3">
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-lg border bg-card p-3">
-                <div className="text-xs text-muted-foreground">Current Medical Records Hash Count</div>
+                <div className="text-xs text-muted-foreground">
+                  Current Medical Records Hash Count
+                </div>
                 <div className="text-lg font-bold text-foreground mt-1">
                   {apiRecords.length + apiPrescriptions.length} items (Records & Prescriptions)
                 </div>
@@ -287,7 +296,9 @@ function MedicalRecords() {
               <div className="rounded-lg border bg-card p-3">
                 <div className="text-xs text-muted-foreground">On-Chain Merkle Root</div>
                 <div className="text-sm font-semibold font-mono text-primary truncate mt-1">
-                  {onChainRoot ? `0x${onChainRoot.slice(0, 10)}...${onChainRoot.slice(-10)}` : "Not Anchored"}
+                  {onChainRoot
+                    ? `0x${onChainRoot.slice(0, 10)}...${onChainRoot.slice(-10)}`
+                    : "Not Anchored"}
                 </div>
               </div>
             </div>
@@ -740,7 +751,9 @@ function MedicalRecords() {
             >
               <div className="flex items-center justify-between border-b border-border pb-3">
                 <div>
-                  <h3 className="text-base font-bold text-foreground">Cryptographic JSON Payload</h3>
+                  <h3 className="text-base font-bold text-foreground">
+                    Cryptographic JSON Payload
+                  </h3>
                   <p className="text-[10px] text-muted-foreground">
                     Verifiable raw ledger metadata for Rx {selectedRxJson.id}
                   </p>
@@ -768,7 +781,7 @@ function MedicalRecords() {
                       hash: `sha256:d8c0b56${selectedRxJson.id.slice(-8)}`,
                     },
                     null,
-                    2
+                    2,
                   )}
                 </pre>
               </div>

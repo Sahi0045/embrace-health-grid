@@ -134,7 +134,9 @@ function saveNamespaceAtomic(namespace, data) {
     renameSync(tempPath, path);
   } catch (err) {
     if (existsSync(tempPath)) {
-      try { unlinkSync(tempPath); } catch {}
+      try {
+        unlinkSync(tempPath);
+      } catch {}
     }
     throw new Error(`Failed atomic disk write for namespace [${namespace}]: ${err.message}`);
   }
@@ -155,9 +157,11 @@ function flushNamespace(namespace) {
   if (data) {
     // Chain onto namespace queue for serialized write-safety
     const lock = getNamespaceLock(namespace);
-    const nextLock = lock.then(() => saveNamespaceAtomic(namespace, data)).catch((err) => {
-      console.error(`⚠️ Async write error on namespace [${namespace}]:`, err.message);
-    });
+    const nextLock = lock
+      .then(() => saveNamespaceAtomic(namespace, data))
+      .catch((err) => {
+        console.error(`⚠️ Async write error on namespace [${namespace}]:`, err.message);
+      });
     _namespaceLocks.set(namespace, nextLock);
   }
 }
@@ -213,7 +217,8 @@ export function stagePutState(tx, namespace, key, value, version = "1") {
  * Commit a transaction atomically across all affected namespaces
  */
 export function commitTransaction(tx) {
-  if (!tx || tx.status !== "active") throw new Error("Transaction is not active or already finished");
+  if (!tx || tx.status !== "active")
+    throw new Error("Transaction is not active or already finished");
 
   const affectedNamespaces = new Set();
 
@@ -226,14 +231,16 @@ export function commitTransaction(tx) {
       nsCache[key] = dbEntry;
 
       if (convexClient) {
-        convexClient.mutation("records:putGenericWorldState", {
-          namespace,
-          key,
-          value: plainValue,
-          txId: tx.txId,
-          version: dbEntry.version,
-          updatedAt: dbEntry.updatedAt,
-        }).catch(() => {});
+        convexClient
+          .mutation("records:putGenericWorldState", {
+            namespace,
+            key,
+            value: plainValue,
+            txId: tx.txId,
+            version: dbEntry.version,
+            updatedAt: dbEntry.updatedAt,
+          })
+          .catch(() => {});
       }
     }
   }
@@ -270,7 +277,6 @@ export function rollbackTransaction(tx) {
   _activeTransactions.delete(tx.txId);
   return { success: true, txId: tx.txId };
 }
-
 
 // ---------------------------------------------------------------------------
 // World State API
@@ -310,7 +316,7 @@ const ALL_NAMESPACES = [
   "health-metrics",
   "pharmacy-orders",
   "rehab-sessions",
-  "feedback"
+  "feedback",
 ];
 
 // 🔄 Synchronously initialize/replicate from Convex database on boot
@@ -513,7 +519,8 @@ export function flushAll() {
 // ---------------------------------------------------------------------------
 import { createHmac } from "crypto";
 
-const BACKUP_HMAC_SECRET = process.env.AUDIT_HMAC_KEY || process.env.JWT_SECRET || "embrace-health-backup-hmac-key";
+const BACKUP_HMAC_SECRET =
+  process.env.AUDIT_HMAC_KEY || process.env.JWT_SECRET || "embrace-health-backup-hmac-key";
 
 /**
  * Create a fully AES-256-GCM encrypted database backup archive
@@ -541,7 +548,9 @@ export function createEncryptedBackup() {
 
   // Encrypt entire database payload with AES-256-GCM envelope
   const encryptedPayload = encryptValue(rawPayload);
-  const hmacDigest = createHmac("sha256", BACKUP_HMAC_SECRET).update(encryptedPayload).digest("hex");
+  const hmacDigest = createHmac("sha256", BACKUP_HMAC_SECRET)
+    .update(encryptedPayload)
+    .digest("hex");
 
   return {
     backupId,
@@ -563,9 +572,14 @@ export function verifyBackupEncryption(backupBundle) {
   }
 
   // 1. Verify HMAC integrity
-  const expectedHmac = createHmac("sha256", BACKUP_HMAC_SECRET).update(backupBundle.encryptedPayload).digest("hex");
+  const expectedHmac = createHmac("sha256", BACKUP_HMAC_SECRET)
+    .update(backupBundle.encryptedPayload)
+    .digest("hex");
   if (expectedHmac !== backupBundle.hmacDigest) {
-    return { verified: false, error: "Backup HMAC integrity check failed — payload tampered or corrupted" };
+    return {
+      verified: false,
+      error: "Backup HMAC integrity check failed — payload tampered or corrupted",
+    };
   }
 
   // 2. Decrypt backup payload
@@ -614,9 +628,11 @@ export function verifyBackupEncryption(backupBundle) {
     phiEncryptedRecordsCount,
     plaintextLeakageCount,
     leakedKeys,
-    complianceStatus: plaintextLeakageCount === 0 ? "PASSED_100_PERCENT_ENCRYPTED" : "FAILED_PLAINTEXT_LEAKAGE_DETECTED",
+    complianceStatus:
+      plaintextLeakageCount === 0
+        ? "PASSED_100_PERCENT_ENCRYPTED"
+        : "FAILED_PLAINTEXT_LEAKAGE_DETECTED",
   };
 }
 
 export { randomUUID as generateId };
-

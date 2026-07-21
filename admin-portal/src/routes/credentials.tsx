@@ -89,20 +89,37 @@ function CredentialsPage() {
     { name: "Apollo Diagnostics", did: "did:hosp:issuer:apollodx001" },
   ];
 
-  const issuers = issuersList.map(issuer => {
-    const issuerCreds = displayCredentials.filter(c => c.issuer === issuer.name || c.issuerDID.includes(issuer.name.toLowerCase().split(" ")[0]));
+  const issuers = issuersList.map((issuer) => {
+    const issuerCreds = displayCredentials.filter(
+      (c) =>
+        c.issuer === issuer.name || c.issuerDID.includes(issuer.name.toLowerCase().split(" ")[0]),
+    );
     const issuedCount = issuerCreds.length;
-    const activeCount = issuerCreds.filter(c => c.status === "active").length;
-    const revokedCount = issuerCreds.filter(c => c.status === "revoked").length;
-    
-    const baseIssued = issuer.name === "Apollo Hospitals" ? 112 : issuer.name === "Govt. of India — NHA" ? 95 : issuer.name === "Star Health Insurance" ? 48 : 74;
-    const baseRevoked = issuer.name === "Apollo Hospitals" ? 4 : issuer.name === "Govt. of India — NHA" ? 2 : issuer.name === "Star Health Insurance" ? 1 : 3;
-    
+    const activeCount = issuerCreds.filter((c) => c.status === "active").length;
+    const revokedCount = issuerCreds.filter((c) => c.status === "revoked").length;
+
+    const baseIssued =
+      issuer.name === "Apollo Hospitals"
+        ? 112
+        : issuer.name === "Govt. of India — NHA"
+          ? 95
+          : issuer.name === "Star Health Insurance"
+            ? 48
+            : 74;
+    const baseRevoked =
+      issuer.name === "Apollo Hospitals"
+        ? 4
+        : issuer.name === "Govt. of India — NHA"
+          ? 2
+          : issuer.name === "Star Health Insurance"
+            ? 1
+            : 3;
+
     return {
       name: issuer.name,
       did: issuer.did,
       issued: baseIssued + issuedCount,
-      active: (baseIssued - baseRevoked) + activeCount,
+      active: baseIssued - baseRevoked + activeCount,
       revoked: baseRevoked + revokedCount,
     };
   });

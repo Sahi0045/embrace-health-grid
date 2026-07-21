@@ -1,7 +1,6 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 
-
 // ============================================================================
 // Patient Hooks
 // ============================================================================
@@ -17,30 +16,21 @@ export function useConvexPatients() {
  * Hook to fetch a patient by DID
  */
 export function useConvexPatient(did: string | undefined) {
-  return useQuery(
-    api.records.getPatientByDID,
-    did ? { did } : "skip"
-  );
+  return useQuery(api.records.getPatientByDID, did ? { did } : "skip");
 }
 
 /**
  * Hook to fetch a patient by MRN (Medical Record Number)
  */
 export function useConvexPatientByMRN(mrn: string | undefined) {
-  return useQuery(
-    api.records.getPatientByMRN,
-    mrn ? { mrn } : "skip"
-  );
+  return useQuery(api.records.getPatientByMRN, mrn ? { mrn } : "skip");
 }
 
 /**
  * Hook to fetch a patient by email
  */
 export function useConvexPatientByEmail(email: string | undefined) {
-  return useQuery(
-    api.records.getPatientByEmail,
-    email ? { email } : "skip"
-  );
+  return useQuery(api.records.getPatientByEmail, email ? { email } : "skip");
 }
 
 /**
@@ -79,30 +69,21 @@ export function useConvexStaff() {
  * Hook to fetch a staff member by DID
  */
 export function useConvexStaffMember(did: string | undefined) {
-  return useQuery(
-    api.records.getStaffByDID,
-    did ? { did } : "skip"
-  );
+  return useQuery(api.records.getStaffByDID, did ? { did } : "skip");
 }
 
 /**
  * Hook to fetch a staff member by employee ID
  */
 export function useConvexStaffByEmployeeId(employeeId: string | undefined) {
-  return useQuery(
-    api.records.getStaffByEmployeeId,
-    employeeId ? { employeeId } : "skip"
-  );
+  return useQuery(api.records.getStaffByEmployeeId, employeeId ? { employeeId } : "skip");
 }
 
 /**
  * Hook to fetch a staff member by email
  */
 export function useConvexStaffByEmail(email: string | undefined) {
-  return useQuery(
-    api.records.getStaffByEmail,
-    email ? { email } : "skip"
-  );
+  return useQuery(api.records.getStaffByEmail, email ? { email } : "skip");
 }
 
 /**

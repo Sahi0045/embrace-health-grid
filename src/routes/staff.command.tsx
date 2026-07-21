@@ -27,7 +27,6 @@ export const Route = createFileRoute("/staff/command")({
   component: StaffCommandCenter,
 });
 
-
 // Dynamic pendingSignatures and todayProcedures loaded from database APIs
 
 const emergencyAlerts = [
@@ -83,7 +82,10 @@ function StaffCommandCenter() {
   const [surgeries, setSurgeries] = useState<any[]>([]);
   const [loadingData, setLoadingData] = useState(true);
 
-  const staffDid = typeof window !== "undefined" ? localStorage.getItem("userDID") || "did:hosp:staff:current" : "did:hosp:staff:current";
+  const staffDid =
+    typeof window !== "undefined"
+      ? localStorage.getItem("userDID") || "did:hosp:staff:current"
+      : "did:hosp:staff:current";
 
   const fetchData = () => {
     setLoadingData(true);
@@ -116,7 +118,7 @@ function StaffCommandCenter() {
           loading: "Signing prescription using clinician credential...",
           success: "Prescription signed and logged on ledger!",
           error: "Failed to sign prescription",
-        }
+        },
       );
     } catch (err) {
       console.error(err);

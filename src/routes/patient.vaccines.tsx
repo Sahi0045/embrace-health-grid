@@ -64,8 +64,18 @@ function VaccinesPage() {
         <div className="grid grid-cols-3 gap-4">
           {[
             { label: "Complete", value: complete, color: "text-success", bg: "bg-success/10" },
-            { label: "Due Soon", value: dueSoon, color: "text-warning-foreground", bg: "bg-warning/10" },
-            { label: "Total", value: vaccineCredentials.length, color: "text-primary", bg: "bg-primary/10" },
+            {
+              label: "Due Soon",
+              value: dueSoon,
+              color: "text-warning-foreground",
+              bg: "bg-warning/10",
+            },
+            {
+              label: "Total",
+              value: vaccineCredentials.length,
+              color: "text-primary",
+              bg: "bg-primary/10",
+            },
           ].map((s) => (
             <div key={s.label} className={`rounded-xl ${s.bg} p-4 text-center`}>
               <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
@@ -95,8 +105,14 @@ function VaccinesPage() {
                         <div className="text-xs text-muted-foreground">{v.issuer}</div>
                       </div>
                     </div>
-                    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold shrink-0 ${statusBadge[v.status]}`}>
-                      {v.status === "complete" ? <ShieldCheck className="h-3 w-3" /> : <AlertCircle className="h-3 w-3" />}
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold shrink-0 ${statusBadge[v.status]}`}
+                    >
+                      {v.status === "complete" ? (
+                        <ShieldCheck className="h-3 w-3" />
+                      ) : (
+                        <AlertCircle className="h-3 w-3" />
+                      )}
                       {v.status === "due-soon" ? "Due Soon" : "Complete"}
                     </span>
                   </div>
@@ -107,7 +123,9 @@ function VaccinesPage() {
                       <div className="font-semibold text-foreground">{v.doses}</div>
                     </div>
                     <div>
-                      <div className="text-[10px] uppercase tracking-wide opacity-60">Last Dose</div>
+                      <div className="text-[10px] uppercase tracking-wide opacity-60">
+                        Last Dose
+                      </div>
                       <div className="font-semibold text-foreground">{v.lastDose}</div>
                     </div>
                     <div>
@@ -116,7 +134,9 @@ function VaccinesPage() {
                     </div>
                   </div>
 
-                  <div className="mt-2 font-mono text-[10px] text-muted-foreground/50">{v.credential}</div>
+                  <div className="mt-2 font-mono text-[10px] text-muted-foreground/50">
+                    {v.credential}
+                  </div>
                 </motion.div>
               </StaggerItem>
             ))}
@@ -135,7 +155,10 @@ function VaccinesPage() {
 
       {/* Detail Modal */}
       {selected && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 backdrop-blur-sm p-4" onClick={() => setSelected(null)}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 backdrop-blur-sm p-4"
+          onClick={() => setSelected(null)}
+        >
           <motion.div
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -144,11 +167,22 @@ function VaccinesPage() {
           >
             <div className="flex items-center justify-between mb-4">
               <div className="text-base font-semibold text-foreground">{selected.vaccine}</div>
-              <button onClick={() => setSelected(null)} className="text-muted-foreground hover:text-foreground transition-colors text-xs">✕ Close</button>
+              <button
+                onClick={() => setSelected(null)}
+                className="text-muted-foreground hover:text-foreground transition-colors text-xs"
+              >
+                ✕ Close
+              </button>
             </div>
 
             <div className="space-y-4">
-              <CredentialIssuerBadge issuer={selected.issuer} did={selected.issuerDid || `did:hosp:issuer:${selected.issuer.toLowerCase().replace(/[^a-z0-9]/g, "")}`} />
+              <CredentialIssuerBadge
+                issuer={selected.issuer}
+                did={
+                  selected.issuerDid ||
+                  `did:hosp:issuer:${selected.issuer.toLowerCase().replace(/[^a-z0-9]/g, "")}`
+                }
+              />
 
               <div className="grid grid-cols-2 gap-3 text-sm">
                 {[
@@ -160,7 +194,9 @@ function VaccinesPage() {
                   { label: "Credential ID", value: selected.credential },
                 ].map((f) => (
                   <div key={f.label} className="rounded-lg bg-muted p-3">
-                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">{f.label}</div>
+                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">
+                      {f.label}
+                    </div>
                     <div className="font-medium text-foreground text-xs">{f.value}</div>
                   </div>
                 ))}
@@ -168,7 +204,9 @@ function VaccinesPage() {
 
               <div className="flex items-center gap-2 rounded-lg bg-success/10 p-3">
                 <ShieldCheck className="h-4 w-4 text-success" />
-                <span className="text-xs font-medium text-success">Credential cryptographically verified · Ed25519</span>
+                <span className="text-xs font-medium text-success">
+                  Credential cryptographically verified · Ed25519
+                </span>
               </div>
             </div>
           </motion.div>

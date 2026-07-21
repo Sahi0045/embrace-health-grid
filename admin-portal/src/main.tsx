@@ -10,5 +10,5 @@ ReactDOM.createRoot(document.getElementById("app")!).render(
     <QueryClientProvider client={queryClient}>
       <RouterProvider router={router} />
     </QueryClientProvider>
-  </React.StrictMode>
+  </React.StrictMode>,
 );

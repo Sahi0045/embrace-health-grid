@@ -12,7 +12,16 @@ interface InsuranceCardProps {
   status: "active" | "expired" | "claimed";
 }
 
-export function InsuranceCard({ provider, policyNo, type, sumInsured, used, validFrom, validTo, status }: InsuranceCardProps) {
+export function InsuranceCard({
+  provider,
+  policyNo,
+  type,
+  sumInsured,
+  used,
+  validFrom,
+  validTo,
+  status,
+}: InsuranceCardProps) {
   const pct = Math.min(Math.round((used / sumInsured) * 100), 100);
   const remaining = sumInsured - used;
 
@@ -43,14 +52,21 @@ export function InsuranceCard({ provider, policyNo, type, sumInsured, used, vali
           <span>₹{remaining.toLocaleString("en-IN")} remaining</span>
         </div>
         <div className="h-1.5 rounded-full bg-white/25">
-          <div className="h-full rounded-full bg-white/80 transition-all" style={{ width: `${pct}%` }} />
+          <div
+            className="h-full rounded-full bg-white/80 transition-all"
+            style={{ width: `${pct}%` }}
+          />
         </div>
-        <div className="mt-1 text-[10px] opacity-60">Sum insured: ₹{sumInsured.toLocaleString("en-IN")} · {pct}% utilised</div>
+        <div className="mt-1 text-[10px] opacity-60">
+          Sum insured: ₹{sumInsured.toLocaleString("en-IN")} · {pct}% utilised
+        </div>
       </div>
 
       <div className="mt-3 flex items-center gap-2 text-[10px] opacity-70">
         <Calendar className="h-3 w-3" />
-        <span>{validFrom} — {validTo}</span>
+        <span>
+          {validFrom} — {validTo}
+        </span>
       </div>
     </motion.div>
   );

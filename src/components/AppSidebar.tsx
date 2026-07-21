@@ -101,8 +101,6 @@ const staffNav: Item[] = [
   { title: "Emergency", url: "/staff/emergency", icon: ShieldAlert },
 ];
 
-
-
 const globalNav: Item[] = [
   { title: "DID Explorer", url: "/did-explorer", icon: Search },
   { title: "Credential Explorer", url: "/credential-explorer", icon: Award },

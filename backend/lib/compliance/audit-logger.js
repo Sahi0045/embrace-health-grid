@@ -66,7 +66,7 @@ export const AuditEventType = {
   // Compliance Events
   AUDIT_LOG_ACCESSED: "audit_log_accessed",
   COMPLIANCE_REPORT_GENERATED: "compliance_report_generated",
-  POLICY_UPDATED: "policy_updated"
+  POLICY_UPDATED: "policy_updated",
 };
 
 // Severity levels
@@ -74,7 +74,7 @@ export const AuditSeverity = {
   INFO: "info",
   WARNING: "warning",
   ERROR: "error",
-  CRITICAL: "critical"
+  CRITICAL: "critical",
 };
 
 /**
@@ -126,7 +126,7 @@ class HashChain {
         return {
           valid: false,
           error: `Hash chain broken at entry ${entry.id}`,
-          entry
+          entry,
         };
       }
       prevHash = entry.hash;
@@ -143,7 +143,7 @@ const hashChain = new HashChain();
 function createEntryHash(entry, previousHash) {
   const data = JSON.stringify({
     ...entry,
-    previousHash
+    previousHash,
   });
   return createHash("sha256").update(data).digest("hex");
 }
@@ -180,7 +180,7 @@ export function logAuditEvent(event) {
     ipAddress: event.ipAddress || null,
     userAgent: event.userAgent || null,
     metadata: event.metadata || {},
-    previousHash: hashChain.getLastHash()
+    previousHash: hashChain.getLastHash(),
   };
 
   // Create tamper-evident hash
@@ -197,8 +197,10 @@ export function logAuditEvent(event) {
   }
 
   // Console output for monitoring
-  const logLevel = event.severity === AuditSeverity.CRITICAL || event.severity === AuditSeverity.ERROR
-    ? "error" : "log";
+  const logLevel =
+    event.severity === AuditSeverity.CRITICAL || event.severity === AuditSeverity.ERROR
+      ? "error"
+      : "log";
   console[logLevel](`[AUDIT] ${event.type} | ${event.actor} | ${event.action}`);
 
   return auditEntry;
@@ -217,7 +219,10 @@ export function queryAuditLogs(filters = {}) {
 
   try {
     const content = readFileSync(CURRENT_LOG_FILE, "utf8");
-    const lines = content.trim().split("\n").filter(line => line.length > 0);
+    const lines = content
+      .trim()
+      .split("\n")
+      .filter((line) => line.length > 0);
 
     for (const line of lines) {
       try {
@@ -263,7 +268,7 @@ export function verifyAuditIntegrity() {
       return {
         valid: true,
         message: `Verified ${logs.length} audit entries`,
-        count: logs.length
+        count: logs.length,
       };
     } else {
       // CRITICAL: Log tampering detected
@@ -272,19 +277,19 @@ export function verifyAuditIntegrity() {
         severity: AuditSeverity.CRITICAL,
         actor: "system",
         action: "Audit log tampering detected",
-        metadata: { error: result.error }
+        metadata: { error: result.error },
       });
 
       return {
         valid: false,
         message: result.error,
-        compromisedEntry: result.entry
+        compromisedEntry: result.entry,
       };
     }
   } catch (error) {
     return {
       valid: false,
-      message: `Verification failed: ${error.message}`
+      message: `Verification failed: ${error.message}`,
     };
   }
 }
@@ -316,18 +321,18 @@ export function archiveAuditLogs() {
       type: AuditEventType.BACKUP_CREATED,
       severity: AuditSeverity.INFO,
       actor: "system",
-      action: `Audit logs archived to ${archiveFile}`
+      action: `Audit logs archived to ${archiveFile}`,
     });
 
     return {
       success: true,
       archiveFile,
-      message: "Audit logs archived successfully"
+      message: "Audit logs archived successfully",
     };
   } catch (error) {
     return {
       success: false,
-      message: `Archive failed: ${error.message}`
+      message: `Archive failed: ${error.message}`,
     };
   }
 }
@@ -348,7 +353,7 @@ export function generateComplianceReport(startDate, endDate) {
     failedLogins: 0,
     accessDenials: 0,
     securityAlerts: 0,
-    uniqueUsers: new Set()
+    uniqueUsers: new Set(),
   };
 
   for (const log of logs) {
@@ -378,7 +383,7 @@ export function generateComplianceReport(startDate, endDate) {
     severity: AuditSeverity.INFO,
     actor: "system",
     action: "Generated compliance audit report",
-    metadata: { period: report.period, eventCount: report.totalEvents }
+    metadata: { period: report.period, eventCount: report.totalEvents },
   });
 
   return report;
@@ -392,15 +397,16 @@ export function auditMiddleware(req, res, next) {
 
   // Capture response
   const originalSend = res.send;
-  res.send = function(data) {
+  res.send = function (data) {
     const duration = Date.now() - startTime;
 
     // Log API access
     if (req.path.includes("/api/") && req.user) {
-      const isPHI = req.path.includes("patient") ||
-                    req.path.includes("medical") ||
-                    req.path.includes("prescription") ||
-                    req.path.includes("lab");
+      const isPHI =
+        req.path.includes("patient") ||
+        req.path.includes("medical") ||
+        req.path.includes("prescription") ||
+        req.path.includes("lab");
 
       logAuditEvent({
         type: isPHI ? AuditEventType.PHI_ACCESS : AuditEventType.ACCESS_GRANTED,
@@ -415,8 +421,8 @@ export function auditMiddleware(req, res, next) {
         metadata: {
           method: req.method,
           statusCode: res.statusCode,
-          duration: `${duration}ms`
-        }
+          duration: `${duration}ms`,
+        },
       });
     }
 

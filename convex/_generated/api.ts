@@ -17,5 +17,5 @@ export const api: any = {
     getStaff: "records:getStaff",
     updatePatientVitals: "records:updatePatientVitals",
     updateStaffLocation: "records:updateStaffLocation",
-  }
+  },
 };

@@ -9,7 +9,6 @@ on:
   workflow_dispatch:
 
 jobs:
-
   # ─── npm audit ────────────────────────────────────────────────────────────────
   dependency-audit:
     name: Dependency Vulnerability Audit

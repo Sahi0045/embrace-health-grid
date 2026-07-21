@@ -59,7 +59,16 @@ function PatientProfile() {
   const [linking, setLinking] = useState(false);
 
   const userEmail = currentUser?.email || "";
-  const patientRecord = patients?.find((p: any) => p.email === userEmail || p.id === "pat_001") || { name: "", mrn: "", did: "", bloodGroup: "", age: 0, gender: "M" as const, allergies: [] as string[], phone: "" };
+  const patientRecord = patients?.find((p: any) => p.email === userEmail || p.id === "pat_001") || {
+    name: "",
+    mrn: "",
+    did: "",
+    bloodGroup: "",
+    age: 0,
+    gender: "M" as const,
+    allergies: [] as string[],
+    phone: "",
+  };
   const mrn = currentUser?.mrn || patientRecord.mrn;
 
   const name = currentUser?.name || patientRecord.name;
@@ -106,7 +115,6 @@ function PatientProfile() {
 
   const { data: credentialsData } = useCredentials();
 
-
   const handleLinkWallet = async () => {
     if (!publicKey) {
       toast.error("Please connect your wallet first");
@@ -146,7 +154,6 @@ function PatientProfile() {
           { id: "c3", type: "Vaccination Record", issuer: "Govt. of India" },
         ];
 
-
   const handleLogout = () => {
     logout();
   };
@@ -176,7 +183,9 @@ function PatientProfile() {
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="space-y-4">              <div className="grid gap-4 sm:grid-cols-2">
+            <CardContent className="space-y-4">
+              {" "}
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
                     <Calendar className="h-5 w-5 text-muted-foreground" />
@@ -216,9 +225,7 @@ function PatientProfile() {
                   </div>
                 </div>
               </div>
- 
               <Separator />
- 
               <div>
                 <div className="mb-3 flex items-center gap-2 text-sm font-medium">
                   <AlertCircle className="h-4 w-4 text-destructive" />
@@ -284,7 +291,9 @@ function PatientProfile() {
                   </div>
                   {connected && publicKey?.toBase58() !== currentUser.walletAddress && (
                     <div className="text-xs text-destructive font-medium mt-1">
-                      ⚠️ Mismatched Wallet: Currently connected to {publicKey!.toBase58().slice(0, 6)}...{publicKey!.toBase58().slice(-4)}. Please switch to your registered wallet.
+                      ⚠️ Mismatched Wallet: Currently connected to{" "}
+                      {publicKey!.toBase58().slice(0, 6)}...{publicKey!.toBase58().slice(-4)}.
+                      Please switch to your registered wallet.
                     </div>
                   )}
                 </div>
@@ -294,7 +303,8 @@ function PatientProfile() {
                     No Wallet Linked
                   </div>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    You have not linked a Solana wallet to your profile yet. Connect your wallet and link it below to enable blockchain auditing.
+                    You have not linked a Solana wallet to your profile yet. Connect your wallet and
+                    link it below to enable blockchain auditing.
                   </p>
                 </div>
               )}
@@ -341,107 +351,107 @@ function PatientProfile() {
             </CardContent>
           </Card>
 
-        <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>Edit Profile</DialogTitle>
-              <DialogDescription>
-                Update your personal and clinical details. Some parameters are synced on-chain.
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleUpdateProfile} className="space-y-4 py-4">
-              <div className="space-y-1">
-                <Label htmlFor="name">Full Name</Label>
-                <Input
-                  id="name"
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+          <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Edit Profile</DialogTitle>
+                <DialogDescription>
+                  Update your personal and clinical details. Some parameters are synced on-chain.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleUpdateProfile} className="space-y-4 py-4">
                 <div className="space-y-1">
-                  <Label htmlFor="age">Age</Label>
+                  <Label htmlFor="name">Full Name</Label>
                   <Input
-                    id="age"
-                    type="number"
-                    value={editAge}
-                    onChange={(e) => setEditAge(parseInt(e.target.value) || 0)}
+                    id="name"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
                     required
                   />
                 </div>
-                <div className="space-y-1">
-                  <Label htmlFor="gender">Gender</Label>
-                  <Select value={editGender} onValueChange={setEditGender}>
-                    <SelectTrigger id="gender">
-                      <SelectValue placeholder="Gender" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="M">Male</SelectItem>
-                      <SelectItem value="F">Female</SelectItem>
-                      <SelectItem value="O">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <Label htmlFor="age">Age</Label>
+                    <Input
+                      id="age"
+                      type="number"
+                      value={editAge}
+                      onChange={(e) => setEditAge(parseInt(e.target.value) || 0)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="gender">Gender</Label>
+                    <Select value={editGender} onValueChange={setEditGender}>
+                      <SelectTrigger id="gender">
+                        <SelectValue placeholder="Gender" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="M">Male</SelectItem>
+                        <SelectItem value="F">Female</SelectItem>
+                        <SelectItem value="O">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <Label htmlFor="blood">Blood Group</Label>
-                  <Select value={editBloodGroup} onValueChange={setEditBloodGroup}>
-                    <SelectTrigger id="blood">
-                      <SelectValue placeholder="Blood Group" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"].map((bg) => (
-                        <SelectItem key={bg} value={bg}>
-                          {bg}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <Label htmlFor="blood">Blood Group</Label>
+                    <Select value={editBloodGroup} onValueChange={setEditBloodGroup}>
+                      <SelectTrigger id="blood">
+                        <SelectValue placeholder="Blood Group" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"].map((bg) => (
+                          <SelectItem key={bg} value={bg}>
+                            {bg}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="phone">Phone</Label>
+                    <Input
+                      id="phone"
+                      value={editPhone}
+                      onChange={(e) => setEditPhone(e.target.value)}
+                      required
+                    />
+                  </div>
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="phone">Phone</Label>
+                  <Label htmlFor="allergies">Allergies (comma separated)</Label>
                   <Input
-                    id="phone"
-                    value={editPhone}
-                    onChange={(e) => setEditPhone(e.target.value)}
-                    required
+                    id="allergies"
+                    placeholder="e.g. Peanuts, Penicillin"
+                    value={editAllergies}
+                    onChange={(e) => setEditAllergies(e.target.value)}
                   />
                 </div>
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="allergies">Allergies (comma separated)</Label>
-                <Input
-                  id="allergies"
-                  placeholder="e.g. Peanuts, Penicillin"
-                  value={editAllergies}
-                  onChange={(e) => setEditAllergies(e.target.value)}
-                />
-              </div>
-              <DialogFooter className="pt-2">
-                <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={updating}>
-                  {updating ? "Saving..." : "Save Changes"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
+                <DialogFooter className="pt-2">
+                  <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={updating}>
+                    {updating ? "Saving..." : "Save Changes"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
 
-        <div className="flex gap-3">
-          <Button variant="outline" className="flex-1" asChild>
-            <Link to="/patient">Back to Dashboard</Link>
-          </Button>
-          <Button variant="destructive" onClick={handleLogout}>
-            <LogOut className="mr-2 h-4 w-4" />
-            Logout
-          </Button>
+          <div className="flex gap-3">
+            <Button variant="outline" className="flex-1" asChild>
+              <Link to="/patient">Back to Dashboard</Link>
+            </Button>
+            <Button variant="destructive" onClick={handleLogout}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Logout
+            </Button>
+          </div>
         </div>
       </div>
-    </div>
     </RouteGuard>
   );
 }

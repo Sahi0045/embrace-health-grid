@@ -313,11 +313,7 @@
     "key": "generic_tx_19ea6f2c0e3_d4fa8a09",
     "value": {
       "fcn": "batchSeedDIDs",
-      "args": [
-        "50 patients",
-        "30 staff",
-        "initial-seed"
-      ],
+      "args": ["50 patients", "30 staff", "initial-seed"],
       "executedAt": "2026-06-08T11:16:27.491Z"
     },
     "namespace": "did-registry",

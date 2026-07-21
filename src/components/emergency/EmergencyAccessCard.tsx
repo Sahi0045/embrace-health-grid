@@ -28,7 +28,9 @@ export function EmergencyAccessCard({ event }: EmergencyAccessCardProps) {
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-sm font-semibold text-foreground">Break-Glass Access</span>
           {event.autoAudited && (
-            <span className="rounded-full bg-warning/15 px-2 py-0.5 text-[10px] font-semibold text-warning-foreground">Auto-Audited</span>
+            <span className="rounded-full bg-warning/15 px-2 py-0.5 text-[10px] font-semibold text-warning-foreground">
+              Auto-Audited
+            </span>
           )}
         </div>
         <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">

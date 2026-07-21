@@ -21,8 +21,15 @@ const statusStyles = {
 };
 
 export function CredentialPreview({
-  type, issuer, holder, issuedAt, expiresAt,
-  status, credentialId, schema, fields,
+  type,
+  issuer,
+  holder,
+  issuedAt,
+  expiresAt,
+  status,
+  credentialId,
+  schema,
+  fields,
 }: CredentialPreviewProps) {
   return (
     <motion.div
@@ -41,11 +48,15 @@ export function CredentialPreview({
           </div>
           <div className="mt-1 text-base font-bold text-foreground">{type}</div>
         </div>
-        <div className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${
-          status === "active" ? "bg-success/15 text-success border-success/30"
-          : status === "revoked" ? "bg-destructive/15 text-destructive border-destructive/30"
-          : "bg-muted text-muted-foreground border-border"
-        }`}>
+        <div
+          className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${
+            status === "active"
+              ? "bg-success/15 text-success border-success/30"
+              : status === "revoked"
+                ? "bg-destructive/15 text-destructive border-destructive/30"
+                : "bg-muted text-muted-foreground border-border"
+          }`}
+        >
           <ShieldCheck className="h-3 w-3" />
           {status}
         </div>
@@ -82,7 +93,7 @@ export function CredentialPreview({
       {/* Custom fields */}
       {fields && fields.length > 0 && (
         <div className="mt-3 rounded-lg bg-background/40 p-3 space-y-1.5">
-          {fields.map(f => (
+          {fields.map((f) => (
             <div key={f.label} className="flex justify-between text-xs">
               <span className="text-muted-foreground">{f.label}</span>
               <span className="font-medium text-foreground">{f.value}</span>
@@ -93,10 +104,10 @@ export function CredentialPreview({
 
       {/* Footer */}
       <div className="mt-4 pt-3 border-t border-border/50 space-y-1">
-        {schema && (
-          <div className="text-[10px] text-muted-foreground/70">Schema: {schema}</div>
-        )}
-        <div className="font-mono text-[10px] text-muted-foreground/60 truncate">{credentialId}</div>
+        {schema && <div className="text-[10px] text-muted-foreground/70">Schema: {schema}</div>}
+        <div className="font-mono text-[10px] text-muted-foreground/60 truncate">
+          {credentialId}
+        </div>
       </div>
     </motion.div>
   );

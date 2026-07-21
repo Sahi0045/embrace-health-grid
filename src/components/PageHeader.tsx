@@ -50,7 +50,9 @@ export function StatCard({
   return (
     <div className="rounded-xl border border-border bg-card p-5 shadow-clinical">
       <div className="flex items-center justify-between">
-        <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</div>
+        <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          {label}
+        </div>
         {Icon && (
           <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${toneClass}`}>
             <Icon className="h-4 w-4" />

@@ -56,7 +56,8 @@ export function listRecentAnchors(limit = 50) {
 export function scheduleAnchor(deps, record, recordType, actorDid) {
   const { computeRecordHash } = deps;
   const hash = typeof record === "string" ? record : computeRecordHash(record);
-  const recordId = record?.rxId || record?.labId || record?.grantId || record?.recordId || record?.id;
+  const recordId =
+    record?.rxId || record?.labId || record?.grantId || record?.recordId || record?.id;
 
   anchorHash({
     recordHash: hash,

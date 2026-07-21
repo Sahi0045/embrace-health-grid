@@ -137,7 +137,8 @@ function PatientHome() {
                         Secure Your Digital Identity
                       </h3>
                       <p className="mt-1 text-xs text-muted-foreground leading-relaxed max-w-md">
-                        Link your Solana Wallet to sign consents and verify medical credentials immutably on-chain.
+                        Link your Solana Wallet to sign consents and verify medical credentials
+                        immutably on-chain.
                       </p>
                     </div>
                   </div>

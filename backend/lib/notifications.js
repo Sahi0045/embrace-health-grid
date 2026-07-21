@@ -44,9 +44,7 @@ export function markAllRead(userEmail) {
 }
 
 export function markRead(userEmail, id) {
-  const entry = getAllState(NS).find(
-    (e) => e.value?.id === id && e.value?.userEmail === userEmail,
-  );
+  const entry = getAllState(NS).find((e) => e.value?.id === id && e.value?.userEmail === userEmail);
   if (entry) {
     entry.value.read = true;
     putState(NS, entry.key, entry.value, randomUUID());

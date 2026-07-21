@@ -7,10 +7,22 @@ interface AmbulanceCardProps {
 
 const statusConfig: Record<string, { label: string; badge: string; dot: string }> = {
   available: { label: "Available", badge: "bg-success/10 text-success", dot: "bg-success" },
-  "en-route": { label: "En Route", badge: "bg-warning/10 text-warning-foreground", dot: "bg-warning" },
-  "at-scene": { label: "At Scene", badge: "bg-destructive/10 text-destructive", dot: "bg-destructive" },
+  "en-route": {
+    label: "En Route",
+    badge: "bg-warning/10 text-warning-foreground",
+    dot: "bg-warning",
+  },
+  "at-scene": {
+    label: "At Scene",
+    badge: "bg-destructive/10 text-destructive",
+    dot: "bg-destructive",
+  },
   returning: { label: "Returning", badge: "bg-primary/10 text-primary", dot: "bg-primary" },
-  maintenance: { label: "Maintenance", badge: "bg-muted text-muted-foreground", dot: "bg-muted-foreground" },
+  maintenance: {
+    label: "Maintenance",
+    badge: "bg-muted text-muted-foreground",
+    dot: "bg-muted-foreground",
+  },
 };
 
 const typeLabels: Record<string, string> = {
@@ -35,7 +47,9 @@ export function AmbulanceCard({ ambulance }: AmbulanceCardProps) {
             <div className="text-[11px] text-muted-foreground">{typeLabels[ambulance.type]}</div>
           </div>
         </div>
-        <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold ${cfg.badge}`}>
+        <span
+          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold ${cfg.badge}`}
+        >
           <div className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
           {cfg.label}
         </span>
@@ -48,11 +62,15 @@ export function AmbulanceCard({ ambulance }: AmbulanceCardProps) {
         </div>
         <div className="flex items-center gap-1.5">
           <User className="h-3 w-3 shrink-0" />
-          <span>{ambulance.driver} · {ambulance.paramedic}</span>
+          <span>
+            {ambulance.driver} · {ambulance.paramedic}
+          </span>
         </div>
       </div>
 
-      <div className="mt-2 font-mono text-[10px] text-muted-foreground/50 truncate">{ambulance.did}</div>
+      <div className="mt-2 font-mono text-[10px] text-muted-foreground/50 truncate">
+        {ambulance.did}
+      </div>
     </div>
   );
 }

@@ -39,14 +39,22 @@ export function ConsentCard({ consent, onRevoke, onApprove }: ConsentCardProps) 
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2 min-w-0">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold">
-            {consent.requester.split(" ").map(w => w[0]).slice(0, 2).join("")}
+            {consent.requester
+              .split(" ")
+              .map((w) => w[0])
+              .slice(0, 2)
+              .join("")}
           </div>
           <div className="min-w-0">
-            <div className="text-sm font-semibold text-foreground truncate">{consent.requester}</div>
+            <div className="text-sm font-semibold text-foreground truncate">
+              {consent.requester}
+            </div>
             <div className="text-xs text-muted-foreground">{consent.requesterRole}</div>
           </div>
         </div>
-        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold shrink-0 ${cfg.badge}`}>
+        <span
+          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold shrink-0 ${cfg.badge}`}
+        >
           <Icon className="h-3 w-3" />
           {consent.status}
         </span>

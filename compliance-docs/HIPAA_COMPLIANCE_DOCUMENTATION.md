@@ -1,4 +1,5 @@
 ## 🏥 HIPAA Compliance Documentation
+
 # Embrace Health Grid - Healthcare Compliance Framework
 
 **Document Version:** 1.0  
@@ -29,14 +30,14 @@ Embrace Health Grid has implemented a comprehensive HIPAA compliance framework c
 
 ### Compliance Status
 
-| Requirement Category | Status | Implementation Date |
-|---------------------|--------|-------------------|
-| **Administrative Safeguards** | ✅ Complete | 2026-07-21 |
-| **Physical Safeguards** | ⚠️ Partial | TBD |
-| **Technical Safeguards** | ✅ Complete | 2026-07-21 |
-| **Organizational Requirements** | 📝 In Progress | TBD |
-| **Policies & Procedures** | ✅ Complete | 2026-07-21 |
-| **Documentation** | ✅ Complete | 2026-07-21 |
+| Requirement Category            | Status         | Implementation Date |
+| ------------------------------- | -------------- | ------------------- |
+| **Administrative Safeguards**   | ✅ Complete    | 2026-07-21          |
+| **Physical Safeguards**         | ⚠️ Partial     | TBD                 |
+| **Technical Safeguards**        | ✅ Complete    | 2026-07-21          |
+| **Organizational Requirements** | 📝 In Progress | TBD                 |
+| **Policies & Procedures**       | ✅ Complete    | 2026-07-21          |
+| **Documentation**               | ✅ Complete    | 2026-07-21          |
 
 ---
 
@@ -49,12 +50,14 @@ Embrace Health Grid has implemented a comprehensive HIPAA compliance framework c
 **Status:** ✅ **IMPLEMENTED**
 
 **Implementation:**
+
 - Risk analysis conducted and documented
 - Risk management procedures established
 - Sanction policy for security violations in place
 - Information system activity review via audit logs
 
 **Evidence:**
+
 - Risk Assessment Document: `RISK_ASSESSMENT.md`
 - Audit Log System: `backend/lib/compliance/audit-logger.js`
 - Security Incident Policy: `INCIDENT_RESPONSE_PLAN.md`
@@ -67,13 +70,13 @@ Embrace Health Grid has implemented a comprehensive HIPAA compliance framework c
 
 **Risk Analysis Results:**
 
-| Asset | Threat | Likelihood | Impact | Risk Level | Mitigation |
-|-------|--------|-----------|--------|-----------|-----------|
-| PHI in Database | Unauthorized Access | Medium | Critical | HIGH | Access controls, Encryption at rest |
-| PHI in Transit | Interception | Medium | Critical | HIGH | TLS/SSL encryption |
-| User Credentials | Brute Force | High | High | HIGH | Rate limiting, MFA |
-| Audit Logs | Tampering | Low | Critical | MEDIUM | Hash chain verification |
-| Backup Data | Theft | Low | Critical | MEDIUM | Encrypted backups, Offsite storage |
+| Asset            | Threat              | Likelihood | Impact   | Risk Level | Mitigation                          |
+| ---------------- | ------------------- | ---------- | -------- | ---------- | ----------------------------------- |
+| PHI in Database  | Unauthorized Access | Medium     | Critical | HIGH       | Access controls, Encryption at rest |
+| PHI in Transit   | Interception        | Medium     | Critical | HIGH       | TLS/SSL encryption                  |
+| User Credentials | Brute Force         | High       | High     | HIGH       | Rate limiting, MFA                  |
+| Audit Logs       | Tampering           | Low        | Critical | MEDIUM     | Hash chain verification             |
+| Backup Data      | Theft               | Low        | Critical | MEDIUM     | Encrypted backups, Offsite storage  |
 
 **Full Risk Assessment:** See `RISK_ASSESSMENT.md`
 
@@ -84,11 +87,13 @@ Embrace Health Grid has implemented a comprehensive HIPAA compliance framework c
 **Status:** ✅ **IMPLEMENTED**
 
 **Procedures:**
+
 1. **Authorization/Supervision** - Role-based access control (RBAC)
 2. **Workforce Clearance** - Background checks required for all staff
 3. **Termination Procedures** - Immediate access revocation upon termination
 
 **Implementation:**
+
 - Access Control Module: `backend/lib/compliance/access-control.js`
 - Role definitions and permissions documented
 - Automatic session timeout (15 minutes)
@@ -101,12 +106,14 @@ Embrace Health Grid has implemented a comprehensive HIPAA compliance framework c
 **Status:** ✅ **IMPLEMENTED**
 
 **Access Authorization:**
+
 - Principle of Least Privilege enforced
 - Role-based permissions (9 roles defined)
 - Patient-specific consent management
 - "Minimum Necessary" standard implemented
 
 **Roles & Permissions:**
+
 ```
 Patient → View own PHI only
 Nurse → View/update vitals for assigned patients
@@ -127,6 +134,7 @@ Compliance Officer → Audit logs and compliance reports
 **Status:** ⚠️ **PENDING - ORGANIZATIONAL**
 
 **Required Training Modules:**
+
 - [ ] Security reminders (ongoing)
 - [ ] Protection from malicious software
 - [ ] Log-in monitoring
@@ -143,6 +151,7 @@ Compliance Officer → Audit logs and compliance reports
 **Status:** ✅ **IMPLEMENTED**
 
 **Incident Response:**
+
 - Incident identification and reporting
 - Incident response workflow documented
 - Mitigation procedures
@@ -158,6 +167,7 @@ Compliance Officer → Audit logs and compliance reports
 **Status:** ⚠️ **PARTIAL**
 
 **Required Components:**
+
 - [x] Data backup plan
 - [ ] Disaster recovery plan
 - [ ] Emergency mode operation plan
@@ -165,6 +175,7 @@ Compliance Officer → Audit logs and compliance reports
 - [ ] Applications and data criticality analysis
 
 **Backup Strategy:**
+
 - Daily automated backups
 - Encrypted backup storage
 - Offsite backup replication
@@ -179,6 +190,7 @@ Compliance Officer → Audit logs and compliance reports
 **Status:** ✅ **IMPLEMENTED**
 
 **Evaluation Requirements:**
+
 - Annual security evaluation scheduled
 - Technical and non-technical evaluation
 - Compliance with security policies
@@ -195,6 +207,7 @@ Compliance Officer → Audit logs and compliance reports
 **Status:** ⚠️ **ORGANIZATIONAL RESPONSIBILITY**
 
 **Required Controls:**
+
 - Contingency operations
 - Facility security plan
 - Access control and validation procedures
@@ -209,6 +222,7 @@ Compliance Officer → Audit logs and compliance reports
 **Status:** ⚠️ **ORGANIZATIONAL POLICY REQUIRED**
 
 **Policy Requirements:**
+
 - Workstation security policies
 - Proper use of workstations accessing ePHI
 - Physical safeguards for workstations
@@ -222,6 +236,7 @@ Compliance Officer → Audit logs and compliance reports
 **Status:** ⚠️ **ORGANIZATIONAL RESPONSIBILITY**
 
 **Required Controls:**
+
 - Physical safeguards to restrict unauthorized access
 - Workstation configuration standards
 - Screen lock/timeout requirements
@@ -233,11 +248,13 @@ Compliance Officer → Audit logs and compliance reports
 **Status:** ⚠️ **PARTIAL**
 
 **Implemented:**
+
 - [x] Data disposal procedures (secure deletion)
 - [x] Media re-use procedures (encryption overwrite)
 - [x] Accountability (audit logging)
 
 **Pending:**
+
 - [ ] Data backup media security procedures
 - [ ] Physical media handling procedures
 
@@ -252,6 +269,7 @@ Compliance Officer → Audit logs and compliance reports
 ##### (a)(2)(i) Unique User Identification (Required)
 
 **Implementation:**
+
 - Unique user IDs for all users (email + DID)
 - No shared accounts
 - User identification in all audit logs
@@ -263,6 +281,7 @@ Compliance Officer → Audit logs and compliance reports
 ##### (a)(2)(ii) Emergency Access Procedure (Required)
 
 **Implementation:**
+
 - Break-glass emergency access mechanism
 - Justification required
 - Extensive audit logging
@@ -279,6 +298,7 @@ Compliance Officer → Audit logs and compliance reports
 **Status:** ✅ **IMPLEMENTED**
 
 **Implementation:**
+
 - 15-minute inactivity timeout
 - Automatic session termination
 - Audit log entry on timeout
@@ -293,6 +313,7 @@ Compliance Officer → Audit logs and compliance reports
 **Status:** ✅ **IMPLEMENTED**
 
 **Encryption Standards:**
+
 - **Algorithm:** AES-256-GCM (NIST approved)
 - **Key Derivation:** Scrypt (NIST approved)
 - **Key Length:** 256-bit encryption keys
@@ -300,11 +321,13 @@ Compliance Officer → Audit logs and compliance reports
 - **At Rest:** All PHI encrypted in database
 
 **Implementation:**
+
 - Encryption module: `backend/lib/security/encryption.js`
 - Selective field encryption for granular control
 - Key management (AWS KMS/Azure Key Vault integration ready)
 
 **Standards Compliance:**
+
 - ✅ NIST SP 800-52 (TLS)
 - ✅ NIST SP 800-111 (Storage encryption)
 - ✅ NIST SP 800-57 (Key management)
@@ -316,6 +339,7 @@ Compliance Officer → Audit logs and compliance reports
 **Status:** ✅ **IMPLEMENTED**
 
 **Audit Logging System:**
+
 - All PHI access logged
 - Authentication events logged
 - Authorization failures logged
@@ -323,6 +347,7 @@ Compliance Officer → Audit logs and compliance reports
 - Tamper-evident logs (hash chain)
 
 **Log Contents:**
+
 - User identification
 - Date and time
 - Action performed
@@ -336,6 +361,7 @@ Compliance Officer → Audit logs and compliance reports
 **Implementation:** `backend/lib/compliance/audit-logger.js`
 
 **Log Events Captured:**
+
 - PHI access, creation, modification, deletion
 - User login/logout
 - Access granted/denied
@@ -353,6 +379,7 @@ Compliance Officer → Audit logs and compliance reports
 ##### (c)(2) Mechanism to Authenticate ePHI (Addressable)
 
 **Implementation:**
+
 - Hash chain for audit log integrity
 - Digital signatures for credentials
 - Merkle trees for transaction verification
@@ -360,6 +387,7 @@ Compliance Officer → Audit logs and compliance reports
 - Data integrity checks on retrieval
 
 **Code:**
+
 - `backend/lib/compliance/audit-logger.js` - Hash chain
 - `backend/lib/vc-sign.js` - Digital signatures
 - `backend/merkle.js` - Merkle tree implementation
@@ -371,6 +399,7 @@ Compliance Officer → Audit logs and compliance reports
 **Status:** ✅ **IMPLEMENTED**
 
 **Authentication Methods:**
+
 - JWT-based authentication
 - Password hashing (bcrypt, cost factor 10)
 - DID (Decentralized Identifier) authentication
@@ -379,6 +408,7 @@ Compliance Officer → Audit logs and compliance reports
 - Token refresh capability
 
 **Future Enhancements:**
+
 - Multi-factor authentication (MFA)
 - Biometric authentication
 - Hardware token support
@@ -394,6 +424,7 @@ Compliance Officer → Audit logs and compliance reports
 ##### (e)(2)(i) Integrity Controls (Addressable)
 
 **Implementation:**
+
 - TLS 1.3 for all communications
 - Certificate pinning (production)
 - HTTPS enforcement
@@ -401,6 +432,7 @@ Compliance Officer → Audit logs and compliance reports
 - CORS restrictions
 
 **Configuration:**
+
 - Minimum TLS 1.2
 - Strong cipher suites only
 - Perfect Forward Secrecy (PFS)
@@ -411,6 +443,7 @@ Compliance Officer → Audit logs and compliance reports
 **Status:** ✅ **IMPLEMENTED**
 
 **Transport Encryption:**
+
 - TLS 1.3 encryption in transit
 - End-to-end encryption for sensitive operations
 - Certificate management
@@ -425,6 +458,7 @@ Compliance Officer → Audit logs and compliance reports
 **Status:** ✅ **IMPLEMENTED**
 
 **Documented Policies:**
+
 1. Security Management Process
 2. Workforce Security
 3. Information Access Management
@@ -445,6 +479,7 @@ Compliance Officer → Audit logs and compliance reports
 **Status:** ✅ **IMPLEMENTED**
 
 **Documentation Requirements:**
+
 - [x] Written policies and procedures
 - [x] 6-year retention period
 - [x] Made available to workforce
@@ -452,6 +487,7 @@ Compliance Officer → Audit logs and compliance reports
 - [x] Electronic format with controlled access
 
 **Retention Policy:**
+
 - Policies: 6 years from creation or last use
 - Audit logs: 6 years minimum
 - Security incidents: 6 years
@@ -465,31 +501,41 @@ Compliance Officer → Audit logs and compliance reports
 ### Patient Rights
 
 #### Right to Access PHI
+
 **Status:** ✅ **IMPLEMENTED**
+
 - Patients can view their complete medical records
 - Export functionality provided
 - Response within 30 days (automated)
 
 #### Right to Request Amendment
+
 **Status:** ✅ **IMPLEMENTED**
+
 - Amendment request workflow
 - Provider review and approval
 - Audit trail maintained
 
 #### Right to Accounting of Disclosures
+
 **Status:** ✅ **IMPLEMENTED**
+
 - Complete audit log of PHI access
 - Filterable by date range
 - Exportable for patient requests
 
 #### Right to Request Restrictions
+
 **Status:** ✅ **IMPLEMENTED**
+
 - Consent management system
 - Granular permissions
 - Override capability for treatment
 
 #### Right to Confidential Communications
+
 **Status:** ✅ **IMPLEMENTED**
+
 - Secure messaging system
 - Encrypted communications
 - Alternative contact methods supported
@@ -501,12 +547,14 @@ Compliance Officer → Audit logs and compliance reports
 **Status:** ✅ **IMPLEMENTED**
 
 **Implementation:**
+
 - Role-based data access limitations
 - Field-level access control
 - Query result filtering
 - Redaction of unnecessary information
 
 **Example:**
+
 ```
 Receptionist viewing appointment:
 ✅ Can see: Name, contact info, appointment time
@@ -520,6 +568,7 @@ Receptionist viewing appointment:
 **Status:** 📝 **TEMPLATE PROVIDED**
 
 **Required Elements:**
+
 - How PHI may be used and disclosed
 - Patient rights
 - Organization's duties
@@ -535,6 +584,7 @@ Receptionist viewing appointment:
 ### 1. Encryption Architecture
 
 **Data at Rest:**
+
 ```javascript
 // AES-256-GCM encryption
 Algorithm: AES-256-GCM
@@ -545,6 +595,7 @@ Authentication: GCM mode (built-in)
 ```
 
 **Data in Transit:**
+
 ```
 TLS 1.3
 Cipher Suites:
@@ -555,6 +606,7 @@ Certificate: Let's Encrypt / Commercial CA
 ```
 
 **Implementation Files:**
+
 - `backend/lib/security/encryption.js`
 - `backend/server.js` (HTTPS configuration)
 
@@ -563,12 +615,14 @@ Certificate: Let's Encrypt / Commercial CA
 ### 2. Access Control System
 
 **RBAC Implementation:**
+
 - 9 distinct roles
 - 28 granular permissions
 - Role hierarchy
 - Least privilege principle
 
 **Emergency Access:**
+
 - Break-glass mechanism
 - Justification required
 - 1-hour time limit
@@ -576,6 +630,7 @@ Certificate: Let's Encrypt / Commercial CA
 - Supervisor review mandatory
 
 **Session Management:**
+
 - 15-minute inactivity timeout
 - Secure session storage
 - Session hijacking prevention
@@ -586,6 +641,7 @@ Certificate: Let's Encrypt / Commercial CA
 ### 3. Audit Logging System
 
 **Log Structure:**
+
 ```json
 {
   "id": "uuid",
@@ -606,12 +662,14 @@ Certificate: Let's Encrypt / Commercial CA
 ```
 
 **Tamper Detection:**
+
 - Hash chain linking all entries
 - Previous hash verification
 - Integrity checks on read
 - Alert on tampering detection
 
 **Storage:**
+
 - NDJSON format (streaming-friendly)
 - Append-only file system
 - Encrypted at rest
@@ -622,6 +680,7 @@ Certificate: Let's Encrypt / Commercial CA
 ### 4. FHIR Compliance
 
 **HL7 FHIR R4 Support:**
+
 - Patient resource
 - Observation resource (vitals, labs)
 - MedicationRequest resource (prescriptions)
@@ -629,12 +688,14 @@ Certificate: Let's Encrypt / Commercial CA
 - DiagnosticReport resource (lab reports)
 
 **Interoperability:**
+
 - FHIR REST API endpoints
 - Resource validation
 - Bundle support
 - Search parameters
 
 **Standards Mapping:**
+
 - LOINC codes for observations
 - SNOMED CT for clinical terms
 - ICD-10 for diagnoses
@@ -651,6 +712,7 @@ Certificate: Let's Encrypt / Commercial CA
 **Designated Security Officer:** [TO BE ASSIGNED]
 
 **Responsibilities:**
+
 - Develop and implement security policies
 - Conduct risk assessments
 - Coordinate security training
@@ -664,6 +726,7 @@ Certificate: Let's Encrypt / Commercial CA
 **Designated Privacy Officer:** [TO BE ASSIGNED]
 
 **Responsibilities:**
+
 - Develop and implement privacy policies
 - Handle patient privacy complaints
 - Manage consent and authorization
@@ -675,6 +738,7 @@ Certificate: Let's Encrypt / Commercial CA
 ### Information Access Management
 
 **Access Authorization Process:**
+
 1. User role determined during onboarding
 2. Permissions assigned based on role
 3. Additional permissions require approval
@@ -688,6 +752,7 @@ Certificate: Let's Encrypt / Commercial CA
 ### Workforce Training
 
 **Required Training Topics:**
+
 - HIPAA Privacy Rule
 - HIPAA Security Rule
 - Organization policies
@@ -698,12 +763,14 @@ Certificate: Let's Encrypt / Commercial CA
 - Patient rights
 
 **Training Schedule:**
+
 - Initial training: Upon hire
 - Annual refresher: All workforce
 - Ad-hoc: Policy changes
 - Certification required
 
 **Documentation:**
+
 - Training completion records
 - Quiz/test scores
 - Certification expiration tracking
@@ -714,13 +781,13 @@ Certificate: Let's Encrypt / Commercial CA
 
 **Violations and Sanctions:**
 
-| Violation | First Offense | Second Offense | Third Offense |
-|-----------|---------------|----------------|---------------|
-| Unauthorized PHI Access | Written warning | Suspension | Termination |
-| Sharing Passwords | Written warning | Suspension | Termination |
-| Lost/Stolen Device | Written warning | Disciplinary action | Termination |
-| Privacy Breach | Suspension | Termination | Legal action |
-| Falsifying Records | Termination | Legal action | Criminal referral |
+| Violation               | First Offense   | Second Offense      | Third Offense     |
+| ----------------------- | --------------- | ------------------- | ----------------- |
+| Unauthorized PHI Access | Written warning | Suspension          | Termination       |
+| Sharing Passwords       | Written warning | Suspension          | Termination       |
+| Lost/Stolen Device      | Written warning | Disciplinary action | Termination       |
+| Privacy Breach          | Suspension      | Termination         | Legal action      |
+| Falsifying Records      | Termination     | Legal action        | Criminal referral |
 
 ---
 
@@ -729,6 +796,7 @@ Certificate: Let's Encrypt / Commercial CA
 ### Facility Access Controls
 
 **Requirements:**
+
 - Secured facility perimeter
 - Access control systems (badge/biometric)
 - Visitor log and escort procedures
@@ -742,6 +810,7 @@ Certificate: Let's Encrypt / Commercial CA
 ### Workstation Security
 
 **Required Controls:**
+
 - Privacy screens
 - Auto-lock after inactivity
 - Secure workstation placement
@@ -755,6 +824,7 @@ Certificate: Let's Encrypt / Commercial CA
 ### Device and Media Controls
 
 **Device Management:**
+
 - Asset inventory
 - Encryption required
 - Remote wipe capability
@@ -762,6 +832,7 @@ Certificate: Let's Encrypt / Commercial CA
 - Disposal procedures
 
 **Media Handling:**
+
 - Encrypted backup media
 - Secure transport
 - Destruction certificate required
@@ -776,6 +847,7 @@ Certificate: Let's Encrypt / Commercial CA
 **Framework:** NIST SP 800-30 Risk Management Guide
 
 **Process:**
+
 1. Asset identification
 2. Threat identification
 3. Vulnerability assessment
@@ -790,13 +862,13 @@ Certificate: Let's Encrypt / Commercial CA
 
 ### Critical Risks Identified
 
-| Risk | Likelihood | Impact | Level | Mitigation Status |
-|------|-----------|--------|-------|-------------------|
-| Database breach | Medium | Critical | HIGH | ✅ Mitigated |
-| Ransomware attack | Medium | High | HIGH | ✅ Mitigated |
-| Insider threat | Low | Critical | MEDIUM | ✅ Mitigated |
-| DDoS attack | High | Medium | MEDIUM | ⚠️ Partial |
-| Social engineering | Medium | High | MEDIUM | ⚠️ Training needed |
+| Risk               | Likelihood | Impact   | Level  | Mitigation Status  |
+| ------------------ | ---------- | -------- | ------ | ------------------ |
+| Database breach    | Medium     | Critical | HIGH   | ✅ Mitigated       |
+| Ransomware attack  | Medium     | High     | HIGH   | ✅ Mitigated       |
+| Insider threat     | Low        | Critical | MEDIUM | ✅ Mitigated       |
+| DDoS attack        | High       | Medium   | MEDIUM | ⚠️ Partial         |
+| Social engineering | Medium     | High     | MEDIUM | ⚠️ Training needed |
 
 ---
 
@@ -805,6 +877,7 @@ Certificate: Let's Encrypt / Commercial CA
 ### Incident Classification
 
 **Severity Levels:**
+
 - **P1 (Critical):** Breach of PHI, system compromise
 - **P2 (High):** Security vulnerability, access failure
 - **P3 (Medium):** Policy violation, suspicious activity
@@ -813,6 +886,7 @@ Certificate: Let's Encrypt / Commercial CA
 ### Response Procedures
 
 **P1 - Critical Incident:**
+
 1. Immediate containment (< 15 minutes)
 2. Notify Security Officer
 3. Preserve evidence
@@ -823,6 +897,7 @@ Certificate: Let's Encrypt / Commercial CA
 8. Conduct post-incident review
 
 **Breach Notification Requirements:**
+
 - Individuals: Within 60 days
 - Media: If > 500 individuals in same state
 - HHS: Within 60 days (> 500) or annually (< 500)
@@ -836,11 +911,13 @@ Certificate: Let's Encrypt / Commercial CA
 ### Required BAAs
 
 **Cloud Service Providers:**
+
 - [ ] AWS / Azure / GCP (if used)
 - [ ] Convex (database provider)
 - [ ] Vercel / Netlify (hosting)
 
 **Other Services:**
+
 - [ ] Email service provider
 - [ ] SMS/notification service
 - [ ] Backup service provider
@@ -855,6 +932,7 @@ Certificate: Let's Encrypt / Commercial CA
 ### Pre-Production Requirements
 
 **Security:**
+
 - [x] Encryption at rest implemented
 - [x] Encryption in transit configured
 - [x] Access controls in place
@@ -863,6 +941,7 @@ Certificate: Let's Encrypt / Commercial CA
 - [x] Session timeout configured
 
 **Documentation:**
+
 - [x] Policies written
 - [x] Procedures documented
 - [x] Risk assessment completed
@@ -871,6 +950,7 @@ Certificate: Let's Encrypt / Commercial CA
 - [ ] Notice of Privacy Practices drafted
 
 **Organizational:**
+
 - [ ] Security Officer designated
 - [ ] Privacy Officer designated
 - [ ] Workforce training scheduled
@@ -878,6 +958,7 @@ Certificate: Let's Encrypt / Commercial CA
 - [ ] Breach notification procedures established
 
 **Technical:**
+
 - [x] Security testing completed
 - [ ] Penetration testing completed
 - [ ] Vulnerability scanning scheduled
@@ -891,6 +972,7 @@ Certificate: Let's Encrypt / Commercial CA
 ### Continuous Monitoring
 
 **Automated Monitoring:**
+
 - Failed login attempts
 - Unusual access patterns
 - System configuration changes
@@ -899,6 +981,7 @@ Certificate: Let's Encrypt / Commercial CA
 - After-hours access
 
 **Alerts:**
+
 - Security incidents: Immediate
 - Failed authentications: Real-time
 - Configuration changes: Real-time
@@ -907,11 +990,13 @@ Certificate: Let's Encrypt / Commercial CA
 ### Compliance Audits
 
 **Internal Audits:**
+
 - Quarterly: Technical controls review
 - Semi-annually: Policy compliance check
 - Annually: Comprehensive security evaluation
 
 **External Audits:**
+
 - Annual: Third-party security assessment
 - Biennial: HIPAA compliance audit
 - As needed: Breach investigation
@@ -940,6 +1025,7 @@ Certificate: Let's Encrypt / Commercial CA
 ### Pending Requirements
 
 **Organizational Actions Required:**
+
 - [ ] Designate Security and Privacy Officers
 - [ ] Conduct workforce training
 - [ ] Execute Business Associate Agreements
@@ -952,18 +1038,21 @@ Certificate: Let's Encrypt / Commercial CA
 ## References
 
 ### Regulations
+
 - 45 CFR Part 160 - General Administrative Requirements
 - 45 CFR Part 164, Subpart A - General Provisions
 - 45 CFR Part 164, Subpart C - Security and Privacy
 - 45 CFR Part 164, Subpart E - Privacy of Individually Identifiable Health Information
 
 ### Standards
+
 - NIST SP 800-53 - Security and Privacy Controls
 - NIST SP 800-66 - HIPAA Security Rule Implementation Guide
 - NIST Cybersecurity Framework
 - HL7 FHIR R4 Standard
 
 ### Resources
+
 - HHS Office for Civil Rights (OCR)
 - NIST Computer Security Resource Center
 - HITRUST Alliance
@@ -974,14 +1063,17 @@ Certificate: Let's Encrypt / Commercial CA
 ## Document Control
 
 **Version History:**
+
 - v1.0 (2026-07-21): Initial compliance framework implementation
 
 **Review Schedule:**
+
 - Next review: Quarterly
 - Annual update: Required
 - Ad-hoc: Upon regulation changes
 
 **Approval:**
+
 - Security Officer: [Pending]
 - Privacy Officer: [Pending]
 - Compliance Officer: [Pending]

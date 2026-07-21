@@ -76,8 +76,8 @@ function emit(level, message, meta = {}) {
 
 const logger = {
   debug: (msg, meta) => emit("debug", msg, meta),
-  info:  (msg, meta) => emit("info",  msg, meta),
-  warn:  (msg, meta) => emit("warn",  msg, meta),
+  info: (msg, meta) => emit("info", msg, meta),
+  warn: (msg, meta) => emit("warn", msg, meta),
   error: (msg, meta) => emit("error", msg, meta),
   fatal: (msg, meta) => emit("fatal", msg, meta),
 
@@ -88,8 +88,8 @@ const logger = {
   child(context) {
     return {
       debug: (msg, meta) => emit("debug", msg, { ...context, ...meta }),
-      info:  (msg, meta) => emit("info",  msg, { ...context, ...meta }),
-      warn:  (msg, meta) => emit("warn",  msg, { ...context, ...meta }),
+      info: (msg, meta) => emit("info", msg, { ...context, ...meta }),
+      warn: (msg, meta) => emit("warn", msg, { ...context, ...meta }),
       error: (msg, meta) => emit("error", msg, { ...context, ...meta }),
       fatal: (msg, meta) => emit("fatal", msg, { ...context, ...meta }),
       child(extra) {
@@ -104,9 +104,7 @@ const logger = {
    */
   requestMiddleware(req, res, next) {
     const requestId =
-      req.headers["x-request-id"] ||
-      req.headers["x-correlation-id"] ||
-      crypto.randomUUID();
+      req.headers["x-request-id"] || req.headers["x-correlation-id"] || crypto.randomUUID();
 
     req.requestId = requestId;
     res.setHeader("X-Request-Id", requestId);
@@ -125,7 +123,8 @@ const logger = {
 
     res.on("finish", () => {
       const latencyMs = Date.now() - startAt;
-      const logFn = res.statusCode >= 500 ? reqLog.error : res.statusCode >= 400 ? reqLog.warn : reqLog.info;
+      const logFn =
+        res.statusCode >= 500 ? reqLog.error : res.statusCode >= 400 ? reqLog.warn : reqLog.info;
       logFn("request_end", {
         statusCode: res.statusCode,
         latencyMs,

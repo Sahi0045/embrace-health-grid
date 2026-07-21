@@ -14,14 +14,30 @@ interface CredentialCardProps {
   onClick?: () => void;
 }
 
-const statusConfig: Record<CredStatus, { label: string; className: string; icon: typeof ShieldCheck }> = {
+const statusConfig: Record<
+  CredStatus,
+  { label: string; className: string; icon: typeof ShieldCheck }
+> = {
   active: { label: "Verified", className: "bg-success/15 text-success", icon: ShieldCheck },
   expired: { label: "Expired", className: "bg-muted text-muted-foreground", icon: ShieldX },
   revoked: { label: "Revoked", className: "bg-destructive/15 text-destructive", icon: ShieldX },
-  suspended: { label: "Suspended", className: "bg-warning/15 text-warning-foreground", icon: ShieldX },
+  suspended: {
+    label: "Suspended",
+    className: "bg-warning/15 text-warning-foreground",
+    icon: ShieldX,
+  },
 };
 
-export function CredentialCard({ id, type, issuer, holder, issuedAt, expiresAt, status, onClick }: CredentialCardProps) {
+export function CredentialCard({
+  id,
+  type,
+  issuer,
+  holder,
+  issuedAt,
+  expiresAt,
+  status,
+  onClick,
+}: CredentialCardProps) {
   const cfg = statusConfig[status];
   const Icon = cfg.icon;
 
@@ -42,7 +58,9 @@ export function CredentialCard({ id, type, issuer, holder, issuedAt, expiresAt, 
           </div>
           {holder && <div className="mt-0.5 text-xs text-muted-foreground">Holder: {holder}</div>}
         </div>
-        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold shrink-0 ${cfg.className}`}>
+        <span
+          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold shrink-0 ${cfg.className}`}
+        >
           <Icon className="h-3 w-3" />
           {cfg.label}
         </span>

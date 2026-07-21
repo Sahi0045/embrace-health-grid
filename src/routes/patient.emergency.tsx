@@ -52,7 +52,19 @@ function EmergencyPage() {
   const { data: auditData } = useAudit();
   const currentUser = getCurrentUser();
   const userEmail = currentUser?.email || "";
-  const patient = patientsList?.find((p: any) => p.email === userEmail) || patientsList?.[0] || { name: "", mrn: "", age: 0, gender: "F" as const, bloodGroup: "", allergies: [] as string[], did: "", primaryDoctor: "", conditions: [] as string[], organDonor: false };
+  const patient = patientsList?.find((p: any) => p.email === userEmail) ||
+    patientsList?.[0] || {
+      name: "",
+      mrn: "",
+      age: 0,
+      gender: "F" as const,
+      bloodGroup: "",
+      allergies: [] as string[],
+      did: "",
+      primaryDoctor: "",
+      conditions: [] as string[],
+      organDonor: false,
+    };
   const [showQr, setShowQr] = useState(false);
 
   // Live Emergency Contacts
@@ -66,7 +78,9 @@ function EmergencyPage() {
     });
   }
   if (patient.primaryDoctor) {
-    const doc = staff?.find((s: any) => s.name === patient.primaryDoctor || s.did === patient.primaryDoctor);
+    const doc = staff?.find(
+      (s: any) => s.name === patient.primaryDoctor || s.did === patient.primaryDoctor,
+    );
     emergencyContactsList.push({
       name: doc ? doc.name : patient.primaryDoctor,
       relation: "Primary Physician",
@@ -79,7 +93,10 @@ function EmergencyPage() {
   const criticalConditionsList = patient.conditions
     ? patient.conditions.map((cond: string) => ({
         label: cond,
-        severity: cond.toLowerCase().includes("allergy") || cond.toLowerCase().includes("diabet") ? "critical" : "controlled",
+        severity:
+          cond.toLowerCase().includes("allergy") || cond.toLowerCase().includes("diabet")
+            ? "critical"
+            : "controlled",
         since: "N/A",
       }))
     : [];
@@ -87,7 +104,12 @@ function EmergencyPage() {
   // Live Break Glass Events
   const allEvents = auditData?.events || [];
   const breakGlassEventsList: EmergencyAccessEvent[] = allEvents
-    .filter((e: any) => e.severity === "critical" || e.action.toLowerCase().includes("break_glass") || e.action.toLowerCase().includes("emergency"))
+    .filter(
+      (e: any) =>
+        e.severity === "critical" ||
+        e.action.toLowerCase().includes("break_glass") ||
+        e.action.toLowerCase().includes("emergency"),
+    )
     .map((e: any) => ({
       id: e.txId || e._id,
       actor: e.actor || "Emergency Responder",

@@ -47,19 +47,24 @@ function StaffRooms() {
   const [onChainTx, setOnChainTx] = useState<string | null>(null);
 
   const doctorEmail = typeof window !== "undefined" ? localStorage.getItem("userEmail") || "" : "";
-  const doctorName = typeof window !== "undefined" ? localStorage.getItem("userName") || "Dr. Staff" : "Dr. Staff";
-  const doctorDid = typeof window !== "undefined" 
-    ? localStorage.getItem("userDid") || `did:hosp:0x${doctorEmail.split("@")[0]}`
-    : "did:hosp:0xunknown";
+  const doctorName =
+    typeof window !== "undefined" ? localStorage.getItem("userName") || "Dr. Staff" : "Dr. Staff";
+  const doctorDid =
+    typeof window !== "undefined"
+      ? localStorage.getItem("userDid") || `did:hosp:0x${doctorEmail.split("@")[0]}`
+      : "did:hosp:0xunknown";
 
   const fetchHistory = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/doctor/location-history/${encodeURIComponent(doctorDid)}`, {
-        headers: {
-          "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
-          "x-client-key": "apollo-consortium-client-secret-2026"
-        }
-      });
+      const res = await fetch(
+        `${API_BASE_URL}/api/doctor/location-history/${encodeURIComponent(doctorDid)}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+            "x-client-key": "apollo-consortium-client-secret-2026",
+          },
+        },
+      );
       if (res.ok) {
         const data = await res.json();
         setLogs(data.logs || []);
@@ -77,7 +82,7 @@ function StaffRooms() {
       const PROGRAM_ID = new PublicKey("BxkLrjBYdb3nh2m9GCfpLXBWrAj3s9MqnRbwktLqSfN3");
       const [locationPda] = PublicKey.findProgramAddressSync(
         [Buffer.from("doctor-location"), Buffer.from(doctorDid)],
-        PROGRAM_ID
+        PROGRAM_ID,
       );
       const connection = new Connection("https://api.devnet.solana.com", "confirmed");
       const accountInfo = await connection.getAccountInfo(locationPda);
@@ -106,10 +111,10 @@ function StaffRooms() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
-          "x-client-key": "apollo-consortium-client-secret-2026"
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+          "x-client-key": "apollo-consortium-client-secret-2026",
         },
-        body: JSON.stringify({ doctorDid, roomNumber })
+        body: JSON.stringify({ doctorDid, roomNumber }),
       });
 
       if (!res.ok) {
@@ -117,10 +122,9 @@ function StaffRooms() {
       }
 
       const data = await res.json();
-      toast.success(
-        data.action === "enter" ? "Room Entered" : "Room Exited",
-        { description: `Successfully logged ${data.action} for ${roomNumber}.` }
-      );
+      toast.success(data.action === "enter" ? "Room Entered" : "Room Exited", {
+        description: `Successfully logged ${data.action} for ${roomNumber}.`,
+      });
       fetchHistory();
       fetchOnChainRoot();
     } catch (err: any) {
@@ -141,8 +145,8 @@ function StaffRooms() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
-          "x-client-key": "apollo-consortium-client-secret-2026"
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+          "x-client-key": "apollo-consortium-client-secret-2026",
         },
         body: JSON.stringify({
           authorityPubkey: publicKey.toBase58(),
@@ -155,10 +159,10 @@ function StaffRooms() {
       }
 
       const res = await response.json();
-      
+
       toast.info("Requesting signature from Phantom wallet...");
       const connection = new Connection("https://api.devnet.solana.com", "confirmed");
-      
+
       const tx = new Transaction();
       tx.feePayer = publicKey;
       const { blockhash } = await connection.getLatestBlockhash("confirmed");
@@ -168,11 +172,12 @@ function StaffRooms() {
       toast.info("Registering location Merkle Root on-chain...");
 
       setTimeout(() => {
-        const fakeSig = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        const fakeSig =
+          Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
         setOnChainTx(fakeSig);
         setOnChainRoot(res.merkleRoot);
         toast.success("Solana Anchoring Complete", {
-          description: `Location Merkle Root successfully registered on Solana Devnet.`
+          description: `Location Merkle Root successfully registered on Solana Devnet.`,
         });
         setAnchoring(false);
       }, 2000);
@@ -201,15 +206,21 @@ function StaffRooms() {
             <Card className="border border-border bg-gradient-to-r from-card to-card/90">
               <CardHeader>
                 <CardTitle className="text-lg">Live Status Overview</CardTitle>
-                <CardDescription>Your current presence status in the hospital wards.</CardDescription>
+                <CardDescription>
+                  Your current presence status in the hospital wards.
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center gap-4 p-4 rounded-xl border bg-muted/20">
-                  <div className={`p-3 rounded-xl ${activeRoom !== "None" ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"}`}>
+                  <div
+                    className={`p-3 rounded-xl ${activeRoom !== "None" ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"}`}
+                  >
                     <Building2 className="h-6 w-6" />
                   </div>
                   <div>
-                    <p className="text-xs font-semibold text-muted-foreground uppercase">Current Location</p>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase">
+                      Current Location
+                    </p>
                     <p className="text-lg font-bold text-foreground">
                       {activeRoom !== "None" ? activeRoom : "Out of Rooms (Exited)"}
                     </p>
@@ -231,19 +242,24 @@ function StaffRooms() {
                   Hardware Door Scanner Simulator
                 </CardTitle>
                 <CardDescription>
-                  Simulates a physical NFC/QR reader mounted at a room doorway. Scanning here updates the server directly.
+                  Simulates a physical NFC/QR reader mounted at a room doorway. Scanning here
+                  updates the server directly.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex flex-col sm:flex-row gap-3 items-end">
                   <div className="flex-1 space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase text-muted-foreground">Select Room Scanner</label>
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground">
+                      Select Room Scanner
+                    </label>
                     <select
                       id="sim-room-select"
                       className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none"
                     >
                       {AVAILABLE_ROOMS.map((r) => (
-                        <option key={r.id} value={r.name}>{r.name}</option>
+                        <option key={r.id} value={r.name}>
+                          {r.name}
+                        </option>
                       ))}
                     </select>
                   </div>
@@ -288,12 +304,21 @@ function StaffRooms() {
                       const isEnter = log.action === "enter";
                       return (
                         <div key={log.logId} className="flex gap-4 items-start relative pl-8">
-                          <div className={`absolute left-[10px] top-[6px] h-3 w-3 rounded-full border-4 border-background ${isEnter ? "bg-success" : "bg-destructive"}`} />
+                          <div
+                            className={`absolute left-[10px] top-[6px] h-3 w-3 rounded-full border-4 border-background ${isEnter ? "bg-success" : "bg-destructive"}`}
+                          />
                           <div className="flex-1 space-y-1">
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                               <div className="flex items-center gap-2">
                                 <span className="font-semibold text-sm">{log.roomNumber}</span>
-                                <Badge variant="outline" className={isEnter ? "bg-success/10 text-success border-success/20 text-[9px]" : "bg-destructive/10 text-destructive border-destructive/20 text-[9px]"}>
+                                <Badge
+                                  variant="outline"
+                                  className={
+                                    isEnter
+                                      ? "bg-success/10 text-success border-success/20 text-[9px]"
+                                      : "bg-destructive/10 text-destructive border-destructive/20 text-[9px]"
+                                  }
+                                >
                                   {isEnter ? "🟢 ENTER" : "🔴 EXIT"}
                                 </Badge>
                               </div>
@@ -305,7 +330,10 @@ function StaffRooms() {
                               <span>Hash: {log.hash}</span>
                             </div>
                             <div className="flex items-center gap-1.5 mt-1">
-                              <Badge variant="outline" className="bg-success/5 text-success border-success/20 text-[10px] flex items-center gap-1">
+                              <Badge
+                                variant="outline"
+                                className="bg-success/5 text-success border-success/20 text-[10px] flex items-center gap-1"
+                              >
                                 <ShieldCheck className="h-3 w-3" />
                                 Verifiable Leaf
                               </Badge>

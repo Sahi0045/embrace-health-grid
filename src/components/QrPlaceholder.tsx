@@ -15,14 +15,14 @@ export function QrPlaceholder({ value, size = 220 }: { value: string; size?: num
   }, [value]);
 
   const isFinder = (r: number, c: number) => {
-    const inBox = (br: number, bc: number) =>
-      r >= br && r < br + 7 && c >= bc && c < bc + 7;
+    const inBox = (br: number, bc: number) => r >= br && r < br + 7 && c >= bc && c < bc + 7;
     return inBox(0, 0) || inBox(0, cells - 7) || inBox(cells - 7, 0);
   };
 
   const finderFill = (r: number, c: number) => {
     const local = (br: number, bc: number) => {
-      const rr = r - br, cc = c - bc;
+      const rr = r - br,
+        cc = c - bc;
       if (rr === 0 || rr === 6 || cc === 0 || cc === 6) return true;
       if (rr >= 2 && rr <= 4 && cc >= 2 && cc <= 4) return true;
       return false;

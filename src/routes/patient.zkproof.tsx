@@ -160,7 +160,10 @@ function PatientZkProofPage() {
         <div className="rounded-xl border border-warning-foreground/20 bg-warning/5 p-4 text-xs text-warning-foreground flex items-start gap-2.5">
           <AlertTriangle className="h-4 w-4 shrink-0 text-warning-foreground mt-0.5" />
           <div>
-            <span className="font-semibold">Note on Cryptography:</span> This zero-knowledge proof circuit is simulated locally using Merkle trees and browser-based SHA-256 hashes for demonstration purposes. In production, these proofs are verified using Groth16 zk-SNARK verifier smart contracts.
+            <span className="font-semibold">Note on Cryptography:</span> This zero-knowledge proof
+            circuit is simulated locally using Merkle trees and browser-based SHA-256 hashes for
+            demonstration purposes. In production, these proofs are verified using Groth16 zk-SNARK
+            verifier smart contracts.
           </div>
         </div>
 

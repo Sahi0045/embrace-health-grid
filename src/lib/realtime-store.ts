@@ -549,19 +549,19 @@ function handleStoreWebSocketMessage(event: string, data: any) {
                 vitals: {
                   heartRate: mappedVitals.heartRate,
                   bloodPressure: {
-                    systolic: parseInt(mappedVitals.bp.split('/')[0]),
-                    diastolic: parseInt(mappedVitals.bp.split('/')[1]),
+                    systolic: parseInt(mappedVitals.bp.split("/")[0]),
+                    diastolic: parseInt(mappedVitals.bp.split("/")[1]),
                   },
                   temperature: mappedVitals.temp,
                   respiratoryRate: mappedVitals.respRate,
                   oxygenSaturation: mappedVitals.spo2,
                 },
                 txId: `ws_${Date.now()}`,
-                version: '1.0',
+                version: "1.0",
                 recordedAt: new Date().toISOString(),
               });
             } catch (error) {
-              console.error('[Store] Error syncing vitals to Convex:', error);
+              console.error("[Store] Error syncing vitals to Convex:", error);
             }
           }
         }
@@ -607,10 +607,10 @@ function handleStoreWebSocketMessage(event: string, data: any) {
             location,
             beaconStrength,
             txId: `ws_${Date.now()}`,
-            version: '1.0',
+            version: "1.0",
           });
         } catch (error) {
-          console.error('[Store] Error syncing staff location to Convex:', error);
+          console.error("[Store] Error syncing staff location to Convex:", error);
         }
       })();
 
@@ -664,7 +664,7 @@ function handleStoreWebSocketMessage(event: string, data: any) {
           await rebuildLiveListsFromConvex();
           emitStoreEvent("store:ready");
         } catch (error) {
-          console.error('[Store] Error syncing DID to Convex:', error);
+          console.error("[Store] Error syncing DID to Convex:", error);
         }
       })();
     }

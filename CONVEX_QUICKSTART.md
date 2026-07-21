@@ -40,8 +40,8 @@ await initializeStore();
 ### Get Live Data (Fast, cached)
 
 ```typescript
-const patients = getLivePatients();  // Returns cached data
-const staff = getLiveStaff();        // Returns cached data
+const patients = getLivePatients(); // Returns cached data
+const staff = getLiveStaff(); // Returns cached data
 
 const patient = getPatientByDID("did:healthlink:patient:123");
 const patientByMRN = getPatientByMRN("MRN-200001");
@@ -133,9 +133,12 @@ export function PatientList() {
 ```typescript
 useEffect(() => {
   // Refresh from Convex every 5 minutes
-  const interval = setInterval(async () => {
-    await refreshFromConvex();
-  }, 5 * 60 * 1000);
+  const interval = setInterval(
+    async () => {
+      await refreshFromConvex();
+    },
+    5 * 60 * 1000,
+  );
 
   return () => clearInterval(interval);
 }, []);
@@ -169,30 +172,30 @@ const [patient, setPatient] = useState(null);
 const loadPatient = async (did: string) => {
   // First try cache
   let patient = getPatientByDID(did);
-  
+
   // If not in cache, fetch from Convex
   if (!patient) {
     patient = await getPatientFromConvex(did);
   }
-  
+
   setPatient(patient);
 };
 ```
 
 ## 🎯 Key Differences from localStorage Version
 
-| Feature | Before (localStorage) | After (Convex) |
-|---------|---------------------|----------------|
-| **Data Source** | `localStorage` | Convex database |
-| **Persistence** | Browser only | Cloud storage |
-| **Sync** | None | Real-time |
-| **Initialization** | Synchronous | Async (awaitable) |
-| **Queries** | Manual filtering | Database indexes |
-| **Type Safety** | Manual | Auto-generated |
+| Feature            | Before (localStorage) | After (Convex)    |
+| ------------------ | --------------------- | ----------------- |
+| **Data Source**    | `localStorage`        | Convex database   |
+| **Persistence**    | Browser only          | Cloud storage     |
+| **Sync**           | None                  | Real-time         |
+| **Initialization** | Synchronous           | Async (awaitable) |
+| **Queries**        | Manual filtering      | Database indexes  |
+| **Type Safety**    | Manual                | Auto-generated    |
 
 ## 🐛 Troubleshooting
 
-### Error: Cannot find module '../../convex/_generated/api'
+### Error: Cannot find module '../../convex/\_generated/api'
 
 **Solution**: Run `npx convex dev` to generate API types.
 
@@ -203,6 +206,7 @@ const loadPatient = async (did: string) => {
 ### Error: NEXT_PUBLIC_CONVEX_URL not set
 
 **Solution**: Add to `.env.local`:
+
 ```
 NEXT_PUBLIC_CONVEX_URL=https://your-project.convex.cloud
 ```
@@ -210,6 +214,7 @@ NEXT_PUBLIC_CONVEX_URL=https://your-project.convex.cloud
 ### Data not loading
 
 **Check**:
+
 1. Convex is running: `npx convex dev`
 2. Environment variable is set
 3. Database has data (check Convex dashboard)
@@ -218,6 +223,7 @@ NEXT_PUBLIC_CONVEX_URL=https://your-project.convex.cloud
 ### WebSocket not connecting
 
 **Check**:
+
 1. WebSocket server is running on `ws://localhost:3001`
 2. Check browser console for connection errors
 3. Firewall/proxy settings
@@ -226,31 +232,31 @@ NEXT_PUBLIC_CONVEX_URL=https://your-project.convex.cloud
 
 ### Functions
 
-| Function | Return Type | Description |
-|----------|-------------|-------------|
-| `initializeStore()` | `Promise<void>` | Initialize store and load from Convex |
-| `getLivePatients()` | `LivePatient[]` | Get cached patients (fast) |
-| `getLiveStaff()` | `LiveStaff[]` | Get cached staff (fast) |
-| `getLiveAppointments()` | `LiveAppointment[]` | Get appointments |
-| `getLiveTransactions()` | `LiveTransaction[]` | Get transactions |
-| `getPatientByDID(did)` | `LivePatient \| null` | Find patient by DID (cached) |
-| `getPatientByMRN(mrn)` | `LivePatient \| null` | Find patient by MRN (cached) |
-| `refreshFromConvex()` | `Promise<void>` | Refresh all data from Convex |
-| `getPatientFromConvex(did)` | `Promise<LivePatient \| null>` | Fetch patient from Convex (slow) |
-| `getStaffFromConvex(did)` | `Promise<LiveStaff \| null>` | Fetch staff from Convex (slow) |
-| `getWorkerConnected()` | `boolean` | Check if WebSocket is connected |
+| Function                    | Return Type                    | Description                           |
+| --------------------------- | ------------------------------ | ------------------------------------- |
+| `initializeStore()`         | `Promise<void>`                | Initialize store and load from Convex |
+| `getLivePatients()`         | `LivePatient[]`                | Get cached patients (fast)            |
+| `getLiveStaff()`            | `LiveStaff[]`                  | Get cached staff (fast)               |
+| `getLiveAppointments()`     | `LiveAppointment[]`            | Get appointments                      |
+| `getLiveTransactions()`     | `LiveTransaction[]`            | Get transactions                      |
+| `getPatientByDID(did)`      | `LivePatient \| null`          | Find patient by DID (cached)          |
+| `getPatientByMRN(mrn)`      | `LivePatient \| null`          | Find patient by MRN (cached)          |
+| `refreshFromConvex()`       | `Promise<void>`                | Refresh all data from Convex          |
+| `getPatientFromConvex(did)` | `Promise<LivePatient \| null>` | Fetch patient from Convex (slow)      |
+| `getStaffFromConvex(did)`   | `Promise<LiveStaff \| null>`   | Fetch staff from Convex (slow)        |
+| `getWorkerConnected()`      | `boolean`                      | Check if WebSocket is connected       |
 
 ### Events
 
-| Event | Detail | Description |
-|-------|--------|-------------|
-| `store:ready` | `undefined` | Store initialized |
-| `store:refreshed` | `undefined` | Data refreshed from Convex |
-| `vitals:update` | `undefined` | Patient vitals updated |
-| `vitals:updated` | `{ patientDid, vitals }` | Specific patient vitals updated |
-| `staff:location:update` | `{ memberId, location, status }` | Staff location changed |
-| `ws:status` | `boolean` | WebSocket connection status |
-| `ws:message` | `any` | Raw WebSocket message |
+| Event                   | Detail                           | Description                     |
+| ----------------------- | -------------------------------- | ------------------------------- |
+| `store:ready`           | `undefined`                      | Store initialized               |
+| `store:refreshed`       | `undefined`                      | Data refreshed from Convex      |
+| `vitals:update`         | `undefined`                      | Patient vitals updated          |
+| `vitals:updated`        | `{ patientDid, vitals }`         | Specific patient vitals updated |
+| `staff:location:update` | `{ memberId, location, status }` | Staff location changed          |
+| `ws:status`             | `boolean`                        | WebSocket connection status     |
+| `ws:message`            | `any`                            | Raw WebSocket message           |
 
 ## 💡 Best Practices
 

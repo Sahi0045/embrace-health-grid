@@ -46,7 +46,10 @@ export function httpsEnforcementMiddleware({ mode = "redirect" } = {}) {
     const isDev = process.env.NODE_ENV !== "production";
 
     if (isDev) {
-      res.setHeader("X-HIPAA-Transport-Warning", "Non-HTTPS connection detected in development mode");
+      res.setHeader(
+        "X-HIPAA-Transport-Warning",
+        "Non-HTTPS connection detected in development mode",
+      );
       return next();
     }
 
@@ -88,10 +91,7 @@ export function hipaaSecurityHeaders() {
 
     // HSTS — enforce HTTPS for 1 year including subdomains
     if (process.env.NODE_ENV === "production") {
-      res.setHeader(
-        "Strict-Transport-Security",
-        "max-age=31536000; includeSubDomains; preload",
-      );
+      res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
     }
 
     // Prevent clickjacking on patient portal
@@ -101,10 +101,7 @@ export function hipaaSecurityHeaders() {
     res.setHeader("Referrer-Policy", "no-referrer");
 
     // Permissions policy — disable unnecessary browser APIs
-    res.setHeader(
-      "Permissions-Policy",
-      "camera=(), microphone=(), geolocation=(), payment=()",
-    );
+    res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()");
 
     next();
   };
@@ -175,8 +172,15 @@ export function hipaaAuditPHIAccess(resourceType, { logFn } = {}) {
       // Optionally persist to DB
       if (logFn) {
         try {
-          logFn("audit", `hipaa_${Date.now()}_${Math.random().toString(36).slice(2)}`, event, "system");
-        } catch { /* non-blocking */ }
+          logFn(
+            "audit",
+            `hipaa_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+            event,
+            "system",
+          );
+        } catch {
+          /* non-blocking */
+        }
       }
 
       return originalJson(body);
@@ -211,13 +215,17 @@ export function sessionTimeoutMiddleware(maxAgeSeconds = 8 * 60 * 60) {
       return res.status(401).json({
         error: "Session expired",
         code: "HIPAA_SESSION_TIMEOUT",
-        message: "HIPAA § 164.312(a)(2)(iii): Session has exceeded the maximum allowed age. Please log in again.",
+        message:
+          "HIPAA § 164.312(a)(2)(iii): Session has exceeded the maximum allowed age. Please log in again.",
       });
     }
 
     // Warn when within 15 minutes of forced expiry
     if (remaining < 15 * 60) {
-      res.setHeader("X-Session-Warning", `Session expires in ${Math.floor(remaining / 60)} minutes`);
+      res.setHeader(
+        "X-Session-Warning",
+        `Session expires in ${Math.floor(remaining / 60)} minutes`,
+      );
     }
 
     res.setHeader("X-Session-Remaining", String(remaining));
@@ -291,10 +299,30 @@ export const HIPAA_AUDIT_RETENTION_POLICY = {
  * and referenced in vendor contracts. Provided here as a schema reference.
  */
 export const BAA_REQUIRED_VENDORS = [
-  { vendor: "Convex", service: "Database (cloud sync)", baaStatus: "required", docs: "https://convex.dev/hipaa" },
-  { vendor: "Vercel", service: "Frontend hosting",      baaStatus: "required", docs: "https://vercel.com/docs/security/hipaa" },
-  { vendor: "AWS/GCP/Azure", service: "Container hosting", baaStatus: "required", docs: "vendor-specific" },
-  { vendor: "Solana RPC", service: "Blockchain anchor", baaStatus: "N/A - public blockchain, no PHI transmitted", docs: null },
+  {
+    vendor: "Convex",
+    service: "Database (cloud sync)",
+    baaStatus: "required",
+    docs: "https://convex.dev/hipaa",
+  },
+  {
+    vendor: "Vercel",
+    service: "Frontend hosting",
+    baaStatus: "required",
+    docs: "https://vercel.com/docs/security/hipaa",
+  },
+  {
+    vendor: "AWS/GCP/Azure",
+    service: "Container hosting",
+    baaStatus: "required",
+    docs: "vendor-specific",
+  },
+  {
+    vendor: "Solana RPC",
+    service: "Blockchain anchor",
+    baaStatus: "N/A - public blockchain, no PHI transmitted",
+    docs: null,
+  },
 ];
 
 // ─── Composite middleware factory ──────────────────────────────────────────────

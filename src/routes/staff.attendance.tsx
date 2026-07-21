@@ -35,7 +35,11 @@ function StaffAttendance() {
   const userEmail = typeof window !== "undefined" ? localStorage.getItem("userEmail") || "" : "";
 
   const { data: attendanceData, loading: loadingAttendance } = useAttendance(userEmail);
-  const { data: requestsData, loading: loadingRequests, refetch: refetchRequests } = useStaffRequests(userEmail);
+  const {
+    data: requestsData,
+    loading: loadingRequests,
+    refetch: refetchRequests,
+  } = useStaffRequests(userEmail);
 
   const apiHistory = attendanceData?.records ?? [];
   const leaveRequests = requestsData?.requests ?? [];
@@ -50,14 +54,14 @@ function StaffAttendance() {
 
   useEffect(() => {
     if (apiHistory.length > 0) {
-      const sorted = [...apiHistory].sort((a: any, b: any) => b.timestamp.localeCompare(a.timestamp));
+      const sorted = [...apiHistory].sort((a: any, b: any) =>
+        b.timestamp.localeCompare(a.timestamp),
+      );
       const last = sorted[0];
       if (last.action === "in") {
         setClockedIn(true);
         const inDate = new Date(last.timestamp);
-        setCheckInTime(
-          inDate.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
-        );
+        setCheckInTime(inDate.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }));
       } else {
         setClockedIn(false);
       }
@@ -183,7 +187,9 @@ function StaffAttendance() {
     }
   });
 
-  const displayHistory = Object.values(grouped).sort((a: any, b: any) => b.date.localeCompare(a.date));
+  const displayHistory = Object.values(grouped).sort((a: any, b: any) =>
+    b.date.localeCompare(a.date),
+  );
 
   const present = displayHistory.filter((d: any) => d.status === "present").length;
   const absent = displayHistory.filter((d: any) => d.status === "absent").length;
@@ -202,7 +208,6 @@ function StaffAttendance() {
     const minutes = Math.floor((totalMs % (1000 * 60 * 60)) / (1000 * 60));
     return `${hours}h ${minutes}m`;
   }, [apiHistory]);
-
 
   return (
     <RouteGuard requiredRole="staff">
@@ -343,7 +348,10 @@ function StaffAttendance() {
                 <CardContent>
                   {/* Leave Request Form */}
                   {showLeaveForm && (
-                    <form onSubmit={handleSubmitLeave} className="mb-4 space-y-3 rounded-lg border border-primary/20 bg-primary/5 p-4">
+                    <form
+                      onSubmit={handleSubmitLeave}
+                      className="mb-4 space-y-3 rounded-lg border border-primary/20 bg-primary/5 p-4"
+                    >
                       <div className="grid gap-3 sm:grid-cols-2">
                         <div>
                           <label className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">
@@ -417,16 +425,30 @@ function StaffAttendance() {
                       </div>
                     )}
                     {leaveRequests.map((leave: any) => {
-                      const fromStr = leave.fromDate ? new Date(leave.fromDate).toLocaleDateString() : "—";
-                      const toStr = leave.toDate ? new Date(leave.toDate).toLocaleDateString() : "—";
-                      const days = leave.fromDate && leave.toDate
-                        ? Math.max(1, Math.ceil((new Date(leave.toDate).getTime() - new Date(leave.fromDate).getTime()) / (1000 * 60 * 60 * 24)) + 1)
-                        : 1;
+                      const fromStr = leave.fromDate
+                        ? new Date(leave.fromDate).toLocaleDateString()
+                        : "—";
+                      const toStr = leave.toDate
+                        ? new Date(leave.toDate).toLocaleDateString()
+                        : "—";
+                      const days =
+                        leave.fromDate && leave.toDate
+                          ? Math.max(
+                              1,
+                              Math.ceil(
+                                (new Date(leave.toDate).getTime() -
+                                  new Date(leave.fromDate).getTime()) /
+                                  (1000 * 60 * 60 * 24),
+                              ) + 1,
+                            )
+                          : 1;
                       return (
                         <div key={leave.id} className="rounded-lg border p-3">
                           <div className="flex items-start justify-between">
                             <div>
-                              <div className="font-medium text-sm">{leave.leaveType || leave.requestType}</div>
+                              <div className="font-medium text-sm">
+                                {leave.leaveType || leave.requestType}
+                              </div>
                               <div className="text-xs text-muted-foreground mt-0.5">
                                 {fromStr} – {toStr} · {days} day{days > 1 ? "s" : ""}
                               </div>

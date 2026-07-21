@@ -8,7 +8,14 @@ import { ConsentHistory } from "@/components/consent/ConsentHistory";
 import { ConsentToggle } from "@/components/consent/ConsentToggle";
 
 import { useConsents } from "@/hooks/use-api";
-import { revokeConsent, grantConsent, getConsentRequests, denyConsentRequest, getPreferences, updatePreferences } from "@/lib/api";
+import {
+  revokeConsent,
+  grantConsent,
+  getConsentRequests,
+  denyConsentRequest,
+  getPreferences,
+  updatePreferences,
+} from "@/lib/api";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import {
@@ -123,8 +130,12 @@ function Consent() {
     requester: c.requester ?? c.doctorName ?? c.doctorDid ?? "Doctor Specialist",
     requesterRole: c.requesterRole ?? "Medical Specialist",
     reason: c.reason ?? "Patient Care and Record Access",
-    grantedAt: c.grantedAt ?? c.timestamp ?? new Date(Date.now() - 26 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-    expiresAt: c.expiresAt ?? new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+    grantedAt:
+      c.grantedAt ??
+      c.timestamp ??
+      new Date(Date.now() - 26 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+    expiresAt:
+      c.expiresAt ?? new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
     status: (c.status === "granted" || c.status === "active"
       ? "active"
       : c.status === "requested" || c.status === "pending"
@@ -185,7 +196,6 @@ function Consent() {
   const active = list.filter((c: any) => c.status === "active");
   const pendingInActive = list.filter((c: any) => c.status === "pending");
   const historyList = list.filter((c: any) => c.status === "revoked" || c.status === "expired");
-
 
   const tabs = [
     {
@@ -285,7 +295,6 @@ function Consent() {
                   ))}
                 </StaggerList>
               )}
-
             </div>
           </div>
         )}

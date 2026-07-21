@@ -93,7 +93,7 @@ function AppointmentsPage() {
             name: d.name || d,
             frequency: d.frequency || rx.notes || "As directed",
             purpose: rx.diagnosis || "Treatment",
-          }))
+          })),
         );
         setCurrentMedications(meds);
       })
@@ -108,7 +108,9 @@ function AppointmentsPage() {
           id: l.labId,
           date: l.completedAt?.split("T")[0] || l.orderedAt?.split("T")[0] || "—",
           test: l.testName || l.tests?.join(", ") || "Lab Test",
-          result: l.results?.[0] ? `${l.results[0].parameter}: ${l.results[0].value} ${l.results[0].unit}` : "Pending",
+          result: l.results?.[0]
+            ? `${l.results[0].parameter}: ${l.results[0].value} ${l.results[0].unit}`
+            : "Pending",
           status: l.status || "Pending",
         }));
         setRecentLabReports(labs);
@@ -151,8 +153,12 @@ function AppointmentsPage() {
         specialty: s.specialty || s.department || "General Medicine",
         did: s.did || "did:hosp:unknown",
         hospital: "Embrace Health Grid · OPD Block",
-        status: (s.status === "active" ? "Available" : s.status === "on-leave" ? "Busy" : "Available") as "Available" | "Busy" | "Off Duty",
-        rating: 4.5 + ((seed % 5) / 10),
+        status: (s.status === "active"
+          ? "Available"
+          : s.status === "on-leave"
+            ? "Busy"
+            : "Available") as "Available" | "Busy" | "Off Duty",
+        rating: 4.5 + (seed % 5) / 10,
         availableDays: (() => {
           const today = new Date();
           const nextThursday = new Date(today);
@@ -160,13 +166,20 @@ function AppointmentsPage() {
           const nextFriday = new Date(today);
           nextFriday.setDate(today.getDate() + ((5 + 7 - today.getDay()) % 7 || 7));
           return [
-            { day: "Thu", date: nextThursday.toISOString().split("T")[0], slots: ["10:30 AM", "11:00 AM", "02:00 PM"] },
-            { day: "Fri", date: nextFriday.toISOString().split("T")[0], slots: ["09:00 AM", "10:00 AM", "03:30 PM"] },
+            {
+              day: "Thu",
+              date: nextThursday.toISOString().split("T")[0],
+              slots: ["10:30 AM", "11:00 AM", "02:00 PM"],
+            },
+            {
+              day: "Fri",
+              date: nextFriday.toISOString().split("T")[0],
+              slots: ["09:00 AM", "10:00 AM", "03:30 PM"],
+            },
           ];
         })(),
       };
     });
-
 
   const allDoctors = registeredDoctors;
 
@@ -800,9 +813,12 @@ function AppointmentsPage() {
                 <div className="rounded-xl border border-primary/20 bg-primary/5 p-3.5 space-y-2">
                   <div className="flex items-center justify-between gap-3">
                     <div className="space-y-0.5">
-                      <h4 className="text-xs font-bold text-foreground">Secure On-Chain Ledger Access</h4>
+                      <h4 className="text-xs font-bold text-foreground">
+                        Secure On-Chain Ledger Access
+                      </h4>
                       <p className="text-[10px] text-muted-foreground leading-normal">
-                        Authorizes {selectedDoc.name} to retrieve your historical prescriptions from your Merkle tree.
+                        Authorizes {selectedDoc.name} to retrieve your historical prescriptions from
+                        your Merkle tree.
                       </p>
                     </div>
                     <div className="relative inline-flex items-center cursor-pointer shrink-0">

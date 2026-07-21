@@ -61,10 +61,7 @@ import {
 
 // Load Environment Variables first
 function loadEnv() {
-  const envPaths = [
-    join(process.cwd(), ".env"),
-    join(process.cwd(), ".env.local")
-  ];
+  const envPaths = [join(process.cwd(), ".env"), join(process.cwd(), ".env.local")];
   envPaths.forEach((envPath) => {
     if (existsSync(envPath)) {
       try {
@@ -118,11 +115,13 @@ if (!JWT_SECRET) {
     process.exit(1);
   } else {
     JWT_SECRET = "dev-only-jwt-secret-change-before-production";
-    console.warn("⚠️ JWT_SECRET environment variable is not set. Falling back to development secret.");
+    console.warn(
+      "⚠️ JWT_SECRET environment variable is not set. Falling back to development secret.",
+    );
   }
 }
 const IDENTITY_SECRET = process.env.IDENTITY_SECRET || JWT_SECRET + "-identity";
-const ACCESS_TOKEN_TTL  = "2h";      // Short-lived access token
+const ACCESS_TOKEN_TTL = "2h"; // Short-lived access token
 const REFRESH_TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days (opaque, stored server-side)
 const JWT_EXPIRES = ACCESS_TOKEN_TTL; // backward-compat alias
 const CORS_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:5173";
@@ -172,7 +171,7 @@ const getCSPConnectSrc = () => {
     "ws://localhost:3001",
     "https://*.convex.cloud",
     "wss://*.convex.cloud",
-    "https://api.devnet.solana.com"
+    "https://api.devnet.solana.com",
   ];
   if (process.env.VITE_CONVEX_URL) {
     try {
@@ -201,10 +200,10 @@ app.use(
         connectSrc: getCSPConnectSrc(),
         scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", "data:", "blob:"]
-      }
-    }
-  })
+        imgSrc: ["'self'", "data:", "blob:"],
+      },
+    },
+  }),
 );
 // Structured request logging (replaces morgan)
 app.use(logger.requestMiddleware.bind(logger));
@@ -212,10 +211,12 @@ app.use(express.json({ limit: "2mb" }));
 
 // ─── HIPAA Technical Safeguards (§ 164.312) ──────────────────────────────────
 // Order: HTTPS enforcement → security headers → session timeout → minimum necessary
-app.use(hipaaMiddleware({
-  httpsMode: process.env.NODE_ENV === "production" ? "redirect" : "warn",
-  sessionMaxAge: 8 * 60 * 60, // 8 hours absolute session limit
-}));
+app.use(
+  hipaaMiddleware({
+    httpsMode: process.env.NODE_ENV === "production" ? "redirect" : "warn",
+    sessionMaxAge: 8 * 60 * 60, // 8 hours absolute session limit
+  }),
+);
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -464,18 +465,22 @@ app.get("/api/stats", requireAuth, (_, res) => {
   const txCount = audits.length;
   const blockHeight = Math.max(1, Math.floor(txCount / 3) + 1);
   const worldStateSize = getWorldStateSize();
-  
+
   let lastBlockTime = new Date().toISOString();
   if (audits.length > 0) {
-    const sortedAudits = [...audits].sort((a, b) => b.updatedAt?.localeCompare(a.updatedAt ?? "") ?? 0);
+    const sortedAudits = [...audits].sort(
+      (a, b) => b.updatedAt?.localeCompare(a.updatedAt ?? "") ?? 0,
+    );
     if (sortedAudits[0]?.value?.loggedAt) {
       lastBlockTime = sortedAudits[0].value.loggedAt;
     }
   }
 
   const fraudAlerts = getAllState("fraud-alerts");
-  const criticalFraudCount = fraudAlerts.filter(a => a.value?.severity === "high" || a.value?.status === "open").length;
-  const complianceScore = Math.max(70, 100 - (criticalFraudCount * 4));
+  const criticalFraudCount = fraudAlerts.filter(
+    (a) => a.value?.severity === "high" || a.value?.status === "open",
+  ).length;
+  const complianceScore = Math.max(70, 100 - criticalFraudCount * 4);
 
   res.json({
     blockHeight,
@@ -515,11 +520,25 @@ app.get("/api/did/:did", requireAuth, (req, res) => {
 });
 
 app.post("/api/did", requireAuth, requireRole(["admin"]), async (req, res) => {
-  const { owner, ownerType = "patient", controller, ownerEmail, mrn, employeeId, ...extraFields } = req.body;
+  const {
+    owner,
+    ownerType = "patient",
+    controller,
+    ownerEmail,
+    mrn,
+    employeeId,
+    ...extraFields
+  } = req.body;
   if (!owner) return res.status(400).json({ error: "owner required" });
 
-  const assignedMrn = ownerType === "patient" ? (mrn || extraFields.mrn || `MRN-${Math.floor(100000 + Math.random() * 900000)}`) : null;
-  const assignedEmployeeId = ownerType !== "patient" ? (employeeId || extraFields.employeeId || `EMP-${Math.floor(1000 + Math.random() * 9000)}`) : null;
+  const assignedMrn =
+    ownerType === "patient"
+      ? mrn || extraFields.mrn || `MRN-${Math.floor(100000 + Math.random() * 900000)}`
+      : null;
+  const assignedEmployeeId =
+    ownerType !== "patient"
+      ? employeeId || extraFields.employeeId || `EMP-${Math.floor(1000 + Math.random() * 9000)}`
+      : null;
 
   let preLinkedWallet = null;
   if (ownerEmail) {
@@ -649,7 +668,7 @@ app.post("/api/consent/grant", requireAuth, requireRole(["patient"]), (req, res)
       r.value &&
       r.value.patientDid === patientDid &&
       r.value.doctorDid === doctorDid &&
-      r.value.status === "pending"
+      r.value.status === "pending",
   );
   if (pending) {
     pending.value.status = "approved";
@@ -830,46 +849,75 @@ app.post("/api/prescriptions", requireAuth, requireRole(["doctor", "staff"]), (r
   res.json({ rxId, rx, txId });
 });
 
-app.get("/api/prescriptions/:patientDid", requireAuth, hipaaAuditPHIAccess("Prescription"), (req, res) => {
-  const patientDid = req.params.patientDid;
+app.get(
+  "/api/prescriptions/:patientDid",
+  requireAuth,
+  hipaaAuditPHIAccess("Prescription"),
+  (req, res) => {
+    const patientDid = req.params.patientDid;
 
-  if (req.user.role === "patient" && req.user.did !== patientDid) {
-    return res
-      .status(403)
-      .json({ error: "Access Denied: Cannot view other patients' prescriptions" });
-  }
-
-  if (req.user.role === "doctor" || req.user.role === "staff") {
-    const doctorDid = req.user.did || `did:hosp:0x${simHash(req.user.email).slice(0, 8)}`;
-    const consents = queryState("consent-manager", (v) => 
-      v.patientDid === patientDid &&
-      v.doctorDid === doctorDid &&
-      v.status === "active" &&
-      new Date(v.expiry) > new Date()
-    );
-
-    if (consents.length === 0) {
-      return res.status(403).json({
-        error: "Access Denied: No active consent from this patient. Consent must be granted during appointment booking."
-      });
+    if (req.user.role === "patient" && req.user.did !== patientDid) {
+      return res
+        .status(403)
+        .json({ error: "Access Denied: Cannot view other patients' prescriptions" });
     }
-  }
 
-  let all = queryState("prescriptions", (v) => v.patientDid === patientDid);
-  if (all.length === 0) {
-    const defaultPrescriptions = [
-      { rxId: "RX-SEED-1", patientDid, diagnosis: "Hypertension & Diabetes", signedBy: "Dr. Sameer Khan", signedAt: "2026-05-18T10:00:00.000Z", status: "active", notes: "Take Metformin with meals.", drugs: [
-        { name: "Metoprolol 50mg", dosage: "50mg", frequency: "Once daily (Morning)", duration: "3 months", instructions: "Before breakfast" },
-        { name: "Metformin 1000mg", dosage: "1000mg", frequency: "Twice daily", duration: "3 months", instructions: "With meals" }
-      ]}
-    ];
-    defaultPrescriptions.forEach((rx) => {
-      putState("prescriptions", rx.rxId, rx, randomUUID());
-    });
-    all = queryState("prescriptions", (v) => v.patientDid === patientDid);
-  }
-  res.json({ prescriptions: all.map((e) => e.value) });
-});
+    if (req.user.role === "doctor" || req.user.role === "staff") {
+      const doctorDid = req.user.did || `did:hosp:0x${simHash(req.user.email).slice(0, 8)}`;
+      const consents = queryState(
+        "consent-manager",
+        (v) =>
+          v.patientDid === patientDid &&
+          v.doctorDid === doctorDid &&
+          v.status === "active" &&
+          new Date(v.expiry) > new Date(),
+      );
+
+      if (consents.length === 0) {
+        return res.status(403).json({
+          error:
+            "Access Denied: No active consent from this patient. Consent must be granted during appointment booking.",
+        });
+      }
+    }
+
+    let all = queryState("prescriptions", (v) => v.patientDid === patientDid);
+    if (all.length === 0) {
+      const defaultPrescriptions = [
+        {
+          rxId: "RX-SEED-1",
+          patientDid,
+          diagnosis: "Hypertension & Diabetes",
+          signedBy: "Dr. Sameer Khan",
+          signedAt: "2026-05-18T10:00:00.000Z",
+          status: "active",
+          notes: "Take Metformin with meals.",
+          drugs: [
+            {
+              name: "Metoprolol 50mg",
+              dosage: "50mg",
+              frequency: "Once daily (Morning)",
+              duration: "3 months",
+              instructions: "Before breakfast",
+            },
+            {
+              name: "Metformin 1000mg",
+              dosage: "1000mg",
+              frequency: "Twice daily",
+              duration: "3 months",
+              instructions: "With meals",
+            },
+          ],
+        },
+      ];
+      defaultPrescriptions.forEach((rx) => {
+        putState("prescriptions", rx.rxId, rx, randomUUID());
+      });
+      all = queryState("prescriptions", (v) => v.patientDid === patientDid);
+    }
+    res.json({ prescriptions: all.map((e) => e.value) });
+  },
+);
 
 // ─── Doctor Location Check-In & Tracking ────────────────────────────────────
 app.post("/api/hardware/scan", (req, res) => {
@@ -883,7 +931,7 @@ app.post("/api/hardware/scan", (req, res) => {
   const doctorUserEntry = allUsers.find(
     (u) =>
       u.value?.did === doctorDid ||
-      `did:hosp:0x${simHash(u.value?.email || "").slice(0, 8)}` === doctorDid
+      `did:hosp:0x${simHash(u.value?.email || "").slice(0, 8)}` === doctorDid,
   );
 
   if (!doctorUserEntry) {
@@ -915,7 +963,7 @@ app.post("/api/hardware/scan", (req, res) => {
     roomNumber,
     action,
     timestamp,
-    hash
+    hash,
   };
 
   const txId = randomUUID();
@@ -933,14 +981,16 @@ app.post("/api/hardware/scan", (req, res) => {
     data: {
       id: doctorDid,
       location: action === "enter" ? roomNumber : "Nursing Station",
-      lastSignal: timestamp
-    }
+      lastSignal: timestamp,
+    },
   });
 
   // 6. Generate updated Merkle Tree and anchor root to Solana
   const updatedEntries = queryState("doctor-locations", (v) => v.doctorDid === doctorDid);
   const updatedLogs = updatedEntries.map((e) => e.value);
-  const leaves = updatedLogs.map((l) => `${l.logId}:${l.doctorDid}:${l.roomNumber}:${l.action}:${l.timestamp}`);
+  const leaves = updatedLogs.map(
+    (l) => `${l.logId}:${l.doctorDid}:${l.roomNumber}:${l.action}:${l.timestamp}`,
+  );
   const tree = new MerkleTree(leaves);
 
   tree.build().then(() => {
@@ -954,17 +1004,22 @@ app.post("/api/hardware/scan", (req, res) => {
       signature: `solana_loc_${rootHex.slice(0, 12)}_${Date.now().toString(36)}`,
       slot: Math.floor(Date.now() / 400),
       network: "devnet-simulated",
-      anchoredAt: timestamp
+      anchoredAt: timestamp,
     };
     putState("solana-anchors", anchorId, anchorEntry, anchorId);
 
     // Save location root status
-    putState("doctor-location-roots", doctorDid, {
+    putState(
+      "doctor-location-roots",
       doctorDid,
-      merkleRoot: rootHex,
-      lastUpdated: timestamp,
-      signature: anchorEntry.signature
-    }, randomUUID());
+      {
+        doctorDid,
+        merkleRoot: rootHex,
+        lastUpdated: timestamp,
+        signature: anchorEntry.signature,
+      },
+      randomUUID(),
+    );
   });
 
   res.json({ success: true, action, log, txId });
@@ -977,7 +1032,7 @@ app.post("/api/doctor/check-in", requireAuth, requireRole(["doctor", "staff"]), 
   }
 
   const doctorDid = req.user.did || `did:hosp:0x${simHash(req.user.email).slice(0, 8)}`;
-  
+
   // Call unified scan route logic directly
   req.url = "/api/hardware/scan";
   req.body = { doctorDid, roomNumber };
@@ -987,7 +1042,7 @@ app.post("/api/doctor/check-in", requireAuth, requireRole(["doctor", "staff"]), 
 app.get("/api/doctor/location-history/:doctorDid", requireAuth, (req, res) => {
   const { doctorDid } = req.params;
   let all = queryState("doctor-locations", (v) => v.doctorDid === doctorDid);
-  
+
   if (all.length === 0) {
     const defaultLog = {
       logId: "LOC-INIT",
@@ -996,7 +1051,7 @@ app.get("/api/doctor/location-history/:doctorDid", requireAuth, (req, res) => {
       roomNumber: "Room 101 - Outpatient Clinic",
       action: "enter",
       timestamp: new Date(Date.now() - 3600000).toISOString(),
-      hash: `sha256:${simHash("LOC-INIT:" + doctorDid + ":Room 101 - Outpatient Clinic:enter")}`
+      hash: `sha256:${simHash("LOC-INIT:" + doctorDid + ":Room 101 - Outpatient Clinic:enter")}`,
     };
     putState("doctor-locations", "LOC-INIT", defaultLog, randomUUID());
     all = queryState("doctor-locations", (v) => v.doctorDid === doctorDid);
@@ -1005,59 +1060,68 @@ app.get("/api/doctor/location-history/:doctorDid", requireAuth, (req, res) => {
   res.json({ logs: all.map((e) => e.value) });
 });
 
-app.post("/api/doctor/anchor-location", requireAuth, requireRole(["doctor", "staff"]), async (req, res) => {
-  const { authorityPubkey } = req.body;
-  if (!authorityPubkey) {
-    return res.status(400).json({ error: "authorityPubkey is required" });
-  }
+app.post(
+  "/api/doctor/anchor-location",
+  requireAuth,
+  requireRole(["doctor", "staff"]),
+  async (req, res) => {
+    const { authorityPubkey } = req.body;
+    if (!authorityPubkey) {
+      return res.status(400).json({ error: "authorityPubkey is required" });
+    }
 
-  const doctorDid = req.user.did || `did:hosp:0x${simHash(req.user.email).slice(0, 8)}`;
-  
-  // Fetch all logs
-  const entries = queryState("doctor-locations", (v) => v.doctorDid === doctorDid);
-  const logs = entries.map((e) => e.value);
+    const doctorDid = req.user.did || `did:hosp:0x${simHash(req.user.email).slice(0, 8)}`;
 
-  if (logs.length === 0) {
-    const defaultLog = {
-      logId: "LOC-INIT",
-      doctorDid,
-      doctorName: req.user.name || "Dr. Staff",
-      roomNumber: "Room 101 - Outpatient Clinic",
-      action: "enter",
-      timestamp: new Date(Date.now() - 3600000).toISOString(),
-      hash: `sha256:${simHash("LOC-INIT:" + doctorDid + ":Room 101 - Outpatient Clinic:enter")}`
-    };
-    putState("doctor-locations", "LOC-INIT", defaultLog, randomUUID());
-    logs.push(defaultLog);
-  }
+    // Fetch all logs
+    const entries = queryState("doctor-locations", (v) => v.doctorDid === doctorDid);
+    const logs = entries.map((e) => e.value);
 
-  const leaves = logs.map((l) => `${l.logId}:${l.doctorDid}:${l.roomNumber}:${l.action}:${l.timestamp}`);
-  const tree = new MerkleTree(leaves);
-  await tree.build();
-  const rootHex = tree.getRoot();
+    if (logs.length === 0) {
+      const defaultLog = {
+        logId: "LOC-INIT",
+        doctorDid,
+        doctorName: req.user.name || "Dr. Staff",
+        roomNumber: "Room 101 - Outpatient Clinic",
+        action: "enter",
+        timestamp: new Date(Date.now() - 3600000).toISOString(),
+        hash: `sha256:${simHash("LOC-INIT:" + doctorDid + ":Room 101 - Outpatient Clinic:enter")}`,
+      };
+      putState("doctor-locations", "LOC-INIT", defaultLog, randomUUID());
+      logs.push(defaultLog);
+    }
 
-  let isUpdate = false;
-  try {
-    const connection = new Connection("https://api.devnet.solana.com", "confirmed");
-    const programId = new PublicKey("BxkLrjBYdb3nh2m9GCfpLXBWrAj3s9MqnRbwktLqSfN3");
-    const [locationPda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("doctor-location"), Buffer.from(doctorDid)],
-      programId
+    const leaves = logs.map(
+      (l) => `${l.logId}:${l.doctorDid}:${l.roomNumber}:${l.action}:${l.timestamp}`,
     );
-    const accountInfo = await connection.getAccountInfo(locationPda);
-    if (accountInfo) isUpdate = true;
-  } catch (err) {
-    console.warn("Could not fetch location account status:", err.message);
-  }
+    const tree = new MerkleTree(leaves);
+    await tree.build();
+    const rootHex = tree.getRoot();
 
-  const txId = randomUUID();
-  res.json({
-    merkleRoot: rootHex,
-    isUpdate,
-    transaction: Buffer.from(`solana_tx_placeholder_location:${rootHex}:${isUpdate}`).toString("base64"),
-    txId
-  });
-});
+    let isUpdate = false;
+    try {
+      const connection = new Connection("https://api.devnet.solana.com", "confirmed");
+      const programId = new PublicKey("BxkLrjBYdb3nh2m9GCfpLXBWrAj3s9MqnRbwktLqSfN3");
+      const [locationPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("doctor-location"), Buffer.from(doctorDid)],
+        programId,
+      );
+      const accountInfo = await connection.getAccountInfo(locationPda);
+      if (accountInfo) isUpdate = true;
+    } catch (err) {
+      console.warn("Could not fetch location account status:", err.message);
+    }
+
+    const txId = randomUUID();
+    res.json({
+      merkleRoot: rootHex,
+      isUpdate,
+      transaction: Buffer.from(`solana_tx_placeholder_location:${rootHex}:${isUpdate}`).toString(
+        "base64",
+      ),
+      txId,
+    });
+  },
+);
 
 // ─── Lab results ──────────────────────────────────────────────────────────────
 app.post("/api/labs", requireAuth, requireRole(["doctor", "staff"]), (req, res) => {
@@ -1093,8 +1157,33 @@ app.get("/api/labs/:patientDid", requireAuth, (req, res) => {
   let all = queryState("lab-results", (v) => v.patientDid === patientDid);
   if (all.length === 0) {
     const defaultLabs = [
-      { labId: "LAB-SEED-1", patientDid, tests: ["HbA1c Glycated Hemoglobin"], orderedBy: "Dr. Sameer Khan", status: "completed", orderedAt: "2026-05-18T10:00:00.000Z", completedAt: "2026-05-20T09:00:00.000Z", results: [{ parameter: "HbA1c", value: "6.4", unit: "%", referenceRange: "4.0-5.6%" }] },
-      { labId: "LAB-SEED-2", patientDid, tests: ["Lipid Profile Panel"], orderedBy: "Dr. Ravi Menon", status: "completed", orderedAt: "2026-04-10T10:00:00.000Z", completedAt: "2026-04-12T11:00:00.000Z", results: [{ parameter: "LDL Cholesterol", value: "92", unit: "mg/dL", referenceRange: "<100 mg/dL" }] }
+      {
+        labId: "LAB-SEED-1",
+        patientDid,
+        tests: ["HbA1c Glycated Hemoglobin"],
+        orderedBy: "Dr. Sameer Khan",
+        status: "completed",
+        orderedAt: "2026-05-18T10:00:00.000Z",
+        completedAt: "2026-05-20T09:00:00.000Z",
+        results: [{ parameter: "HbA1c", value: "6.4", unit: "%", referenceRange: "4.0-5.6%" }],
+      },
+      {
+        labId: "LAB-SEED-2",
+        patientDid,
+        tests: ["Lipid Profile Panel"],
+        orderedBy: "Dr. Ravi Menon",
+        status: "completed",
+        orderedAt: "2026-04-10T10:00:00.000Z",
+        completedAt: "2026-04-12T11:00:00.000Z",
+        results: [
+          {
+            parameter: "LDL Cholesterol",
+            value: "92",
+            unit: "mg/dL",
+            referenceRange: "<100 mg/dL",
+          },
+        ],
+      },
     ];
     defaultLabs.forEach((l) => {
       putState("lab-results", l.labId, l, randomUUID());
@@ -1110,17 +1199,22 @@ async function getAnchorDiscriminator(name) {
   return Buffer.from(hash.substring(0, 16), "hex");
 }
 
-async function buildAnchorTransaction(patientDid, merkleRootHex, authorityPubkeyStr, isUpdate = false) {
+async function buildAnchorTransaction(
+  patientDid,
+  merkleRootHex,
+  authorityPubkeyStr,
+  isUpdate = false,
+) {
   const PROGRAM_ID = new PublicKey("BxkLrjBYdb3nh2m9GCfpLXBWrAj3s9MqnRbwktLqSfN3");
   const authority = new PublicKey(authorityPubkeyStr);
 
   const [patientRootPda] = PublicKey.findProgramAddressSync(
     [Buffer.from("patient-root"), Buffer.from(patientDid)],
-    PROGRAM_ID
+    PROGRAM_ID,
   );
 
   const discriminator = await getAnchorDiscriminator(
-    isUpdate ? "update_patient_root" : "register_patient_root"
+    isUpdate ? "update_patient_root" : "register_patient_root",
   );
 
   const didBytes = Buffer.from(patientDid);
@@ -1130,13 +1224,15 @@ async function buildAnchorTransaction(patientDid, merkleRootHex, authorityPubkey
 
   const data = Buffer.concat([discriminator, didLen, didBytes, rootBytes]);
 
-  const keys = [
-    { pubkey: patientRootPda, isSigner: false, isWritable: true },
-  ];
+  const keys = [{ pubkey: patientRootPda, isSigner: false, isWritable: true }];
 
   if (!isUpdate) {
     keys.push({ pubkey: authority, isSigner: true, isWritable: true });
-    keys.push({ pubkey: new PublicKey("11111111111111111111111111111111"), isSigner: false, isWritable: false });
+    keys.push({
+      pubkey: new PublicKey("11111111111111111111111111111111"),
+      isSigner: false,
+      isWritable: false,
+    });
   } else {
     keys.push({ pubkey: authority, isSigner: true, isWritable: false });
   }
@@ -1159,97 +1255,109 @@ async function buildAnchorTransaction(patientDid, merkleRootHex, authorityPubkey
   return serialized.toString("base64");
 }
 
-app.get("/api/medical-records/:patientDid", requireAuth, hipaaAuditPHIAccess("MedicalRecord"), (req, res) => {
-  if (req.user.role === "patient" && req.user.did !== req.params.patientDid) {
-    return res.status(403).json({ error: "Access Denied: Cannot view other patients' records" });
-  }
+app.get(
+  "/api/medical-records/:patientDid",
+  requireAuth,
+  hipaaAuditPHIAccess("MedicalRecord"),
+  (req, res) => {
+    if (req.user.role === "patient" && req.user.did !== req.params.patientDid) {
+      return res.status(403).json({ error: "Access Denied: Cannot view other patients' records" });
+    }
 
-  let all = queryState("medical-records", (v) => v.patientDid === req.params.patientDid);
-  
-  if (all.length === 0) {
-    const defaultDocs = [
-      {
-        id: "REC-INITIAL-DISCHARGE",
-        title: "Initial Discharge Summary",
-        type: "discharge-summary",
-        date: new Date(Date.now() - 30 * 86400000).toISOString(),
-        issuedBy: "Dr. Ravi Menon",
-        fileSize: "14 KB",
-        summary: "Patient admitted with symptoms of angina. Angiography showed clear coronary pathways. Discharged with beta-blockers.",
-        isNew: false,
-      },
-      {
-        id: "REC-INITIAL-ECG",
-        title: "Routine ECG Diagnostic",
-        type: "imaging",
-        date: new Date(Date.now() - 15 * 86400000).toISOString(),
-        issuedBy: "Dr. Ravi Menon",
-        fileSize: "45 KB",
-        summary: "Sinus rhythm at 72 bpm. Ejection fraction at 60%. Cardiomegaly ruled out.",
-        isNew: false,
-      },
-      {
-        id: "REC-INITIAL-LIPID",
-        title: "Standard Lipid Panel",
-        type: "lab-report",
-        date: new Date(Date.now() - 7 * 86400000).toISOString(),
-        issuedBy: "Dr. Sameer Khan",
-        fileSize: "8 KB",
-        summary: "Total Cholesterol: 180 mg/dL, HDL: 45 mg/dL, LDL: 92 mg/dL. Triglycerides normal.",
-        isNew: true,
-      }
-    ];
+    let all = queryState("medical-records", (v) => v.patientDid === req.params.patientDid);
 
-    defaultDocs.forEach((doc) => {
-      const txId = randomUUID();
-      const val = {
-        recordId: doc.id,
-        patientDid: req.params.patientDid,
-        title: doc.title,
-        type: doc.type,
-        content: doc.summary,
-        doctorName: doc.issuedBy,
-        createdAt: doc.date,
-        hash: `sha256:d8c0b56${randomUUID().slice(0, 8)}`,
-      };
-      putState("medical-records", doc.id, val, txId);
-    });
+    if (all.length === 0) {
+      const defaultDocs = [
+        {
+          id: "REC-INITIAL-DISCHARGE",
+          title: "Initial Discharge Summary",
+          type: "discharge-summary",
+          date: new Date(Date.now() - 30 * 86400000).toISOString(),
+          issuedBy: "Dr. Ravi Menon",
+          fileSize: "14 KB",
+          summary:
+            "Patient admitted with symptoms of angina. Angiography showed clear coronary pathways. Discharged with beta-blockers.",
+          isNew: false,
+        },
+        {
+          id: "REC-INITIAL-ECG",
+          title: "Routine ECG Diagnostic",
+          type: "imaging",
+          date: new Date(Date.now() - 15 * 86400000).toISOString(),
+          issuedBy: "Dr. Ravi Menon",
+          fileSize: "45 KB",
+          summary: "Sinus rhythm at 72 bpm. Ejection fraction at 60%. Cardiomegaly ruled out.",
+          isNew: false,
+        },
+        {
+          id: "REC-INITIAL-LIPID",
+          title: "Standard Lipid Panel",
+          type: "lab-report",
+          date: new Date(Date.now() - 7 * 86400000).toISOString(),
+          issuedBy: "Dr. Sameer Khan",
+          fileSize: "8 KB",
+          summary:
+            "Total Cholesterol: 180 mg/dL, HDL: 45 mg/dL, LDL: 92 mg/dL. Triglycerides normal.",
+          isNew: true,
+        },
+      ];
 
-    all = queryState("medical-records", (v) => v.patientDid === req.params.patientDid);
-  }
+      defaultDocs.forEach((doc) => {
+        const txId = randomUUID();
+        const val = {
+          recordId: doc.id,
+          patientDid: req.params.patientDid,
+          title: doc.title,
+          type: doc.type,
+          content: doc.summary,
+          doctorName: doc.issuedBy,
+          createdAt: doc.date,
+          hash: `sha256:d8c0b56${randomUUID().slice(0, 8)}`,
+        };
+        putState("medical-records", doc.id, val, txId);
+      });
 
-  res.json({ records: all.map((e) => e.value), total: all.length });
-});
+      all = queryState("medical-records", (v) => v.patientDid === req.params.patientDid);
+    }
 
-app.post("/api/medical-records/:patientDid", requireAuth, requireRole(["doctor", "staff"]), async (req, res) => {
-  const { patientDid } = req.params;
-  const { title, type, content, doctorDid, doctorName } = req.body;
+    res.json({ records: all.map((e) => e.value), total: all.length });
+  },
+);
 
-  if (!title || !type || !content) {
-    return res.status(400).json({ error: "title, type, and content are required" });
-  }
+app.post(
+  "/api/medical-records/:patientDid",
+  requireAuth,
+  requireRole(["doctor", "staff"]),
+  async (req, res) => {
+    const { patientDid } = req.params;
+    const { title, type, content, doctorDid, doctorName } = req.body;
 
-  const recordId = `REC-${Date.now().toString(36).toUpperCase()}`;
-  const txId = randomUUID();
-  const hash = await sha256(recordId + title + type + content);
+    if (!title || !type || !content) {
+      return res.status(400).json({ error: "title, type, and content are required" });
+    }
 
-  const record = {
-    recordId,
-    patientDid,
-    title,
-    type,
-    content,
-    doctorDid: doctorDid || req.user.did || "did:hosp:unknown",
-    doctorName: doctorName || req.user.name || "Doctor",
-    createdAt: new Date().toISOString(),
-    hash: `sha256:${hash}`,
-  };
+    const recordId = `REC-${Date.now().toString(36).toUpperCase()}`;
+    const txId = randomUUID();
+    const hash = await sha256(recordId + title + type + content);
 
-  putState("medical-records", recordId, record, txId);
-  broadcast({ event: "record:created", data: record });
+    const record = {
+      recordId,
+      patientDid,
+      title,
+      type,
+      content,
+      doctorDid: doctorDid || req.user.did || "did:hosp:unknown",
+      doctorName: doctorName || req.user.name || "Doctor",
+      createdAt: new Date().toISOString(),
+      hash: `sha256:${hash}`,
+    };
 
-  res.json({ record, txId });
-});
+    putState("medical-records", recordId, record, txId);
+    broadcast({ event: "record:created", data: record });
+
+    res.json({ record, txId });
+  },
+);
 
 app.post("/api/medical-records/:patientDid/anchor", requireAuth, async (req, res) => {
   const { patientDid } = req.params;
@@ -1259,8 +1367,12 @@ app.post("/api/medical-records/:patientDid/anchor", requireAuth, async (req, res
     return res.status(400).json({ error: "authorityPubkey is required" });
   }
 
-  const records = queryState("medical-records", (v) => v.patientDid === patientDid).map((e) => e.value);
-  const prescriptions = queryState("prescriptions", (v) => v.patientDid === patientDid).map((e) => e.value);
+  const records = queryState("medical-records", (v) => v.patientDid === patientDid).map(
+    (e) => e.value,
+  );
+  const prescriptions = queryState("prescriptions", (v) => v.patientDid === patientDid).map(
+    (e) => e.value,
+  );
 
   if (records.length === 0 && prescriptions.length === 0) {
     return res.status(400).json({ error: "No medical records or prescriptions found to anchor" });
@@ -1279,7 +1391,7 @@ app.post("/api/medical-records/:patientDid/anchor", requireAuth, async (req, res
       patientDid,
       root,
       authorityPubkey,
-      isUpdate
+      isUpdate,
     );
     res.json({
       success: true,
@@ -1325,7 +1437,8 @@ app.get("/api/fraud/alerts", requireAuth, requireRole(["admin"]), (_, res) => {
         actor: "Dr. Sanjay Mehta",
         riskScore: 97,
         detectedAt: "2026-06-08T02:14:00.000Z",
-        details: "Break-glass access invoked at 02:14 with no active emergency declaration. Access lasted 22 minutes. 14 records downloaded.",
+        details:
+          "Break-glass access invoked at 02:14 with no active emergency declaration. Access lasted 22 minutes. 14 records downloaded.",
         affectedResource: "Patient MRN-201884 · ICU records",
         actorRole: "General Physician",
         location: "OPD Block 2",
@@ -1340,14 +1453,15 @@ app.get("/api/fraud/alerts", requireAuth, requireRole(["admin"]), (_, res) => {
         actor: "did:hosp:0x9af2…cc01",
         riskScore: 99,
         detectedAt: "2026-06-08T02:22:00.000Z",
-        details: "Credential did:hosp:0x9af2... presented at Delhi and Mumbai endpoints within a 4-minute interval. Physical travel impossible.",
+        details:
+          "Credential did:hosp:0x9af2... presented at Delhi and Mumbai endpoints within a 4-minute interval. Physical travel impossible.",
         affectedResource: "Clinician Identity Token",
         actorRole: "Security Monitor",
         location: "Gateway Router",
         ip: "125.16.88.2",
-      }
+      },
     ];
-    defaultAlerts.forEach(a => putState("fraud-alerts", a.alertId, a, randomUUID()));
+    defaultAlerts.forEach((a) => putState("fraud-alerts", a.alertId, a, randomUUID()));
     all = getAllState("fraud-alerts");
   }
   res.json({ alerts: all.map((e) => e.value), total: all.length });
@@ -1359,173 +1473,563 @@ app.get("/api/beds", requireAuth, hipaaAuditPHIAccess("BedOccupancy"), (_, res) 
   res.json({ beds: all.map((e) => e.value), total: all.length });
 });
 
-app.post("/api/beds", requireAuth, requireRole(["admin", "staff"]), hipaaAuditPHIAccess("BedOccupancy"), (req, res) => {
-  const { bedId, ward, status = "available", patientDid } = req.body;
-  const txId = randomUUID();
-  const bed = { bedId, ward, status, patientDid, updatedAt: new Date().toISOString() };
-  putState("beds", bedId, bed, txId);
-  broadcast({ event: "bed:updated", data: bed });
-  res.json(bed);
-});
+app.post(
+  "/api/beds",
+  requireAuth,
+  requireRole(["admin", "staff"]),
+  hipaaAuditPHIAccess("BedOccupancy"),
+  (req, res) => {
+    const { bedId, ward, status = "available", patientDid } = req.body;
+    const txId = randomUUID();
+    const bed = { bedId, ward, status, patientDid, updatedAt: new Date().toISOString() };
+    putState("beds", bedId, bed, txId);
+    broadcast({ event: "bed:updated", data: bed });
+    res.json(bed);
+  },
+);
 
 // ─── Billing ──────────────────────────────────────────────────────────────────
-app.post("/api/billing/payment", requireAuth, requireRole(["patient"]), hipaaAuditPHIAccess("BillingRecord"), (req, res) => {
-  const { patientDid, patientName, amount, category, reference } = req.body;
+app.post(
+  "/api/billing/payment",
+  requireAuth,
+  requireRole(["patient"]),
+  hipaaAuditPHIAccess("BillingRecord"),
+  (req, res) => {
+    const { patientDid, patientName, amount, category, reference } = req.body;
 
-  if (req.user.did !== patientDid) {
-    return res
-      .status(403)
-      .json({ error: "Access Denied: Cannot record payment for another patient" });
-  }
+    if (req.user.did !== patientDid) {
+      return res
+        .status(403)
+        .json({ error: "Access Denied: Cannot record payment for another patient" });
+    }
 
-  const txId = randomUUID();
-  const ref = reference || `REF-${Date.now().toString(36).toUpperCase()}`;
-  const payment = {
-    txId,
-    patientDid,
-    patientName,
-    amount,
-    category,
-    status: "settled",
-    ref,
-    settledAt: new Date().toISOString(),
-  };
-  putState("billing", ref, payment, txId);
-  broadcast({ event: "payment:recorded", data: payment });
-  res.json(payment);
-});
-
-app.get("/api/billing/:patientDid", requireAuth, hipaaAuditPHIAccess("BillingRecord"), (req, res) => {
-  if (req.user.role === "patient" && req.user.did !== req.params.patientDid) {
-    return res
-      .status(403)
-      .json({ error: "Access Denied: Cannot view other patients' billing records" });
-  }
-
-  const patientDid = req.params.patientDid;
-  let all = queryState("billing", (v) => v.patientDid === patientDid);
-
-  if (all.length === 0) {
-    // Seed default insurance config
-    const defaultInsurance = {
+    const txId = randomUUID();
+    const ref = reference || `REF-${Date.now().toString(36).toUpperCase()}`;
+    const payment = {
+      txId,
       patientDid,
-      provider: "Star Health Insurance",
-      policyNumber: "SH-2024-789456",
-      groupNumber: "GRP-45678",
-      coverageType: "Premium Health Plan",
-      copay: 500,
-      deductible: 25000,
-      deductibleMet: 18000,
-      outOfPocketMax: 100000,
-      outOfPocketMet: 32000,
-      coveragePercentage: 80,
+      patientName,
+      amount,
+      category,
+      status: "settled",
+      ref,
+      settledAt: new Date().toISOString(),
     };
-    putState("billing", `insurance-${patientDid}`, defaultInsurance, randomUUID());
+    putState("billing", ref, payment, txId);
+    broadcast({ event: "payment:recorded", data: payment });
+    res.json(payment);
+  },
+);
 
-    // Seed default bill items
-    const defaultBillItems = [
-      { id: "bi1", patientDid, date: "2026-05-27", category: "room", description: "Private Room - Cardiology Ward (C-402)", quantity: 1, unitPrice: 5000, totalPrice: 5000, coveredByInsurance: true, insuranceCoverage: 80, patientResponsibility: 1000 },
-      { id: "bi2", patientDid, date: "2026-05-28", category: "room", description: "Private Room - Cardiology Ward (C-402)", quantity: 1, unitPrice: 5000, totalPrice: 5000, coveredByInsurance: true, insuranceCoverage: 80, patientResponsibility: 1000 },
-      { id: "bi3", patientDid, date: "2026-05-29", category: "room", description: "Private Room - Cardiology Ward (C-402)", quantity: 1, unitPrice: 5000, totalPrice: 5000, coveredByInsurance: true, insuranceCoverage: 80, patientResponsibility: 1000 },
-      { id: "bi4", patientDid, date: "2026-05-30", category: "room", description: "Private Room - Cardiology Ward (C-402)", quantity: 1, unitPrice: 5000, totalPrice: 5000, coveredByInsurance: true, insuranceCoverage: 80, patientResponsibility: 1000 },
-      { id: "bi5", patientDid, date: "2026-05-27", category: "consultation", description: "Emergency Consultation - Dr. Ravi Menon (Cardiologist)", quantity: 1, unitPrice: 2500, totalPrice: 2500, coveredByInsurance: true, insuranceCoverage: 80, patientResponsibility: 500 },
-      { id: "bi6", patientDid, date: "2026-05-28", category: "consultation", description: "Daily Round - Dr. Ravi Menon", quantity: 1, unitPrice: 1000, totalPrice: 1000, coveredByInsurance: true, insuranceCoverage: 80, patientResponsibility: 200 },
-      { id: "bi7", patientDid, date: "2026-05-29", category: "consultation", description: "Specialist Consultation - Dr. Sameer Khan (Endocrinologist)", quantity: 1, unitPrice: 1500, totalPrice: 1500, coveredByInsurance: true, insuranceCoverage: 80, patientResponsibility: 300 },
-      { id: "bi8", patientDid, date: "2026-05-30", category: "consultation", description: "Daily Round - Dr. Ravi Menon", quantity: 1, unitPrice: 1000, totalPrice: 1000, coveredByInsurance: true, insuranceCoverage: 80, patientResponsibility: 200 },
-      { id: "bi9", patientDid, date: "2026-05-28", category: "procedure", description: "Coronary Angiography with Stent Placement", quantity: 1, unitPrice: 185000, totalPrice: 185000, coveredByInsurance: true, insuranceCoverage: 80, patientResponsibility: 37000 },
-      { id: "bi10", patientDid, date: "2026-05-28", category: "procedure", description: "Drug-Eluting Stent (DES)", quantity: 1, unitPrice: 95000, totalPrice: 95000, coveredByInsurance: true, insuranceCoverage: 80, patientResponsibility: 19000 },
-      { id: "bi11", patientDid, date: "2026-05-27", category: "lab", description: "Troponin I Test (Emergency)", quantity: 1, unitPrice: 1200, totalPrice: 1200, coveredByInsurance: true, insuranceCoverage: 80, patientResponsibility: 240 },
-      { id: "bi12", patientDid, date: "2026-05-27", category: "lab", description: "ECG (12-Lead)", quantity: 2, unitPrice: 500, totalPrice: 1000, coveredByInsurance: true, insuranceCoverage: 80, patientResponsibility: 200 },
-      { id: "bi13", patientDid, date: "2026-05-28", category: "lab", description: "Complete Blood Count (CBC)", quantity: 1, unitPrice: 600, totalPrice: 600, coveredByInsurance: true, insuranceCoverage: 80, patientResponsibility: 120 },
-      { id: "bi14", patientDid, date: "2026-05-29", category: "lab", description: "HbA1c Test", quantity: 1, unitPrice: 800, totalPrice: 800, coveredByInsurance: true, insuranceCoverage: 80, patientResponsibility: 160 },
-      { id: "bi15", patientDid, date: "2026-05-29", category: "lab", description: "Lipid Profile", quantity: 1, unitPrice: 900, totalPrice: 900, coveredByInsurance: true, insuranceCoverage: 80, patientResponsibility: 180 },
-      { id: "bi16", patientDid, date: "2026-05-27", category: "medication", description: "Aspirin 75mg (30 tablets)", quantity: 1, unitPrice: 120, totalPrice: 120, coveredByInsurance: true, insuranceCoverage: 80, patientResponsibility: 24 },
-      { id: "bi17", patientDid, date: "2026-05-27", category: "medication", description: "Atorvastatin 40mg (30 tablets)", quantity: 1, unitPrice: 450, totalPrice: 450, coveredByInsurance: true, insuranceCoverage: 80, patientResponsibility: 90 },
-      { id: "bi18", patientDid, date: "2026-05-27", category: "medication", description: "Metoprolol 50mg (60 tablets)", quantity: 1, unitPrice: 280, totalPrice: 280, coveredByInsurance: true, insuranceCoverage: 80, patientResponsibility: 56 },
-      { id: "bi19", patientDid, date: "2026-05-27", category: "medication", description: "Insulin (Rapid-acting) 10ml vial", quantity: 2, unitPrice: 850, totalPrice: 1700, coveredByInsurance: true, insuranceCoverage: 80, patientResponsibility: 340 },
-      { id: "bi20", patientDid, date: "2026-05-27", category: "medication", description: "Enoxaparin 40mg injection (3 doses)", quantity: 3, unitPrice: 320, totalPrice: 960, coveredByInsurance: true, insuranceCoverage: 80, patientResponsibility: 192 },
-      { id: "bi21", patientDid, date: "2026-05-27", category: "nursing", description: "ICU Nursing Care (24 hours)", quantity: 1, unitPrice: 3000, totalPrice: 3000, coveredByInsurance: true, insuranceCoverage: 80, patientResponsibility: 600 },
-      { id: "bi22", patientDid, date: "2026-05-28", category: "nursing", description: "General Ward Nursing Care", quantity: 1, unitPrice: 1500, totalPrice: 1500, coveredByInsurance: true, insuranceCoverage: 80, patientResponsibility: 300 },
-      { id: "bi23", patientDid, date: "2026-05-29", category: "nursing", description: "General Ward Nursing Care", quantity: 1, unitPrice: 1500, totalPrice: 1500, coveredByInsurance: true, insuranceCoverage: 80, patientResponsibility: 300 },
-      { id: "bi24", patientDid, date: "2026-05-30", category: "nursing", description: "General Ward Nursing Care", quantity: 1, unitPrice: 1500, totalPrice: 1500, coveredByInsurance: true, insuranceCoverage: 80, patientResponsibility: 300 },
-      { id: "bi25", patientDid, date: "2026-05-27", category: "supplies", description: "IV Fluids and Administration Set", quantity: 1, unitPrice: 800, totalPrice: 800, coveredByInsurance: true, insuranceCoverage: 80, patientResponsibility: 160 },
-      { id: "bi26", patientDid, date: "2026-05-28", category: "supplies", description: "Surgical Supplies (Cath Lab)", quantity: 1, unitPrice: 12000, totalPrice: 12000, coveredByInsurance: true, insuranceCoverage: 80, patientResponsibility: 2400 },
-      { id: "bi27", patientDid, date: "2026-05-27", category: "supplies", description: "Oxygen Supply (24 hours)", quantity: 1, unitPrice: 1200, totalPrice: 1200, coveredByInsurance: true, insuranceCoverage: 80, patientResponsibility: 240 },
-    ];
-    putState("billing", `items-${patientDid}`, defaultBillItems, randomUUID());
+app.get(
+  "/api/billing/:patientDid",
+  requireAuth,
+  hipaaAuditPHIAccess("BillingRecord"),
+  (req, res) => {
+    if (req.user.role === "patient" && req.user.did !== req.params.patientDid) {
+      return res
+        .status(403)
+        .json({ error: "Access Denied: Cannot view other patients' billing records" });
+    }
 
-    // Seed default daily charges
-    const defaultDailyCharges = [
-      { date: "2026-05-27", roomCharge: 5000, nursingCare: 3000, meals: 600, supplies: 2000, total: 10600 },
-      { date: "2026-05-28", roomCharge: 5000, nursingCare: 1500, meals: 600, supplies: 12800, total: 19900 },
-      { date: "2026-05-29", roomCharge: 5000, nursingCare: 1500, meals: 600, supplies: 400, total: 7500 },
-      { date: "2026-05-30", roomCharge: 5000, nursingCare: 1500, meals: 600, supplies: 300, total: 7400 }
-    ];
-    putState("billing", `daily-${patientDid}`, defaultDailyCharges, randomUUID());
+    const patientDid = req.params.patientDid;
+    let all = queryState("billing", (v) => v.patientDid === patientDid);
 
-    // Seed initial payment records
-    const defaultPayments = [
-      { id: "pay1", patientDid, date: "2026-05-27", amount: 10000, method: "card", reference: "TXN-2026-05-27-001", paidBy: "Patient (Advance)" },
-      { id: "pay2", patientDid, date: "2026-05-29", amount: 50000, method: "insurance", reference: "CLM-SH-2026-05-29-456", paidBy: "Star Health Insurance (Partial)" }
-    ];
-    defaultPayments.forEach((p) => putState("billing", `pay-${p.id}`, p, randomUUID()));
+    if (all.length === 0) {
+      // Seed default insurance config
+      const defaultInsurance = {
+        patientDid,
+        provider: "Star Health Insurance",
+        policyNumber: "SH-2024-789456",
+        groupNumber: "GRP-45678",
+        coverageType: "Premium Health Plan",
+        copay: 500,
+        deductible: 25000,
+        deductibleMet: 18000,
+        outOfPocketMax: 100000,
+        outOfPocketMet: 32000,
+        coveragePercentage: 80,
+      };
+      putState("billing", `insurance-${patientDid}`, defaultInsurance, randomUUID());
 
-    all = queryState("billing", (v) => v.patientDid === patientDid);
-  }
+      // Seed default bill items
+      const defaultBillItems = [
+        {
+          id: "bi1",
+          patientDid,
+          date: "2026-05-27",
+          category: "room",
+          description: "Private Room - Cardiology Ward (C-402)",
+          quantity: 1,
+          unitPrice: 5000,
+          totalPrice: 5000,
+          coveredByInsurance: true,
+          insuranceCoverage: 80,
+          patientResponsibility: 1000,
+        },
+        {
+          id: "bi2",
+          patientDid,
+          date: "2026-05-28",
+          category: "room",
+          description: "Private Room - Cardiology Ward (C-402)",
+          quantity: 1,
+          unitPrice: 5000,
+          totalPrice: 5000,
+          coveredByInsurance: true,
+          insuranceCoverage: 80,
+          patientResponsibility: 1000,
+        },
+        {
+          id: "bi3",
+          patientDid,
+          date: "2026-05-29",
+          category: "room",
+          description: "Private Room - Cardiology Ward (C-402)",
+          quantity: 1,
+          unitPrice: 5000,
+          totalPrice: 5000,
+          coveredByInsurance: true,
+          insuranceCoverage: 80,
+          patientResponsibility: 1000,
+        },
+        {
+          id: "bi4",
+          patientDid,
+          date: "2026-05-30",
+          category: "room",
+          description: "Private Room - Cardiology Ward (C-402)",
+          quantity: 1,
+          unitPrice: 5000,
+          totalPrice: 5000,
+          coveredByInsurance: true,
+          insuranceCoverage: 80,
+          patientResponsibility: 1000,
+        },
+        {
+          id: "bi5",
+          patientDid,
+          date: "2026-05-27",
+          category: "consultation",
+          description: "Emergency Consultation - Dr. Ravi Menon (Cardiologist)",
+          quantity: 1,
+          unitPrice: 2500,
+          totalPrice: 2500,
+          coveredByInsurance: true,
+          insuranceCoverage: 80,
+          patientResponsibility: 500,
+        },
+        {
+          id: "bi6",
+          patientDid,
+          date: "2026-05-28",
+          category: "consultation",
+          description: "Daily Round - Dr. Ravi Menon",
+          quantity: 1,
+          unitPrice: 1000,
+          totalPrice: 1000,
+          coveredByInsurance: true,
+          insuranceCoverage: 80,
+          patientResponsibility: 200,
+        },
+        {
+          id: "bi7",
+          patientDid,
+          date: "2026-05-29",
+          category: "consultation",
+          description: "Specialist Consultation - Dr. Sameer Khan (Endocrinologist)",
+          quantity: 1,
+          unitPrice: 1500,
+          totalPrice: 1500,
+          coveredByInsurance: true,
+          insuranceCoverage: 80,
+          patientResponsibility: 300,
+        },
+        {
+          id: "bi8",
+          patientDid,
+          date: "2026-05-30",
+          category: "consultation",
+          description: "Daily Round - Dr. Ravi Menon",
+          quantity: 1,
+          unitPrice: 1000,
+          totalPrice: 1000,
+          coveredByInsurance: true,
+          insuranceCoverage: 80,
+          patientResponsibility: 200,
+        },
+        {
+          id: "bi9",
+          patientDid,
+          date: "2026-05-28",
+          category: "procedure",
+          description: "Coronary Angiography with Stent Placement",
+          quantity: 1,
+          unitPrice: 185000,
+          totalPrice: 185000,
+          coveredByInsurance: true,
+          insuranceCoverage: 80,
+          patientResponsibility: 37000,
+        },
+        {
+          id: "bi10",
+          patientDid,
+          date: "2026-05-28",
+          category: "procedure",
+          description: "Drug-Eluting Stent (DES)",
+          quantity: 1,
+          unitPrice: 95000,
+          totalPrice: 95000,
+          coveredByInsurance: true,
+          insuranceCoverage: 80,
+          patientResponsibility: 19000,
+        },
+        {
+          id: "bi11",
+          patientDid,
+          date: "2026-05-27",
+          category: "lab",
+          description: "Troponin I Test (Emergency)",
+          quantity: 1,
+          unitPrice: 1200,
+          totalPrice: 1200,
+          coveredByInsurance: true,
+          insuranceCoverage: 80,
+          patientResponsibility: 240,
+        },
+        {
+          id: "bi12",
+          patientDid,
+          date: "2026-05-27",
+          category: "lab",
+          description: "ECG (12-Lead)",
+          quantity: 2,
+          unitPrice: 500,
+          totalPrice: 1000,
+          coveredByInsurance: true,
+          insuranceCoverage: 80,
+          patientResponsibility: 200,
+        },
+        {
+          id: "bi13",
+          patientDid,
+          date: "2026-05-28",
+          category: "lab",
+          description: "Complete Blood Count (CBC)",
+          quantity: 1,
+          unitPrice: 600,
+          totalPrice: 600,
+          coveredByInsurance: true,
+          insuranceCoverage: 80,
+          patientResponsibility: 120,
+        },
+        {
+          id: "bi14",
+          patientDid,
+          date: "2026-05-29",
+          category: "lab",
+          description: "HbA1c Test",
+          quantity: 1,
+          unitPrice: 800,
+          totalPrice: 800,
+          coveredByInsurance: true,
+          insuranceCoverage: 80,
+          patientResponsibility: 160,
+        },
+        {
+          id: "bi15",
+          patientDid,
+          date: "2026-05-29",
+          category: "lab",
+          description: "Lipid Profile",
+          quantity: 1,
+          unitPrice: 900,
+          totalPrice: 900,
+          coveredByInsurance: true,
+          insuranceCoverage: 80,
+          patientResponsibility: 180,
+        },
+        {
+          id: "bi16",
+          patientDid,
+          date: "2026-05-27",
+          category: "medication",
+          description: "Aspirin 75mg (30 tablets)",
+          quantity: 1,
+          unitPrice: 120,
+          totalPrice: 120,
+          coveredByInsurance: true,
+          insuranceCoverage: 80,
+          patientResponsibility: 24,
+        },
+        {
+          id: "bi17",
+          patientDid,
+          date: "2026-05-27",
+          category: "medication",
+          description: "Atorvastatin 40mg (30 tablets)",
+          quantity: 1,
+          unitPrice: 450,
+          totalPrice: 450,
+          coveredByInsurance: true,
+          insuranceCoverage: 80,
+          patientResponsibility: 90,
+        },
+        {
+          id: "bi18",
+          patientDid,
+          date: "2026-05-27",
+          category: "medication",
+          description: "Metoprolol 50mg (60 tablets)",
+          quantity: 1,
+          unitPrice: 280,
+          totalPrice: 280,
+          coveredByInsurance: true,
+          insuranceCoverage: 80,
+          patientResponsibility: 56,
+        },
+        {
+          id: "bi19",
+          patientDid,
+          date: "2026-05-27",
+          category: "medication",
+          description: "Insulin (Rapid-acting) 10ml vial",
+          quantity: 2,
+          unitPrice: 850,
+          totalPrice: 1700,
+          coveredByInsurance: true,
+          insuranceCoverage: 80,
+          patientResponsibility: 340,
+        },
+        {
+          id: "bi20",
+          patientDid,
+          date: "2026-05-27",
+          category: "medication",
+          description: "Enoxaparin 40mg injection (3 doses)",
+          quantity: 3,
+          unitPrice: 320,
+          totalPrice: 960,
+          coveredByInsurance: true,
+          insuranceCoverage: 80,
+          patientResponsibility: 192,
+        },
+        {
+          id: "bi21",
+          patientDid,
+          date: "2026-05-27",
+          category: "nursing",
+          description: "ICU Nursing Care (24 hours)",
+          quantity: 1,
+          unitPrice: 3000,
+          totalPrice: 3000,
+          coveredByInsurance: true,
+          insuranceCoverage: 80,
+          patientResponsibility: 600,
+        },
+        {
+          id: "bi22",
+          patientDid,
+          date: "2026-05-28",
+          category: "nursing",
+          description: "General Ward Nursing Care",
+          quantity: 1,
+          unitPrice: 1500,
+          totalPrice: 1500,
+          coveredByInsurance: true,
+          insuranceCoverage: 80,
+          patientResponsibility: 300,
+        },
+        {
+          id: "bi23",
+          patientDid,
+          date: "2026-05-29",
+          category: "nursing",
+          description: "General Ward Nursing Care",
+          quantity: 1,
+          unitPrice: 1500,
+          totalPrice: 1500,
+          coveredByInsurance: true,
+          insuranceCoverage: 80,
+          patientResponsibility: 300,
+        },
+        {
+          id: "bi24",
+          patientDid,
+          date: "2026-05-30",
+          category: "nursing",
+          description: "General Ward Nursing Care",
+          quantity: 1,
+          unitPrice: 1500,
+          totalPrice: 1500,
+          coveredByInsurance: true,
+          insuranceCoverage: 80,
+          patientResponsibility: 300,
+        },
+        {
+          id: "bi25",
+          patientDid,
+          date: "2026-05-27",
+          category: "supplies",
+          description: "IV Fluids and Administration Set",
+          quantity: 1,
+          unitPrice: 800,
+          totalPrice: 800,
+          coveredByInsurance: true,
+          insuranceCoverage: 80,
+          patientResponsibility: 160,
+        },
+        {
+          id: "bi26",
+          patientDid,
+          date: "2026-05-28",
+          category: "supplies",
+          description: "Surgical Supplies (Cath Lab)",
+          quantity: 1,
+          unitPrice: 12000,
+          totalPrice: 12000,
+          coveredByInsurance: true,
+          insuranceCoverage: 80,
+          patientResponsibility: 2400,
+        },
+        {
+          id: "bi27",
+          patientDid,
+          date: "2026-05-27",
+          category: "supplies",
+          description: "Oxygen Supply (24 hours)",
+          quantity: 1,
+          unitPrice: 1200,
+          totalPrice: 1200,
+          coveredByInsurance: true,
+          insuranceCoverage: 80,
+          patientResponsibility: 240,
+        },
+      ];
+      putState("billing", `items-${patientDid}`, defaultBillItems, randomUUID());
 
-  // Parse the items
-  const insuranceEntry = all.find((e) => e.key === `insurance-${patientDid}`);
-  const itemsEntry = all.find((e) => e.key === `items-${patientDid}`);
-  const dailyEntry = all.find((e) => e.key === `daily-${patientDid}`);
-  const payments = all.filter((e) => e.key.startsWith("pay-")).map((e) => e.value);
+      // Seed default daily charges
+      const defaultDailyCharges = [
+        {
+          date: "2026-05-27",
+          roomCharge: 5000,
+          nursingCare: 3000,
+          meals: 600,
+          supplies: 2000,
+          total: 10600,
+        },
+        {
+          date: "2026-05-28",
+          roomCharge: 5000,
+          nursingCare: 1500,
+          meals: 600,
+          supplies: 12800,
+          total: 19900,
+        },
+        {
+          date: "2026-05-29",
+          roomCharge: 5000,
+          nursingCare: 1500,
+          meals: 600,
+          supplies: 400,
+          total: 7500,
+        },
+        {
+          date: "2026-05-30",
+          roomCharge: 5000,
+          nursingCare: 1500,
+          meals: 600,
+          supplies: 300,
+          total: 7400,
+        },
+      ];
+      putState("billing", `daily-${patientDid}`, defaultDailyCharges, randomUUID());
 
-  const insuranceInfo = insuranceEntry ? insuranceEntry.value : {};
-  const billItems = itemsEntry ? itemsEntry.value : [];
-  const dailyCharges = dailyEntry ? dailyEntry.value : [];
+      // Seed initial payment records
+      const defaultPayments = [
+        {
+          id: "pay1",
+          patientDid,
+          date: "2026-05-27",
+          amount: 10000,
+          method: "card",
+          reference: "TXN-2026-05-27-001",
+          paidBy: "Patient (Advance)",
+        },
+        {
+          id: "pay2",
+          patientDid,
+          date: "2026-05-29",
+          amount: 50000,
+          method: "insurance",
+          reference: "CLM-SH-2026-05-29-456",
+          paidBy: "Star Health Insurance (Partial)",
+        },
+      ];
+      defaultPayments.forEach((p) => putState("billing", `pay-${p.id}`, p, randomUUID()));
 
-  // Calculate summary dynamically
-  const totalCharges = billItems.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
-  const patientResponsibility = billItems.reduce((sum, item) => sum + (item.patientResponsibility || 0), 0);
-  const insuranceClaimed = totalCharges - patientResponsibility;
-  const amountPaid = payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
-  const balanceDue = Math.max(0, patientResponsibility - amountPaid);
+      all = queryState("billing", (v) => v.patientDid === patientDid);
+    }
 
-  // Category totals
-  const categoryMap = {};
-  billItems.forEach((item) => {
-    categoryMap[item.category] = (categoryMap[item.category] || 0) + (item.totalPrice || 0);
-  });
-  const categoryTotals = Object.entries(categoryMap).map(([category, amount]) => ({
-    category,
-    amount,
-  })).sort((a, b) => b.amount - a.amount);
+    // Parse the items
+    const insuranceEntry = all.find((e) => e.key === `insurance-${patientDid}`);
+    const itemsEntry = all.find((e) => e.key === `items-${patientDid}`);
+    const dailyEntry = all.find((e) => e.key === `daily-${patientDid}`);
+    const payments = all.filter((e) => e.key.startsWith("pay-")).map((e) => e.value);
 
-  const billSummary = {
-    admissionId: "ADM-2026-001234",
-    patientId: patientDid,
-    billNumber: `BILL-2026-05-30-001234`,
-    generatedDate: "2026-05-30",
-    fromDate: "2026-05-27",
-    toDate: "2026-05-30",
-    status: balanceDue === 0 ? "paid" : amountPaid > 0 ? "partial" : "pending",
-    totalCharges,
-    insuranceClaimed,
-    insurancePaid: 50000,
-    insurancePending: Math.max(0, insuranceClaimed - 50000),
-    patientResponsibility,
-    amountPaid,
-    balanceDue,
-    categoryTotals,
-  };
+    const insuranceInfo = insuranceEntry ? insuranceEntry.value : {};
+    const billItems = itemsEntry ? itemsEntry.value : [];
+    const dailyCharges = dailyEntry ? dailyEntry.value : [];
 
-  res.json({
-    billSummary,
-    billItems,
-    dailyCharges,
-    insuranceInfo,
-    paymentRecords: payments,
-  });
-});
+    // Calculate summary dynamically
+    const totalCharges = billItems.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
+    const patientResponsibility = billItems.reduce(
+      (sum, item) => sum + (item.patientResponsibility || 0),
+      0,
+    );
+    const insuranceClaimed = totalCharges - patientResponsibility;
+    const amountPaid = payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+    const balanceDue = Math.max(0, patientResponsibility - amountPaid);
+
+    // Category totals
+    const categoryMap = {};
+    billItems.forEach((item) => {
+      categoryMap[item.category] = (categoryMap[item.category] || 0) + (item.totalPrice || 0);
+    });
+    const categoryTotals = Object.entries(categoryMap)
+      .map(([category, amount]) => ({
+        category,
+        amount,
+      }))
+      .sort((a, b) => b.amount - a.amount);
+
+    const billSummary = {
+      admissionId: "ADM-2026-001234",
+      patientId: patientDid,
+      billNumber: `BILL-2026-05-30-001234`,
+      generatedDate: "2026-05-30",
+      fromDate: "2026-05-27",
+      toDate: "2026-05-30",
+      status: balanceDue === 0 ? "paid" : amountPaid > 0 ? "partial" : "pending",
+      totalCharges,
+      insuranceClaimed,
+      insurancePaid: 50000,
+      insurancePending: Math.max(0, insuranceClaimed - 50000),
+      patientResponsibility,
+      amountPaid,
+      balanceDue,
+      categoryTotals,
+    };
+
+    res.json({
+      billSummary,
+      billItems,
+      dailyCharges,
+      insuranceInfo,
+      paymentRecords: payments,
+    });
+  },
+);
 
 // ─── Appointments ─────────────────────────────────────────────────────────────
 app.get("/api/appointments", requireAuth, hipaaAuditPHIAccess("Appointment"), (_, res) => {
@@ -1537,40 +2041,64 @@ app.get("/api/appointments", requireAuth, hipaaAuditPHIAccess("Appointment"), (_
 app.get("/api/surgeries", requireAuth, (_, res) => {
   const defaultSurgeries = [
     {
-      id: "s1", patient: "Anika Sharma", mrn: "MRN-204871",
+      id: "s1",
+      patient: "Anika Sharma",
+      mrn: "MRN-204871",
       procedure: "Cardiac Catheterization (PCI)",
-      room: "Cath Lab 2", date: "2026-06-04", time: "11:00",
-      surgeon: "Dr. Ravi Menon", anesthesiologist: "Dr. Deepak Joshi",
+      room: "Cath Lab 2",
+      date: "2026-06-04",
+      time: "11:00",
+      surgeon: "Dr. Ravi Menon",
+      anesthesiologist: "Dr. Deepak Joshi",
       nurses: ["Nurse Priya K.", "Nurse Ananya V."],
       equipment: ["Cath Lab C-Arm", "Defibrillator", "Hemodynamic Monitor", "Infusion Pump ×3"],
-      status: "scheduled", estDuration: "90 min",
+      status: "scheduled",
+      estDuration: "90 min",
     },
     {
-      id: "s2", patient: "Rohan Iyer", mrn: "MRN-204902",
+      id: "s2",
+      patient: "Rohan Iyer",
+      mrn: "MRN-204902",
       procedure: "Total Hip Replacement (Left)",
-      room: "OR-4", date: "2026-06-04", time: "13:30",
-      surgeon: "Dr. Priya Nair", anesthesiologist: "Dr. Sunita Kapoor",
+      room: "OR-4",
+      date: "2026-06-04",
+      time: "13:30",
+      surgeon: "Dr. Priya Nair",
+      anesthesiologist: "Dr. Sunita Kapoor",
       nurses: ["Nurse Rekha S.", "Nurse Vijay T."],
       equipment: ["Orthopedic Power Tools Set", "C-Arm", "Cell Saver", "Electrosurgical Unit"],
-      status: "scheduled", estDuration: "3 hours",
+      status: "scheduled",
+      estDuration: "3 hours",
     },
     {
-      id: "s3", patient: "Deepak Joshi", mrn: "MRN-203001",
+      id: "s3",
+      patient: "Deepak Joshi",
+      mrn: "MRN-203001",
       procedure: "Laparoscopic Appendectomy",
-      room: "OR-2", date: "2026-06-02", time: "09:00",
-      surgeon: "Dr. Kiran Bose", anesthesiologist: "Dr. Alok Sharma",
+      room: "OR-2",
+      date: "2026-06-02",
+      time: "09:00",
+      surgeon: "Dr. Kiran Bose",
+      anesthesiologist: "Dr. Alok Sharma",
       nurses: ["Nurse Sunita V.", "Nurse Ram K."],
       equipment: ["Laparoscopic Tower", "Ultrasonic Scalpel", "Electrosurgical Unit"],
-      status: "in-progress", estDuration: "45 min",
+      status: "in-progress",
+      estDuration: "45 min",
     },
     {
-      id: "s4", patient: "Kavya Reddy", mrn: "MRN-206114",
+      id: "s4",
+      patient: "Kavya Reddy",
+      mrn: "MRN-206114",
       procedure: "LASIK Eye Surgery (Bilateral)",
-      room: "Eye Suite 1", date: "2026-06-01", time: "14:00",
-      surgeon: "Dr. Reena Pillai", anesthesiologist: "Local Anesthesia",
+      room: "Eye Suite 1",
+      date: "2026-06-01",
+      time: "14:00",
+      surgeon: "Dr. Reena Pillai",
+      anesthesiologist: "Local Anesthesia",
       nurses: ["Nurse Pooja A."],
       equipment: ["LASIK Excimer Laser", "Microkeratome", "Aberrometer"],
-      status: "completed", estDuration: "30 min",
+      status: "completed",
+      estDuration: "30 min",
     },
   ];
   const all = getAllState("surgeries");
@@ -1582,7 +2110,8 @@ app.get("/api/surgeries", requireAuth, (_, res) => {
 });
 
 app.post("/api/appointments", requireAuth, (req, res) => {
-  const { patientDid, patientName, doctorDid, doctorName, slot, mode, specialty, consentGranted } = req.body;
+  const { patientDid, patientName, doctorDid, doctorName, slot, mode, specialty, consentGranted } =
+    req.body;
 
   if (req.user.role === "patient" && req.user.did !== patientDid) {
     return res
@@ -1667,7 +2196,9 @@ app.post("/api/auth/setup", requireClientAuth, async (req, res) => {
   const allUsers = getAllState("users");
   const adminExists = allUsers.some((u) => u.value?.role === "admin");
   if (adminExists) {
-    return res.status(410).json({ error: "Setup already completed. An admin account already exists." });
+    return res
+      .status(410)
+      .json({ error: "Setup already completed. An admin account already exists." });
   }
 
   const { name, email, password, setupKey } = req.body;
@@ -1686,16 +2217,33 @@ app.post("/api/auth/setup", requireClientAuth, async (req, res) => {
   }
 
   const hashedPassword = await bcrypt.hash(password, 12);
-  putState("users", email, {
-    name, email, password: hashedPassword,
-    role: "admin", did: null,
-    createdAt: new Date().toISOString(), bootstrapped: true,
-  }, randomUUID());
+  putState(
+    "users",
+    email,
+    {
+      name,
+      email,
+      password: hashedPassword,
+      role: "admin",
+      did: null,
+      createdAt: new Date().toISOString(),
+      bootstrapped: true,
+    },
+    randomUUID(),
+  );
 
   const { token } = mintAccessToken({ email, role: "admin", name });
   const refreshToken = createRefreshToken(email, requestFingerprint(req));
   logger.info("bootstrap_admin_created", { email });
-  res.status(201).json({ success: true, message: "Admin account created. Setup is now locked.", token, refreshToken, user: { name, email, role: "admin" } });
+  res
+    .status(201)
+    .json({
+      success: true,
+      message: "Admin account created. Setup is now locked.",
+      token,
+      refreshToken,
+      user: { name, email, role: "admin" },
+    });
 });
 
 /**
@@ -1710,7 +2258,8 @@ app.post("/api/auth/signup", requireClientAuth, async (req, res) => {
   // Enforce patient-only self-registration
   if (role && role !== "patient") {
     return res.status(403).json({
-      error: "Self-registration is only available for patient accounts. Contact your administrator to create staff or admin accounts.",
+      error:
+        "Self-registration is only available for patient accounts. Contact your administrator to create staff or admin accounts.",
     });
   }
   const assignedRole = "patient";
@@ -1722,14 +2271,28 @@ app.post("/api/auth/signup", requireClientAuth, async (req, res) => {
     return res.status(400).json({ error: "Password must be at least 8 characters long" });
   }
   if (!/\d/.test(password) || !/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
-    return res.status(400).json({ error: "Password must contain at least one number and one special character" });
+    return res
+      .status(400)
+      .json({ error: "Password must contain at least one number and one special character" });
   }
   if (getState("users", email)) {
     return res.status(400).json({ error: "User already exists" });
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
-  putState("users", email, { name, email, password: hashedPassword, role: assignedRole, did: null, createdAt: new Date().toISOString() }, randomUUID());
+  putState(
+    "users",
+    email,
+    {
+      name,
+      email,
+      password: hashedPassword,
+      role: assignedRole,
+      did: null,
+      createdAt: new Date().toISOString(),
+    },
+    randomUUID(),
+  );
 
   const { token } = mintAccessToken({ email, role: assignedRole, name });
   const refreshToken = createRefreshToken(email, requestFingerprint(req));
@@ -1741,40 +2304,53 @@ app.post("/api/auth/signup", requireClientAuth, async (req, res) => {
  * POST /api/auth/users/create  — Admin creates staff/doctor/admin accounts.
  * This is the correct way to onboard clinical staff without self-registration.
  */
-app.post("/api/auth/users/create", requireClientAuth, requireAuth, requireRole(["admin"]), async (req, res) => {
-  const { name, email, role, password, department, specializations, employeeId } = req.body;
-  if (!name || !email || !role || !password) {
-    return res.status(400).json({ error: "name, email, role, and password are required" });
-  }
-  if (!["staff", "doctor", "admin"].includes(role)) {
-    return res.status(400).json({ error: "role must be staff, doctor, or admin" });
-  }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return res.status(400).json({ error: "Invalid email format" });
-  }
-  if (password.length < 8) {
-    return res.status(400).json({ error: "Password must be at least 8 characters" });
-  }
-  if (getState("users", email)) {
-    return res.status(400).json({ error: "User already exists" });
-  }
+app.post(
+  "/api/auth/users/create",
+  requireClientAuth,
+  requireAuth,
+  requireRole(["admin"]),
+  async (req, res) => {
+    const { name, email, role, password, department, specializations, employeeId } = req.body;
+    if (!name || !email || !role || !password) {
+      return res.status(400).json({ error: "name, email, role, and password are required" });
+    }
+    if (!["staff", "doctor", "admin"].includes(role)) {
+      return res.status(400).json({ error: "role must be staff, doctor, or admin" });
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ error: "Invalid email format" });
+    }
+    if (password.length < 8) {
+      return res.status(400).json({ error: "Password must be at least 8 characters" });
+    }
+    if (getState("users", email)) {
+      return res.status(400).json({ error: "User already exists" });
+    }
 
-  const hashedPassword = await bcrypt.hash(password, 10);
-  putState("users", email, {
-    name, email, password: hashedPassword, role,
-    did: null,
-    department: department || null,
-    specializations: specializations || [],
-    employeeId: employeeId || `EMP-${Math.floor(1000 + Math.random() * 9000)}`,
-    createdAt: new Date().toISOString(),
-    createdBy: req.user.email,
-  }, randomUUID());
+    const hashedPassword = await bcrypt.hash(password, 10);
+    putState(
+      "users",
+      email,
+      {
+        name,
+        email,
+        password: hashedPassword,
+        role,
+        did: null,
+        department: department || null,
+        specializations: specializations || [],
+        employeeId: employeeId || `EMP-${Math.floor(1000 + Math.random() * 9000)}`,
+        createdAt: new Date().toISOString(),
+        createdBy: req.user.email,
+      },
+      randomUUID(),
+    );
 
-  logAudit(req, { resource: email, action: "USER_CREATED", outcome: "success" });
-  logger.info("admin_created_user", { createdBy: req.user.email, newUser: email, role });
-  res.status(201).json({ success: true, user: { name, email, role } });
-});
-
+    logAudit(req, { resource: email, action: "USER_CREATED", outcome: "success" });
+    logger.info("admin_created_user", { createdBy: req.user.email, newUser: email, role });
+    res.status(201).json({ success: true, user: { name, email, role } });
+  },
+);
 
 app.post("/api/auth/login", requireClientAuth, async (req, res) => {
   const { email, password, mfaCode } = req.body;
@@ -1785,7 +2361,12 @@ app.post("/api/auth/login", requireClientAuth, async (req, res) => {
   // HIPAA Authentication: Check for Account Lockout
   const lockout = checkAccountLockout(email);
   if (lockout.isLocked) {
-    logAudit(req, { resource: email, action: "USER_LOGIN_LOCKED", outcome: "failure", severity: "warning" });
+    logAudit(req, {
+      resource: email,
+      action: "USER_LOGIN_LOCKED",
+      outcome: "failure",
+      severity: "warning",
+    });
     return res.status(423).json({
       error: "Account Locked",
       code: "ACCOUNT_LOCKED",
@@ -1822,7 +2403,9 @@ app.post("/api/auth/login", requireClientAuth, async (req, res) => {
           remainingSeconds: failStatus.remainingSeconds,
         });
       }
-      return res.status(401).json({ error: "Invalid email or password", attemptsRemaining: 5 - failStatus.count });
+      return res
+        .status(401)
+        .json({ error: "Invalid email or password", attemptsRemaining: 5 - failStatus.count });
     }
   }
 
@@ -1859,7 +2442,12 @@ app.post("/api/auth/login", requireClientAuth, async (req, res) => {
   };
 
   // Mint access token with jti + issue opaque refresh token
-  const { token } = mintAccessToken({ email: user.email, role: user.role, name: user.name, did: user.did });
+  const { token } = mintAccessToken({
+    email: user.email,
+    role: user.role,
+    name: user.name,
+    did: user.did,
+  });
   const refreshToken = createRefreshToken(user.email, requestFingerprint(req));
 
   // Set HttpOnly Cookie for Refresh Token (Protection against XSS theft)
@@ -1871,7 +2459,11 @@ app.post("/api/auth/login", requireClientAuth, async (req, res) => {
     path: "/api/auth",
   });
 
-  logger.info("user_login", { email: user.email, role: user.role, mfaVerified: !!userEntry.value.mfaEnabled });
+  logger.info("user_login", {
+    email: user.email,
+    role: user.role,
+    mfaVerified: !!userEntry.value.mfaEnabled,
+  });
   res.json({ success: true, token, refreshToken, user });
 });
 
@@ -1891,7 +2483,8 @@ app.post("/api/auth/mfa/setup", requireAuth, (req, res) => {
   res.json({
     secret,
     otpauthUrl,
-    instructions: "Scan the QR code or enter the secret key into your Google Authenticator or Phantom app, then call /api/auth/mfa/verify with the 6-digit code.",
+    instructions:
+      "Scan the QR code or enter the secret key into your Google Authenticator or Phantom app, then call /api/auth/mfa/verify with the 6-digit code.",
   });
 });
 
@@ -1904,7 +2497,9 @@ app.post("/api/auth/mfa/verify", requireAuth, (req, res) => {
 
   const secretToVerify = userEntry.value.pendingMfaSecret || userEntry.value.mfaSecret;
   if (!secretToVerify) {
-    return res.status(400).json({ error: "No pending MFA setup found. Call /api/auth/mfa/setup first." });
+    return res
+      .status(400)
+      .json({ error: "No pending MFA setup found. Call /api/auth/mfa/setup first." });
   }
 
   const isValid = verifyTotpToken(secretToVerify, code);
@@ -1920,9 +2515,12 @@ app.post("/api/auth/mfa/verify", requireAuth, (req, res) => {
   putState("users", req.user.email, userEntry.value, randomUUID());
   logAudit(req, { resource: req.user.email, action: "MFA_ENABLED", outcome: "success" });
 
-  res.json({ success: true, message: "Multi-Factor Authentication (TOTP 2FA) has been successfully activated for your account!" });
+  res.json({
+    success: true,
+    message:
+      "Multi-Factor Authentication (TOTP 2FA) has been successfully activated for your account!",
+  });
 });
-
 
 app.get("/api/auth/me", requireAuth, (req, res) => {
   const userEntry = getState("users", req.user.email);
@@ -1938,7 +2536,7 @@ app.get("/api/auth/me", requireAuth, (req, res) => {
       walletAddress: userEntry.value.walletAddress || null,
       mrn: userEntry.value.mrn || null,
       employeeId: userEntry.value.employeeId || null,
-    }
+    },
   });
 });
 
@@ -1976,12 +2574,13 @@ app.post("/api/auth/link-wallet", requireAuth, (req, res) => {
       walletAddress,
       mrn: userEntry.value.mrn || null,
       employeeId: userEntry.value.employeeId || null,
-    }
+    },
   });
 });
 
 app.post("/api/auth/update-profile", requireAuth, (req, res) => {
-  const { name, phone, age, gender, bloodGroup, allergies, department, role, specializations } = req.body;
+  const { name, phone, age, gender, bloodGroup, allergies, department, role, specializations } =
+    req.body;
   const email = req.user.email;
   const userEntry = getState("users", email);
   if (!userEntry) {
@@ -1995,9 +2594,12 @@ app.post("/api/auth/update-profile", requireAuth, (req, res) => {
   if (gender) userEntry.value.gender = gender;
   if (bloodGroup) userEntry.value.bloodGroup = bloodGroup;
   if (allergies) {
-    userEntry.value.allergies = Array.isArray(allergies) 
-      ? allergies 
-      : String(allergies).split(",").map(s => s.trim()).filter(Boolean);
+    userEntry.value.allergies = Array.isArray(allergies)
+      ? allergies
+      : String(allergies)
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean);
   }
   // Staff properties
   if (department) userEntry.value.department = department;
@@ -2005,7 +2607,10 @@ app.post("/api/auth/update-profile", requireAuth, (req, res) => {
   if (specializations) {
     userEntry.value.specializations = Array.isArray(specializations)
       ? specializations
-      : String(specializations).split(",").map(s => s.trim()).filter(Boolean);
+      : String(specializations)
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean);
   }
 
   putState("users", email, userEntry.value, randomUUID());
@@ -2047,10 +2652,9 @@ app.post("/api/auth/update-profile", requireAuth, (req, res) => {
       allergies: userEntry.value.allergies || [],
       department: userEntry.value.department || null,
       specializations: userEntry.value.specializations || [],
-    }
+    },
   });
 });
-
 
 /**
  * POST /api/auth/refresh  — Rotate refresh token and mint a new access token.
@@ -2111,7 +2715,6 @@ app.post("/api/auth/logout", requireAuth, (req, res) => {
   logger.info("user_logged_out", { email: req.user?.email });
 });
 
-
 /**
  * POST /api/auth/revoke/:email  — Admin force-logout all sessions for a user.
  */
@@ -2157,7 +2760,6 @@ app.post("/api/admin/backup/verify", requireAuth, requireRole(["admin"]), (req, 
     res.status(500).json({ error: `Verification failed: ${err.message}` });
   }
 });
-
 
 app.get("/api/auth/users", requireAuth, requireRole(["admin"]), (req, res) => {
   const entries = getAllState("users");
@@ -2274,12 +2876,17 @@ app.post("/api/zkproof/generate", requireAuth, requireRole(["patient"]), (req, r
   };
 
   const txId = "tx-zkp-" + Date.now().toString(36);
-  putState("zkproofs", proofId, {
-    ...proof,
-    module: "did-registry",
-    fcn: "GenerateZKProof",
-    network: NETWORK,
-  }, txId);
+  putState(
+    "zkproofs",
+    proofId,
+    {
+      ...proof,
+      module: "did-registry",
+      fcn: "GenerateZKProof",
+      network: NETWORK,
+    },
+    txId,
+  );
 
   res.json({ proof, txId });
 });
@@ -2356,14 +2963,19 @@ httpServer.listen(PORT, async () => {
   // Ensure default admin exists in the world state database with the correct password hash
   try {
     const { putState } = await import("./world-state-db.js");
-    putState("users", "admin@embrace.org", {
-      name: "Embrace Admin",
-      email: "admin@embrace.org",
-      password: "$2b$10$jjLG4tmULwmS1ZyHfrj9qOGCawSVaxrBTxn/o1kIv8akjYHm/x0DK", // "admin"
-      role: "admin",
-      did: null,
-      createdAt: new Date().toISOString()
-    }, "genesis");
+    putState(
+      "users",
+      "admin@embrace.org",
+      {
+        name: "Embrace Admin",
+        email: "admin@embrace.org",
+        password: "$2b$10$jjLG4tmULwmS1ZyHfrj9qOGCawSVaxrBTxn/o1kIv8akjYHm/x0DK", // "admin"
+        role: "admin",
+        did: null,
+        createdAt: new Date().toISOString(),
+      },
+      "genesis",
+    );
     logger.info("default_admin_seeded", { email: "admin@embrace.org" });
   } catch (err) {
     logger.error("default_admin_seed_failed", { error: err.message });

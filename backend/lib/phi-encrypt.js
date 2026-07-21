@@ -25,13 +25,7 @@
  *   const plain   = decryptValue(storedString); // → original object
  */
 
-import {
-  createCipheriv,
-  createDecipheriv,
-  randomBytes,
-  createHash,
-  scryptSync,
-} from "crypto";
+import { createCipheriv, createDecipheriv, randomBytes, createHash, scryptSync } from "crypto";
 
 // ─── Key management ────────────────────────────────────────────────────────────
 
@@ -65,7 +59,6 @@ function deriveKey() {
   const salt = Buffer.from("embrace-health-phi-salt-v1");
   return scryptSync(devSeed, salt, 32, { N: 16384, r: 8, p: 1 });
 }
-
 
 // Cache the key in module scope — derived once at startup
 let _KEY = null;

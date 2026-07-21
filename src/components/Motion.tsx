@@ -12,7 +12,13 @@ export const stagger: Variants = {
 };
 
 /** Standard page-enter animation. Wrap route bodies in this. */
-export function PageTransition({ children, className }: { children: ReactNode; className?: string }) {
+export function PageTransition({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}

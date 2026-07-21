@@ -110,16 +110,13 @@ export class MerkleTree {
   }
 }
 
-export async function verifyProof(
-  leaf: string,
-  proof: string[],
-  root: string
-): Promise<boolean> {
+export async function verifyProof(leaf: string, proof: string[], root: string): Promise<boolean> {
   let currentHash = await sha256(leaf);
   for (const sibling of proof) {
-    currentHash = currentHash < sibling
-      ? await sha256(currentHash + sibling)
-      : await sha256(sibling + currentHash);
+    currentHash =
+      currentHash < sibling
+        ? await sha256(currentHash + sibling)
+        : await sha256(sibling + currentHash);
   }
   return currentHash === root;
 }

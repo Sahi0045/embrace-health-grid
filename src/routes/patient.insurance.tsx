@@ -16,7 +16,7 @@ export const Route = createFileRoute("/patient/insurance")({
 });
 
 const tabs = ["Overview", "Policies", "Claims"] as const;
-type Tab = typeof tabs[number];
+type Tab = (typeof tabs)[number];
 
 function InsurancePage() {
   const [tab, setTab] = useState<Tab>("Overview");
@@ -41,34 +41,40 @@ function InsurancePage() {
     );
   }
 
-  const livePolicies = patient?.insuranceProvider ? [
-    {
-      provider: patient.insuranceProvider,
-      policyNo: patient.insurancePolicyNo || "POL-UNKNOWN-001",
-      type: "Comprehensive Health Plan",
-      sumInsured: 1000000,
-      used: 0,
-      validFrom: "2025-04-01",
-      validTo: "2026-03-31",
-      status: "active" as const,
-    }
-  ] : [
-    {
-      provider: "Embrace Health Insurance",
-      policyNo: "POL-EMBRACE-DEFAULT",
-      type: "Comprehensive Health Plan",
-      sumInsured: 1000000,
-      used: 145000,
-      validFrom: "2025-04-01",
-      validTo: "2026-03-31",
-      status: "active" as const,
-    }
-  ];
+  const livePolicies = patient?.insuranceProvider
+    ? [
+        {
+          provider: patient.insuranceProvider,
+          policyNo: patient.insurancePolicyNo || "POL-UNKNOWN-001",
+          type: "Comprehensive Health Plan",
+          sumInsured: 1000000,
+          used: 0,
+          validFrom: "2025-04-01",
+          validTo: "2026-03-31",
+          status: "active" as const,
+        },
+      ]
+    : [
+        {
+          provider: "Embrace Health Insurance",
+          policyNo: "POL-EMBRACE-DEFAULT",
+          type: "Comprehensive Health Plan",
+          sumInsured: 1000000,
+          used: 145000,
+          validFrom: "2025-04-01",
+          validTo: "2026-03-31",
+          status: "active" as const,
+        },
+      ];
 
   const patientClaims = (claimsData?.claims ?? []).slice(0, 10);
-  const activeClaims = patientClaims.filter((c: any) => c.status === "pending" || c.status === "under-review");
+  const activeClaims = patientClaims.filter(
+    (c: any) => c.status === "pending" || c.status === "under-review",
+  );
   const totalClaimed = patientClaims.reduce((s: number, c: any) => s + (c.amount || 0), 0);
-  const totalApproved = patientClaims.filter((c: any) => c.approvedAmount).reduce((s: number, c: any) => s + (c.approvedAmount ?? 0), 0);
+  const totalApproved = patientClaims
+    .filter((c: any) => c.approvedAmount)
+    .reduce((s: number, c: any) => s + (c.approvedAmount ?? 0), 0);
 
   const [policies, setPolicies] = useState<any[]>([]);
   const patientDid = typeof window !== "undefined" ? localStorage.getItem("userDID") || "" : "";
@@ -80,7 +86,6 @@ function InsurancePage() {
       .catch((err) => console.error("Error loading policies:", err));
   }, [patientDid]);
 
-
   return (
     <RouteGuard requiredRole="patient">
       <PageHeader
@@ -91,7 +96,7 @@ function InsurancePage() {
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-border px-8 bg-card">
-        {tabs.map(t => (
+        {tabs.map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -108,17 +113,44 @@ function InsurancePage() {
             <StaggerItem>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 {[
-                  { label: "Active Policies", value: livePolicies.filter(p => p.status === "active").length, icon: ShieldCheck, color: "text-success bg-success/10" },
-                  { label: "Total Claimed", value: `₹${(totalClaimed / 1000).toFixed(0)}K`, icon: IndianRupee, color: "text-primary bg-primary/10" },
-                  { label: "Total Approved", value: `₹${(totalApproved / 1000).toFixed(0)}K`, icon: TrendingUp, color: "text-chart-2 bg-chart-2/10" },
-                  { label: "Pending Claims", value: activeClaims.length, icon: Clock, color: "text-warning-foreground bg-warning/10" },
+                  {
+                    label: "Active Policies",
+                    value: livePolicies.filter((p) => p.status === "active").length,
+                    icon: ShieldCheck,
+                    color: "text-success bg-success/10",
+                  },
+                  {
+                    label: "Total Claimed",
+                    value: `₹${(totalClaimed / 1000).toFixed(0)}K`,
+                    icon: IndianRupee,
+                    color: "text-primary bg-primary/10",
+                  },
+                  {
+                    label: "Total Approved",
+                    value: `₹${(totalApproved / 1000).toFixed(0)}K`,
+                    icon: TrendingUp,
+                    color: "text-chart-2 bg-chart-2/10",
+                  },
+                  {
+                    label: "Pending Claims",
+                    value: activeClaims.length,
+                    icon: Clock,
+                    color: "text-warning-foreground bg-warning/10",
+                  },
                 ].map((s) => {
                   const Icon = s.icon;
                   return (
-                    <div key={s.label} className="rounded-xl border border-border bg-card p-4 shadow-clinical">
+                    <div
+                      key={s.label}
+                      className="rounded-xl border border-border bg-card p-4 shadow-clinical"
+                    >
                       <div className="flex items-center justify-between">
-                        <div className="text-xs text-muted-foreground uppercase tracking-wide">{s.label}</div>
-                        <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${s.color}`}>
+                        <div className="text-xs text-muted-foreground uppercase tracking-wide">
+                          {s.label}
+                        </div>
+                        <div
+                          className={`flex h-8 w-8 items-center justify-center rounded-lg ${s.color}`}
+                        >
                           <Icon className="h-4 w-4" />
                         </div>
                       </div>
@@ -132,9 +164,11 @@ function InsurancePage() {
             <StaggerItem>
               <div className="space-y-4">
                 <div className="text-sm font-semibold text-foreground">Active Coverage</div>
-                {livePolicies.filter(p => p.status === "active").map((p, i) => (
-                  <InsuranceCard key={i} {...p} />
-                ))}
+                {livePolicies
+                  .filter((p) => p.status === "active")
+                  .map((p, i) => (
+                    <InsuranceCard key={i} {...p} />
+                  ))}
               </div>
             </StaggerItem>
 
@@ -145,7 +179,9 @@ function InsurancePage() {
                   Recent Claims
                 </div>
                 <div className="space-y-3">
-                  {patientClaims.slice(0, 3).map((c: any) => <ClaimsCard key={c.id} claim={c} />)}
+                  {patientClaims.slice(0, 3).map((c: any) => (
+                    <ClaimsCard key={c.id} claim={c} />
+                  ))}
                 </div>
               </div>
             </StaggerItem>
@@ -154,16 +190,19 @@ function InsurancePage() {
 
         {tab === "Policies" && (
           <div className="space-y-4">
-            {livePolicies.map((p, i) => <InsuranceCard key={i} {...p} />)}
+            {livePolicies.map((p, i) => (
+              <InsuranceCard key={i} {...p} />
+            ))}
           </div>
         )}
 
         {tab === "Claims" && (
           <div className="space-y-3">
-            {patientClaims.map((c: any) => <ClaimsCard key={c.id} claim={c} />)}
+            {patientClaims.map((c: any) => (
+              <ClaimsCard key={c.id} claim={c} />
+            ))}
           </div>
         )}
-
       </div>
     </RouteGuard>
   );

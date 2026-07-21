@@ -47,18 +47,19 @@ export function resetBackendCache() {
   _lastCheck = 0;
 }
 
-export const getStats = () => apiFetch<{
-  blockHeight: number;
-  txCount: number;
-  peerCount: number;
-  nodesCountUp: number;
-  nodesCountTotal: number;
-  worldStateSize: number;
-  throughputTps: number;
-  lastBlockTime: string;
-  latencyMs: number;
-  complianceScore: number;
-}>("/stats");
+export const getStats = () =>
+  apiFetch<{
+    blockHeight: number;
+    txCount: number;
+    peerCount: number;
+    nodesCountUp: number;
+    nodesCountTotal: number;
+    worldStateSize: number;
+    throughputTps: number;
+    lastBlockTime: string;
+    latencyMs: number;
+    complianceScore: number;
+  }>("/stats");
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   // Import token from auth module — reads sessionStorage (not raw localStorage)
@@ -88,7 +89,6 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   }
   return r.json();
 }
-
 
 // ─── DIDs ─────────────────────────────────────────────────────────────────────
 export const getAllDIDs = () => apiFetch<{ dids: any[]; total: number }>(`/did`);
@@ -226,7 +226,6 @@ export const getRehabSessions = (patientDid: string) =>
 export const getFeedbackList = (patientDid: string) =>
   apiFetch<{ feedback: any[] }>(`/feedback/${encodeURIComponent(patientDid)}`);
 
-
 // ─── NFC Cards ────────────────────────────────────────────────────────────────
 export const issueNFCCard = (data: {
   patientDid: string;
@@ -310,7 +309,6 @@ export const createStaffRequest = (data: {
     body: JSON.stringify(data),
   });
 
-
 // ─── Pagers ───────────────────────────────────────────────────────────────────
 export const dispatchPagerNotify = (staffDid: string, name: string, location: string) =>
   apiFetch<{ success: boolean; notifyEvent: any }>(`/tracker/notify`, {
@@ -365,8 +363,7 @@ export const getPrescriptions = (patientDid: string) =>
 export const getAllPrescriptions = () =>
   apiFetch<{ prescriptions: any[]; total: number }>(`/prescriptions`);
 
-export const getSurgeries = () =>
-  apiFetch<{ surgeries: any[]; total: number }>(`/surgeries`);
+export const getSurgeries = () => apiFetch<{ surgeries: any[]; total: number }>(`/surgeries`);
 
 // ─── Labs ─────────────────────────────────────────────────────────────────────
 export const orderLab = (
@@ -544,7 +541,6 @@ export const updateProfile = (data: {
     body: JSON.stringify(data),
   });
 
-
 export const getUsers = () =>
   apiFetch<{
     users: Array<{
@@ -590,10 +586,10 @@ export const verifyZKProof = (proofId: string, patientDid?: string) =>
 // ─── Auth (JWT) ───────────────────────────────────────────────────────────────
 const getStoredUser = () => {
   if (typeof window === "undefined") return null;
-  const role  = localStorage.getItem("userRole");
+  const role = localStorage.getItem("userRole");
   const email = localStorage.getItem("userEmail");
-  const name  = localStorage.getItem("userName") ?? undefined;
-  const did   = localStorage.getItem("userDID") ?? undefined;
+  const name = localStorage.getItem("userName") ?? undefined;
+  const did = localStorage.getItem("userDID") ?? undefined;
   // Gate on sessionStorage token existing (logged-out after tab close)
   if (!sessionStorage.getItem("authToken")) return null;
   if (!role || !email) return null;
@@ -627,10 +623,10 @@ export const createUserAccount = (data: {
 
 /** Admin-only: force-logout all sessions for a user. */
 export const revokeUserSessions = (email: string) =>
-  apiFetch<{ success: boolean; message: string }>(
-    `/auth/revoke/${encodeURIComponent(email)}`,
-    { method: "POST", body: "{}" },
-  );
+  apiFetch<{ success: boolean; message: string }>(`/auth/revoke/${encodeURIComponent(email)}`, {
+    method: "POST",
+    body: "{}",
+  });
 
 /** Bootstrap: create first admin (only works when no admin exists). */
 export const bootstrapSetup = (data: {
@@ -639,11 +635,10 @@ export const bootstrapSetup = (data: {
   password: string;
   setupKey?: string;
 }) =>
-  apiFetch<{ success: boolean; token: string; refreshToken: string; user: any }>(
-    `/auth/setup`,
-    { method: "POST", body: JSON.stringify(data) },
-  );
-
+  apiFetch<{ success: boolean; token: string; refreshToken: string; user: any }>(`/auth/setup`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
 
 export const signIdentityPayload = (data: {
   did: string;
@@ -698,8 +693,7 @@ export const getVaccines = (patientDid: string) =>
   apiFetch<{ vaccines: any[]; total: number }>(`/vaccines/${encodeURIComponent(patientDid)}`);
 
 // ─── Doctors ──────────────────────────────────────────────────────────────
-export const getDoctors = () =>
-  apiFetch<{ doctors: any[]; total: number }>(`/doctors`);
+export const getDoctors = () => apiFetch<{ doctors: any[]; total: number }>(`/doctors`);
 
 // ─── Inpatient ────────────────────────────────────────────────────────────
 export const getInpatientData = (patientDid: string) =>
@@ -715,7 +709,9 @@ export const getInpatientData = (patientDid: string) =>
 
 // ─── Extended API clients for live sync ─────────────────────────────────────
 export const getInsurancePolicies = (patientDid: string) =>
-  apiFetch<{ policies: any[]; total: number }>(`/insurance/policies/${encodeURIComponent(patientDid)}`);
+  apiFetch<{ policies: any[]; total: number }>(
+    `/insurance/policies/${encodeURIComponent(patientDid)}`,
+  );
 
 export const getPreferences = (patientDid: string) =>
   apiFetch<{ preferences: any }>(`/preferences/${encodeURIComponent(patientDid)}`);
@@ -729,8 +725,7 @@ export const updatePreferences = (patientDid: string, data: any) =>
 export const getStaffSchedule = (staffEmail: string) =>
   apiFetch<{ schedule: any[] }>(`/staff/schedule/${encodeURIComponent(staffEmail)}`);
 
-export const getPolicies = () =>
-  apiFetch<{ policies: any[]; total: number }>("/policies");
+export const getPolicies = () => apiFetch<{ policies: any[]; total: number }>("/policies");
 
 export const createPolicy = (data: any) =>
   apiFetch<{ policy: any }>("/policies", {
@@ -750,7 +745,13 @@ export const updateFraudAlertStatus = (id: string, status: string) =>
     body: JSON.stringify({ status }),
   });
 
-export const payBill = (data: { patientDid: string; patientName: string; amount: number; category: string; reference?: string }) =>
+export const payBill = (data: {
+  patientDid: string;
+  patientName: string;
+  amount: number;
+  category: string;
+  reference?: string;
+}) =>
   apiFetch<any>("/billing/payment", {
     method: "POST",
     body: JSON.stringify(data),

@@ -25,7 +25,7 @@ class FHIRResource {
     this.meta = {
       versionId: "1",
       lastUpdated: new Date().toISOString(),
-      profile: [`http://hl7.org/fhir/StructureDefinition/${resourceType}`]
+      profile: [`http://hl7.org/fhir/StructureDefinition/${resourceType}`],
     };
   }
 }
@@ -43,37 +43,41 @@ export class FHIRPatient extends FHIRResource {
         system: "urn:oid:embrace-health",
         value: patientData.id || patientData.did,
         type: {
-          coding: [{
-            system: "http://terminology.hl7.org/CodeSystem/v2-0203",
-            code: "MR",
-            display: "Medical Record Number"
-          }]
-        }
-      }
+          coding: [
+            {
+              system: "http://terminology.hl7.org/CodeSystem/v2-0203",
+              code: "MR",
+              display: "Medical Record Number",
+            },
+          ],
+        },
+      },
     ];
 
     this.active = patientData.active !== false;
 
-    this.name = [{
-      use: "official",
-      family: patientData.lastName || patientData.name?.split(" ").pop(),
-      given: [patientData.firstName || patientData.name?.split(" ")[0]],
-      text: patientData.name
-    }];
+    this.name = [
+      {
+        use: "official",
+        family: patientData.lastName || patientData.name?.split(" ").pop(),
+        given: [patientData.firstName || patientData.name?.split(" ")[0]],
+        text: patientData.name,
+      },
+    ];
 
     this.telecom = [];
     if (patientData.email) {
       this.telecom.push({
         system: "email",
         value: patientData.email,
-        use: "home"
+        use: "home",
       });
     }
     if (patientData.phone) {
       this.telecom.push({
         system: "phone",
         value: patientData.phone,
-        use: "home"
+        use: "home",
       });
     }
 
@@ -81,16 +85,18 @@ export class FHIRPatient extends FHIRResource {
     this.birthDate = patientData.birthDate || patientData.dateOfBirth;
 
     if (patientData.address) {
-      this.address = [{
-        use: "home",
-        type: "physical",
-        text: patientData.address,
-        line: [patientData.address],
-        city: patientData.city,
-        state: patientData.state,
-        postalCode: patientData.zipCode,
-        country: patientData.country || "US"
-      }];
+      this.address = [
+        {
+          use: "home",
+          type: "physical",
+          text: patientData.address,
+          line: [patientData.address],
+          city: patientData.city,
+          state: patientData.state,
+          postalCode: patientData.zipCode,
+          country: patientData.country || "US",
+        },
+      ];
     }
 
     // Extensions for additional data
@@ -98,19 +104,21 @@ export class FHIRPatient extends FHIRResource {
     if (patientData.did) {
       this.extension.push({
         url: "http://embrace-health.org/fhir/StructureDefinition/did",
-        valueString: patientData.did
+        valueString: patientData.did,
       });
     }
     if (patientData.bloodType) {
       this.extension.push({
         url: "http://embrace-health.org/fhir/StructureDefinition/blood-type",
         valueCodeableConcept: {
-          coding: [{
-            system: "http://loinc.org",
-            code: patientData.bloodType,
-            display: patientData.bloodType
-          }]
-        }
+          coding: [
+            {
+              system: "http://loinc.org",
+              code: patientData.bloodType,
+              display: patientData.bloodType,
+            },
+          ],
+        },
       });
     }
   }
@@ -125,26 +133,32 @@ export class FHIRObservation extends FHIRResource {
     super("Observation");
 
     this.status = observationData.status || "final";
-    this.category = [{
-      coding: [{
-        system: "http://terminology.hl7.org/CodeSystem/observation-category",
-        code: observationData.category || "vital-signs",
-        display: "Vital Signs"
-      }]
-    }];
+    this.category = [
+      {
+        coding: [
+          {
+            system: "http://terminology.hl7.org/CodeSystem/observation-category",
+            code: observationData.category || "vital-signs",
+            display: "Vital Signs",
+          },
+        ],
+      },
+    ];
 
     this.code = {
-      coding: [observationData.coding || {
-        system: "http://loinc.org",
-        code: observationData.loincCode,
-        display: observationData.name
-      }],
-      text: observationData.name
+      coding: [
+        observationData.coding || {
+          system: "http://loinc.org",
+          code: observationData.loincCode,
+          display: observationData.name,
+        },
+      ],
+      text: observationData.name,
     };
 
     this.subject = {
       reference: `Patient/${observationData.patientId}`,
-      display: observationData.patientName
+      display: observationData.patientName,
     };
 
     this.effectiveDateTime = observationData.timestamp || new Date().toISOString();
@@ -155,33 +169,39 @@ export class FHIRObservation extends FHIRResource {
         value: observationData.value,
         unit: observationData.unit,
         system: "http://unitsofmeasure.org",
-        code: observationData.unitCode || observationData.unit
+        code: observationData.unitCode || observationData.unit,
       };
     }
 
     // Reference ranges
     if (observationData.referenceRange) {
-      this.referenceRange = [{
-        low: {
-          value: observationData.referenceRange.low,
-          unit: observationData.unit
+      this.referenceRange = [
+        {
+          low: {
+            value: observationData.referenceRange.low,
+            unit: observationData.unit,
+          },
+          high: {
+            value: observationData.referenceRange.high,
+            unit: observationData.unit,
+          },
         },
-        high: {
-          value: observationData.referenceRange.high,
-          unit: observationData.unit
-        }
-      }];
+      ];
     }
 
     // Interpretation (normal, high, low)
     if (observationData.interpretation) {
-      this.interpretation = [{
-        coding: [{
-          system: "http://terminology.hl7.org/CodeSystem/v3-ObservationInterpretation",
-          code: observationData.interpretation.toUpperCase(),
-          display: observationData.interpretation
-        }]
-      }];
+      this.interpretation = [
+        {
+          coding: [
+            {
+              system: "http://terminology.hl7.org/CodeSystem/v3-ObservationInterpretation",
+              code: observationData.interpretation.toUpperCase(),
+              display: observationData.interpretation,
+            },
+          ],
+        },
+      ];
     }
   }
 }
@@ -198,59 +218,67 @@ export class FHIRMedicationRequest extends FHIRResource {
     this.intent = "order";
 
     this.medicationCodeableConcept = {
-      coding: [{
-        system: "http://www.nlm.nih.gov/research/umls/rxnorm",
-        code: prescriptionData.rxnormCode,
-        display: prescriptionData.medication
-      }],
-      text: prescriptionData.medication
+      coding: [
+        {
+          system: "http://www.nlm.nih.gov/research/umls/rxnorm",
+          code: prescriptionData.rxnormCode,
+          display: prescriptionData.medication,
+        },
+      ],
+      text: prescriptionData.medication,
     };
 
     this.subject = {
       reference: `Patient/${prescriptionData.patientId}`,
-      display: prescriptionData.patientName
+      display: prescriptionData.patientName,
     };
 
     this.authoredOn = prescriptionData.prescribedDate || new Date().toISOString();
 
     this.requester = {
       reference: `Practitioner/${prescriptionData.doctorId}`,
-      display: prescriptionData.doctorName
+      display: prescriptionData.doctorName,
     };
 
-    this.dosageInstruction = [{
-      text: prescriptionData.dosage,
-      timing: {
-        repeat: {
-          frequency: prescriptionData.frequency || 1,
-          period: 1,
-          periodUnit: "d"
-        }
+    this.dosageInstruction = [
+      {
+        text: prescriptionData.dosage,
+        timing: {
+          repeat: {
+            frequency: prescriptionData.frequency || 1,
+            period: 1,
+            periodUnit: "d",
+          },
+        },
+        route: {
+          coding: [
+            {
+              system: "http://snomed.info/sct",
+              code: "26643006",
+              display: "Oral",
+            },
+          ],
+        },
+        doseAndRate: [
+          {
+            doseQuantity: {
+              value: prescriptionData.doseValue,
+              unit: prescriptionData.doseUnit,
+              system: "http://unitsofmeasure.org",
+              code: prescriptionData.doseUnit,
+            },
+          },
+        ],
       },
-      route: {
-        coding: [{
-          system: "http://snomed.info/sct",
-          code: "26643006",
-          display: "Oral"
-        }]
-      },
-      doseAndRate: [{
-        doseQuantity: {
-          value: prescriptionData.doseValue,
-          unit: prescriptionData.doseUnit,
-          system: "http://unitsofmeasure.org",
-          code: prescriptionData.doseUnit
-        }
-      }]
-    }];
+    ];
 
     if (prescriptionData.duration) {
       this.dispenseRequest = {
         validityPeriod: {
           start: new Date().toISOString(),
-          end: new Date(Date.now() + prescriptionData.duration * 24 * 60 * 60 * 1000).toISOString()
+          end: new Date(Date.now() + prescriptionData.duration * 24 * 60 * 60 * 1000).toISOString(),
         },
-        numberOfRepeatsAllowed: prescriptionData.refills || 0
+        numberOfRepeatsAllowed: prescriptionData.refills || 0,
       };
     }
   }
@@ -268,42 +296,50 @@ export class FHIREncounter extends FHIRResource {
     this.class = {
       system: "http://terminology.hl7.org/CodeSystem/v3-ActCode",
       code: appointmentData.encounterClass || "AMB",
-      display: "ambulatory"
+      display: "ambulatory",
     };
 
-    this.type = [{
-      coding: [{
-        system: "http://snomed.info/sct",
-        code: "185349003",
-        display: "Encounter for check up"
-      }],
-      text: appointmentData.reason
-    }];
+    this.type = [
+      {
+        coding: [
+          {
+            system: "http://snomed.info/sct",
+            code: "185349003",
+            display: "Encounter for check up",
+          },
+        ],
+        text: appointmentData.reason,
+      },
+    ];
 
     this.subject = {
       reference: `Patient/${appointmentData.patientId}`,
-      display: appointmentData.patientName
+      display: appointmentData.patientName,
     };
 
-    this.participant = [{
-      individual: {
-        reference: `Practitioner/${appointmentData.doctorId}`,
-        display: appointmentData.doctorName
-      }
-    }];
+    this.participant = [
+      {
+        individual: {
+          reference: `Practitioner/${appointmentData.doctorId}`,
+          display: appointmentData.doctorName,
+        },
+      },
+    ];
 
     this.period = {
       start: appointmentData.scheduledTime,
-      end: appointmentData.endTime
+      end: appointmentData.endTime,
     };
 
     if (appointmentData.location) {
-      this.location = [{
-        location: {
-          reference: `Location/${appointmentData.locationId}`,
-          display: appointmentData.location
-        }
-      }];
+      this.location = [
+        {
+          location: {
+            reference: `Location/${appointmentData.locationId}`,
+            display: appointmentData.location,
+          },
+        },
+      ];
     }
   }
 }
@@ -317,40 +353,48 @@ export class FHIRDiagnosticReport extends FHIRResource {
     super("DiagnosticReport");
 
     this.status = labData.status || "final";
-    this.category = [{
-      coding: [{
-        system: "http://terminology.hl7.org/CodeSystem/v2-0074",
-        code: "LAB",
-        display: "Laboratory"
-      }]
-    }];
+    this.category = [
+      {
+        coding: [
+          {
+            system: "http://terminology.hl7.org/CodeSystem/v2-0074",
+            code: "LAB",
+            display: "Laboratory",
+          },
+        ],
+      },
+    ];
 
     this.code = {
-      coding: [{
-        system: "http://loinc.org",
-        code: labData.loincCode,
-        display: labData.testName
-      }],
-      text: labData.testName
+      coding: [
+        {
+          system: "http://loinc.org",
+          code: labData.loincCode,
+          display: labData.testName,
+        },
+      ],
+      text: labData.testName,
     };
 
     this.subject = {
       reference: `Patient/${labData.patientId}`,
-      display: labData.patientName
+      display: labData.patientName,
     };
 
     this.effectiveDateTime = labData.testDate || new Date().toISOString();
     this.issued = labData.resultDate || new Date().toISOString();
 
-    this.performer = [{
-      reference: `Organization/${labData.labId}`,
-      display: labData.labName
-    }];
+    this.performer = [
+      {
+        reference: `Organization/${labData.labId}`,
+        display: labData.labName,
+      },
+    ];
 
     if (labData.results && Array.isArray(labData.results)) {
-      this.result = labData.results.map(r => ({
+      this.result = labData.results.map((r) => ({
         reference: `Observation/${r.id}`,
-        display: r.name
+        display: r.name,
       }));
     }
 
@@ -386,14 +430,14 @@ export function createFHIRBundle(resources, type = "collection") {
     resourceType: "Bundle",
     id: generateFHIRId(),
     meta: {
-      lastUpdated: new Date().toISOString()
+      lastUpdated: new Date().toISOString(),
     },
     type: type,
     total: resources.length,
-    entry: resources.map(resource => ({
+    entry: resources.map((resource) => ({
       fullUrl: `${resource.resourceType}/${resource.id}`,
-      resource: resource
-    }))
+      resource: resource,
+    })),
   };
 }
 
@@ -417,7 +461,7 @@ export function validateFHIRResource(resource) {
 
   return {
     valid: errors.length === 0,
-    errors
+    errors,
   };
 }
 
@@ -437,7 +481,7 @@ export const SNOMED_CODES = {
 
   // Body sites
   left_arm: "368208006",
-  right_arm: "368209003"
+  right_arm: "368209003",
 };
 
 /**
@@ -460,7 +504,7 @@ export const ICD10_CODES = {
 
   // General
   fever: "R50.9",
-  headache: "R51"
+  headache: "R51",
 };
 
 /**
@@ -486,5 +530,5 @@ export const LOINC_CODES = {
   triglycerides: "2571-8",
   creatinine: "2160-0",
   sodium: "2951-2",
-  potassium: "2823-3"
+  potassium: "2823-3",
 };

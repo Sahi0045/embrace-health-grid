@@ -41,7 +41,7 @@ export interface AuthUser {
 }
 
 // ─── Storage keys ──────────────────────────────────────────────────────────────
-const ACCESS_TOKEN_KEY  = "authToken";
+const ACCESS_TOKEN_KEY = "authToken";
 const REFRESH_TOKEN_KEY = "refreshToken";
 
 // ─── In-memory mirror (SSR / service worker safe) ─────────────────────────────
@@ -105,11 +105,10 @@ export function setSession(
     sessionStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
   }
 
-
   // Non-sensitive profile metadata → localStorage (for UI display only)
-  localStorage.setItem("userRole",  user.role);
+  localStorage.setItem("userRole", user.role);
   localStorage.setItem("userEmail", user.email);
-  localStorage.setItem("userName",  user.name);
+  localStorage.setItem("userName", user.name);
 
   if (user.did) {
     localStorage.setItem("userDID", user.did);
@@ -217,11 +216,11 @@ export function getCurrentUser(): AuthUser | null {
   if (!token) return null;
   if (!role || !email) return null;
 
-  const name          = localStorage.getItem("userName")         ?? undefined;
-  const did           = localStorage.getItem("userDID")          ?? undefined;
-  const walletAddress = localStorage.getItem("userWalletAddress")?? undefined;
-  const mrn           = localStorage.getItem("userMRN")          ?? undefined;
-  const employeeId    = localStorage.getItem("userEmployeeId")   ?? undefined;
+  const name = localStorage.getItem("userName") ?? undefined;
+  const did = localStorage.getItem("userDID") ?? undefined;
+  const walletAddress = localStorage.getItem("userWalletAddress") ?? undefined;
+  const mrn = localStorage.getItem("userMRN") ?? undefined;
+  const employeeId = localStorage.getItem("userEmployeeId") ?? undefined;
 
   return { email, role, name, did, walletAddress, mrn, employeeId };
 }
@@ -246,12 +245,15 @@ export function hasAccess(
  * Also calls the server-side logout endpoint to blocklist the JTI.
  */
 export async function logout(redirectToLogin = true): Promise<void> {
-  if (_refreshTimer) { clearTimeout(_refreshTimer); _refreshTimer = null; }
+  if (_refreshTimer) {
+    clearTimeout(_refreshTimer);
+    _refreshTimer = null;
+  }
 
   // Server-side token invalidation (best-effort — don't block on failure)
   try {
     const token = getToken();
-    const rt    = getRefreshToken();
+    const rt = getRefreshToken();
     if (token) {
       const clientKey =
         (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_CLIENT_KEY) ||
@@ -264,13 +266,15 @@ export async function logout(redirectToLogin = true): Promise<void> {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           "x-client-key": clientKey,
         },
         body: JSON.stringify({ refreshToken: rt }),
       }).catch(() => {});
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 
   // Clear all storage
   _memToken = null;

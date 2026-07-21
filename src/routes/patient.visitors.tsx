@@ -115,7 +115,7 @@ function PatientVisitors() {
         toast.success("Visitor pre-approved successfully", {
           description: `${visitorName} added to the authorized access logs.`,
         });
-        
+
         // Reset form
         setVisitorName("");
         setRelation("");
@@ -213,9 +213,12 @@ function PatientVisitors() {
                     <div className="rounded-full bg-primary/10 p-3 text-primary">
                       <Users2 className="h-6 w-6" />
                     </div>
-                    <h3 className="mt-4 text-sm font-semibold text-foreground">No Pending Requests</h3>
+                    <h3 className="mt-4 text-sm font-semibold text-foreground">
+                      No Pending Requests
+                    </h3>
                     <p className="mt-1 text-xs text-muted-foreground max-w-sm">
-                      There are no visitor requests awaiting your decision. You can pre-approve family members to save reception time.
+                      There are no visitor requests awaiting your decision. You can pre-approve
+                      family members to save reception time.
                     </p>
                   </div>
                 ) : (
@@ -226,13 +229,15 @@ function PatientVisitors() {
                           <div className="flex items-start justify-between gap-3">
                             <div>
                               <h4 className="font-semibold text-foreground">{req.visitorName}</h4>
-                              <p className="text-xs text-muted-foreground capitalize">{req.relation} · {req.purpose}</p>
+                              <p className="text-xs text-muted-foreground capitalize">
+                                {req.relation} · {req.purpose}
+                              </p>
                             </div>
                             <span className="inline-flex items-center gap-1 rounded-full bg-warning/10 px-2 py-0.5 text-[10px] font-medium text-warning">
                               <Clock className="h-3 w-3" /> Pending
                             </span>
                           </div>
-                          
+
                           <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
                             <Calendar className="h-3.5 w-3.5 text-primary" />
                             <span>Scheduled: {new Date(req.visitDate).toLocaleDateString()}</span>
@@ -273,7 +278,9 @@ function PatientVisitors() {
                     <div className="rounded-full bg-muted p-3 text-muted-foreground">
                       <FileText className="h-6 w-6" />
                     </div>
-                    <h3 className="mt-4 text-sm font-semibold text-foreground">No Visitor History</h3>
+                    <h3 className="mt-4 text-sm font-semibold text-foreground">
+                      No Visitor History
+                    </h3>
                     <p className="mt-1 text-xs text-muted-foreground max-w-sm">
                       Visitor approvals and historical logs will show up here.
                     </p>
@@ -284,10 +291,18 @@ function PatientVisitors() {
                       <table className="w-full border-collapse text-left text-sm">
                         <thead className="bg-muted/50 border-b border-border">
                           <tr>
-                            <th className="px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Visitor</th>
-                            <th className="px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Relationship</th>
-                            <th className="px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Visit Date</th>
-                            <th className="px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
+                            <th className="px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                              Visitor
+                            </th>
+                            <th className="px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                              Relationship
+                            </th>
+                            <th className="px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                              Visit Date
+                            </th>
+                            <th className="px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                              Status
+                            </th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
@@ -295,10 +310,16 @@ function PatientVisitors() {
                             <tr key={log.id} className="hover:bg-muted/20 transition-colors">
                               <td className="px-6 py-4">
                                 <div className="font-medium text-foreground">{log.visitorName}</div>
-                                <div className="text-[10px] font-mono text-muted-foreground max-w-[150px] truncate">{log.id}</div>
+                                <div className="text-[10px] font-mono text-muted-foreground max-w-[150px] truncate">
+                                  {log.id}
+                                </div>
                               </td>
-                              <td className="px-6 py-4 text-muted-foreground capitalize">{log.relation}</td>
-                              <td className="px-6 py-4 text-muted-foreground">{new Date(log.visitDate).toLocaleDateString()}</td>
+                              <td className="px-6 py-4 text-muted-foreground capitalize">
+                                {log.relation}
+                              </td>
+                              <td className="px-6 py-4 text-muted-foreground">
+                                {new Date(log.visitDate).toLocaleDateString()}
+                              </td>
                               <td className="px-6 py-4">
                                 {log.status === "approved" ? (
                                   <span className="inline-flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-xs font-medium text-success">
@@ -334,8 +355,12 @@ function PatientVisitors() {
                     <UserPlus2 className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="text-base font-semibold text-foreground font-clinical">Pre-Authorize Visitor</h3>
-                    <p className="text-xs text-muted-foreground">Authorize safe admittance in advance on-chain.</p>
+                    <h3 className="text-base font-semibold text-foreground font-clinical">
+                      Pre-Authorize Visitor
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      Authorize safe admittance in advance on-chain.
+                    </p>
                   </div>
                 </div>
 

@@ -163,17 +163,19 @@ function AuditLogs() {
       e.category,
       e.resource,
     ]);
-    
+
     const csvContent = [
       headers.join(","),
-      ...rows.map((row: any) => row.map((val: any) => `"${String(val ?? "").replace(/"/g, '""')}"`).join(","))
+      ...rows.map((row: any) =>
+        row.map((val: any) => `"${String(val ?? "").replace(/"/g, '""')}"`).join(","),
+      ),
     ].join("\n");
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `audit_logs_${new Date().toISOString().slice(0,10)}.csv`);
+    link.setAttribute("download", `audit_logs_${new Date().toISOString().slice(0, 10)}.csv`);
     link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();

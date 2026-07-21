@@ -162,11 +162,10 @@ function StaffDashboard() {
                     <Wallet className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-semibold text-foreground">
-                      Connect Clinic Wallet
-                    </h3>
+                    <h3 className="text-sm font-semibold text-foreground">Connect Clinic Wallet</h3>
                     <p className="mt-1 text-xs text-muted-foreground leading-relaxed max-w-md">
-                      Link your Solana Wallet to sign prescriptions and record patient care transactions on the ledger.
+                      Link your Solana Wallet to sign prescriptions and record patient care
+                      transactions on the ledger.
                     </p>
                   </div>
                 </div>

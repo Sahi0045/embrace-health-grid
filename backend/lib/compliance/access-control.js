@@ -23,7 +23,7 @@ export const Roles = {
   RECEPTIONIST: "receptionist",
   ADMIN: "admin",
   SYSTEM_ADMIN: "system_admin",
-  COMPLIANCE_OFFICER: "compliance_officer"
+  COMPLIANCE_OFFICER: "compliance_officer",
 };
 
 /**
@@ -58,7 +58,7 @@ export const Permissions = {
   MANAGE_CONSENT: "manage:consent",
   MANAGE_SYSTEM: "manage:system",
   EMERGENCY_ACCESS: "emergency:access",
-  BREAK_GLASS: "emergency:break_glass"
+  BREAK_GLASS: "emergency:break_glass",
 };
 
 /**
@@ -71,7 +71,7 @@ export const RolePermissions = {
     Permissions.READ_PRESCRIPTIONS,
     Permissions.READ_LAB_RESULTS,
     Permissions.WRITE_APPOINTMENTS,
-    Permissions.MANAGE_CONSENT
+    Permissions.MANAGE_CONSENT,
   ],
 
   [Roles.NURSE]: [
@@ -80,7 +80,7 @@ export const RolePermissions = {
     Permissions.READ_PATIENT_MEDICAL_HISTORY,
     Permissions.READ_APPOINTMENTS,
     Permissions.WRITE_PATIENT_VITALS,
-    Permissions.WRITE_APPOINTMENTS
+    Permissions.WRITE_APPOINTMENTS,
   ],
 
   [Roles.DOCTOR]: [
@@ -94,19 +94,19 @@ export const RolePermissions = {
     Permissions.WRITE_DIAGNOSES,
     Permissions.WRITE_PRESCRIPTIONS,
     Permissions.WRITE_LAB_ORDERS,
-    Permissions.WRITE_APPOINTMENTS
+    Permissions.WRITE_APPOINTMENTS,
   ],
 
   [Roles.PHARMACIST]: [
     Permissions.READ_PATIENT_DEMOGRAPHICS,
     Permissions.READ_PRESCRIPTIONS,
-    Permissions.WRITE_PRESCRIPTIONS // Fulfillment only
+    Permissions.WRITE_PRESCRIPTIONS, // Fulfillment only
   ],
 
   [Roles.LAB_TECH]: [
     Permissions.READ_PATIENT_DEMOGRAPHICS,
     Permissions.READ_LAB_RESULTS,
-    Permissions.WRITE_LAB_RESULTS
+    Permissions.WRITE_LAB_RESULTS,
   ],
 
   [Roles.RECEPTIONIST]: [
@@ -115,7 +115,7 @@ export const RolePermissions = {
     Permissions.WRITE_PATIENT_DEMOGRAPHICS,
     Permissions.WRITE_APPOINTMENTS,
     Permissions.READ_BILLING,
-    Permissions.WRITE_BILLING
+    Permissions.WRITE_BILLING,
   ],
 
   [Roles.ADMIN]: [
@@ -124,21 +124,21 @@ export const RolePermissions = {
     Permissions.READ_BILLING,
     Permissions.WRITE_APPOINTMENTS,
     Permissions.WRITE_BILLING,
-    Permissions.MANAGE_USERS
+    Permissions.MANAGE_USERS,
   ],
 
   [Roles.SYSTEM_ADMIN]: [
     Permissions.MANAGE_USERS,
     Permissions.MANAGE_ROLES,
     Permissions.MANAGE_SYSTEM,
-    Permissions.READ_AUDIT_LOGS
+    Permissions.READ_AUDIT_LOGS,
   ],
 
   [Roles.COMPLIANCE_OFFICER]: [
     Permissions.READ_ALL_PHI,
     Permissions.READ_AUDIT_LOGS,
-    Permissions.MANAGE_CONSENT
-  ]
+    Permissions.MANAGE_CONSENT,
+  ],
 };
 
 /**
@@ -157,14 +157,14 @@ export function hasPermission(user, permission) {
  * Check if user has ANY of the specified permissions
  */
 export function hasAnyPermission(user, permissions = []) {
-  return permissions.some(permission => hasPermission(user, permission));
+  return permissions.some((permission) => hasPermission(user, permission));
 }
 
 /**
  * Check if user has ALL of the specified permissions
  */
 export function hasAllPermissions(user, permissions = []) {
-  return permissions.every(permission => hasPermission(user, permission));
+  return permissions.every((permission) => hasPermission(user, permission));
 }
 
 /**
@@ -176,7 +176,7 @@ export function canAccessPatient(user, patientId, accessType = "read") {
   if (user.patientId === patientId) {
     return {
       allowed: true,
-      reason: "Own data"
+      reason: "Own data",
     };
   }
 
@@ -186,13 +186,13 @@ export function canAccessPatient(user, patientId, accessType = "read") {
       Permissions.READ_PATIENT_DEMOGRAPHICS,
       Permissions.READ_PATIENT_VITALS,
       Permissions.READ_PATIENT_MEDICAL_HISTORY,
-      Permissions.READ_ALL_PHI
+      Permissions.READ_ALL_PHI,
     ],
     write: [
       Permissions.WRITE_PATIENT_DEMOGRAPHICS,
       Permissions.WRITE_PATIENT_VITALS,
-      Permissions.WRITE_DIAGNOSES
-    ]
+      Permissions.WRITE_DIAGNOSES,
+    ],
   };
 
   const requiredPermissions = permissionMap[accessType] || [];
@@ -209,13 +209,13 @@ export function canAccessPatient(user, patientId, accessType = "read") {
       success: false,
       metadata: {
         reason: "Insufficient permissions",
-        userRole: user.role
-      }
+        userRole: user.role,
+      },
     });
 
     return {
       allowed: false,
-      reason: "Insufficient permissions"
+      reason: "Insufficient permissions",
     };
   }
 
@@ -233,13 +233,13 @@ export function canAccessPatient(user, patientId, accessType = "read") {
     success: true,
     metadata: {
       userRole: user.role,
-      permissions: requiredPermissions.filter(p => hasPermission(user, p))
-    }
+      permissions: requiredPermissions.filter((p) => hasPermission(user, p)),
+    },
   });
 
   return {
     allowed: true,
-    reason: "Authorized by role and consent"
+    reason: "Authorized by role and consent",
   };
 }
 
@@ -249,8 +249,10 @@ export function canAccessPatient(user, patientId, accessType = "read") {
  * Must be audited extensively
  */
 export function requestEmergencyAccess(user, patientId, justification) {
-  if (!hasPermission(user, Permissions.EMERGENCY_ACCESS) &&
-      !hasPermission(user, Permissions.BREAK_GLASS)) {
+  if (
+    !hasPermission(user, Permissions.EMERGENCY_ACCESS) &&
+    !hasPermission(user, Permissions.BREAK_GLASS)
+  ) {
     logAuditEvent({
       type: AuditEventType.ACCESS_DENIED,
       severity: AuditSeverity.CRITICAL,
@@ -261,13 +263,13 @@ export function requestEmergencyAccess(user, patientId, justification) {
       success: false,
       metadata: {
         justification,
-        userRole: user.role
-      }
+        userRole: user.role,
+      },
     });
 
     return {
       granted: false,
-      reason: "User not authorized for emergency access"
+      reason: "User not authorized for emergency access",
     };
   }
 
@@ -288,8 +290,8 @@ export function requestEmergencyAccess(user, patientId, justification) {
       userRole: user.role,
       emergencyToken,
       requiresReview: true,
-      expiresIn: "1 hour"
-    }
+      expiresIn: "1 hour",
+    },
   });
 
   // Notify compliance officer
@@ -298,7 +300,7 @@ export function requestEmergencyAccess(user, patientId, justification) {
     user: user.email,
     patient: patientId,
     justification,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 
   return {
@@ -308,8 +310,8 @@ export function requestEmergencyAccess(user, patientId, justification) {
     restrictions: [
       "Access limited to 1 hour",
       "All actions will be audited",
-      "Supervisor review required"
-    ]
+      "Supervisor review required",
+    ],
   };
 }
 
@@ -339,7 +341,7 @@ export function trackSession(sessionId, user) {
   activeSessions.set(sessionId, {
     user,
     lastActivity: Date.now(),
-    createdAt: Date.now()
+    createdAt: Date.now(),
   });
 }
 
@@ -367,8 +369,8 @@ export function checkSessionTimeout(sessionId) {
       action: "Automatic logout due to inactivity",
       metadata: {
         inactiveMinutes: Math.floor(inactiveTime / 60000),
-        sessionDuration: Math.floor((Date.now() - session.createdAt) / 60000)
-      }
+        sessionDuration: Math.floor((Date.now() - session.createdAt) / 60000),
+      },
     });
 
     return { valid: false, reason: "Session expired due to inactivity" };
@@ -385,7 +387,7 @@ export function requirePermission(permission) {
     if (!req.user) {
       return res.status(401).json({
         error: "Authentication required",
-        code: "AUTH_REQUIRED"
+        code: "AUTH_REQUIRED",
       });
     }
 
@@ -400,14 +402,14 @@ export function requirePermission(permission) {
         ipAddress: req.ip,
         metadata: {
           requiredPermission: permission,
-          userRole: req.user.role
-        }
+          userRole: req.user.role,
+        },
       });
 
       return res.status(403).json({
         error: "Insufficient permissions",
         code: "PERMISSION_DENIED",
-        required: permission
+        required: permission,
       });
     }
 
@@ -427,7 +429,7 @@ export function requireAnyPermission(permissions) {
     if (!hasAnyPermission(req.user, permissions)) {
       return res.status(403).json({
         error: "Insufficient permissions",
-        required: permissions
+        required: permissions,
       });
     }
 
@@ -453,7 +455,7 @@ export function requirePatientAccess(accessType = "read") {
     if (!accessCheck.allowed) {
       return res.status(403).json({
         error: "Access denied to patient data",
-        reason: accessCheck.reason
+        reason: accessCheck.reason,
       });
     }
 
@@ -480,47 +482,47 @@ export function getRoleHierarchy() {
     [Roles.PATIENT]: {
       level: 1,
       description: "Patient - can view and manage own health information",
-      canManage: []
+      canManage: [],
     },
     [Roles.RECEPTIONIST]: {
       level: 2,
       description: "Receptionist - administrative support",
-      canManage: []
+      canManage: [],
     },
     [Roles.LAB_TECH]: {
       level: 2,
       description: "Laboratory Technician - lab results management",
-      canManage: []
+      canManage: [],
     },
     [Roles.PHARMACIST]: {
       level: 2,
       description: "Pharmacist - prescription management",
-      canManage: []
+      canManage: [],
     },
     [Roles.NURSE]: {
       level: 3,
       description: "Nurse - patient care and monitoring",
-      canManage: []
+      canManage: [],
     },
     [Roles.DOCTOR]: {
       level: 4,
       description: "Doctor - full clinical access",
-      canManage: [Roles.NURSE, Roles.LAB_TECH]
+      canManage: [Roles.NURSE, Roles.LAB_TECH],
     },
     [Roles.ADMIN]: {
       level: 5,
       description: "Administrator - facility management",
-      canManage: [Roles.RECEPTIONIST]
+      canManage: [Roles.RECEPTIONIST],
     },
     [Roles.COMPLIANCE_OFFICER]: {
       level: 6,
       description: "Compliance Officer - audit and compliance",
-      canManage: []
+      canManage: [],
     },
     [Roles.SYSTEM_ADMIN]: {
       level: 7,
       description: "System Administrator - full system access",
-      canManage: Object.values(Roles).filter(r => r !== Roles.SYSTEM_ADMIN)
-    }
+      canManage: Object.values(Roles).filter((r) => r !== Roles.SYSTEM_ADMIN),
+    },
   };
 }

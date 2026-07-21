@@ -36,7 +36,9 @@ export function CredentialTimeline({ events }: CredentialTimelineProps) {
             transition={{ delay: i * 0.06 }}
             className="flex items-start gap-3"
           >
-            <div className={`relative z-10 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${cfg.color}`}>
+            <div
+              className={`relative z-10 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${cfg.color}`}
+            >
               <Icon className="h-3 w-3" />
             </div>
             <div className="flex-1 min-w-0 pb-1">

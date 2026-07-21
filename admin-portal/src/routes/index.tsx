@@ -36,9 +36,19 @@ export const Route = createFileRoute("/")({
   component: AdminOverview,
 });
 
-type QuickLink = 
-  | { to: "/command" | "/digital-twin" | "/credentials"; label: string; icon: React.ComponentType<{ className?: string }>; color: string }
-  | { href: string; label: string; icon: React.ComponentType<{ className?: string }>; color: string };
+type QuickLink =
+  | {
+      to: "/command" | "/digital-twin" | "/credentials";
+      label: string;
+      icon: React.ComponentType<{ className?: string }>;
+      color: string;
+    }
+  | {
+      href: string;
+      label: string;
+      icon: React.ComponentType<{ className?: string }>;
+      color: string;
+    };
 
 const quickLinks: QuickLink[] = [
   {
@@ -89,7 +99,9 @@ function AdminOverview() {
   const availableAmbulances = allAmbulances.filter((a: any) => a.status === "available").length;
 
   const allEquipment = equipmentData?.equipment ?? [];
-  const operationalEquipment = allEquipment.filter((e: any) => e.status === "operational" || e.status === "active").length;
+  const operationalEquipment = allEquipment.filter(
+    (e: any) => e.status === "operational" || e.status === "active",
+  ).length;
 
   const activeFraudAlerts = fraudData?.alerts ?? [];
   const criticalEvents = (auditData?.events ?? [])
@@ -152,9 +164,7 @@ function AdminOverview() {
               const isExternal = "href" in l;
               const content = (
                 <>
-                  <div
-                    className={`flex h-9 w-9 items-center justify-center rounded-lg ${l.color}`}
-                  >
+                  <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${l.color}`}>
                     <Icon className="h-4 w-4" />
                   </div>
                   <span className="text-xs font-medium text-foreground">{l.label}</span>
@@ -204,12 +214,18 @@ function AdminOverview() {
                 />
                 <Row
                   label="Ambulances ready"
-                  value={allAmbulances.length > 0 ? `${availableAmbulances}/${allAmbulances.length}` : "—"}
+                  value={
+                    allAmbulances.length > 0
+                      ? `${availableAmbulances}/${allAmbulances.length}`
+                      : "—"
+                  }
                   good={allAmbulances.length > 0}
                 />
                 <Row
                   label="Equipment operational"
-                  value={allEquipment.length > 0 ? `${operationalEquipment}/${allEquipment.length}` : "—"}
+                  value={
+                    allEquipment.length > 0 ? `${operationalEquipment}/${allEquipment.length}` : "—"
+                  }
                   good={allEquipment.length > 0}
                 />
               </ul>

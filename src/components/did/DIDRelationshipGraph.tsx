@@ -1,11 +1,29 @@
 import { motion } from "framer-motion";
-import { Building2, Bed, User, Stethoscope, Ambulance, Wrench, ShieldCheck, FileText } from "lucide-react";
+import {
+  Building2,
+  Bed,
+  User,
+  Stethoscope,
+  Ambulance,
+  Wrench,
+  ShieldCheck,
+  FileText,
+} from "lucide-react";
 
 export type GraphNode = {
   id: string;
   label: string;
   did: string;
-  type: "hospital" | "department" | "ward" | "bed" | "patient" | "doctor" | "equipment" | "ambulance" | "prescription";
+  type:
+    | "hospital"
+    | "department"
+    | "ward"
+    | "bed"
+    | "patient"
+    | "doctor"
+    | "equipment"
+    | "ambulance"
+    | "prescription";
   status: "active" | "occupied" | "available" | "maintenance" | "offline";
   x: number;
   y: number;
@@ -39,15 +57,51 @@ const typeIcon: Record<GraphNode["type"], React.ComponentType<{ className?: stri
 };
 
 const typeColor: Record<GraphNode["type"], { fill: string; stroke: string; text: string }> = {
-  hospital: { fill: "hsl(var(--primary) / 0.15)", stroke: "hsl(var(--primary) / 0.6)", text: "hsl(var(--primary))" },
-  department: { fill: "hsl(var(--chart-2) / 0.15)", stroke: "hsl(var(--chart-2) / 0.6)", text: "hsl(var(--chart-2))" },
-  ward: { fill: "hsl(var(--chart-3) / 0.15)", stroke: "hsl(var(--chart-3) / 0.6)", text: "hsl(var(--chart-3))" },
-  bed: { fill: "hsl(var(--success) / 0.15)", stroke: "hsl(var(--success) / 0.6)", text: "hsl(var(--success))" },
-  patient: { fill: "hsl(var(--primary) / 0.1)", stroke: "hsl(var(--primary) / 0.5)", text: "hsl(var(--primary))" },
-  doctor: { fill: "hsl(var(--chart-2) / 0.1)", stroke: "hsl(var(--chart-2) / 0.5)", text: "hsl(var(--chart-2))" },
-  equipment: { fill: "hsl(var(--chart-4) / 0.15)", stroke: "hsl(var(--chart-4) / 0.6)", text: "hsl(var(--chart-4))" },
-  ambulance: { fill: "hsl(var(--destructive) / 0.1)", stroke: "hsl(var(--destructive) / 0.5)", text: "hsl(var(--destructive))" },
-  prescription: { fill: "hsl(var(--chart-5) / 0.15)", stroke: "hsl(var(--chart-5) / 0.6)", text: "hsl(var(--chart-5))" },
+  hospital: {
+    fill: "hsl(var(--primary) / 0.15)",
+    stroke: "hsl(var(--primary) / 0.6)",
+    text: "hsl(var(--primary))",
+  },
+  department: {
+    fill: "hsl(var(--chart-2) / 0.15)",
+    stroke: "hsl(var(--chart-2) / 0.6)",
+    text: "hsl(var(--chart-2))",
+  },
+  ward: {
+    fill: "hsl(var(--chart-3) / 0.15)",
+    stroke: "hsl(var(--chart-3) / 0.6)",
+    text: "hsl(var(--chart-3))",
+  },
+  bed: {
+    fill: "hsl(var(--success) / 0.15)",
+    stroke: "hsl(var(--success) / 0.6)",
+    text: "hsl(var(--success))",
+  },
+  patient: {
+    fill: "hsl(var(--primary) / 0.1)",
+    stroke: "hsl(var(--primary) / 0.5)",
+    text: "hsl(var(--primary))",
+  },
+  doctor: {
+    fill: "hsl(var(--chart-2) / 0.1)",
+    stroke: "hsl(var(--chart-2) / 0.5)",
+    text: "hsl(var(--chart-2))",
+  },
+  equipment: {
+    fill: "hsl(var(--chart-4) / 0.15)",
+    stroke: "hsl(var(--chart-4) / 0.6)",
+    text: "hsl(var(--chart-4))",
+  },
+  ambulance: {
+    fill: "hsl(var(--destructive) / 0.1)",
+    stroke: "hsl(var(--destructive) / 0.5)",
+    text: "hsl(var(--destructive))",
+  },
+  prescription: {
+    fill: "hsl(var(--chart-5) / 0.15)",
+    stroke: "hsl(var(--chart-5) / 0.6)",
+    text: "hsl(var(--chart-5))",
+  },
 };
 
 const statusDot: Record<string, string> = {
@@ -80,8 +134,8 @@ export function DIDRelationshipGraph({
 
         {/* Edges */}
         {edges.map((edge, i) => {
-          const from = nodes.find(n => n.id === edge.from);
-          const to = nodes.find(n => n.id === edge.to);
+          const from = nodes.find((n) => n.id === edge.from);
+          const to = nodes.find((n) => n.id === edge.to);
           if (!from || !to) return null;
 
           const x1 = from.x + NODE_W / 2;
@@ -101,7 +155,13 @@ export function DIDRelationshipGraph({
                 markerEnd="url(#arrowhead)"
               />
               {edge.label && (
-                <text x={cx} y={cy - 4} textAnchor="middle" fontSize={9} fill="hsl(var(--muted-foreground))">
+                <text
+                  x={cx}
+                  y={cy - 4}
+                  textAnchor="middle"
+                  fontSize={9}
+                  fill="hsl(var(--muted-foreground))"
+                >
                   {edge.label}
                 </text>
               )}
@@ -110,7 +170,7 @@ export function DIDRelationshipGraph({
         })}
 
         {/* Nodes */}
-        {nodes.map(node => {
+        {nodes.map((node) => {
           const colors = typeColor[node.type];
           const Icon = typeIcon[node.type];
           const isSelected = node.id === selectedId;
@@ -139,12 +199,22 @@ export function DIDRelationshipGraph({
               <text x={14} y={19} fontSize={10} fontWeight="600" fill={colors.text}>
                 {node.type.charAt(0).toUpperCase() + node.type.slice(1)}
               </text>
-              <text x={14} y={34} fontSize={10} fill="hsl(var(--foreground))"
-                style={{ fontFamily: "system-ui" }}>
+              <text
+                x={14}
+                y={34}
+                fontSize={10}
+                fill="hsl(var(--foreground))"
+                style={{ fontFamily: "system-ui" }}
+              >
                 {node.label.length > 15 ? node.label.slice(0, 15) + "…" : node.label}
               </text>
-              <text x={14} y={44} fontSize={8} fill="hsl(var(--muted-foreground))"
-                style={{ fontFamily: "monospace" }}>
+              <text
+                x={14}
+                y={44}
+                fontSize={8}
+                fill="hsl(var(--muted-foreground))"
+                style={{ fontFamily: "monospace" }}
+              >
                 {node.did.slice(0, 22) + "…"}
               </text>
             </motion.g>

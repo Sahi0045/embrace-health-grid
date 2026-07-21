@@ -223,25 +223,45 @@ function NfcCards() {
               <table className="w-full border-collapse text-left text-sm">
                 <thead className="bg-muted/50 border-b border-border">
                   <tr>
-                    <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Card ID</th>
-                    <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Patient</th>
-                    <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-muted-foreground hidden md:table-cell">MRN</th>
-                    <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Status</th>
-                    <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-muted-foreground hidden sm:table-cell">Issued</th>
-                    <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Actions</th>
+                    <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                      Card ID
+                    </th>
+                    <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                      Patient
+                    </th>
+                    <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-muted-foreground hidden md:table-cell">
+                      MRN
+                    </th>
+                    <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                      Status
+                    </th>
+                    <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-muted-foreground hidden sm:table-cell">
+                      Issued
+                    </th>
+                    <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   {filteredCards.map((card: any) => (
                     <tr key={card.cardId} className="hover:bg-muted/30 transition-colors">
                       <td className="px-4 py-3">
-                        <span className="font-mono text-xs font-medium text-foreground">{card.cardId}</span>
+                        <span className="font-mono text-xs font-medium text-foreground">
+                          {card.cardId}
+                        </span>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="font-medium text-foreground text-sm">{card.patientName}</div>
-                        <div className="text-xs text-muted-foreground font-mono">{card.patientDid?.slice(0, 30)}…</div>
+                        <div className="font-medium text-foreground text-sm">
+                          {card.patientName}
+                        </div>
+                        <div className="text-xs text-muted-foreground font-mono">
+                          {card.patientDid?.slice(0, 30)}…
+                        </div>
                       </td>
-                      <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{card.mrn}</td>
+                      <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">
+                        {card.mrn}
+                      </td>
                       <td className="px-4 py-3">
                         <span
                           className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
@@ -272,7 +292,8 @@ function NfcCards() {
                           </button>
                         ) : (
                           <span className="text-xs text-muted-foreground">
-                            {card.revokedAt && `Revoked ${new Date(card.revokedAt).toLocaleDateString()}`}
+                            {card.revokedAt &&
+                              `Revoked ${new Date(card.revokedAt).toLocaleDateString()}`}
                           </span>
                         )}
                       </td>
@@ -303,8 +324,8 @@ function NfcCards() {
               </div>
               <p className="mt-3 text-sm text-muted-foreground">
                 Are you sure you want to permanently revoke card{" "}
-                <span className="font-mono font-medium text-foreground">{cardToRevoke}</span>?
-                This action cannot be undone.
+                <span className="font-mono font-medium text-foreground">{cardToRevoke}</span>? This
+                action cannot be undone.
               </p>
               <div className="mt-6 flex justify-end gap-3">
                 <button

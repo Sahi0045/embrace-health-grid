@@ -2,8 +2,14 @@ import { createFileRoute } from "@tanstack/react-router";
 import { RouteGuard } from "@/components/RouteGuard";
 import { PageHeader } from "@/components/PageHeader";
 import { StaggerList, StaggerItem } from "@/components/Motion";
-import { EmergencyAccessCard, type EmergencyAccessEvent } from "@/components/emergency/EmergencyAccessCard";
-import { BreakGlassRequestCard, type BreakGlassRequest } from "@/components/emergency/BreakGlassRequestCard";
+import {
+  EmergencyAccessCard,
+  type EmergencyAccessEvent,
+} from "@/components/emergency/EmergencyAccessCard";
+import {
+  BreakGlassRequestCard,
+  type BreakGlassRequest,
+} from "@/components/emergency/BreakGlassRequestCard";
 import { useAmbulances } from "@/hooks/use-api";
 import { AlertTriangle, Ambulance, ShieldAlert } from "lucide-react";
 import { motion } from "framer-motion";
@@ -15,35 +21,102 @@ export const Route = createFileRoute("/staff/emergency")({
 });
 
 const traumaQueue = [
-  { id: "t1", name: "Unknown Male ~40y", condition: "Polytrauma — RTA", severity: "critical", arrived: "10:22", bedNo: "ER-01", doctor: "Dr. Priya Nair" },
-  { id: "t2", name: "Sunita Verma", mrn: "MRN-208441", condition: "Acute MI", severity: "critical", arrived: "10:35", bedNo: "ER-02", doctor: "Dr. Ravi Menon" },
-  { id: "t3", name: "Arjun Mehta", mrn: "MRN-209001", condition: "Acute Appendicitis", severity: "urgent", arrived: "09:48", bedNo: "ER-05", doctor: "Dr. Kiran Bose" },
-  { id: "t4", name: "Kavya Reddy", mrn: "MRN-206114", condition: "Fractured Femur — Fall", severity: "urgent", arrived: "09:15", bedNo: "ER-07", doctor: "Dr. Priya Nair" },
-  { id: "t5", name: "Elderly Male ~72y", condition: "Respiratory Distress", severity: "warning", arrived: "08:30", bedNo: "ER-11", doctor: "Dr. Sameer Khan" },
+  {
+    id: "t1",
+    name: "Unknown Male ~40y",
+    condition: "Polytrauma — RTA",
+    severity: "critical",
+    arrived: "10:22",
+    bedNo: "ER-01",
+    doctor: "Dr. Priya Nair",
+  },
+  {
+    id: "t2",
+    name: "Sunita Verma",
+    mrn: "MRN-208441",
+    condition: "Acute MI",
+    severity: "critical",
+    arrived: "10:35",
+    bedNo: "ER-02",
+    doctor: "Dr. Ravi Menon",
+  },
+  {
+    id: "t3",
+    name: "Arjun Mehta",
+    mrn: "MRN-209001",
+    condition: "Acute Appendicitis",
+    severity: "urgent",
+    arrived: "09:48",
+    bedNo: "ER-05",
+    doctor: "Dr. Kiran Bose",
+  },
+  {
+    id: "t4",
+    name: "Kavya Reddy",
+    mrn: "MRN-206114",
+    condition: "Fractured Femur — Fall",
+    severity: "urgent",
+    arrived: "09:15",
+    bedNo: "ER-07",
+    doctor: "Dr. Priya Nair",
+  },
+  {
+    id: "t5",
+    name: "Elderly Male ~72y",
+    condition: "Respiratory Distress",
+    severity: "warning",
+    arrived: "08:30",
+    bedNo: "ER-11",
+    doctor: "Dr. Sameer Khan",
+  },
 ];
 
 const breakGlassRequests: EmergencyAccessEvent[] = [
-  { id: "bg1", actor: "Dr. Priya Nair", actorRole: "ER Physician", reason: "Unconscious polytrauma patient, no consent, need allergy + blood group", at: new Date(Date.now() - 4 * 60 * 60 * 1000).toLocaleString().replace(/\//g, "-"), autoAudited: true },
-  { id: "bg2", actor: "Dr. Ravi Menon", actorRole: "Cardiologist", reason: "STEMI patient, urgent medication history needed", at: new Date(Date.now() - 3 * 60 * 60 * 1000).toLocaleString().replace(/\//g, "-"), autoAudited: true },
+  {
+    id: "bg1",
+    actor: "Dr. Priya Nair",
+    actorRole: "ER Physician",
+    reason: "Unconscious polytrauma patient, no consent, need allergy + blood group",
+    at: new Date(Date.now() - 4 * 60 * 60 * 1000).toLocaleString().replace(/\//g, "-"),
+    autoAudited: true,
+  },
+  {
+    id: "bg2",
+    actor: "Dr. Ravi Menon",
+    actorRole: "Cardiologist",
+    reason: "STEMI patient, urgent medication history needed",
+    at: new Date(Date.now() - 3 * 60 * 60 * 1000).toLocaleString().replace(/\//g, "-"),
+    autoAudited: true,
+  },
 ];
 
 const pendingBreakGlass: BreakGlassRequest[] = [
   {
-    id: "pbg1", requestedBy: "Dr. Sameer Khan", requestorRole: "General Physician",
-    patientName: "Unknown Male ~40y", patientMRN: "MRN-UNKNOWN",
+    id: "pbg1",
+    requestedBy: "Dr. Sameer Khan",
+    requestorRole: "General Physician",
+    patientName: "Unknown Male ~40y",
+    patientMRN: "MRN-UNKNOWN",
     reason: "Unconscious trauma patient — need full medical history and allergies",
-    urgency: "critical", requestedAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toLocaleString().replace(/\//g, "-"),
-    status: "pending", autoApproved: false,
+    urgency: "critical",
+    requestedAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toLocaleString().replace(/\//g, "-"),
+    status: "pending",
+    autoApproved: false,
   },
   {
-    id: "pbg2", requestedBy: "Nurse Priya K.", requestorRole: "ICU Nursing",
-    patientName: "Sunita Verma", patientMRN: "MRN-208441",
+    id: "pbg2",
+    requestedBy: "Nurse Priya K.",
+    requestorRole: "ICU Nursing",
+    patientName: "Sunita Verma",
+    patientMRN: "MRN-208441",
     reason: "Cardiac arrest — need medication contraindications immediately",
-    urgency: "critical", requestedAt: new Date(Date.now() - 3.5 * 60 * 60 * 1000).toLocaleString().replace(/\//g, "-"),
-    status: "approved", autoApproved: true, approvedBy: "System (Auto — Critical)",
+    urgency: "critical",
+    requestedAt: new Date(Date.now() - 3.5 * 60 * 60 * 1000).toLocaleString().replace(/\//g, "-"),
+    status: "approved",
+    autoApproved: true,
+    approvedBy: "System (Auto — Critical)",
   },
 ];
-
 
 const severityConfig = {
   critical: { badge: "bg-destructive/15 text-destructive", dot: "bg-destructive" },
@@ -55,7 +128,9 @@ function StaffEmergencyPage() {
   const [bgRequests, setBgRequests] = useState(pendingBreakGlass);
   const { data: ambulancesData } = useAmbulances();
   const allAmbulances = ambulancesData?.ambulances ?? [];
-  const incomingAmbulances = allAmbulances.filter((a: any) => a.status === "en-route" || a.status === "at-scene").slice(0, 3);
+  const incomingAmbulances = allAmbulances
+    .filter((a: any) => a.status === "en-route" || a.status === "at-scene")
+    .slice(0, 3);
 
   return (
     <RouteGuard requiredRole="staff">
@@ -69,10 +144,26 @@ function StaffEmergencyPage() {
         {/* Stats row */}
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           {[
-            { label: "Trauma Cases", value: traumaQueue.length, color: "text-destructive bg-destructive/10" },
-            { label: "Critical", value: traumaQueue.filter(t => t.severity === "critical").length, color: "text-destructive bg-destructive/10" },
-            { label: "Incoming Ambulances", value: incomingAmbulances.length, color: "text-warning-foreground bg-warning/10" },
-            { label: "Break-Glass Today", value: breakGlassRequests.length, color: "text-primary bg-primary/10" },
+            {
+              label: "Trauma Cases",
+              value: traumaQueue.length,
+              color: "text-destructive bg-destructive/10",
+            },
+            {
+              label: "Critical",
+              value: traumaQueue.filter((t) => t.severity === "critical").length,
+              color: "text-destructive bg-destructive/10",
+            },
+            {
+              label: "Incoming Ambulances",
+              value: incomingAmbulances.length,
+              color: "text-warning-foreground bg-warning/10",
+            },
+            {
+              label: "Break-Glass Today",
+              value: breakGlassRequests.length,
+              color: "text-primary bg-primary/10",
+            },
           ].map((s) => (
             <div key={s.label} className={`rounded-xl p-4 text-center ${s.color}`}>
               <div className="text-2xl font-bold">{s.value}</div>
@@ -88,7 +179,9 @@ function StaffEmergencyPage() {
             Incoming Ambulances
           </div>
           {incomingAmbulances.length === 0 ? (
-            <div className="py-6 text-center text-sm text-muted-foreground">No incoming ambulances</div>
+            <div className="py-6 text-center text-sm text-muted-foreground">
+              No incoming ambulances
+            </div>
           ) : (
             <div className="space-y-2">
               {incomingAmbulances.map((a: any) => (
@@ -103,7 +196,9 @@ function StaffEmergencyPage() {
                     <div className="text-sm font-medium text-foreground">{a.vehicleNo}</div>
                     <div className="text-xs text-muted-foreground">{a.location}</div>
                   </div>
-                  <span className="text-[10px] font-semibold text-warning-foreground bg-warning/15 rounded-full px-2 py-0.5">{a.status.replace("-", " ")}</span>
+                  <span className="text-[10px] font-semibold text-warning-foreground bg-warning/15 rounded-full px-2 py-0.5">
+                    {a.status.replace("-", " ")}
+                  </span>
                 </motion.div>
               ))}
             </div>
@@ -120,15 +215,24 @@ function StaffEmergencyPage() {
             {traumaQueue.map((p) => {
               const cfg = severityConfig[p.severity as keyof typeof severityConfig];
               return (
-                <div key={p.id} className="flex items-center gap-3 rounded-lg border border-border px-3 py-3">
+                <div
+                  key={p.id}
+                  className="flex items-center gap-3 rounded-lg border border-border px-3 py-3"
+                >
                   <div className={`h-2.5 w-2.5 rounded-full shrink-0 ${cfg.dot}`} />
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium text-foreground">{p.name}</div>
                     <div className="text-xs text-muted-foreground">{p.condition}</div>
                   </div>
                   <div className="text-right shrink-0 space-y-0.5">
-                    <span className={`block rounded-full px-2 py-0.5 text-[10px] font-semibold ${cfg.badge}`}>{p.severity}</span>
-                    <div className="text-[10px] text-muted-foreground">{p.bedNo} · {p.arrived}</div>
+                    <span
+                      className={`block rounded-full px-2 py-0.5 text-[10px] font-semibold ${cfg.badge}`}
+                    >
+                      {p.severity}
+                    </span>
+                    <div className="text-[10px] text-muted-foreground">
+                      {p.bedNo} · {p.arrived}
+                    </div>
                   </div>
                 </div>
               );
@@ -147,8 +251,16 @@ function StaffEmergencyPage() {
               <BreakGlassRequestCard
                 key={r.id}
                 request={r}
-                onApprove={(id) => setBgRequests(prev => prev.map(x => x.id === id ? { ...x, status: "approved" as const } : x))}
-                onDeny={(id) => setBgRequests(prev => prev.map(x => x.id === id ? { ...x, status: "denied" as const } : x))}
+                onApprove={(id) =>
+                  setBgRequests((prev) =>
+                    prev.map((x) => (x.id === id ? { ...x, status: "approved" as const } : x)),
+                  )
+                }
+                onDeny={(id) =>
+                  setBgRequests((prev) =>
+                    prev.map((x) => (x.id === id ? { ...x, status: "denied" as const } : x)),
+                  )
+                }
               />
             ))}
           </div>
@@ -161,7 +273,9 @@ function StaffEmergencyPage() {
             Audit Log — Break-Glass History
           </div>
           <div className="space-y-3">
-            {breakGlassRequests.map((e) => <EmergencyAccessCard key={e.id} event={e} />)}
+            {breakGlassRequests.map((e) => (
+              <EmergencyAccessCard key={e.id} event={e} />
+            ))}
           </div>
         </div>
       </div>

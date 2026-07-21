@@ -75,7 +75,7 @@ export async function encryptPHI(data) {
       salt.toString("hex"),
       iv.toString("hex"),
       authTag.toString("hex"),
-      encrypted
+      encrypted,
     ].join(":");
 
     return result;
@@ -187,7 +187,10 @@ export async function decryptFields(data, fieldsToDecrypt = []) {
  */
 export function hashForSearch(data, salt = "search-salt") {
   const crypto = require("crypto");
-  return crypto.createHash("sha256").update(data + salt).digest("hex");
+  return crypto
+    .createHash("sha256")
+    .update(data + salt)
+    .digest("hex");
 }
 
 /**
@@ -200,12 +203,12 @@ export function generateKeyPair() {
     modulusLength: 4096,
     publicKeyEncoding: {
       type: "spki",
-      format: "pem"
+      format: "pem",
     },
     privateKeyEncoding: {
       type: "pkcs8",
-      format: "pem"
-    }
+      format: "pem",
+    },
   });
 }
 

@@ -307,7 +307,9 @@ const hospitalTree: TwinNode = {
               type: "bed",
               did: "did:hosp:bed:A1",
               status: "occupied",
-              meta: { since: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split("T")[0] },
+              meta: {
+                since: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+              },
               children: [
                 {
                   id: "pat_anika",

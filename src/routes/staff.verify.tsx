@@ -4,7 +4,14 @@ import { motion, AnimatePresence } from "framer-motion";
 import { PageHeader } from "@/components/PageHeader";
 import { RouteGuard } from "@/components/RouteGuard";
 import { useLivePatients, useInpatientData } from "@/hooks/use-api";
-import { logAuditEvent, verifyNFCCard, resolveDID, signIdentityPayload, verifyIdentityPayload, API_BASE_URL } from "@/lib/api";
+import {
+  logAuditEvent,
+  verifyNFCCard,
+  resolveDID,
+  signIdentityPayload,
+  verifyIdentityPayload,
+  API_BASE_URL,
+} from "@/lib/api";
 import { PublicKey, Connection } from "@solana/web3.js";
 import { MerkleTree } from "@/lib/merkle";
 import { Buffer } from "buffer";
@@ -35,7 +42,6 @@ import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
-
 // @zxing/browser is ESM-only; safe to import at module level —
 // actual camera usage is gated by `typeof window !== "undefined"` at call sites.
 import { BrowserQRCodeReader, type IScannerControls } from "@zxing/browser";
@@ -55,7 +61,16 @@ interface ScannedPayload {
 
 function VerifyPatient() {
   const { patients: patientsList } = useLivePatients();
-  const emptyPatient = { name: "", mrn: "", did: "", age: 0, gender: "M" as const, bloodGroup: "", allergies: [] as string[], phone: "" };
+  const emptyPatient = {
+    name: "",
+    mrn: "",
+    did: "",
+    age: 0,
+    gender: "M" as const,
+    bloodGroup: "",
+    allergies: [] as string[],
+    phone: "",
+  };
   const patient = patientsList?.[0] || emptyPatient;
 
   // Scanner state
@@ -87,11 +102,11 @@ function VerifyPatient() {
       try {
         const [recordsResponse, prescriptionsResponse] = await Promise.all([
           fetch(`${API_BASE_URL}/api/medical-records/${encodeURIComponent(scanResult.did)}`, {
-            headers: { "Authorization": `Bearer ${localStorage.getItem("authToken")}` }
+            headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
           }),
           fetch(`${API_BASE_URL}/api/prescriptions/${encodeURIComponent(scanResult.did)}`, {
-            headers: { "Authorization": `Bearer ${localStorage.getItem("authToken")}` }
-          })
+            headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
+          }),
         ]);
 
         if (!recordsResponse.ok || !prescriptionsResponse.ok) {
@@ -120,7 +135,7 @@ function VerifyPatient() {
         const PROGRAM_ID = new PublicKey("BxkLrjBYdb3nh2m9GCfpLXBWrAj3s9MqnRbwktLqSfN3");
         const [patientRootPda] = PublicKey.findProgramAddressSync(
           [Buffer.from("patient-root"), Buffer.from(scanResult.did)],
-          PROGRAM_ID
+          PROGRAM_ID,
         );
 
         const connection = new Connection("https://api.devnet.solana.com", "confirmed");
@@ -131,7 +146,7 @@ function VerifyPatient() {
           const rootOffset = 8 + 4 + didLen;
           const rootBytes = accountInfo.data.slice(rootOffset, rootOffset + 32);
           const chainRoot = Buffer.from(rootBytes).toString("hex");
-          
+
           setSolanaRoot(chainRoot);
           if (chainRoot === localRoot) {
             setSolanaVerified(true);
@@ -310,7 +325,7 @@ function VerifyPatient() {
       setNfcStatus("verifying");
 
       try {
-        const activeDid = selectedSimPatientDid || (patientsList?.[0]?.did || "");
+        const activeDid = selectedSimPatientDid || patientsList?.[0]?.did || "";
         const target = patientsList?.find((p: any) => p.did === activeDid) || emptyPatient;
         // Resolve DID document from API
         await resolveDID(target.did).catch(() => null);
@@ -374,7 +389,13 @@ function VerifyPatient() {
         }
 
         setNfcError(errorMsg);
-        void logAuditEvent("staff", selectedSimPatientDid || "unknown", "NFC_VERIFY_FAILED", "failure", "warning");
+        void logAuditEvent(
+          "staff",
+          selectedSimPatientDid || "unknown",
+          "NFC_VERIFY_FAILED",
+          "failure",
+          "warning",
+        );
         toast.error("NFC Verification Failed", { description: errorMsg });
 
         if (failCount >= 3) {
@@ -395,11 +416,18 @@ function VerifyPatient() {
       const failCount = nfcFailCount + 1;
       setNfcFailCount(failCount);
       setNfcStatus("error");
-      const errorMsg = failCount >= 3
-        ? "NDEF signature verification failed. Multiple failures — please switch to QR or manual verification."
-        : "NDEF signature verification failed. Card payload is unsigned or tampered.";
+      const errorMsg =
+        failCount >= 3
+          ? "NDEF signature verification failed. Multiple failures — please switch to QR or manual verification."
+          : "NDEF signature verification failed. Card payload is unsigned or tampered.";
       setNfcError(errorMsg);
-      void logAuditEvent("staff", selectedSimPatientDid || "unknown", "NFC_VERIFY_FAILED", "failure", "warning");
+      void logAuditEvent(
+        "staff",
+        selectedSimPatientDid || "unknown",
+        "NFC_VERIFY_FAILED",
+        "failure",
+        "warning",
+      );
       toast.error("NFC Verification Failed", {
         description: "Signature mismatch or invalid issuer.",
       });
@@ -439,7 +467,13 @@ function VerifyPatient() {
       if (activeTab === "nfc") {
         setNfcStatus("success");
       }
-      void logAuditEvent("staff", matched.did, `MANUAL_OVERRIDE: ${overrideReason.trim()}`, "success", "warning");
+      void logAuditEvent(
+        "staff",
+        matched.did,
+        `MANUAL_OVERRIDE: ${overrideReason.trim()}`,
+        "success",
+        "warning",
+      );
       toast.success("Patient verified manually", {
         description: `${matched.name} · MRN ${matched.mrn}`,
       });
@@ -622,7 +656,8 @@ function VerifyPatient() {
               {/* Browser guidance when NFC unavailable */}
               {!nfcSupported && nfcStatus === "idle" && (
                 <div className="mb-3 rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground text-center">
-                  Web NFC requires <span className="font-semibold">Chrome on Android 89+</span>. Desktop and iOS browsers use simulation mode with backend verification.
+                  Web NFC requires <span className="font-semibold">Chrome on Android 89+</span>.
+                  Desktop and iOS browsers use simulation mode with backend verification.
                 </div>
               )}
 
@@ -639,7 +674,10 @@ function VerifyPatient() {
               {/* Patient Selection Dropdown for NFC Simulation */}
               {nfcStatus === "idle" && patientsList && patientsList.length > 0 && (
                 <div className="mt-4 space-y-1.5 text-left">
-                  <label htmlFor="sim-patient-select" className="text-[11px] font-semibold text-muted-foreground block">
+                  <label
+                    htmlFor="sim-patient-select"
+                    className="text-[11px] font-semibold text-muted-foreground block"
+                  >
                     Select Patient to Simulate Tap
                   </label>
                   <div className="relative">
@@ -719,7 +757,9 @@ function VerifyPatient() {
               </div>
 
               <p className="mt-3 text-center text-xs text-muted-foreground">
-                {nfcSupported ? "Tap patient NFC card on device to verify identity." : "Simulate NFC tap to verify Patient DID document."}
+                {nfcSupported
+                  ? "Tap patient NFC card on device to verify identity."
+                  : "Simulate NFC tap to verify Patient DID document."}
               </p>
             </div>
           )}
@@ -1296,7 +1336,9 @@ function VerifyPatientChartCards({ patientDid }: { patientDid: string }) {
           <div className="flex items-center gap-2">
             <Activity className="h-4 w-4 text-primary" />
             <CardTitle className="text-sm">Latest Vitals</CardTitle>
-            {latestVital && <span className="text-xs text-muted-foreground ml-auto">{latestVital.timestamp}</span>}
+            {latestVital && (
+              <span className="text-xs text-muted-foreground ml-auto">{latestVital.timestamp}</span>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -1304,7 +1346,12 @@ function VerifyPatientChartCards({ patientDid }: { patientDid: string }) {
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
               {[
                 { label: "Temp", value: `${latestVital.temperature ?? "—"}°C` },
-                { label: "BP", value: latestVital.bloodPressure ? `${latestVital.bloodPressure.systolic}/${latestVital.bloodPressure.diastolic}` : "—" },
+                {
+                  label: "BP",
+                  value: latestVital.bloodPressure
+                    ? `${latestVital.bloodPressure.systolic}/${latestVital.bloodPressure.diastolic}`
+                    : "—",
+                },
                 { label: "HR", value: `${latestVital.heartRate ?? "—"} bpm` },
                 { label: "RR", value: `${latestVital.respiratoryRate ?? "—"}/min` },
                 { label: "SpO₂", value: `${latestVital.oxygenSaturation ?? "—"}%` },
@@ -1328,15 +1375,30 @@ function VerifyPatientChartCards({ patientDid }: { patientDid: string }) {
           </div>
         </CardHeader>
         <CardContent className="space-y-2">
-          {medications.length > 0 ? medications.filter((m: any) => m.status === "active").map((med: any) => (
-            <div key={med.id} className="flex items-center justify-between rounded-lg border p-2 text-sm">
-              <div>
-                <span className="font-medium">{med.name}</span>
-                <span className="text-muted-foreground ml-2">{med.dosage} · {med.frequency}</span>
-              </div>
-              <Badge variant="outline" className="text-xs">Active</Badge>
+          {medications.length > 0 ? (
+            medications
+              .filter((m: any) => m.status === "active")
+              .map((med: any) => (
+                <div
+                  key={med.id}
+                  className="flex items-center justify-between rounded-lg border p-2 text-sm"
+                >
+                  <div>
+                    <span className="font-medium">{med.name}</span>
+                    <span className="text-muted-foreground ml-2">
+                      {med.dosage} · {med.frequency}
+                    </span>
+                  </div>
+                  <Badge variant="outline" className="text-xs">
+                    Active
+                  </Badge>
+                </div>
+              ))
+          ) : (
+            <div className="text-xs text-muted-foreground text-center py-4">
+              No medications recorded
             </div>
-          )) : <div className="text-xs text-muted-foreground text-center py-4">No medications recorded</div>}
+          )}
         </CardContent>
       </Card>
       <Card>
@@ -1347,15 +1409,31 @@ function VerifyPatientChartCards({ patientDid }: { patientDid: string }) {
           </div>
         </CardHeader>
         <CardContent className="space-y-2">
-          {checkups.length > 0 ? checkups.slice(0, 3).map((test: any) => (
-            <div key={test.id} className="flex items-center justify-between rounded-lg border p-2 text-sm">
-              <div>
-                <span className="font-medium">{test.testName || test.type || "Lab Test"}</span>
-                <span className="text-muted-foreground ml-2 text-xs">{test.orderedDate || test.date}</span>
+          {checkups.length > 0 ? (
+            checkups.slice(0, 3).map((test: any) => (
+              <div
+                key={test.id}
+                className="flex items-center justify-between rounded-lg border p-2 text-sm"
+              >
+                <div>
+                  <span className="font-medium">{test.testName || test.type || "Lab Test"}</span>
+                  <span className="text-muted-foreground ml-2 text-xs">
+                    {test.orderedDate || test.date}
+                  </span>
+                </div>
+                <Badge
+                  variant={test.status === "completed" ? "default" : "secondary"}
+                  className="text-xs"
+                >
+                  {test.status || "pending"}
+                </Badge>
               </div>
-              <Badge variant={test.status === "completed" ? "default" : "secondary"} className="text-xs">{test.status || "pending"}</Badge>
+            ))
+          ) : (
+            <div className="text-xs text-muted-foreground text-center py-4">
+              No lab tests recorded
             </div>
-          )) : <div className="text-xs text-muted-foreground text-center py-4">No lab tests recorded</div>}
+          )}
         </CardContent>
       </Card>
     </>

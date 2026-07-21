@@ -37,6 +37,7 @@ npm run dev
 ```
 
 **Access the applications:**
+
 - Main Frontend: http://localhost:5173
 - Admin Portal: http://localhost:3002
 - Backend API: http://localhost:3001
@@ -50,6 +51,7 @@ npm run dev
 This version represents a major refactoring where all Hyperledger Fabric references have been removed and replaced with clean, vendor-neutral terminology.
 
 **Key Changes:**
+
 - 🔄 `fabric-backend/` → `backend/` (folder renamed)
 - 🔄 `fabric-api.ts` → `api.ts` (59 functions renamed)
 - 🔄 `use-fabric.ts` → `use-api.ts` (14 hooks renamed)
@@ -96,6 +98,7 @@ This version represents a major refactoring where all Hyperledger Fabric referen
 ## 🎯 Features
 
 ### 🔐 Identity & Access
+
 - ✅ Decentralized Identifiers (DIDs)
 - ✅ Verifiable Credentials (VCs)
 - ✅ Role-Based Access Control (RBAC)
@@ -103,6 +106,7 @@ This version represents a major refactoring where all Hyperledger Fabric referen
 - ✅ NFC Card Management
 
 ### 🏥 Clinical Features
+
 - ✅ Patient Management
 - ✅ Appointment Scheduling
 - ✅ Prescription Management
@@ -112,12 +116,14 @@ This version represents a major refactoring where all Hyperledger Fabric referen
 - ✅ Real-time Vitals Monitoring
 
 ### 🔒 Privacy & Consent
+
 - ✅ Granular Consent Management
 - ✅ Zero-Knowledge Proofs (ZKP)
 - ✅ Audit Trail
 - ✅ HIPAA Compliance Ready
 
 ### 📊 Admin & Analytics
+
 - ✅ System Dashboard
 - ✅ User Management
 - ✅ Fraud Detection
@@ -126,6 +132,7 @@ This version represents a major refactoring where all Hyperledger Fabric referen
 - ✅ Visitor Management
 
 ### ⚡ Real-Time
+
 - ✅ WebSocket Live Updates
 - ✅ Staff Location Tracking
 - ✅ Vitals Monitoring
@@ -133,6 +140,7 @@ This version represents a major refactoring where all Hyperledger Fabric referen
 - ✅ Notification System
 
 ### 🔗 Blockchain Anchoring
+
 - ✅ Solana Integration (optional)
 - ✅ Immutable Audit Records
 - ✅ Credential Verification
@@ -195,6 +203,7 @@ embrace-health-grid/
 ## 🛠️ Tech Stack
 
 ### Backend
+
 - **Runtime:** Node.js 20+
 - **Framework:** Express.js
 - **WebSocket:** ws
@@ -204,6 +213,7 @@ embrace-health-grid/
 - **Optional:** Convex cloud sync
 
 ### Frontend
+
 - **Framework:** React 18
 - **Router:** TanStack Router
 - **State:** TanStack Query
@@ -212,6 +222,7 @@ embrace-health-grid/
 - **TypeScript:** 5.x
 
 ### Infrastructure
+
 - **Package Manager:** npm / pnpm / bun
 - **Dev Server:** Vite HMR
 - **Production:** Vercel / Netlify / Docker
@@ -248,18 +259,18 @@ CORS_ORIGIN=http://localhost:5173
 
 ```typescript
 // Login
-await login({ email: string, password: string })
+await login({ email: string, password: string });
 // Returns: { success: boolean, token: string, user: User }
 
 // Signup (requires admin JWT)
-await signup({ email, password, name, role })
+await signup({ email, password, name, role });
 ```
 
 ### DIDs
 
 ```typescript
 // Create a new DID
-await createDID({ 
+await createDID({
   controller: string,
   name: string,
   role: "patient" | "staff" | "admin"
@@ -479,6 +490,7 @@ See `HYPERLEDGER_REMOVAL_REPORT.md` section 11 for details.
 ## 📞 Support
 
 For issues and questions:
+
 - Create an issue on GitHub
 - Check the documentation in `/docs`
 - Review `MIGRATION_GUIDE.md` for common problems

@@ -78,7 +78,7 @@ function PoliciesPage() {
   });
 
   const toggleArchive = async (id: string) => {
-    const policy = list.find(p => p.id === id);
+    const policy = list.find((p) => p.id === id);
     if (!policy) return;
     const newStatus = policy.status === "archived" ? "active" : "archived";
     try {
@@ -86,7 +86,13 @@ function PoliciesPage() {
       toast.success(`Policy updated to ${newStatus}`);
       fetchPolicies();
       import("@/lib/api").then(({ logAuditEvent }) => {
-        logAuditEvent("admin", `policy:${id}`, `toggle_policy_archive_${newStatus}`, "success", "info");
+        logAuditEvent(
+          "admin",
+          `policy:${id}`,
+          `toggle_policy_archive_${newStatus}`,
+          "success",
+          "info",
+        );
       });
     } catch (err: any) {
       toast.error(`Failed to update policy: ${err.message}`);
@@ -128,7 +134,13 @@ function PoliciesPage() {
       setIsCreateOpen(false);
       fetchPolicies();
       import("@/lib/api").then(({ logAuditEvent }) => {
-        logAuditEvent("admin", `policy:${res.policy?.id || "new"}`, "create_policy", "success", "info");
+        logAuditEvent(
+          "admin",
+          `policy:${res.policy?.id || "new"}`,
+          "create_policy",
+          "success",
+          "info",
+        );
       });
     } catch (err: any) {
       toast.error(`Failed to create policy: ${err.message}`);
@@ -155,7 +167,13 @@ function PoliciesPage() {
       setIsEditOpen(false);
       fetchPolicies();
       import("@/lib/api").then(({ logAuditEvent }) => {
-        logAuditEvent("admin", `policy:${editingPolicy.id}`, "edit_policy_description", "success", "info");
+        logAuditEvent(
+          "admin",
+          `policy:${editingPolicy.id}`,
+          "edit_policy_description",
+          "success",
+          "info",
+        );
       });
     } catch (err: any) {
       toast.error(`Failed to edit policy: ${err.message}`);
@@ -271,11 +289,15 @@ function PoliciesPage() {
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
         <DialogContent className="sm:max-w-[425px] bg-card border border-border text-foreground">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-foreground">Create New Policy</DialogTitle>
+            <DialogTitle className="text-lg font-bold text-foreground">
+              Create New Policy
+            </DialogTitle>
           </DialogHeader>
           <form onSubmit={submitCreate} className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="name" className="text-sm font-semibold">Policy Name</Label>
+              <Label htmlFor="name" className="text-sm font-semibold">
+                Policy Name
+              </Label>
               <Input
                 id="name"
                 value={newName}
@@ -286,7 +308,9 @@ function PoliciesPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="category" className="text-sm font-semibold">Category</Label>
+              <Label htmlFor="category" className="text-sm font-semibold">
+                Category
+              </Label>
               <Select
                 value={newCategory}
                 onValueChange={(v) => setNewCategory(v as Policy["category"])}
@@ -303,7 +327,9 @@ function PoliciesPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="description" className="text-sm font-semibold">Description</Label>
+              <Label htmlFor="description" className="text-sm font-semibold">
+                Description
+              </Label>
               <Textarea
                 id="description"
                 value={newDescription}
@@ -315,10 +341,20 @@ function PoliciesPage() {
               />
             </div>
             <DialogFooter className="pt-2 gap-2">
-              <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)} className="border-border">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsCreateOpen(false)}
+                className="border-border"
+              >
                 Cancel
               </Button>
-              <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90">Create Policy</Button>
+              <Button
+                type="submit"
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                Create Policy
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -328,7 +364,9 @@ function PoliciesPage() {
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent className="sm:max-w-[425px] bg-card border border-border text-foreground">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-foreground">Edit Policy Description</DialogTitle>
+            <DialogTitle className="text-lg font-bold text-foreground">
+              Edit Policy Description
+            </DialogTitle>
           </DialogHeader>
           <form onSubmit={submitEdit} className="space-y-4 py-4">
             <div className="space-y-1">
@@ -338,7 +376,9 @@ function PoliciesPage() {
               <div className="text-sm font-semibold text-foreground">{editingPolicy?.name}</div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-desc" className="text-sm font-semibold">Description</Label>
+              <Label htmlFor="edit-desc" className="text-sm font-semibold">
+                Description
+              </Label>
               <Textarea
                 id="edit-desc"
                 value={editDescription}
@@ -349,10 +389,20 @@ function PoliciesPage() {
               />
             </div>
             <DialogFooter className="pt-2 gap-2">
-              <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)} className="border-border">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsEditOpen(false)}
+                className="border-border"
+              >
                 Cancel
               </Button>
-              <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90">Save Changes</Button>
+              <Button
+                type="submit"
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                Save Changes
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>

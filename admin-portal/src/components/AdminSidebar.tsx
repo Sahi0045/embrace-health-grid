@@ -144,7 +144,10 @@ export function AdminSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton onClick={handleLogout} className="text-destructive hover:text-destructive flex items-center gap-2">
+                <SidebarMenuButton
+                  onClick={handleLogout}
+                  className="text-destructive hover:text-destructive flex items-center gap-2"
+                >
                   <LogOut className="h-4 w-4 shrink-0" />
                   {!collapsed && <span>Sign out</span>}
                 </SidebarMenuButton>

@@ -16,13 +16,18 @@ const PUBLIC_PATHS = new Set([
   "/health/ready",
   "/health/metrics",
   "/api/auth/login",
-  "/api/auth/signup",     // patient self-registration — guarded by requireClientAuth
-  "/api/auth/setup",     // one-time bootstrap — guarded internally + by requireClientAuth
-  "/api/auth/refresh",   // token refresh — uses opaque refresh token, not JWT
+  "/api/auth/signup", // patient self-registration — guarded by requireClientAuth
+  "/api/auth/setup", // one-time bootstrap — guarded internally + by requireClientAuth
+  "/api/auth/refresh", // token refresh — uses opaque refresh token, not JWT
 ]);
 
 /** Routes any authenticated user may access */
-const AUTHENTICATED_PATHS = new Set(["/api/auth/me", "/api/auth/refresh", "/api/notifications", "/api/auth/logout"]);
+const AUTHENTICATED_PATHS = new Set([
+  "/api/auth/me",
+  "/api/auth/refresh",
+  "/api/notifications",
+  "/api/auth/logout",
+]);
 
 /** Admin-only path prefixes */
 const ADMIN_PREFIXES = [

@@ -7,8 +7,15 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import {
-  Receipt, CreditCard, FileText, Calendar,
-  AlertCircle, CheckCircle, Clock, Download, Shield
+  Receipt,
+  CreditCard,
+  FileText,
+  Calendar,
+  AlertCircle,
+  CheckCircle,
+  Clock,
+  Download,
+  Shield,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { getBilling, payBill } from "@/lib/api";
@@ -71,7 +78,7 @@ function PatientBilling() {
           loading: "Processing secure digital signature payment...",
           success: "Payment settled successfully! Transaction recorded on Solana ledger.",
           error: "Payment failed",
-        }
+        },
       );
     } catch (err: any) {
       console.error(err);
@@ -79,26 +86,38 @@ function PatientBilling() {
   };
 
   const handleExport = () => {
-    const headers = ["Date", "Description", "Category", "Quantity", "Total Price", "Covered By Insurance"];
+    const headers = [
+      "Date",
+      "Description",
+      "Category",
+      "Quantity",
+      "Total Price",
+      "Covered By Insurance",
+    ];
     const rows = billItems.map((item: any) => [
       new Date(item.date).toLocaleDateString(),
       item.description,
       item.category,
       item.quantity,
       item.totalPrice,
-      item.coveredByInsurance ? "Yes" : "No"
+      item.coveredByInsurance ? "Yes" : "No",
     ]);
 
     const csvContent = [
       headers.join(","),
-      ...rows.map((row: any) => row.map((val: any) => `"${String(val ?? "").replace(/"/g, '""')}"`).join(","))
+      ...rows.map((row: any) =>
+        row.map((val: any) => `"${String(val ?? "").replace(/"/g, '""')}"`).join(","),
+      ),
     ].join("\n");
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `billing_export_${patientDid}_${new Date().toISOString().slice(0,10)}.csv`);
+    link.setAttribute(
+      "download",
+      `billing_export_${patientDid}_${new Date().toISOString().slice(0, 10)}.csv`,
+    );
     link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
@@ -139,18 +158,17 @@ Thank you for choosing Embrace Health.
     link.click();
     document.body.removeChild(link);
 
-    toast.success("Invoice generated & downloaded", { description: "Format: TXT. File saved to downloads." });
+    toast.success("Invoice generated & downloaded", {
+      description: "Format: TXT. File saved to downloads.",
+    });
   };
 
   const handleEmailBill = () => {
-    toast.promise(
-      new Promise((resolve) => setTimeout(resolve, 1200)),
-      {
-        loading: "Sending bill receipt via encrypted email...",
-        success: `Bill sent to ${currentUser?.email || "user@example.com"}`,
-        error: "Failed to send email",
-      }
-    );
+    toast.promise(new Promise((resolve) => setTimeout(resolve, 1200)), {
+      loading: "Sending bill receipt via encrypted email...",
+      success: `Bill sent to ${currentUser?.email || "user@example.com"}`,
+      error: "Failed to send email",
+    });
   };
 
   const billSummary = billingData?.billSummary || {
@@ -179,14 +197,18 @@ Thank you for choosing Embrace Health.
   };
   const paymentRecords = billingData?.paymentRecords || [];
 
-  const fmt = (amount: number) => `₹${amount.toLocaleString('en-IN')}`;
+  const fmt = (amount: number) => `₹${amount.toLocaleString("en-IN")}`;
 
   const statusColor = (status: string) => {
     switch (status) {
-      case "paid": return "bg-success/10 text-success";
-      case "partial": return "bg-warning/10 text-warning-foreground";
-      case "pending": return "bg-destructive/10 text-destructive";
-      default: return "bg-muted text-muted-foreground";
+      case "paid":
+        return "bg-success/10 text-success";
+      case "partial":
+        return "bg-warning/10 text-warning-foreground";
+      case "pending":
+        return "bg-destructive/10 text-destructive";
+      default:
+        return "bg-muted text-muted-foreground";
     }
   };
 
@@ -207,7 +229,9 @@ Thank you for choosing Embrace Health.
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle className="text-base">Current Bill</CardTitle>
-                    <CardDescription className="text-xs">Bill #{billSummary.billNumber}</CardDescription>
+                    <CardDescription className="text-xs">
+                      Bill #{billSummary.billNumber}
+                    </CardDescription>
                   </div>
                   <Badge className={statusColor(billSummary.status)}>{billSummary.status}</Badge>
                 </div>
@@ -215,9 +239,12 @@ Thank you for choosing Embrace Health.
               <CardContent>
                 <div className="rounded-lg bg-primary/5 p-4">
                   <div className="text-xs text-muted-foreground">Total Charges</div>
-                  <div className="text-3xl font-bold text-foreground">{fmt(billSummary.totalCharges)}</div>
+                  <div className="text-3xl font-bold text-foreground">
+                    {fmt(billSummary.totalCharges)}
+                  </div>
                   <div className="mt-1 text-xs text-muted-foreground">
-                    {new Date(billSummary.fromDate).toLocaleDateString()} – {new Date(billSummary.toDate).toLocaleDateString()}
+                    {new Date(billSummary.fromDate).toLocaleDateString()} –{" "}
+                    {new Date(billSummary.toDate).toLocaleDateString()}
                   </div>
                 </div>
                 {billSummary.balanceDue > 0 && (
@@ -225,7 +252,8 @@ Thank you for choosing Embrace Health.
                     onClick={() => handlePayment(billSummary.balanceDue, "total")}
                     className="w-full mt-3"
                   >
-                    <CreditCard className="mr-2 h-4 w-4" />Pay Now
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    Pay Now
                   </Button>
                 )}
               </CardContent>
@@ -235,12 +263,16 @@ Thank you for choosing Embrace Health.
               <CardContent className="p-4 space-y-3">
                 <div>
                   <div className="text-xs text-muted-foreground">Insurance Claimed</div>
-                  <div className="text-xl font-semibold text-primary">{fmt(billSummary.insuranceClaimed)}</div>
+                  <div className="text-xl font-semibold text-primary">
+                    {fmt(billSummary.insuranceClaimed)}
+                  </div>
                 </div>
                 <Separator />
                 <div>
                   <div className="text-xs text-muted-foreground">Your Responsibility</div>
-                  <div className="text-xl font-semibold">{fmt(billSummary.patientResponsibility)}</div>
+                  <div className="text-xl font-semibold">
+                    {fmt(billSummary.patientResponsibility)}
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -249,12 +281,16 @@ Thank you for choosing Embrace Health.
               <CardContent className="p-4 space-y-3">
                 <div>
                   <div className="text-xs text-muted-foreground">Amount Paid</div>
-                  <div className="text-xl font-semibold text-success">{fmt(billSummary.amountPaid)}</div>
+                  <div className="text-xl font-semibold text-success">
+                    {fmt(billSummary.amountPaid)}
+                  </div>
                 </div>
                 <Separator />
                 <div>
                   <div className="text-xs text-muted-foreground">Balance Due</div>
-                  <div className="text-xl font-semibold text-destructive">{fmt(billSummary.balanceDue)}</div>
+                  <div className="text-xl font-semibold text-destructive">
+                    {fmt(billSummary.balanceDue)}
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -284,7 +320,11 @@ Thank you for choosing Embrace Health.
                         <div key={idx} className="rounded-lg border p-4">
                           <div className="flex items-center justify-between">
                             <div className="font-medium">
-                              {new Date(day.date).toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' })}
+                              {new Date(day.date).toLocaleDateString("en-IN", {
+                                weekday: "short",
+                                month: "short",
+                                day: "numeric",
+                              })}
                             </div>
                             <div className="font-semibold text-lg">{fmt(day.total)}</div>
                           </div>
@@ -321,8 +361,14 @@ Thank you for choosing Embrace Health.
                           <Receipt className="h-4 w-4 text-primary" />
                           <CardTitle className="text-sm">Itemized Charges</CardTitle>
                         </div>
-                        <Button onClick={handleExport} variant="ghost" size="sm" className="h-7 text-xs">
-                          <Download className="mr-1 h-3 w-3" />Export
+                        <Button
+                          onClick={handleExport}
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs"
+                        >
+                          <Download className="mr-1 h-3 w-3" />
+                          Export
                         </Button>
                       </div>
                     </CardHeader>
@@ -336,17 +382,23 @@ Thank you for choosing Embrace Health.
                               <span className="font-semibold">{fmt(cat.amount)}</span>
                             </div>
                             {items.map((item: any) => (
-                              <div key={item.id} className="ml-3 flex items-start justify-between border-l-2 border-muted pl-3 text-sm">
+                              <div
+                                key={item.id}
+                                className="ml-3 flex items-start justify-between border-l-2 border-muted pl-3 text-sm"
+                              >
                                 <div className="flex-1">
                                   <div className="font-medium">{item.description}</div>
                                   <div className="text-xs text-muted-foreground">
-                                    {new Date(item.date).toLocaleDateString()} • Qty: {item.quantity}
+                                    {new Date(item.date).toLocaleDateString()} • Qty:{" "}
+                                    {item.quantity}
                                   </div>
                                 </div>
                                 <div className="text-right">
                                   <div className="font-medium">{fmt(item.totalPrice)}</div>
                                   {item.coveredByInsurance && (
-                                    <div className="text-xs text-muted-foreground">You pay: {fmt(item.patientResponsibility)}</div>
+                                    <div className="text-xs text-muted-foreground">
+                                      You pay: {fmt(item.patientResponsibility)}
+                                    </div>
                                   )}
                                 </div>
                               </div>
@@ -369,16 +421,25 @@ Thank you for choosing Embrace Health.
                     </CardHeader>
                     <CardContent className="space-y-2">
                       {paymentRecords.map((payment: any) => (
-                        <div key={payment.id} className="flex items-start justify-between rounded-lg border p-3">
+                        <div
+                          key={payment.id}
+                          className="flex items-start justify-between rounded-lg border p-3"
+                        >
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
                               <CheckCircle className="h-4 w-4 text-success" />
                               <span className="font-medium">{fmt(payment.amount)}</span>
                             </div>
-                            <div className="mt-1 text-sm text-muted-foreground">{payment.paidBy}</div>
-                            <div className="text-xs text-muted-foreground">{payment.method.toUpperCase()} • {payment.reference}</div>
+                            <div className="mt-1 text-sm text-muted-foreground">
+                              {payment.paidBy}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {payment.method.toUpperCase()} • {payment.reference}
+                            </div>
                           </div>
-                          <div className="text-xs text-muted-foreground">{new Date(payment.date).toLocaleDateString()}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {new Date(payment.date).toLocaleDateString()}
+                          </div>
                         </div>
                       ))}
 
@@ -387,11 +448,17 @@ Thank you for choosing Embrace Health.
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
                               <Clock className="h-4 w-4 text-warning-foreground" />
-                              <span className="font-medium">{fmt(billSummary.insurancePending)}</span>
+                              <span className="font-medium">
+                                {fmt(billSummary.insurancePending)}
+                              </span>
                             </div>
-                            <div className="mt-1 text-sm text-muted-foreground">Insurance claim pending</div>
+                            <div className="mt-1 text-sm text-muted-foreground">
+                              Insurance claim pending
+                            </div>
                           </div>
-                          <Badge variant="outline" className="text-xs">Processing</Badge>
+                          <Badge variant="outline" className="text-xs">
+                            Processing
+                          </Badge>
                         </div>
                       )}
                     </CardContent>
@@ -401,15 +468,25 @@ Thank you for choosing Embrace Health.
                     <Card className="border-destructive/30 bg-destructive/5">
                       <CardContent className="p-4">
                         <div className="flex items-center gap-2 font-medium text-destructive">
-                          <AlertCircle className="h-4 w-4" />Outstanding Balance
+                          <AlertCircle className="h-4 w-4" />
+                          Outstanding Balance
                         </div>
                         <div className="mt-2 text-3xl font-bold">{fmt(billSummary.balanceDue)}</div>
                         <div className="mt-4 grid grid-cols-2 gap-2">
                           <Button onClick={() => handlePayment(billSummary.balanceDue, "online")}>
-                            <CreditCard className="mr-2 h-4 w-4" />Pay Online
+                            <CreditCard className="mr-2 h-4 w-4" />
+                            Pay Online
                           </Button>
-                          <Button onClick={() => toast.info("Payment Plan requested", { description: "Our financial department will contact you." })} variant="outline">
-                            <FileText className="mr-2 h-4 w-4" />Payment Plan
+                          <Button
+                            onClick={() =>
+                              toast.info("Payment Plan requested", {
+                                description: "Our financial department will contact you.",
+                              })
+                            }
+                            variant="outline"
+                          >
+                            <FileText className="mr-2 h-4 w-4" />
+                            Payment Plan
                           </Button>
                         </div>
                       </CardContent>
@@ -421,10 +498,12 @@ Thank you for choosing Embrace Health.
               {/* Download actions */}
               <div className="mt-4 grid grid-cols-2 gap-2">
                 <Button onClick={handleDownloadBill} variant="outline" size="sm">
-                  <Download className="mr-2 h-4 w-4" />Download Bill
+                  <Download className="mr-2 h-4 w-4" />
+                  Download Bill
                 </Button>
                 <Button onClick={handleEmailBill} variant="outline" size="sm">
-                  <FileText className="mr-2 h-4 w-4" />Email Bill
+                  <FileText className="mr-2 h-4 w-4" />
+                  Email Bill
                 </Button>
               </div>
             </div>
@@ -448,25 +527,41 @@ Thank you for choosing Embrace Health.
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Coverage</span>
-                  <span className="font-medium">{insuranceInfo.coveragePercentage}% after deductible</span>
+                  <span className="font-medium">
+                    {insuranceInfo.coveragePercentage}% after deductible
+                  </span>
                 </div>
                 <Separator />
                 <div className="space-y-1">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Deductible Met</span>
-                    <span>{fmt(insuranceInfo.deductibleMet)} / {fmt(insuranceInfo.deductible)}</span>
+                    <span>
+                      {fmt(insuranceInfo.deductibleMet)} / {fmt(insuranceInfo.deductible)}
+                    </span>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-muted">
-                    <div className="h-full bg-primary" style={{ width: `${(insuranceInfo.deductibleMet / insuranceInfo.deductible) * 100}%` }} />
+                    <div
+                      className="h-full bg-primary"
+                      style={{
+                        width: `${(insuranceInfo.deductibleMet / insuranceInfo.deductible) * 100}%`,
+                      }}
+                    />
                   </div>
                 </div>
                 <div className="space-y-1">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Out-of-Pocket Met</span>
-                    <span>{fmt(insuranceInfo.outOfPocketMet)} / {fmt(insuranceInfo.outOfPocketMax)}</span>
+                    <span>
+                      {fmt(insuranceInfo.outOfPocketMet)} / {fmt(insuranceInfo.outOfPocketMax)}
+                    </span>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-muted">
-                    <div className="h-full bg-success" style={{ width: `${(insuranceInfo.outOfPocketMet / insuranceInfo.outOfPocketMax) * 100}%` }} />
+                    <div
+                      className="h-full bg-success"
+                      style={{
+                        width: `${(insuranceInfo.outOfPocketMet / insuranceInfo.outOfPocketMax) * 100}%`,
+                      }}
+                    />
                   </div>
                 </div>
               </CardContent>

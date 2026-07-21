@@ -10,11 +10,7 @@
       "doctor": "Dr. Ravi Menon",
       "specialty": "Cardiology",
       "notes": "Patient stable, chest pain resolved. Continue current medications.",
-      "findings": [
-        "Heart sounds normal",
-        "No respiratory distress",
-        "Wound healing well"
-      ],
+      "findings": ["Heart sounds normal", "No respiratory distress", "Wound healing well"],
       "status": "completed"
     },
     "namespace": "daily-checkups",
@@ -34,10 +30,7 @@
       "doctor": "Dr. Sameer Khan",
       "specialty": "Endocrinology",
       "notes": "Blood sugar levels improving with insulin therapy.",
-      "findings": [
-        "HbA1c trending down",
-        "No hypoglycemic episodes"
-      ],
+      "findings": ["HbA1c trending down", "No hypoglycemic episodes"],
       "status": "scheduled"
     },
     "namespace": "daily-checkups",
@@ -57,11 +50,7 @@
       "doctor": "Dr. Ravi Menon",
       "specialty": "Cardiology",
       "notes": "Post-procedure check. Patient recovering well.",
-      "findings": [
-        "Vital signs stable",
-        "No complications",
-        "Pain managed"
-      ],
+      "findings": ["Vital signs stable", "No complications", "Pain managed"],
       "status": "completed"
     },
     "namespace": "daily-checkups",

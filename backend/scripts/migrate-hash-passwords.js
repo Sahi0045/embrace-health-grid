@@ -27,7 +27,7 @@ import { fileURLToPath } from "url";
 import { createHash } from "crypto";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const DATA_DIR  = join(__dirname, "..", "data");
+const DATA_DIR = join(__dirname, "..", "data");
 const USERS_FILE = join(DATA_DIR, "users.json");
 
 const DRY_RUN = process.argv.includes("--dry-run");
@@ -71,7 +71,7 @@ if (!DRY_RUN) {
 // Step 2: Load and process
 const data = JSON.parse(readFileSync(USERS_FILE, "utf8"));
 let migrated = 0;
-let skipped  = 0;
+let skipped = 0;
 
 for (const [email, entry] of Object.entries(data)) {
   const { password } = entry.value || {};
@@ -84,9 +84,7 @@ for (const [email, entry] of Object.entries(data)) {
 
   // Check if already bcrypt hash
   const isBcrypt =
-    password.startsWith("$2a$") ||
-    password.startsWith("$2b$") ||
-    password.startsWith("$2y$");
+    password.startsWith("$2a$") || password.startsWith("$2b$") || password.startsWith("$2y$");
 
   if (isBcrypt) {
     console.log(`  ✓  [${email}]  Already hashed — skipped`);

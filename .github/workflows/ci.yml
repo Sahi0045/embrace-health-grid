@@ -16,7 +16,6 @@ env:
 #  JOBS
 # ════════════════════════════════════════════════════════════════
 jobs:
-
   # ──────────────────────────────────────────────────────────────
   #  1. Lint & Type-check (frontend)
   # ──────────────────────────────────────────────────────────────
@@ -103,6 +102,8 @@ jobs:
           JWT_SECRET: ci-test-jwt-secret-do-not-use-in-prod
           CLIENT_KEY: ci-test-client-key
           LOG_LEVEL: error
+          DATA_ENCRYPTION_KEY: 0000000000000000000000000000000000000000000000000000000000000000
+          AUDIT_HMAC_KEY: 0000000000000000000000000000000000000000000000000000000000000000
         run: |
           node server.js &
           echo "BACKEND_PID=$!" >> $GITHUB_ENV

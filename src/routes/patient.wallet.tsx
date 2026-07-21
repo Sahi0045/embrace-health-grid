@@ -30,7 +30,8 @@ function Wallet() {
     type: c.type ?? "Verifiable Credential",
     issuer: c.issuer ?? "Embrace Health Consortium",
     issuedAt: c.issuedAt ?? c.timestamp ?? new Date().toISOString().split("T")[0],
-    expiresAt: c.expiresAt ?? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+    expiresAt:
+      c.expiresAt ?? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
     status: (c.status === "revoked" ? "revoked" : "active") as "active" | "revoked" | "expired",
     claims: c.claims || {},
   }));
@@ -40,7 +41,7 @@ function Wallet() {
 
   const timelineEvents = list.map((c: any, i: number) => ({
     id: `wallet_event_${c.id || i}`,
-    action: c.status === "revoked" ? "expired" as const : "issued" as const,
+    action: c.status === "revoked" ? ("expired" as const) : ("issued" as const),
     label: `${c.type === "IdentityVC" ? "Identity" : c.type === "InsuranceVC" ? "Insurance" : c.type} credential ${c.status === "revoked" ? "revoked" : "issued"}`,
     issuer: c.issuer,
     at: c.issuedAt ? c.issuedAt.split("T")[0] : "N/A",
@@ -49,13 +50,11 @@ function Wallet() {
   const getPreviewFields = (selectedCred: any) => {
     const raw = rawCredentials.find((rc: any) => rc.id === selectedCred.id);
     if (!raw || !raw.claims) return [];
-    
+
     return Object.entries(raw.claims)
       .filter(([k]) => k !== "subjectDid")
       .map(([key, val]) => {
-        const label = key
-          .replace(/([A-Z])/g, " $1")
-          .replace(/^./, (str) => str.toUpperCase());
+        const label = key.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase());
         return { label, value: String(val) };
       });
   };

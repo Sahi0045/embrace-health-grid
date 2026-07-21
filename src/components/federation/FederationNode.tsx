@@ -22,9 +22,24 @@ interface FederationNodeProps {
 }
 
 const trustConfig = {
-  full: { label: "Full Trust", color: "text-success", ring: "ring-success/30", bg: "bg-success/10" },
-  partial: { label: "Partial Trust", color: "text-warning-foreground", ring: "ring-warning/30", bg: "bg-warning/10" },
-  pending: { label: "Pending", color: "text-muted-foreground", ring: "ring-border", bg: "bg-muted" },
+  full: {
+    label: "Full Trust",
+    color: "text-success",
+    ring: "ring-success/30",
+    bg: "bg-success/10",
+  },
+  partial: {
+    label: "Partial Trust",
+    color: "text-warning-foreground",
+    ring: "ring-warning/30",
+    bg: "bg-warning/10",
+  },
+  pending: {
+    label: "Pending",
+    color: "text-muted-foreground",
+    ring: "ring-border",
+    bg: "bg-muted",
+  },
 };
 
 const statusDot = {
@@ -46,11 +61,19 @@ export function FederationNode({ node, isSelected, onClick, size = "md" }: Feder
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className={`flex shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary font-bold ${isLg ? "h-12 w-12 text-sm" : "h-9 w-9 text-xs"}`}>
-            {node.name.split(" ").map(w => w[0]).slice(0, 2).join("")}
+          <div
+            className={`flex shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary font-bold ${isLg ? "h-12 w-12 text-sm" : "h-9 w-9 text-xs"}`}
+          >
+            {node.name
+              .split(" ")
+              .map((w) => w[0])
+              .slice(0, 2)
+              .join("")}
           </div>
           <div>
-            <div className={`font-semibold text-foreground ${isLg ? "text-base" : "text-sm"}`}>{node.name}</div>
+            <div className={`font-semibold text-foreground ${isLg ? "text-base" : "text-sm"}`}>
+              {node.name}
+            </div>
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
               <Globe className="h-3 w-3" />
               {node.city}
@@ -96,8 +119,13 @@ export function FederationNode({ node, isSelected, onClick, size = "md" }: Feder
 
       {isLg && node.specialties.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-1">
-          {node.specialties.slice(0, 4).map(s => (
-            <span key={s} className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">{s}</span>
+          {node.specialties.slice(0, 4).map((s) => (
+            <span
+              key={s}
+              className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary"
+            >
+              {s}
+            </span>
           ))}
         </div>
       )}
@@ -109,7 +137,11 @@ export function FederationNode({ node, isSelected, onClick, size = "md" }: Feder
         </div>
       )}
 
-      <div className={`mt-2 font-mono text-[10px] text-muted-foreground/50 truncate ${!isLg && "mt-2"}`}>{node.did}</div>
+      <div
+        className={`mt-2 font-mono text-[10px] text-muted-foreground/50 truncate ${!isLg && "mt-2"}`}
+      >
+        {node.did}
+      </div>
     </motion.div>
   );
 }

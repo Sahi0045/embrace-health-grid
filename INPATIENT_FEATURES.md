@@ -1,17 +1,20 @@
 # Inpatient Care Management System
 
 ## Overview
+
 Comprehensive hospital admission and inpatient care tracking system for patients admitted to the hospital. This module provides real-time access to all aspects of inpatient care including vitals monitoring, medication schedules, daily checkups, lab tests, procedures, and nursing care.
 
 ## Features Implemented
 
 ### 1. Admission Management
+
 **Location:** `/patient/inpatient`
 
 #### Admission Details
+
 - **Admission Status**: Real-time admission status (Currently Admitted, Discharged, Scheduled)
 - **Ward & Room Information**: Current location (Ward, Room, Bed number)
-- **Admission Timeline**: 
+- **Admission Timeline**:
   - Admission date and timE
   - Days of stay counter
   - Expected discharge date
@@ -23,9 +26,11 @@ Comprehensive hospital admission and inpatient care tracking system for patients
 - **Care Team**: Attending physician and specialists
 
 ### 2. Vital Signs Monitoring
+
 Real-time and historical vital signs tracking:
 
 #### Monitored Parameters
+
 - **Temperature**: Body temperature in Celsius
 - **Blood Pressure**: Systolic/Diastolic readings
 - **Heart Rate**: Beats per minute (bpm)
@@ -33,6 +38,7 @@ Real-time and historical vital signs tracking:
 - **Oxygen Saturation (SpO₂)**: Percentage
 
 #### Features
+
 - Latest vitals display with normal range indicators
 - Color-coded alerts for abnormal values
 - Historical vitals tracking with timestamps
@@ -43,6 +49,7 @@ Real-time and historical vital signs tracking:
 ### 3. Medication Management
 
 #### Active Medications Display
+
 - **Medication Name**: Generic and brand names
 - **Dosage**: Exact dosage amount
 - **Frequency**: Administration schedule
@@ -52,6 +59,7 @@ Real-time and historical vital signs tracking:
 - **Start/End Dates**: Treatment duration
 
 #### Medication Types Tracked
+
 - Cardiac medications (Aspirin, Beta-blockers, Statins)
 - Diabetes medications (Insulin, Oral hypoglycemics)
 - Anticoagulants (Enoxaparin, Warfarin)
@@ -60,6 +68,7 @@ Real-time and historical vital signs tracking:
 - IV fluids
 
 #### Status Indicators
+
 - Active medications
 - Completed courses
 - Discontinued medications
@@ -67,6 +76,7 @@ Real-time and historical vital signs tracking:
 ### 4. Daily Checkups & Rounds
 
 #### Checkup Information
+
 - **Scheduled Time**: Exact time of doctor visit
 - **Doctor Name & Specialty**: Who's conducting the checkup
 - **Type**: Routine, Specialist consultation, Emergency
@@ -75,6 +85,7 @@ Real-time and historical vital signs tracking:
 - **Findings**: Key medical findings from examination
 
 #### Checkup Types
+
 - Morning rounds (Primary physician)
 - Specialist consultations
 - Emergency assessments
@@ -84,6 +95,7 @@ Real-time and historical vital signs tracking:
 ### 5. Laboratory Tests
 
 #### Test Management
+
 - **Test Name**: Complete test description
 - **Order Date**: When test was ordered
 - **Scheduled/Completion Date**: Timeline tracking
@@ -91,6 +103,7 @@ Real-time and historical vital signs tracking:
 - **Ordering Physician**: Who requested the test
 
 #### Test Results Display
+
 - **Parameter Name**: What was measured
 - **Value**: Test result
 - **Unit**: Measurement unit
@@ -99,6 +112,7 @@ Real-time and historical vital signs tracking:
 - Color-coded abnormal results
 
 #### Common Tests Tracked
+
 - Troponin (Cardiac markers)
 - Complete Blood Count (CBC)
 - Lipid Panel
@@ -110,6 +124,7 @@ Real-time and historical vital signs tracking:
 ### 6. Procedures & Interventions
 
 #### Procedure Information
+
 - **Procedure Name**: Full description
 - **Scheduled Date & Time**: When it will occur
 - **Location**: Where procedure takes place
@@ -118,11 +133,13 @@ Real-time and historical vital signs tracking:
 - **Special Instructions**: Pre-procedure requirements
 
 #### Special Indicators
+
 - **Fasting Required**: NPO (Nothing by mouth) alerts
 - **Preparation Instructions**: What patient needs to do
 - **Post-procedure Notes**: Recovery information
 
 #### Procedure Types
+
 - Diagnostic procedures (Angiography, Endoscopy)
 - Imaging (Echocardiogram, CT, MRI)
 - Therapeutic procedures (Stent placement)
@@ -132,7 +149,8 @@ Real-time and historical vital signs tracking:
 ### 7. Diet & Nutrition Management
 
 #### Diet Order Details
-- **Diet Type**: 
+
+- **Diet Type**:
   - Regular
   - Cardiac (Low-sodium)
   - Diabetic (Controlled carbohydrates)
@@ -145,6 +163,7 @@ Real-time and historical vital signs tracking:
 - **Ordering Physician**: Who prescribed the diet
 
 #### Nutrition Tracking
+
 - Meal schedules
 - Calorie targets
 - Fluid restrictions
@@ -153,6 +172,7 @@ Real-time and historical vital signs tracking:
 ### 8. Nursing Notes & Care Documentation
 
 #### Note Categories
+
 - **General Care**: Daily care activities
 - **Medication Administration**: Drug administration records
 - **Vitals Recording**: Vital signs documentation
@@ -160,12 +180,14 @@ Real-time and historical vital signs tracking:
 - **Care Activities**: Bathing, ambulation, wound care
 
 #### Note Details
+
 - **Timestamp**: Exact time of documentation
 - **Nurse Name**: Who documented
 - **Priority Level**: Routine, Important, Urgent
 - **Detailed Notes**: Comprehensive care information
 
 #### Care Activities Tracked
+
 - Patient ambulation (walking)
 - Wound care and dressing changes
 - Pain assessments
@@ -176,11 +198,13 @@ Real-time and historical vital signs tracking:
 ### 9. Emergency Features
 
 #### Quick Access
+
 - **Call Nurse Button**: Immediate assistance request
 - **Emergency Contact**: Direct line to nurse station
 - **Alert System**: For urgent needs
 
 #### Safety Features
+
 - Fall risk indicators
 - Allergy alerts
 - Critical lab value notifications
@@ -189,12 +213,14 @@ Real-time and historical vital signs tracking:
 ## User Interface Features
 
 ### Tabbed Navigation
+
 - **Today Tab**: Current day's schedule and activities
 - **Vitals Tab**: Vital signs monitoring
 - **Meds Tab**: Medication schedule
 - **Tests Tab**: Lab results and procedures
 
 ### Visual Indicators
+
 - Color-coded status badges
 - Normal/Abnormal value highlighting
 - Priority indicators
@@ -202,6 +228,7 @@ Real-time and historical vital signs tracking:
 - Progress tracking
 
 ### Real-time Updates
+
 - Live vital signs
 - Medication countdowns
 - Procedure reminders
@@ -210,6 +237,7 @@ Real-time and historical vital signs tracking:
 ## Data Structure
 
 ### Core Data Models
+
 1. **Admission**: Patient admission details
 2. **VitalSigns**: Physiological measurements
 3. **Medication**: Drug therapy information
@@ -222,12 +250,14 @@ Real-time and historical vital signs tracking:
 ## Integration Points
 
 ### Staff Portal Integration
+
 - Doctors can view and update patient records
 - Nurses can record vitals and notes
 - Lab technicians can upload results
 - Pharmacists can verify medications
 
 ### Admin Console Integration
+
 - Bed management
 - Resource allocation
 - Quality metrics
@@ -236,12 +266,14 @@ Real-time and historical vital signs tracking:
 ## Security & Privacy
 
 ### Access Control
+
 - Patient can only view their own records
 - Staff can access assigned patients
 - Admin has oversight capabilities
 - Audit logging for all access
 
 ### Data Protection
+
 - HIPAA compliant
 - Encrypted data transmission
 - Secure authentication
@@ -250,6 +282,7 @@ Real-time and historical vital signs tracking:
 ## Future Enhancements
 
 ### Planned Features
+
 1. **Family Portal**: Allow designated family members to view updates
 2. **Discharge Planning**: Automated discharge instructions
 3. **Medication Reminders**: Push notifications for doses
@@ -262,6 +295,7 @@ Real-time and historical vital signs tracking:
 10. **Visitor Management**: Visitor scheduling and check-in
 
 ### Advanced Analytics
+
 - Vital signs trend analysis
 - Medication adherence tracking
 - Recovery progress scoring
@@ -271,12 +305,14 @@ Real-time and historical vital signs tracking:
 ## Technical Implementation
 
 ### Files Created
+
 - `src/lib/inpatient-data.ts` - Data models and mock data
 - `src/routes/patient.inpatient.tsx` - Main inpatient care UI
 - Updated `src/components/AppSidebar.tsx` - Added navigation
 - Updated `src/routes/patient.index.tsx` - Added quick access
 
 ### Technologies Used
+
 - React with TypeScript
 - TanStack Router for navigation
 - Radix UI components
@@ -286,6 +322,7 @@ Real-time and historical vital signs tracking:
 ## Usage
 
 ### For Patients
+
 1. Navigate to "Inpatient Care" from patient dashboard
 2. View current admission status
 3. Check today's schedule (checkups, procedures)
@@ -296,6 +333,7 @@ Real-time and historical vital signs tracking:
 8. Call for assistance if needed
 
 ### For Healthcare Providers
+
 - Access patient records through staff portal
 - Update care plans
 - Record observations
@@ -305,12 +343,14 @@ Real-time and historical vital signs tracking:
 ## Compliance & Standards
 
 ### Healthcare Standards
+
 - HL7 FHIR compatibility (future)
 - ICD-10 diagnosis codes
 - CPT procedure codes
 - LOINC lab test codes
 
 ### Quality Metrics
+
 - Patient satisfaction scores
 - Care quality indicators
 - Safety event tracking

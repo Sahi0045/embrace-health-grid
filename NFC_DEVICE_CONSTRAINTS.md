@@ -40,6 +40,7 @@
 ### 1.3 NDEF Record Format (Physical NFC Tag)
 
 When writing to a physical NFC tag (NTAG215/216), the NDEF record contains:
+
 - **Type**: `application/json`
 - **Payload**: JSON-serialized signed identity payload (see 1.2)
 - **Signature**: HMAC-SHA256 with hospital identity secret
@@ -64,34 +65,34 @@ When writing to a physical NFC tag (NTAG215/216), the NDEF record contains:
 
 ### 2.2 Error Codes
 
-| Code | HTTP | Description | UI Action |
-|------|------|-------------|-----------|
-| `CARD_REVOKED` | 403 | Card has been revoked by admin | Show warning + auto-suggest QR |
-| `CARD_NOT_FOUND` | 404 | Card ID not in registry | Guide manual MRN input |
-| `SIGNATURE_INVALID` | 400 | Payload signature mismatch | "Contact IT support" message |
-| `DID_EXPIRED` | 400 | Patient DID document expired | "Request credential renewal" |
+| Code                | HTTP | Description                    | UI Action                      |
+| ------------------- | ---- | ------------------------------ | ------------------------------ |
+| `CARD_REVOKED`      | 403  | Card has been revoked by admin | Show warning + auto-suggest QR |
+| `CARD_NOT_FOUND`    | 404  | Card ID not in registry        | Guide manual MRN input         |
+| `SIGNATURE_INVALID` | 400  | Payload signature mismatch     | "Contact IT support" message   |
+| `DID_EXPIRED`       | 400  | Patient DID document expired   | "Request credential renewal"   |
 
 ### 2.3 WebSocket Events
 
-| Event | Trigger | Data |
-|-------|---------|------|
-| `nfc:updated` | Card issued or revoked | Card object |
-| `attendance:clocked` | Staff clock in/out | Attendance record |
+| Event                | Trigger                | Data              |
+| -------------------- | ---------------------- | ----------------- |
+| `nfc:updated`        | Card issued or revoked | Card object       |
+| `attendance:clocked` | Staff clock in/out     | Attendance record |
 
 ---
 
 ## 3. Browser Support Matrix
 
-| Browser | Platform | Web NFC | QR Camera | Manual MRN |
-|---------|----------|---------|-----------|------------|
-| Chrome 89+ | Android | ✅ | ✅ | ✅ |
-| Chrome | Desktop (Windows/Mac/Linux) | ❌ | ✅ | ✅ |
-| Safari | iOS | ❌ | ✅ | ✅ |
-| Safari | macOS | ❌ | ✅ | ✅ |
-| Firefox | Any | ❌ | ✅ | ✅ |
-| Edge | Android | ❌ | ✅ | ✅ |
-| Edge | Desktop | ❌ | ✅ | ✅ |
-| Samsung Internet | Android | ❌ | ✅ | ✅ |
+| Browser          | Platform                    | Web NFC | QR Camera | Manual MRN |
+| ---------------- | --------------------------- | ------- | --------- | ---------- |
+| Chrome 89+       | Android                     | ✅      | ✅        | ✅         |
+| Chrome           | Desktop (Windows/Mac/Linux) | ❌      | ✅        | ✅         |
+| Safari           | iOS                         | ❌      | ✅        | ✅         |
+| Safari           | macOS                       | ❌      | ✅        | ✅         |
+| Firefox          | Any                         | ❌      | ✅        | ✅         |
+| Edge             | Android                     | ❌      | ✅        | ✅         |
+| Edge             | Desktop                     | ❌      | ✅        | ✅         |
+| Samsung Internet | Android                     | ❌      | ✅        | ✅         |
 
 > **Note**: Web NFC API (`NDEFReader`) is exclusively available in Chrome on Android.
 > iOS CoreNFC is only accessible via native apps, not web browsers.
@@ -109,12 +110,12 @@ When writing to a physical NFC tag (NTAG215/216), the NDEF record contains:
 
 Every NFC-required action has guaranteed fallback paths:
 
-| Action | Primary | Fallback 1 | Fallback 2 | Notes |
-|--------|---------|-----------|-----------|-------|
-| **Patient identity verification** | NFC card tap | QR code scan (camera) | Manual MRN + override reason | Override logged as `MANUAL_OVERRIDE` audit event |
-| **Staff attendance clock-in** | NFC card tap | Button clock-in (UI) | — | Both methods log `ATTENDANCE_CLOCK_IN` |
-| **Visitor check-in** | Staff button | Staff button | — | Audit logged as `VISITOR_CHECKIN` |
-| **Patient QR display** | QR auto-generation | Manual refresh | — | QR rotates every 60 seconds |
+| Action                            | Primary            | Fallback 1            | Fallback 2                   | Notes                                            |
+| --------------------------------- | ------------------ | --------------------- | ---------------------------- | ------------------------------------------------ |
+| **Patient identity verification** | NFC card tap       | QR code scan (camera) | Manual MRN + override reason | Override logged as `MANUAL_OVERRIDE` audit event |
+| **Staff attendance clock-in**     | NFC card tap       | Button clock-in (UI)  | —                            | Both methods log `ATTENDANCE_CLOCK_IN`           |
+| **Visitor check-in**              | Staff button       | Staff button          | —                            | Audit logged as `VISITOR_CHECKIN`                |
+| **Patient QR display**            | QR auto-generation | Manual refresh        | —                            | QR rotates every 60 seconds                      |
 
 ### 4.1 Automatic Fallback Triggers
 
@@ -149,10 +150,10 @@ Every NFC-required action has guaranteed fallback paths:
 
 ### 5.4 Troubleshooting
 
-| Issue | Solution |
-|-------|----------|
-| NFC badge shows "Not Supported" | Ensure using Chrome on Android with NFC enabled |
-| NFC scan times out | Hold card steady for 2-3 seconds, ensure NFC is on |
-| "Card revoked" error | Contact admin to issue new card |
-| QR code expired | Patient can refresh QR (auto-refreshes every 60s) |
-| Manual override needed | Enter patient MRN and provide reason (audit logged) |
+| Issue                           | Solution                                            |
+| ------------------------------- | --------------------------------------------------- |
+| NFC badge shows "Not Supported" | Ensure using Chrome on Android with NFC enabled     |
+| NFC scan times out              | Hold card steady for 2-3 seconds, ensure NFC is on  |
+| "Card revoked" error            | Contact admin to issue new card                     |
+| QR code expired                 | Patient can refresh QR (auto-refreshes every 60s)   |
+| Manual override needed          | Enter patient MRN and provide reason (audit logged) |

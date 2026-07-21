@@ -3,7 +3,19 @@ import { PageHeader } from "@/components/PageHeader";
 import { DIDCard } from "@/components/did/DIDCard";
 import { DIDStatusChip } from "@/components/did/DIDStatusChip";
 import { AuditTimeline } from "@/components/audit/AuditTimeline";
-import { Search, ShieldCheck, User, Stethoscope, Bed, Wrench, Ambulance, Fingerprint, RefreshCw, XCircle, AlertTriangle } from "lucide-react";
+import {
+  Search,
+  ShieldCheck,
+  User,
+  Stethoscope,
+  Bed,
+  Wrench,
+  Ambulance,
+  Fingerprint,
+  RefreshCw,
+  XCircle,
+  AlertTriangle,
+} from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDIDs, useAudit, useNFCCards } from "@/hooks/use-api";
@@ -54,7 +66,9 @@ function DIDExplorerPage() {
   const { data: nfcCardsData, refetch: refetchNFCCards } = useNFCCards();
   const nfcCards = nfcCardsData || [];
 
-  const patientCardEntry = selected ? nfcCards.find((c: any) => c.value?.patientDid === selected.did) : null;
+  const patientCardEntry = selected
+    ? nfcCards.find((c: any) => c.value?.patientDid === selected.did)
+    : null;
   const patientCard = patientCardEntry?.value;
 
   const registryDIDs: DIDResult[] = (didsData?.dids ?? []).map((d: any) => {
@@ -167,7 +181,11 @@ function DIDExplorerPage() {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder={viewMode === "nfc" ? "Search Card ID, Name, DID..." : "Search DID, subject, or description..."}
+              placeholder={
+                viewMode === "nfc"
+                  ? "Search Card ID, Name, DID..."
+                  : "Search DID, subject, or description..."
+              }
               className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
             />
           </div>
@@ -204,7 +222,9 @@ function DIDExplorerPage() {
           {/* Results List */}
           {viewMode === "nfc" ? (
             <div className="lg:col-span-3 space-y-3">
-              <div className="text-xs text-muted-foreground">{filteredNfcCards.length} cards found</div>
+              <div className="text-xs text-muted-foreground">
+                {filteredNfcCards.length} cards found
+              </div>
               {filteredNfcCards.map((c: any) => {
                 const cardVal = c.value || {};
                 const isSelected = selected?.did === cardVal.patientDid;
@@ -218,15 +238,21 @@ function DIDExplorerPage() {
                   >
                     <div className="flex items-start gap-3">
                       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-muted">
-                        <Fingerprint className={`h-4 w-4 ${cardVal.status === "active" ? "text-success" : "text-destructive"}`} />
+                        <Fingerprint
+                          className={`h-4 w-4 ${cardVal.status === "active" ? "text-success" : "text-destructive"}`}
+                        />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm font-semibold text-foreground">{cardVal.patientName}</span>
+                          <span className="text-sm font-semibold text-foreground">
+                            {cardVal.patientName}
+                          </span>
                           <span className="text-[10px] font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
                             {cardVal.cardId}
                           </span>
-                          <span className={`text-[10px] font-semibold rounded-full px-2 py-0.5 ${cardVal.status === "active" ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}`}>
+                          <span
+                            className={`text-[10px] font-semibold rounded-full px-2 py-0.5 ${cardVal.status === "active" ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}`}
+                          >
                             {cardVal.status.toUpperCase()}
                           </span>
                         </div>
@@ -274,14 +300,20 @@ function DIDExplorerPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm font-semibold text-foreground">{did.subject}</span>
-                          <span className={`text-[10px] font-medium ${cfg.color}`}>{cfg.label}</span>
+                          <span className="text-sm font-semibold text-foreground">
+                            {did.subject}
+                          </span>
+                          <span className={`text-[10px] font-medium ${cfg.color}`}>
+                            {cfg.label}
+                          </span>
                           <DIDStatusChip status={did.status} size="sm" />
                         </div>
                         <div className="mt-0.5 font-mono text-xs text-muted-foreground">
                           {did.did}
                         </div>
-                        <div className="mt-0.5 text-xs text-muted-foreground">{did.description}</div>
+                        <div className="mt-0.5 text-xs text-muted-foreground">
+                          {did.description}
+                        </div>
                       </div>
                       <div className="text-right shrink-0">
                         <div className="text-xs font-medium text-foreground">
@@ -336,7 +368,9 @@ function DIDExplorerPage() {
                           NFC Card Management
                         </div>
                         {patientCard ? (
-                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${patientCard.status === "active" ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}`}>
+                          <span
+                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${patientCard.status === "active" ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}`}
+                          >
                             {patientCard.status.toUpperCase()}
                           </span>
                         ) : (
@@ -350,20 +384,28 @@ function DIDExplorerPage() {
                         <div className="space-y-2 text-xs">
                           <div className="grid grid-cols-3 py-1.5 border-b border-border/40">
                             <span className="text-muted-foreground">Card ID</span>
-                            <span className="col-span-2 font-mono font-medium text-foreground">{patientCard.cardId}</span>
+                            <span className="col-span-2 font-mono font-medium text-foreground">
+                              {patientCard.cardId}
+                            </span>
                           </div>
                           <div className="grid grid-cols-3 py-1.5 border-b border-border/40">
                             <span className="text-muted-foreground">Issued At</span>
-                            <span className="col-span-2 text-foreground">{new Date(patientCard.issuedAt).toLocaleString()}</span>
+                            <span className="col-span-2 text-foreground">
+                              {new Date(patientCard.issuedAt).toLocaleString()}
+                            </span>
                           </div>
                           <div className="grid grid-cols-3 py-1.5 border-b border-border/40">
                             <span className="text-muted-foreground">Issued By</span>
-                            <span className="col-span-2 text-foreground">{patientCard.issuedBy}</span>
+                            <span className="col-span-2 text-foreground">
+                              {patientCard.issuedBy}
+                            </span>
                           </div>
                           {patientCard.status === "revoked" && patientCard.revokedAt && (
                             <div className="grid grid-cols-3 py-1.5 border-b border-border/40 bg-destructive/5 px-1 rounded-sm">
                               <span className="text-destructive font-medium">Revoked At</span>
-                              <span className="col-span-2 text-destructive font-medium">{new Date(patientCard.revokedAt).toLocaleString()}</span>
+                              <span className="col-span-2 text-destructive font-medium">
+                                {new Date(patientCard.revokedAt).toLocaleString()}
+                              </span>
                             </div>
                           )}
 
@@ -384,7 +426,9 @@ function DIDExplorerPage() {
                                     patientName: selected.subject,
                                     mrn: `MRN-${selected.did.slice(-6).toUpperCase()}`,
                                   });
-                                  toast.success("NFC Card Issued", { description: `New Card ${res.card.cardId} registered.` });
+                                  toast.success("NFC Card Issued", {
+                                    description: `New Card ${res.card.cardId} registered.`,
+                                  });
                                   void refetchNFCCards();
                                 } catch (err: any) {
                                   toast.error("Failed to issue card", { description: err.message });
@@ -399,7 +443,9 @@ function DIDExplorerPage() {
                         </div>
                       ) : (
                         <div className="text-center py-4 space-y-3">
-                          <p className="text-xs text-muted-foreground">This patient has no active NFC Identity Card registered.</p>
+                          <p className="text-xs text-muted-foreground">
+                            This patient has no active NFC Identity Card registered.
+                          </p>
                           <button
                             onClick={async () => {
                               try {
@@ -408,7 +454,9 @@ function DIDExplorerPage() {
                                   patientName: selected.subject,
                                   mrn: `MRN-${selected.did.slice(-6).toUpperCase()}`,
                                 });
-                                toast.success("NFC Card Issued", { description: `New Card ${res.card.cardId} registered.` });
+                                toast.success("NFC Card Issued", {
+                                  description: `New Card ${res.card.cardId} registered.`,
+                                });
                                 void refetchNFCCards();
                               } catch (err: any) {
                                 toast.error("Failed to issue card", { description: err.message });
@@ -469,7 +517,9 @@ function DIDExplorerPage() {
                 <h3 className="text-lg font-semibold text-foreground">Revoke Identity Card</h3>
               </div>
               <p className="mt-3 text-sm text-muted-foreground animate-pulse-subtle">
-                Are you sure you want to revoke this NFC card (<span className="font-mono font-medium text-foreground">{cardToRevoke}</span>)? This action is permanent and will prevent any future authentication using this card.
+                Are you sure you want to revoke this NFC card (
+                <span className="font-mono font-medium text-foreground">{cardToRevoke}</span>)? This
+                action is permanent and will prevent any future authentication using this card.
               </p>
               <div className="mt-6 flex justify-end gap-3">
                 <button

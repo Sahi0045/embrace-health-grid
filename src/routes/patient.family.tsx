@@ -18,8 +18,10 @@ export const Route = createFileRoute("/patient/family")({
 });
 
 function RelationIcon({ relation }: { relation: string }) {
-  if (relation.includes("Son") || relation.includes("Minor")) return <Baby className="h-5 w-5 text-chart-2" />;
-  if (relation.includes("Mother") || relation.includes("Elder")) return <Users className="h-5 w-5 text-chart-3" />;
+  if (relation.includes("Son") || relation.includes("Minor"))
+    return <Baby className="h-5 w-5 text-chart-2" />;
+  if (relation.includes("Mother") || relation.includes("Elder"))
+    return <Users className="h-5 w-5 text-chart-3" />;
   return <User className="h-5 w-5 text-primary" />;
 }
 
@@ -44,7 +46,10 @@ function FamilyPage() {
           role: "patient" as const,
           accessLevel: "Full healthcare access",
           permissions: ["View records", "Sign consents", "Emergency access"],
-          status: p.status === "active" || p.status === "inpatient" ? ("active" as const) : ("inactive" as const),
+          status:
+            p.status === "active" || p.status === "inpatient"
+              ? ("active" as const)
+              : ("inactive" as const),
         }))
     : [];
 
@@ -53,7 +58,7 @@ function FamilyPage() {
         const foundFamilyPatient = patients?.find(
           (p: any) =>
             p.name.toLowerCase() === patient.emergencyContact.name.toLowerCase() ||
-            p.phone === patient.emergencyContact.phone
+            p.phone === patient.emergencyContact.phone,
         );
         return [
           {
@@ -65,7 +70,10 @@ function FamilyPage() {
             accessLevel: "Emergency contact access",
             permissions: ["Emergency access"],
             status: foundFamilyPatient
-              ? (((foundFamilyPatient.status as string) === "active" || foundFamilyPatient.status === "inpatient") ? ("active" as const) : ("inactive" as const))
+              ? (foundFamilyPatient.status as string) === "active" ||
+                foundFamilyPatient.status === "inpatient"
+                ? ("active" as const)
+                : ("inactive" as const)
               : ("active" as const),
           },
         ];
@@ -79,7 +87,8 @@ function FamilyPage() {
     return doc ? doc.name : did;
   };
 
-  const patientConsents = consentsData?.consents?.filter((c: any) => c.patientDid === patient?.did) || [];
+  const patientConsents =
+    consentsData?.consents?.filter((c: any) => c.patientDid === patient?.did) || [];
 
   const delegationsList = patientConsents.map((c: any) => ({
     id: c.grantId,
@@ -127,7 +136,10 @@ function FamilyPage() {
             <div className="text-sm font-semibold text-foreground mb-3">Family Members</div>
             <div className="space-y-4">
               {familyMembersList.map((m) => (
-                <div key={m.id} className="rounded-xl border border-border bg-card p-4 shadow-clinical">
+                <div
+                  key={m.id}
+                  className="rounded-xl border border-border bg-card p-4 shadow-clinical"
+                >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
                       <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-muted">
@@ -136,17 +148,26 @@ function FamilyPage() {
                       <div>
                         <div className="text-sm font-semibold text-foreground">{m.name}</div>
                         <div className="text-xs text-muted-foreground">{m.relation}</div>
-                        <div className="mt-0.5 font-mono text-[10px] text-muted-foreground/60">{m.did}</div>
+                        <div className="mt-0.5 font-mono text-[10px] text-muted-foreground/60">
+                          {m.did}
+                        </div>
                       </div>
                     </div>
                     <DIDStatusChip status={m.status === "active" ? "active" : "suspended"} />
                   </div>
 
                   <div className="mt-3 rounded-lg bg-muted/50 px-3 py-2">
-                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1.5">{m.accessLevel}</div>
+                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1.5">
+                      {m.accessLevel}
+                    </div>
                     <div className="flex flex-wrap gap-1.5">
                       {m.permissions.map((p) => (
-                        <span key={p} className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">{p}</span>
+                        <span
+                          key={p}
+                          className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary"
+                        >
+                          {p}
+                        </span>
                       ))}
                     </div>
                   </div>
@@ -169,10 +190,15 @@ function FamilyPage() {
               </div>
               <div className="space-y-2">
                 {delegationsList.map((d: any) => (
-                  <div key={d.id} className="flex items-center justify-between rounded-lg bg-muted px-3 py-2.5">
+                  <div
+                    key={d.id}
+                    className="flex items-center justify-between rounded-lg bg-muted px-3 py-2.5"
+                  >
                     <div>
                       <div className="text-sm font-medium text-foreground">{d.delegateTo}</div>
-                      <div className="text-xs text-muted-foreground">{d.scope} · Expires {d.expiry}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {d.scope} · Expires {d.expiry}
+                      </div>
                     </div>
                     <button
                       onClick={() => handleRevoke(d.id)}
@@ -196,10 +222,13 @@ function FamilyPage() {
             <div className="flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
               <Shield className="h-5 w-5 text-primary shrink-0 mt-0.5" />
               <div>
-                <div className="text-sm font-semibold text-foreground">DID-based Access Control</div>
+                <div className="text-sm font-semibold text-foreground">
+                  DID-based Access Control
+                </div>
                 <div className="mt-1 text-xs text-muted-foreground">
-                  All family access is mediated by verifiable credentials. Each permission is individually signed and
-                  time-limited. You can revoke access at any time. All access events are logged immutably.
+                  All family access is mediated by verifiable credentials. Each permission is
+                  individually signed and time-limited. You can revoke access at any time. All
+                  access events are logged immutably.
                 </div>
               </div>
             </div>

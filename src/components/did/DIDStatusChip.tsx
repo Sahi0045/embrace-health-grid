@@ -6,10 +6,26 @@ interface DIDStatusChipProps {
 }
 
 const config = {
-  active: { label: "Active", icon: ShieldCheck, className: "bg-success/15 text-success border-success/30" },
-  revoked: { label: "Revoked", icon: ShieldX, className: "bg-destructive/15 text-destructive border-destructive/30" },
-  suspended: { label: "Suspended", icon: ShieldAlert, className: "bg-warning/15 text-warning-foreground border-warning/40" },
-  pending: { label: "Pending", icon: ShieldAlert, className: "bg-muted text-muted-foreground border-border" },
+  active: {
+    label: "Active",
+    icon: ShieldCheck,
+    className: "bg-success/15 text-success border-success/30",
+  },
+  revoked: {
+    label: "Revoked",
+    icon: ShieldX,
+    className: "bg-destructive/15 text-destructive border-destructive/30",
+  },
+  suspended: {
+    label: "Suspended",
+    icon: ShieldAlert,
+    className: "bg-warning/15 text-warning-foreground border-warning/40",
+  },
+  pending: {
+    label: "Pending",
+    icon: ShieldAlert,
+    className: "bg-muted text-muted-foreground border-border",
+  },
 };
 
 export function DIDStatusChip({ status, size = "md" }: DIDStatusChipProps) {

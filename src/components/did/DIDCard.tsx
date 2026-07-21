@@ -21,7 +21,14 @@ const roleGradients: Record<DIDCardProps["role"], string> = {
   ambulance: "from-destructive to-destructive/80",
 };
 
-export function DIDCard({ did, subject, role, subLabel, status = "active", compact = false }: DIDCardProps) {
+export function DIDCard({
+  did,
+  subject,
+  role,
+  subLabel,
+  status = "active",
+  compact = false,
+}: DIDCardProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
@@ -44,11 +51,15 @@ export function DIDCard({ did, subject, role, subLabel, status = "active", compa
           <span className="capitalize">{role} DID</span>
           <div className="flex items-center gap-1.5">
             <ShieldCheck className="h-3 w-3" />
-            <span className={status === "active" ? "text-green-200" : "text-red-300"}>{status}</span>
+            <span className={status === "active" ? "text-green-200" : "text-red-300"}>
+              {status}
+            </span>
           </div>
         </div>
 
-        <div className={`mt-2 font-mono ${compact ? "text-xs" : "text-sm"} opacity-90 truncate`}>{did}</div>
+        <div className={`mt-2 font-mono ${compact ? "text-xs" : "text-sm"} opacity-90 truncate`}>
+          {did}
+        </div>
 
         <div className={`${compact ? "mt-3" : "mt-4"} flex items-end justify-between`}>
           <div>

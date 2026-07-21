@@ -61,7 +61,7 @@ function AdminFinancialPage() {
 
   const handleDownloadStatement = () => {
     if (!selectedPatient) return;
-    const ptTx = transactions.filter(t => t.patientDid === selectedPatient.did);
+    const ptTx = transactions.filter((t) => t.patientDid === selectedPatient.did);
     const totalAmount = ptTx.reduce((sum, t) => sum + t.amount, 0);
 
     const statementLines = [
@@ -80,7 +80,7 @@ function AdminFinancialPage() {
       "--------------------------------------------------------------------------",
       "DATE        | CATEGORY     | REFERENCE        | STATUS      | AMOUNT",
       "--------------------------------------------------------------------------",
-      ...ptTx.map(t => {
+      ...ptTx.map((t) => {
         const dateStr = new Date().toLocaleDateString().padEnd(11);
         const catStr = t.category.toUpperCase().padEnd(12);
         const refStr = (t.reference || "N/A").padEnd(16);
@@ -92,18 +92,18 @@ function AdminFinancialPage() {
       `TOTAL OUTSTANDING / RECORDED: $${totalAmount.toFixed(2)}`,
       "==========================================================================",
       "               This is a secure verifiable statement from DID Hospital.   ",
-      "=========================================================================="
+      "==========================================================================",
     ];
 
     const element = document.createElement("a");
-    const file = new Blob([statementLines.join("\n")], { type: 'text/plain' });
+    const file = new Blob([statementLines.join("\n")], { type: "text/plain" });
     element.href = URL.createObjectURL(file);
-    element.download = `${selectedPatient.name.replace(/\s+/g, '_')}_hospital_statement.txt`;
+    element.download = `${selectedPatient.name.replace(/\s+/g, "_")}_hospital_statement.txt`;
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
     toast.success("Statement generated & downloaded", {
-      description: `${selectedPatient.name}'s medical bill statement.`
+      description: `${selectedPatient.name}'s medical bill statement.`,
     });
   };
 
@@ -124,7 +124,6 @@ function AdminFinancialPage() {
       toast.error("Not found", { description: "No patient matches that DID, name, or MRN." });
     }
   };
-
 
   const handleRecordPayment = async (category: LiveTransaction["category"]) => {
     if (!selectedPatient) return;
@@ -275,7 +274,6 @@ function AdminFinancialPage() {
                     >
                       <Download className="h-3.5 w-3.5" /> Download
                     </button>
-
                   </div>
 
                   <div className="grid gap-4 sm:grid-cols-3 text-xs">

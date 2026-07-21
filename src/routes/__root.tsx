@@ -96,7 +96,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           "Unified patient, staff, and admin portals powered by Decentralized Identity (DIDs) and Verifiable Credentials.",
       },
       { name: "og:title", content: "Embrace Health Grid — Decentralized Identity Infrastructure" },
-      { name: "og:description", content: "Unified patient, staff, and admin portals powered by Decentralized Identity (DIDs) and Verifiable Credentials." },
+      {
+        name: "og:description",
+        content:
+          "Unified patient, staff, and admin portals powered by Decentralized Identity (DIDs) and Verifiable Credentials.",
+      },
       { name: "og:image", content: "/og-image.png" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "robots", content: "index, follow" },
@@ -132,8 +136,6 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
-
-
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
@@ -149,7 +151,11 @@ function RootComponent() {
                   <SidebarTrigger />
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <span className="inline-block h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
-                    <span>Solana {(import.meta.env.VITE_SOLANA_NETWORK || "devnet").replace("-beta", "")} — Live</span>
+                    <span>
+                      Solana{" "}
+                      {(import.meta.env.VITE_SOLANA_NETWORK || "devnet").replace("-beta", "")} —
+                      Live
+                    </span>
                   </div>
                   <span className="ml-auto" />
                   <NotificationBell />

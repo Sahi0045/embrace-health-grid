@@ -1,9 +1,26 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
-  User, Stethoscope, ShieldCheck, ArrowRight, Hospital,
-  Network, Search, GitBranch, Award, Syringe, CreditCard,
-  Heart, Video, Users2, Command, FlaskConical, Scissors,
-  ShieldAlert, Bed, Globe, Activity,
+  User,
+  Stethoscope,
+  ShieldCheck,
+  ArrowRight,
+  Hospital,
+  Network,
+  Search,
+  GitBranch,
+  Award,
+  Syringe,
+  CreditCard,
+  Heart,
+  Video,
+  Users2,
+  Command,
+  FlaskConical,
+  Scissors,
+  ShieldAlert,
+  Bed,
+  Globe,
+  Activity,
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -11,7 +28,11 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Embrace Health Grid" },
-      { name: "description", content: "Decentralized Healthcare Identity Infrastructure — patient, staff, and admin portals." },
+      {
+        name: "description",
+        content:
+          "Decentralized Healthcare Identity Infrastructure — patient, staff, and admin portals.",
+      },
     ],
   }),
   component: Home,
@@ -22,7 +43,8 @@ const portals = [
     to: "/patient" as const,
     role: "Patient Portal",
     icon: User,
-    blurb: "QR check-in, credentials wallet, emergency profile, vaccines, insurance, telemedicine, family access.",
+    blurb:
+      "QR check-in, credentials wallet, emergency profile, vaccines, insurance, telemedicine, family access.",
     accent: "from-primary/10",
     color: "text-primary",
     count: "15 screens",
@@ -31,7 +53,8 @@ const portals = [
     to: "/staff" as const,
     role: "Staff Portal",
     icon: Stethoscope,
-    blurb: "Command center, patient management, prescriptions, labs, surgeries, emergency response.",
+    blurb:
+      "Command center, patient management, prescriptions, labs, surgeries, emergency response.",
     accent: "from-chart-2/15",
     color: "text-chart-2",
     count: "12 screens",
@@ -39,23 +62,63 @@ const portals = [
 ];
 
 const globalTools = [
-  { to: "/did-explorer" as const, label: "DID Explorer", icon: Search, desc: "Search all DID records" },
-  { to: "/credential-explorer" as const, label: "Credential Explorer", icon: Award, desc: "Browse verifiable credentials" },
-  { to: "/audit-timeline" as const, label: "Audit Timeline", icon: GitBranch, desc: "5,000 immutable audit events" },
+  {
+    to: "/did-explorer" as const,
+    label: "DID Explorer",
+    icon: Search,
+    desc: "Search all DID records",
+  },
+  {
+    to: "/credential-explorer" as const,
+    label: "Credential Explorer",
+    icon: Award,
+    desc: "Browse verifiable credentials",
+  },
+  {
+    to: "/audit-timeline" as const,
+    label: "Audit Timeline",
+    icon: GitBranch,
+    desc: "5,000 immutable audit events",
+  },
 ];
 
 const featureModules = [
-  { icon: Heart, label: "Emergency Profile", color: "text-destructive bg-destructive/10", portal: "Patient" },
-  { icon: Syringe, label: "Vaccine Passport", color: "text-chart-2 bg-chart-2/10", portal: "Patient" },
-  { icon: CreditCard, label: "Insurance & Claims", color: "text-success bg-success/10", portal: "Patient" },
+  {
+    icon: Heart,
+    label: "Emergency Profile",
+    color: "text-destructive bg-destructive/10",
+    portal: "Patient",
+  },
+  {
+    icon: Syringe,
+    label: "Vaccine Passport",
+    color: "text-chart-2 bg-chart-2/10",
+    portal: "Patient",
+  },
+  {
+    icon: CreditCard,
+    label: "Insurance & Claims",
+    color: "text-success bg-success/10",
+    portal: "Patient",
+  },
   { icon: Video, label: "Telemedicine", color: "text-primary bg-primary/10", portal: "Patient" },
   { icon: Users2, label: "Family Access", color: "text-chart-3 bg-chart-3/10", portal: "Patient" },
   { icon: Command, label: "Command Center", color: "text-chart-4 bg-chart-4/10", portal: "Staff" },
   { icon: FlaskConical, label: "Lab Orders", color: "text-chart-2 bg-chart-2/10", portal: "Staff" },
   { icon: Scissors, label: "Surgeries", color: "text-primary bg-primary/10", portal: "Staff" },
-  { icon: ShieldAlert, label: "Emergency Dept.", color: "text-destructive bg-destructive/10", portal: "Staff" },
+  {
+    icon: ShieldAlert,
+    label: "Emergency Dept.",
+    color: "text-destructive bg-destructive/10",
+    portal: "Staff",
+  },
   { icon: Bed, label: "Resource Tracking", color: "text-success bg-success/10", portal: "Staff" },
-  { icon: Globe, label: "Federation Network", color: "text-chart-2 bg-chart-2/10", portal: "Staff" },
+  {
+    icon: Globe,
+    label: "Federation Network",
+    color: "text-chart-2 bg-chart-2/10",
+    portal: "Staff",
+  },
   { icon: Activity, label: "Admin Command", color: "text-chart-4 bg-chart-4/10", portal: "Staff" },
 ];
 
@@ -79,7 +142,8 @@ export default function Home() {
           transition={{ delay: 0.05 }}
           className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl"
         >
-          One identity.<br />
+          One identity.
+          <br />
           <span className="text-muted-foreground">Every healthcare touchpoint.</span>
         </motion.h1>
 
@@ -90,7 +154,8 @@ export default function Home() {
           className="mt-4 max-w-2xl text-base text-muted-foreground"
         >
           A complete healthcare DID platform: patient mobile app, clinician portal, and admin
-          console unified under verifiable credentials — built for modern, secure, and compliant health systems.
+          console unified under verifiable credentials — built for modern, secure, and compliant
+          health systems.
         </motion.p>
 
         <motion.div
@@ -127,9 +192,11 @@ export default function Home() {
           { label: "Registered Patients", value: "500", sub: "Full dataset" },
           { label: "Credentials", value: "1,000", sub: "12 types" },
           { label: "Audit Events", value: "5,000", sub: "Immutable log" },
-        ].map(s => (
+        ].map((s) => (
           <div key={s.label}>
-            <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{s.label}</div>
+            <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              {s.label}
+            </div>
             <div className="mt-1 text-2xl font-semibold text-foreground">{s.value}</div>
             <div className="mt-0.5 text-xs text-muted-foreground">{s.sub}</div>
           </div>
@@ -138,7 +205,9 @@ export default function Home() {
 
       {/* Portals */}
       <div>
-        <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-5">Two Portals</div>
+        <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-5">
+          Two Portals
+        </div>
         <div className="grid gap-4 sm:grid-cols-2 max-w-4xl mx-auto">
           {portals.map((p, i) => {
             const Icon = p.icon;
@@ -153,18 +222,25 @@ export default function Home() {
                   to={p.to}
                   className={`group relative block overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-clinical transition-all hover:-translate-y-0.5 hover:shadow-clinical-md`}
                 >
-                  <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${p.accent} to-transparent`} />
+                  <div
+                    className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${p.accent} to-transparent`}
+                  />
                   <div className="relative">
-                    <div className={`flex h-11 w-11 items-center justify-center rounded-xl bg-card shadow-clinical ${p.color}`}>
+                    <div
+                      className={`flex h-11 w-11 items-center justify-center rounded-xl bg-card shadow-clinical ${p.color}`}
+                    >
                       <Icon className="h-5 w-5" />
                     </div>
                     <div className="mt-4 flex items-center justify-between">
                       <h3 className="text-base font-semibold text-foreground">{p.role}</h3>
-                      <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">{p.count}</span>
+                      <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                        {p.count}
+                      </span>
                     </div>
                     <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{p.blurb}</p>
                     <div className="mt-5 inline-flex items-center gap-1 text-sm font-medium text-primary">
-                      Enter portal <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                      Enter portal{" "}
+                      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                     </div>
                   </div>
                 </Link>
@@ -176,7 +252,9 @@ export default function Home() {
 
       {/* Global tools */}
       <div>
-        <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-5">Global Network Tools</div>
+        <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-5">
+          Global Network Tools
+        </div>
         <div className="grid gap-3 sm:grid-cols-3 max-w-5xl mx-auto">
           {globalTools.map((t, i) => {
             const Icon = t.icon;
@@ -207,7 +285,9 @@ export default function Home() {
 
       {/* Feature modules grid */}
       <div>
-        <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-5">New Feature Modules</div>
+        <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-5">
+          New Feature Modules
+        </div>
         <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
           {featureModules.map((f, i) => {
             const Icon = f.icon;
@@ -222,7 +302,9 @@ export default function Home() {
                 <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${f.color}`}>
                   <Icon className="h-4 w-4" />
                 </div>
-                <div className="text-[11px] font-medium text-foreground leading-tight">{f.label}</div>
+                <div className="text-[11px] font-medium text-foreground leading-tight">
+                  {f.label}
+                </div>
                 <div className="text-[10px] text-muted-foreground">{f.portal}</div>
               </motion.div>
             );
@@ -236,9 +318,11 @@ export default function Home() {
           { label: "HIPAA", value: "98/100", sub: "Compliant" },
           { label: "GDPR", value: "95/100", sub: "Compliant" },
           { label: "DPDP Act", value: "97/100", sub: "India 2023" },
-        ].map(s => (
+        ].map((s) => (
           <div key={s.label}>
-            <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{s.label}</div>
+            <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              {s.label}
+            </div>
             <div className="mt-1 text-2xl font-semibold text-success">{s.value}</div>
             <div className="mt-0.5 text-xs text-muted-foreground">{s.sub}</div>
           </div>
