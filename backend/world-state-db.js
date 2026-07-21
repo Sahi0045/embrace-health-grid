@@ -37,10 +37,19 @@ if (!existsSync(DATA_DIR)) {
   mkdirSync(DATA_DIR, { recursive: true });
 }
 
-// Log encryption key fingerprint on startup (safe — not the key itself)
+// Validate encryption key on startup
+const hasExplicitKey = !!process.env.DATA_ENCRYPTION_KEY;
 try {
   const fp = getKeyFingerprint();
-  console.log(`🔐 PHI Encryption active. Key fingerprint: ${fp} (AES-256-GCM)`);
+  if (hasExplicitKey) {
+    console.log(`🔐 PHI Encryption active. Key fingerprint: ${fp} (AES-256-GCM)`);
+  } else if (process.env.NODE_ENV === "production") {
+    console.error("FATAL: DATA_ENCRYPTION_KEY must be set in production.");
+    console.error("Generate one with: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\"");
+    process.exit(1);
+  } else {
+    console.warn(`⚠️ PHI Encryption using DEV FALLBACK key (fingerprint: ${fp}). Set DATA_ENCRYPTION_KEY for production.`);
+  }
 } catch (e) {
   if (process.env.NODE_ENV === "production") {
     console.error("FATAL: PHI encryption key unavailable.", e.message);
