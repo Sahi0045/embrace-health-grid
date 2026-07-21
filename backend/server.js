@@ -29,6 +29,8 @@ import {
 import { buildAuth } from "./middleware/auth.js";
 import { createAuditHelper } from "./lib/audit.js";
 import { registerExtensionRoutes } from "./routes/extensions.js";
+import { MerkleTree, sha256 } from "./merkle.js";
+import { PublicKey, Transaction, TransactionInstruction, Connection } from "@solana/web3.js";
 import { signCredential } from "./lib/vc-sign.js";
 import * as notificationStore from "./lib/notifications.js";
 import { splitRecord } from "./lib/hash.js";
@@ -341,7 +343,7 @@ const logAudit = createAuditHelper({
 function simHash(s) {
   let h = 0;
   for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0;
-  return Math.abs(h).toString(16).padStart(8, "0") + randomUUID().replace(/-/g, "").slice(0, 24);
+  return Math.abs(h).toString(16).padStart(8, "0") + "a1b2c3d4e5f67890a1b2c3d4";
 }
 
 function broadcast(msg) {
@@ -478,6 +480,14 @@ app.post("/api/did", requireAuth, requireRole(["admin"]), async (req, res) => {
   const assignedMrn = ownerType === "patient" ? (mrn || extraFields.mrn || `MRN-${Math.floor(100000 + Math.random() * 900000)}`) : null;
   const assignedEmployeeId = ownerType !== "patient" ? (employeeId || extraFields.employeeId || `EMP-${Math.floor(1000 + Math.random() * 9000)}`) : null;
 
+  let preLinkedWallet = null;
+  if (ownerEmail) {
+    const userEntry = getState("users", ownerEmail);
+    if (userEntry) {
+      preLinkedWallet = userEntry.value.walletAddress || null;
+    }
+  }
+
   const did = `did:hosp:0x${simHash(owner + Date.now()).slice(0, 8)}`;
   const txId = randomUUID();
   const DID_RESOLVER_BASE = process.env.DID_RESOLVER_BASE || "https://did.embracehealth.in";
@@ -495,6 +505,7 @@ app.post("/api/did", requireAuth, requireRole(["admin"]), async (req, res) => {
     ownerEmail: ownerEmail || null,
     mrn: assignedMrn,
     employeeId: assignedEmployeeId,
+    walletAddress: preLinkedWallet,
     ...extraFields,
   };
   putState("did-registry", did, doc, txId);
@@ -582,13 +593,28 @@ app.post("/api/consent/grant", requireAuth, requireRole(["patient"]), (req, res)
     grantId,
     patientDid,
     doctorDid,
-    resource,
+    resource: resource || "Medical Records",
     status: "active",
     expiry: expiry || new Date(Date.now() + 7 * 86400000).toISOString(),
     grantedAt: new Date().toISOString(),
   };
   putState("consent-manager", grantId, grant, txId);
   broadcast({ event: "consent:granted", data: grant });
+
+  // Update matching pending consent request to approved
+  const requests = getAllState("consent-requests");
+  const pending = requests.find(
+    (r) =>
+      r.value &&
+      r.value.patientDid === patientDid &&
+      r.value.doctorDid === doctorDid &&
+      r.value.status === "pending"
+  );
+  if (pending) {
+    pending.value.status = "approved";
+    putState("consent-requests", pending.key, pending.value, txId);
+  }
+
   res.json(grant);
 });
 
@@ -599,6 +625,14 @@ app.patch("/api/consent/:id/revoke", requireAuth, requireRole(["patient"]), (req
   entry.value.revokedAt = new Date().toISOString();
   putState("consent-manager", req.params.id, entry.value, randomUUID());
   broadcast({ event: "consent:revoked", data: { id: req.params.id } });
+  res.json({ success: true });
+});
+
+app.patch("/api/consent/requests/:id/deny", requireAuth, requireRole(["patient"]), (req, res) => {
+  const entry = getState("consent-requests", req.params.id);
+  if (!entry) return res.status(404).json({ error: "Request not found" });
+  entry.value.status = "denied";
+  putState("consent-requests", req.params.id, entry.value, randomUUID());
   res.json({ success: true });
 });
 
@@ -756,12 +790,30 @@ app.post("/api/prescriptions", requireAuth, requireRole(["doctor", "staff"]), (r
 });
 
 app.get("/api/prescriptions/:patientDid", requireAuth, (req, res) => {
-  if (req.user.role === "patient" && req.user.did !== req.params.patientDid) {
+  const patientDid = req.params.patientDid;
+
+  if (req.user.role === "patient" && req.user.did !== patientDid) {
     return res
       .status(403)
       .json({ error: "Access Denied: Cannot view other patients' prescriptions" });
   }
-  const patientDid = req.params.patientDid;
+
+  if (req.user.role === "doctor" || req.user.role === "staff") {
+    const doctorDid = req.user.did || `did:hosp:0x${simHash(req.user.email).slice(0, 8)}`;
+    const consents = queryState("consent-manager", (v) => 
+      v.patientDid === patientDid &&
+      v.doctorDid === doctorDid &&
+      v.status === "active" &&
+      new Date(v.expiry) > new Date()
+    );
+
+    if (consents.length === 0) {
+      return res.status(403).json({
+        error: "Access Denied: No active consent from this patient. Consent must be granted during appointment booking."
+      });
+    }
+  }
+
   let all = queryState("prescriptions", (v) => v.patientDid === patientDid);
   if (all.length === 0) {
     const defaultPrescriptions = [
@@ -776,6 +828,194 @@ app.get("/api/prescriptions/:patientDid", requireAuth, (req, res) => {
     all = queryState("prescriptions", (v) => v.patientDid === patientDid);
   }
   res.json({ prescriptions: all.map((e) => e.value) });
+});
+
+// ─── Doctor Location Check-In & Tracking ────────────────────────────────────
+app.post("/api/hardware/scan", (req, res) => {
+  const { doctorDid, roomNumber } = req.body;
+  if (!doctorDid || !roomNumber) {
+    return res.status(400).json({ error: "doctorDid and roomNumber are required" });
+  }
+
+  // 1. Fetch doctor details from database
+  const allUsers = getAllState("users");
+  const doctorUserEntry = allUsers.find(
+    (u) =>
+      u.value?.did === doctorDid ||
+      `did:hosp:0x${simHash(u.value?.email || "").slice(0, 8)}` === doctorDid
+  );
+
+  if (!doctorUserEntry) {
+    return res.status(404).json({ error: "Doctor not found in system registry" });
+  }
+  const doctorUser = doctorUserEntry.value;
+
+  // 2. Fetch history logs to check previous status
+  const all = queryState("doctor-locations", (v) => v.doctorDid === doctorDid);
+  const sortedLogs = [...all].sort((a, b) => b.value.timestamp.localeCompare(a.value.timestamp));
+  const lastLog = sortedLogs[0]?.value;
+
+  // Toggle action
+  let action = "enter";
+  if (lastLog && lastLog.roomNumber === roomNumber && lastLog.action === "enter") {
+    action = "exit";
+  }
+
+  // 3. Create log
+  const logId = `LOC-${Date.now().toString(36).toUpperCase()}`;
+  const timestamp = new Date().toISOString();
+  const leafContent = `${logId}:${doctorDid}:${roomNumber}:${action}:${timestamp}`;
+  const hash = `sha256:${simHash(leafContent)}`;
+
+  const log = {
+    logId,
+    doctorDid,
+    doctorName: doctorUser.name || "Dr. Staff",
+    roomNumber,
+    action,
+    timestamp,
+    hash
+  };
+
+  const txId = randomUUID();
+  putState("doctor-locations", logId, log, txId);
+
+  // 4. Update doctor status
+  doctorUser.activeRoom = action === "enter" ? roomNumber : "None";
+  doctorUser.roomStatus = action;
+  doctorUser.lastLocationChange = timestamp;
+  putState("users", doctorUser.email, doctorUser, randomUUID());
+
+  // 5. Broadcast to update staff tracker instantly
+  broadcast({
+    event: "staff:location",
+    data: {
+      id: doctorDid,
+      location: action === "enter" ? roomNumber : "Nursing Station",
+      lastSignal: timestamp
+    }
+  });
+
+  // 6. Generate updated Merkle Tree and anchor root to Solana
+  const updatedEntries = queryState("doctor-locations", (v) => v.doctorDid === doctorDid);
+  const updatedLogs = updatedEntries.map((e) => e.value);
+  const leaves = updatedLogs.map((l) => `${l.logId}:${l.doctorDid}:${l.roomNumber}:${l.action}:${l.timestamp}`);
+  const tree = new MerkleTree(leaves);
+
+  tree.build().then(() => {
+    const rootHex = tree.getRoot();
+    const anchorId = `loc_${randomUUID().slice(0, 8)}`;
+    const anchorEntry = {
+      anchorId,
+      recordHash: rootHex,
+      recordType: "doctor-location",
+      actorDid: doctorDid,
+      signature: `solana_loc_${rootHex.slice(0, 12)}_${Date.now().toString(36)}`,
+      slot: Math.floor(Date.now() / 400),
+      network: "devnet-simulated",
+      anchoredAt: timestamp
+    };
+    putState("solana-anchors", anchorId, anchorEntry, anchorId);
+
+    // Save location root status
+    putState("doctor-location-roots", doctorDid, {
+      doctorDid,
+      merkleRoot: rootHex,
+      lastUpdated: timestamp,
+      signature: anchorEntry.signature
+    }, randomUUID());
+  });
+
+  res.json({ success: true, action, log, txId });
+});
+
+app.post("/api/doctor/check-in", requireAuth, requireRole(["doctor", "staff"]), (req, res) => {
+  const { roomNumber } = req.body;
+  if (!roomNumber) {
+    return res.status(400).json({ error: "roomNumber is required" });
+  }
+
+  const doctorDid = req.user.did || `did:hosp:0x${simHash(req.user.email).slice(0, 8)}`;
+  
+  // Call unified scan route logic directly
+  req.url = "/api/hardware/scan";
+  req.body = { doctorDid, roomNumber };
+  app._router.handle(req, res);
+});
+
+app.get("/api/doctor/location-history/:doctorDid", requireAuth, (req, res) => {
+  const { doctorDid } = req.params;
+  let all = queryState("doctor-locations", (v) => v.doctorDid === doctorDid);
+  
+  if (all.length === 0) {
+    const defaultLog = {
+      logId: "LOC-INIT",
+      doctorDid,
+      doctorName: "Dr. Staff",
+      roomNumber: "Room 101 - Outpatient Clinic",
+      action: "enter",
+      timestamp: new Date(Date.now() - 3600000).toISOString(),
+      hash: `sha256:${simHash("LOC-INIT:" + doctorDid + ":Room 101 - Outpatient Clinic:enter")}`
+    };
+    putState("doctor-locations", "LOC-INIT", defaultLog, randomUUID());
+    all = queryState("doctor-locations", (v) => v.doctorDid === doctorDid);
+  }
+
+  res.json({ logs: all.map((e) => e.value) });
+});
+
+app.post("/api/doctor/anchor-location", requireAuth, requireRole(["doctor", "staff"]), async (req, res) => {
+  const { authorityPubkey } = req.body;
+  if (!authorityPubkey) {
+    return res.status(400).json({ error: "authorityPubkey is required" });
+  }
+
+  const doctorDid = req.user.did || `did:hosp:0x${simHash(req.user.email).slice(0, 8)}`;
+  
+  // Fetch all logs
+  const entries = queryState("doctor-locations", (v) => v.doctorDid === doctorDid);
+  const logs = entries.map((e) => e.value);
+
+  if (logs.length === 0) {
+    const defaultLog = {
+      logId: "LOC-INIT",
+      doctorDid,
+      doctorName: req.user.name || "Dr. Staff",
+      roomNumber: "Room 101 - Outpatient Clinic",
+      action: "enter",
+      timestamp: new Date(Date.now() - 3600000).toISOString(),
+      hash: `sha256:${simHash("LOC-INIT:" + doctorDid + ":Room 101 - Outpatient Clinic:enter")}`
+    };
+    putState("doctor-locations", "LOC-INIT", defaultLog, randomUUID());
+    logs.push(defaultLog);
+  }
+
+  const leaves = logs.map((l) => `${l.logId}:${l.doctorDid}:${l.roomNumber}:${l.action}:${l.timestamp}`);
+  const tree = new MerkleTree(leaves);
+  await tree.build();
+  const rootHex = tree.getRoot();
+
+  let isUpdate = false;
+  try {
+    const connection = new Connection("https://api.devnet.solana.com", "confirmed");
+    const programId = new PublicKey("BxkLrjBYdb3nh2m9GCfpLXBWrAj3s9MqnRbwktLqSfN3");
+    const [locationPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("doctor-location"), Buffer.from(doctorDid)],
+      programId
+    );
+    const accountInfo = await connection.getAccountInfo(locationPda);
+    if (accountInfo) isUpdate = true;
+  } catch (err) {
+    console.warn("Could not fetch location account status:", err.message);
+  }
+
+  const txId = randomUUID();
+  res.json({
+    merkleRoot: rootHex,
+    isUpdate,
+    transaction: Buffer.from(`solana_tx_placeholder_location:${rootHex}:${isUpdate}`).toString("base64"),
+    txId
+  });
 });
 
 // ─── Lab results ──────────────────────────────────────────────────────────────
@@ -821,6 +1061,194 @@ app.get("/api/labs/:patientDid", requireAuth, (req, res) => {
     all = queryState("lab-results", (v) => v.patientDid === patientDid);
   }
   res.json({ labs: all.map((e) => e.value) });
+});
+
+// ─── Medical Records ──────────────────────────────────────────────────────────
+async function getAnchorDiscriminator(name) {
+  const hash = await sha256(`global:${name}`);
+  return Buffer.from(hash.substring(0, 16), "hex");
+}
+
+async function buildAnchorTransaction(patientDid, merkleRootHex, authorityPubkeyStr, isUpdate = false) {
+  const PROGRAM_ID = new PublicKey("BxkLrjBYdb3nh2m9GCfpLXBWrAj3s9MqnRbwktLqSfN3");
+  const authority = new PublicKey(authorityPubkeyStr);
+
+  const [patientRootPda] = PublicKey.findProgramAddressSync(
+    [Buffer.from("patient-root"), Buffer.from(patientDid)],
+    PROGRAM_ID
+  );
+
+  const discriminator = await getAnchorDiscriminator(
+    isUpdate ? "update_patient_root" : "register_patient_root"
+  );
+
+  const didBytes = Buffer.from(patientDid);
+  const didLen = Buffer.alloc(4);
+  didLen.writeUInt32LE(didBytes.length);
+  const rootBytes = Buffer.from(merkleRootHex, "hex");
+
+  const data = Buffer.concat([discriminator, didLen, didBytes, rootBytes]);
+
+  const keys = [
+    { pubkey: patientRootPda, isSigner: false, isWritable: true },
+  ];
+
+  if (!isUpdate) {
+    keys.push({ pubkey: authority, isSigner: true, isWritable: true });
+    keys.push({ pubkey: new PublicKey("11111111111111111111111111111111"), isSigner: false, isWritable: false });
+  } else {
+    keys.push({ pubkey: authority, isSigner: true, isWritable: false });
+  }
+
+  const instruction = new TransactionInstruction({
+    keys,
+    programId: PROGRAM_ID,
+    data,
+  });
+
+  const tx = new Transaction().add(instruction);
+  tx.feePayer = authority;
+  tx.recentBlockhash = "11111111111111111111111111111111";
+
+  const serialized = tx.serialize({
+    requireAllSignatures: false,
+    verifySignatures: false,
+  });
+
+  return serialized.toString("base64");
+}
+
+app.get("/api/medical-records/:patientDid", requireAuth, (req, res) => {
+  if (req.user.role === "patient" && req.user.did !== req.params.patientDid) {
+    return res.status(403).json({ error: "Access Denied: Cannot view other patients' records" });
+  }
+
+  let all = queryState("medical-records", (v) => v.patientDid === req.params.patientDid);
+  
+  if (all.length === 0) {
+    const defaultDocs = [
+      {
+        id: "REC-INITIAL-DISCHARGE",
+        title: "Initial Discharge Summary",
+        type: "discharge-summary",
+        date: new Date(Date.now() - 30 * 86400000).toISOString(),
+        issuedBy: "Dr. Ravi Menon",
+        fileSize: "14 KB",
+        summary: "Patient admitted with symptoms of angina. Angiography showed clear coronary pathways. Discharged with beta-blockers.",
+        isNew: false,
+      },
+      {
+        id: "REC-INITIAL-ECG",
+        title: "Routine ECG Diagnostic",
+        type: "imaging",
+        date: new Date(Date.now() - 15 * 86400000).toISOString(),
+        issuedBy: "Dr. Ravi Menon",
+        fileSize: "45 KB",
+        summary: "Sinus rhythm at 72 bpm. Ejection fraction at 60%. Cardiomegaly ruled out.",
+        isNew: false,
+      },
+      {
+        id: "REC-INITIAL-LIPID",
+        title: "Standard Lipid Panel",
+        type: "lab-report",
+        date: new Date(Date.now() - 7 * 86400000).toISOString(),
+        issuedBy: "Dr. Sameer Khan",
+        fileSize: "8 KB",
+        summary: "Total Cholesterol: 180 mg/dL, HDL: 45 mg/dL, LDL: 92 mg/dL. Triglycerides normal.",
+        isNew: true,
+      }
+    ];
+
+    defaultDocs.forEach((doc) => {
+      const txId = randomUUID();
+      const val = {
+        recordId: doc.id,
+        patientDid: req.params.patientDid,
+        title: doc.title,
+        type: doc.type,
+        content: doc.summary,
+        doctorName: doc.issuedBy,
+        createdAt: doc.date,
+        hash: `sha256:d8c0b56${randomUUID().slice(0, 8)}`,
+      };
+      putState("medical-records", doc.id, val, txId);
+    });
+
+    all = queryState("medical-records", (v) => v.patientDid === req.params.patientDid);
+  }
+
+  res.json({ records: all.map((e) => e.value), total: all.length });
+});
+
+app.post("/api/medical-records/:patientDid", requireAuth, requireRole(["doctor", "staff"]), async (req, res) => {
+  const { patientDid } = req.params;
+  const { title, type, content, doctorDid, doctorName } = req.body;
+
+  if (!title || !type || !content) {
+    return res.status(400).json({ error: "title, type, and content are required" });
+  }
+
+  const recordId = `REC-${Date.now().toString(36).toUpperCase()}`;
+  const txId = randomUUID();
+  const hash = await sha256(recordId + title + type + content);
+
+  const record = {
+    recordId,
+    patientDid,
+    title,
+    type,
+    content,
+    doctorDid: doctorDid || req.user.did || "did:hosp:unknown",
+    doctorName: doctorName || req.user.name || "Doctor",
+    createdAt: new Date().toISOString(),
+    hash: `sha256:${hash}`,
+  };
+
+  putState("medical-records", recordId, record, txId);
+  broadcast({ event: "record:created", data: record });
+
+  res.json({ record, txId });
+});
+
+app.post("/api/medical-records/:patientDid/anchor", requireAuth, async (req, res) => {
+  const { patientDid } = req.params;
+  const { authorityPubkey, isUpdate = false } = req.body;
+
+  if (!authorityPubkey) {
+    return res.status(400).json({ error: "authorityPubkey is required" });
+  }
+
+  const records = queryState("medical-records", (v) => v.patientDid === patientDid).map((e) => e.value);
+  const prescriptions = queryState("prescriptions", (v) => v.patientDid === patientDid).map((e) => e.value);
+
+  if (records.length === 0 && prescriptions.length === 0) {
+    return res.status(400).json({ error: "No medical records or prescriptions found to anchor" });
+  }
+
+  const recordHashes = records.map((r) => r.hash || `sha256:${r.recordId}`);
+  const rxHashes = prescriptions.map((p) => p.hash || `sha256:${p.rxId}`);
+  const hashes = [...recordHashes, ...rxHashes];
+
+  const tree = new MerkleTree(hashes);
+  await tree.build();
+  const root = tree.getRoot();
+
+  try {
+    const transactionPayload = await buildAnchorTransaction(
+      patientDid,
+      root,
+      authorityPubkey,
+      isUpdate
+    );
+    res.json({
+      success: true,
+      merkleRoot: root,
+      hashes,
+      transactionPayload,
+    });
+  } catch (err) {
+    res.status(500).json({ error: `Solana transaction serialization failed: ${err.message}` });
+  }
 });
 
 // ─── Fraud alerts ─────────────────────────────────────────────────────────────
@@ -1098,7 +1526,7 @@ app.get("/api/surgeries", requireAuth, (_, res) => {
 });
 
 app.post("/api/appointments", requireAuth, (req, res) => {
-  const { patientDid, patientName, doctorDid, doctorName, slot, mode, specialty } = req.body;
+  const { patientDid, patientName, doctorDid, doctorName, slot, mode, specialty, consentGranted } = req.body;
 
   if (req.user.role === "patient" && req.user.did !== patientDid) {
     return res
@@ -1122,6 +1550,22 @@ app.post("/api/appointments", requireAuth, (req, res) => {
   };
   putState("appointments", apptId, appt, txId);
   broadcast({ event: "appointment:booked", data: appt });
+
+  if (consentGranted) {
+    const grantId = `consent_${randomUUID().slice(0, 8)}`;
+    const grant = {
+      grantId,
+      patientDid,
+      doctorDid,
+      resource: "Prescription Ledger",
+      status: "active",
+      expiry: new Date(Date.now() + 24 * 3600000).toISOString(),
+      grantedAt: new Date().toISOString(),
+    };
+    putState("consent-manager", grantId, grant, txId);
+    broadcast({ event: "consent:granted", data: grant });
+  }
+
   res.json(appt);
 });
 

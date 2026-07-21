@@ -393,6 +393,7 @@ export const bookAppointment = (data: {
   slot: string;
   mode: string;
   specialty: string;
+  consentGranted?: boolean;
 }) =>
   apiFetch<any>(`/appointments`, {
     method: "POST",

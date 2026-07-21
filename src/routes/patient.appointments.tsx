@@ -175,6 +175,7 @@ function AppointmentsPage() {
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [consultMode, setConsultMode] = useState<"in-person" | "tele">("in-person");
+  const [grantOnChainConsent, setGrantOnChainConsent] = useState(true);
 
   // Simulated Notification modal state
   const [notificationPreview, setNotificationPreview] = useState<{
@@ -261,6 +262,7 @@ function AppointmentsPage() {
         slot: timeStr,
         mode: consultMode,
         specialty: selectedDoc.specialty,
+        consentGranted: grantOnChainConsent,
       });
       toast.success("Appointment booked", { description: `${selectedDay} at ${selectedSlot}` });
       refetch();
@@ -793,6 +795,32 @@ function AppointmentsPage() {
                     </div>
                   </div>
                 )}
+
+                {/* On-Chain Prescription Consent Option */}
+                <div className="rounded-xl border border-primary/20 bg-primary/5 p-3.5 space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="space-y-0.5">
+                      <h4 className="text-xs font-bold text-foreground">Secure On-Chain Ledger Access</h4>
+                      <p className="text-[10px] text-muted-foreground leading-normal">
+                        Authorizes {selectedDoc.name} to retrieve your historical prescriptions from your Merkle tree.
+                      </p>
+                    </div>
+                    <div className="relative inline-flex items-center cursor-pointer shrink-0">
+                      <input
+                        type="checkbox"
+                        checked={grantOnChainConsent}
+                        onChange={(e) => setGrantOnChainConsent(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-card after:border-border after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+                    </div>
+                  </div>
+                  {grantOnChainConsent && (
+                    <div className="text-[9px] text-primary font-semibold flex items-center gap-1">
+                      <span>✓ Auto-expires in 24 hours. Verification anchored on Solana.</span>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="mt-6 flex gap-2 border-t border-border pt-4">

@@ -88,6 +88,7 @@ const staffNav: Item[] = [
   { title: "Dashboard", url: "/staff", icon: LayoutDashboard },
   { title: "Command Center", url: "/staff/command", icon: Command },
   { title: "Doctor Locator", url: "/staff/tracker", icon: MapPin },
+  { title: "Room Check-In", url: "/staff/rooms", icon: Building2 },
   { title: "My Profile", url: "/staff/profile", icon: User },
   { title: "My Attendance", url: "/staff/attendance", icon: Clock },
   { title: "Verify Patient", url: "/staff/verify", icon: ScanLine },

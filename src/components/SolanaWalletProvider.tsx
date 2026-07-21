@@ -17,17 +17,21 @@ export function SolanaWalletProvider({ children }: Props) {
   // Set default endpoint to devnet
   const endpoint = useMemo(() => clusterApiUrl("devnet"), []);
 
-  // Standard wallet adapters (empty array detects installed browser wallets like Phantom/Solflare automatically)
+  // Standard wallet adapters
   const wallets = useMemo(() => [], []);
-
-  if (!mounted) {
-    return <>{children}</>;
-  }
 
   return (
     <ConnectionProvider endpoint={endpoint}>
       <WalletProvider wallets={wallets} autoConnect>
-        <WalletModalProvider>{children}</WalletModalProvider>
+        <WalletModalProvider>
+          {mounted ? (
+            children
+          ) : (
+            <div className="flex min-h-screen items-center justify-center bg-background text-sm text-muted-foreground animate-pulse">
+              Initializing secure ledger context...
+            </div>
+          )}
+        </WalletModalProvider>
       </WalletProvider>
     </ConnectionProvider>
   );
