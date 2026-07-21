@@ -2235,15 +2235,13 @@ app.post("/api/auth/setup", requireClientAuth, async (req, res) => {
   const { token } = mintAccessToken({ email, role: "admin", name });
   const refreshToken = createRefreshToken(email, requestFingerprint(req));
   logger.info("bootstrap_admin_created", { email });
-  res
-    .status(201)
-    .json({
-      success: true,
-      message: "Admin account created. Setup is now locked.",
-      token,
-      refreshToken,
-      user: { name, email, role: "admin" },
-    });
+  res.status(201).json({
+    success: true,
+    message: "Admin account created. Setup is now locked.",
+    token,
+    refreshToken,
+    user: { name, email, role: "admin" },
+  });
 });
 
 /**
