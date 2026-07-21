@@ -228,6 +228,15 @@ const authLimiter = rateLimit({
 app.use("/api/auth/login", authLimiter);
 app.use("/api/auth/signup", authLimiter);
 
+const refreshLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  message: { error: "Too many refresh requests, please try again later" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use("/api/auth/refresh", refreshLimiter);
+
 app.use(globalApiAuth);
 
 logger.info("hipaa_audit_policy", HIPAA_AUDIT_RETENTION_POLICY);
@@ -640,12 +649,12 @@ app.get("/api/credentials", requireAuth, (_, res) => {
 });
 
 // ─── Consent ──────────────────────────────────────────────────────────────────
-app.get("/api/consent", requireAuth, requireRole(["admin", "doctor", "staff"]), (_, res) => {
+app.get("/api/consent", requireAuth, requireRole(["admin", "doctor", "staff"]), hipaaAuditPHIAccess("ConsentGrant"), (_, res) => {
   const all = getAllState("consent-manager");
   res.json({ consents: all.map((e) => e.value), total: all.length });
 });
 
-app.post("/api/consent/grant", requireAuth, requireRole(["patient"]), (req, res) => {
+app.post("/api/consent/grant", requireAuth, requireRole(["patient"]), hipaaAuditPHIAccess("ConsentGrant"), (req, res) => {
   const { patientDid, doctorDid, resource, expiry } = req.body;
   const grantId = `consent_${randomUUID().slice(0, 8)}`;
   const txId = randomUUID();
@@ -678,7 +687,7 @@ app.post("/api/consent/grant", requireAuth, requireRole(["patient"]), (req, res)
   res.json(grant);
 });
 
-app.patch("/api/consent/:id/revoke", requireAuth, requireRole(["patient"]), (req, res) => {
+app.patch("/api/consent/:id/revoke", requireAuth, requireRole(["patient"]), hipaaAuditPHIAccess("ConsentGrant"), (req, res) => {
   const entry = getState("consent-manager", req.params.id);
   if (!entry) return res.status(404).json({ error: "Not found" });
   entry.value.status = "revoked";
@@ -688,7 +697,7 @@ app.patch("/api/consent/:id/revoke", requireAuth, requireRole(["patient"]), (req
   res.json({ success: true });
 });
 
-app.patch("/api/consent/requests/:id/deny", requireAuth, requireRole(["patient"]), (req, res) => {
+app.patch("/api/consent/requests/:id/deny", requireAuth, requireRole(["patient"]), hipaaAuditPHIAccess("ConsentRequest"), (req, res) => {
   const entry = getState("consent-requests", req.params.id);
   if (!entry) return res.status(404).json({ error: "Request not found" });
   entry.value.status = "denied";
@@ -696,7 +705,7 @@ app.patch("/api/consent/requests/:id/deny", requireAuth, requireRole(["patient"]
   res.json({ success: true });
 });
 
-app.post("/api/consent/request", requireAuth, requireRole(["doctor", "staff"]), (req, res) => {
+app.post("/api/consent/request", requireAuth, requireRole(["doctor", "staff"]), hipaaAuditPHIAccess("ConsentRequest"), (req, res) => {
   const { doctorDid, doctorName, patientDid, resource, reason, expiry } = req.body;
   if (!patientDid || !doctorDid)
     return res.status(400).json({ error: "patientDid and doctorDid required" });
@@ -733,7 +742,7 @@ app.post("/api/consent/request", requireAuth, requireRole(["doctor", "staff"]), 
   res.json({ success: true, requestId: reqId, request, txId });
 });
 
-app.get("/api/consent/requests/:patientDid", requireAuth, requireRole(["patient"]), (req, res) => {
+app.get("/api/consent/requests/:patientDid", requireAuth, requireRole(["patient"]), hipaaAuditPHIAccess("ConsentRequest"), (req, res) => {
   const all = getAllState("consent-requests");
   const requests = all
     .filter((e) => e.value?.patientDid === req.params.patientDid)
@@ -807,18 +816,15 @@ app.post(
   },
 );
 
-app.get("/api/tracker", requireAuth, requireRole(["admin", "doctor", "staff"]), (_, res) => {
+app.get("/api/tracker", requireAuth, requireRole(["admin", "doctor", "staff"]), hipaaAuditPHIAccess("StaffTracker"), (_, res) => {
   const all = getAllState("tracker");
   res.json({ staff: all.map((e) => e.value) });
 });
 
 // ─── Beds & Infrastructure ────────────────────────────────────────────────────
-app.get("/api/beds", requireAuth, (_, res) => {
-  const all = getAllState("beds");
-  res.json({ beds: all.map((e) => e.value), total: all.length });
-});
+// NOTE: Duplicate GET /api/beds removed — canonical route with HIPAA audit is at ~line 1471
 
-app.post("/api/beds", requireAuth, requireRole(["admin", "staff"]), (req, res) => {
+app.post("/api/beds", requireAuth, requireRole(["admin", "staff"]), hipaaAuditPHIAccess("BedOccupancy"), (req, res) => {
   const { bedId, ward, status = "available", patientDid } = req.body;
   const txId = randomUUID();
   const bed = { bedId, ward, status, patientDid, updatedAt: new Date().toISOString() };
@@ -828,7 +834,7 @@ app.post("/api/beds", requireAuth, requireRole(["admin", "staff"]), (req, res) =
 });
 
 // ─── Prescriptions ────────────────────────────────────────────────────────────
-app.post("/api/prescriptions", requireAuth, requireRole(["doctor", "staff"]), (req, res) => {
+app.post("/api/prescriptions", requireAuth, requireRole(["doctor", "staff"]), hipaaAuditPHIAccess("Prescription"), (req, res) => {
   const { patientDid, doctorDid, drugs, diagnosis, notes, signedBy } = req.body;
   const txId = randomUUID();
   const rxId = `PR-${Date.now().toString(36).toUpperCase()}`;
@@ -1124,7 +1130,7 @@ app.post(
 );
 
 // ─── Lab results ──────────────────────────────────────────────────────────────
-app.post("/api/labs", requireAuth, requireRole(["doctor", "staff"]), (req, res) => {
+app.post("/api/labs", requireAuth, requireRole(["doctor", "staff"]), hipaaAuditPHIAccess("LabResult"), (req, res) => {
   const { patientDid, orderedBy, tests, priority = "routine" } = req.body;
   const labId = `LAB-${Date.now().toString(36).toUpperCase()}`;
   const txId = randomUUID();
@@ -1142,12 +1148,12 @@ app.post("/api/labs", requireAuth, requireRole(["doctor", "staff"]), (req, res) 
   res.json(lab);
 });
 
-app.get("/api/labs", requireAuth, requireRole(["doctor", "staff", "admin"]), (req, res) => {
+app.get("/api/labs", requireAuth, requireRole(["doctor", "staff", "admin"]), hipaaAuditPHIAccess("LabResult"), (req, res) => {
   const all = getAllState("lab-results");
   res.json({ labs: all.map((e) => e.value), total: all.length });
 });
 
-app.get("/api/labs/:patientDid", requireAuth, (req, res) => {
+app.get("/api/labs/:patientDid", requireAuth, hipaaAuditPHIAccess("LabResult"), (req, res) => {
   if (req.user.role === "patient" && req.user.did !== req.params.patientDid) {
     return res
       .status(403)
@@ -1473,20 +1479,7 @@ app.get("/api/beds", requireAuth, hipaaAuditPHIAccess("BedOccupancy"), (_, res) 
   res.json({ beds: all.map((e) => e.value), total: all.length });
 });
 
-app.post(
-  "/api/beds",
-  requireAuth,
-  requireRole(["admin", "staff"]),
-  hipaaAuditPHIAccess("BedOccupancy"),
-  (req, res) => {
-    const { bedId, ward, status = "available", patientDid } = req.body;
-    const txId = randomUUID();
-    const bed = { bedId, ward, status, patientDid, updatedAt: new Date().toISOString() };
-    putState("beds", bedId, bed, txId);
-    broadcast({ event: "bed:updated", data: bed });
-    res.json(bed);
-  },
-);
+// NOTE: POST /api/beds is defined earlier (~line 821) with HIPAA audit
 
 // ─── Billing ──────────────────────────────────────────────────────────────────
 app.post(
@@ -2109,7 +2102,7 @@ app.get("/api/surgeries", requireAuth, (_, res) => {
   }
 });
 
-app.post("/api/appointments", requireAuth, (req, res) => {
+app.post("/api/appointments", requireAuth, hipaaAuditPHIAccess("Appointment"), (req, res) => {
   const { patientDid, patientName, doctorDid, doctorName, slot, mode, specialty, consentGranted } =
     req.body;
 
