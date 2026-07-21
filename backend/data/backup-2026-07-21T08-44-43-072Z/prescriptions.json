@@ -1,0 +1,101 @@
+{
+  "PR-MR62O5HX": {
+    "key": "PR-MR62O5HX",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"4ndUn-XCRuB8W2Ec\",\"tag\":\"CMmb3NtyKxnQLqLAo6nI8w\",\"ct\":\"tRGo3tVXSA4nSRdr0iakDKFiBf1LF9XfvsQ2IhGrxD9QKdjMWmoK5lVNbUQmAM8VG9uuuB45_efBDDEr1IQysr7fizkQm5VMQjZ8ev0lah5bzEiV75ttiqsZbGja3vQEGdA4Uuxxpv7VaoulyB1dPFXcTPkcprUGNXL0RtELRQFFB7fZeQrtxUtZtR9YmBVVyl_HIYy_NODUD9OIgTIItQ-LjLJOBaaszCwOo8EXI3Y_EiY1afAhmblZn2ddUaLiBoUkkmCBB92ZjF3ax3A4WK53ls-iooNIJU1e8XU8BucIYq9XtwR7hhWnsRSKuug9nHejgpScfyVmIw02Uun1PM-mo7sk3crbXr4l_zZfsHQBiy-rWCxF-mJ_F_-kuTZq5Pwj_YdF_v9An_wMYYgyfdQcElRPMjc9y8mtXwziG1K9wWtJgMSGXOheGOlxFgtfOYLN7qtQKx7IE3-J6Icrjn16xbB45lFoP97b-j_wVCnuQWGI36YVHS2xvDuK\"}",
+    "namespace": "prescriptions",
+    "version": "a2efd394-c1f0-49a2-b26d-003d52dcb67a:1",
+    "updatedAt": "2026-07-04T08:00:16.342Z",
+    "txId": "a2efd394-c1f0-49a2-b26d-003d52dcb67a",
+    "docType": "prescriptions"
+  },
+  "PR-MRQGECCL": {
+    "key": "PR-MRQGECCL",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"SKCSO_BQKp0wOraX\",\"tag\":\"C4TRDYNq6J3W8fmvQchvMg\",\"ct\":\"Az625nExVsFWjtr-uyTVBreqS2Ge9WMIMQ59VKr4_jAnAV1o9p7BA0l45sqrf_3Elrrnl9KRzaZMC3oUqYWLVuMFkj4osY1_AK8RACA0dMejAa1XBDopd2QNVQfbBbAAqN3tSyQ5uaCj2Lo5Fahmdu4YdVk-KqpaFkhwoHpeYE9Hm4KhxYEnak8PwM7KqMdNvGmMNgKIGrxEuNBlGqpSiyuwn4Su8GbFg__kumh7-Ij9oM1cMKAy0p_0nZDUcccALNohuRvH1EFZogLrl3Slbp8IehYJmikaV0l--EIkflGooy4SD0eKrX_P57P7Y0JbHm_bhOy_7NeWOSsS-khk-50ORceAL9b4WhpaopXIiHPKqqnLIanBPKjq2xxHm0HNJ44KAmIlZSW8moBi8bXg8Zd2mo8DRd0-3qM6MRdhA5Q8TBIR3lmJrZqDvDw\"}",
+    "namespace": "prescriptions",
+    "version": "ef0fd789-cd5c-4e6f-8a64-95b9c3814632:1",
+    "updatedAt": "2026-07-18T14:19:56.819Z",
+    "txId": "ef0fd789-cd5c-4e6f-8a64-95b9c3814632",
+    "docType": "prescriptions"
+  },
+  "PR-MRQGF9HY": {
+    "key": "PR-MRQGF9HY",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"WGq28FwRQggIQyS_\",\"tag\":\"lWg_p9MyZHsvVnxLDCSmvg\",\"ct\":\"qhMP-XkfEafxINcRJKwkSuxiMTbiAtErtsLhqjayAu43tMBdrFVKzKaExkakhVyTYMSZOCNT2EKw_wP_iL9GOHpJ9BJbAeqdFhvklDC6qep9XojdJGscUGHSWFKl-Pva43IELmhiERkLcf_rMavWicLqCQqLZOGXzFZZ1Frk8bZu_8-ykCFrQ3KrKnEN0abys3vTe-e_sEES2kOPS00Cht8ZqfEaBoqrnGQ9zamVLRBEMopkHh2TtPMOyLKHiZJMKpkp_CcjOVstL8N2hHEwIRUfKUgxTbuwoz1tIkDVhdBP1wJz0pi_ThmEZROBF8seX64T4pHuK4sjNTvvVx8tqG9Wtu4h2dDoghnxY1EvTcwcto6wR5ZnWTYIUXu8va68iawInPH_GmePS04XDGmY4GPDA4Kmk2nwlNSs1Zp1KKbAjfmgxj9wlJJCoa8\"}",
+    "namespace": "prescriptions",
+    "version": "48a65a4b-e14e-4cf3-9347-d194d3e80e85:1",
+    "updatedAt": "2026-07-18T14:20:39.766Z",
+    "txId": "48a65a4b-e14e-4cf3-9347-d194d3e80e85",
+    "docType": "prescriptions"
+  },
+  "PR-MRQGHGIJ": {
+    "key": "PR-MRQGHGIJ",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"q8tvphSAFYntxMxg\",\"tag\":\"otTLObT3ltJcz8lgMwtKwQ\",\"ct\":\"wUSgEoIdNIQip7_2VpSSl2QSLBvIQPlYlaaMnFPq371NQnLudlD19XbfmhWrfqqbSVXRc57dvmS3F32D2xyxQnrjZds_dArY0koJGfhJdFOik72S541lnw9V1716gQRCWdK2g9yLDLfbc5QuHbAfTfza1uNchywGtvfTYkKSMeofcsojugu2bMPmJujLiiTMtAWnEyL8SAv8B5WjgKND6jK_XcJE1o9LdZ8yDz1hbAH6pYfKTlAPuNa40N6SwySRIiU4oKwgHpLBzjs2HX6cs7zEYmI7bRxDFWnKyDCwuaOuIohbFapSFujlEPlYHkNSbRerpP8TJ0PdZrGra4_DoczjFzbg5Sny3Asm0audEAuFmw9-AfsSfLU7EEu-6dFO9BGQgUQSg3H7yjCWJCWCKx1BXmf9tlOmYfW1CUQfGsQxXSvPxACZBtVHAic\"}",
+    "namespace": "prescriptions",
+    "version": "f5bb9298-0fb3-4346-adc0-2eb9e1110152:1",
+    "updatedAt": "2026-07-18T14:22:22.171Z",
+    "txId": "f5bb9298-0fb3-4346-adc0-2eb9e1110152",
+    "docType": "prescriptions"
+  },
+  "PR-MRQGHMBO": {
+    "key": "PR-MRQGHMBO",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"JG2Y2mzpjdDq9EWT\",\"tag\":\"VxarMrNaPOZdPNyaPlIdAg\",\"ct\":\"gyBHWRMoEyaMJd9pI5cZmkab6q0nbdITkvRab0SnBL-zDg3Ill5wX97C_Q1hzLoMdBbRaRwf11EWz5cw-Phl3apIGqz9LPK9CncZhCEhyQibYiYfnLUBvT3nbD3G1SZQMs63gRrSE9-5fKWn_kmsQTwdCHBgs8dtZBmP-dkCMQZXQCXwxB3EiWu-6YA9egSr9ZwFzSsG321YgzVmW5iIO-e1LkF0KNq71kA3_waIhLO9bh0wszATLvkt8yObwEdg04j51x3meL3OiBuLkg1N7GiIoE_GkbkhtIa9OwYx58BT9wnwMTXAAZ_C0YXX5vdhgDcIRv-0cuNslzNGPUaUVoEcG3E8rreezNWcR1VWPEHgaeknAqI_obO1hY6zshPWnRrBgnk4CVpHE4c0939VN3wGMasyIAMOF0YE30cWvqy8a_pSCb-MJ1H0Aq4\"}",
+    "namespace": "prescriptions",
+    "version": "a50e445e-0c90-41ba-b41e-554bfa582507:1",
+    "updatedAt": "2026-07-18T14:22:29.701Z",
+    "txId": "a50e445e-0c90-41ba-b41e-554bfa582507",
+    "docType": "prescriptions"
+  },
+  "PR-MRQGI8HJ": {
+    "key": "PR-MRQGI8HJ",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"xYXnJhAbN-zSnKDO\",\"tag\":\"t0yZ87qsJcktjlqPcXgw_w\",\"ct\":\"QlZGQDx884M0pEuHlMdhe7cdhJFlP1Ni7sGCmXvLC8XtxjRmKSKPUE8KbWzWAG5-EukJps9xn5Xt5DIkwYCrEmGJq9Rj4bfkqPoZNlKNT1n3_Tr0v2ahuPUpf3ZZnBD9DWA31uLgITMsTvqqJiVpxER42b90mZ6qpLehx8SIVsY5DYKVnUaYzFAzdgHmPKg_xDOGt0K2HkGC136rsabatAzJDkvU6jnRtiVUkB-d0BGz7ev-yDj731Vthv9E8MGBoMZ6862gywfDoQB11Tu2vLwkeg4oNmLBIcwcooxr5W24Diem-DKTlA0QuLvnS8wu1c8_rNBlSonK8L1Esww4BWzZRtivXairgA-Gy2BPcVQkRti3v2h6uFruig-cBhkQyOgpLefPSAC9X-8dDjMGefJXfJDKpbJ7_YVvzav6xFcb7edl5oQWkakUT4w\"}",
+    "namespace": "prescriptions",
+    "version": "2f71d407-2b0b-4db5-937e-cbe77c6f4b41:1",
+    "updatedAt": "2026-07-18T14:22:58.424Z",
+    "txId": "2f71d407-2b0b-4db5-937e-cbe77c6f4b41",
+    "docType": "prescriptions"
+  },
+  "PR-MRQGIV15": {
+    "key": "PR-MRQGIV15",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"QG4wAV7DGMZT9553\",\"tag\":\"uDL7RFOakojT4kzJE-3z9A\",\"ct\":\"IrLB5fX10EXel02BTU0HbIaizYmdJ4VnvB0Te0FqgsxwEiWVCeritMTXV29cW9NeG9u9csOiibiigyrSYy4_1vYYmAv7Tqkhbikkp3KaIxqHPV3tUhwjgeagrIy7iyxHZqWdvgsSkMb3Lj8ATIzF9hlbelftMIBPVoXFWasG2aMB3rrkxGQv9J1NPt2HvsZtH2gl4voRFPaVUbAAOJTF03hvTJlGu4QufWHt8HHBsRbP9pDoQg-mkxzsEFPbawgE3T6OpZBbuBYF86eVlwyYVj2DIQwgAJJFYjxQE4ijjCcch6nCzdfULHB1Dlscnx28yi3Zg8pKtZZ0krnQ5aJhGQslHprjqNoDLrxFefU9OyMe9BFfuAkDv8LvFhJnNJmAQ4TxFBC9lUtlspESrvkCjyxIlMAkbS6CAW4jEX7SaUdjCGAiY9N6Ptnb34R5EQOEFIr5DNwQMhlMjfk4BDGN\"}",
+    "namespace": "prescriptions",
+    "version": "3bd2c69a-0d19-4bf1-943e-09a080787bec:1",
+    "updatedAt": "2026-07-18T14:23:27.641Z",
+    "txId": "3bd2c69a-0d19-4bf1-943e-09a080787bec",
+    "docType": "prescriptions"
+  },
+  "PR-MRQGK7C7": {
+    "key": "PR-MRQGK7C7",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"V4iEw_XVRI9Rv2o2\",\"tag\":\"-BRt2LqyW8lU32YlxpQfBw\",\"ct\":\"bTXH8isb3vkqcAb_94eo-ra8jjeCbxdoRHxjAYadBS-kxJE4MHd9uYiw0jTRhXBKOZxiHCWEl0cjLXm1LRbZdYe5gbe0DfcRK7N4pk36gZDppAZ0QLYnnKYKalLvZzRavpBZZrKTqqcrXXsWR7ANfNlVFX4fEcrXPWaZE-GNsNRCiBoRHu_IYCKqBMdr2OEZr9pWw2cbR5LK1OpPNiNaEcACQ5R80nDHFr84F_HPBsQGxDEXWqMeLPNvjG1Vid2uLd5nr2Z7OwqoidO7X-ptek33L1_Hh14UbICX-Xuv5FrEAY4WabEKGRMplCTQGBwtx_Hark8EhKSeESBAorh2BHkwQWby3bP1gVyaxaRsrXxuXShhabo-0GX1o93X0if83V0393CexzA9r_pjHkaHL7kXtRusqVkbjRP3B8xfsggxQXpXtDXCevtO8fU0eRbW4u03oX22wiPyZKc-Vryn\"}",
+    "namespace": "prescriptions",
+    "version": "6d6d5623-6e79-4e05-8e91-598656e686bd:1",
+    "updatedAt": "2026-07-18T14:24:30.247Z",
+    "txId": "6d6d5623-6e79-4e05-8e91-598656e686bd",
+    "docType": "prescriptions"
+  },
+  "PR-MRQGKKBN": {
+    "key": "PR-MRQGKKBN",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"KQ3oFVU_mACGLNGv\",\"tag\":\"xdzQ7qThkStpfZi14Vel8g\",\"ct\":\"dYjzAO9-v1UuUwKKE4mw_UuGzvynUGuoU617uzS0sb3uigSiYaXUjaQYHraFyf2UHXHwsaFW4GcLVJIKsheCUo4Mq5QtCf1U6xEI0LgfS6e7cb4Tki2QTP6a3ZWjGDrj2mlm7o9tnSKZP1HjQUu3dpAlmCZSNX1_C2U-WFVJUVNgMiroyRyKbUHMNBjidhQZxGXkmhq7R4ADZCICgjepQmvpWxSXouK5NTPmOxcNfLm6fFGUdUnkRXg6Ny-3cQuq_mU2IoU01f6Ak75fLn2CSw8kvyPUWTGOQ3wBPIJEa_PHq1mnk7rAx7PQ8oi27-YxaH2e4dfNlirWb9YUd9bz6w0KpHiAZsm_nizRVxMHVSBjFs4CnCt2WbQOVoWul0T4O9osgwCXMOx556RjaDf_HEn0mdU75jHHsJ1DAXZ6eQre7K5oCWjEEFnobq3Xt0iLKsSpY2ay-Z9Buu-qCkij\"}",
+    "namespace": "prescriptions",
+    "version": "d0c751e3-d964-4b8d-b82e-6456e7f243d5:1",
+    "updatedAt": "2026-07-18T14:24:47.076Z",
+    "txId": "d0c751e3-d964-4b8d-b82e-6456e7f243d5",
+    "docType": "prescriptions"
+  },
+  "PR-MRQGKXFL": {
+    "key": "PR-MRQGKXFL",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"xchtHtK7TlOJY4ih\",\"tag\":\"9rHluxi_sPkOTZ_xvPYNiw\",\"ct\":\"uAT6McsWsw-Sc3C6jOPDTpCFtWWbUdciQdcbdgehbvcNhEgrU-cp38G7iu-Y2P6NoYP-LlhntYPkDpndgCbDJZOAN5XD7OdQlnfFXK28FyCTr9gceJQb-eIs0G-rjl56Tbx9Q3TLkx5l0cZ8AUhTsrMZCd9EM3nIwpBlzl0VtgIZ7fMMCkPUKhdfgisCPNxHetPTQYaxtrO-OTQycMvvLVIgfUaJKs6DMWqjJJARzxtJn3QVvLQXOCxUejwgblIjArFyOtzpqRLHUHTXyQPEhAaT4TY950pDQAgrcP9Stv7XUzXv_qbQCTYDP9RcVMNbQ8OOnjhP_1J8D6AzZVXPnlsRkfUvmjR0W7E9_yDn4_iqe080JOh8UKUjVNeMAPXgTHlzgASL-zl561p_NbBC1ApHYzkXBU7MMqmkWmrwYHJweiG6l3bXFuoJoiii7jpKdwlJ2n6TXDpHsDdBQpTo\"}",
+    "namespace": "prescriptions",
+    "version": "b3cda8dd-16ae-41f6-9f82-e2716a1d9fd2:1",
+    "updatedAt": "2026-07-18T14:25:04.066Z",
+    "txId": "b3cda8dd-16ae-41f6-9f82-e2716a1d9fd2",
+    "docType": "prescriptions"
+  },
+  "PR-MRQGLC5O": {
+    "key": "PR-MRQGLC5O",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"W4KEvzcI66-LqY7H\",\"tag\":\"2eYDJhVZMMXthq6SbiI_2A\",\"ct\":\"krvgiqQeGjRuBg9Tz1ZfsTDzu_2ZZrIMTX8losdWJjoJKruhqZfrervYxjaNJmsyMRWEE3EQxx_Bu-Mpp1IuggoICa9xsH3WJQEdG_yvRAUBj5bnl_Uuy9OivzhcheSgYXjs4C7mhy_lrqslmRY58ADmsWOpOl7yKeG7Y_F2pTXebbCujqaiYuFR1XyEHgXHBhKEih0QTLmbX-44eC-rh0X13UyhBBzZVCzAqHChZXwb5tz8fDfnlNd7cDgJPDrksIkuVFg7J4qtlNKA9Vj6AMoSIwteXzyZeMR6N1n0qgexdvIsMNE88QktCCDjIFnVGd9F0Ysv0REKiQqVxKYz7LMCk-K66HsMSUM2XLOW5HzgEpDn1pFc0E_EG4vLAQf0M8-7vIhTJF9bfPt6sBCZaAe7JqXrcDSS9ByRlhYk0xx3P138NupCdJQDIRdg7OXhx8MdJKtSafhfrs1AVDvh\"}",
+    "namespace": "prescriptions",
+    "version": "7558a896-bd8e-48a8-a6fa-a8568a290482:1",
+    "updatedAt": "2026-07-18T14:25:23.148Z",
+    "txId": "7558a896-bd8e-48a8-a6fa-a8568a290482",
+    "docType": "prescriptions"
+  }
+}

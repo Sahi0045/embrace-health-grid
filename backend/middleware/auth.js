@@ -1,12 +1,28 @@
 /**
  * JWT authentication + RBAC middleware.
  * Role is always derived from JWT — never from x-user-role header.
+ *
+ * Security improvements (v2):
+ * - JTI-based token blocklist checked on every request (supports logout + revocation)
+ * - User-level revocation sentinel (force re-login all devices)
+ * - Refresh tokens bound by fingerprint (UA + IP)
  */
 
-const PUBLIC_PATHS = new Set(["/health", "/api/auth/login", "/api/auth/signup"]);
+import { createHash } from "crypto";
+import { isTokenBlocked, isUserRevoked } from "../lib/token-store.js";
+
+const PUBLIC_PATHS = new Set([
+  "/health",
+  "/health/ready",
+  "/health/metrics",
+  "/api/auth/login",
+  "/api/auth/signup",     // patient self-registration — guarded by requireClientAuth
+  "/api/auth/setup",     // one-time bootstrap — guarded internally + by requireClientAuth
+  "/api/auth/refresh",   // token refresh — uses opaque refresh token, not JWT
+]);
 
 /** Routes any authenticated user may access */
-const AUTHENTICATED_PATHS = new Set(["/api/auth/me", "/api/auth/refresh", "/api/notifications"]);
+const AUTHENTICATED_PATHS = new Set(["/api/auth/me", "/api/auth/refresh", "/api/notifications", "/api/auth/logout"]);
 
 /** Admin-only path prefixes */
 const ADMIN_PREFIXES = [
@@ -35,6 +51,18 @@ const CONSENT_GATED_PREFIXES = [
   "/api/billing/",
 ];
 
+/**
+ * Build a stable fingerprint from request metadata.
+ * Used to bind refresh tokens to the originating device/browser session.
+ * @param {import('express').Request} req
+ * @returns {string}
+ */
+export function requestFingerprint(req) {
+  const ua = req.headers["user-agent"] || "";
+  const ip = req.ip || req.socket?.remoteAddress || "";
+  return createHash("sha256").update(`${ip}:${ua}`).digest("hex").slice(0, 32);
+}
+
 export function createAuthMiddleware(jwtSecret) {
   if (!jwtSecret) {
     throw new Error("JWT_SECRET is required. Set it in .env — no default allowed in production.");
@@ -61,7 +89,19 @@ export function buildAuth(jwt, jwtSecret) {
     const token = req.headers.authorization?.replace("Bearer ", "");
     if (!token) return res.status(401).json({ error: "Authentication required" });
     try {
-      req.user = jwt.verify(token, jwtSecret);
+      const payload = jwt.verify(token, jwtSecret);
+
+      // JTI blocklist check
+      if (payload.jti && isTokenBlocked(payload.jti)) {
+        return res.status(401).json({ error: "Token has been revoked" });
+      }
+
+      // User-level revocation (e.g. after password change / admin lockout)
+      if (isUserRevoked(payload.email)) {
+        return res.status(401).json({ error: "Session invalidated. Please log in again." });
+      }
+
+      req.user = payload;
       next();
     } catch {
       return res.status(401).json({ error: "Invalid or expired token" });
@@ -91,11 +131,24 @@ export function buildAuth(jwt, jwtSecret) {
     const token = req.headers.authorization?.replace("Bearer ", "");
     if (!token) return res.status(401).json({ error: "Authentication required" });
 
+    let payload;
     try {
-      req.user = jwt.verify(token, jwtSecret);
+      payload = jwt.verify(token, jwtSecret);
     } catch {
       return res.status(401).json({ error: "Invalid or expired token" });
     }
+
+    // JTI blocklist check
+    if (payload.jti && isTokenBlocked(payload.jti)) {
+      return res.status(401).json({ error: "Token has been revoked" });
+    }
+
+    // User-level revocation
+    if (isUserRevoked(payload.email)) {
+      return res.status(401).json({ error: "Session invalidated. Please log in again." });
+    }
+
+    req.user = payload;
 
     const apiPath = fullPath.startsWith("/api") ? fullPath : path;
     const role = req.user.role;

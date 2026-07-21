@@ -3,12 +3,12 @@
  * Port: 3001
  */
 
+// Embrace Health backend entry point
 import express from "express";
 import { createServer } from "http";
 import { WebSocketServer } from "ws";
 import cors from "cors";
 import helmet from "helmet";
-import morgan from "morgan";
 import rateLimit from "express-rate-limit";
 import { randomUUID } from "crypto";
 import { readFileSync, existsSync } from "fs";
@@ -26,7 +26,7 @@ import {
   getAllWorldState,
   generateId,
 } from "./world-state-db.js";
-import { buildAuth } from "./middleware/auth.js";
+import { buildAuth, requestFingerprint } from "./middleware/auth.js";
 import { createAuditHelper } from "./lib/audit.js";
 import { registerExtensionRoutes } from "./routes/extensions.js";
 import { MerkleTree, sha256 } from "./merkle.js";
@@ -35,6 +35,22 @@ import { signCredential } from "./lib/vc-sign.js";
 import * as notificationStore from "./lib/notifications.js";
 import { splitRecord } from "./lib/hash.js";
 import * as solanaLib from "./lib/solana.js";
+import logger from "./lib/logger.js";
+import { registerHealthRoutes } from "./lib/health.js";
+import {
+  createRefreshToken,
+  consumeRefreshToken,
+  revokeAllRefreshTokens,
+  blockToken,
+  blockAllTokensForUser,
+  getTokenStoreStats,
+} from "./lib/token-store.js";
+import {
+  hipaaMiddleware,
+  hipaaAuditPHIAccess,
+  httpsEnforcementMiddleware,
+  HIPAA_AUDIT_RETENTION_POLICY,
+} from "./lib/hipaa.js";
 
 // Load Environment Variables first
 function loadEnv() {
@@ -99,8 +115,21 @@ if (!JWT_SECRET) {
   }
 }
 const IDENTITY_SECRET = process.env.IDENTITY_SECRET || JWT_SECRET + "-identity";
-const JWT_EXPIRES = "8h";
+const ACCESS_TOKEN_TTL  = "2h";      // Short-lived access token
+const REFRESH_TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days (opaque, stored server-side)
+const JWT_EXPIRES = ACCESS_TOKEN_TTL; // backward-compat alias
 const CORS_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:5173";
+
+/**
+ * Mint a signed access JWT with a unique jti for revocation support.
+ * @param {{ email:string, role:string, name:string, did?:string }} claims
+ * @returns {{ token: string, jti: string, expiresIn: string }}
+ */
+function mintAccessToken(claims) {
+  const jti = randomUUID();
+  const token = jwt.sign({ ...claims, jti }, JWT_SECRET, { expiresIn: ACCESS_TOKEN_TTL });
+  return { token, jti };
+}
 
 const { requireAuth, requireRole, globalApiAuth } = buildAuth(jwt, JWT_SECRET);
 
@@ -170,8 +199,16 @@ app.use(
     }
   })
 );
-app.use(morgan("tiny"));
+// Structured request logging (replaces morgan)
+app.use(logger.requestMiddleware.bind(logger));
 app.use(express.json({ limit: "2mb" }));
+
+// ─── HIPAA Technical Safeguards (§ 164.312) ──────────────────────────────────
+// Order: HTTPS enforcement → security headers → session timeout → minimum necessary
+app.use(hipaaMiddleware({
+  httpsMode: process.env.NODE_ENV === "production" ? "redirect" : "warn",
+  sessionMaxAge: 8 * 60 * 60, // 8 hours absolute session limit
+}));
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -184,6 +221,8 @@ app.use("/api/auth/login", authLimiter);
 app.use("/api/auth/signup", authLimiter);
 
 app.use(globalApiAuth);
+
+logger.info("hipaa_audit_policy", HIPAA_AUDIT_RETENTION_POLICY);
 
 // Initialize Convex Client
 const convexUrl = process.env.VITE_CONVEX_URL || process.env.CONVEX_URL;
@@ -409,13 +448,8 @@ setInterval(async () => {
   broadcast({ event: "staff:location", data: { id, location: loc, lastSignal: now } });
 }, 8000);
 
-// ─── Health check ─────────────────────────────────────────────────────────────
-app.get("/health", (_, res) =>
-  res.json({
-    status: "ok",
-    time: new Date().toISOString(),
-  }),
-);
+// ─── Health check routes (liveness + readiness + metrics) ────────────────────
+registerHealthRoutes(app, { convexClient });
 
 // ─── Stats API ────────────────────────────────────────────────────────────────
 app.get("/api/stats", requireAuth, (_, res) => {
@@ -789,7 +823,7 @@ app.post("/api/prescriptions", requireAuth, requireRole(["doctor", "staff"]), (r
   res.json({ rxId, rx, txId });
 });
 
-app.get("/api/prescriptions/:patientDid", requireAuth, (req, res) => {
+app.get("/api/prescriptions/:patientDid", requireAuth, hipaaAuditPHIAccess("Prescription"), (req, res) => {
   const patientDid = req.params.patientDid;
 
   if (req.user.role === "patient" && req.user.did !== patientDid) {
@@ -1118,7 +1152,7 @@ async function buildAnchorTransaction(patientDid, merkleRootHex, authorityPubkey
   return serialized.toString("base64");
 }
 
-app.get("/api/medical-records/:patientDid", requireAuth, (req, res) => {
+app.get("/api/medical-records/:patientDid", requireAuth, hipaaAuditPHIAccess("MedicalRecord"), (req, res) => {
   if (req.user.role === "patient" && req.user.did !== req.params.patientDid) {
     return res.status(403).json({ error: "Access Denied: Cannot view other patients' records" });
   }
@@ -1602,47 +1636,123 @@ app.post(
   },
 );
 
-// ─── Auth APIs ────────────────────────────────────────────────────────────────
-app.post("/api/auth/signup", async (req, res) => {
-  const { name, email, role, password } = req.body;
-  if (!email || !role || !name) {
-    return res.status(400).json({ error: "Name, email, and role are required" });
+/**
+ * POST /api/auth/setup  — One-time bootstrap to create the first admin.
+ * Becomes 410 Gone once any admin exists. Solves the circular-dependency
+ * bootstrap problem: no admin JWT needed for the very first admin account.
+ */
+app.post("/api/auth/setup", requireClientAuth, async (req, res) => {
+  const allUsers = getAllState("users");
+  const adminExists = allUsers.some((u) => u.value?.role === "admin");
+  if (adminExists) {
+    return res.status(410).json({ error: "Setup already completed. An admin account already exists." });
   }
 
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
+  const { name, email, password, setupKey } = req.body;
+  const SETUP_KEY = process.env.SETUP_KEY;
+  if (SETUP_KEY && setupKey !== SETUP_KEY) {
+    return res.status(401).json({ error: "Invalid setup key" });
+  }
+  if (!name || !email || !password) {
+    return res.status(400).json({ error: "name, email, and password are required" });
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return res.status(400).json({ error: "Invalid email format" });
   }
+  if (password.length < 12) {
+    return res.status(400).json({ error: "Admin password must be at least 12 characters" });
+  }
 
+  const hashedPassword = await bcrypt.hash(password, 12);
+  putState("users", email, {
+    name, email, password: hashedPassword,
+    role: "admin", did: null,
+    createdAt: new Date().toISOString(), bootstrapped: true,
+  }, randomUUID());
+
+  const { token } = mintAccessToken({ email, role: "admin", name });
+  const refreshToken = createRefreshToken(email, requestFingerprint(req));
+  logger.info("bootstrap_admin_created", { email });
+  res.status(201).json({ success: true, message: "Admin account created. Setup is now locked.", token, refreshToken, user: { name, email, role: "admin" } });
+});
+
+/**
+ * POST /api/auth/signup  — Patient self-registration only.
+ * Staff/doctor/admin accounts must be created by an admin via /api/auth/users/create.
+ */
+app.post("/api/auth/signup", requireClientAuth, async (req, res) => {
+  const { name, email, role, password } = req.body;
+  if (!email || !name) {
+    return res.status(400).json({ error: "Name and email are required" });
+  }
+  // Enforce patient-only self-registration
+  if (role && role !== "patient") {
+    return res.status(403).json({
+      error: "Self-registration is only available for patient accounts. Contact your administrator to create staff or admin accounts.",
+    });
+  }
+  const assignedRole = "patient";
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ error: "Invalid email format" });
+  }
   if (!password || password.length < 8) {
     return res.status(400).json({ error: "Password must be at least 8 characters long" });
   }
-  const hasNumber = /\d/.test(password);
-  const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
-  if (!hasNumber || !hasSpecial) {
+  if (!/\d/.test(password) || !/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
     return res.status(400).json({ error: "Password must contain at least one number and one special character" });
   }
-
-  const existingUser = getState("users", email);
-  if (existingUser) {
+  if (getState("users", email)) {
     return res.status(400).json({ error: "User already exists" });
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
-  const txId = randomUUID();
-  const user = {
-    name,
-    email,
-    password: hashedPassword,
-    role,
-    did: null,
-    createdAt: new Date().toISOString(),
-  };
-  putState("users", email, user, txId);
+  putState("users", email, { name, email, password: hashedPassword, role: assignedRole, did: null, createdAt: new Date().toISOString() }, randomUUID());
 
-  const token = jwt.sign({ email, role, name }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
-  res.json({ success: true, token, user: { name, email, role } });
+  const { token } = mintAccessToken({ email, role: assignedRole, name });
+  const refreshToken = createRefreshToken(email, requestFingerprint(req));
+  logger.info("user_registered", { email, role: assignedRole });
+  res.json({ success: true, token, refreshToken, user: { name, email, role: assignedRole } });
 });
+
+/**
+ * POST /api/auth/users/create  — Admin creates staff/doctor/admin accounts.
+ * This is the correct way to onboard clinical staff without self-registration.
+ */
+app.post("/api/auth/users/create", requireClientAuth, requireAuth, requireRole(["admin"]), async (req, res) => {
+  const { name, email, role, password, department, specializations, employeeId } = req.body;
+  if (!name || !email || !role || !password) {
+    return res.status(400).json({ error: "name, email, role, and password are required" });
+  }
+  if (!["staff", "doctor", "admin"].includes(role)) {
+    return res.status(400).json({ error: "role must be staff, doctor, or admin" });
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ error: "Invalid email format" });
+  }
+  if (password.length < 8) {
+    return res.status(400).json({ error: "Password must be at least 8 characters" });
+  }
+  if (getState("users", email)) {
+    return res.status(400).json({ error: "User already exists" });
+  }
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+  putState("users", email, {
+    name, email, password: hashedPassword, role,
+    did: null,
+    department: department || null,
+    specializations: specializations || [],
+    employeeId: employeeId || `EMP-${Math.floor(1000 + Math.random() * 9000)}`,
+    createdAt: new Date().toISOString(),
+    createdBy: req.user.email,
+  }, randomUUID());
+
+  logAudit(req, { resource: email, action: "USER_CREATED", outcome: "success" });
+  logger.info("admin_created_user", { createdBy: req.user.email, newUser: email, role });
+  res.status(201).json({ success: true, user: { name, email, role } });
+});
+
 
 app.post("/api/auth/login", requireClientAuth, async (req, res) => {
   const { email, password } = req.body;
@@ -1680,12 +1790,13 @@ app.post("/api/auth/login", requireClientAuth, async (req, res) => {
     mrn: userEntry.value.mrn || null,
     employeeId: userEntry.value.employeeId || null,
   };
-  const token = jwt.sign(
-    { email: user.email, role: user.role, name: user.name, did: user.did },
-    JWT_SECRET,
-    { expiresIn: JWT_EXPIRES },
-  );
-  res.json({ success: true, token, user });
+
+  // Mint access token with jti + issue opaque refresh token
+  const { token } = mintAccessToken({ email: user.email, role: user.role, name: user.name, did: user.did });
+  const refreshToken = createRefreshToken(user.email, requestFingerprint(req));
+
+  logger.info("user_login", { email: user.email, role: user.role });
+  res.json({ success: true, token, refreshToken, user });
 });
 
 app.get("/api/auth/me", requireAuth, (req, res) => {
@@ -1816,17 +1927,68 @@ app.post("/api/auth/update-profile", requireAuth, (req, res) => {
 });
 
 
-app.post("/api/auth/refresh", (req, res) => {
-  const token = req.headers.authorization?.replace("Bearer ", "");
-  if (!token) return res.status(401).json({ error: "Authentication required" });
-  try {
-    const payload = jwt.verify(token, JWT_SECRET, { ignoreExpiration: true });
-    const { iat, exp, ...cleanPayload } = payload;
-    const newToken = jwt.sign(cleanPayload, JWT_SECRET, { expiresIn: JWT_EXPIRES });
-    res.json({ token: newToken });
-  } catch {
-    return res.status(401).json({ error: "Invalid token" });
+/**
+ * POST /api/auth/refresh  — Rotate refresh token and mint a new access token.
+ * Accepts the opaque refresh token in the body (never from Authorization header).
+ * Single-use: the provided token is consumed and a new one is issued.
+ */
+app.post("/api/auth/refresh", requireClientAuth, (req, res) => {
+  const { refreshToken } = req.body;
+  if (!refreshToken) {
+    return res.status(401).json({ error: "refreshToken is required" });
   }
+
+  const fingerprint = requestFingerprint(req);
+  const record = consumeRefreshToken(refreshToken, fingerprint);
+  if (!record) {
+    return res.status(401).json({ error: "Invalid or expired refresh token" });
+  }
+
+  const userEntry = getState("users", record.email);
+  if (!userEntry) {
+    return res.status(401).json({ error: "User account not found" });
+  }
+
+  const u = userEntry.value;
+  const { token } = mintAccessToken({ email: u.email, role: u.role, name: u.name, did: u.did });
+  const newRefreshToken = createRefreshToken(u.email, fingerprint);
+
+  logger.info("token_refreshed", { email: u.email });
+  res.json({ token, refreshToken: newRefreshToken });
+});
+
+/**
+ * POST /api/auth/logout  — Invalidate the current access + refresh tokens.
+ * The JTI of the access token is blocklisted so it can't be reused
+ * even before its 2-hour expiry.
+ */
+app.post("/api/auth/logout", requireAuth, (req, res) => {
+  const { refreshToken } = req.body;
+
+  // Blocklist the current access token's jti
+  if (req.user.jti && req.user.exp) {
+    blockToken(req.user.jti, req.user.exp * 1000);
+  }
+
+  // Revoke the refresh token if provided
+  if (refreshToken) {
+    consumeRefreshToken(refreshToken, requestFingerprint(req)); // marks as consumed
+  }
+
+  logger.info("user_logout", { email: req.user.email });
+  res.json({ success: true });
+});
+
+/**
+ * POST /api/auth/revoke/:email  — Admin force-logout all sessions for a user.
+ */
+app.post("/api/auth/revoke/:email", requireAuth, requireRole(["admin"]), (req, res) => {
+  const target = req.params.email;
+  blockAllTokensForUser(target);
+  revokeAllRefreshTokens(target);
+  logAudit(req, { resource: target, action: "FORCE_LOGOUT", outcome: "success" });
+  logger.info("admin_force_logout", { admin: req.user.email, target });
+  res.json({ success: true, message: `All sessions for ${target} have been revoked` });
 });
 
 app.get("/api/auth/users", requireAuth, requireRole(["admin"]), (req, res) => {
@@ -2006,15 +2168,65 @@ app.use((_, res) => res.status(404).json({ error: "Not found" }));
 
 const PORT = process.env.PORT || 3001;
 httpServer.listen(PORT, async () => {
-  console.log(`\n🏥 Hospital REST API + WebSocket Server`);
-  console.log(`   REST API : http://localhost:${PORT}/api`);
-  console.log(`   WebSocket: ws://localhost:${PORT}`);
-  console.log(`   Health   : http://localhost:${PORT}/health\n`);
+  logger.info("server_started", {
+    api: `http://localhost:${PORT}/api`,
+    ws: `ws://localhost:${PORT}`,
+    health: `http://localhost:${PORT}/health`,
+    ready: `http://localhost:${PORT}/health/ready`,
+    metrics: `http://localhost:${PORT}/health/metrics`,
+    env: process.env.NODE_ENV,
+  });
 
   try {
     const { bootstrapFromConvex } = await import("./world-state-db.js");
     await bootstrapFromConvex();
+    logger.info("convex_bootstrap_complete");
   } catch (err) {
-    console.error("⚠️ Failed to bootstrap World State from Convex:", err.message);
+    logger.warn("convex_bootstrap_failed", { error: err.message });
   }
+
+  // Ensure default admin exists in the world state database with the correct password hash
+  try {
+    const { putState } = await import("./world-state-db.js");
+    putState("users", "admin@embrace.org", {
+      name: "Embrace Admin",
+      email: "admin@embrace.org",
+      password: "$2b$10$jjLG4tmULwmS1ZyHfrj9qOGCawSVaxrBTxn/o1kIv8akjYHm/x0DK", // "admin"
+      role: "admin",
+      did: null,
+      createdAt: new Date().toISOString()
+    }, "genesis");
+    logger.info("default_admin_seeded", { email: "admin@embrace.org" });
+  } catch (err) {
+    logger.error("default_admin_seed_failed", { error: err.message });
+  }
+});
+
+// ─── Process-level error handlers ─────────────────────────────────────────────
+process.on("uncaughtException", (err) => {
+  logger.fatal("uncaught_exception", { error: err.message, stack: err.stack });
+  process.exit(1);
+});
+
+process.on("unhandledRejection", (reason) => {
+  logger.error("unhandled_rejection", {
+    error: reason instanceof Error ? reason.message : String(reason),
+    stack: reason instanceof Error ? reason.stack : undefined,
+  });
+});
+
+process.on("SIGTERM", () => {
+  logger.info("sigterm_received", { msg: "Graceful shutdown initiated" });
+  httpServer.close(() => {
+    logger.info("server_closed");
+    process.exit(0);
+  });
+});
+
+process.on("SIGINT", () => {
+  logger.info("sigint_received", { msg: "Graceful shutdown initiated" });
+  httpServer.close(() => {
+    logger.info("server_closed");
+    process.exit(0);
+  });
 });

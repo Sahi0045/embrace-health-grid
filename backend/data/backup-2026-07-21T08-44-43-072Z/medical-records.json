@@ -1,0 +1,173 @@
+{
+  "REC-INITIAL-DISCHARGE": {
+    "key": "REC-INITIAL-DISCHARGE",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"XsPA-AdtaHr7IUyH\",\"tag\":\"OubPrT4iBphs-wmQQ1zfoQ\",\"ct\":\"QvmxzoqETnSxHBfajZNq63c2yijyBgt4qK0c0lTvTJjswEcHG5JYDkUzeZEtS0PomDaYB2EzvqV7uonPVwmulbXU6aWMmTIzLp_FifNdFhgqGqKNqWS4SYf2fIJAT4pCfCjx4U8x9ub9e2-LR8unJFyJa7AthfZrrqvh0AySo4ln2D0806w1J7RiqVdVgE6Rifnx9YO0tukzS7MKsbdYT2WhOL_eAh7fOlTg7hl4M_6Tiu9vwuZSt7OUTB2VnoD1g67-k6XtKmBinyTe0cL-n8qo5wR01QDcqCMro0RgtcbMoSkmJekKMj38Q3XRglVKpTIwK0rsz5POQJjlG2KEmHeiV9GM4tkbV-mIWFePNQMEmLB2ZZR1GZ73mdodO4kbz-MQuyxtqJSdJa3ocq1kcuwmhplxii8YohSQ5QF5kkkfbPBiuOPmfuW987wWmEJpkU-yBTXVvKRPAUSlhdJBTsSvhcEAAViIc4YQbA\"}",
+    "namespace": "medical-records",
+    "version": "7d9fcc94-01fe-4f77-8195-a9c9ad903643:1",
+    "updatedAt": "2026-07-03T09:32:27.932Z",
+    "txId": "7d9fcc94-01fe-4f77-8195-a9c9ad903643",
+    "docType": "medical-records"
+  },
+  "REC-INITIAL-ECG": {
+    "key": "REC-INITIAL-ECG",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"uP5_PoZENzHr9dEA\",\"tag\":\"ekiJyInrXiv7F9Tt5cnS5w\",\"ct\":\"s6H4-_9rMyc5VLXoOHvdEMHQDnR9r13DOSxk9HJiaQQQx07C2rU2mNXxCkB0Q8GRXz_CWJk1dwhfDpPWj6GKdgU9iRrHxAru5dHToWLFSxBGt-jpnd2xtqjL5XbTb22vQbtNRJdDkGySkQgJJtCNuYGXCNGewBlyH2tT6iJapZS6rqXioHXb76Z6UYn4kh2dDQMEPZIhvcVe6Rl29oTayPpRMzalRzaK1yj3q6pBMx-lyK6tlSXGOeNtzritGHMibovJPdygvpCKEazn5f_H_veM4fj6sKum6_0KjNx24L2YPCWoKdBa0uNO6HBoG3SMAl0i7QFM6jsxKOeBF9oanjKdtQxEOh1COQE3RKRpGjtdamplpEL2a9d4tRJePfVbla1krXRBKH-PjmqyW8s\"}",
+    "namespace": "medical-records",
+    "version": "cb234ea4-f5b6-44f5-b1ae-43fbf2132b25:1",
+    "updatedAt": "2026-07-03T09:32:27.941Z",
+    "txId": "cb234ea4-f5b6-44f5-b1ae-43fbf2132b25",
+    "docType": "medical-records"
+  },
+  "REC-INITIAL-LIPID": {
+    "key": "REC-INITIAL-LIPID",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"k9Wf4pXOjdMXKw41\",\"tag\":\"9tSS-81kq_ZOOdtPb850OQ\",\"ct\":\"5Te76zwEdLYKnGpidc_LEbdaAtgNaG8RybAyt8-aRhnj_Cp7e3K1PYYeImMQlGVAq2Wvl6COMSFx_ZBGZkFA2ZMyWAw5UvlxgkxmB45m4-9ilIe_qM2tR-0Xc-oDA3zMO8NGwbxVSmu9UJzEXmify1AjepkZFMPCPGnpzKsODfVQomxILwsgpaEjS8b4A66mNxumGUfOkzGtgFS7_h0_f4f0tWvOdyVsn5u7xHMdEpqBQKjygE-6TGd7_yUBTSUw_Bi-lrGch4_Nb77sC2EB5sdGTJnFZwKeF7shpe93OtTCzsbB6vp4yqBfq3F1MQA_qCXyRZyOotQ2IN-WHvQ5RlWNzUL1h3GVHDHb9lLRtX4GFmbWDCAdGECZ8LztfdzdeSi64zXDR5RILMR2bLdqpXy-rdllBd_QABo\"}",
+    "namespace": "medical-records",
+    "version": "e4381e79-e8d6-421d-991e-ca8af19c65b2:1",
+    "updatedAt": "2026-07-03T09:32:27.959Z",
+    "txId": "e4381e79-e8d6-421d-991e-ca8af19c65b2",
+    "docType": "medical-records"
+  },
+  "MR-SEED-1": {
+    "key": "MR-SEED-1",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"j1TYo7BT8A91-hTm\",\"tag\":\"RmOl2lfBN5mWj54In1jTZg\",\"ct\":\"QHpObVtO-EN9e7FTQflWvC_-KCzc4WgAhDaKJn8h9a3XRa_p1vlgPgGc_FmYraoroQAt-vpBwgayuM8OePYf4IGnMeor7wfHQ4hTuZL0nlID28bIZ9TREtw4z5em7FtO9WEKuygtBL_uJDj16bsMSHyClTeWqRWmCwOdj8EDkczBhXR1AlIqrFFNQams6SHL8shuq-bg2oJ4XEaegnccXNLCAwhyKfKIjauWEB2Z6mp3M177Kd8kA8BGx8IuZp_eHvt7X9fAYGuwAea9dZyhl-tkE0CILtPK2s2m8DVLbJulPO2xyqWy35C2I3nNvLT5Lcnx3hgGvxLjnfT4vM4BE8qhJjd-gYR3Zhd3i3Zd4_Pa39Qr6HAhV1ImAYzgQv0\"}",
+    "namespace": "medical-records",
+    "version": "2fbe40a5-fe6b-49a4-b7d2-451b5ebe38f7:1",
+    "updatedAt": "2026-07-03T16:16:13.092Z",
+    "txId": "2fbe40a5-fe6b-49a4-b7d2-451b5ebe38f7",
+    "docType": "medical-records"
+  },
+  "MR-SEED-2": {
+    "key": "MR-SEED-2",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"6WvbdblxpFeG31Fo\",\"tag\":\"CwebpIlIJbsf3CfScah-mA\",\"ct\":\"nt9l1uKQFT0p0YcYujYDXWA3p19S1Q5ZC50UFhOF3Rn642bpssi4xllPxAGuwRe9vkmVMq4RUp0NFM7l6NfZdOsEi18bph7Ok2Ic8Zsky0lXDJHl54IKXZhuOzFlpmqDDI-9UGM8ilZIs707fzrftZPv8dRApIkjn1RQNvy_tYdpWO1gi9vHdZJa6miCM1uyEtihVJCKDYNHhkPc_ennEQTJ3aSHQ87gOEOPz2lXKAaxd7Hjj9iDyYf8IC9w5uUDRRclvXuSy8mCNi8A0-IdPYepiKt3_1Qbe9yoqX7t6FUbCAMDf4xGC1WutrYtfXgVUQmVV3HjmPuE9oOGZQAgMe5cAKEtvt7qcVAMpQp875NJjuBwZL_ig7yYd03ZDkS2xj0X-FHLZrca6pw\"}",
+    "namespace": "medical-records",
+    "version": "d1eedffa-c789-48b5-9fa4-e3494eacdb37:1",
+    "updatedAt": "2026-07-03T16:16:13.094Z",
+    "txId": "d1eedffa-c789-48b5-9fa4-e3494eacdb37",
+    "docType": "medical-records"
+  },
+  "REC-MR8XQC32": {
+    "key": "REC-MR8XQC32",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"IPrJ0-8dSruGXhTa\",\"tag\":\"zIHChgPTP-QLZGLn-vgCpg\",\"ct\":\"oS6JUbe6H6zozVN1k6kYaAfTENrzHWUYf6Lr3IE_9ei-kdIfCBtI9Iy1sJ_0EoeDE6_-qWCiSnXp1v8dlj-YBJBX_H_yGiYthb4LHTKWnyK0d5Rz-RRSDaiR9pkCb40q5L90Zp1P-_7xUhyHndXAzUnkVzYSY1ksVYhBYx6eOam6QgxTjiScjVdsAyRIVUbqtW_TaUvMEg6cUAFOE2hqtgas3R7rdC5X5XkuRO0fm9rBrOXiD9JouXmHqgyUh3sfcOz9F-gCSEwFQxGUzCj7f2u6Ql8dDx8nqcGVHC2p6uoaQIVBS0L7KfdfyussbmxH5ODJSRkyBAxNjKw-2yLju_QUHCRzWoITrCWrhxTAqDiFCQWr9I0wZ9tQj6ZAUP6Z_wF0x0Zf6_LnMfntVYRO7ubkbvjjcntTBuonTCYdwQ_X\"}",
+    "namespace": "medical-records",
+    "version": "74bc8098-1699-4b9f-901c-b068e577a301:1",
+    "updatedAt": "2026-07-06T08:05:18.639Z",
+    "txId": "74bc8098-1699-4b9f-901c-b068e577a301",
+    "docType": "medical-records"
+  },
+  "REC-MR8XQC39": {
+    "key": "REC-MR8XQC39",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"GGwKHJj0UZHZMhCP\",\"tag\":\"BgftdP_K_NHJadSuFwPJmA\",\"ct\":\"EfTpfN0imJSIybC3GFMjCsUxdJPJUjwheDcc3uWrlNTMwcpYWL8AqmZcJ2yN2JQ8T49zHp_VDH_r1CCxwLMFjjS_LxemMk6BG_qVpw1e7NnQ2aQxdR-8-WVa14aak6d2tXJ2ihm6Y_n8EehHzH8DnSCjZzJOQ-RblaywMj6IyEs-OOfYv1fvsEkC8N3CRAuhuHN2t2pNwHC4yoCSeucg7AdCdzAQ7w7ANCPEOnp9M0Z6eF1X3HW9UWNvkLDpx6IFzEDAOb14z_Imysr4CTslnoeRtjwX3AydKrtimlv3OzUbTdTbWzm-qKiMm0J_VB4gQm1VDEzcL8bSlXII4VI4YsGDzlspW0mS5_xi8aUSIVt8XxhK_Gc2wlF-8617o4n9awt8wUYpRXRW5IlT9b19su4Uyaku7V1uh8WOufg0k8EH\"}",
+    "namespace": "medical-records",
+    "version": "3ffe4c94-4b85-4361-87d6-9b0c2717d886:1",
+    "updatedAt": "2026-07-06T08:05:18.645Z",
+    "txId": "3ffe4c94-4b85-4361-87d6-9b0c2717d886",
+    "docType": "medical-records"
+  },
+  "REC-MR8XQTR6": {
+    "key": "REC-MR8XQTR6",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"9WZarL11oihdmIoH\",\"tag\":\"anl1y0AUsjct9uaGO_4JUA\",\"ct\":\"w_la-tRGIzS5nSq8UXDHjQ3SeM7e7pRoXl4QiF15ae-hg8eDFCxVcxSH2DCOKmzE9ir5VhB7Fz55f2KUOkKnNXk_4XsXUo_KMSee5eiZxiNEJyps-qBwBtmDV2RHadVyo4bJC4Xvyqo0GvrCeHpXLRXuD7luJVFOPZUdyhPXafehhztz7NtalcwwI7G4Tx5lgFa3Gb0MsfAJubiSiodzohDgMLEB8TnKijFNjCDEsRetT9oJOPYukzNXG1FS5BhaiktR1J71trJuymi2neigKCjQYv02xahXyPFU4xuz0auXA6fw_4FDOpcnWIeNYml_c8RM9rIdpLDOuJOzQO7XIeJdPpnvtJO2iLQ0qOwGSQrf5SxlVWdVvMxtnCbxH-acmyQv-8KEUSBV8NzDWLG_5AXSoPPxTw-DNVaW2OO7rarw\"}",
+    "namespace": "medical-records",
+    "version": "5f69b503-8624-4fbc-bb0a-352abf2c194d:1",
+    "updatedAt": "2026-07-06T08:05:41.539Z",
+    "txId": "5f69b503-8624-4fbc-bb0a-352abf2c194d",
+    "docType": "medical-records"
+  },
+  "REC-MR8XQTRC": {
+    "key": "REC-MR8XQTRC",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"y1voaoLEXByWChBV\",\"tag\":\"WeWrqIM0WT-r10WOgG39rw\",\"ct\":\"D5q-kUxBaJ0eeDPoYobzxKeFMmZDUx-e1L5n2ofMywJzzEtLCOZ6daEjrAOunNURfHFD10CDqMXeNWD0QWF_rLlfSMWDjfuvYTZkUMALGKwKHwZp_lPqTrJhax-7TTYN_Xab3-asKo1qfPFJn4o1m92O1xj0_RyWXwy0mzWWJFF58p1ZF_IOWE3ark_7aHjWjiuAVOXhXFPuEX8UJiIOBEutrZyMh4dxgAawGKpDAyCvjfd2ygSrvSNWQYAxkWY43c45MUYF3P-w9re48cpmfrtoQeyONKsOD_47RsmzmdrPSGtCS1m8nLY_IXkBugK_bDF2kqIi6wmK14WD15HXAuFcWgYmQ0bS20xWXHtcJaVMACE4VmCCU9nNwU4SvIm0pSvta7vUFqVJJJVb3umN75wfJLdPiNmTV5BLraTceh98\"}",
+    "namespace": "medical-records",
+    "version": "49655e88-a86d-431f-8de7-c90e78f463f4:1",
+    "updatedAt": "2026-07-06T08:05:41.544Z",
+    "txId": "49655e88-a86d-431f-8de7-c90e78f463f4",
+    "docType": "medical-records"
+  },
+  "REC-MR8XRNI1": {
+    "key": "REC-MR8XRNI1",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"bbqf3GR6nZrrFdl_\",\"tag\":\"m8cgl7JVe5emny7ZvQ1VGQ\",\"ct\":\"ZzmJI4zhmDVAznD11NlyiZzxf-kvFyDyZL-DgWGgETA-VFkb8G0Ux8a_HsdbI2kZqpF_78Pe9YEt1iwtZ64jlfRVqM_CGicy3swkMlJH5qCMPmhJ8zWJkJqolbCU88j8zREBDOdyW7UFf4fPbT6bPFZrEXx6bI2kxeKs4Z1b242R0btJvRd8IgISFPNpLfTQuwRzOP-S7Dfzjp0zt7eXoV7uXEUI4TTIGHzZNYp_TagQ13uJY0YfQeZ44AH_33OS_M3bWq7JSZQICB0p0gmR7IP_tEEAuRGnL176-hfQuUw-UgnksoroI2tMUlTvrsLsSclIcNodS0UX7arTWGzWGSotuphRVTymCYD4760WlAzhlOYrL-x35upOJHaeIefYi24X3YqA4pVE8eHy-PFl5KAxKVkltKM9oz7diRdKANTd\"}",
+    "namespace": "medical-records",
+    "version": "8287a4ce-5304-4248-8050-e3ae290533bb:1",
+    "updatedAt": "2026-07-06T08:06:20.090Z",
+    "txId": "8287a4ce-5304-4248-8050-e3ae290533bb",
+    "docType": "medical-records"
+  },
+  "REC-MRAXXCHT": {
+    "key": "REC-MRAXXCHT",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"2XjLB1OoXCfkL9_-\",\"tag\":\"9hOJ8h24nP4_GxoyzUs7dA\",\"ct\":\"6z4WmS8J1TOzVnxil1WbtMgtykgUbaQDaQUtE5vzbXolJOXHIuLGQTX3sdUhaHmAbp_nlJGvCZiEKDQMFYnHOrsAMqnWi7MpQBxdwHH7WFQNJVc1o63rW-zuBP7oCgojV4Lu1-WweP8JV22rAmKda2AcIzkMFWH2L2h8kAKsho6rWcLeLadCc6burwoXHEdyvnN4mwQDIbitKee3JDV9qb8pxuKj8xmWhu-sAV1boslAzswwN0Au52dXcwS7XnBljsO2BMgoXuBTeDnMyAvMrvyJVJ6AFASrnuIFhDcnx8KQH_U7JPG1jXK-CYqjFTvuAXnlouZDO_6DNpPIYqUKIhyK3C06b1d8yoGN1j_ZrNoMp5_JzgWAaMHpwOUjZHeI8Zb8j2TBsrxroEtHPaIbBqJCNLb_isgHSlI_WkLmVPZV\"}",
+    "namespace": "medical-records",
+    "version": "3ecf1f65-53c3-4334-ba02-2e014fda1aba:1",
+    "updatedAt": "2026-07-07T17:46:18.120Z",
+    "txId": "3ecf1f65-53c3-4334-ba02-2e014fda1aba",
+    "docType": "medical-records"
+  },
+  "REC-MRAXXQ7X": {
+    "key": "REC-MRAXXQ7X",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"z4RLSyqNZVgdoMOu\",\"tag\":\"H_FnXi0d9Cfzpw5Bzl-sXQ\",\"ct\":\"0ZYWvQIZepBFUwmbW4EnqIA_2GOQO6Gs_y5nM3VQ3pX7i1k_cx_WUwbwBvKhta5Uj0dM-pRRjj-bv03sOyVcopvb2PZF0btBnYrkjVTKQAgN462wHKs7bRKcZhbT1ZfiIGXSjB12ZaQVRYCyo8tAS3fRNh-fH465umSzeuL-4PbN0yxyd597WjRpOy1w8Gu0-36dVMcWspVdvKXKAv2okFgSljcbFSzia56sK3hktgod9LbX3ERfke9846lypHQnLrR8zGBKVMnMLb8Sn4hz6xqqEEdPQaIoXM9SkzJ5tEpvwS0ev3BvgObiuU6ayDVnmM_X9nWPicWFHZJCfO2vjaHo5KJTZIheCOC7o5FoCsw-zWjByfMpMxo9uR_gZvycbAXlgIngpxeT47RNdLd97h703fWvmxiJc5EqRhYQMxiC\"}",
+    "namespace": "medical-records",
+    "version": "9a5add25-4526-4b27-9ef8-8b17e9c0c432:1",
+    "updatedAt": "2026-07-07T17:46:35.902Z",
+    "txId": "9a5add25-4526-4b27-9ef8-8b17e9c0c432",
+    "docType": "medical-records"
+  },
+  "REC-MRAYQVVV": {
+    "key": "REC-MRAYQVVV",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"gN2dDaeb1CqbkEch\",\"tag\":\"grgeCByc6cerMGjSSKcohg\",\"ct\":\"iaJjDjGufreli1fUkFXe4Bpm45vO_VUmNAyMRjhcR4SInXt3hWp61CRoupqJ0biUHnyNFLiiiFP4r6fwvrhSwzo3OMZIiW6C6ZfkqGagvxcrBE9YHk5MbyLjWKH6ZeD2QXh8mRa2pVCYuKu1DbJIewgoYU7sB8dXJ-l2Epr9Y3RBABbyDGIJhUqfdjJYOFLY5M1yj8vkhVklC_U2mwuq4Rfjl7eVCgoPzH2ziqI-7UlxOXj9qcuaruFH-8eGQLclWYCBYP48aEyZ3kFUcq8gPkYjZ8db4brJz-nhm0Ih640CsKgITzTKdcWNX1BxQ9figjNDrowoOeZZuoV0xWr0bmmgvyYYKuJtMwhk-nFGskNtCtA_kq5A_Fj6gffHqIi4OG56l2SY8h5UR5n_AJAsvUc_CCxEmxtxPs-z7HgEMzlV\"}",
+    "namespace": "medical-records",
+    "version": "18970262-3292-4cec-8965-d58428d64044:1",
+    "updatedAt": "2026-07-07T18:09:16.269Z",
+    "txId": "18970262-3292-4cec-8965-d58428d64044",
+    "docType": "medical-records"
+  },
+  "REC-MRQ7C6MR": {
+    "key": "REC-MRQ7C6MR",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"7dEjffkjFuQzU_Ze\",\"tag\":\"UsQ_96fsc92UIgcDXJJvzQ\",\"ct\":\"fyMSX9wzmul0UlXB-fjGUjSeF3rdRdVxh9QcdCxSr-0JzX5jOiCS3IPfRdlPlOCybqhfSET8eYNP_tWPqZSwAJXMiIbzp-zFoyMV4yDNz1sqnopXduYUnPjOM3S0GVMcWRRFVM0byMSUTZquZ0aHK_kvxtJ99vHGUsD2DWa1YKgSSfniagvPLzF8csuEqfATFJgAy9v1V_6-JoV6ezvdl0RkVLmjYtCsWHa6XoXO3Y4Ff6KLriuYO1PHfwcNYmp96W5lcTzn_UOdGgPWjvVOtH1HzAubjjwGE640u_3df3v3Ac-Vc4DvM2ON1i-09Z4T4iZZqepz4PGCbnwIWharQEZrFMTuKw2hoyourOK-LspWC5yPwgtxbbJwarMg2b0zCewqEwbgdrnY2auBApk7pQul_0kKDoPO2JumIjUpfoyN\"}",
+    "namespace": "medical-records",
+    "version": "4cc1bbfa-934c-4c0f-b220-18e7514a11bf:1",
+    "updatedAt": "2026-07-18T10:06:19.548Z",
+    "txId": "4cc1bbfa-934c-4c0f-b220-18e7514a11bf",
+    "docType": "medical-records"
+  },
+  "REC-MRQGIV1C": {
+    "key": "REC-MRQGIV1C",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"pKnflB4xUPNvviid\",\"tag\":\"G6JihojNjutNjPU1AhKLyw\",\"ct\":\"y4ss7ixFK38QG_ZFwFZ8ZSBeAP5wF2UmK7p6ckDOdH_0X5VnoIUv0FQYsjMcUuCtqeFnTSj7J-TooiKaB4Bgp7XIjQFZgQux2L04UwN_cXBMBCcqyjKcilbP7IxZ-56nyH5W-WoA3tmXoOJrj_r9qaKrfkaJSGTA42huOptTPjsCwRDgQPuJ5xfABdPzJ53lpxEMTdRuYKILq5Uupyf7CsVLYnU91NDGaU7aWw1qiYZ_oR7zJGTMEtU7wz_EduhzqlqucB8Cw4eMUtSTZZocuH8Evznq7IJSGVtjJqH2SXCjHsB7at7prStL5hBiHLA6mqj173Noy-wu0Pp3xvwZIgzqrQYo_K7LaDDqibyi12wCrqG1w5l-b2SSR2H0c6EfBtREVvDs_NtdhkjHZ6uFE-HB4FDq1UOS43PwdK05RtUJ5lg5JL1yijEVEBP8Zy6Pp_nIUxjPSth7xknH7bT6iGpeBKYHPf7lD5yPCHdEKwTXZT7r8w\"}",
+    "namespace": "medical-records",
+    "version": "b8d8ce28-08dc-4e71-bfcc-1092ee4dcc66:1",
+    "updatedAt": "2026-07-18T14:23:27.662Z",
+    "txId": "b8d8ce28-08dc-4e71-bfcc-1092ee4dcc66",
+    "docType": "medical-records"
+  },
+  "REC-MRQGK7CF": {
+    "key": "REC-MRQGK7CF",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"D19hoZX-x5OMpDS0\",\"tag\":\"3JNFMf_LE_ajYiRaQGXpnQ\",\"ct\":\"xtTnxB1e55ZBPHWcEcETfNTjhhIjiOCq3k078xtViL13hGhGwBOcGV9wbI4UyDgMN8qb8xN850EFa7nA_WBhSCSx2sHIoTnb2-4IPp5OYp2ismG0n_tgWNrmeDH6T4jZBu070_CFasb3eOXwMJItCUgIWyThosSdajzEh8QKiAY6NzuXzj-OZ4xxqITQBys4ty-BwDslI9VNixNnk5hHYQPzq0NqJGRxDP6onRsg-IGZk3kiCpMmMAEbOEC9tZ-UmOVVJM1RSoU8eCiAvEB6tqr_CcZ-fM3gGd5cab3n1e4v9_Lu6hwu0PHXHwpeKJOxHEapMky_6-B-4reJrlxdd07PJyb5g6WLL_vVUbAbMz3Mtt0SUg2ie7-LO9-mHKQ0CYH5GBg_C2yPRgypJrM5EeWdykdykIkbXPUqoKZVo9VHeksvyGwKVSpT9HIpri8sy383x5cu6dEg2ir4Q0PIaiZWn-d3nbe1IxQEXly92qf0HLEYWQ\"}",
+    "namespace": "medical-records",
+    "version": "11aa1065-39da-4fe8-9b03-3cd42746f742:1",
+    "updatedAt": "2026-07-18T14:24:30.255Z",
+    "txId": "11aa1065-39da-4fe8-9b03-3cd42746f742",
+    "docType": "medical-records"
+  },
+  "REC-MRQGKKBU": {
+    "key": "REC-MRQGKKBU",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"Lkp9TrCyg2r6jli-\",\"tag\":\"evNeDuP-RHNjDD3-fTaJMQ\",\"ct\":\"nqybtaa5sBgzBsWIuWkCXH0FkPOqFXoZDgbrFyvv8SWMGKsyOmh08GN4F5dDT7NxuTgiz8qWKfclcH9C6mPM25wM5ULMOeBbFt2kRtLGrj31_FfNYJ2XhDWA1uWSBl-MJIJ57vYTO3aj1sABM0VJ4K_C-s4ss0nn3_s1q-4c20nm2gndFVDIf13kZncHpK-DWQ6KQiBodiWDabRQQaIdl4mjNkuVUmD0F55z445W_2S5XsItiqqWypJ_ARd-XYYXCfjnzxCLc0oC-jSQbr06tymXjgLI4X5UCOdgem-rv3jf2I093aBLXEltYqziFvCoFdwTJCCZEFC3AZo8eJ-nDoOabHlZ-yhnvC6yLAgkcnqiFYVR7igfiIOWIyzKPMdC-mElZ6u2Iy5yS4AiKqHQK7YmEIKPDNnnoRZO2xun_CSHGUxAuRUeaJNFI6voufCgd58ecuUxgsz52RS1bfNfVikAVFlCkVcgApiqvLbdXAenKI_Xkw\"}",
+    "namespace": "medical-records",
+    "version": "35c8cf99-3da2-4419-95cc-27d23d3c805b:1",
+    "updatedAt": "2026-07-18T14:24:47.083Z",
+    "txId": "35c8cf99-3da2-4419-95cc-27d23d3c805b",
+    "docType": "medical-records"
+  },
+  "REC-MRQGKXFR": {
+    "key": "REC-MRQGKXFR",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"uZ3UrHXvK56wEAtX\",\"tag\":\"SJCrxxbUy_m2cHPSNxNxWA\",\"ct\":\"ClgCXZPLqPc8iycb7KEiPlmhoTR9xAAt0z-r0_FCEiJA8mhjZc4ylZhRZ6kWmTZIRkI04cFrw7B1gtyBsOcWVRhlhVbAmL1W6aGTx0jM571HQzpAp7PbtcsgKbRJgW_ufPQlWycBW2bt17BX-ckGTrPOo5Rp9W7CnKMuTafIXK1Po4nmrfGZlLHPssrvR3Ckk-JLgeXJkxCyS2ml09pEK_cNFrYoOtSGF-g_ETL-aXLiU16t6T8vOg6qLCiy6OKIYsQESlXJvMbuOfZCQ23JAlyERPdrkgw_qs-8M5Tc5nDVX5ZTirboivGgGZa3eYE1JbJQplQVUfdLb9131tx8eaIrVzqnFD71hDj-t6QwlTPDWDle-PjCItKfXZQwyqUE90s03oBWnEcD4_VzndAr3O7YPwt-bThq02F1PvB-rCEE8fOUJJ8fn49wY50WUW8a9mjlttymjLaUOP_hIWmbWb95gkZAvjhSWd6AlZTZrZhvpX2WEQ\"}",
+    "namespace": "medical-records",
+    "version": "c541701a-f75d-4224-aa7a-9103e02e9632:1",
+    "updatedAt": "2026-07-18T14:25:04.072Z",
+    "txId": "c541701a-f75d-4224-aa7a-9103e02e9632",
+    "docType": "medical-records"
+  },
+  "REC-MRQGLC5T": {
+    "key": "REC-MRQGLC5T",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"v7xeRV1hdOFdMP8b\",\"tag\":\"v8yXX792E_Wo1kKDSgsExA\",\"ct\":\"qpGIGvCgbYj34vF-mMrK1vMuc8rg-2FcjfXmpWB_tGohDE5_yrpXD5rmsJqPA4Fhl1XIgbmXwjE7C2ZONlfrE_30oxub0b8MQlgiDllSN2Lj7RHDtnoj3BCG6AA50tQlfbrf2pDhrp-6FJUVVJdPF1zElGh1II6-WVHw-K7gSjQZjSQ5Ch9MWGaj8VE29my_AgoorU-8n7uIs28_P-C6vbTc6sCP6nHkT9G7dfgBHZ6k-gKekfnrJRnjSh2TkQV_0hUkMT6P5x3jbUbRBkABxDa8KBUeoRoorEi4j0RUZAK0B62phzRarcIAAPkHZKhLhVVqVzCtyPMD4n3T01ih9uNt6Ulv3sRi4B-8HVUu_1MY92F4SfcvfuE3VscEVFamaPNbPUhUHMNtIP5OXZQGrgrme-oKTGU8TqEAYmJF-QQF4-0cs1QAaECNTTy1bADsA8Gc07coLnKY9Ef6cJWs3obPZjmS1REV8pHa1UEMRobFY13n7g\"}",
+    "namespace": "medical-records",
+    "version": "e2f95bb1-f8a4-42df-a8c7-09121dfa2f80:1",
+    "updatedAt": "2026-07-18T14:25:23.154Z",
+    "txId": "e2f95bb1-f8a4-42df-a8c7-09121dfa2f80",
+    "docType": "medical-records"
+  }
+}

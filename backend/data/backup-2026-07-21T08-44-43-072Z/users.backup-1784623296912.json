@@ -1,0 +1,248 @@
+{
+  "sahi0046@yahoo.com": {
+    "key": "sahi0046@yahoo.com",
+    "value": {
+      "name": "Sahith Kumar Pasupuleti",
+      "email": "sahi0046@yahoo.com",
+      "password": "Sahi@0045",
+      "role": "patient",
+      "did": "did:hosp:0x643a3a37",
+      "createdAt": "2026-06-08T13:38:01.900Z"
+    },
+    "namespace": "users",
+    "version": "fb47b8ab-4da6-4361-ad7d-18e9a39b2d5a:1",
+    "updatedAt": "2026-06-08T13:42:55.449Z",
+    "txId": "fb47b8ab-4da6-4361-ad7d-18e9a39b2d5a",
+    "docType": "users"
+  },
+  "team@nivixpe.com": {
+    "key": "team@nivixpe.com",
+    "value": {
+      "name": "Sahith Kumar Pasupuleti",
+      "email": "team@nivixpe.com",
+      "password": "Sahi@0045",
+      "role": "admin",
+      "did": null,
+      "createdAt": "2026-06-08T13:38:35.881Z"
+    },
+    "namespace": "users",
+    "version": "9918b42f-2203-4da3-8da0-08d828fd9072:1",
+    "updatedAt": "2026-06-08T13:38:35.881Z",
+    "txId": "9918b42f-2203-4da3-8da0-08d828fd9072",
+    "docType": "users"
+  },
+  "testpatient@example.com": {
+    "key": "testpatient@example.com",
+    "value": {
+      "name": "Test Patient",
+      "email": "testpatient@example.com",
+      "password": "password123",
+      "role": "patient",
+      "did": "did:hosp:0x2297f6ac",
+      "createdAt": "2026-06-22T05:21:47.561Z"
+    },
+    "namespace": "users",
+    "version": "01a6a78d-3462-4d38-9e7a-6f3e60c9c112:1",
+    "updatedAt": "2026-06-22T05:25:22.263Z",
+    "txId": "01a6a78d-3462-4d38-9e7a-6f3e60c9c112",
+    "docType": "users"
+  },
+  "admin@example.com": {
+    "key": "admin@example.com",
+    "value": {
+      "name": "Admin User",
+      "email": "admin@example.com",
+      "password": "password123",
+      "role": "admin",
+      "did": null,
+      "createdAt": "2026-06-22T05:22:25.511Z"
+    },
+    "namespace": "users",
+    "version": "28bce216-53d5-4e14-bd5b-d902d7cf92dc:1",
+    "updatedAt": "2026-06-22T05:22:25.511Z",
+    "txId": "28bce216-53d5-4e14-bd5b-d902d7cf92dc",
+    "docType": "users"
+  },
+  "testpatient2@example.com": {
+    "key": "testpatient2@example.com",
+    "value": {
+      "name": "Test Patient 2",
+      "email": "testpatient2@example.com",
+      "password": "Password123!",
+      "role": "patient",
+      "did": null,
+      "createdAt": "2026-06-22T05:27:29.740Z"
+    },
+    "namespace": "users",
+    "version": "c2d9d9fd-ba80-4bbd-b772-fff11bd8cb85:1",
+    "updatedAt": "2026-06-22T05:27:29.740Z",
+    "txId": "c2d9d9fd-ba80-4bbd-b772-fff11bd8cb85",
+    "docType": "users"
+  },
+  "patient-1782216524393@test.com": {
+    "key": "patient-1782216524393@test.com",
+    "value": {
+      "name": "John Patient",
+      "email": "patient-1782216524393@test.com",
+      "password": "$2b$10$y0WPfDKDT3N8RiQhwGOvBOatS9jJZQ5bd2M45ZwKNdE15Sf8wck/W",
+      "role": "patient",
+      "did": null,
+      "createdAt": "2026-06-23T12:08:44.460Z"
+    },
+    "namespace": "users",
+    "version": "d53056ec-be26-464c-9ab5-b52fc03f3cfa:1",
+    "updatedAt": "2026-06-23T12:08:44.460Z",
+    "txId": "d53056ec-be26-464c-9ab5-b52fc03f3cfa",
+    "docType": "users"
+  },
+  "admin-1782216524393@test.com": {
+    "key": "admin-1782216524393@test.com",
+    "value": {
+      "name": "Alice Admin",
+      "email": "admin-1782216524393@test.com",
+      "password": "$2b$10$f6qDc.iXDZIHyHF2rs9fr.G0TfGGQHWEophzofS5erWVEouzg2JWG",
+      "role": "admin",
+      "did": null,
+      "createdAt": "2026-06-23T12:08:44.514Z"
+    },
+    "namespace": "users",
+    "version": "62c5e929-d7b9-4668-9889-88e1627a4ef4:1",
+    "updatedAt": "2026-06-23T12:08:44.514Z",
+    "txId": "62c5e929-d7b9-4668-9889-88e1627a4ef4",
+    "docType": "users"
+  },
+  "patient-1782224532050@test.com": {
+    "key": "patient-1782224532050@test.com",
+    "value": {
+      "name": "John Patient",
+      "email": "patient-1782224532050@test.com",
+      "password": "$2b$10$DwQMp0hsn8qKRrJzZfCu0uZDKf1MPN6gFFHUEICkePZ4qLbTc2SZi",
+      "role": "patient",
+      "did": null,
+      "createdAt": "2026-06-23T14:22:12.110Z"
+    },
+    "namespace": "users",
+    "version": "0f72537b-6916-4089-89a2-31ae0cadaf63:1",
+    "updatedAt": "2026-06-23T14:22:12.110Z",
+    "txId": "0f72537b-6916-4089-89a2-31ae0cadaf63",
+    "docType": "users"
+  },
+  "admin-1782224532050@test.com": {
+    "key": "admin-1782224532050@test.com",
+    "value": {
+      "name": "Alice Admin",
+      "email": "admin-1782224532050@test.com",
+      "password": "$2b$10$tqKjVBA2bDFB1ZQHCDsnROnhQXI4mWHngfiPrxSYNxaohhh3/7O62",
+      "role": "admin",
+      "did": null,
+      "createdAt": "2026-06-23T14:22:12.164Z"
+    },
+    "namespace": "users",
+    "version": "9684d9b2-f6b1-4428-a776-17c399d47e92:1",
+    "updatedAt": "2026-06-23T14:22:12.164Z",
+    "txId": "9684d9b2-f6b1-4428-a776-17c399d47e92",
+    "docType": "users"
+  },
+  "doctor@example.com": {
+    "key": "doctor@example.com",
+    "value": {
+      "name": "Dr. Ravi Menon",
+      "email": "doctor@example.com",
+      "password": "password123",
+      "role": "staff",
+      "did": "did:hosp:0xd10399aa",
+      "createdAt": "2026-06-25T05:00:00.000Z"
+    },
+    "namespace": "users",
+    "version": "genesis:1",
+    "updatedAt": "2026-06-25T05:00:00.000Z",
+    "txId": "genesis",
+    "docType": "users"
+  },
+  "nurse@example.com": {
+    "key": "nurse@example.com",
+    "value": {
+      "name": "Nurse Priya K.",
+      "email": "nurse@example.com",
+      "password": "password123",
+      "role": "staff",
+      "did": "did:hosp:0x22bd44c1",
+      "createdAt": "2026-06-25T05:00:00.000Z"
+    },
+    "namespace": "users",
+    "version": "genesis:1",
+    "updatedAt": "2026-06-25T05:00:00.000Z",
+    "txId": "genesis",
+    "docType": "users"
+  },
+  "soulnani2441@gmail.com": {
+    "key": "soulnani2441@gmail.com",
+    "value": {
+      "name": "nithin",
+      "email": "soulnani2441@gmail.com",
+      "password": "$2b$10$RJjKhi0Bn.kdLEXx/fpJK.f0e7V2P4uHe3yBhoSF4s.d/xJKVW9fi",
+      "role": "patient",
+      "did": "did:hosp:0x4ba0999d",
+      "createdAt": "2026-07-01T16:12:52.570Z",
+      "walletAddress": "E92bLZaDwtGLAScWKyXT3z9cmMbsMKPbuJK5Z9jBsECq",
+      "mrn": "MRN-983442",
+      "phone": "+91 98765 43210",
+      "age": 21,
+      "gender": "M",
+      "bloodGroup": "O+"
+    },
+    "namespace": "users",
+    "version": "c9a19c8d-18e0-488c-808d-788f6c9daf3f:1",
+    "updatedAt": "2026-07-01T17:11:49.048Z",
+    "txId": "c9a19c8d-18e0-488c-808d-788f6c9daf3f",
+    "docType": "users"
+  },
+  "test@apollo.in": {
+    "key": "test@apollo.in",
+    "value": {
+      "name": "Test Doctor",
+      "email": "test@apollo.in",
+      "password": "$2b$10$AX0rY2004bPfhCTw94aa3OuPqtv0fKMOUwde9HMug3xVIhiam5tIa",
+      "role": "staff",
+      "did": null,
+      "createdAt": "2026-07-02T16:58:52.861Z"
+    },
+    "namespace": "users",
+    "version": "c091c632-d860-4300-bf30-c8cfb2a70cf8:1",
+    "updatedAt": "2026-07-02T16:58:52.861Z",
+    "txId": "c091c632-d860-4300-bf30-c8cfb2a70cf8",
+    "docType": "users"
+  },
+  "admin@embrace.org": {
+    "key": "admin@embrace.org",
+    "value": {
+      "name": "Embrace Admin",
+      "email": "admin@embrace.org",
+      "password": "$2b$10$jjLG4tmULwmS1ZyHfrj9qOGCawSVaxrBTxn/o1kIv8akjYHm/x0DK",
+      "role": "admin",
+      "did": null,
+      "createdAt": "2026-07-21T08:34:26.478Z"
+    },
+    "namespace": "users",
+    "version": "genesis:1",
+    "updatedAt": "2026-07-21T08:34:26.478Z",
+    "txId": "genesis",
+    "docType": "users"
+  },
+  "alice@patient.com": {
+    "key": "alice@patient.com",
+    "value": {
+      "name": "Alice",
+      "email": "alice@patient.com",
+      "password": "$2b$10$E5ngTUkUN9VmvyNkudk7J.mdiUwKSsCWE4EWg7P4CWfOqcLnrS3zq",
+      "role": "patient",
+      "did": null,
+      "createdAt": "2026-07-21T08:34:32.306Z"
+    },
+    "namespace": "users",
+    "version": "14b427b5-2fcb-4c6d-bbd5-74da537481cd:1",
+    "updatedAt": "2026-07-21T08:34:32.306Z",
+    "txId": "14b427b5-2fcb-4c6d-bbd5-74da537481cd",
+    "docType": "users"
+  }
+}

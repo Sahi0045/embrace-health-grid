@@ -1,0 +1,11 @@
+{
+  "diet1": {
+    "key": "diet1",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"ncyXo7Jdr3IcXqyf\",\"tag\":\"QaHypFg9clmCqKTclmxKSQ\",\"ct\":\"o1i7mZgPfUwac0lSWGQMvlUBxXu_Cbn__gJVRCO67msiXGFeZ-kbtsF06fbbdXC63kreHCrzOSNMT6KWZkPFQlBmRiZx9oSO2nUNjxUGlaZ2hTyfCGwz9q02yzyj9aBOnjKc5cOO1kxtEyj7mVsEbnUIr2EMqwqwy0kFep4-ZvWhXJjmb48E9rTs30ax73kn0gvBt89VFnKgqyGLB3asOzgdw_ewJ5IdkB7gBfEtVJRGjhL9bhQLnpeK885dpjSL0GRKPuwQluMqLG7n0AfMOW4dFKzhEFb4EM11XZWIBNBGIS5U2tYM3etMkJOFkEd1MzfzP3EM5lT3dZQ80KFKkiIIyYe032c03lUdmcu_VwZ5vsrVBX6Stc3FLWDMdlIKhNPZN4aXDvlmWtkNZdFd-ZfoigMSP9c7QfhthA\"}",
+    "namespace": "diet-orders",
+    "version": "3835b207-caa3-4b49-872d-2d3829367414:1",
+    "updatedAt": "2026-07-03T16:41:44.576Z",
+    "txId": "3835b207-caa3-4b49-872d-2d3829367414",
+    "docType": "diet-orders"
+  }
+}

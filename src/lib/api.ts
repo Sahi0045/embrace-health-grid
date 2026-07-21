@@ -61,16 +61,15 @@ export const getStats = () => apiFetch<{
 }>("/stats");
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const role = typeof window !== "undefined" ? localStorage.getItem("userRole") : null;
-  const email = typeof window !== "undefined" ? localStorage.getItem("userEmail") : null;
-  const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
+  // Import token from auth module — reads sessionStorage (not raw localStorage)
+  const { getToken } = await import("./auth");
+  const token = getToken();
+
   const clientKey =
     (typeof import.meta !== "undefined" && import.meta.env?.VITE_CLIENT_KEY) ||
     "apollo-consortium-client-secret-2026";
 
   const authHeaders: Record<string, string> = {};
-  if (role) authHeaders["x-user-role"] = role;
-  if (email) authHeaders["x-user-email"] = email;
   if (token) authHeaders["Authorization"] = "Bearer " + token;
   if (clientKey) authHeaders["x-client-key"] = clientKey;
 
@@ -89,6 +88,7 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   }
   return r.json();
 }
+
 
 // ─── DIDs ─────────────────────────────────────────────────────────────────────
 export const getAllDIDs = () => apiFetch<{ dids: any[]; total: number }>(`/did`);
@@ -586,10 +586,12 @@ export const verifyZKProof = (proofId: string, patientDid?: string) =>
 // ─── Auth (JWT) ───────────────────────────────────────────────────────────────
 const getStoredUser = () => {
   if (typeof window === "undefined") return null;
-  const role = localStorage.getItem("userRole");
+  const role  = localStorage.getItem("userRole");
   const email = localStorage.getItem("userEmail");
-  const name = localStorage.getItem("userName") ?? undefined;
-  const did = localStorage.getItem("userDID") ?? undefined;
+  const name  = localStorage.getItem("userName") ?? undefined;
+  const did   = localStorage.getItem("userDID") ?? undefined;
+  // Gate on sessionStorage token existing (logged-out after tab close)
+  if (!sessionStorage.getItem("authToken")) return null;
   if (!role || !email) return null;
   return { name: name ?? "Guest", email, role, did };
 };
@@ -597,8 +599,47 @@ const getStoredUser = () => {
 export const getMe = () =>
   apiFetch<{ user: { name: string; email: string; role: string; did?: string } }>(`/auth/me`);
 
-export const refreshToken = () =>
-  apiFetch<{ token: string }>(`/auth/refresh`, { method: "POST", body: "{}" });
+/** Rotate the refresh token — pass the opaque refresh token in the body. */
+export const refreshToken = (rt: string) =>
+  apiFetch<{ token: string; refreshToken: string }>(`/auth/refresh`, {
+    method: "POST",
+    body: JSON.stringify({ refreshToken: rt }),
+  });
+
+/** Admin-only: create a staff/doctor/admin account. */
+export const createUserAccount = (data: {
+  name: string;
+  email: string;
+  role: "staff" | "doctor" | "admin";
+  password: string;
+  department?: string;
+  specializations?: string[];
+  employeeId?: string;
+}) =>
+  apiFetch<{ success: boolean; user: { name: string; email: string; role: string } }>(
+    `/auth/users/create`,
+    { method: "POST", body: JSON.stringify(data) },
+  );
+
+/** Admin-only: force-logout all sessions for a user. */
+export const revokeUserSessions = (email: string) =>
+  apiFetch<{ success: boolean; message: string }>(
+    `/auth/revoke/${encodeURIComponent(email)}`,
+    { method: "POST", body: "{}" },
+  );
+
+/** Bootstrap: create first admin (only works when no admin exists). */
+export const bootstrapSetup = (data: {
+  name: string;
+  email: string;
+  password: string;
+  setupKey?: string;
+}) =>
+  apiFetch<{ success: boolean; token: string; refreshToken: string; user: any }>(
+    `/auth/setup`,
+    { method: "POST", body: JSON.stringify(data) },
+  );
+
 
 export const signIdentityPayload = (data: {
   did: string;

@@ -1,0 +1,47 @@
+{
+  "HM-did:hosp:0x643a3a37-0": {
+    "key": "HM-did:hosp:0x643a3a37-0",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"g3tyO6Zw7WbmPBJu\",\"tag\":\"tMhFweGsFhN9J_S7CI4fKg\",\"ct\":\"D-ga01LHDsHZ2fA8p1wPT9kyccU6UueHi-w0FrnY4UDAsjrcgvU7W3YWvyrYL7529EKj4Miq-2ZMZt1hrKeDBpVnE14aXXI56G_yHHoN-gRIQ4ju0QXG7QLl2LcR8JKrYReAu5hAYv3K7wTN3xkz4x87YIGpjRV1dPIbV6gYLKZxyEDrORzVkDoRKE5AWZCqnSFez4_CbkKRguMY0HyaoXRdIYAFCSVqdzX0GYiyL3sURWr_qBFl-9VIlVO1qIwqDAxGF8UXlanUy3jzuBbhyaJo1yyww83bjFo3OFt1yzoSnsoIYkKdeA\"}",
+    "namespace": "health-metrics",
+    "version": "3d72463a-a1de-4ab2-ad46-9cbcdcadcdd5:1",
+    "updatedAt": "2026-07-03T16:41:40.537Z",
+    "txId": "3d72463a-a1de-4ab2-ad46-9cbcdcadcdd5",
+    "docType": "health-metrics"
+  },
+  "HM-did:hosp:0x643a3a37-1": {
+    "key": "HM-did:hosp:0x643a3a37-1",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"4vsFlYx2PFxonKai\",\"tag\":\"woSA6Mx_m5f9XCHxWyxz2w\",\"ct\":\"eAa9o7BzeGasGRFWRZgcLm8AWfUzyrYnuegcbKqbtj_a9QwhrMXSwov6B-k84JvUGOPJRhUddI2S8Am5FrogpqRkrlDtZ-xDHuw5uYHEwnKgeVXsfMn09nS094FMSqjAIfXQXRLIO03O1B_oXlO4Lu4Gf1VUl_S7IaRrVG6hXoJ8edfPEz-YOb9FG3axzKwWoTW1i6KL6nLIyXf9VBf3-2-dSQegLb1ZE0KkmvEjdqDmH0vknzVv26uQf2zSlH_p9qG1-wHZsWDBAgaKOimo-mrvxUyf9Yqt-8dsydisgZy13d4f8pXs_A\"}",
+    "namespace": "health-metrics",
+    "version": "46f6aba9-1645-424e-8334-bd42ff0ece70:1",
+    "updatedAt": "2026-07-03T16:41:40.538Z",
+    "txId": "46f6aba9-1645-424e-8334-bd42ff0ece70",
+    "docType": "health-metrics"
+  },
+  "HM-did:hosp:0x643a3a37-2": {
+    "key": "HM-did:hosp:0x643a3a37-2",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"GGzqAzcC4KJqU6fV\",\"tag\":\"7gc-HMQmTswjwktBswGSHQ\",\"ct\":\"egz-9HAhGvhQWaBreQlLW2w5U6K4lmcnPmqeT3eWPehRv4UPX9-eHXKwjwk3tl-BQC0AaVMnBR4R0wEbQxUn5uhPeWQ7IXZe923sYmpv5XcnINYfH8p3DiXryIJE-b1brE6FT2-PK8dMngKNBWKPqQXSkqyDOxNDgzlZsU5ECcve0tZhV-5zQWDux0sqKMaFx8XzI-CmCjdVJYVOtFk8891268o2b6l0iPftbxCbMmbSYKHadU-3MGbJjZoNzUhJdCnDNZOBBGEoK8HS1SLNrIktlhiaiD6zRaPfYLtN5uECE64sxL2BKQ\"}",
+    "namespace": "health-metrics",
+    "version": "97711849-b923-496c-add9-563295cd6a17:1",
+    "updatedAt": "2026-07-03T16:41:40.538Z",
+    "txId": "97711849-b923-496c-add9-563295cd6a17",
+    "docType": "health-metrics"
+  },
+  "HM-did:hosp:0x643a3a37-3": {
+    "key": "HM-did:hosp:0x643a3a37-3",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"aZ8HXZ4M0S81SBB9\",\"tag\":\"wtJiYo9Xz952_ZK3tPH4JQ\",\"ct\":\"j1raSBcVsW1x010q9vUuiRekFN-fgqQrUXrNx8x-X4toU8H3XAAmTz1qH7kQpt5v0AM7QiNP4Zj0ca9MWdNM15dJqZLMkmnCMdJejHfmOV6PFdIIQG3Q5IGZTICD2I0mFy_eFDPJCU5TcGW2F3SwbZQGkBPmKtluU-6hAiUHI5VC02b_qKI2yfDjJ2yvqWgFBrijd2JPSfjOR4f1-jNA6nUiPRcvfr0HqiYu6l6VyDrASbaDUCxfa4K9YkXY7tZ3YzU8jdwSd9o8EmPrD5A1u8PCV9T11VprV4Ni23E1PU-18AHRlEg\"}",
+    "namespace": "health-metrics",
+    "version": "5f92a25e-e0c4-4539-a27e-f4fa9d7b94e7:1",
+    "updatedAt": "2026-07-03T16:41:40.538Z",
+    "txId": "5f92a25e-e0c4-4539-a27e-f4fa9d7b94e7",
+    "docType": "health-metrics"
+  },
+  "HM-did:hosp:0x643a3a37-4": {
+    "key": "HM-did:hosp:0x643a3a37-4",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"sX3McsXb9zOkek_P\",\"tag\":\"HVuufa9lL3FCrgkiLPTxMA\",\"ct\":\"exKfcOa92qRTlPQlZQ_5sgUQmV0kpoWFgoklONQFmn7HL2RfA2Ws3zqGA6MZWL7WSkGhAJcsVNYlYu2JChAb7jC9zODcuOehLBglyfiPYFeNlkU3xGklGBTKTJdyUieqAUre_P6hFGODzKm3iMk2CPZSllLDyCVxpGoo70R7Tz4OugFdKPFBS3Ls28BnJF9XeH-ONxhaq0L-_3iOJ2PN8_fGY2pUyjQiuSmLE9SN8hc8qIU2iRrMMCOLo9Smrx2U3Uf307P04U2w9Q4kB5m1R98tkNpZgqv1j8ZMiQRXdVo06JZdzg3UQA\"}",
+    "namespace": "health-metrics",
+    "version": "ef1f825d-abe1-4120-8cae-726fb43028b1:1",
+    "updatedAt": "2026-07-03T16:41:40.538Z",
+    "txId": "ef1f825d-abe1-4120-8cae-726fb43028b1",
+    "docType": "health-metrics"
+  }
+}

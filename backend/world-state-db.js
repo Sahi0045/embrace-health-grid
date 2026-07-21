@@ -22,6 +22,12 @@ import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { randomUUID } from "crypto";
 import { ConvexHttpClient } from "convex/browser";
+import {
+  encryptValue,
+  decryptValue,
+  isPHINamespace,
+  getKeyFingerprint,
+} from "./lib/phi-encrypt.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = join(__dirname, "data");
@@ -29,6 +35,19 @@ const DATA_DIR = join(__dirname, "data");
 // Ensure data directory exists
 if (!existsSync(DATA_DIR)) {
   mkdirSync(DATA_DIR, { recursive: true });
+}
+
+// Log encryption key fingerprint on startup (safe — not the key itself)
+try {
+  const fp = getKeyFingerprint();
+  console.log(`🔐 PHI Encryption active. Key fingerprint: ${fp} (AES-256-GCM)`);
+} catch (e) {
+  if (process.env.NODE_ENV === "production") {
+    console.error("FATAL: PHI encryption key unavailable.", e.message);
+    process.exit(1);
+  } else {
+    console.warn("⚠️ PHI encryption key not configured — using dev fallback.", e.message);
+  }
 }
 
 // Manual basic .env loader to read from workspace root
@@ -181,9 +200,13 @@ export async function bootstrapFromConvex() {
  */
 export function putState(namespace, key, value, txId, version = "1") {
   const ns = getNamespaceCache(namespace);
+
+  // Encrypt PHI before writing to disk
+  const storedValue = isPHINamespace(namespace) ? encryptValue(value) : value;
+
   const entry = {
     key,
-    value,
+    value: storedValue,
     namespace,
     version: `${txId}:${version}`,
     updatedAt: new Date().toISOString(),
@@ -194,6 +217,7 @@ export function putState(namespace, key, value, txId, version = "1") {
   flushNamespace(namespace);
 
   if (convexClient) {
+    // Send plaintext value to Convex (Convex has its own encryption at rest)
     convexClient
       .mutation("records:putGenericWorldState", {
         namespace,
@@ -208,7 +232,8 @@ export function putState(namespace, key, value, txId, version = "1") {
       });
   }
 
-  return entry;
+  // Return entry with DECRYPTED value so callers work with plain objects
+  return { ...entry, value };
 }
 
 /**
@@ -216,7 +241,13 @@ export function putState(namespace, key, value, txId, version = "1") {
  */
 export function getState(namespace, key) {
   const ns = getNamespaceCache(namespace);
-  return ns[key] ?? null;
+  const entry = ns[key] ?? null;
+  if (!entry) return null;
+  // Transparently decrypt PHI values on read
+  if (isPHINamespace(namespace)) {
+    return { ...entry, value: decryptValue(entry.value) };
+  }
+  return entry;
 }
 
 /**
@@ -244,7 +275,21 @@ export function deleteState(namespace, key) {
  */
 export function getAllState(namespace) {
   const ns = getNamespaceCache(namespace);
-  return Object.values(ns).filter((e) => !e.value?._deleted);
+  return Object.values(ns)
+    .filter((e) => !e.value?._deleted)
+    .map((entry) => {
+      if (!isPHINamespace(namespace)) return entry;
+      try {
+        const decrypted = decryptValue(entry.value);
+        // Support legacy plaintext entries (migration) — _deleted flag check
+        if (decrypted && decrypted._deleted) return null;
+        return { ...entry, value: decrypted };
+      } catch {
+        // If decryption fails, skip the entry (corrupted or wrong key)
+        return null;
+      }
+    })
+    .filter(Boolean);
 }
 
 /**
@@ -252,7 +297,16 @@ export function getAllState(namespace) {
  */
 export function queryState(namespace, predicate) {
   const ns = getNamespaceCache(namespace);
-  return Object.values(ns).filter((e) => !e.value?._deleted && predicate(e.value));
+  return Object.values(ns)
+    .map((entry) => {
+      if (!isPHINamespace(namespace)) return entry;
+      try {
+        return { ...entry, value: decryptValue(entry.value) };
+      } catch {
+        return null;
+      }
+    })
+    .filter((e) => e && !e.value?._deleted && predicate(e.value));
 }
 
 /**

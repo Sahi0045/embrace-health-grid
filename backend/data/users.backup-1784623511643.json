@@ -4,7 +4,7 @@
     "value": {
       "name": "Sahith Kumar Pasupuleti",
       "email": "sahi0046@yahoo.com",
-      "password": "$2b$12$o.X48oqWT2pQV0zX.4XZ8O2C58hwYFUY3KzXK388rAlG2IlnNbatO",
+      "password": "Sahi@0045",
       "role": "patient",
       "did": "did:hosp:0x643a3a37",
       "createdAt": "2026-06-08T13:38:01.900Z"
@@ -20,7 +20,7 @@
     "value": {
       "name": "Sahith Kumar Pasupuleti",
       "email": "team@nivixpe.com",
-      "password": "$2b$12$.xJFXzAlr3KSAbEislbBJeI0au9VeRDk8xxeZiu.VFJP0axMm6Lnq",
+      "password": "Sahi@0045",
       "role": "admin",
       "did": null,
       "createdAt": "2026-06-08T13:38:35.881Z"
@@ -36,7 +36,7 @@
     "value": {
       "name": "Test Patient",
       "email": "testpatient@example.com",
-      "password": "$2b$12$FyVJoqioXRXhy.b0eQ7yXukGSWw5EQFNTXy4IX3JdP99619vYnZD6",
+      "password": "password123",
       "role": "patient",
       "did": "did:hosp:0x2297f6ac",
       "createdAt": "2026-06-22T05:21:47.561Z"
@@ -52,7 +52,7 @@
     "value": {
       "name": "Admin User",
       "email": "admin@example.com",
-      "password": "$2b$12$DR1MG7AFOotCmEV8y4G3NOrRV2CMXD3Zew/kFPPRqOAGODSNPzqLK",
+      "password": "password123",
       "role": "admin",
       "did": null,
       "createdAt": "2026-06-22T05:22:25.511Z"
@@ -68,7 +68,7 @@
     "value": {
       "name": "Test Patient 2",
       "email": "testpatient2@example.com",
-      "password": "$2b$12$Bo/UVmp9TkyY39HvL7EsXuKUnpokXqFPIEQ6EHjoNBYrhwcj4MWrW",
+      "password": "Password123!",
       "role": "patient",
       "did": null,
       "createdAt": "2026-06-22T05:27:29.740Z"
@@ -148,7 +148,7 @@
     "value": {
       "name": "Dr. Ravi Menon",
       "email": "doctor@example.com",
-      "password": "$2b$12$eV/X5G7R/ObUH5xnR4Zmj.Qu5Gn15Hv3S/gGiXig0UJw6.wDjWA1G",
+      "password": "password123",
       "role": "staff",
       "did": "did:hosp:0xd10399aa",
       "createdAt": "2026-06-25T05:00:00.000Z"
@@ -164,7 +164,7 @@
     "value": {
       "name": "Nurse Priya K.",
       "email": "nurse@example.com",
-      "password": "$2b$12$/VjI.SAiIO7bMaLlyrTtrerAgoChDPcSHKA6OW.T2Z4ANKs5WPpma",
+      "password": "password123",
       "role": "staff",
       "did": "did:hosp:0x22bd44c1",
       "createdAt": "2026-06-25T05:00:00.000Z"
@@ -2026,15 +2026,6 @@
     "version": "c7378d12-7737-44c6-b208-b1363f610d38:1",
     "updatedAt": "2026-07-18T14:25:23.219Z",
     "txId": "c7378d12-7737-44c6-b208-b1363f610d38",
-    "docType": "users"
-  },
-  "admin@embrace.org": {
-    "key": "admin@embrace.org",
-    "value": "__phi_enc__:{\"v\":1,\"iv\":\"J1iF7qwYEDhqx5EM\",\"tag\":\"Ti9tDgGX-6bi_zsqc-1igg\",\"ct\":\"r3ODFlCo_8JrExzUOTZRz6c-eS36QmAem-neVD7bCYSwWs1IrKUqnHIuqHbup3skSCqcQx4K84kIMb3fyeIuP3eMXzzg06rpu4dztszXEhJs1nHSJLAlrP6TmHBYaNz5vC6rbelRfIudXaHsbDKGwvzY5Foj5qGRM7j0GIVDiQd9ymJAQ4NNkEj152nhrYX-Nio48arRMCCFB_eXF1-ZVmYgwCIKCSM9q1jrTVkFLVrr1SEa5yom-5UaYx-KQTQ\"}",
-    "namespace": "users",
-    "version": "genesis:1",
-    "updatedAt": "2026-07-21T08:45:58.703Z",
-    "txId": "genesis",
     "docType": "users"
   }
 }

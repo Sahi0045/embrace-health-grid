@@ -1,0 +1,348 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: embrace-health
+  labels:
+    app.kubernetes.io/name: embrace-health
+    environment: production
+
+---
+# ════════════════════════════════════════════════════════════════
+#  ConfigMap — non-secret configuration
+# ════════════════════════════════════════════════════════════════
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: embrace-backend-config
+  namespace: embrace-health
+data:
+  NODE_ENV: "production"
+  PORT: "3001"
+  LOG_LEVEL: "info"
+  SOLANA_RPC_URL: "https://api.devnet.solana.com"
+
+---
+# ════════════════════════════════════════════════════════════════
+#  Secret — fill these in with your actual values or use
+#  External Secrets Operator / Sealed Secrets in production.
+# ════════════════════════════════════════════════════════════════
+apiVersion: v1
+kind: Secret
+metadata:
+  name: embrace-backend-secrets
+  namespace: embrace-health
+type: Opaque
+stringData:
+  JWT_SECRET: "REPLACE_WITH_ACTUAL_SECRET"
+  CLIENT_KEY: "REPLACE_WITH_ACTUAL_CLIENT_KEY"
+  IDENTITY_SECRET: "REPLACE_WITH_ACTUAL_IDENTITY_SECRET"
+  # VITE_CONVEX_URL: ""
+  # SOLANA_WALLET_SECRET: ""
+
+---
+# ════════════════════════════════════════════════════════════════
+#  PersistentVolumeClaim — world-state-db data
+# ════════════════════════════════════════════════════════════════
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: backend-data-pvc
+  namespace: embrace-health
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: standard
+
+---
+# ════════════════════════════════════════════════════════════════
+#  Deployment — Backend
+# ════════════════════════════════════════════════════════════════
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: embrace-backend
+  namespace: embrace-health
+  labels:
+    app: embrace-backend
+    version: "1.0.0"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: embrace-backend
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: embrace-backend
+        version: "1.0.0"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/health/metrics"
+        prometheus.io/port: "3001"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+
+      containers:
+        - name: backend
+          image: ghcr.io/YOUR_ORG/embrace-health-grid-backend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3001
+              name: http
+              protocol: TCP
+          env:
+            - name: NODE_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: embrace-backend-config
+                  key: NODE_ENV
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: embrace-backend-config
+                  key: PORT
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: embrace-backend-config
+                  key: LOG_LEVEL
+            - name: SOLANA_RPC_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: embrace-backend-config
+                  key: SOLANA_RPC_URL
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: embrace-backend-secrets
+                  key: JWT_SECRET
+            - name: CLIENT_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: embrace-backend-secrets
+                  key: CLIENT_KEY
+            - name: IDENTITY_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: embrace-backend-secrets
+                  key: IDENTITY_SECRET
+            - name: CORS_ORIGIN
+              value: "https://embrace-health.vercel.app"
+
+          # ── Liveness probe ────────────────────────────────────────────────
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          # ── Readiness probe ───────────────────────────────────────────────
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 3001
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          # ── Resource limits ───────────────────────────────────────────────
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "512Mi"
+
+          volumeMounts:
+            - name: backend-data
+              mountPath: /app/backend/data
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+
+      volumes:
+        - name: backend-data
+          persistentVolumeClaim:
+            claimName: backend-data-pvc
+
+---
+# ════════════════════════════════════════════════════════════════
+#  Service — Backend (ClusterIP)
+# ════════════════════════════════════════════════════════════════
+apiVersion: v1
+kind: Service
+metadata:
+  name: embrace-backend-svc
+  namespace: embrace-health
+  labels:
+    app: embrace-backend
+spec:
+  selector:
+    app: embrace-backend
+  ports:
+    - port: 3001
+      targetPort: 3001
+      protocol: TCP
+      name: http
+  type: ClusterIP
+
+---
+# ════════════════════════════════════════════════════════════════
+#  Deployment — Frontend (Nginx)
+# ════════════════════════════════════════════════════════════════
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: embrace-frontend
+  namespace: embrace-health
+  labels:
+    app: embrace-frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: embrace-frontend
+  template:
+    metadata:
+      labels:
+        app: embrace-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: ghcr.io/YOUR_ORG/embrace-health-grid-frontend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+              name: http
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"
+
+---
+# ════════════════════════════════════════════════════════════════
+#  Service — Frontend
+# ════════════════════════════════════════════════════════════════
+apiVersion: v1
+kind: Service
+metadata:
+  name: embrace-frontend-svc
+  namespace: embrace-health
+spec:
+  selector:
+    app: embrace-frontend
+  ports:
+    - port: 80
+      targetPort: 80
+      name: http
+  type: ClusterIP
+
+---
+# ════════════════════════════════════════════════════════════════
+#  Ingress — Routes external traffic to frontend + backend
+#  (Requires nginx-ingress-controller and cert-manager)
+# ════════════════════════════════════════════════════════════════
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: embrace-ingress
+  namespace: embrace-health
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    # TLS via cert-manager (Let's Encrypt)
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - embrace-health.example.com
+        - api.embrace-health.example.com
+      secretName: embrace-tls
+  rules:
+    - host: embrace-health.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: embrace-frontend-svc
+                port:
+                  number: 80
+    - host: api.embrace-health.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: embrace-backend-svc
+                port:
+                  number: 3001
+
+---
+# ════════════════════════════════════════════════════════════════
+#  HorizontalPodAutoscaler — Backend
+# ════════════════════════════════════════════════════════════════
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: embrace-backend-hpa
+  namespace: embrace-health
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: embrace-backend
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80

@@ -18,6 +18,9 @@ export default defineConfig({
     alias: {
       "@": join(__dirname, "../src"),
       "~": join(__dirname, "src"),
+      buffer: "buffer/",
+      react: join(__dirname, "node_modules/react"),
+      "react-dom": join(__dirname, "node_modules/react-dom"),
     },
   },
   server: {

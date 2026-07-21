@@ -1,0 +1,38 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs
+dist/
+.vercel/
+.tanstack/
+.lovable/
+
+# Environment files (secrets must not enter the image)
+.env
+.env.local
+.env.*.local
+
+# Editor
+.vscode/
+.cursor/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# Docs / tests (not needed at runtime)
+*.md
+compliance-docs/
+anchor-program/
+
+# Docker itself
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+k8s/
+.github/

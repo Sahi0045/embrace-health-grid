@@ -1,0 +1,238 @@
+{
+  "LOC-MRAXXCJ3": {
+    "key": "LOC-MRAXXCJ3",
+    "value": {
+      "logId": "LOC-MRAXXCJ3",
+      "doctorDid": "did:hosp:0x54290875",
+      "doctorName": "Dr. Login",
+      "roomNumber": "Room 302 - Cardiac Ward",
+      "timestamp": "2026-07-07T17:46:18.159Z",
+      "hash": "sha256:3eb191b480c49aa69a9347e8b6f5cc65"
+    },
+    "namespace": "doctor-locations",
+    "version": "942570a3-49fd-47c5-8413-7912b49480a7:1",
+    "updatedAt": "2026-07-07T17:46:18.159Z",
+    "txId": "942570a3-49fd-47c5-8413-7912b49480a7",
+    "docType": "doctor-locations"
+  },
+  "LOC-INIT": {
+    "key": "LOC-INIT",
+    "value": {
+      "logId": "LOC-INIT",
+      "doctorDid": "did:hosp:0xlogin_do",
+      "doctorName": "Dr. Staff",
+      "roomNumber": "Room 101 - Outpatient Clinic",
+      "action": "enter",
+      "timestamp": "2026-07-18T13:20:39.839Z",
+      "hash": "sha256:18a8bb04ce6a3dd8e9c54af5bc7c2430"
+    },
+    "namespace": "doctor-locations",
+    "version": "b42d04a1-41a4-4911-97a1-14989ca2301d:1",
+    "updatedAt": "2026-07-18T14:20:39.839Z",
+    "txId": "b42d04a1-41a4-4911-97a1-14989ca2301d",
+    "docType": "doctor-locations"
+  },
+  "LOC-MRAXXQ8L": {
+    "key": "LOC-MRAXXQ8L",
+    "value": {
+      "logId": "LOC-MRAXXQ8L",
+      "doctorDid": "did:hosp:0x62c3b5ef",
+      "doctorName": "Dr. Login",
+      "roomNumber": "Room 302 - Cardiac Ward",
+      "timestamp": "2026-07-07T17:46:35.925Z",
+      "hash": "sha256:385b8c65f337b96c55bc4fe9a9762a54"
+    },
+    "namespace": "doctor-locations",
+    "version": "0db29a59-529b-4fd7-af8d-8cddcbde91fa:1",
+    "updatedAt": "2026-07-07T17:46:35.925Z",
+    "txId": "0db29a59-529b-4fd7-af8d-8cddcbde91fa",
+    "docType": "doctor-locations"
+  },
+  "LOC-MRAYQVXJ": {
+    "key": "LOC-MRAYQVXJ",
+    "value": {
+      "logId": "LOC-MRAYQVXJ",
+      "doctorDid": "did:hosp:0x0000f262",
+      "doctorName": "Dr. Login",
+      "roomNumber": "Room 302 - Cardiac Ward",
+      "action": "enter",
+      "timestamp": "2026-07-07T18:09:16.327Z",
+      "hash": "sha256:472497c5917936e40f55484ea1fe8d4d"
+    },
+    "namespace": "doctor-locations",
+    "version": "224cc4ea-12f2-4dab-a9c8-adacf3c201bc:1",
+    "updatedAt": "2026-07-07T18:09:16.327Z",
+    "txId": "224cc4ea-12f2-4dab-a9c8-adacf3c201bc",
+    "docType": "doctor-locations"
+  },
+  "LOC-MRQ7C6O1": {
+    "key": "LOC-MRQ7C6O1",
+    "value": {
+      "logId": "LOC-MRQ7C6O1",
+      "doctorDid": "did:hosp:0x0dfcff00",
+      "doctorName": "Dr. Login",
+      "roomNumber": "Room 302 - Cardiac Ward",
+      "action": "enter",
+      "timestamp": "2026-07-18T10:06:19.585Z",
+      "hash": "sha256:1318f892f31e1c57614644008d641e5c"
+    },
+    "namespace": "doctor-locations",
+    "version": "ad58c310-9aca-4d16-80c0-a6bd10822abf:1",
+    "updatedAt": "2026-07-18T10:06:19.585Z",
+    "txId": "ad58c310-9aca-4d16-80c0-a6bd10822abf",
+    "docType": "doctor-locations"
+  },
+  "LOC-MRQGF9IZ": {
+    "key": "LOC-MRQGF9IZ",
+    "value": {
+      "logId": "LOC-MRQGF9IZ",
+      "doctorDid": "did:hosp:0x2187da03",
+      "doctorName": "Dr. Login",
+      "roomNumber": "Room 302 - Cardiac Ward",
+      "action": "enter",
+      "timestamp": "2026-07-18T14:20:39.803Z",
+      "hash": "sha256:547d32f1ef0cf6d2d2f4422ca4926953"
+    },
+    "namespace": "doctor-locations",
+    "version": "99a41615-58c9-4967-8eff-9c49a456b579:1",
+    "updatedAt": "2026-07-18T14:20:39.803Z",
+    "txId": "99a41615-58c9-4967-8eff-9c49a456b579",
+    "docType": "doctor-locations"
+  },
+  "LOC-MRQGHGJL": {
+    "key": "LOC-MRQGHGJL",
+    "value": {
+      "logId": "LOC-MRQGHGJL",
+      "doctorDid": "did:hosp:0x51db82a8",
+      "doctorName": "Dr. Login",
+      "roomNumber": "Room 302 - Cardiac Ward",
+      "action": "enter",
+      "timestamp": "2026-07-18T14:22:22.209Z",
+      "hash": "sha256:3ab8c3f36b7e32bee0d24c9592efe9fb"
+    },
+    "namespace": "doctor-locations",
+    "version": "02445e3e-c5cb-4258-b86e-655f10b70434:1",
+    "updatedAt": "2026-07-18T14:22:22.209Z",
+    "txId": "02445e3e-c5cb-4258-b86e-655f10b70434",
+    "docType": "doctor-locations"
+  },
+  "LOC-MRQGHMCL": {
+    "key": "LOC-MRQGHMCL",
+    "value": {
+      "logId": "LOC-MRQGHMCL",
+      "doctorDid": "did:hosp:0x03761be4",
+      "doctorName": "Dr. Login",
+      "roomNumber": "Room 302 - Cardiac Ward",
+      "action": "enter",
+      "timestamp": "2026-07-18T14:22:29.733Z",
+      "hash": "sha256:7e145efa97446640b4a74a3da825bea8"
+    },
+    "namespace": "doctor-locations",
+    "version": "ef6d3c73-65ea-4ce1-b35e-30aff44faaa5:1",
+    "updatedAt": "2026-07-18T14:22:29.733Z",
+    "txId": "ef6d3c73-65ea-4ce1-b35e-30aff44faaa5",
+    "docType": "doctor-locations"
+  },
+  "LOC-MRQGI8IK": {
+    "key": "LOC-MRQGI8IK",
+    "value": {
+      "logId": "LOC-MRQGI8IK",
+      "doctorDid": "did:hosp:0x5c887ddd",
+      "doctorName": "Dr. Login",
+      "roomNumber": "Room 302 - Cardiac Ward",
+      "action": "enter",
+      "timestamp": "2026-07-18T14:22:58.460Z",
+      "hash": "sha256:3d92a8496bc6f5872f98476f9481f583"
+    },
+    "namespace": "doctor-locations",
+    "version": "3f617c81-0ede-40e2-96ca-1899673da9b2:1",
+    "updatedAt": "2026-07-18T14:22:58.460Z",
+    "txId": "3f617c81-0ede-40e2-96ca-1899673da9b2",
+    "docType": "doctor-locations"
+  },
+  "LOC-MRQGIV3B": {
+    "key": "LOC-MRQGIV3B",
+    "value": {
+      "logId": "LOC-MRQGIV3B",
+      "doctorDid": "did:hosp:0x56d4f354",
+      "doctorName": "Dr. Login",
+      "roomNumber": "Room 302 - Cardiac Ward",
+      "action": "enter",
+      "timestamp": "2026-07-18T14:23:27.719Z",
+      "hash": "sha256:1cb4643898b96f5e9c5d44ba8f81fd9c"
+    },
+    "namespace": "doctor-locations",
+    "version": "437abffc-8ecd-4607-98af-d678540fb5ec:1",
+    "updatedAt": "2026-07-18T14:23:27.719Z",
+    "txId": "437abffc-8ecd-4607-98af-d678540fb5ec",
+    "docType": "doctor-locations"
+  },
+  "LOC-MRQGK7DW": {
+    "key": "LOC-MRQGK7DW",
+    "value": {
+      "logId": "LOC-MRQGK7DW",
+      "doctorDid": "did:hosp:0x2b1eafaa",
+      "doctorName": "Dr. Login",
+      "roomNumber": "Room 302 - Cardiac Ward",
+      "action": "enter",
+      "timestamp": "2026-07-18T14:24:30.308Z",
+      "hash": "sha256:67b59d36a1b2c3d4e5f67890a1b2c3d4"
+    },
+    "namespace": "doctor-locations",
+    "version": "1db66bd4-1605-4ac3-9cfa-963f0f40e4c9:1",
+    "updatedAt": "2026-07-18T14:24:30.308Z",
+    "txId": "1db66bd4-1605-4ac3-9cfa-963f0f40e4c9",
+    "docType": "doctor-locations"
+  },
+  "LOC-MRQGKKDJ": {
+    "key": "LOC-MRQGKKDJ",
+    "value": {
+      "logId": "LOC-MRQGKKDJ",
+      "doctorDid": "did:hosp:0x3d17049c",
+      "doctorName": "Dr. Login",
+      "roomNumber": "Room 302 - Cardiac Ward",
+      "action": "enter",
+      "timestamp": "2026-07-18T14:24:47.143Z",
+      "hash": "sha256:4cf7a1e8a1b2c3d4e5f67890a1b2c3d4"
+    },
+    "namespace": "doctor-locations",
+    "version": "5d0667e8-1b11-4b73-83b3-a7c453273998:1",
+    "updatedAt": "2026-07-18T14:24:47.143Z",
+    "txId": "5d0667e8-1b11-4b73-83b3-a7c453273998",
+    "docType": "doctor-locations"
+  },
+  "LOC-MRQGKXH8": {
+    "key": "LOC-MRQGKXH8",
+    "value": {
+      "logId": "LOC-MRQGKXH8",
+      "doctorDid": "did:hosp:0x153a13e1",
+      "doctorName": "Dr. Login",
+      "roomNumber": "Room 302 - Cardiac Ward",
+      "action": "enter",
+      "timestamp": "2026-07-18T14:25:04.124Z",
+      "hash": "sha256:20d26763a1b2c3d4e5f67890a1b2c3d4"
+    },
+    "namespace": "doctor-locations",
+    "version": "99be843e-0517-48f4-83e7-a971e5a237de:1",
+    "updatedAt": "2026-07-18T14:25:04.124Z",
+    "txId": "99be843e-0517-48f4-83e7-a971e5a237de",
+    "docType": "doctor-locations"
+  },
+  "LOC-MRQGLC7M": {
+    "key": "LOC-MRQGLC7M",
+    "value": {
+      "logId": "LOC-MRQGLC7M",
+      "doctorDid": "did:hosp:0x6e748a03",
+      "doctorName": "Dr. Login",
+      "roomNumber": "Room 302 - Cardiac Ward",
+      "action": "enter",
+      "timestamp": "2026-07-18T14:25:23.218Z",
+      "hash": "sha256:4c2fc798a1b2c3d4e5f67890a1b2c3d4"
+    },
+    "namespace": "doctor-locations",
+    "version": "df642987-0623-46e2-93b1-0593a6917a76:1",
+    "updatedAt": "2026-07-18T14:25:23.218Z",
+    "txId": "df642987-0623-46e2-93b1-0593a6917a76",
+    "docType": "doctor-locations"
+  }
+}

@@ -7,7 +7,14 @@
   "scripts": {
     "dev": "node --watch server.js",
     "start": "node server.js",
-    "seed": "node scripts/seed-data.js"
+    "seed": "node scripts/seed-data.js",
+    "health": "curl -sf http://localhost:3001/health | node -e \"process.stdin.resume();process.stdin.setEncoding('utf8');let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.parse(d)))\"",
+    "health:ready": "curl -sf http://localhost:3001/health/ready",
+    "health:metrics": "curl -sf http://localhost:3001/health/metrics",
+    "migrate:passwords": "node scripts/migrate-hash-passwords.js",
+    "migrate:phi": "node scripts/migrate-encrypt-phi.js",
+    "migrate:phi:dry": "node scripts/migrate-encrypt-phi.js --dry-run",
+    "gen:dek": "node -e \"console.log('DATA_ENCRYPTION_KEY=' + require('crypto').randomBytes(32).toString('hex'))\""
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
@@ -16,7 +23,6 @@
     "express-rate-limit": "^7.1.5",
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.3",
-    "morgan": "^1.10.0",
     "uuid": "^9.0.0",
     "ws": "^8.14.2"
   },
@@ -26,3 +32,4 @@
     "@types/ws": "^8.5.10"
   }
 }
+

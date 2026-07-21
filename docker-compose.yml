@@ -1,0 +1,101 @@
+version: "3.9"
+
+# ══════════════════════════════════════════════════════════════
+#  Embrace Health Grid — Docker Compose
+#
+#  Services:
+#    backend   — Express REST API + WebSocket (port 3001)
+#    frontend  — Nginx SPA                   (port 8080)
+#
+#  Usage:
+#    cp .env.example .env          # fill in secrets
+#    docker compose up --build
+#
+#  Health checks:
+#    http://localhost:3001/health        → liveness
+#    http://localhost:3001/health/ready  → readiness
+#    http://localhost:3001/health/metrics → prometheus metrics
+# ══════════════════════════════════════════════════════════════
+
+services:
+
+  # ─── Backend API ────────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: backend
+    container_name: embrace-backend
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3001}:3001"
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 3001
+      JWT_SECRET: ${JWT_SECRET}
+      CLIENT_KEY: ${CLIENT_KEY}
+      IDENTITY_SECRET: ${IDENTITY_SECRET:-}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8080}
+      VITE_CONVEX_URL: ${VITE_CONVEX_URL:-}
+      CONVEX_URL: ${CONVEX_URL:-}
+      SOLANA_RPC_URL: ${SOLANA_RPC_URL:-https://api.devnet.solana.com}
+      SOLANA_PROGRAM_ID: ${SOLANA_PROGRAM_ID:-}
+      SOLANA_WALLET_SECRET: ${SOLANA_WALLET_SECRET:-}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+    volumes:
+      # Named volume so world-state-db.json persists across container restarts
+      - backend_data:/app/backend/data
+    networks:
+      - health-net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # ─── Frontend (Nginx) ────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: frontend
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:3001}
+        VITE_CONVEX_URL: ${VITE_CONVEX_URL:-}
+        VITE_CLIENT_KEY: ${VITE_CLIENT_KEY:-}
+    container_name: embrace-frontend
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - health-net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+# ─── Volumes ──────────────────────────────────────────────────────────────────
+volumes:
+  backend_data:
+    driver: local
+
+# ─── Networks ─────────────────────────────────────────────────────────────────
+networks:
+  health-net:
+    driver: bridge
