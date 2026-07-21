@@ -61,7 +61,7 @@ function StaffRooms() {
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-            "x-client-key": "apollo-consortium-client-secret-2026",
+          "x-client-key": import.meta.env.VITE_CLIENT_KEY || "",
           },
         },
       );
@@ -112,7 +112,7 @@ function StaffRooms() {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-          "x-client-key": "apollo-consortium-client-secret-2026",
+          "x-client-key": import.meta.env.VITE_CLIENT_KEY || "",
         },
         body: JSON.stringify({ doctorDid, roomNumber }),
       });
@@ -146,7 +146,7 @@ function StaffRooms() {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-          "x-client-key": "apollo-consortium-client-secret-2026",
+          "x-client-key": import.meta.env.VITE_CLIENT_KEY || "",
         },
         body: JSON.stringify({
           authorityPubkey: publicKey.toBase58(),
