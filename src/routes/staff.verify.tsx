@@ -5,7 +5,6 @@ import { PageHeader } from "@/components/PageHeader";
 import { RouteGuard } from "@/components/RouteGuard";
 import { useLivePatients, useInpatientData } from "@/hooks/use-api";
 import { logAuditEvent, verifyNFCCard, resolveDID, signIdentityPayload, verifyIdentityPayload, API_BASE_URL } from "@/lib/api";
-import { currentPatient } from "@/lib/mock-data";
 import { PublicKey, Connection } from "@solana/web3.js";
 import { MerkleTree } from "@/lib/merkle";
 import { Buffer } from "buffer";
@@ -29,8 +28,10 @@ import {
   CreditCard,
   Wifi,
   Loader2,
+  Lock,
 } from "lucide-react";
 import { toast } from "sonner";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 

@@ -65,29 +65,46 @@ export function getRefreshToken(): string | null {
 
 // ─── Session management ────────────────────────────────────────────────────────
 
+export interface SessionUser {
+  name: string;
+  email: string;
+  role: string;
+  did?: string | null;
+  walletAddress?: string | null;
+  mrn?: string | null;
+  employeeId?: string | null;
+}
+
+export function setSession(token: string, user: SessionUser): void;
+export function setSession(token: string, refreshToken: string | null, user: SessionUser): void;
 export function setSession(
   token: string,
-  refreshToken: string | null,
-  user: {
-    name: string;
-    email: string;
-    role: string;
-    did?: string | null;
-    walletAddress?: string | null;
-    mrn?: string | null;
-    employeeId?: string | null;
-  },
+  refreshTokenOrUser: string | null | SessionUser,
+  userOrUndefined?: SessionUser,
 ): void {
   if (typeof window === "undefined") return;
 
-  // Access token → sessionStorage + memory (XSS blast radius reduced)
+  let refreshToken: string | null = null;
+  let user: SessionUser;
+
+  if (typeof refreshTokenOrUser === "object" && refreshTokenOrUser !== null) {
+    user = refreshTokenOrUser as SessionUser;
+  } else {
+    refreshToken = refreshTokenOrUser as string | null;
+    user = userOrUndefined!;
+  }
+
+  if (!user) return;
+
+  // Access token → sessionStorage + memory
   sessionStorage.setItem(ACCESS_TOKEN_KEY, token);
   _memToken = token;
 
-  // Refresh token → sessionStorage only (never localStorage)
+  // Refresh token → sessionStorage only
   if (refreshToken) {
     sessionStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
   }
+
 
   // Non-sensitive profile metadata → localStorage (for UI display only)
   localStorage.setItem("userRole",  user.role);

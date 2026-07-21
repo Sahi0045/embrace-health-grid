@@ -110,7 +110,7 @@ function TelemedicinePage() {
                     <div className="text-sm font-medium text-muted-foreground">No upcoming consultations</div>
                   </div>
                 )}
-                {upcoming.map((c) => (
+                {upcoming.map((c: any) => (
                   <StaggerItem key={c.id}>
                     <motion.div whileHover={{ scale: 1.002 }} className="rounded-xl border border-border bg-card p-5 shadow-clinical">
                       <div className="flex items-start justify-between gap-3">

@@ -145,7 +145,7 @@ function InsurancePage() {
                   Recent Claims
                 </div>
                 <div className="space-y-3">
-                  {patientClaims.slice(0, 3).map(c => <ClaimsCard key={c.id} claim={c} />)}
+                  {patientClaims.slice(0, 3).map((c: any) => <ClaimsCard key={c.id} claim={c} />)}
                 </div>
               </div>
             </StaggerItem>
@@ -160,9 +160,10 @@ function InsurancePage() {
 
         {tab === "Claims" && (
           <div className="space-y-3">
-            {patientClaims.map(c => <ClaimsCard key={c.id} claim={c} />)}
+            {patientClaims.map((c: any) => <ClaimsCard key={c.id} claim={c} />)}
           </div>
         )}
+
       </div>
     </RouteGuard>
   );

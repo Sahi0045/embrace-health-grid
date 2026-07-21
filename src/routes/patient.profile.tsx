@@ -139,12 +139,13 @@ function PatientProfile() {
 
   const activeCreds =
     liveCredentials.length > 0
-      ? liveCredentials.filter((c) => c.status === "active")
+      ? liveCredentials.filter((c: any) => c.status === "active")
       : [
           { id: "c1", type: "Patient Identity", issuer: "Embrace Health Consortium" },
           { id: "c2", type: "Health Insurance", issuer: "Star Health" },
           { id: "c3", type: "Vaccination Record", issuer: "Govt. of India" },
         ];
+
 
   const handleLogout = () => {
     logout();
@@ -322,7 +323,7 @@ function PatientProfile() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {activeCreds.map((cred) => (
+                {activeCreds.map((cred: any) => (
                   <div
                     key={cred.id}
                     className="flex items-center justify-between rounded-lg border border-border p-3"

@@ -301,11 +301,15 @@ export const createStaffRequest = (data: {
   fromDate?: string;
   toDate?: string;
   reason?: string;
+  shiftDate?: string;
+  shiftType?: string;
+  unit?: string;
 }) =>
   apiFetch<{ success: boolean; record: any }>(`/staff-requests`, {
     method: "POST",
     body: JSON.stringify(data),
   });
+
 
 // ─── Pagers ───────────────────────────────────────────────────────────────────
 export const dispatchPagerNotify = (staffDid: string, name: string, location: string) =>

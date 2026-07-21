@@ -28,7 +28,9 @@ import {
   X,
 } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 import { useWallet } from "@solana/wallet-adapter-react";
+
 import { PublicKey, Transaction, Connection } from "@solana/web3.js";
 import { API_BASE_URL } from "@/lib/api";
 import { useState, useEffect, useCallback } from "react";

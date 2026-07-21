@@ -168,7 +168,7 @@ function FamilyPage() {
                 Access Delegations
               </div>
               <div className="space-y-2">
-                {delegationsList.map((d) => (
+                {delegationsList.map((d: any) => (
                   <div key={d.id} className="flex items-center justify-between rounded-lg bg-muted px-3 py-2.5">
                     <div>
                       <div className="text-sm font-medium text-foreground">{d.delegateTo}</div>

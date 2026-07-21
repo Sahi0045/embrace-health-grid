@@ -269,7 +269,7 @@ function StaffCommandCenter() {
             ICU Bed Occupancy Snapshot
           </div>
           <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">
-            {icuBeds.map((b) => (
+            {icuBeds.map((b: any) => (
               <div
                 key={b.id}
                 title={b.patientName ?? b.status}

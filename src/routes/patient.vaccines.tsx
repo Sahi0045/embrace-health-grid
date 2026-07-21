@@ -78,7 +78,7 @@ function VaccinesPage() {
         <div>
           <div className="text-sm font-semibold text-foreground mb-3">Vaccination Records</div>
           <StaggerList className="space-y-3">
-            {vaccineCredentials.map((v) => (
+            {vaccineCredentials.map((v: any) => (
               <StaggerItem key={v.id}>
                 <motion.div
                   whileHover={{ scale: 1.005 }}

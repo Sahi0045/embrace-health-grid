@@ -136,7 +136,7 @@ function Consent() {
 
   const handleRevoke = async (id: string) => {
     try {
-      const c = list.find((x) => x.id === id);
+      const c = list.find((x: any) => x.id === id);
       await revokeConsent(id);
       toast.success(`Access revoked from ${c?.requester}`);
       refetch();
@@ -147,7 +147,7 @@ function Consent() {
 
   const handleApproveActive = async (id: string) => {
     try {
-      const c = list.find((x) => x.id === id);
+      const c = list.find((x: any) => x.id === id);
       await grantConsent(
         patientDid,
         c?.requester ?? "did:hosp:0xd103… 99aa",
@@ -182,9 +182,10 @@ function Consent() {
     }
   };
 
-  const active = list.filter((c) => c.status === "active");
-  const pendingInActive = list.filter((c) => c.status === "pending");
-  const historyList = list.filter((c) => c.status === "revoked" || c.status === "expired");
+  const active = list.filter((c: any) => c.status === "active");
+  const pendingInActive = list.filter((c: any) => c.status === "pending");
+  const historyList = list.filter((c: any) => c.status === "revoked" || c.status === "expired");
+
 
   const tabs = [
     {
@@ -250,7 +251,7 @@ function Consent() {
                   </span>
                 </div>
                 <StaggerList className="grid gap-3 sm:grid-cols-2">
-                  {pendingInActive.map((c) => (
+                  {pendingInActive.map((c: any) => (
                     <StaggerItem key={c.id}>
                       <ConsentCard
                         consent={c}
@@ -277,13 +278,14 @@ function Consent() {
                 </div>
               ) : (
                 <StaggerList className="grid gap-3 sm:grid-cols-2">
-                  {active.map((c) => (
+                  {active.map((c: any) => (
                     <StaggerItem key={c.id}>
                       <ConsentCard consent={c} onRevoke={handleRevoke} />
                     </StaggerItem>
                   ))}
                 </StaggerList>
               )}
+
             </div>
           </div>
         )}
