@@ -9,6 +9,7 @@ import { signCredential } from "../lib/vc-sign.js";
 import * as solana from "../lib/solana.js";
 import * as notifications from "../lib/notifications.js";
 import { consentMiddleware } from "../middleware/auth.js";
+import { hipaaAuditPHIAccess } from "../lib/hipaa.js";
 
 export function registerExtensionRoutes(app, deps) {
   const {
@@ -35,7 +36,7 @@ export function registerExtensionRoutes(app, deps) {
   app.use("/api", apiLimiter);
 
   // ─── Medical Records CRUD ───────────────────────────────────────────────────
-  app.get("/api/medical-records/:patientDid", consentGate, (req, res) => {
+  app.get("/api/medical-records/:patientDid", hipaaAuditPHIAccess("MedicalRecord"), consentGate, (req, res) => {
     if (req.user.role === "patient" && req.user.did !== req.params.patientDid) {
       return res.status(403).json({ error: "Forbidden: own records only" });
     }
@@ -56,6 +57,7 @@ export function registerExtensionRoutes(app, deps) {
 
   app.post(
     "/api/medical-records/:patientDid",
+    hipaaAuditPHIAccess("MedicalRecord"),
     requireRole("staff", "admin"),
     consentGate,
     (req, res) => {
@@ -84,7 +86,7 @@ export function registerExtensionRoutes(app, deps) {
     },
   );
 
-  app.patch("/api/medical-records/:recordId", requireRole("staff", "admin"), (req, res) => {
+  app.patch("/api/medical-records/:recordId", hipaaAuditPHIAccess("MedicalRecord"), requireRole("staff", "admin"), (req, res) => {
     const entry = getState("medical-records", req.params.recordId);
     if (!entry) return res.status(404).json({ error: "Record not found" });
     Object.assign(entry.value, req.body, { updatedAt: new Date().toISOString() });
@@ -94,12 +96,13 @@ export function registerExtensionRoutes(app, deps) {
   });
 
   // ─── Prescriptions list all ─────────────────────────────────────────────────
-  app.get("/api/prescriptions", requireRole("staff", "admin"), (req, res) => {
+  app.get("/api/prescriptions", hipaaAuditPHIAccess("Prescription"), requireRole("staff", "admin"), (req, res) => {
     const all = getAllState("prescriptions");
     res.json({ prescriptions: all.map((e) => e.value), total: all.length });
   });
 
-  app.post("/api/prescriptions/sign", requireRole("staff", "admin", "doctor"), (req, res) => {
+  app.post("/api/prescriptions/sign", hipaaAuditPHIAccess("Prescription"), requireRole("staff", "admin", "doctor"), (req, res) => {
+
     const { rxId, staffDid } = req.body;
     if (!rxId) return res.status(400).json({ error: "rxId required" });
 
@@ -274,7 +277,7 @@ export function registerExtensionRoutes(app, deps) {
   });
 
   // ─── Insurance Claims ──────────────────────────────────────────────────────
-  app.get("/api/insurance/claims", (req, res) => {
+  app.get("/api/insurance/claims", hipaaAuditPHIAccess("InsuranceClaim"), (req, res) => {
     const patientDid = req.query.patientDid;
     let all = getAllState("insurance-claims");
     if (patientDid) {
@@ -283,7 +286,7 @@ export function registerExtensionRoutes(app, deps) {
     res.json({ claims: all.map((e) => e.value), total: all.length });
   });
 
-  app.post("/api/insurance/claims", requireRole("patient", "staff", "admin"), (req, res) => {
+  app.post("/api/insurance/claims", hipaaAuditPHIAccess("InsuranceClaim"), requireRole("patient", "staff", "admin"), (req, res) => {
     const { patientDid, patientName, patientMRN, insuranceProvider, policyNo, claimType, amount, remarks } = req.body;
     const claimId = `CLM-${Date.now().toString(36).toUpperCase()}`;
     const claim = {
@@ -299,7 +302,7 @@ export function registerExtensionRoutes(app, deps) {
   });
 
   // ─── Vaccine Records ───────────────────────────────────────────────────────
-  app.get("/api/vaccines/:patientDid", (req, res) => {
+  app.get("/api/vaccines/:patientDid", hipaaAuditPHIAccess("VaccinationRecord"), (req, res) => {
     if (req.user.role === "patient" && req.user.did !== req.params.patientDid) {
       return res.status(403).json({ error: "Forbidden" });
     }
@@ -307,7 +310,7 @@ export function registerExtensionRoutes(app, deps) {
     res.json({ vaccines: all.map((e) => e.value), total: all.length });
   });
 
-  app.post("/api/vaccines", requireRole("staff", "admin"), (req, res) => {
+  app.post("/api/vaccines", hipaaAuditPHIAccess("VaccinationRecord"), requireRole("staff", "admin"), (req, res) => {
     const { patientDid, vaccine, doses, lastDose, nextDue, manufacturer, batchNo, issuer, status } = req.body;
     const id = `vax_${randomUUID().slice(0, 8)}`;
     const record = {
@@ -347,7 +350,7 @@ export function registerExtensionRoutes(app, deps) {
   });
 
   // ─── Inpatient Data ────────────────────────────────────────────────────────
-  app.get("/api/inpatient/:patientDid", (req, res) => {
+  app.get("/api/inpatient/:patientDid", hipaaAuditPHIAccess("InpatientRecord"), (req, res) => {
     if (req.user.role === "patient" && req.user.did !== req.params.patientDid) {
       return res.status(403).json({ error: "Forbidden" });
     }
@@ -451,7 +454,7 @@ export function registerExtensionRoutes(app, deps) {
   });
 
   // ─── Health Metrics ─────────────────────────────────────────────────────────
-  app.get("/api/medical-records/:patientDid/metrics", consentGate, (req, res) => {
+  app.get("/api/medical-records/:patientDid/metrics", hipaaAuditPHIAccess("HealthMetrics"), consentGate, (req, res) => {
     if (req.user.role === "patient" && req.user.did !== req.params.patientDid) {
       return res.status(403).json({ error: "Forbidden" });
     }
@@ -474,7 +477,7 @@ export function registerExtensionRoutes(app, deps) {
   });
 
   // ─── Pharmacy Orders ────────────────────────────────────────────────────────
-  app.get("/api/pharmacy-orders/:patientDid", consentGate, (req, res) => {
+  app.get("/api/pharmacy-orders/:patientDid", hipaaAuditPHIAccess("PharmacyOrder"), consentGate, (req, res) => {
     if (req.user.role === "patient" && req.user.did !== req.params.patientDid) {
       return res.status(403).json({ error: "Forbidden" });
     }
@@ -511,7 +514,7 @@ export function registerExtensionRoutes(app, deps) {
   });
 
   // ─── Rehab Sessions ─────────────────────────────────────────────────────────
-  app.get("/api/rehab-sessions/:patientDid", consentGate, (req, res) => {
+  app.get("/api/rehab-sessions/:patientDid", hipaaAuditPHIAccess("RehabSession"), consentGate, (req, res) => {
     if (req.user.role === "patient" && req.user.did !== req.params.patientDid) {
       return res.status(403).json({ error: "Forbidden" });
     }
@@ -547,7 +550,7 @@ export function registerExtensionRoutes(app, deps) {
   });
 
   // ─── Feedback List ──────────────────────────────────────────────────────────
-  app.get("/api/feedback/:patientDid", consentGate, (req, res) => {
+  app.get("/api/feedback/:patientDid", hipaaAuditPHIAccess("PatientFeedback"), consentGate, (req, res) => {
     if (req.user.role === "patient" && req.user.did !== req.params.patientDid) {
       return res.status(403).json({ error: "Forbidden" });
     }
@@ -571,6 +574,7 @@ export function registerExtensionRoutes(app, deps) {
     }
     res.json({ feedback: all.map((e) => e.value) });
   });
+
 
   // ─── Identity signed payloads ───────────────────────────────────────────────
   app.post("/api/identity/sign-payload", requireRole("patient", "staff", "admin"), (req, res) => {
@@ -763,7 +767,7 @@ export function registerExtensionRoutes(app, deps) {
   });
 
   // ─── Insurance Policies ─────────────────────────────────────────────────────
-  app.get("/api/insurance/policies/:patientDid", (req, res) => {
+  app.get("/api/insurance/policies/:patientDid", hipaaAuditPHIAccess("InsurancePolicy"), (req, res) => {
     let all = queryState("insurance-policies", (v) => v.patientDid === req.params.patientDid);
     if (all.length === 0) {
       const defaultPolicies = [

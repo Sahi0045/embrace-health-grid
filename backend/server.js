@@ -25,6 +25,8 @@ import {
   getWorldStateSize,
   getAllWorldState,
   generateId,
+  createEncryptedBackup,
+  verifyBackupEncryption,
 } from "./world-state-db.js";
 import { buildAuth, requestFingerprint } from "./middleware/auth.js";
 import { createAuditHelper } from "./lib/audit.js";
@@ -44,6 +46,11 @@ import {
   blockToken,
   blockAllTokensForUser,
   getTokenStoreStats,
+  recordFailedLogin,
+  checkAccountLockout,
+  resetFailedLogins,
+  generateTotpSecret,
+  verifyTotpToken,
 } from "./lib/token-store.js";
 import {
   hipaaMiddleware,
@@ -755,7 +762,7 @@ app.post("/api/vitals/seed", requireAuth, requireRole(["admin", "doctor", "staff
   res.json({ seeded: patients.length });
 });
 
-app.get("/api/vitals/:id", requireAuth, (req, res) => {
+app.get("/api/vitals/:id", requireAuth, hipaaAuditPHIAccess("VitalSigns"), (req, res) => {
   const v = _vitals.get(req.params.id);
   if (!v) return res.status(404).json({ error: "Not found" });
   res.json(v);
@@ -1346,8 +1353,23 @@ app.get("/api/fraud/alerts", requireAuth, requireRole(["admin"]), (_, res) => {
   res.json({ alerts: all.map((e) => e.value), total: all.length });
 });
 
+// ─── Beds & Infrastructure ────────────────────────────────────────────────────
+app.get("/api/beds", requireAuth, hipaaAuditPHIAccess("BedOccupancy"), (_, res) => {
+  const all = getAllState("beds");
+  res.json({ beds: all.map((e) => e.value), total: all.length });
+});
+
+app.post("/api/beds", requireAuth, requireRole(["admin", "staff"]), hipaaAuditPHIAccess("BedOccupancy"), (req, res) => {
+  const { bedId, ward, status = "available", patientDid } = req.body;
+  const txId = randomUUID();
+  const bed = { bedId, ward, status, patientDid, updatedAt: new Date().toISOString() };
+  putState("beds", bedId, bed, txId);
+  broadcast({ event: "bed:updated", data: bed });
+  res.json(bed);
+});
+
 // ─── Billing ──────────────────────────────────────────────────────────────────
-app.post("/api/billing/payment", requireAuth, requireRole(["patient"]), (req, res) => {
+app.post("/api/billing/payment", requireAuth, requireRole(["patient"]), hipaaAuditPHIAccess("BillingRecord"), (req, res) => {
   const { patientDid, patientName, amount, category, reference } = req.body;
 
   if (req.user.did !== patientDid) {
@@ -1373,7 +1395,7 @@ app.post("/api/billing/payment", requireAuth, requireRole(["patient"]), (req, re
   res.json(payment);
 });
 
-app.get("/api/billing/:patientDid", requireAuth, (req, res) => {
+app.get("/api/billing/:patientDid", requireAuth, hipaaAuditPHIAccess("BillingRecord"), (req, res) => {
   if (req.user.role === "patient" && req.user.did !== req.params.patientDid) {
     return res
       .status(403)
@@ -1506,7 +1528,7 @@ app.get("/api/billing/:patientDid", requireAuth, (req, res) => {
 });
 
 // ─── Appointments ─────────────────────────────────────────────────────────────
-app.get("/api/appointments", requireAuth, (_, res) => {
+app.get("/api/appointments", requireAuth, hipaaAuditPHIAccess("Appointment"), (_, res) => {
   const all = getAllState("appointments");
   res.json({ appointments: all.map((e) => e.value), total: all.length });
 });
@@ -1755,13 +1777,26 @@ app.post("/api/auth/users/create", requireClientAuth, requireAuth, requireRole([
 
 
 app.post("/api/auth/login", requireClientAuth, async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, mfaCode } = req.body;
   if (!email) {
     return res.status(400).json({ error: "Email is required" });
   }
 
+  // HIPAA Authentication: Check for Account Lockout
+  const lockout = checkAccountLockout(email);
+  if (lockout.isLocked) {
+    logAudit(req, { resource: email, action: "USER_LOGIN_LOCKED", outcome: "failure", severity: "warning" });
+    return res.status(423).json({
+      error: "Account Locked",
+      code: "ACCOUNT_LOCKED",
+      message: `Account is locked due to 5 consecutive failed login attempts. Try again in ${lockout.remainingSeconds} seconds.`,
+      remainingSeconds: lockout.remainingSeconds,
+    });
+  }
+
   const userEntry = getState("users", email);
   if (!userEntry) {
+    recordFailedLogin(email);
     return res.status(401).json({ error: "Invalid email or password" });
   }
 
@@ -1777,9 +1812,40 @@ app.post("/api/auth/login", requireClientAuth, async (req, res) => {
       match = password === userEntry.value.password;
     }
     if (!match) {
-      return res.status(401).json({ error: "Invalid email or password" });
+      const failStatus = recordFailedLogin(email);
+      logAudit(req, { resource: email, action: "USER_LOGIN_FAILED", outcome: "failure" });
+      if (failStatus.isLocked) {
+        return res.status(423).json({
+          error: "Account Locked",
+          code: "ACCOUNT_LOCKED",
+          message: "Account locked after 5 consecutive failed attempts. Locked for 15 minutes.",
+          remainingSeconds: failStatus.remainingSeconds,
+        });
+      }
+      return res.status(401).json({ error: "Invalid email or password", attemptsRemaining: 5 - failStatus.count });
     }
   }
+
+  // TOTP MFA Check if enabled for user
+  if (userEntry.value.mfaEnabled && userEntry.value.mfaSecret) {
+    if (!mfaCode) {
+      return res.status(202).json({
+        mfaRequired: true,
+        message: "MFA code (2FA) is required to complete authentication",
+        email: userEntry.value.email,
+      });
+    }
+
+    const isValidMfa = verifyTotpToken(userEntry.value.mfaSecret, mfaCode);
+    if (!isValidMfa) {
+      recordFailedLogin(email);
+      logAudit(req, { resource: email, action: "USER_MFA_FAILED", outcome: "failure" });
+      return res.status(401).json({ error: "Invalid 2FA authentication code" });
+    }
+  }
+
+  // Reset failed login counter on success
+  resetFailedLogins(email);
 
   const user = {
     name: userEntry.value.name,
@@ -1789,15 +1855,74 @@ app.post("/api/auth/login", requireClientAuth, async (req, res) => {
     walletAddress: userEntry.value.walletAddress || null,
     mrn: userEntry.value.mrn || null,
     employeeId: userEntry.value.employeeId || null,
+    mfaEnabled: !!userEntry.value.mfaEnabled,
   };
 
   // Mint access token with jti + issue opaque refresh token
   const { token } = mintAccessToken({ email: user.email, role: user.role, name: user.name, did: user.did });
   const refreshToken = createRefreshToken(user.email, requestFingerprint(req));
 
-  logger.info("user_login", { email: user.email, role: user.role });
+  // Set HttpOnly Cookie for Refresh Token (Protection against XSS theft)
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    path: "/api/auth",
+  });
+
+  logger.info("user_login", { email: user.email, role: user.role, mfaVerified: !!userEntry.value.mfaEnabled });
   res.json({ success: true, token, refreshToken, user });
 });
+
+// ─── MFA (TOTP) Setup & Verification Endpoints ──────────────────────────────
+app.post("/api/auth/mfa/setup", requireAuth, (req, res) => {
+  const userEntry = getState("users", req.user.email);
+  if (!userEntry) return res.status(404).json({ error: "User not found" });
+
+  const secret = generateTotpSecret(20);
+  const otpauthUrl = `otpauth://totp/EmbraceHealthGrid:${encodeURIComponent(req.user.email)}?secret=${secret}&issuer=EmbraceHealthGrid`;
+
+  // Temporarily store pending secret until verified
+  userEntry.value.pendingMfaSecret = secret;
+  putState("users", req.user.email, userEntry.value, randomUUID());
+
+  logAudit(req, { resource: req.user.email, action: "MFA_SETUP_INITIATED" });
+  res.json({
+    secret,
+    otpauthUrl,
+    instructions: "Scan the QR code or enter the secret key into your Google Authenticator or Phantom app, then call /api/auth/mfa/verify with the 6-digit code.",
+  });
+});
+
+app.post("/api/auth/mfa/verify", requireAuth, (req, res) => {
+  const { code } = req.body;
+  if (!code) return res.status(400).json({ error: "6-digit TOTP code is required" });
+
+  const userEntry = getState("users", req.user.email);
+  if (!userEntry) return res.status(404).json({ error: "User not found" });
+
+  const secretToVerify = userEntry.value.pendingMfaSecret || userEntry.value.mfaSecret;
+  if (!secretToVerify) {
+    return res.status(400).json({ error: "No pending MFA setup found. Call /api/auth/mfa/setup first." });
+  }
+
+  const isValid = verifyTotpToken(secretToVerify, code);
+  if (!isValid) {
+    logAudit(req, { resource: req.user.email, action: "MFA_VERIFY_FAILED", outcome: "failure" });
+    return res.status(400).json({ error: "Invalid 6-digit TOTP code" });
+  }
+
+  userEntry.value.mfaSecret = secretToVerify;
+  userEntry.value.mfaEnabled = true;
+  delete userEntry.value.pendingMfaSecret;
+
+  putState("users", req.user.email, userEntry.value, randomUUID());
+  logAudit(req, { resource: req.user.email, action: "MFA_ENABLED", outcome: "success" });
+
+  res.json({ success: true, message: "Multi-Factor Authentication (TOTP 2FA) has been successfully activated for your account!" });
+});
+
 
 app.get("/api/auth/me", requireAuth, (req, res) => {
   const userEntry = getState("users", req.user.email);
@@ -1933,7 +2058,7 @@ app.post("/api/auth/update-profile", requireAuth, (req, res) => {
  * Single-use: the provided token is consumed and a new one is issued.
  */
 app.post("/api/auth/refresh", requireClientAuth, (req, res) => {
-  const { refreshToken } = req.body;
+  const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
   if (!refreshToken) {
     return res.status(401).json({ error: "refreshToken is required" });
   }
@@ -1953,6 +2078,14 @@ app.post("/api/auth/refresh", requireClientAuth, (req, res) => {
   const { token } = mintAccessToken({ email: u.email, role: u.role, name: u.name, did: u.did });
   const newRefreshToken = createRefreshToken(u.email, fingerprint);
 
+  res.cookie("refreshToken", newRefreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+    path: "/api/auth",
+  });
+
   logger.info("token_refreshed", { email: u.email });
   res.json({ token, refreshToken: newRefreshToken });
 });
@@ -1963,21 +2096,21 @@ app.post("/api/auth/refresh", requireClientAuth, (req, res) => {
  * even before its 2-hour expiry.
  */
 app.post("/api/auth/logout", requireAuth, (req, res) => {
-  const { refreshToken } = req.body;
+  const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
 
-  // Blocklist the current access token's jti
-  if (req.user.jti && req.user.exp) {
+  if (req.user?.jti && req.user?.exp) {
     blockToken(req.user.jti, req.user.exp * 1000);
   }
 
-  // Revoke the refresh token if provided
-  if (refreshToken) {
-    consumeRefreshToken(refreshToken, requestFingerprint(req)); // marks as consumed
+  if (req.user?.email) {
+    revokeAllRefreshTokens(req.user.email);
   }
 
-  logger.info("user_logout", { email: req.user.email });
-  res.json({ success: true });
+  res.clearCookie("refreshToken", { path: "/api/auth" });
+
+  logger.info("user_logged_out", { email: req.user?.email });
 });
+
 
 /**
  * POST /api/auth/revoke/:email  — Admin force-logout all sessions for a user.
@@ -1990,6 +2123,41 @@ app.post("/api/auth/revoke/:email", requireAuth, requireRole(["admin"]), (req, r
   logger.info("admin_force_logout", { admin: req.user.email, target });
   res.json({ success: true, message: `All sessions for ${target} have been revoked` });
 });
+
+// ─── Admin Encrypted Backup & Verification ─────────────────────────────────
+app.post("/api/admin/backup/create", requireAuth, requireRole(["admin"]), (req, res) => {
+  try {
+    const backupBundle = createEncryptedBackup();
+    logAudit(req, { resource: backupBundle.backupId, action: "BACKUP_CREATED" });
+    logger.info("backup_created", { admin: req.user.email, backupId: backupBundle.backupId });
+    res.json({ success: true, backup: backupBundle });
+  } catch (err) {
+    logger.error("backup_create_failed", { error: err.message });
+    res.status(500).json({ error: `Backup failed: ${err.message}` });
+  }
+});
+
+app.post("/api/admin/backup/verify", requireAuth, requireRole(["admin"]), (req, res) => {
+  const backupBundle = req.body;
+  if (!backupBundle || !backupBundle.encryptedPayload) {
+    return res.status(400).json({ error: "Backup bundle payload is required" });
+  }
+
+  try {
+    const report = verifyBackupEncryption(backupBundle);
+    logAudit(req, {
+      resource: report.backupId || "backup_verify",
+      action: "BACKUP_VERIFIED",
+      outcome: report.verified ? "success" : "failure",
+    });
+    logger.info("backup_verified", { admin: req.user.email, verified: report.verified });
+    res.json({ success: true, report });
+  } catch (err) {
+    logger.error("backup_verify_failed", { error: err.message });
+    res.status(500).json({ error: `Verification failed: ${err.message}` });
+  }
+});
+
 
 app.get("/api/auth/users", requireAuth, requireRole(["admin"]), (req, res) => {
   const entries = getAllState("users");

@@ -162,6 +162,134 @@ function _purgeExpiredBlocklistEntries() {
   }
 }
 
+// ─── Account Lockout Protection ───────────────────────────────────────────────
+/** @type {Map<string, {count: number, lockUntil: number}>} */
+const _loginFailures = new Map();
+
+/**
+ * Record a failed login attempt for an email. Locks account after 5 consecutive failures.
+ * @param {string} email
+ * @returns {{ count: number, isLocked: boolean, remainingSeconds?: number }}
+ */
+export function recordFailedLogin(email) {
+  const record = _loginFailures.get(email) || { count: 0, lockUntil: 0 };
+  record.count += 1;
+  if (record.count >= 5) {
+    record.lockUntil = Date.now() + 15 * 60 * 1000; // 15-minute lock
+  }
+  _loginFailures.set(email, record);
+  return {
+    count: record.count,
+    isLocked: record.count >= 5,
+    remainingSeconds: record.count >= 5 ? 15 * 60 : undefined,
+  };
+}
+
+/**
+ * Check if an email account is locked out.
+ * @param {string} email
+ * @returns {{ isLocked: boolean, remainingSeconds?: number }}
+ */
+export function checkAccountLockout(email) {
+  const record = _loginFailures.get(email);
+  if (!record) return { isLocked: false };
+  if (record.lockUntil > Date.now()) {
+    const remainingSeconds = Math.ceil((record.lockUntil - Date.now()) / 1000);
+    return { isLocked: true, remainingSeconds };
+  }
+  if (record.lockUntil > 0 && record.lockUntil <= Date.now()) {
+    _loginFailures.delete(email);
+  }
+  return { isLocked: false };
+}
+
+/**
+ * Reset failed login count on successful authentication.
+ * @param {string} email
+ */
+export function resetFailedLogins(email) {
+  _loginFailures.delete(email);
+}
+
+// ─── RFC 6238 TOTP Multi-Factor Authentication (MFA) ─────────────────────────
+const BASE32_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+
+/**
+ * Generate a random Base32 secret key for TOTP 2FA setup.
+ * @param {number} length
+ * @returns {string} Base32 TOTP secret
+ */
+export function generateTotpSecret(length = 20) {
+  const bytes = randomBytes(length);
+  let secret = "";
+  for (let i = 0; i < bytes.length; i++) {
+    secret += BASE32_CHARS[bytes[i] % 32];
+  }
+  return secret;
+}
+
+function base32ToBuffer(base32Str) {
+  const str = base32Str.toUpperCase().replace(/=+$/, "");
+  const bytes = [];
+  let bits = 0;
+  let value = 0;
+
+  for (let i = 0; i < str.length; i++) {
+    const idx = BASE32_CHARS.indexOf(str[i]);
+    if (idx === -1) continue;
+    value = (value << 5) | idx;
+    bits += 5;
+    if (bits >= 8) {
+      bytes.push((value >>> (bits - 8)) & 0xff);
+      bits -= 8;
+    }
+  }
+  return Buffer.from(bytes);
+}
+
+/**
+ * Generate a 6-digit TOTP code for a secret and time step.
+ * @param {string} secret
+ * @param {number} timeStep
+ * @returns {string} 6-digit TOTP string
+ */
+export function generateTotpCode(secret, timeStep = Math.floor(Date.now() / 1000 / 30)) {
+  const key = base32ToBuffer(secret);
+  const timeBuffer = Buffer.alloc(8);
+  timeBuffer.writeBigInt64BE(BigInt(timeStep), 0);
+
+  const hmac = createHmac("sha1", key).update(timeBuffer).digest();
+  const offset = hmac[hmac.length - 1] & 0x0f;
+  const binary =
+    ((hmac[offset] & 0x7f) << 24) |
+    ((hmac[offset + 1] & 0xff) << 16) |
+    ((hmac[offset + 2] & 0xff) << 8) |
+    (hmac[offset + 3] & 0xff);
+
+  const otp = binary % 1000000;
+  return otp.toString().padStart(6, "0");
+}
+
+/**
+ * Verify a user's 6-digit TOTP token against their secret.
+ * Supports +/- 1 time step window for clock drift tolerance.
+ * @param {string} secret
+ * @param {string} token
+ * @returns {boolean}
+ */
+export function verifyTotpToken(secret, token) {
+  if (!secret || !token) return false;
+  const cleanToken = String(token).trim();
+  if (cleanToken.length !== 6) return false;
+  const currentStep = Math.floor(Date.now() / 1000 / 30);
+
+  for (let stepOffset = -1; stepOffset <= 1; stepOffset++) {
+    const code = generateTotpCode(secret, currentStep + stepOffset);
+    if (code === cleanToken) return true;
+  }
+  return false;
+}
+
 // ─── Diagnostic (admin use only) ──────────────────────────────────────────────
 export function getTokenStoreStats() {
   _purgExpiredRefreshTokens();
@@ -169,5 +297,7 @@ export function getTokenStoreStats() {
   return {
     activeRefreshTokens: _refreshTokens.size,
     blockedJtis: _blocklist.size,
+    lockedAccounts: _loginFailures.size,
   };
 }
+
