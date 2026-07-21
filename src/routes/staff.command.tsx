@@ -105,15 +105,11 @@ function StaffCommandCenter() {
   const handleSign = async (rxId: string) => {
     try {
       toast.promise(
-        new Promise(async (resolve, reject) => {
-          try {
-            await signPrescription({ rxId, staffDid });
-            fetchData();
-            resolve(true);
-          } catch (err) {
-            reject(err);
-          }
-        }),
+        (async () => {
+          await signPrescription({ rxId, staffDid });
+          fetchData();
+          return true;
+        })(),
         {
           loading: "Signing prescription using clinician credential...",
           success: "Prescription signed and logged on ledger!",

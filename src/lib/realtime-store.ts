@@ -38,7 +38,7 @@ import { ConvexHttpClient } from "convex/browser";
 
 // TODO: Generate Convex API types by running: npx convex dev
 // This will create convex/_generated/api.ts
-// @ts-ignore - Convex API will be generated
+// @ts-expect-error - Convex API will be generated
 import { api } from "../../convex/_generated/api";
 
 // ---------------------------------------------------------------------------

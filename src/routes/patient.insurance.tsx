@@ -24,6 +24,15 @@ function InsurancePage() {
   const { patients, loading } = useLivePatients();
   const currentUser = getCurrentUser();
   const patient = patients?.find((p: any) => p.email === currentUser?.email);
+  const [policies, setPolicies] = useState<any[]>([]);
+  const patientDid = typeof window !== "undefined" ? localStorage.getItem("userDID") || "" : "";
+
+  useEffect(() => {
+    if (!patientDid) return;
+    getInsurancePolicies(patientDid)
+      .then((res) => setPolicies(res.policies || []))
+      .catch((err) => console.error("Error loading policies:", err));
+  }, [patientDid]);
 
   if (loading) {
     return (
@@ -75,16 +84,6 @@ function InsurancePage() {
   const totalApproved = patientClaims
     .filter((c: any) => c.approvedAmount)
     .reduce((s: number, c: any) => s + (c.approvedAmount ?? 0), 0);
-
-  const [policies, setPolicies] = useState<any[]>([]);
-  const patientDid = typeof window !== "undefined" ? localStorage.getItem("userDID") || "" : "";
-
-  useEffect(() => {
-    if (!patientDid) return;
-    getInsurancePolicies(patientDid)
-      .then((res) => setPolicies(res.policies || []))
-      .catch((err) => console.error("Error loading policies:", err));
-  }, [patientDid]);
 
   return (
     <RouteGuard requiredRole="patient">

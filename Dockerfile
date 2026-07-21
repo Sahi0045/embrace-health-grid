@@ -14,7 +14,7 @@ WORKDIR /app
 # ─── Stage 1: Install all dependencies ───────────────────────────────────────
 FROM base AS deps
 # Copy root manifests
-COPY package.json package-lock.json ./
+COPY package.json package-lock.json .npmrc ./
 # Copy backend manifests
 COPY backend/package.json backend/package-lock.json ./backend/
 # Copy admin-portal manifests (if present)

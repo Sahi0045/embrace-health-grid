@@ -60,20 +60,16 @@ function PatientBilling() {
   const handlePayment = async (amount: number, category: string) => {
     try {
       toast.promise(
-        new Promise(async (resolve, reject) => {
-          try {
-            await payBill({
-              patientDid,
-              patientName: currentUser?.name || "Patient",
-              amount,
-              category,
-            });
-            fetchBilling();
-            resolve(true);
-          } catch (err) {
-            reject(err);
-          }
-        }),
+        (async () => {
+          await payBill({
+            patientDid,
+            patientName: currentUser?.name || "Patient",
+            amount,
+            category,
+          });
+          fetchBilling();
+          return true;
+        })(),
         {
           loading: "Processing secure digital signature payment...",
           success: "Payment settled successfully! Transaction recorded on Solana ledger.",
