@@ -1,17 +1,7 @@
 {
   "NFC-473DF051": {
     "key": "NFC-473DF051",
-    "value": {
-      "cardId": "NFC-473DF051",
-      "patientDid": "did:hosp:0x4a91b7d2",
-      "patientName": "Anika Sharma",
-      "mrn": "MRN-91B7D2",
-      "cardType": "patient",
-      "status": "revoked",
-      "issuedAt": "2026-07-02T08:37:03.048Z",
-      "issuedBy": "admin@example.com",
-      "revokedAt": "2026-07-02T08:50:47.993Z"
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"e0wBTHaIDVjwl8b0\",\"tag\":\"59aXwIxdDETRMjWvgEh4SQ\",\"ct\":\"hle5TOhOL_cw8kD77tpCyNjMnP7q5SVY_Eetg34BlRAXT3iuOeZiGGchF-SaYpSUvAAZXKaoG66WqdV4TNSBtTzAzlRbyqLBghpLHGlrGHdGXdlYonQaNDQyjD06aL1nSZiMr4_OrGSfwClpIGazu9TkSq85_SOpUlmLN974vW2nPHrI7kcVqeGmSkB0ufsD6ngf8wygAWbVewKIJe72GcHjY_FLiWYzEToXUIATc7ACwu7MQTRKo9CzyNFlKvS6nOsTc7GNowBN-6e8IzC2l38-9Rb9ffROGMQfmz8TSGZKWjPbpiXYB3yuklSIJzjIiAU_y0ogzDJ92fvrD8kzfA\"}",
     "namespace": "nfc-cards",
     "version": "f7a51c96-60f0-46c1-9b71-39cb91c38b95:1",
     "updatedAt": "2026-07-02T08:50:47.993Z",
@@ -20,16 +10,7 @@
   },
   "NFC-911F2724": {
     "key": "NFC-911F2724",
-    "value": {
-      "cardId": "NFC-911F2724",
-      "patientDid": "did:hosp:0x4a91b7d2",
-      "patientName": "Anika Sharma",
-      "mrn": "MRN-91B7D2",
-      "cardType": "patient",
-      "status": "active",
-      "issuedAt": "2026-07-02T08:53:50.590Z",
-      "issuedBy": "admin@example.com"
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"mMmUl-4NG0flJwWQ\",\"tag\":\"zz-8WDh7mj9IoKjHqGkNfA\",\"ct\":\"S5Hu0Ce7OgKpLdmz8uGkLW0TWs1-VGgeRd4N6SqTB1bahIOqUZI-TTZfqCD-RFuDC6qf3Wfnk_wZhZfDMaUEimzvC6E5gvSGfqZ4RW2wweiq5vM2c5RzgjAUmRTarcgwT5RiHFdweYbtiz7PzRrAgwxwwsI8cfW8X-n9_KHGfN-2u6r3Dyqeey4TLp-bIvmNNjgRnofQIP69rU1fHp6uHV0h334JHKDy7UZZ5dRMoVzv6frwBxsXvynG_a4LDagOUZKy8JePrbeFZmNsHH361jPeM9pDt6Qh\"}",
     "namespace": "nfc-cards",
     "version": "dcdd90d0-518a-43c9-84c5-d65803d67cf0:1",
     "updatedAt": "2026-07-02T08:53:50.590Z",
@@ -38,17 +19,7 @@
   },
   "NFC-EFC2B6EC": {
     "key": "NFC-EFC2B6EC",
-    "value": {
-      "cardId": "NFC-EFC2B6EC",
-      "patientDid": "did:hosp:0x91c2ee04",
-      "patientName": "Rohan Iyer",
-      "mrn": "MRN-C2EE04",
-      "cardType": "patient",
-      "status": "revoked",
-      "issuedAt": "2026-07-02T09:09:07.850Z",
-      "issuedBy": "admin@example.com",
-      "revokedAt": "2026-07-02T09:20:56.227Z"
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"h-UipuTJ-iYEg2Hc\",\"tag\":\"HmWFh3SCZryetyxz_aJ8oA\",\"ct\":\"Kqs7JZcjiwL4dpum2PwiiX0saiCQ1Fndql9qBPN6K8ES0NB1CtytO2T4BLul9NS0DJ3VeGkQvPZbYOBRuEeMLEVhdmHF08GIpnqNX9BZD1VdPCPjucCsrIbtgu6nfUubCEYcW0VG-ZrEU2WdtK-BeTiLQKywmE8L3BWJv3s47_ToLsRtCqv1TTVhBGnQ6oE4K5IGHnB2J5JPccynbv_TyhtBfcA65IyCLszQvPjD6go9jqEcW-O-lSxeac0e9Qp7r9ty4AYv9hBIIRO7M1OTi3cx2_sKFeG86NnUDNGiMlKMx3ptZAXf2t2qG4HgptGcd9hto7ZVlXEyJQq7dzQ\"}",
     "namespace": "nfc-cards",
     "version": "9f4dd717-7dd5-4d21-a304-ff99a02094bb:1",
     "updatedAt": "2026-07-02T09:20:56.227Z",
@@ -57,17 +28,7 @@
   },
   "NFC-AD2BC8CB": {
     "key": "NFC-AD2BC8CB",
-    "value": {
-      "cardId": "NFC-AD2BC8CB",
-      "patientDid": "did:hosp:0x643a3a37",
-      "patientName": "PASUPULETI SAHITH KUMAR",
-      "mrn": "MRN-3A3A37",
-      "cardType": "patient",
-      "status": "revoked",
-      "issuedAt": "2026-07-02T09:25:59.199Z",
-      "issuedBy": "admin@example.com",
-      "revokedAt": "2026-07-02T09:26:02.276Z"
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"-t_W2UC86HbU_WzX\",\"tag\":\"40H_mpPDBO67OqWUewZX0w\",\"ct\":\"iI3bDanzjijf57ZhIfEZgb2AFMfDSix-iwIG7EknMyypiuZ-g8dyyGIkk1EP1HQhd-yAla6EUJkhh8XwIyZUjhNbZmnex6SRcsFuY0s91F9dkY10kAlQ_0C2i8ixCspeTHZNae1RlFx8PQjmnPYCWfMYAQr3a7uot0Hw7DLMPFe6gQNg_4rMbht0kpsTrijfPQ6wlnOZ9RRDdBv9uU475jmep3HzUm-KxINiDV7Rjyb2Vepj-qJW6Iv50UMctZCuZMOXPRwMfMXW-FsIGW1-g2bPfnfZCNxeFTJ0sdYJBOs9U1uKN_TjvGOhhjxu8DYU4Bo4VCOgVY2gpcDLPqSr_C7o5oJIxnwXou8b\"}",
     "namespace": "nfc-cards",
     "version": "7e07f1d8-7198-49d1-9f19-7bc1babd9a1e:1",
     "updatedAt": "2026-07-02T09:26:02.277Z",
@@ -76,16 +37,7 @@
   },
   "NFC-0FA2C0D5": {
     "key": "NFC-0FA2C0D5",
-    "value": {
-      "cardId": "NFC-0FA2C0D5",
-      "patientDid": "did:hosp:0x91c2ee04",
-      "patientName": "Rohan Iyer",
-      "mrn": "MRN-C2EE04",
-      "cardType": "patient",
-      "status": "active",
-      "issuedAt": "2026-07-02T09:26:27.348Z",
-      "issuedBy": "admin@example.com"
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"j6zF1ujpSkje74wF\",\"tag\":\"zFmiIe1Ax9poo7kjiKso6Q\",\"ct\":\"BmovY3nlaRx8SfkFuYGH_nc1Y7uS6ZvCQSoaDR-vFSAAWDvwwiRyjFxGuuSXLZ4Oq3iPEm9kkHGFvIfA-l3QXoFZZdIXr-PJ2NmFxw1zSu2VaO6TJt2Iru0SK6jokzxe0-2R3bCovzd5Vc7Fw3g_dhE9A-vVde-OgA2aZU9FdT1x16U_D0JSouW86p9vzetSHYMv5TtGgZDuoogSnXA4aMy1GC9rWGIkmwJNSWpBhr32casfRoPpLttmeh02amdiXTiTt_pKviF2p0EkE_geex-76frCbw\"}",
     "namespace": "nfc-cards",
     "version": "fd5516b0-2360-42eb-8cb6-8267d075019f:1",
     "updatedAt": "2026-07-02T09:26:27.348Z",
@@ -94,16 +46,7 @@
   },
   "NFC-38CA3685": {
     "key": "NFC-38CA3685",
-    "value": {
-      "cardId": "NFC-38CA3685",
-      "patientDid": "did:hosp:0x91c2ee04",
-      "patientName": "Rohan Iyer",
-      "mrn": "MRN-C2EE04",
-      "cardType": "patient",
-      "status": "active",
-      "issuedAt": "2026-07-02T09:26:30.225Z",
-      "issuedBy": "admin@example.com"
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"TyIFCmJJHnFMKdRe\",\"tag\":\"_zS_AwtVLsCAZlJkYSdpbQ\",\"ct\":\"X4OQ_lCmGWMIPi7inwDytjmFBin4xejsPX5lSIahCqG9WSk7k4teKKxq0JJjCONG51qTqXup7cfKK7XU7jEzJrsd4uToSFQlQfqmWUdyUg8D7o_9mzPZF_kLFBR7_dUX6aJX9gDfczkWkx41jNG-m377Lo_7anyoxXoxlrnbLLLlI8npA7yrHtidExXfZbzO1ibQ-j0I9HIz-QtYyckENKRxOjJaXyZf816-wWwkre19A9ekUtwYMK2YjLtz3fhdC1g6oRpcPwuTl-Qy8Qj76-trbYgPCA\"}",
     "namespace": "nfc-cards",
     "version": "5b1287d9-6f1b-4a68-8cb5-32bd6e3c23a0:1",
     "updatedAt": "2026-07-02T09:26:30.226Z",
@@ -112,16 +55,7 @@
   },
   "NFC-EA1D0156": {
     "key": "NFC-EA1D0156",
-    "value": {
-      "cardId": "NFC-EA1D0156",
-      "patientDid": "did:hosp:0x91c2ee04",
-      "patientName": "Rohan Iyer",
-      "mrn": "MRN-C2EE04",
-      "cardType": "patient",
-      "status": "active",
-      "issuedAt": "2026-07-02T09:26:31.775Z",
-      "issuedBy": "admin@example.com"
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"qEvONMihiNYaFyLX\",\"tag\":\"Rwkdx1wxHAGdTolN7quCOQ\",\"ct\":\"e72JycsHibo53fKtdvUXvhVUpL5WFQl6myNy2tQO5P3_fanYrwqZSuonJhSGJjCvFnM9ua7wLTlNN6BHMjJBXcWQwDjVUqWx-0diZyuLz4k2KIKdYw-vnT-vY8du7LW6xWuHzrcvRLnd7fhJuhRNNRDpCoVfzsxPyFVBzkrjaZC3HSWaF1Zga0KVrUedaoqZOZv4VmlMcmGJyo_4lo8Id2gJmM3l2-MD60x_oRwlXYI_gWOe3DlNCIPmGU3mANCp6ZklM7vaTgnpDDoDcKXismYOx8GTdQ\"}",
     "namespace": "nfc-cards",
     "version": "30a37541-3429-47d4-9f27-8f79dce568b5:1",
     "updatedAt": "2026-07-02T09:26:31.775Z",
@@ -130,16 +64,7 @@
   },
   "NFC-7530D8FE": {
     "key": "NFC-7530D8FE",
-    "value": {
-      "cardId": "NFC-7530D8FE",
-      "patientDid": "did:hosp:0x4a91b7d2",
-      "patientName": "Anika Sharma",
-      "mrn": "MRN-91B7D2",
-      "cardType": "patient",
-      "status": "active",
-      "issuedAt": "2026-07-02T09:26:36.462Z",
-      "issuedBy": "admin@example.com"
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"e5j4A7iBp65g_KRE\",\"tag\":\"L1gJEbZwU59HkrTGuUcCKw\",\"ct\":\"fcqAWoNWdUhUKLu6Fb45FlOOxdknZvHlSZNQcVDAAKWCvu-H5U9ys9UP-af9np7ozO6nc3zo9NYDAQUMNdTlQrryr-DNyw5MUxmNk0VBvLwqwrvIAvwv0UXj9XmC1hOqAE-FJt4yaqhJeHdeGnIaln5SB82bggEynFjnHEkblSDTWG_vQ733VbjMTa7ouYTctYiTaESL0oTESpr96H80LVj2uc1Mf3nxid4iOvUBIj3ggQKfFZj1IwCsSqcL1wDX99cL4zvXCj4OU1fXVuGmE5c1z96zKpFl\"}",
     "namespace": "nfc-cards",
     "version": "32a89026-d6ba-4da6-acfc-05a7987ccd51:1",
     "updatedAt": "2026-07-02T09:26:36.462Z",
@@ -148,16 +73,7 @@
   },
   "NFC-A8B63BB3": {
     "key": "NFC-A8B63BB3",
-    "value": {
-      "cardId": "NFC-A8B63BB3",
-      "patientDid": "did:hosp:0x4a91b7d2",
-      "patientName": "Anika Sharma",
-      "mrn": "MRN-91B7D2",
-      "cardType": "patient",
-      "status": "active",
-      "issuedAt": "2026-07-02T09:26:39.874Z",
-      "issuedBy": "admin@example.com"
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"cvGtejF4S0MrFImz\",\"tag\":\"MmnlBp4eyKoeZOcdWg8vVA\",\"ct\":\"YHNOLieKs0DZSsogdrXIuddCMNQTbj5h17WY2nHddn1K4Py1uY2WMCWnoeU9wgP_d-xWKcE3sPlznJmOR7O0OztmNf8D8dKHExO44hAVuqqNowLo8hcVzt0bDF4RocY8qFVzQZ0uHaUqs4POi9kKqtJIRLdcWHX-07YqhIKBgqgQl2s-WlJqCHMe6ecL3yeuNcOWX2X_xUTMcEC-BLIUeU64mkklvCGTQpAFvSD4sQez75UjrGN6uXnBj6O9B6nFrHS3W2BoDCD8hkXUBmtx0ZTKpKpd1Pjj\"}",
     "namespace": "nfc-cards",
     "version": "ae4ca489-681a-4e26-aba2-194b008c6ece:1",
     "updatedAt": "2026-07-02T09:26:39.875Z",

@@ -1,20 +1,7 @@
 {
   "v1": {
     "key": "v1",
-    "value": {
-      "id": "v1",
-      "patientDid": "did:hosp:0x643a3a37",
-      "timestamp": "2026-05-30 06:00",
-      "temperature": 37.2,
-      "bloodPressure": {
-        "systolic": 128,
-        "diastolic": 82
-      },
-      "heartRate": 76,
-      "respiratoryRate": 16,
-      "oxygenSaturation": 98,
-      "recordedBy": "Nurse Priya K."
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"V6LVsYuAtFifwbbs\",\"tag\":\"47UuTb7Jyvh31KhGgB2jKQ\",\"ct\":\"foyPfXeVNWykU6v57UrJz7qDimeVqwIeRRpE1jK43GLXMIU2iU8ZZP-LdA4tCBZdeBsbVy4_HmvDHJkJSmuQ6kaswOID-telHkuukungymc8bzLaw3fqNgeiuATTfeBxV1WYIWhCqQhfUFNwOqppLj32N0-h1t4iWsioYUnvXSPSatrDdGIXpcgzazhqCBuhSrb4QbHUHsEUD7VUf81JJL-IBS3KT5Dhk0HAZJOE3pPXgNtSpRH8o322cwpnD8pk4XpBNa6Y3AUCIDT38fAaX8Mlw-HZQPNqaEc-8fTpqcSgk7_DfyTnwA\"}",
     "namespace": "vitals-history",
     "version": "2ee77b17-0471-47bf-83a9-c5cbfecfa284:1",
     "updatedAt": "2026-07-03T16:41:44.576Z",
@@ -23,20 +10,7 @@
   },
   "v2": {
     "key": "v2",
-    "value": {
-      "id": "v2",
-      "patientDid": "did:hosp:0x643a3a37",
-      "timestamp": "2026-05-30 12:00",
-      "temperature": 37.4,
-      "bloodPressure": {
-        "systolic": 132,
-        "diastolic": 84
-      },
-      "heartRate": 78,
-      "respiratoryRate": 17,
-      "oxygenSaturation": 97,
-      "recordedBy": "Nurse Priya K."
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"D2J_YjgrpbZ7Cyla\",\"tag\":\"PkwobfXGkC3N8pe31SqeRA\",\"ct\":\"afMPz4kvlGGQ_A7H1zXEyeeAdnJ9ZJApD87J02q-AxQAeyt1Q254-EnWThNDj_lQzmzQNOqqiqoy1H4o7we7tmDzwYgLKbWQcu4skam6nc4UMsbZAD19MIj-HSG4OFwKgtB0DDbiM1SlwQMJBq1uF7mnsZS5zTU-13ytnOrs7sZkm2jssE13eVb9usujr8jBe5Yxpnk54iLJkLxrGoARX5RfHFKY1mEQibLWqKdsJTrzpzZUTPCpI1boJ-_jZCTlu6N05ornTS5v0lH3YTU-fv-Tc0lpNYJPikk03VpNT7u2uyvW1ZORNA\"}",
     "namespace": "vitals-history",
     "version": "b3937fd2-004e-401c-bc19-fcb077f4637a:1",
     "updatedAt": "2026-07-03T16:41:44.576Z",
@@ -45,20 +19,7 @@
   },
   "v3": {
     "key": "v3",
-    "value": {
-      "id": "v3",
-      "patientDid": "did:hosp:0x643a3a37",
-      "timestamp": "2026-05-29 18:00",
-      "temperature": 37.1,
-      "bloodPressure": {
-        "systolic": 125,
-        "diastolic": 80
-      },
-      "heartRate": 74,
-      "respiratoryRate": 16,
-      "oxygenSaturation": 98,
-      "recordedBy": "Nurse Anjali M."
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"qh7M1Rej4Mm9Lz8_\",\"tag\":\"sdw9sXD45RLSph15pLkokQ\",\"ct\":\"CDteBCaRtGzsfEoX8IwwTm_DyT2Q5n_UYARmgGFL35fZbxxAIH3YbD0p15ePK2MHm-OEVNPJQ2asI7g_ER6h1cvfeIZPu9eY4iIiDsVif29NqLw5XP5iu96uGf_uuh0WdsQKJbDwWugOQnhqkma9XUlq6ASBvP152zdHPTp-DnPabLAsH18w0-T_U6z8kUEFWPgN6DU1S3igbnS_ukVOB0p5eUmoTByblREh9cRM4kaW8p95DB09MlK_64zfFmaI8_0SlyJ7v2QIF4Whqo8zOiyAAxIqTWr0M8Q25ilGAsxcIXnB-C-y4IM\"}",
     "namespace": "vitals-history",
     "version": "bb3cab89-3482-442a-925e-f004cf3f201f:1",
     "updatedAt": "2026-07-03T16:41:44.577Z",
@@ -67,20 +28,7 @@
   },
   "v4": {
     "key": "v4",
-    "value": {
-      "id": "v4",
-      "patientDid": "did:hosp:0x643a3a37",
-      "timestamp": "2026-05-29 12:00",
-      "temperature": 37.3,
-      "bloodPressure": {
-        "systolic": 130,
-        "diastolic": 85
-      },
-      "heartRate": 80,
-      "respiratoryRate": 18,
-      "oxygenSaturation": 96,
-      "recordedBy": "Nurse Priya K."
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"Zx7mfHQsmv23OFKa\",\"tag\":\"qduNqd8Hna0ucO_OeDIt8A\",\"ct\":\"wJmoWvuIHN4maZePBdBk3hyN4yafSiBiIQdpX7YSDvUOB00r2rBFWVsWLqAAFd0Bpcc-SObkvqWDFkW1q-GtGGsSCA7VkpOTsvfxRYMmdIdcxk84n9a9DWjjQ2mjNs40g0ncv0nMne2PgbuuS0wxrm2231HpjUODCenUDCWfLkymn0rSgt5jYtA_oJ7htFXxz-IBnWXKUHLqc0qCXUJBHqEIoFWxJA-zmCGK1MdYRQrMjh3y6xY4oi4hVH054HYlJTdcQXaafjT7YDj5CMDySSCq9aA2m9orsEQwGrnXRYRKAmgm13ZCqg\"}",
     "namespace": "vitals-history",
     "version": "620c45fc-7cae-42ef-96da-bfa81165c4b1:1",
     "updatedAt": "2026-07-03T16:41:44.577Z",

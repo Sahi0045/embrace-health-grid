@@ -1,23 +1,7 @@
 {
   "ADM-2026-001234": {
     "key": "ADM-2026-001234",
-    "value": {
-      "id": "ADM-2026-001234",
-      "patientDid": "did:hosp:0x643a3a37",
-      "patientId": "did:hosp:0x643a3a37",
-      "admissionDate": "2026-05-27",
-      "admissionTime": "14:30",
-      "expectedDischargeDate": "2026-06-02",
-      "status": "admitted",
-      "ward": "Cardiology Ward",
-      "room": "C-402",
-      "bed": "B2",
-      "admittingDoctor": "Dr. Ravi Menon",
-      "primaryDiagnosis": "Acute Coronary Syndrome",
-      "secondaryDiagnoses": ["Hypertension", "Type 2 Diabetes"],
-      "admissionType": "emergency",
-      "chiefComplaint": "Chest pain and shortness of breath"
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"NcvFeKZjr-G9ys8Q\",\"tag\":\"TtHkMn76jvTi4OntXVLedA\",\"ct\":\"Is6L24dNeSt81Zn1IJ7NDDay3h5Ltkyge6WE33e9slETMyN__ftN6-Yf2xvVazsV9rs_D4iBNYXB5uRWNYAF4b0T1NmClGoLoGMBPrImOiQygEoUPIBK82mL91NaqWRIg5SxnlPC9dP8fIfp1T1QyyTg3FVDIolaQ899ShI8EEVx0dKiR_qca14nHwGZXmeASZ_nOvGIFBIXgidRBHOrmftBKLiEQl50rgp0fEGmAhDVce88hl5H4dfzd6XRreIGCyftDG-o7o6hCCjHOwjbXjNQTrjSDaRcqoeQeosTy9TKIAqeeo5huRqpQyqsXlFPClr9yUn351wTa1uLDTfxCbv2hO9rfe3g6WKGjZ8xnFzonncOv1XYCoS7yBNHI3TYGkeS6Foqhof5KXbCkK-UxsN7-eyYyHLC4lbw2Pwc9vm4JTTTOrlRUIZ0vMnoeY7gZjeySQVV03dWlZysQ5Q_dBLNd4vqSeykMCzRRe8lJZPpNbQfZARwYBZxEmYih7wwRiOCzyuks3I8li849FEmbnQgwE2yI72Bwm2MM3M7KR09VSYTVgBh_UDh5qm9HGRpub-Gdwe0AgOV371N1wZSbvo5o0t3eicd9Yzv2OLZdfhcz-fodECYsA\"}",
     "namespace": "admissions",
     "version": "0f90ded6-4b34-4a8a-9d73-357821e57749:1",
     "updatedAt": "2026-07-03T16:41:44.573Z",

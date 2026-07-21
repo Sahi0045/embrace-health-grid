@@ -1,16 +1,7 @@
 {
   "REC-INITIAL-DISCHARGE": {
     "key": "REC-INITIAL-DISCHARGE",
-    "value": {
-      "recordId": "REC-INITIAL-DISCHARGE",
-      "patientDid": "did:hosp:0x4ba0999d",
-      "title": "Initial Discharge Summary",
-      "type": "discharge-summary",
-      "content": "Patient admitted with symptoms of angina. Angiography showed clear coronary pathways. Discharged with beta-blockers.",
-      "doctorName": "Dr. Ravi Menon",
-      "createdAt": "2026-06-03T09:32:27.931Z",
-      "hash": "sha256:d8c0b564ba2ceaf"
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"HLEaJPKU3sqfE8Da\",\"tag\":\"h9GcBxokQhMDloJWo438ww\",\"ct\":\"scDmS9Mr51mD2PjrzIBlXnbCJ-s5CIwoEmA50K09N8IeT7UXMICWaa1QlpZAbk-TSVpcAgsmozcXvgCHJtPLLyjDqs6WLo-xSboFSdqQVpo7ag9HphY-mT7h70eTpHfrUaTNMeQ8X-TDgQzaWX-BGRHfi4VPESXGqEFczywJ8BprbULkrzaZi2gbw7xdBxaQaKoPWntrGrD6-ASGDybHmuFbm5ONYr8n9QzXmaFPqLQAhKI0K0l3J0wRttouHWuFGPnhU9Kgx5hAx6JYVtfRdlacPWux1OHVsClxzevC1m38g9Y-OVdDvuKslLtlEgYEjyVglrKCjWnUbqb8XitFp0AxPI9nZGS0Aq92DsLFA5qOKAniUbpG-XHKwNQR4S1P4RS_agVM826Otykie9j39XkDK12YyAVnZwSRkwE9DCCHhkZZqS2m0qm3dRR3h2BQnGQawf1I6N51zVJWxoXZGyCrIpKFtzXtylTHzA\"}",
     "namespace": "medical-records",
     "version": "7d9fcc94-01fe-4f77-8195-a9c9ad903643:1",
     "updatedAt": "2026-07-03T09:32:27.932Z",
@@ -19,16 +10,7 @@
   },
   "REC-INITIAL-ECG": {
     "key": "REC-INITIAL-ECG",
-    "value": {
-      "recordId": "REC-INITIAL-ECG",
-      "patientDid": "did:hosp:0x4ba0999d",
-      "title": "Routine ECG Diagnostic",
-      "type": "imaging",
-      "content": "Sinus rhythm at 72 bpm. Ejection fraction at 60%. Cardiomegaly ruled out.",
-      "doctorName": "Dr. Ravi Menon",
-      "createdAt": "2026-06-18T09:32:27.931Z",
-      "hash": "sha256:d8c0b56a7ec13bd"
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"LjvXRF-akB62sBfx\",\"tag\":\"ffgfb3vvyOT3OUUBtJWqfg\",\"ct\":\"lvT_M5LJCTx-xWPk2VavPc8hx3pNWPtQ0tcdymirg85aXQuHiNGZIuKtKVTGtct9S_SF3rN47UPqRnFGUnhSAHUfnObjuJQX-PJ2Q_JmHPESZKi_Q7ic72vEOzAqvnMO0e-O8Hx7OFDhsbkEs9vsRmzoneVHKIaCKG0cti3mw5xiSMmcUSAGkMz410BUFn2WDQo6cY8DHKtdO-i1vXA6_P6dgVQD8uDk_wgcTRCY50ZndREf4UkE1Bh2lNyT0xPjYIAP0KvzX3NWP-Y424vnk_KxbBVhtNZbdVkzp_tsKP3v27ULFcnhQOLhd4ZiMrnhDBpFdMZ6J-eWAwxH5wQVpkHBNeHBuWkjyheW4SBuLRQlwq8fIgIuNFkOEl4B6vW4uVrkc_dD8C9_SrLuMRE\"}",
     "namespace": "medical-records",
     "version": "cb234ea4-f5b6-44f5-b1ae-43fbf2132b25:1",
     "updatedAt": "2026-07-03T09:32:27.941Z",
@@ -37,16 +19,7 @@
   },
   "REC-INITIAL-LIPID": {
     "key": "REC-INITIAL-LIPID",
-    "value": {
-      "recordId": "REC-INITIAL-LIPID",
-      "patientDid": "did:hosp:0x4ba0999d",
-      "title": "Standard Lipid Panel",
-      "type": "lab-report",
-      "content": "Total Cholesterol: 180 mg/dL, HDL: 45 mg/dL, LDL: 92 mg/dL. Triglycerides normal.",
-      "doctorName": "Dr. Sameer Khan",
-      "createdAt": "2026-06-26T09:32:27.931Z",
-      "hash": "sha256:d8c0b569346b740"
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"td3EJZWID-Bvvv9c\",\"tag\":\"P2oC0ogd2VdIX-9XnoFI6A\",\"ct\":\"uKd0EDqtg5Vj4f9PJjXrjmmgq3yIEoc3hpOB0ST1T-Xb7zx6qf0GJ5I_69ifRFR1FgijhwjHp6_Qor591mIsgD18p_Gn2lXMapvSDlUGi29mkeFVnJ6JInoMg7OkhrCLT_BdlmOW6xz1Mm4yvV-tHWguTx3-d53SP5jQE2f2SlQPzS12gmRab7y0SKnHouy28NW_H9CQUpJuFnyNfw8Yh7q67WAtAYesy7-wnREOGrqRwObXebrAwI5tCG39-l6nVdq8mW4YCSIbtxhSV76Ag2KOPZbDA8ZHJhuUT0sgYezjZT3I8iWsnoW8OgH24DEfyLZtVNIOouErjogoIVq-Cyr7JyZKAZNZ-eIe3x7Yf_8Y_yasVKez-8Phh81Ye-bdy3mBPlwmirQAsdsT7kYOohbmG33zfglsjoc\"}",
     "namespace": "medical-records",
     "version": "e4381e79-e8d6-421d-991e-ca8af19c65b2:1",
     "updatedAt": "2026-07-03T09:32:27.959Z",
@@ -55,17 +28,7 @@
   },
   "MR-SEED-1": {
     "key": "MR-SEED-1",
-    "value": {
-      "recordId": "MR-SEED-1",
-      "patientDid": "did:hosp:0x643a3a37",
-      "title": "Type 2 Diabetes Checkup",
-      "type": "lab-report",
-      "content": "Blood sugar levels stable. HBA1c at 6.4%.",
-      "doctorDid": "did:key:z6Mku",
-      "doctorName": "Dr. Sameer Khan",
-      "createdAt": "2026-05-18T10:00:00.000Z",
-      "status": "Controlled"
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"xVnt9JL-7jprppEU\",\"tag\":\"Bi9MFdn-uqZyiPEDKUMnMg\",\"ct\":\"xYBKHow4O9zmIZ6gfIqNAqbZlp2wJqPcqDOviY2BnJeqVbhDBJuNykM82-tqxxqbx9BN5LkS1TpXlQjjLWL7h3CPf330KVjbZO7M_hHwiHfYwmp4CozgKLwd2RBd4SfIVWKELEyPeqsk6heAZNmSB3PACUYjBQwwGAIXSaYB70MzWIEveyhb9yetc1lhvLrHqSLsXVZvvBEyFK2uhPKNBdtTnsRr3fYm9OVoAvwiqwgFCcgTEhKAiWFVCH0BstgPlQCQoENVDnpCp907NutH0zGpMIDP-dcYCXIDDWKApSMBiAEiwI94GyQQGxSYNJpjxcfRjbhadi6qYei_87FjfbmIfczReaDE-qzGB7a8OpfDpLvsXHtOHpYqnHV8Hvk\"}",
     "namespace": "medical-records",
     "version": "2fbe40a5-fe6b-49a4-b7d2-451b5ebe38f7:1",
     "updatedAt": "2026-07-03T16:16:13.092Z",
@@ -74,17 +37,7 @@
   },
   "MR-SEED-2": {
     "key": "MR-SEED-2",
-    "value": {
-      "recordId": "MR-SEED-2",
-      "patientDid": "did:hosp:0x643a3a37",
-      "title": "Routine Cardiac Echo",
-      "type": "procedure-report",
-      "content": "Healthy Ejection Fraction (60%). No signs of ischemia.",
-      "doctorDid": "did:key:z6Mkv",
-      "doctorName": "Dr. Ravi Menon",
-      "createdAt": "2026-04-12T14:30:00.000Z",
-      "status": "Healthy"
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"ARZQf3XdLuMY68kG\",\"tag\":\"67HJNPQxYcM_M3wc0Wpr2Q\",\"ct\":\"qdxZnOS5XyZGkgC6TmbyQBnsrnakq0sUBQsViehkf0NhHJQfdLykj96xSG3k-2rjulxZLplHSFRKOvSCdkksZHeUzcMmzGKxAb81Ln_YC2YyHrZ_v8mrBMaazA8PKVsYbxrk0sxwxK7iUqY1a53KPmey0fkcC0MTKpXsYkPYxdbN0zwwBiENTqo0kimkXn3YamLyvEdgBr1zP0adnBxT0cx4ApmIerL6CvljxTAgy81wjcc6r90pGMWiF141oDR85wrLGsGl75kmNTF7TSMT4WnFuNHLDLiXcgDQi-U38z4czY2RceXwubdRuih8dvi-_OirVPpo2EhDtDFjzG2RbkafZabL5CkJT6E-zhdJMFoZIg3ipQouWyCUpElx2shJAbKa1in5rPsLkxo\"}",
     "namespace": "medical-records",
     "version": "d1eedffa-c789-48b5-9fa4-e3494eacdb37:1",
     "updatedAt": "2026-07-03T16:16:13.094Z",
@@ -93,17 +46,7 @@
   },
   "REC-MR8XQC32": {
     "key": "REC-MR8XQC32",
-    "value": {
-      "recordId": "REC-MR8XQC32",
-      "patientDid": "did:hosp:0x7b07b72a",
-      "title": "Routine ECG",
-      "type": "imaging",
-      "content": "Sinus rhythm. No abnormalities.",
-      "doctorDid": "did:hosp:unknown",
-      "doctorName": "Dr. Login",
-      "createdAt": "2026-07-06T08:05:18.638Z",
-      "hash": "sha256:a8a7b4a2b66ce4ae1deb4984ec4e188c94554c6dd12bc97a708b601a71f87f3e"
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"9eYkbFDDZePCOyjU\",\"tag\":\"rVQnDAXjE0mE45XXTXpDGQ\",\"ct\":\"wnXp2UGnlGJGhyuOZU4ZwnWLRBC3WXM4GTLOdZkdAKuwX0PIAPgueFnMuM152wDlFibTGnpGTfbk72acjeUZBNzMV5h9NRar_gyM5eiQWSll0ZO3dxoO4e1mCVcWJBxnQWOOEbhQfXrW0dbE7nrhwB056BbtsyZTHCWHUnus4elNAQhcb2Y40KUoZRIntV3FYc4DmashYEzw9F0llQUeeAr1rH0WkRLSRECGqv4aLAmjNeZGR-zyywDbFXpKpsg2jTgDmBtyxTQB-YGdd0QrLdQLsExkbM5DqmnTArOu3QENSAVJazBHk0hi_mMbUy8egB6cUdPj3zr5sbR0UWvPBU2Gvx1GFeeEE6whTIt3g_NoldwHhX8tTZqJ2zYrsWC6VbTrb8ZB3KH_m1qPtLTRz3CR8RwZM6oZQQkgNJP3uSyR\"}",
     "namespace": "medical-records",
     "version": "74bc8098-1699-4b9f-901c-b068e577a301:1",
     "updatedAt": "2026-07-06T08:05:18.639Z",
@@ -112,17 +55,7 @@
   },
   "REC-MR8XQC39": {
     "key": "REC-MR8XQC39",
-    "value": {
-      "recordId": "REC-MR8XQC39",
-      "patientDid": "did:hosp:0x7b07b9f1",
-      "title": "Routine ECG",
-      "type": "imaging",
-      "content": "Sinus rhythm. No abnormalities.",
-      "doctorDid": "did:hosp:unknown",
-      "doctorName": "Dr. Login",
-      "createdAt": "2026-07-06T08:05:18.645Z",
-      "hash": "sha256:94d180c7460420f08cde01de52d551cc619e35f408e37b777587fa79de5a613c"
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"_sCEtKs-scO8aq4u\",\"tag\":\"NZLLt85S701hukgvX9oRfA\",\"ct\":\"3IRnSJS8fBC0Ux3ZvpbtWwgvj1Hh9dW2TGnUu4Q8E6pcHIhLB8_b_-OnCT_FlxWPo-4DSF1hW_VLHvfFtaIDmIl7gmT8xPGEo7T4wTba3MaPHf1pOkmzNSyT05V9PLfZ_PsGEISYEbRwPkRLBK5Jf1OlJ_DTrnAdJIN2hVVd2wYP2fzdtKeFH9kmBPrw_IYBtHq8MSsVLbbgHPlNMPusl-PTVc6nA8BcJfQkt58syPfA5Fp19EyriumZCCCsP53k2erq1xZ2OMKWmaX5qpawY79A5zaTU_TUyMM2YhSGDOind_2B0v7itvLhXsI4P-5xzY8UQ_TGHGNJY04XzWzTy8V2FAV7j9uZ9DWSE_Xb7p9oGIR_YJhHm-ZmrEiLDQvJSN9P_hautkILy5OBUWLKwrHIrbRcWwMLbfrdwZyXC2fN\"}",
     "namespace": "medical-records",
     "version": "3ffe4c94-4b85-4361-87d6-9b0c2717d886:1",
     "updatedAt": "2026-07-06T08:05:18.645Z",
@@ -131,17 +64,7 @@
   },
   "REC-MR8XQTR6": {
     "key": "REC-MR8XQTR6",
-    "value": {
-      "recordId": "REC-MR8XQTR6",
-      "patientDid": "did:hosp:0x7b2e7c5b",
-      "title": "Routine ECG",
-      "type": "imaging",
-      "content": "Sinus rhythm. No abnormalities.",
-      "doctorDid": "did:hosp:unknown",
-      "doctorName": "Dr. Login",
-      "createdAt": "2026-07-06T08:05:41.538Z",
-      "hash": "sha256:4f4f5e51a6f2afda19857192a3018c24a20a383095905e4ef71800067db0ba9a"
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"WtXHkciUI_Cu7kFn\",\"tag\":\"yPBz2URobTHt6BYxSheZ4w\",\"ct\":\"tjQ-t9BBqSAWI4VSsp5ecZzWJ1EuUCfVhAq_ns17l7X7LP9LbJjVag-cEaMQv8cqtalwo0PEqh0JKb0Pk9stxE4L3b4tOffOCb7EqrvlODjRZ28jaAIdT9ywPFsogHSUyUwGhqXl8SEt29lUdgFlO-x3nns-Of6dEg5MQbRufFi_Zeui_kX1-8OC8YpbGINyUDe-MKStdvJNdxYgxndltYJUXEZi4uEBqlU0xsXv6CUFIbkcX9ghMClrYG5u6VuI2fRjvp1GBxYyp_r4ftN3DE01ZGlVvkI5MN4cDUCB_gKDKHcu9DRv6r-8MSm4BTZOiBuIvS3TgjIL3iTjo5XSyU_Q9e-lsI_E8ZBbJ_4ewYE7rLoQTUzm3txnPORF1G7BQCg6QAmR3LS2TmK_GW9fJ7ligUzK02aMHwXlNURfVTJ2\"}",
     "namespace": "medical-records",
     "version": "5f69b503-8624-4fbc-bb0a-352abf2c194d:1",
     "updatedAt": "2026-07-06T08:05:41.539Z",
@@ -150,17 +73,7 @@
   },
   "REC-MR8XQTRC": {
     "key": "REC-MR8XQTRC",
-    "value": {
-      "recordId": "REC-MR8XQTRC",
-      "patientDid": "did:hosp:0x7b2e7c7c",
-      "title": "Routine ECG",
-      "type": "imaging",
-      "content": "Sinus rhythm. No abnormalities.",
-      "doctorDid": "did:hosp:unknown",
-      "doctorName": "Dr. Login",
-      "createdAt": "2026-07-06T08:05:41.544Z",
-      "hash": "sha256:2ca392e790660b64553043c970278bbc411501488e7b0980726ef0a13cc66d79"
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"igOpeqSTFFzvmXff\",\"tag\":\"xQbULto6-_P6amhRfOXEKg\",\"ct\":\"4nJni69Q6MeJvcSTQ3lIizKEqvwEkb19MhdIbOqrtpl7YfgzfqmzVHFsl_UgYpUEBC9q2jeAjH3M4jXG9cfzw6RjjInYFoPtRZ54iPa8UxX35GOKtbFJdpVV0EKYdFC-rQa0Sc4biz5Ee4e0CVjmuxqFs0LPwhNdqOC7MO8n0qtqnLeJjuVLiRhPdH1pjKekSaCzvgr6LzeViQJLbWRuM2SW9sReO_LCuPHNlTi24wdsZrN-JbG_Ir4V2QIqjTCFCMlJYAcp6felr7gBUK-LB_DjFIOV6mFo0HPRgflWQlVvZGP8pJHMReZbhPeUuYYNNhvPh4XHUy4bswpmqYCBv2VQcSUAwI5D_M0gaJR176qnvQViwNbf3svfHh6Zsb2MAU8EbVPzz7WBfA26NxE6aMSAzXsg-HSD4v9eF9piczF1\"}",
     "namespace": "medical-records",
     "version": "49655e88-a86d-431f-8de7-c90e78f463f4:1",
     "updatedAt": "2026-07-06T08:05:41.544Z",
@@ -169,17 +82,7 @@
   },
   "REC-MR8XRNI1": {
     "key": "REC-MR8XRNI1",
-    "value": {
-      "recordId": "REC-MR8XRNI1",
-      "patientDid": "did:hosp:0x7b5cd597",
-      "title": "Routine ECG",
-      "type": "imaging",
-      "content": "Sinus rhythm. No abnormalities.",
-      "doctorDid": "did:hosp:unknown",
-      "doctorName": "Dr. Login",
-      "createdAt": "2026-07-06T08:06:20.090Z",
-      "hash": "sha256:d7eddce8a34e318c6b489924476460ceb17a60e41f941c618af07f5e0a85087c"
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"O6taTX4exjEzBj5P\",\"tag\":\"5y9DCbGPEePMqCb3g0heiw\",\"ct\":\"DaSDjugHe-iZ2gp6NZKOfHHQqjuuWorsh-EpYfy9lNsjYIBLqwUZSM9TMi-LbIVXZCLx5vWz88mz9qifJVvzTeATqR9cgCV6R1mFKKMA1IUqyplerrIqKB4kfyyFwF8xVNBkFirenPxsJrr2Cwf5Qx-IqSpb3PNWzdqom9hMSDrMUd7L3-XD6cB0JVKNXqqk6kniXcW7H9gdBWNZmR_6p_nK-vCidMaVMsaxif3Ipl1Gm1WR5HCLznEFYSxbBiK3r9hDHlMc62MHGPviKO0H-luqw1DrkSErsEDVucHyP4mvLpllJgX6MTEdVhNuW5VMTktvP3k1JICY_b4kvHySK7A41ggzQshUgPfeKJm53kSRRo21Y0B6dhAznyLezMHOkBxVtSJWmPANdouEGsTmgRBIY6DioTeFCxuj3Qebe8f4\"}",
     "namespace": "medical-records",
     "version": "8287a4ce-5304-4248-8050-e3ae290533bb:1",
     "updatedAt": "2026-07-06T08:06:20.090Z",
@@ -188,17 +91,7 @@
   },
   "REC-MRAXXCHT": {
     "key": "REC-MRAXXCHT",
-    "value": {
-      "recordId": "REC-MRAXXCHT",
-      "patientDid": "did:hosp:0x17b2a277",
-      "title": "Routine ECG",
-      "type": "imaging",
-      "content": "Sinus rhythm. No abnormalities.",
-      "doctorDid": "did:hosp:unknown",
-      "doctorName": "Dr. Login",
-      "createdAt": "2026-07-07T17:46:18.113Z",
-      "hash": "sha256:b158f9464b25ab698c65a8161c54c71cfebed1a83656cfa3a76829f32cb37500"
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"NAd-MXkm4H5ktS6B\",\"tag\":\"xxkWdVYrsgw_LK-Peb-yDw\",\"ct\":\"7-NDVLHsz1hLfBmaiPMJe4kkZD1ury2LZQr1AHBppwPCyCZiQTkHiMLicEWkrJWt3H7ywJW6WwrdbXOujh0bn921SVFeX-gnvT6lsqj_FH904I1AjmUQUVWX4YKRxqgjTGU2nbSoar-7p0LecvUgxD_HlPr33m1tzlRbkFx4FIY5xGQPr768jvtTqJqI5f-BUR3AJz7gNKmcEQj2UzTE_3h3HWdPqZDOJDb68L95u7dPMBjg6oUYl1F8s3fsO20v_ZGR7ULRSh1fQ4TsQYa7UND_Z0OerCFyK4hW0de1COol349kE2PpwZzLt2o_yu9lrCoU0ka671BMUwnoahaf_--Rb7Hx4gYkgy8ZKj8UiRVkVbWgVSacfURQQm7WqeOEHY3spM_1QthDK6L1NgBZTuew4YSc8O2WDzhHiqr1h30T\"}",
     "namespace": "medical-records",
     "version": "3ecf1f65-53c3-4334-ba02-2e014fda1aba:1",
     "updatedAt": "2026-07-07T17:46:18.120Z",
@@ -207,17 +100,7 @@
   },
   "REC-MRAXXQ7X": {
     "key": "REC-MRAXXQ7X",
-    "value": {
-      "recordId": "REC-MRAXXQ7X",
-      "patientDid": "did:hosp:0x17cde19a",
-      "title": "Routine ECG",
-      "type": "imaging",
-      "content": "Sinus rhythm. No abnormalities.",
-      "doctorDid": "did:hosp:unknown",
-      "doctorName": "Dr. Login",
-      "createdAt": "2026-07-07T17:46:35.901Z",
-      "hash": "sha256:eaf5460e579d4ea05bfe477ec8c6f6d6cccff3a7b565c0e94ac54323389d1f0e"
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"Q9FGkxZUJzmKfOx2\",\"tag\":\"8TadWDu0H9y1jRaJdziRzQ\",\"ct\":\"bmx97Rp-FtEqVpWgAXP0oUYSpoQt2-sU4lNpMJS5eaL_2xXp6TTnhj4o-G8MG-2r0H-e51_19BX-x2T2LxfPnhLwJdqQIpJddnrnERTT_oxyBxmk31EaHvFndBRQ8bG-fsu96leb1FyA1GRl6Pt6xaPw1awK_QsMI0jl8GEu9BaafkHi90Nwt3CswbCxD48EK3MWurnhzm7fCupL3Ajerwue2_5t36C2ogsjNf4M97hOaOjZbqYVqit7JLZ1iP_QP55I8UJCvfS_MseNSawpQy41m0Ett8WpcNfUx3s9X4idvJbGRyq3EtMne30bSru05eBlypGyqbrZr_DKUKbPZAcmjtNSdy3IfHGk75eN9qBP_j8K9096qvXlL5kFeFCyFhxs8IZabVENtAIDTpVcIQPSSCuSc4atKvCSkQm2n3uF\"}",
     "namespace": "medical-records",
     "version": "9a5add25-4526-4b27-9ef8-8b17e9c0c432:1",
     "updatedAt": "2026-07-07T17:46:35.902Z",
@@ -226,17 +109,7 @@
   },
   "REC-MRAYQVVV": {
     "key": "REC-MRAYQVVV",
-    "value": {
-      "recordId": "REC-MRAYQVVV",
-      "patientDid": "did:hosp:0x534f2c36",
-      "title": "Routine ECG",
-      "type": "imaging",
-      "content": "Sinus rhythm. No abnormalities.",
-      "doctorDid": "did:hosp:unknown",
-      "doctorName": "Dr. Login",
-      "createdAt": "2026-07-07T18:09:16.267Z",
-      "hash": "sha256:88c0a4859bde456710f0c9af323326c64e2e5f3f8a9326eb0ccda8889fad393a"
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"yivfLIEVhZk81OE3\",\"tag\":\"XMRYECYpCwGufoCUs2f0zQ\",\"ct\":\"lXX5dwvFLCsp5XT3qPZsynkuuJfwQZqRycA2nBGTxmeKW_ZmIsNtbcABROk8_yR1k67Sn16VcdhXOQRA5sk31E7I5zUJpFKcL3fyx2Z3yo6Hdny3T9QCBhvAWJrPx446SnmZ1TNqA2rh-pbs90vkBIlWR9e9dgPit-DdwLcXmASQruq62Duk9CIxRA6e58rMYcyxguti2vnAmsLJaJmADvR_HI1vTnoiw7pTexE2u9sopjpAaVGGunrj9T3WN7OKwYTnCPlWoahKxt7w4oU7YSlEi5vDQ0GMGGMXkyeJoi6lTU9ANLm-MVqQIxymW7SBNTYhwOFaUOALsSlQeEn9TyH00tIluorcjG7WV0uBoHXvBNHFUpdc9zbw_jkHIEvmrIkTHNvRNU7fL8ZWymHl7tBJE4l4xobm_JFqkCqzMXY0\"}",
     "namespace": "medical-records",
     "version": "18970262-3292-4cec-8965-d58428d64044:1",
     "updatedAt": "2026-07-07T18:09:16.269Z",
@@ -245,17 +118,7 @@
   },
   "REC-MRQ7C6MR": {
     "key": "REC-MRQ7C6MR",
-    "value": {
-      "recordId": "REC-MRQ7C6MR",
-      "patientDid": "did:hosp:0x1d3c2e36",
-      "title": "Routine ECG",
-      "type": "imaging",
-      "content": "Sinus rhythm. No abnormalities.",
-      "doctorDid": "did:hosp:unknown",
-      "doctorName": "Dr. Login",
-      "createdAt": "2026-07-18T10:06:19.540Z",
-      "hash": "sha256:23bc0d4fa58aac5a54965c668e4247ab1b6ce99946348c1925f90c9fe6daf299"
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"L5ACO6B7rpEt8QeQ\",\"tag\":\"C35bb0NaEw9m565S1LdXkg\",\"ct\":\"uww0Xq05WrsyTBoLAERZP721bToEoTcVEAQg76zp94939fDfAT1FyEuMZUfnVx5tGxjRawOkY13r9C9IjYICDWK_IuRVrlwxBziCaEbUlG7J4U1ymJrXwjSppx50OXkB5eftp3CRvXYjhFlKF80Xcnf_8Yo4CmTIgJCLFei5ama3QBI7ogsK_EhFzFIPw9_YL-8O64OVHRK8apyjTCRZyPgbPTzt9tssi0GoP4z9oyH3jXJCYIgArBL3fONcrAQKcX-b4lAvB3MwJwCZm94PCqflGnHsD5vTwrZHjsgyRfbuw2lnhEuPajHcbUFLIfrGOCM22ZGBBcKb-WP_ik_azyB1gHOJKDGxNfVHzzxsGZF3MibQztN3WSjV7uScktCvxMcHs52Z32oBWt2A4BmGumSwzJWdj-6QpdFGhOG-evAe\"}",
     "namespace": "medical-records",
     "version": "4cc1bbfa-934c-4c0f-b220-18e7514a11bf:1",
     "updatedAt": "2026-07-18T10:06:19.548Z",
@@ -264,17 +127,7 @@
   },
   "REC-MRQGIV1C": {
     "key": "REC-MRQGIV1C",
-    "value": {
-      "recordId": "REC-MRQGIV1C",
-      "patientDid": "did:hosp:0x4dd44b9f",
-      "title": "Blood Analysis Summary",
-      "type": "lab-report",
-      "content": "Hemoglobin 14.2 g/dL. All other values within normal reference range.",
-      "doctorDid": "did:hosp:unknown",
-      "doctorName": "Dr. Login",
-      "createdAt": "2026-07-18T14:23:27.649Z",
-      "hash": "sha256:d781e5647cf4710c5ad63304a96c8c2b84f6e12c5cf8ef1afb66425c5423caa7"
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"E_O1r9WX9aoWUXGB\",\"tag\":\"vrZYQAsV5Xi_wBFjfaUo4g\",\"ct\":\"R32r4e-2n4HmmPh54WGX6WqZkum0nFesarAlhItv5cv5C7_oBtvHHzv0NwGxX-_pMubPVQcGp-1NY7rb833EM9rJ3swHSpRkzz3YiHDDtholj9BEWkIrOcIADIrAl2mZcfM-e-VKQPGFooTfXAAJvdyb4W5Bc26Q2vzktouP7dCZjuNZ6ujpijxmmWuhYGU1eJeR6ZxScoIQfVERRg5xXg7KAn6EzfCwSujDbqkBNC6O51aVEoxzj0drH_g8d7gKtHCjf8dod8wLBr29VJKfe4zkO_dibtdzHtLB245OadMN1eo2znDXLYw92M0hrobjmZf3r7Hzarns2kAL3KzAutr9wE7LhDh3-iqLH14TCWWsrM3Xx51-2xOzIMPp_pYMm7VMj_t2Aj-ssSOKRsm17Sac8eSezzNvUAEec73lhOpKe4q6Y68FGPoqpgO_Dz_rdC2xthCaiqc_0tERP9nAqJxAp7xQB9uNiRZq5uUVQEvAyXqIWg\"}",
     "namespace": "medical-records",
     "version": "b8d8ce28-08dc-4e71-bfcc-1092ee4dcc66:1",
     "updatedAt": "2026-07-18T14:23:27.662Z",
@@ -283,17 +136,7 @@
   },
   "REC-MRQGK7CF": {
     "key": "REC-MRQGK7CF",
-    "value": {
-      "recordId": "REC-MRQGK7CF",
-      "patientDid": "did:hosp:0x4d7ebeda",
-      "title": "Blood Analysis Summary",
-      "type": "lab-report",
-      "content": "Hemoglobin 14.2 g/dL. All other values within normal reference range.",
-      "doctorDid": "did:hosp:unknown",
-      "doctorName": "Dr. Login",
-      "createdAt": "2026-07-18T14:24:30.255Z",
-      "hash": "sha256:4a433e5d9ef1acce74f97486cf241d3de71496e5f0c0b7b0ad5a8d708efe9391"
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"dOQDIYJKrNQBSl5J\",\"tag\":\"aSvmjNIClkKdj5Unb0iebw\",\"ct\":\"5me7xY59Q8I-Gjg3pCBHysBx1jCirgNxFXPwq_GlV0B8eN3kxioiPqSpr00h0ZueHTtzWsyt3CS83A2J3qFZ-ZmuTk_TKDyoRgsdcVKxoiuWBsxNjMqK2o6pS4NTzz42T9LunL77TFHYRbcfP5rK_NKg8hkoiICNRKVFyMgJoxrwwO4DssMJaft62ZpPMhnLsV5jrGdK1li48tdffbNuNu-NWgQnUC-rI_fAf7p58-9S1KTS8Uh6hTJ85QENcR3g1Raq_PcTGl8x6DOJklkO9ADRr0OYQr4dJTwIuG-Isu2KbXUJZtGRHHmIPE0vlGRvJFnJbm-OaSGRMRLJvasuruQqm8tqNTjKz_48KACmMorGGw7sYnNx88ZrbCaMGvA_OawT8a5gsVGpb6R3p0_ECM0LCBy7yGGSc7ZuLVy2qNt3M60PiyXE925EOl-MJiLyk2JzcfiLs5RzerCi192RyqWX-I-3_i6TVAzbMYB2GGadFE2fyw\"}",
     "namespace": "medical-records",
     "version": "11aa1065-39da-4fe8-9b03-3cd42746f742:1",
     "updatedAt": "2026-07-18T14:24:30.255Z",
@@ -302,17 +145,7 @@
   },
   "REC-MRQGKKBU": {
     "key": "REC-MRQGKKBU",
-    "value": {
-      "recordId": "REC-MRQGKKBU",
-      "patientDid": "did:hosp:0x4d63f153",
-      "title": "Blood Analysis Summary",
-      "type": "lab-report",
-      "content": "Hemoglobin 14.2 g/dL. All other values within normal reference range.",
-      "doctorDid": "did:hosp:unknown",
-      "doctorName": "Dr. Login",
-      "createdAt": "2026-07-18T14:24:47.082Z",
-      "hash": "sha256:baa604d317cdaec3d6e3159618e303b198f697ad0e248f081e9428b83bbf8594"
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"oWVs6YpIb1v8w6Ov\",\"tag\":\"ZS9GZ5kOUS54XYbJj2XpiQ\",\"ct\":\"bxEL3y175uOYSj5pjYmY1xMryF4uP4fvLf3aJGtraKtM3ieKoUVF3T4BJubhll6zEGL4tBkg8XFH7FgCDk08M3khxhdTF0JDqX4qKWP9EgFwbJvuvAg3l2oFt4IX20l7hc9EpCa-2wCOJUJTX_u4dxkrZY7bqVNmiyXISX4jwDSU2n5jlsiw4cvnTq03CNW0velZD5xq_iONMNaPXTwTqgwIkTbce62ld82yzGOKGvxMWzhY1V440IkGv2YJwaFM5aju-9xXhvmYADq0HMlnDwyzxZnYBU_8uz07juhrmiO3x_KzNeUTkWiDfgZfTN8gG1RWGwv8gbOkhlA7ja5_QhLjmwJIqBFnmUSHNyVDH_gpvrpxYzukzFjr8nmvovZzhZVAVuGiCJ2wFHlKXnh3LIQVrLRuIe26XwnMY72FK6RvpZe6Lqw4BQKMj6nTwioHCEofDVd3vACK9L1o3faxlCXsBSaLd1Y8txpYN1J1nRRdrNL6Ew\"}",
     "namespace": "medical-records",
     "version": "35c8cf99-3da2-4419-95cc-27d23d3c805b:1",
     "updatedAt": "2026-07-18T14:24:47.083Z",
@@ -321,17 +154,7 @@
   },
   "REC-MRQGKXFR": {
     "key": "REC-MRQGKXFR",
-    "value": {
-      "recordId": "REC-MRQGKXFR",
-      "patientDid": "did:hosp:0x4c21323a",
-      "title": "Blood Analysis Summary",
-      "type": "lab-report",
-      "content": "Hemoglobin 14.2 g/dL. All other values within normal reference range.",
-      "doctorDid": "did:hosp:unknown",
-      "doctorName": "Dr. Login",
-      "createdAt": "2026-07-18T14:25:04.071Z",
-      "hash": "sha256:63007bcfb7845483ea872e93ff8aff271f6c1ccb4d77fab789ef7184afc82591"
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"ODGlKy0MMj9fn--V\",\"tag\":\"7Gq3jjg7Bs4UGSivJCFynA\",\"ct\":\"RFoVHxcZZRj0s0N40DMOsNsn5GelHcYVgT9qAGgGDk4DUZvk4ssoGE4DLM4Fgi-dZPFbAGfgv9EFdwBSOedtwpAz-XUexcJOM-sk5Rei4fBGFbnrorc1dt6VKo0kl7kb4lomypOyjRSKHlaeNUrHV0gYE-qVsteN2r8ET68duc1NBuZ-Clm8D4MYnzCyDLoPiL6X-tsqafQSxzCGssR5EU-DxIkp_BrwItYAUtGvuE1Da2jCcp9c7lKAuLo5Zb9hqCwUYduFYuXo0RGsBB7m4cyTCBkqHEjzJ6tcOE6ciuCuNvgieb2PbXBfWBXsYnx8eXtHOj4zk7nRUGwWCqLZ7He9AFGfPEkEkuAQ63giuS3ST5EAtuZLDif2gGsbd4mckvcNbwuLYfXq0rko2dUyMEsWBVYx4eahYiuD3lv_voXQhd2JhEMTcpE4BSVIjKYz50_xUMxA8FrywLRKkJN3AWAlFmWxjdgHUrhYY-b_tTXW7Fr6cA\"}",
     "namespace": "medical-records",
     "version": "c541701a-f75d-4224-aa7a-9103e02e9632:1",
     "updatedAt": "2026-07-18T14:25:04.072Z",
@@ -340,17 +163,7 @@
   },
   "REC-MRQGLC5T": {
     "key": "REC-MRQGLC5T",
-    "value": {
-      "recordId": "REC-MRQGLC5T",
-      "patientDid": "did:hosp:0x4c057794",
-      "title": "Blood Analysis Summary",
-      "type": "lab-report",
-      "content": "Hemoglobin 14.2 g/dL. All other values within normal reference range.",
-      "doctorDid": "did:hosp:unknown",
-      "doctorName": "Dr. Login",
-      "createdAt": "2026-07-18T14:25:23.153Z",
-      "hash": "sha256:6868e23a556861901f6e98b05fcbba60631048ebbb653bd00251847bd76f430b"
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"kWSeIYlvYb5OZKVP\",\"tag\":\"EXdvCB68dhq4-PS7fsEXLw\",\"ct\":\"a2XQq39Q5VpMs6Oi11giBUVj2JhUV16McdEd0JDSCig0ekLzWN-UQIivDrHrngKchwqEfaR9KI1xeWqGMi-bTK4NnADdHNpkvo8CxS5hhVUVwyoqA2a_t9txGOxT13hwRRaiiV4VzVU1Sntn3Z97IgUIzGWNtndL3ktk7w3WWAMvMam_AhbpfGEAwCEkrxlU4ZsoMtaGJy66Ymk29TeZXSnfDTV127vv0LbPscVTCZAeTNIcofe09Nm0AMvTp9I69oaPidQ2u3GLnLeP94x6-v4961tD7PtHeEMg1gClVEVY2yyR7xOj6pqHKaTYgAL41EpDhGctJppqpUiaRy8IlY7gB9y8kn6pcdXIB7UYIbhmZ8kngpZTL49K01Ovjk0TbQ9_OFAMwoClO802I7cHFMeI5z6vNyBJxZTMI8rWvzYQE8mumuCLzbYzjMZ2Jr83ZEHiMJFgwPGLjNCgqwQzloqGMyx_RxTSUhAsFtfINbrkReSizg\"}",
     "namespace": "medical-records",
     "version": "e2f95bb1-f8a4-42df-a8c7-09121dfa2f80:1",
     "updatedAt": "2026-07-18T14:25:23.154Z",
