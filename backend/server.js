@@ -93,8 +93,10 @@ if (!CLIENT_KEY) {
     console.error("FATAL: CLIENT_KEY environment variable is not set.");
     process.exit(1);
   } else {
-    CLIENT_KEY = "apollo-consortium-client-secret-2026";
-    console.warn("⚠️ CLIENT_KEY environment variable is not set. Falling back to development key.");
+    CLIENT_KEY = randomUUID() + "-dev-only";
+    console.warn(
+      `⚠️ CLIENT_KEY not set. Generated ephemeral dev key: ${CLIENT_KEY.slice(0, 8)}…  Set CLIENT_KEY in .env.local to match VITE_CLIENT_KEY.`,
+    );
   }
 }
 
@@ -787,7 +789,7 @@ app.post("/api/audit/log", requireAuth, (req, res) => {
 });
 
 // ─── Vitals ───────────────────────────────────────────────────────────────────
-app.post("/api/vitals/seed", requireAuth, requireRole(["admin", "doctor", "staff"]), (req, res) => {
+app.post("/api/vitals/seed", requireAuth, requireRole(["admin", "doctor", "staff"]), hipaaAuditPHIAccess("VitalSigns"), (req, res) => {
   const { patients = [] } = req.body;
   patients.forEach(
     ({ id, heartRate = 72, bp = "120/80", spo2 = 98, temp = 36.5, respRate = 16 }) => {
@@ -1052,7 +1054,7 @@ app.post("/api/doctor/check-in", requireAuth, requireRole(["doctor", "staff"]), 
   app._router.handle(req, res);
 });
 
-app.get("/api/doctor/location-history/:doctorDid", requireAuth, (req, res) => {
+app.get("/api/doctor/location-history/:doctorDid", requireAuth, hipaaAuditPHIAccess("DoctorLocation"), (req, res) => {
   const { doctorDid } = req.params;
   let all = queryState("doctor-locations", (v) => v.doctorDid === doctorDid);
 
@@ -1372,7 +1374,7 @@ app.post(
   },
 );
 
-app.post("/api/medical-records/:patientDid/anchor", requireAuth, async (req, res) => {
+app.post("/api/medical-records/:patientDid/anchor", requireAuth, hipaaAuditPHIAccess("MedicalRecord"), async (req, res) => {
   const { patientDid } = req.params;
   const { authorityPubkey, isUpdate = false } = req.body;
 
@@ -2038,7 +2040,7 @@ app.get("/api/appointments", requireAuth, hipaaAuditPHIAccess("Appointment"), (_
 });
 
 // ─── Surgeries ────────────────────────────────────────────────────────────────
-app.get("/api/surgeries", requireAuth, (_, res) => {
+app.get("/api/surgeries", requireAuth, hipaaAuditPHIAccess("Surgery"), (_, res) => {
   const defaultSurgeries = [
     {
       id: "s1",
