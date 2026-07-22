@@ -305,23 +305,50 @@ export function registerExtensionRoutes(app, deps) {
   app.get("/api/doctors", (req, res) => {
     const dids = getAllState("did-registry");
     const users = getAllState("users");
-    const doctors = [];
+    const doctorsMap = new Map();
 
-    for (const entry of users) {
-      const u = entry.value;
-      if (u.role === "doctor" || u.role === "staff") {
-        const didEntry = dids.find((d) => d.value.ownerEmail === u.email);
-        doctors.push({
-          id: u.did || didEntry?.value?.did || entry.key,
-          did: u.did || didEntry?.value?.did || "",
-          name: u.name,
-          email: u.email,
-          specialty: u.specializations?.[0] || u.department || "General Medicine",
-          department: u.department || "General Medicine",
-          status: u.status || "active",
-        });
+    const defaultDoctors = [
+      { did: "did:hosp:0x87a9b0c1", name: "Dr. Sameer Khan", specialty: "General Medicine", email: "dr.sameer@hospital.com", department: "Cardiology", status: "Available" },
+      { did: "did:hosp:0x12b3c4d5", name: "Dr. Ravi Menon", specialty: "Cardiology", email: "dr.ravi@hospital.com", department: "Cardiology", status: "Available" },
+      { did: "did:hosp:0x34e5f6a7", name: "Dr. Ananya Sen", specialty: "Cardiac Rehabilitation", email: "dr.ananya@hospital.com", department: "Rehabilitation", status: "Available" },
+      { did: "did:hosp:0x56b7c8d9", name: "Dr. Priya Nair", specialty: "Orthopedics", email: "dr.priya@hospital.com", department: "Orthopedics", status: "Available" },
+    ];
+    defaultDoctors.forEach((d) => doctorsMap.set(d.did, d));
+
+    dids.forEach((e) => {
+      const d = e.value;
+      if (!d || !d.did) return;
+      if (d.ownerEmail) {
+        const u = getState("users", d.ownerEmail);
+        if (u && u.value?.role === "patient") return;
+      } else if (d.ownerType === "patient") {
+        return;
       }
-    }
+      doctorsMap.set(d.did, {
+        did: d.did,
+        name: d.owner || d.name || "Dr. Staff",
+        specialty: d.specialty || d.department || "General Medicine",
+        email: d.ownerEmail || d.email || "",
+        department: d.department || "Medical Services",
+        status: "Available",
+      });
+    });
+
+    users.forEach((e) => {
+      const u = e.value;
+      if (!u || !u.did) return;
+      if (u.role === "patient") return;
+      doctorsMap.set(u.did, {
+        did: u.did,
+        name: u.name || "Dr. Staff",
+        specialty: u.specialization?.[0] || u.specialty || u.department || "General Medicine",
+        email: u.email,
+        department: u.department || "Medical Services",
+        status: "Available",
+      });
+    });
+
+    const doctors = Array.from(doctorsMap.values());
     res.json({ doctors, total: doctors.length });
   });
 
@@ -691,6 +718,60 @@ export function registerExtensionRoutes(app, deps) {
     res.json({ success: true, record });
   });
 
+
+  app.get("/api/staff/schedule/:email", (req, res) => {
+    const email = req.params.email;
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const distanceToMon = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const monday = new Date(today);
+    monday.setDate(today.getDate() + distanceToMon);
+
+    const daysName = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    const shiftRoles = ["OPD", "Ward rounds", "Surgery", "On-call", "ICU", "OPD", "Off"];
+    const units = ["OPD Block A", "Cardiology Ward", "OR Suite 2", "Emergency Ward", "ICU Block B", "OPD Block B", "Rest / Off"];
+    const startTimes = ["08:00", "09:00", "10:00", "20:00", "08:30", "09:00", "—"];
+    const endTimes = ["16:00", "17:00", "16:00", "08:00", "16:30", "17:00", "—"];
+
+    let customShifts = queryState("staff-requests", (v) => v.staffEmail === email && v.requestType === "shift");
+
+    const schedule = daysName.map((day, idx) => {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + idx);
+      const dateStr = d.toISOString().split("T")[0];
+
+      const matchedReq = customShifts.find((s) => s.shiftDate === dateStr);
+      if (matchedReq) {
+        return {
+          id: matchedReq.id,
+          day,
+          date: dateStr,
+          role: matchedReq.shiftType || "OPD",
+          start: "08:30",
+          end: "16:30",
+          unit: matchedReq.unit || "OPD Block A",
+          patients: 12,
+          notes: "Added via staff shift request",
+          confirmed: true,
+        };
+      }
+
+      return {
+        id: `sh_${idx + 1}`,
+        day,
+        date: dateStr,
+        role: shiftRoles[idx],
+        start: startTimes[idx],
+        end: endTimes[idx],
+        unit: units[idx],
+        patients: idx < 6 ? 6 + ((idx * 3) % 11) : undefined,
+        notes: idx === 0 ? "Morning OPD consultation & incoming patient appointments" : idx === 3 ? "24hr Emergency On-call coverage" : undefined,
+        confirmed: true,
+      };
+    });
+
+    res.json({ schedule, monday: monday.toISOString().split("T")[0] });
+  });
 
   // ─── Solana ─────────────────────────────────────────────────────────────────
   app.post("/api/solana/anchor", requireRole("staff", "admin"), async (req, res) => {

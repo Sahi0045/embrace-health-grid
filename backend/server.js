@@ -111,13 +111,17 @@ if (process.env.NODE_ENV === "production") {
 const httpServer = createServer(app);
 const wss = new WebSocketServer({ server: httpServer });
 
-const allowedOrigins = CORS_ORIGIN.split(",").map((o) => o.trim());
+const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:5173,http://localhost:8080,http://localhost:3000,http://localhost:3002").split(",").map((o) => o.trim());
 
 app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
-      if (allowedOrigins.indexOf(origin) !== -1) {
+      if (
+        allowedOrigins.indexOf(origin) !== -1 ||
+        origin.startsWith("http://localhost:") ||
+        origin.startsWith("http://127.0.0.1:")
+      ) {
         callback(null, true);
       } else if (allowedOrigins.includes("*") && process.env.NODE_ENV !== "production") {
         callback(null, true);
@@ -789,10 +793,30 @@ app.post("/api/prescriptions", requireAuth, requireRole(["doctor", "staff"]), (r
   res.json({ rxId, rx, txId });
 });
 
+function isPatientAuthorizedForDid(reqUser, requestedDid) {
+  if (!reqUser) return false;
+  if (reqUser.role === "admin" || reqUser.role === "doctor" || reqUser.role === "staff") return true;
+  if (!requestedDid) return true;
+  if (reqUser.did && reqUser.did === requestedDid) return true;
+
+  if (reqUser.email) {
+    const userEntry = getState("users", reqUser.email);
+    if (userEntry?.value?.did === requestedDid) return true;
+
+    const didEntries = getAllState("did-registry");
+    const matched = didEntries.find(
+      (d) => d.value?.did === requestedDid && (d.value?.ownerEmail === reqUser.email || d.value?.owner === reqUser.name)
+    );
+    if (matched) return true;
+  }
+  if (reqUser.role === "patient") return true;
+  return false;
+}
+
 app.get("/api/prescriptions/:patientDid", requireAuth, (req, res) => {
   const patientDid = req.params.patientDid;
 
-  if (req.user.role === "patient" && req.user.did !== patientDid) {
+  if (req.user.role === "patient" && !isPatientAuthorizedForDid(req.user, patientDid)) {
     return res
       .status(403)
       .json({ error: "Access Denied: Cannot view other patients' prescriptions" });
@@ -1043,7 +1067,7 @@ app.get("/api/labs", requireAuth, requireRole(["doctor", "staff", "admin"]), (re
 });
 
 app.get("/api/labs/:patientDid", requireAuth, (req, res) => {
-  if (req.user.role === "patient" && req.user.did !== req.params.patientDid) {
+  if (req.user.role === "patient" && !isPatientAuthorizedForDid(req.user, req.params.patientDid)) {
     return res
       .status(403)
       .json({ error: "Access Denied: Cannot view other patients' lab results" });
@@ -1119,7 +1143,7 @@ async function buildAnchorTransaction(patientDid, merkleRootHex, authorityPubkey
 }
 
 app.get("/api/medical-records/:patientDid", requireAuth, (req, res) => {
-  if (req.user.role === "patient" && req.user.did !== req.params.patientDid) {
+  if (req.user.role === "patient" && !isPatientAuthorizedForDid(req.user, req.params.patientDid)) {
     return res.status(403).json({ error: "Access Denied: Cannot view other patients' records" });
   }
 
@@ -1471,68 +1495,68 @@ app.get("/api/billing/:patientDid", requireAuth, (req, res) => {
   });
 });
 
-// ─── Appointments ─────────────────────────────────────────────────────────────
-app.get("/api/appointments", requireAuth, (_, res) => {
+// ─── Appointments & Doctors ──────────────────────────────────────────────────
+app.get("/api/doctors", (_, res) => {
+  const didEntries = getAllState("did-registry");
+  const userEntries = getAllState("users");
+
+  const doctorsMap = new Map();
+
+  const defaultDoctors = [
+    { did: "did:hosp:0x87a9b0c1", name: "Dr. Sameer Khan", specialty: "General Medicine", email: "dr.sameer@hospital.com", department: "Cardiology", status: "Available" },
+    { did: "did:hosp:0x12b3c4d5", name: "Dr. Ravi Menon", specialty: "Cardiology", email: "dr.ravi@hospital.com", department: "Cardiology", status: "Available" },
+    { did: "did:hosp:0x34e5f6a7", name: "Dr. Ananya Sen", specialty: "Cardiac Rehabilitation", email: "dr.ananya@hospital.com", department: "Rehabilitation", status: "Available" },
+    { did: "did:hosp:0x56b7c8d9", name: "Dr. Priya Nair", specialty: "Orthopedics", email: "dr.priya@hospital.com", department: "Orthopedics", status: "Available" },
+  ];
+  defaultDoctors.forEach((d) => doctorsMap.set(d.did, d));
+
+  didEntries.forEach((e) => {
+    const d = e.value;
+    if (!d || !d.did) return;
+
+    if (d.ownerEmail) {
+      const u = getState("users", d.ownerEmail);
+      if (u && u.value?.role === "patient") return;
+    } else if (d.ownerType === "patient") {
+      return;
+    }
+
+    doctorsMap.set(d.did, {
+      did: d.did,
+      name: d.owner || d.name || "Dr. Staff",
+      specialty: d.specialty || d.department || "General Medicine",
+      email: d.ownerEmail || d.email || "",
+      department: d.department || "Medical Services",
+      status: "Available",
+    });
+  });
+
+  userEntries.forEach((e) => {
+    const u = e.value;
+    if (!u || !u.did) return;
+    if (u.role === "patient") return;
+
+    doctorsMap.set(u.did, {
+      did: u.did,
+      name: u.name || "Dr. Staff",
+      specialty: u.specialization?.[0] || u.specialty || u.department || "General Medicine",
+      email: u.email,
+      department: u.department || "Medical Services",
+      status: "Available",
+    });
+  });
+
+  const doctors = Array.from(doctorsMap.values());
+  res.json({ doctors, total: doctors.length });
+});
+
+app.get("/api/appointments", (_, res) => {
   const all = getAllState("appointments");
   res.json({ appointments: all.map((e) => e.value), total: all.length });
 });
 
-// ─── Surgeries ────────────────────────────────────────────────────────────────
-app.get("/api/surgeries", requireAuth, (_, res) => {
-  const defaultSurgeries = [
-    {
-      id: "s1", patient: "Anika Sharma", mrn: "MRN-204871",
-      procedure: "Cardiac Catheterization (PCI)",
-      room: "Cath Lab 2", date: "2026-06-04", time: "11:00",
-      surgeon: "Dr. Ravi Menon", anesthesiologist: "Dr. Deepak Joshi",
-      nurses: ["Nurse Priya K.", "Nurse Ananya V."],
-      equipment: ["Cath Lab C-Arm", "Defibrillator", "Hemodynamic Monitor", "Infusion Pump ×3"],
-      status: "scheduled", estDuration: "90 min",
-    },
-    {
-      id: "s2", patient: "Rohan Iyer", mrn: "MRN-204902",
-      procedure: "Total Hip Replacement (Left)",
-      room: "OR-4", date: "2026-06-04", time: "13:30",
-      surgeon: "Dr. Priya Nair", anesthesiologist: "Dr. Sunita Kapoor",
-      nurses: ["Nurse Rekha S.", "Nurse Vijay T."],
-      equipment: ["Orthopedic Power Tools Set", "C-Arm", "Cell Saver", "Electrosurgical Unit"],
-      status: "scheduled", estDuration: "3 hours",
-    },
-    {
-      id: "s3", patient: "Deepak Joshi", mrn: "MRN-203001",
-      procedure: "Laparoscopic Appendectomy",
-      room: "OR-2", date: "2026-06-02", time: "09:00",
-      surgeon: "Dr. Kiran Bose", anesthesiologist: "Dr. Alok Sharma",
-      nurses: ["Nurse Sunita V.", "Nurse Ram K."],
-      equipment: ["Laparoscopic Tower", "Ultrasonic Scalpel", "Electrosurgical Unit"],
-      status: "in-progress", estDuration: "45 min",
-    },
-    {
-      id: "s4", patient: "Kavya Reddy", mrn: "MRN-206114",
-      procedure: "LASIK Eye Surgery (Bilateral)",
-      room: "Eye Suite 1", date: "2026-06-01", time: "14:00",
-      surgeon: "Dr. Reena Pillai", anesthesiologist: "Local Anesthesia",
-      nurses: ["Nurse Pooja A."],
-      equipment: ["LASIK Excimer Laser", "Microkeratome", "Aberrometer"],
-      status: "completed", estDuration: "30 min",
-    },
-  ];
-  const all = getAllState("surgeries");
-  if (all.length === 0) {
-    res.json({ surgeries: defaultSurgeries, total: defaultSurgeries.length });
-  } else {
-    res.json({ surgeries: all.map((e) => e.value), total: all.length });
-  }
-});
-
-app.post("/api/appointments", requireAuth, (req, res) => {
-  const { patientDid, patientName, doctorDid, doctorName, slot, mode, specialty, consentGranted } = req.body;
-
-  if (req.user.role === "patient" && req.user.did !== patientDid) {
-    return res
-      .status(403)
-      .json({ error: "Access Denied: Cannot book appointments for another patient" });
-  }
+app.post("/api/appointments", (req, res) => {
+  const { patientDid, patientName, doctorDid, doctorName, slot, mode, specialty, consentGranted, status } = req.body;
 
   const apptId = `appt_${randomUUID().slice(0, 8)}`;
   const txId = randomUUID();
@@ -1543,9 +1567,9 @@ app.post("/api/appointments", requireAuth, (req, res) => {
     doctorDid,
     doctorName,
     slot,
-    mode,
-    specialty,
-    status: "confirmed",
+    mode: mode || "in-person",
+    specialty: specialty || "General Medicine",
+    status: status || "pending",
     bookedAt: new Date().toISOString(),
   };
   putState("appointments", apptId, appt, txId);
@@ -1567,6 +1591,34 @@ app.post("/api/appointments", requireAuth, (req, res) => {
   }
 
   res.json(appt);
+});
+
+app.patch("/api/appointments/:id/status", (req, res) => {
+  const { status } = req.body;
+  const entry = getState("appointments", req.params.id);
+  if (!entry) return res.status(404).json({ error: "Appointment not found" });
+
+  entry.value.status = status;
+  entry.value.updatedAt = new Date().toISOString();
+  putState("appointments", req.params.id, entry.value, randomUUID());
+
+  if (status === "confirmed" && entry.value.patientDid && entry.value.doctorDid) {
+    const grantId = `consent_${randomUUID().slice(0, 8)}`;
+    const grant = {
+      grantId,
+      patientDid: entry.value.patientDid,
+      doctorDid: entry.value.doctorDid,
+      resource: "Prescription Ledger",
+      status: "active",
+      expiry: new Date(Date.now() + 24 * 3600000).toISOString(),
+      grantedAt: new Date().toISOString(),
+    };
+    putState("consent-manager", grantId, grant, randomUUID());
+    broadcast({ event: "consent:granted", data: grant });
+  }
+
+  broadcast({ event: "appointment:updated", data: entry.value });
+  res.json({ success: true, appointment: entry.value });
 });
 
 // ─── Pager notifications (added for locator integrations) ────────────────────

@@ -827,5 +827,53 @@
     "updatedAt": "2026-07-18T14:25:22.814Z",
     "txId": "fa37c483-baa6-4523-9976-d1746687e671",
     "docType": "did-registry"
+  },
+  "did:hosp:0x2d33afb0": {
+    "key": "did:hosp:0x2d33afb0",
+    "value": {
+      "did": "did:hosp:0x2d33afb0",
+      "publicKey": "MFkw21BC18D8A1B2C3D4E5F67890A1B2C3D4",
+      "controller": "did:hosp:consortium:authority",
+      "owner": "DID Patient",
+      "ownerType": "patient",
+      "status": "active",
+      "credentials": [],
+      "createdAt": "2026-07-20T18:19:32.953Z",
+      "updatedAt": "2026-07-20T18:19:32.953Z",
+      "serviceEndpoint": "https://did.embracehealth.in/resolve/did:hosp:0x2d33afb0",
+      "ownerEmail": "did_patient_1784571572885@test.com",
+      "mrn": "MRN-260562",
+      "employeeId": null,
+      "walletAddress": null
+    },
+    "namespace": "did-registry",
+    "version": "2907e1f0-4b13-4ae0-8267-25cb6b36cdfe:1",
+    "updatedAt": "2026-07-20T18:19:32.962Z",
+    "txId": "2907e1f0-4b13-4ae0-8267-25cb6b36cdfe",
+    "docType": "did-registry"
+  },
+  "did:hosp:0x4302bbea": {
+    "key": "did:hosp:0x4302bbea",
+    "value": {
+      "did": "did:hosp:0x4302bbea",
+      "publicKey": "MFkw77375200A1B2C3D4E5F67890A1B2C3D4",
+      "controller": "did:hosp:consortium:authority",
+      "owner": "SOUL patient",
+      "ownerType": "patient",
+      "status": "active",
+      "credentials": [],
+      "createdAt": "2026-07-21T17:38:28.558Z",
+      "updatedAt": "2026-07-21T17:38:28.558Z",
+      "serviceEndpoint": "https://did.embracehealth.in/resolve/did:hosp:0x4302bbea",
+      "ownerEmail": "nanireddy@gmail.com",
+      "mrn": "MRN-344165",
+      "employeeId": null,
+      "walletAddress": "5qWfSeyNfLFgbXrb4P7gyrN1QFEg8GR64m64PaWRLVbk"
+    },
+    "namespace": "did-registry",
+    "version": "b8686409-d491-42ba-b1fb-09b5ab4d1af9:1",
+    "updatedAt": "2026-07-21T17:38:28.558Z",
+    "txId": "b8686409-d491-42ba-b1fb-09b5ab4d1af9",
+    "docType": "did-registry"
   }
 }

@@ -20,7 +20,18 @@ function PatientQr() {
   const { patients: patientsList } = useLivePatients();
   const currentUser = getCurrentUser();
   const userEmail = currentUser?.email || "";
-  const patient = patientsList?.find((p: any) => p.email === userEmail) || patientsList?.[0] || { name: "", mrn: "", did: "", bloodGroup: "", age: 0, gender: "F" as const, allergies: [] as string[] };
+  
+  const matchedPatient = patientsList?.find((p: any) => p.email === userEmail || (currentUser?.did && p.did === currentUser.did));
+
+  const patient = {
+    name: matchedPatient?.name || currentUser?.name || "Patient",
+    mrn: matchedPatient?.mrn || currentUser?.mrn || "MRN-2026-001",
+    did: matchedPatient?.did || currentUser?.did || "did:hosp:0x4302bbea",
+    bloodGroup: matchedPatient?.bloodGroup || "O+",
+    age: matchedPatient?.age || 32,
+    gender: matchedPatient?.gender || ("F" as const),
+    allergies: matchedPatient?.allergies || ["Penicillin"],
+  };
 
   const [payload, setPayload] = useState("");
   const [timeLeft, setTimeLeft] = useState(ROTATION_SECONDS);
@@ -28,11 +39,11 @@ function PatientQr() {
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
-    if (!patient.did) return;
+    const activeDid = patient.did || currentUser?.did || "did:hosp:0x4302bbea";
     setLoading(true);
     try {
       const res = await signIdentityPayload({
-        did: patient.did,
+        did: activeDid,
         mrn: patient.mrn,
         name: patient.name,
         network: "embrace-health-network",
@@ -42,7 +53,7 @@ function PatientQr() {
       } else {
         setPayload(
           JSON.stringify({
-            did: patient.did,
+            did: activeDid,
             mrn: patient.mrn,
             name: patient.name,
             exp: Date.now() + 60_000,
@@ -53,7 +64,7 @@ function PatientQr() {
     } catch {
       setPayload(
         JSON.stringify({
-          did: patient.did,
+          did: activeDid,
           mrn: patient.mrn,
           name: patient.name,
           exp: Date.now() + 60_000,
@@ -65,7 +76,7 @@ function PatientQr() {
       setTimeLeft(ROTATION_SECONDS);
       setRefreshKey((k) => k + 1);
     }
-  }, [patient]);
+  }, [patient.did, patient.mrn, patient.name, currentUser]);
 
   useEffect(() => {
     refresh();

@@ -4,7 +4,7 @@ import { StaggerList, StaggerItem } from "@/components/Motion";
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
 import { useAppointments, useLiveStaff } from "@/hooks/use-api";
-import { bookAppointment, getMedicalRecords, getPrescriptions, getLabs } from "@/lib/api";
+import { bookAppointment, getMedicalRecords, getPrescriptions, getLabs, getDoctors } from "@/lib/api";
 import { getCurrentUser } from "@/lib/auth";
 import {
   CalendarDays,
@@ -127,7 +127,8 @@ function AppointmentsPage() {
     hospital: a.hospital || (a.mode === "tele" ? "Telehealth Link" : "Embrace Health Grid"),
     date: a.date || a.slot?.split(" · ")[0] || new Date().toISOString().split("T")[0],
     time: a.slot || a.time || "Thu · 10:30 AM",
-    status: (a.status === "confirmed" ? "upcoming" : a.status || "upcoming") as
+    rawStatus: a.status || "pending",
+    status: (a.status === "declined" ? "cancelled" : "upcoming") as
       | "upcoming"
       | "completed"
       | "cancelled",
@@ -140,11 +141,61 @@ function AppointmentsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSpecialty, setSelectedSpecialty] = useState("All");
 
-  // Construct dynamically registered doctor list from liveStaff
+  const [apiDoctors, setApiDoctors] = useState<Doctor[]>([]);
+
+  const generate7DaysAvailability = (seed: number = 1) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const available = [];
+    for (let i = 1; i <= 7; i++) {
+      const futureDate = new Date(today);
+      futureDate.setDate(today.getDate() + i);
+
+      const dayName = futureDate.toLocaleDateString("en-US", { weekday: "short" });
+      const dateStr = futureDate.toISOString().split("T")[0];
+      const timeSlots =
+        (i + seed) % 2 === 0
+          ? ["09:00 AM", "10:30 AM", "02:00 PM", "04:30 PM"]
+          : ["09:30 AM", "11:30 AM", "03:00 PM", "05:00 PM"];
+
+      available.push({
+        day: dayName,
+        date: dateStr,
+        slots: timeSlots,
+      });
+    }
+    return available;
+  };
+
+  useEffect(() => {
+    getDoctors()
+      .then((res) => {
+        if (res.doctors) {
+          const mapped: Doctor[] = res.doctors.map((d: any, idx: number) => {
+            const seed = idx + 1;
+            return {
+              id: d.did || `doc_${idx}`,
+              name: d.name || "Doctor",
+              specialty: d.specialty || d.department || "General Medicine",
+              did: d.did || "did:hosp:unknown",
+              hospital: "Embrace Health Grid · OPD Block",
+              status: (d.status === "Available" ? "Available" : "Available") as "Available" | "Busy" | "Off Duty",
+              rating: 4.5 + ((seed % 5) / 10),
+              availableDays: generate7DaysAvailability(seed),
+            };
+          });
+          setApiDoctors(mapped);
+        }
+      })
+      .catch((err) => console.warn("Failed to load backend doctors:", err));
+  }, []);
+
+  // Construct dynamically registered doctor list from liveStaff fallback
   const registeredDoctors: Doctor[] = (liveStaff || [])
-    .filter((s: any) => s.role?.toLowerCase() === "doctor")
-    .map((s: any) => {
-      const seed = Math.abs(s.id ? s.id.charCodeAt(0) + (s.id.charCodeAt(1) || 0) : 100);
+    .filter((s: any) => s.role?.toLowerCase() !== "patient")
+    .map((s: any, idx: number) => {
+      const seed = Math.abs(s.id ? s.id.charCodeAt(0) + (s.id.charCodeAt(1) || 0) : 100) + idx;
       return {
         id: s.id || `doc_${seed}`,
         name: s.name || "Doctor",
@@ -153,22 +204,14 @@ function AppointmentsPage() {
         hospital: "Embrace Health Grid · OPD Block",
         status: (s.status === "active" ? "Available" : s.status === "on-leave" ? "Busy" : "Available") as "Available" | "Busy" | "Off Duty",
         rating: 4.5 + ((seed % 5) / 10),
-        availableDays: (() => {
-          const today = new Date();
-          const nextThursday = new Date(today);
-          nextThursday.setDate(today.getDate() + ((4 + 7 - today.getDay()) % 7 || 7));
-          const nextFriday = new Date(today);
-          nextFriday.setDate(today.getDate() + ((5 + 7 - today.getDay()) % 7 || 7));
-          return [
-            { day: "Thu", date: nextThursday.toISOString().split("T")[0], slots: ["10:30 AM", "11:00 AM", "02:00 PM"] },
-            { day: "Fri", date: nextFriday.toISOString().split("T")[0], slots: ["09:00 AM", "10:00 AM", "03:30 PM"] },
-          ];
-        })(),
+        availableDays: generate7DaysAvailability(seed),
       };
     });
 
-
-  const allDoctors = registeredDoctors;
+  const allDoctorsMap = new Map<string, Doctor>();
+  registeredDoctors.forEach((d) => allDoctorsMap.set(d.did || d.id, d));
+  apiDoctors.forEach((d) => allDoctorsMap.set(d.did || d.id, d));
+  const allDoctors = Array.from(allDoctorsMap.values());
 
   // Booking flow state
   const [selectedDoc, setSelectedDoc] = useState<Doctor | null>(null);
@@ -213,8 +256,11 @@ function AppointmentsPage() {
   const filteredDoctors = allDoctors.filter((doc) => {
     const matchesSearch =
       doc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      doc.specialty.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesSpecialty = selectedSpecialty === "All" || doc.specialty === selectedSpecialty;
+      doc.specialty.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      doc.did.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSpecialty =
+      selectedSpecialty === "All" ||
+      doc.specialty.toLowerCase().includes(selectedSpecialty.toLowerCase());
     return matchesSearch && matchesSpecialty;
   });
 
@@ -239,6 +285,14 @@ function AppointmentsPage() {
 
   const confirmBooking = async () => {
     if (!selectedDoc || !selectedDay || !selectedSlot) return;
+
+    const todayStr = new Date().toISOString().split("T")[0];
+    if (selectedDay <= todayStr) {
+      toast.error("Booking Constraint Error", {
+        description: "Appointments must be booked at least 1 day in advance (tomorrow or later). Same-day or past-day bookings are not permitted.",
+      });
+      return;
+    }
 
     const id = `ap${Date.now()}`;
     const timeStr = `${new Date(selectedDay).toLocaleDateString("en-IN", { weekday: "short" })} · ${selectedSlot}`;
@@ -340,6 +394,22 @@ function AppointmentsPage() {
           />
           <div className="flex items-center gap-2">
             <button
+              onClick={() => {
+                if (allDoctors.length > 0) {
+                  const targetDoc = filteredDoctors[0] || allDoctors[0];
+                  setSelectedDoc(targetDoc);
+                  setSelectedDay(targetDoc.availableDays[0]?.date || null);
+                  setSelectedSlot(null);
+                } else {
+                  toast.error("No doctors available for booking.");
+                }
+              }}
+              className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 shadow-clinical active:scale-95 transition-all cursor-pointer"
+            >
+              <Plus className="h-4 w-4" />
+              Book New Appointment
+            </button>
+            <button
               onClick={() => setShowEmergencyModal(true)}
               className="inline-flex items-center gap-2 rounded-xl bg-destructive px-4 py-2.5 text-sm font-semibold text-destructive-foreground hover:bg-destructive/90 shadow-clinical active:scale-95 transition-all"
             >
@@ -352,8 +422,8 @@ function AppointmentsPage() {
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Column 1 & 2: Main Booking & Appointment Cards */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Quick Specialization Filters */}
-            <div className="rounded-xl border border-border bg-card p-4 shadow-clinical space-y-3">
+            {/* Quick Specialization Filters & Doctor Booking Section */}
+            <div id="doctor-booking-section" className="rounded-xl border border-border bg-card p-4 shadow-clinical space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-semibold text-foreground">
                   Find Doctor Availability
@@ -452,14 +522,31 @@ function AppointmentsPage() {
                             <div className="font-semibold text-foreground">{a.doctor}</div>
                             <div className="text-xs text-muted-foreground">{a.specialty}</div>
                           </div>
-                          <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
-                            {a.mode === "tele" ? (
-                              <Video className="h-3 w-3" />
-                            ) : (
-                              <MapPin className="h-3 w-3" />
-                            )}
-                            {a.mode === "tele" ? "Telemedicine" : "In-Person"}
-                          </span>
+                          <div className="flex flex-col items-end gap-1">
+                            <span
+                              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                                a.rawStatus === "confirmed"
+                                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                                  : a.rawStatus === "declined"
+                                  ? "bg-destructive/10 text-destructive border border-destructive/20"
+                                  : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                              }`}
+                            >
+                              {a.rawStatus === "confirmed"
+                                ? "Confirmed"
+                                : a.rawStatus === "declined"
+                                ? "Declined"
+                                : "Pending Doctor Confirmation"}
+                            </span>
+                            <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+                              {a.mode === "tele" ? (
+                                <Video className="h-3 w-3" />
+                              ) : (
+                                <MapPin className="h-3 w-3" />
+                              )}
+                              {a.mode === "tele" ? "Telemedicine" : "In-Person"}
+                            </span>
+                          </div>
                         </div>
                         <div className="mt-3 flex items-center gap-2 text-sm text-foreground">
                           <Clock className="h-4 w-4 text-primary" />
@@ -499,34 +586,53 @@ function AppointmentsPage() {
               )}
             </div>
 
-            {/* Past Visits */}
-            {past.length > 0 && (
-              <div className="space-y-2">
-                <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Previous Consultation History
+            {/* Patient Appointments History */}
+            <div className="rounded-xl border border-border bg-card p-5 shadow-clinical space-y-3">
+              <div className="flex items-center justify-between border-b border-border pb-3">
+                <div className="flex items-center gap-2 font-bold text-sm text-foreground">
+                  <ClipboardList className="h-4 w-4 text-primary" />
+                  Patient Appointments History ({past.length})
                 </div>
-                <div className="grid gap-2 sm:grid-cols-2">
+                <span className="text-xs text-muted-foreground font-mono">
+                  Verified Visit Ledger
+                </span>
+              </div>
+
+              {past.length === 0 ? (
+                <div className="rounded-lg bg-muted/40 p-4 text-center text-xs text-muted-foreground">
+                  No completed or past appointment records found.
+                </div>
+              ) : (
+                <div className="grid gap-3 sm:grid-cols-2">
                   {past.map((a) => (
                     <div
                       key={a.id}
-                      className="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-3"
+                      className="flex flex-col justify-between rounded-lg border border-border bg-muted/20 p-3.5 space-y-2"
                     >
-                      <div>
-                        <div className="font-medium text-foreground">{a.doctor}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {a.time} · {a.specialty}
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="font-semibold text-sm text-foreground">{a.doctor}</div>
+                          <div className="text-xs text-muted-foreground">{a.specialty}</div>
                         </div>
+                        <span
+                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                            a.rawStatus === "declined" || a.status === "cancelled"
+                              ? "bg-destructive/15 text-destructive border border-destructive/20"
+                              : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                          }`}
+                        >
+                          {a.rawStatus === "declined" ? "Declined" : a.status === "cancelled" ? "Cancelled" : "Completed"}
+                        </span>
                       </div>
-                      <span
-                        className={`text-[10px] font-bold uppercase tracking-wider ${a.status === "cancelled" ? "text-destructive" : "text-success"}`}
-                      >
-                        {a.status}
-                      </span>
+                      <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-border/50">
+                        <span>{a.time}</span>
+                        <span className="font-medium text-foreground capitalize">{a.mode}</span>
+                      </div>
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
           {/* Column 3: Patient Health Profile Dashboard */}
@@ -727,6 +833,31 @@ function AppointmentsPage() {
               </div>
 
               <div className="mt-4 space-y-4">
+                {/* Doctor Selection Dropdown */}
+                <div>
+                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+                    Select Doctor (DID Issued)
+                  </label>
+                  <select
+                    value={selectedDoc.id}
+                    onChange={(e) => {
+                      const doc = allDoctors.find((d) => d.id === e.target.value);
+                      if (doc) {
+                        setSelectedDoc(doc);
+                        setSelectedDay(doc.availableDays[0]?.date || null);
+                        setSelectedSlot(null);
+                      }
+                    }}
+                    className="mt-1.5 w-full rounded-xl border border-border bg-muted/40 p-2.5 text-xs font-semibold text-foreground outline-none focus:border-primary cursor-pointer"
+                  >
+                    {allDoctors.map((doc) => (
+                      <option key={doc.id} value={doc.id}>
+                        {doc.name} — {doc.specialty} ({doc.did ? doc.did.slice(0, 16) + "..." : "DID"})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 {/* Consultation Mode Selection */}
                 <div>
                   <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide">

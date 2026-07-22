@@ -19,17 +19,17 @@
     "key": "LOC-INIT",
     "value": {
       "logId": "LOC-INIT",
-      "doctorDid": "did:hosp:0xlogin_do",
+      "doctorDid": "did:hosp:0xnan1",
       "doctorName": "Dr. Staff",
       "roomNumber": "Room 101 - Outpatient Clinic",
       "action": "enter",
-      "timestamp": "2026-07-18T13:20:39.839Z",
-      "hash": "sha256:18a8bb04ce6a3dd8e9c54af5bc7c2430"
+      "timestamp": "2026-07-21T17:04:09.921Z",
+      "hash": "sha256:4a3eac87a1b2c3d4e5f67890a1b2c3d4"
     },
     "namespace": "doctor-locations",
-    "version": "b42d04a1-41a4-4911-97a1-14989ca2301d:1",
-    "updatedAt": "2026-07-18T14:20:39.839Z",
-    "txId": "b42d04a1-41a4-4911-97a1-14989ca2301d",
+    "version": "203d3ab6-5c51-4093-857e-bd64f2b7bbae:1",
+    "updatedAt": "2026-07-21T18:04:09.921Z",
+    "txId": "203d3ab6-5c51-4093-857e-bd64f2b7bbae",
     "docType": "doctor-locations"
   },
   "LOC-MRAXXQ8L": {
@@ -233,6 +233,23 @@
     "version": "df642987-0623-46e2-93b1-0593a6917a76:1",
     "updatedAt": "2026-07-18T14:25:23.218Z",
     "txId": "df642987-0623-46e2-93b1-0593a6917a76",
+    "docType": "doctor-locations"
+  },
+  "LOC-MRTJU6OU": {
+    "key": "LOC-MRTJU6OU",
+    "value": {
+      "logId": "LOC-MRTJU6OU",
+      "doctorDid": "did:hosp:0x7a99d9fe",
+      "doctorName": "Dr. Login",
+      "roomNumber": "Room 302 - Cardiac Ward",
+      "action": "enter",
+      "timestamp": "2026-07-20T18:19:33.342Z",
+      "hash": "sha256:5c4c1e67a1b2c3d4e5f67890a1b2c3d4"
+    },
+    "namespace": "doctor-locations",
+    "version": "a16dcf37-ef47-412b-a5ef-3019cc057206:1",
+    "updatedAt": "2026-07-20T18:19:33.342Z",
+    "txId": "a16dcf37-ef47-412b-a5ef-3019cc057206",
     "docType": "doctor-locations"
   }
 }

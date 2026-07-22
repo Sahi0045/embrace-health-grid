@@ -51,10 +51,40 @@ function PatientHome() {
   const { patients } = useLivePatients();
   const { data: consentsData } = useConsents();
   const { data: apptsData } = useAppointments();
+  const [currentUser, setCurrentUser] = useState(getCurrentUser());
 
-  const userEmail = typeof window !== "undefined" ? localStorage.getItem("userEmail") : "";
-  const userName = typeof window !== "undefined" ? localStorage.getItem("userName") : "";
-  const patientRecord = patients?.find((p: any) => p.email === userEmail);
+  useEffect(() => {
+    getMe()
+      .then((res) => {
+        if (res.user) {
+          const token = localStorage.getItem("authToken") || "";
+          setSession(token, res.user);
+          setCurrentUser(getCurrentUser());
+        }
+      })
+      .catch((err) => console.warn("Could not fetch user profile:", err));
+  }, []);
+
+  const userEmail = currentUser?.email || "";
+  const userName = currentUser?.name || "";
+  const userDID = currentUser?.did || "";
+
+  const patientRecord =
+    patients?.find((p: any) => p.email === userEmail || (userDID && p.did === userDID)) ||
+    (userDID
+      ? {
+          id: userDID,
+          name: userName || "Patient",
+          did: userDID,
+          email: userEmail,
+          mrn: currentUser?.mrn || "MRN-ACTIVE",
+          age: currentUser?.age || 30,
+          gender: currentUser?.gender || "M",
+          bloodGroup: currentUser?.bloodGroup || "O+",
+          allergies: currentUser?.allergies || [],
+          phone: currentUser?.phone || "",
+        }
+      : null);
 
   if (!patientRecord) {
     return (
@@ -120,6 +150,13 @@ function PatientHome() {
           eyebrow="Patient app"
           title={`Good morning, ${patientRecord.name.split(" ")[0]}`}
           description="Your health summary and quick actions"
+          actions={
+            <Button asChild size="sm" className="gap-1.5 shadow-clinical">
+              <Link to="/patient/appointments">
+                <CalendarDays className="h-4 w-4" /> Book Appointment
+              </Link>
+            </Button>
+          }
         />
 
         <StaggerList className="mt-6 space-y-5">

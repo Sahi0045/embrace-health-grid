@@ -199,6 +199,19 @@ export const logAuditEvent = (
 export const getMedicalRecords = (patientDid: string) =>
   apiFetch<{ records: any[]; total: number }>(`/medical-records/${encodeURIComponent(patientDid)}`);
 
+export const createPrescription = (data: {
+  patientDid: string;
+  doctorDid?: string;
+  drugs: any[];
+  diagnosis?: string;
+  notes?: string;
+  signedBy?: string;
+}) =>
+  apiFetch<{ rxId: string; rx: any; txId: string }>(`/prescriptions`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+
 export const createMedicalRecord = (
   patientDid: string,
   data: { title: string; type: string; content: string; doctorDid?: string; doctorName?: string },
@@ -633,9 +646,15 @@ export const submitInsuranceClaim = (data: {
 export const getVaccines = (patientDid: string) =>
   apiFetch<{ vaccines: any[]; total: number }>(`/vaccines/${encodeURIComponent(patientDid)}`);
 
-// ─── Doctors ──────────────────────────────────────────────────────────────
+// ─── Doctors & Appointments ────────────────────────────────────────────────
 export const getDoctors = () =>
   apiFetch<{ doctors: any[]; total: number }>(`/doctors`);
+
+export const updateAppointmentStatus = (id: string, status: "confirmed" | "declined" | "cancelled") =>
+  apiFetch<{ success: boolean; appointment: any }>(`/appointments/${encodeURIComponent(id)}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  });
 
 // ─── Inpatient ────────────────────────────────────────────────────────────
 export const getInpatientData = (patientDid: string) =>

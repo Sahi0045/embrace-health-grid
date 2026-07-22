@@ -152,5 +152,19 @@
     "updatedAt": "2026-07-18T14:25:23.228Z",
     "txId": "f7232244-9bce-4d3b-b0b2-c600ee6d29ee",
     "docType": "doctor-location-roots"
+  },
+  "did:hosp:0x7a99d9fe": {
+    "key": "did:hosp:0x7a99d9fe",
+    "value": {
+      "doctorDid": "did:hosp:0x7a99d9fe",
+      "merkleRoot": "3db0b9ad86a939945b79af5d334c0f62c67741019275f3381c16158df5712ebb",
+      "lastUpdated": "2026-07-20T18:19:33.342Z",
+      "signature": "solana_loc_3db0b9ad86a9_mrtju6ow"
+    },
+    "namespace": "doctor-location-roots",
+    "version": "461c7b06-5359-4cd5-9e0e-dc7f4ccf4f8e:1",
+    "updatedAt": "2026-07-20T18:19:33.364Z",
+    "txId": "461c7b06-5359-4cd5-9e0e-dc7f4ccf4f8e",
+    "docType": "doctor-location-roots"
   }
 }

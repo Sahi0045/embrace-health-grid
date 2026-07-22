@@ -2027,5 +2027,125 @@
     "updatedAt": "2026-07-18T14:25:23.219Z",
     "txId": "c7378d12-7737-44c6-b208-b1363f610d38",
     "docType": "users"
+  },
+  "test_patient_1784571572471@test.com": {
+    "key": "test_patient_1784571572471@test.com",
+    "value": {
+      "name": "Test Patient Nithin",
+      "email": "test_patient_1784571572471@test.com",
+      "password": "$2b$10$RI0lk/6E5sZflmdOi506mOcrUHAOy8b9HhMc3xT4wFtxIERHGqq6W",
+      "role": "patient",
+      "did": null,
+      "createdAt": "2026-07-20T18:19:32.730Z"
+    },
+    "namespace": "users",
+    "version": "027777ca-8ea5-4d74-baee-5db23e069607:1",
+    "updatedAt": "2026-07-20T18:19:32.730Z",
+    "txId": "027777ca-8ea5-4d74-baee-5db23e069607",
+    "docType": "users"
+  },
+  "login_patient_1784571572740@test.com": {
+    "key": "login_patient_1784571572740@test.com",
+    "value": {
+      "name": "Login Patient",
+      "email": "login_patient_1784571572740@test.com",
+      "password": "$2b$10$xgXZCPxGmprHGS9UI/S0buTvPHhA2xo1x7YbDB69vePC24cYT.5JG",
+      "role": "patient",
+      "did": null,
+      "createdAt": "2026-07-20T18:19:32.803Z",
+      "walletAddress": "HkoAGU7o9sjeeiCyXHtNG25ccKytXaNuCjVrWVtMZ5BV"
+    },
+    "namespace": "users",
+    "version": "29589935-1cad-47e6-b838-26a453fc8986:1",
+    "updatedAt": "2026-07-20T18:19:32.879Z",
+    "txId": "29589935-1cad-47e6-b838-26a453fc8986",
+    "docType": "users"
+  },
+  "did_patient_1784571572885@test.com": {
+    "key": "did_patient_1784571572885@test.com",
+    "value": {
+      "name": "DID Patient",
+      "email": "did_patient_1784571572885@test.com",
+      "password": "$2b$10$3x.FCqNRqgaNG9LIBpsrvu/ina9g1weH/ctxDbxfMiOmfCA/zFlNi",
+      "role": "patient",
+      "did": "did:hosp:0x2d33afb0",
+      "createdAt": "2026-07-20T18:19:32.948Z",
+      "mrn": "MRN-260562"
+    },
+    "namespace": "users",
+    "version": "a5afd378-08c1-4358-b14e-c43ff8b07feb:1",
+    "updatedAt": "2026-07-20T18:19:32.963Z",
+    "txId": "a5afd378-08c1-4358-b14e-c43ff8b07feb",
+    "docType": "users"
+  },
+  "test_doctor_1784571573042@test.com": {
+    "key": "test_doctor_1784571573042@test.com",
+    "value": {
+      "name": "Dr. Test Nithin",
+      "email": "test_doctor_1784571573042@test.com",
+      "password": "$2b$10$PhglXidMRANdWPDeZI5sauvuKsKgaMkWMJtsQ92JyW3IVjnRaDFBq",
+      "role": "staff",
+      "did": null,
+      "createdAt": "2026-07-20T18:19:33.107Z"
+    },
+    "namespace": "users",
+    "version": "c429121e-942b-42ac-ba8d-b8d5270031f1:1",
+    "updatedAt": "2026-07-20T18:19:33.107Z",
+    "txId": "c429121e-942b-42ac-ba8d-b8d5270031f1",
+    "docType": "users"
+  },
+  "login_doctor_1784571573111@test.com": {
+    "key": "login_doctor_1784571573111@test.com",
+    "value": {
+      "name": "Dr. Login",
+      "email": "login_doctor_1784571573111@test.com",
+      "password": "$2b$10$3MksVSoxkGJFcfsrBxo.2ejvLhRfW2K1KVh08UHPYWNijZXNoYVmW",
+      "role": "staff",
+      "did": null,
+      "createdAt": "2026-07-20T18:19:33.179Z",
+      "activeRoom": "Room 302 - Cardiac Ward",
+      "roomStatus": "enter",
+      "lastLocationChange": "2026-07-20T18:19:33.342Z"
+    },
+    "namespace": "users",
+    "version": "9f7181f7-a914-479e-bd8d-e1030932e1cb:1",
+    "updatedAt": "2026-07-20T18:19:33.342Z",
+    "txId": "9f7181f7-a914-479e-bd8d-e1030932e1cb",
+    "docType": "users"
+  },
+  "nanireddy@gmail.com": {
+    "key": "nanireddy@gmail.com",
+    "value": {
+      "name": "SOUL patient",
+      "email": "nanireddy@gmail.com",
+      "password": "$2b$10$6uRglFK1//EgKWOm8uAkkOFBppBfAZBBIYjV06R7qtLXqypNXZpwa",
+      "role": "patient",
+      "did": "did:hosp:0x4302bbea",
+      "createdAt": "2026-07-21T17:32:12.219Z",
+      "walletAddress": "5qWfSeyNfLFgbXrb4P7gyrN1QFEg8GR64m64PaWRLVbk",
+      "mrn": "MRN-344165"
+    },
+    "namespace": "users",
+    "version": "735d0e86-e8fc-4b30-a5b4-80e3a45074a1:1",
+    "updatedAt": "2026-07-21T17:38:28.560Z",
+    "txId": "735d0e86-e8fc-4b30-a5b4-80e3a45074a1",
+    "docType": "users"
+  },
+  "nan1@gmail.com": {
+    "key": "nan1@gmail.com",
+    "value": {
+      "name": "DR.SOUL",
+      "email": "nan1@gmail.com",
+      "password": "$2b$10$lKgag1DSIa3AagkZBOzCQOoE/UVwkkj0.Bk7YUQOBN2SUN/.2.L3e",
+      "role": "staff",
+      "did": null,
+      "createdAt": "2026-07-21T17:45:34.567Z",
+      "walletAddress": "CtXc1yyNCT7rKKuuJU1iEjRrEmUzPJ2K7Hzqa4vhhoZc"
+    },
+    "namespace": "users",
+    "version": "295854a4-1e1e-4ed9-907a-e90c3eb9d7f7:1",
+    "updatedAt": "2026-07-21T17:49:35.001Z",
+    "txId": "295854a4-1e1e-4ed9-907a-e90c3eb9d7f7",
+    "docType": "users"
   }
 }

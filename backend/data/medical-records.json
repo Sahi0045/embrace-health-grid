@@ -3,54 +3,54 @@
     "key": "REC-INITIAL-DISCHARGE",
     "value": {
       "recordId": "REC-INITIAL-DISCHARGE",
-      "patientDid": "did:hosp:0x4ba0999d",
+      "patientDid": "did:hosp:0x4302bbea",
       "title": "Initial Discharge Summary",
       "type": "discharge-summary",
       "content": "Patient admitted with symptoms of angina. Angiography showed clear coronary pathways. Discharged with beta-blockers.",
       "doctorName": "Dr. Ravi Menon",
-      "createdAt": "2026-06-03T09:32:27.931Z",
-      "hash": "sha256:d8c0b564ba2ceaf"
+      "createdAt": "2026-06-21T18:33:55.735Z",
+      "hash": "sha256:d8c0b56ac299d30"
     },
     "namespace": "medical-records",
-    "version": "7d9fcc94-01fe-4f77-8195-a9c9ad903643:1",
-    "updatedAt": "2026-07-03T09:32:27.932Z",
-    "txId": "7d9fcc94-01fe-4f77-8195-a9c9ad903643",
+    "version": "7b19827d-a38d-425a-b86a-f3b634279ea5:1",
+    "updatedAt": "2026-07-21T18:33:55.736Z",
+    "txId": "7b19827d-a38d-425a-b86a-f3b634279ea5",
     "docType": "medical-records"
   },
   "REC-INITIAL-ECG": {
     "key": "REC-INITIAL-ECG",
     "value": {
       "recordId": "REC-INITIAL-ECG",
-      "patientDid": "did:hosp:0x4ba0999d",
+      "patientDid": "did:hosp:0x4302bbea",
       "title": "Routine ECG Diagnostic",
       "type": "imaging",
       "content": "Sinus rhythm at 72 bpm. Ejection fraction at 60%. Cardiomegaly ruled out.",
       "doctorName": "Dr. Ravi Menon",
-      "createdAt": "2026-06-18T09:32:27.931Z",
-      "hash": "sha256:d8c0b56a7ec13bd"
+      "createdAt": "2026-07-06T18:33:55.735Z",
+      "hash": "sha256:d8c0b56f6aeb184"
     },
     "namespace": "medical-records",
-    "version": "cb234ea4-f5b6-44f5-b1ae-43fbf2132b25:1",
-    "updatedAt": "2026-07-03T09:32:27.941Z",
-    "txId": "cb234ea4-f5b6-44f5-b1ae-43fbf2132b25",
+    "version": "8321eba9-ca1e-4c6d-915a-bcfeef5e7d59:1",
+    "updatedAt": "2026-07-21T18:33:55.738Z",
+    "txId": "8321eba9-ca1e-4c6d-915a-bcfeef5e7d59",
     "docType": "medical-records"
   },
   "REC-INITIAL-LIPID": {
     "key": "REC-INITIAL-LIPID",
     "value": {
       "recordId": "REC-INITIAL-LIPID",
-      "patientDid": "did:hosp:0x4ba0999d",
+      "patientDid": "did:hosp:0x4302bbea",
       "title": "Standard Lipid Panel",
       "type": "lab-report",
       "content": "Total Cholesterol: 180 mg/dL, HDL: 45 mg/dL, LDL: 92 mg/dL. Triglycerides normal.",
       "doctorName": "Dr. Sameer Khan",
-      "createdAt": "2026-06-26T09:32:27.931Z",
-      "hash": "sha256:d8c0b569346b740"
+      "createdAt": "2026-07-14T18:33:55.735Z",
+      "hash": "sha256:d8c0b565281d58b"
     },
     "namespace": "medical-records",
-    "version": "e4381e79-e8d6-421d-991e-ca8af19c65b2:1",
-    "updatedAt": "2026-07-03T09:32:27.959Z",
-    "txId": "e4381e79-e8d6-421d-991e-ca8af19c65b2",
+    "version": "07968c74-b182-4a25-999c-4d6f5eca79f9:1",
+    "updatedAt": "2026-07-21T18:33:55.739Z",
+    "txId": "07968c74-b182-4a25-999c-4d6f5eca79f9",
     "docType": "medical-records"
   },
   "MR-SEED-1": {
@@ -355,6 +355,25 @@
     "version": "e2f95bb1-f8a4-42df-a8c7-09121dfa2f80:1",
     "updatedAt": "2026-07-18T14:25:23.154Z",
     "txId": "e2f95bb1-f8a4-42df-a8c7-09121dfa2f80",
+    "docType": "medical-records"
+  },
+  "REC-MRTJU6MP": {
+    "key": "REC-MRTJU6MP",
+    "value": {
+      "recordId": "REC-MRTJU6MP",
+      "patientDid": "did:hosp:0x2d33afb0",
+      "title": "Blood Analysis Summary",
+      "type": "lab-report",
+      "content": "Hemoglobin 14.2 g/dL. All other values within normal reference range.",
+      "doctorDid": "did:hosp:unknown",
+      "doctorName": "Dr. Login",
+      "createdAt": "2026-07-20T18:19:33.265Z",
+      "hash": "sha256:d5c43927f119c5af9d44c6eb6f7cab7ee6596fe5bff98dc71f0be18f6fe47468"
+    },
+    "namespace": "medical-records",
+    "version": "82bf3f70-4388-408b-8f5a-f4cd6f15b4a9:1",
+    "updatedAt": "2026-07-20T18:19:33.273Z",
+    "txId": "82bf3f70-4388-408b-8f5a-f4cd6f15b4a9",
     "docType": "medical-records"
   }
 }

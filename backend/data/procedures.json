@@ -3,7 +3,7 @@
     "key": "proc1",
     "value": {
       "id": "proc1",
-      "patientDid": "did:hosp:0x643a3a37",
+      "patientDid": "pat_001",
       "name": "Coronary Angiography",
       "scheduledDate": "2026-05-28",
       "scheduledTime": "10:00",
@@ -15,16 +15,16 @@
       "requiresFasting": true
     },
     "namespace": "procedures",
-    "version": "6dfc6f43-024d-4c13-bb47-f1e6416b9ddc:1",
-    "updatedAt": "2026-07-03T16:41:44.576Z",
-    "txId": "6dfc6f43-024d-4c13-bb47-f1e6416b9ddc",
+    "version": "8b999a79-e7b9-4e14-b408-72147b91c1cc:1",
+    "updatedAt": "2026-07-21T17:58:59.446Z",
+    "txId": "8b999a79-e7b9-4e14-b408-72147b91c1cc",
     "docType": "procedures"
   },
   "proc2": {
     "key": "proc2",
     "value": {
       "id": "proc2",
-      "patientDid": "did:hosp:0x643a3a37",
+      "patientDid": "pat_001",
       "name": "Echocardiogram",
       "scheduledDate": "2026-05-31",
       "scheduledTime": "09:30",
@@ -33,16 +33,16 @@
       "requiresFasting": false
     },
     "namespace": "procedures",
-    "version": "81bc72f8-4a2a-4b9b-a744-4b98cf361557:1",
-    "updatedAt": "2026-07-03T16:41:44.576Z",
-    "txId": "81bc72f8-4a2a-4b9b-a744-4b98cf361557",
+    "version": "9c01e740-33ae-4151-aa87-a555e2d0d093:1",
+    "updatedAt": "2026-07-21T17:58:59.446Z",
+    "txId": "9c01e740-33ae-4151-aa87-a555e2d0d093",
     "docType": "procedures"
   },
   "proc3": {
     "key": "proc3",
     "value": {
       "id": "proc3",
-      "patientDid": "did:hosp:0x643a3a37",
+      "patientDid": "pat_001",
       "name": "Stress Test",
       "scheduledDate": "2026-06-01",
       "scheduledTime": "11:00",
@@ -52,9 +52,9 @@
       "requiresFasting": false
     },
     "namespace": "procedures",
-    "version": "69bc0667-73dd-473a-b7d2-4e3de730b778:1",
-    "updatedAt": "2026-07-03T16:41:44.576Z",
-    "txId": "69bc0667-73dd-473a-b7d2-4e3de730b778",
+    "version": "12780eed-ee29-4df1-b148-2f0f9927be19:1",
+    "updatedAt": "2026-07-21T17:58:59.447Z",
+    "txId": "12780eed-ee29-4df1-b148-2f0f9927be19",
     "docType": "procedures"
   }
 }
