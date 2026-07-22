@@ -62,18 +62,25 @@ function StaffVisitors() {
   const fetchAllVisitors = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await getNamespace("visitors");
-      // Map worldstate state entry to Visitor object
-      const list = (data || []).map((entry: any) => entry.value) as Visitor[];
-      setVisitors(list);
+      const allDids = (patientsList || []).map((p) => p.did).filter(Boolean);
+      if (allDids.length === 0) {
+        const data = await getNamespace("visitors");
+        const list = (data || []).map((entry: any) => entry.value) as Visitor[];
+        setVisitors(list);
+      } else {
+        const { getVisitors } = await import("@/lib/api");
+        const results = await Promise.all(allDids.map((did) => getVisitors(did).catch(() => ({ visitors: [] }))));
+        const list = results.flatMap((r) => (r.visitors ?? []) as Visitor[]);
+        setVisitors(list);
+      }
     } catch (err: any) {
       toast.error("Failed to load visitor directory", {
-        description: err.message || "Error reading visitors state namespace.",
+        description: err.message || "Error reading visitors.",
       });
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [patientsList]);
 
   useEffect(() => {
     fetchAllVisitors();

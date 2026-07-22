@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader, StatCard } from "@/components/PageHeader";
 import { RouteGuard } from "@/components/RouteGuard";
 import { useState, useEffect } from "react";
-import { getStaffSchedule, createStaffRequest } from "@/lib/api";
+import { getStaffSchedule, createStaffRequest, getAppointments } from "@/lib/api";
 import { getCurrentUser } from "@/lib/auth";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -74,25 +74,7 @@ interface Shift {
   confirmed: boolean;
 }
 
-// Dynamic shifts loaded from staff schedule API
 
-const upcoming = [
-  {
-    date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-    label: "Grand Rounds — Cardiology",
-    type: "meeting",
-  },
-  {
-    date: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-    label: "CME: Heart Failure 2026",
-    type: "education",
-  },
-  {
-    date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-    label: "On-Call (weekend)",
-    type: "on-call",
-  },
-];
 
 const shiftConfig: Record<
   ShiftType,
@@ -339,6 +321,25 @@ function SchedulePage() {
       .finally(() => setLoading(false));
   }, [staffEmail]);
 
+  const [upcomingEvents, setUpcomingEvents] = useState<{ date: string; label: string; type: string }[]>([]);
+  useEffect(() => {
+    getAppointments()
+      .then((res) => {
+        const doctorDid = currentUser?.did || "";
+        const appointments = (res.appointments ?? []) as any[];
+        const relevant = appointments
+          .filter((a: any) => !doctorDid || a.doctorDid === doctorDid || a.doctorName === currentUser?.name)
+          .slice(0, 8)
+          .map((a: any) => ({
+            date: a.date ?? a.slot?.split("T")[0] ?? "—",
+            label: `${a.patientName ?? "Patient"} — ${a.specialty ?? a.mode ?? "Consultation"}`,
+            type: a.mode === "tele" ? "education" : "meeting",
+          }));
+        setUpcomingEvents(relevant);
+      })
+      .catch(() => {});
+  }, [staffEmail]);
+
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
   const scheduledShifts = weekShifts.filter(
     (s) => s.role !== "Off" && s.role !== "Leave" && s.start !== "—",
@@ -503,7 +504,9 @@ function SchedulePage() {
             Upcoming Events
           </div>
           <div className="space-y-2">
-            {upcoming.map((e, i) => (
+            {upcomingEvents.length === 0 ? (
+              <div className="py-4 text-center text-xs text-muted-foreground">No upcoming appointments</div>
+            ) : upcomingEvents.map((e, i) => (
               <div key={i} className="flex items-center gap-3 rounded-lg bg-muted/50 px-3 py-2.5">
                 <div
                   className={`h-2 w-2 rounded-full ${e.type === "on-call" ? "bg-destructive" : e.type === "education" ? "bg-primary" : "bg-chart-2"}`}

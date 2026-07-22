@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { RouteGuard } from "@/components/RouteGuard";
 import { PageHeader, StatCard } from "@/components/PageHeader";
 import { StaggerList, StaggerItem } from "@/components/Motion";
-import { useLivePatients, useAmbulances } from "@/hooks/use-api";
+import { useLivePatients, useAmbulances, useFraudAlerts } from "@/hooks/use-api";
 import { useBeds } from "@/hooks/use-api";
 import {
   AlertTriangle,
@@ -27,28 +27,7 @@ export const Route = createFileRoute("/staff/command")({
   component: StaffCommandCenter,
 });
 
-// Dynamic pendingSignatures and todayProcedures loaded from database APIs
 
-const emergencyAlerts = [
-  {
-    id: "ea1",
-    msg: "Code Blue — ICU Bed B-07 — Anika Sharma",
-    severity: "critical",
-    time: "2 min ago",
-  },
-  {
-    id: "ea2",
-    msg: "Ambulance MH-01-AM-1003 arriving in 8 min (trauma case)",
-    severity: "warning",
-    time: "5 min ago",
-  },
-  {
-    id: "ea3",
-    msg: "Blood bank: O- critically low (<2 units)",
-    severity: "warning",
-    time: "12 min ago",
-  },
-];
 
 function UrgencyDot({ urgency }: { urgency: string }) {
   const cls =
@@ -66,6 +45,18 @@ function StaffCommandCenter() {
   const { data: ambulancesData } = useAmbulances();
   const allBeds = bedsData?.beds ?? [];
   const allAmbulances = ambulancesData?.ambulances ?? [];
+  const { data: fraudData } = useFraudAlerts();
+
+  const liveAlerts: { id: string; msg: string; severity: string; time: string }[] =
+    (fraudData?.alerts ?? []).map((a: any) => ({
+    id: a.alertId ?? a.id ?? String(Math.random()),
+    msg: a.message ?? `${a.type ?? "Alert"} — ${a.affectedResource ?? "System"}`,
+    severity: a.riskScore >= 80 ? "critical" : "warning",
+    time: a.detectedAt
+      ? new Date(a.detectedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+      : "—",
+  }));
+
   const icuBeds = allBeds.filter((b: any) => b.type === "icu").slice(0, 8);
   const criticalPatients = livePatients.filter((p) => {
     return (
@@ -187,7 +178,7 @@ function StaffCommandCenter() {
           <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-1">
             Live Alerts
           </div>
-          {emergencyAlerts.map((a) => (
+          {liveAlerts.map((a) => (
             <StaggerItem key={a.id}>
               <motion.div
                 className={`flex items-center gap-3 rounded-xl border px-4 py-3 ${a.severity === "critical" ? "border-destructive/30 bg-destructive/5" : "border-warning/30 bg-warning/5"}`}

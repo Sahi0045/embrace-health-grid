@@ -29,6 +29,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { signPrescription, logAuditEvent, requestConsent } from "@/lib/api";
+import { usePrescriptions, useLivePatients } from "@/hooks/use-api";
+import { getCurrentUser } from "@/lib/auth";
 
 export const Route = createFileRoute("/staff/sign")({
   head: () => ({ meta: [{ title: "Staff · Sign & Prescribe — Embrace Health Grid" }] }),
@@ -92,44 +94,7 @@ const durationOptions = [
   "Until review",
 ];
 
-const recentPrescriptions: RecentPrescription[] = [
-  {
-    id: "PR-9821",
-    patient: "Anika Sharma",
-    mrn: "MRN-204871",
-    drugs: ["Atorvastatin 20mg", "Aspirin 75mg"],
-    signedAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toLocaleString().replace(/\//g, "-"),
-    hash: "0x9f3a…c821",
-    status: "active",
-  },
-  {
-    id: "PR-9820",
-    patient: "Rohan Iyer",
-    mrn: "MRN-201440",
-    drugs: ["Metformin 500mg", "Pantoprazole 40mg", "Atenolol 50mg"],
-    signedAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toLocaleString().replace(/\//g, "-"),
-    hash: "0x7b2e…a419",
-    status: "dispensed",
-  },
-  {
-    id: "PR-9818",
-    patient: "Meera Pillai",
-    mrn: "MRN-200788",
-    drugs: ["Losartan 50mg"],
-    signedAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toLocaleString().replace(/\//g, "-"),
-    hash: "0x4a1c…f830",
-    status: "active",
-  },
-  {
-    id: "PR-9815",
-    patient: "Karthik Rao",
-    mrn: "MRN-199320",
-    drugs: ["Furosemide 40mg", "Spironolactone 25mg", "Ramipril 5mg"],
-    signedAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toLocaleString().replace(/\//g, "-"),
-    hash: "0x2d0f…b994",
-    status: "dispensed",
-  },
-];
+
 
 const statusConfig = {
   active: { bg: "bg-primary/10", text: "text-primary" },
@@ -302,32 +267,48 @@ function SignPage() {
     txId: string;
     hash: string;
   } | null>(null);
-  const [patient] = useState({
-    name: "Anika Sharma",
-    mrn: "MRN-204871",
-    dob: "1982-03-14",
-    ward: "Cardiology Ward 4A",
-    did: "did:hosp:0x1a2b…9c00",
-  });
+
+  const [showRecent, setShowRecent] = useState(true);
+
+  const { data: rxData } = usePrescriptions();
+  const recentPrescriptions: RecentPrescription[] = ((rxData?.prescriptions ?? []) as any[])
+    .filter((rx: any) => rx.signed || rx.status === "signed")
+    .slice(0, 10)
+    .map((rx: any) => ({
+      id: rx.rxId ?? rx.id ?? "—",
+      patient: rx.patientName ?? rx.patientDid ?? "Unknown",
+      mrn: rx.mrn ?? "—",
+      drugs: Array.isArray(rx.drugs) ? rx.drugs.map((d: any) => d.name ?? d) : [],
+      signedAt: rx.signedAt ?? rx.date ?? "—",
+      hash: rx.txId ? `sha256:${rx.txId.slice(0, 8)}…` : "—",
+      status: (rx.status === "dispensed" ? "dispensed" : "active") as "active" | "dispensed" | "expired",
+    }));
+
+  const { patients: livePatients = [] } = useLivePatients();
+  const patientList = livePatients.map((p) => ({
+    name: p.name || "Unknown",
+    mrn: p.mrn || "—",
+    dob: p.dob || "—",
+    ward: p.ward || "—",
+    did: p.did || "",
+  }));
+
+  const [selectedPatientIdx, setSelectedPatientIdx] = useState(0);
+  const patient = patientList[selectedPatientIdx] ?? { name: "—", mrn: "—", dob: "—", ward: "—", did: "" };
+
   const [diagnosis, setDiagnosis] = useState(
     "Dyslipidaemia with cardiovascular risk — statin therapy initiated",
   );
   const [notes, setNotes] = useState("");
-  const [showRecent, setShowRecent] = useState(true);
 
   // ─── Consent request state ──────────────────────────────────────────────────
   const [consentResource, setConsentResource] = useState("Medical Records");
   const [consentReason, setConsentReason] = useState("");
   const [sendingConsent, setSendingConsent] = useState(false);
 
-  const doctorDid =
-    typeof window !== "undefined"
-      ? (localStorage.getItem("userDID") ?? "did:hosp:staff:current")
-      : "did:hosp:staff:current";
-  const doctorName =
-    typeof window !== "undefined"
-      ? (localStorage.getItem("userName") ?? "Dr. Ravi Menon")
-      : "Dr. Ravi Menon";
+  const currentUser = getCurrentUser();
+  const doctorDid = currentUser?.did ?? (typeof window !== "undefined" ? localStorage.getItem("userDID") ?? "" : "");
+  const doctorName = currentUser?.name ?? (typeof window !== "undefined" ? localStorage.getItem("userName") ?? "Doctor" : "Doctor");
 
   const handleRequestConsent = async () => {
     if (!consentReason.trim()) {
@@ -375,7 +356,7 @@ function SignPage() {
       // Local signing path using the backend REST API.
       const result = await signPrescription({
         patientDid: patient.did,
-        doctorDid: "did:hosp:0xd103…99aa",
+        doctorDid,
         drugs: drugs.map((d) => ({
           name: d.name,
           dose: d.dose,
@@ -385,7 +366,7 @@ function SignPage() {
         })),
         diagnosis,
         notes,
-        signedBy: "Dr. Ravi Menon",
+        signedBy: doctorName,
       });
       const res = result as { rxId: string; txId: string; blockNumber?: number };
       setSignedBlock({
@@ -395,7 +376,7 @@ function SignPage() {
         hash: `sha256:${res.txId.slice(0, 16)}…`,
       });
       await logAuditEvent(
-        "Dr. Ravi Menon",
+        doctorName,
         `Prescription ${res.rxId}`,
         "signed",
         "success",
