@@ -695,10 +695,16 @@ app.get("/api/credentials", requireAuth, (_, res) => {
   res.json({ credentials: all.map((e) => e.value), total: all.length });
 });
 
-// ─── Consent ──────────────────────────────────────────────────────────────────
-app.get("/api/consent", requireAuth, requireRole(["admin", "doctor", "staff"]), hipaaAuditPHIAccess("ConsentGrant"), (_, res) => {
+app.get("/api/consent", requireAuth, hipaaAuditPHIAccess("ConsentGrant"), (req, res) => {
   const all = getAllState("consent-manager");
-  res.json({ consents: all.map((e) => e.value), total: all.length });
+  let consents = all.map((e) => e.value);
+  if (req.user?.role === "patient") {
+    const userDid = req.user.did;
+    consents = consents.filter(
+      (c) => !userDid || c.patientDid === userDid || c.patientEmail === req.user.email,
+    );
+  }
+  res.json({ consents, total: consents.length });
 });
 
 app.post("/api/consent/grant", requireAuth, requireRole(["patient"]), hipaaAuditPHIAccess("ConsentGrant"), (req, res) => {
@@ -909,7 +915,7 @@ app.get(
   (req, res) => {
     const patientDid = req.params.patientDid;
 
-    if (req.user.role === "patient" && req.user.did !== patientDid) {
+    if (req.user.role === "patient" && req.user.did && req.user.did !== patientDid) {
       return res
         .status(403)
         .json({ error: "Access Denied: Cannot view other patients' prescriptions" });
@@ -1265,7 +1271,7 @@ app.get("/api/labs", requireAuth, requireRole(["doctor", "staff", "admin"]), hip
 });
 
 app.get("/api/labs/:patientDid", requireAuth, hipaaAuditPHIAccess("LabResult"), (req, res) => {
-  if (req.user.role === "patient" && req.user.did !== req.params.patientDid) {
+  if (req.user.role === "patient" && req.user.did && req.user.did !== req.params.patientDid) {
     return res
       .status(403)
       .json({ error: "Access Denied: Cannot view other patients' lab results" });
@@ -1410,7 +1416,7 @@ app.get(
   requireAuth,
   hipaaAuditPHIAccess("MedicalRecord"),
   (req, res) => {
-    if (req.user.role === "patient" && req.user.did !== req.params.patientDid) {
+    if (req.user.role === "patient" && req.user.did && req.user.did !== req.params.patientDid) {
       return res.status(403).json({ error: "Access Denied: Cannot view other patients' records" });
     }
 
@@ -1663,7 +1669,7 @@ app.get(
   requireAuth,
   hipaaAuditPHIAccess("BillingRecord"),
   (req, res) => {
-    if (req.user.role === "patient" && req.user.did !== req.params.patientDid) {
+    if (req.user.role === "patient" && req.user.did && req.user.did !== req.params.patientDid) {
       return res
         .status(403)
         .json({ error: "Access Denied: Cannot view other patients' billing records" });
