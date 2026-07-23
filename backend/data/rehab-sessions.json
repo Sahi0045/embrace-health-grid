@@ -1,15 +1,7 @@
 {
   "reh_001": {
     "key": "reh_001",
-    "value": {
-      "id": "reh_001",
-      "patientDid": "did:hosp:0x643a3a37",
-      "sessionType": "Cardiac Rehabilitation Phase II",
-      "date": "2026-05-28",
-      "therapist": "Dr. Ananya Sen",
-      "status": "completed",
-      "notes": "Treadmill test 15 mins (moderate). Heart rate response normal. BP stable."
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"Ubc2Dxo2RpjcOIVF\",\"tag\":\"sKS5sfHxjFn6IgbO6bEBcQ\",\"ct\":\"F8GBNzV7mVDJMrHYvXXq5ouJsIac44AVPflSxcmWCFD_YqICWgyHSnITMYnD6A4sGs5s2oeQ0MHrvfQl8xUoyCt6PaBatfRJ33uu9twxRJAcu1fanpUDb4F4qy2X89etM_Xe5_UpXvacyQZ3TsfLsIA_qzKTw6F2hl-Rz5dMj4pf5RgKftGGQDlhFQHae1NBNSi8AooaoYlzJu6eUoK4rsR-Bw4Hg0DO3vHo9cpKSbu41JiNkG9KU2611-j4g1qK5jJvVBaxjYdtnQRPpidf6F4TPIlT2GHC3DDUtiP8bR8MeQpbRGVNc36j6fEyP6GdZcdfBvxHluMb-Mlsdg\"}",
     "namespace": "rehab-sessions",
     "version": "a2ab6378-f78e-425e-8099-8a3b34d82ab3:1",
     "updatedAt": "2026-07-03T16:41:40.547Z",
@@ -18,15 +10,7 @@
   },
   "reh_002": {
     "key": "reh_002",
-    "value": {
-      "id": "reh_002",
-      "patientDid": "did:hosp:0x643a3a37",
-      "sessionType": "Cardiac Rehabilitation Phase II",
-      "date": "2026-05-26",
-      "therapist": "Dr. Ananya Sen",
-      "status": "completed",
-      "notes": "Initial assessment. Target training zones defined. Warm-up exercises."
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"Twbbkv2xeoAXTYQJ\",\"tag\":\"lAwXVcBrvEf8kXZL2SRs_g\",\"ct\":\"yrVF-EOCB-B3OlgQrK5JzGZSEQksczBLx_P_Wqpnw8LSUbrfI_zSm8vhEwkIDmerVdd6TkLcOmR44ae4ppLyplCCwexq5G4q_OLVMoWgt19CWj21FDBqMW7driJsc1Q6TzmyGxZhtcFE5ONLOf8utvcG8QYbB1CTIjAOM3vr999UzOd_g3utQ73o_hWxa5f18Ii7WhrpRn9y2IO7ZHBdVvABELppR1vGlaXsy-ZkSRKaMik1WfrgidJaENczx-Ls7lfnJO_uceeCtdbihtj5_SysRGSqNHGIvsQokI8hSApftLIEY6IbnDmsIFPkmht2seOG1pXZRayU\"}",
     "namespace": "rehab-sessions",
     "version": "4ac0518f-7f36-428c-91ca-8a65698bbdee:1",
     "updatedAt": "2026-07-03T16:41:40.547Z",

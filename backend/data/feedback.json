@@ -1,14 +1,7 @@
 {
   "fb_001": {
     "key": "fb_001",
-    "value": {
-      "id": "fb_001",
-      "patientDid": "did:hosp:0x643a3a37",
-      "date": "2026-05-29",
-      "doctor": "Dr. Ravi Menon",
-      "rating": 5,
-      "comments": "Excellent care during my angiogram. Explained everything clearly."
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"yMTzRWVA6CP0GtJr\",\"tag\":\"405AZAcRKplyxLLgjExJbw\",\"ct\":\"xHlVFNQmwa7pOpT20_tlhvkSWbTQLAiGcOvPUf9OL5CGkX8H95uoFcft-5K-wpDiIv_m3UgAzsfYTGl1tDgTPRYWq7jVCPI9_LTaSe20TgkLzWKVhgU6UJAhoE2VrftkmV-4vltcqeRX6033bRWEUJuKV0NcHl33uALD7dtZ3uMBDyJJMT2Vv7MyS2dCRwfSuuyPkl7Q3OaEQrhFq2lnkjah47jUrVmiqjKqzJDATuWKvVV5kyJNA-IL\"}",
     "namespace": "feedback",
     "version": "595b21b3-75ef-4bb2-85d4-e3826582c9fc:1",
     "updatedAt": "2026-07-03T16:41:40.557Z",

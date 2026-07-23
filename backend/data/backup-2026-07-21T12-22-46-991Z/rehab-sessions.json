@@ -1,0 +1,36 @@
+{
+  "reh_001": {
+    "key": "reh_001",
+    "value": {
+      "id": "reh_001",
+      "patientDid": "did:hosp:0x643a3a37",
+      "sessionType": "Cardiac Rehabilitation Phase II",
+      "date": "2026-05-28",
+      "therapist": "Dr. Ananya Sen",
+      "status": "completed",
+      "notes": "Treadmill test 15 mins (moderate). Heart rate response normal. BP stable."
+    },
+    "namespace": "rehab-sessions",
+    "version": "a2ab6378-f78e-425e-8099-8a3b34d82ab3:1",
+    "updatedAt": "2026-07-03T16:41:40.547Z",
+    "txId": "a2ab6378-f78e-425e-8099-8a3b34d82ab3",
+    "docType": "rehab-sessions"
+  },
+  "reh_002": {
+    "key": "reh_002",
+    "value": {
+      "id": "reh_002",
+      "patientDid": "did:hosp:0x643a3a37",
+      "sessionType": "Cardiac Rehabilitation Phase II",
+      "date": "2026-05-26",
+      "therapist": "Dr. Ananya Sen",
+      "status": "completed",
+      "notes": "Initial assessment. Target training zones defined. Warm-up exercises."
+    },
+    "namespace": "rehab-sessions",
+    "version": "4ac0518f-7f36-428c-91ca-8a65698bbdee:1",
+    "updatedAt": "2026-07-03T16:41:40.547Z",
+    "txId": "4ac0518f-7f36-428c-91ca-8a65698bbdee",
+    "docType": "rehab-sessions"
+  }
+}

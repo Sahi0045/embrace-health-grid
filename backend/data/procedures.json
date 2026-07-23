@@ -1,60 +1,29 @@
 {
   "proc1": {
     "key": "proc1",
-    "value": {
-      "id": "proc1",
-      "patientDid": "pat_001",
-      "name": "Coronary Angiography",
-      "scheduledDate": "2026-05-28",
-      "scheduledTime": "10:00",
-      "completedDate": "2026-05-28",
-      "status": "completed",
-      "performedBy": "Dr. Ravi Menon",
-      "location": "Cath Lab 2",
-      "notes": "Procedure successful. 70% stenosis in LAD, stent placed.",
-      "requiresFasting": true
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"2e2snj5-67_qH3vv\",\"tag\":\"srheC7H9h_TMsZ5wtF4GMw\",\"ct\":\"R4heFWT8HAmo7TcxQyY20ZN6abKX8qekVagacQMRw66AYKCUqbt681qetnfLDxo_m1I9oi8C3vQYH4Ifjbiq_DsAY9okJpPcM5yS44oJsP7Q7JbUFMxslb6XQE86Of7QaKwHabjQtWe7wYO6tM4XmVSQErc-p-YNtmxOBV1jDpwZjSjFHWZGYtauh9FEKnZKWUvbHG7gerUQoeBMNSuhvE0P7VTC43B7rM2oZZiQYlAu3zCYqO5bbxRvLPybxzLkpULbPWZWnwzgDsBO8gtye0hDVEbXSSqaZPN9osMTAHJdT4z6tCp7gKdzWUv_cStH4QVLNTwqFlD6SPXj3xg1xlrBmMwYaXhbDistJiqG5T093PjgmEqQMMlOXkkzWsprEFbA-pXPLxzuyJWcislcIAX8_qeuwAKgTYKIlTh4q1NilbWsO8Hi\"}",
     "namespace": "procedures",
-    "version": "8b999a79-e7b9-4e14-b408-72147b91c1cc:1",
-    "updatedAt": "2026-07-21T17:58:59.446Z",
-    "txId": "8b999a79-e7b9-4e14-b408-72147b91c1cc",
+    "version": "6dfc6f43-024d-4c13-bb47-f1e6416b9ddc:1",
+    "updatedAt": "2026-07-03T16:41:44.576Z",
+    "txId": "6dfc6f43-024d-4c13-bb47-f1e6416b9ddc",
     "docType": "procedures"
   },
   "proc2": {
     "key": "proc2",
-    "value": {
-      "id": "proc2",
-      "patientDid": "pat_001",
-      "name": "Echocardiogram",
-      "scheduledDate": "2026-05-31",
-      "scheduledTime": "09:30",
-      "status": "scheduled",
-      "location": "Cardiology Imaging",
-      "requiresFasting": false
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"EqimM5nrHf_z2Pb5\",\"tag\":\"JQmoGqs8oPCBuciB9NcVnA\",\"ct\":\"54T-SdwVA8wrIHYUW6APb0NZwKLPJS2z53fkDdJsvlqq63LizLCAm7pHE6meTf19KGAOdlsIvIIq4lLkdujrMWd_RSqOGbKh-fJGXInxzbt-fYelX4h8hl6CXFRJ6d9hOdd-aJlNqcDX_xrnruccZr06qRSsSBpVCXVqZd7ULQHeOaqsZDTGERGzDgHqBlBbXUegskLlG571TKnNZGotFRKbRP7vy8MpVmsQRQ8ImvhjehgbPJFT7ZTuWZttvoUxHn7bN-hIxYt8cow\"}",
     "namespace": "procedures",
-    "version": "9c01e740-33ae-4151-aa87-a555e2d0d093:1",
-    "updatedAt": "2026-07-21T17:58:59.446Z",
-    "txId": "9c01e740-33ae-4151-aa87-a555e2d0d093",
+    "version": "81bc72f8-4a2a-4b9b-a744-4b98cf361557:1",
+    "updatedAt": "2026-07-03T16:41:44.576Z",
+    "txId": "81bc72f8-4a2a-4b9b-a744-4b98cf361557",
     "docType": "procedures"
   },
   "proc3": {
     "key": "proc3",
-    "value": {
-      "id": "proc3",
-      "patientDid": "pat_001",
-      "name": "Stress Test",
-      "scheduledDate": "2026-06-01",
-      "scheduledTime": "11:00",
-      "status": "scheduled",
-      "location": "Cardiac Rehab Center",
-      "notes": "Pre-discharge evaluation",
-      "requiresFasting": false
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"zGAht5x07Fs78bke\",\"tag\":\"cG7DZj5byMhrkwF6ZHnX0A\",\"ct\":\"Tt8bqJvB4QL7QOtK2e4cy-BUvmsZMcyK9fJhx8RBzs5vq10Pko2D0j2wmi7H5fzH_x4ablFeeLXDOTpKUhDAvpYPHQj8a1XjjrkYBa6AEsV-OUu_KlKYkh0SCzfZ91SjAtrwgeiXzDDwR-1_0WfTCcXy5hGSO7YJbvysshB2zO8StdwNYHP1Rl85a27XwBrmPrFRv-QZRraVDf4J9YQwtduUSAeZXXqLSws-5jJ_CMi-dYLloWR_x0JoKfzzd1rcX26Slx567TYaGingN_SxbHHR3A5Np3y9GnekTLorEMEOF9UZbXVmAXtoy5wT\"}",
     "namespace": "procedures",
-    "version": "12780eed-ee29-4df1-b148-2f0f9927be19:1",
-    "updatedAt": "2026-07-21T17:58:59.447Z",
-    "txId": "12780eed-ee29-4df1-b148-2f0f9927be19",
+    "version": "69bc0667-73dd-473a-b7d2-4e3de730b778:1",
+    "updatedAt": "2026-07-03T16:41:44.576Z",
+    "txId": "69bc0667-73dd-473a-b7d2-4e3de730b778",
     "docType": "procedures"
   }
 }

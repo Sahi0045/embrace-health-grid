@@ -159,7 +159,7 @@ export function registerExtensionRoutes(app, deps) {
   );
 
   // ─── Consent request deny ───────────────────────────────────────────────────
-  app.patch("/api/consent/requests/:id/deny", requireRole("patient", "admin"), (req, res) => {
+  app.patch("/api/consent/requests/:id/deny", requireRole("patient", "admin"), hipaaAuditPHIAccess("ConsentRequest"), (req, res) => {
     const entry = getState("consent-requests", req.params.id);
     if (!entry) return res.status(404).json({ error: "Request not found" });
     if (req.user.role === "patient" && entry.value.patientDid !== req.user.did) {
@@ -173,7 +173,7 @@ export function registerExtensionRoutes(app, deps) {
   });
 
   // ─── NFC Card Registry ──────────────────────────────────────────────────────
-  app.post("/api/nfc/issue", requireRole("admin"), (req, res) => {
+  app.post("/api/nfc/issue", requireRole("admin"), hipaaAuditPHIAccess("NFCCard"), (req, res) => {
     const { patientDid, patientName, mrn, cardType = "patient" } = req.body;
     if (!patientDid) return res.status(400).json({ error: "patientDid required" });
 
@@ -196,13 +196,13 @@ export function registerExtensionRoutes(app, deps) {
     res.json({ card });
   });
 
-  app.get("/api/nfc/:cardId", requireRole("staff", "admin"), (req, res) => {
+  app.get("/api/nfc/:cardId", requireRole("staff", "admin"), hipaaAuditPHIAccess("NFCCard"), (req, res) => {
     const entry = getState("nfc-cards", req.params.cardId);
     if (!entry) return res.status(404).json({ error: "Card not found" });
     res.json(entry.value);
   });
 
-  app.patch("/api/nfc/:cardId/revoke", requireRole("admin"), (req, res) => {
+  app.patch("/api/nfc/:cardId/revoke", requireRole("admin"), hipaaAuditPHIAccess("NFCCard"), (req, res) => {
     const entry = getState("nfc-cards", req.params.cardId);
     if (!entry) return res.status(404).json({ error: "Card not found" });
     entry.value.status = "revoked";
@@ -219,7 +219,7 @@ export function registerExtensionRoutes(app, deps) {
     res.json({ success: true, cardId: req.params.cardId });
   });
 
-  app.post("/api/nfc/verify", requireRole("staff", "admin"), (req, res) => {
+  app.post("/api/nfc/verify", requireRole("staff", "admin"), hipaaAuditPHIAccess("NFCCard"), (req, res) => {
     const { cardId, payload } = req.body;
     let card = null;
 
@@ -300,7 +300,7 @@ export function registerExtensionRoutes(app, deps) {
     res.json({ verified: true, card });
   });
 
-  app.get("/api/nfc/status/:patientDid", requireRole("patient", "staff", "admin"), (req, res) => {
+  app.get("/api/nfc/status/:patientDid", requireRole("patient", "staff", "admin"), hipaaAuditPHIAccess("NFCCard"), (req, res) => {
     const did = decodeURIComponent(req.params.patientDid);
     const cardEntries = queryState("nfc-cards", (val) => val.patientDid === did);
     if (cardEntries.length === 0) {
@@ -975,7 +975,7 @@ export function registerExtensionRoutes(app, deps) {
   });
 
   // ─── Visitors ───────────────────────────────────────────────────────────────
-  app.get("/api/visitors/:patientDid", requireRole("patient", "staff", "admin"), (req, res) => {
+  app.get("/api/visitors/:patientDid", requireRole("patient", "staff", "admin"), hipaaAuditPHIAccess("Visitor"), (req, res) => {
     if (req.user.role === "patient" && req.user.did !== req.params.patientDid) {
       return res.status(403).json({ error: "Forbidden" });
     }
@@ -983,7 +983,7 @@ export function registerExtensionRoutes(app, deps) {
     res.json({ visitors: all.map((e) => e.value), total: all.length });
   });
 
-  app.post("/api/visitors/request", requireRole("patient", "staff", "admin"), (req, res) => {
+  app.post("/api/visitors/request", requireRole("patient", "staff", "admin"), hipaaAuditPHIAccess("Visitor"), (req, res) => {
     const { patientDid, visitorName, relation, visitDate, purpose } = req.body;
     if (!patientDid || !visitorName) {
       return res.status(400).json({ error: "patientDid and visitorName required" });
@@ -1004,7 +1004,7 @@ export function registerExtensionRoutes(app, deps) {
     res.json({ request });
   });
 
-  app.patch("/api/visitors/:id/approve", requireRole("patient", "admin"), (req, res) => {
+  app.patch("/api/visitors/:id/approve", requireRole("patient", "admin"), hipaaAuditPHIAccess("Visitor"), (req, res) => {
     const entry = getState("visitors", req.params.id);
     if (!entry) return res.status(404).json({ error: "Not found" });
     if (req.user.role === "patient" && entry.value.patientDid !== req.user.did) {

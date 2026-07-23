@@ -67,12 +67,16 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const token = getToken();
 
   const clientKey =
-    (typeof import.meta !== "undefined" && import.meta.env?.VITE_CLIENT_KEY) ||
-    "apollo-consortium-client-secret-2026";
+    (typeof import.meta !== "undefined" && import.meta.env?.VITE_CLIENT_KEY) || "";
 
-  const authHeaders: Record<string, string> = {};
+  if (!clientKey) {
+    throw new Error("VITE_CLIENT_KEY is not configured. Set it in .env.local");
+  }
+
+  const authHeaders: Record<string, string> = {
+    "x-client-key": clientKey,
+  };
   if (token) authHeaders["Authorization"] = "Bearer " + token;
-  if (clientKey) authHeaders["x-client-key"] = clientKey;
 
   const r = await fetch(`${API}${path}`, {
     ...init,

@@ -1,102 +1,47 @@
 {
   "med1": {
     "key": "med1",
-    "value": {
-      "id": "med1",
-      "patientDid": "pat_001",
-      "name": "Aspirin",
-      "dosage": "75 mg",
-      "frequency": "Once daily",
-      "route": "Oral",
-      "startDate": "2026-05-27",
-      "prescribedBy": "Dr. Ravi Menon",
-      "status": "active",
-      "nextDose": "2026-05-30 08:00"
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"KDSbT7vYeEAJ2PUI\",\"tag\":\"6J-soNi48hR_0FDrawsBKw\",\"ct\":\"tq4cvbDEvkyGFAaIp2O2R6QaViIDOre2FZJkm6InOZbexURHR_f6ZHVNdGu3eyTqq_sM8Yx0lr0DaTxZRotpMw05BL_Uew8pm_zEeQka3AOH-A1t1-_dHXh71TnDTLrmRrUam-OP27E6AppYo67zRtM7No0LZXnBgmEDWZywR13UnqasoxdmCpFzQ-b0Zerv9xU3QXrNhtMoSKBbynWizmSxmnMaYYZEEMnz43eljFA_ihtiZh9_wg2TPNhH70iY7WWPtORsC1HClHilDUq8V1L87Myuej9IByAZjb4PCJqbw2U\"}",
     "namespace": "medications",
-    "version": "5fe9d970-eb39-4f3c-bfac-cd9e6759e2b2:1",
-    "updatedAt": "2026-07-21T17:58:59.434Z",
-    "txId": "5fe9d970-eb39-4f3c-bfac-cd9e6759e2b2",
+    "version": "39753c26-ae93-44ea-bfd1-737e9a85b692:1",
+    "updatedAt": "2026-07-03T16:41:44.573Z",
+    "txId": "39753c26-ae93-44ea-bfd1-737e9a85b692",
     "docType": "medications"
   },
   "med2": {
     "key": "med2",
-    "value": {
-      "id": "med2",
-      "patientDid": "pat_001",
-      "name": "Atorvastatin",
-      "dosage": "40 mg",
-      "frequency": "Once daily (evening)",
-      "route": "Oral",
-      "startDate": "2026-05-27",
-      "prescribedBy": "Dr. Ravi Menon",
-      "status": "active",
-      "nextDose": "2026-05-30 20:00"
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"XLpAa0wBHv1Cp5R0\",\"tag\":\"Y4fP1o8YpeDHQkjTh1g6SQ\",\"ct\":\"B62e9mId0qmEZwCJAEErzc3oNiQS3jHSP9bECGvJ07AmST8Tew5rP9YlcqPDtb9MhRZ_5BrUjLvjWacGYd7ZM2d1EoJ_reKi0MRDSd4F4noF83vX1td10H9DHf8BfYc0K4f1LJwcOISBeF2djAOf1D-bU_P6z57PJlYE1nTxbJGkha2eh9NcKR3MSRnPJezG8I03xD0WgviWGlLHM1k_NB_viwDWvvn71VFWib3hrzGP_x1bx42PaUTB02GaoW_lPtayQdww4V4ozhB6sBfHiuwWal3ppv6Tqw-XhKijMQlOvU7RkwFwsSENREm2a6RfzzY\"}",
     "namespace": "medications",
-    "version": "8f448625-ce45-43dc-bf8f-274c8873a799:1",
-    "updatedAt": "2026-07-21T17:58:59.436Z",
-    "txId": "8f448625-ce45-43dc-bf8f-274c8873a799",
+    "version": "f84b2d25-ca86-44b7-91b5-4fa25977e490:1",
+    "updatedAt": "2026-07-03T16:41:44.574Z",
+    "txId": "f84b2d25-ca86-44b7-91b5-4fa25977e490",
     "docType": "medications"
   },
   "med3": {
     "key": "med3",
-    "value": {
-      "id": "med3",
-      "patientDid": "pat_001",
-      "name": "Metoprolol",
-      "dosage": "50 mg",
-      "frequency": "Twice daily",
-      "route": "Oral",
-      "startDate": "2026-05-27",
-      "prescribedBy": "Dr. Ravi Menon",
-      "status": "active",
-      "nextDose": "2026-05-30 08:00"
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"sxgvBiKqcH6D7CuU\",\"tag\":\"TRhhe0O4BQdJbPC2YrC3cA\",\"ct\":\"2o3rkOEoTumO5hUy4CS4pq0Jgpw1hRKZzXiwP8jUT_A8XQVMahLoOYZ7nXt-Wl6FwjYyYjFoC00p3uynkfUahona5lgNuMfEj4woDhr7hdp3GuO2Kf_IxDG6lZt7nCLIZm_k9K3yL3SrsE2QOd6SCURnJusz1EAy909Z3z1WX4gOvTy-R4GsOnEKV9eWQKhjdg2E2OIZqgIGCr2P3o8TFK8A9ddqBTE6WSZ59QclEZ9Jq7oUyvLrHsShTOn9znWVzrMPcrYkmVkgtPGHhf2kltmJAFfCeKNE5wizWJN6WXR1_xYvKsl6\"}",
     "namespace": "medications",
-    "version": "29d639ac-56aa-4585-bf42-18a3ef61ab10:1",
-    "updatedAt": "2026-07-21T17:58:59.436Z",
-    "txId": "29d639ac-56aa-4585-bf42-18a3ef61ab10",
+    "version": "62ab3d8c-ff35-40b3-a8c0-ebb8903c49cb:1",
+    "updatedAt": "2026-07-03T16:41:44.574Z",
+    "txId": "62ab3d8c-ff35-40b3-a8c0-ebb8903c49cb",
     "docType": "medications"
   },
   "med4": {
     "key": "med4",
-    "value": {
-      "id": "med4",
-      "patientDid": "pat_001",
-      "name": "Insulin (Rapid-acting)",
-      "dosage": "8 units",
-      "frequency": "Before meals",
-      "route": "Subcutaneous injection",
-      "startDate": "2026-05-27",
-      "prescribedBy": "Dr. Sameer Khan",
-      "status": "active",
-      "nextDose": "2026-05-30 12:00"
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"GGRgMoK1jIoxCYst\",\"tag\":\"1xcg8_nXN-3CwmwZBBJgZQ\",\"ct\":\"Agub77Pv-afycrEcsl4ogvUmgwXmTWasnVefnf1so-F3u-HL2pMH7Jllj4_e4uKdReP9uSa_-jT1ROwNT1U5Jbrp8FZw0tk78tPG_ZIZEwOa1c651Xuf9-PDieK2SMUUwu7qWDgSCUDDLYkq46Stl3Ly6wTiPYR7mNR29XoEuMaESSIUUZte6u1gUrsGXQpGY5Rir1pMnZdzJS4eh5OkjnoyAU2kq64g1i5KDmqNvHjYif_GQ9xKTHg2nmTV_OvzgTGUMnx6BqkblMHudZpvoPWhnyZb0f1TKhgUJRF_n3ttuqW6C_Hbjr-2K86D_oyhF04vNsIdcMCeYXy8NFKedKBjkRlmobPFAw\"}",
     "namespace": "medications",
-    "version": "2d5b5d98-36da-417f-b66b-ea1ef19bba9a:1",
-    "updatedAt": "2026-07-21T17:58:59.437Z",
-    "txId": "2d5b5d98-36da-417f-b66b-ea1ef19bba9a",
+    "version": "ecc0c754-97e4-4d77-b746-54743944c758:1",
+    "updatedAt": "2026-07-03T16:41:44.574Z",
+    "txId": "ecc0c754-97e4-4d77-b746-54743944c758",
     "docType": "medications"
   },
   "med5": {
     "key": "med5",
-    "value": {
-      "id": "med5",
-      "patientDid": "pat_001",
-      "name": "Enoxaparin",
-      "dosage": "40 mg",
-      "frequency": "Once daily",
-      "route": "Subcutaneous injection",
-      "startDate": "2026-05-27",
-      "endDate": "2026-05-29",
-      "prescribedBy": "Dr. Ravi Menon",
-      "status": "completed"
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"TPuWBADEaANE3azh\",\"tag\":\"WYEEWE2cQnxHHA-AK_gJ8g\",\"ct\":\"QBhq5rLFoQCWj7etKA_XLgBSyqm4Q7ZTo-qisIrHtG8cf_8GQpA9YOdp39-n6rECnZbm0Gv2OiDDmam5hCPtImQwpnYX_D-WBQlTp3cBaxIgeAJNXf_9fybeaMWHgzZUXT2ei71x1KnL4XcpF5gR1f42ZZOycqZl6H7da0ATUCjbbDuGWUh7XeJ9tDc9TBa7mj9ukyHfpz8rfmvZK0jfZXmIvg8nUHoW452mAXbD0JerZHWDC4_sFw_f0kK2OcuimO4_mHHOVd9FYw9l5KTGA-mBnby7PUS0WRu_39yRnnW7SEk7_QjE0zb1SsGl3fV9KCSkqA\"}",
     "namespace": "medications",
-    "version": "921bf041-6453-401f-bb5c-50a9c61c36d9:1",
-    "updatedAt": "2026-07-21T17:58:59.439Z",
-    "txId": "921bf041-6453-401f-bb5c-50a9c61c36d9",
+    "version": "1fc5a3b1-88fc-4fb5-b29c-7aa9e963fdaf:1",
+    "updatedAt": "2026-07-03T16:41:44.574Z",
+    "txId": "1fc5a3b1-88fc-4fb5-b29c-7aa9e963fdaf",
     "docType": "medications"
   }
 }

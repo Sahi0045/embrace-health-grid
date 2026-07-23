@@ -1,0 +1,49 @@
+{
+  "pho_001": {
+    "key": "pho_001",
+    "value": {
+      "id": "pho_001",
+      "patientDid": "did:hosp:0x643a3a37",
+      "orderedOn": "2026-05-29",
+      "status": "dispensed",
+      "medicines": [
+        {
+          "name": "Aspirin 75mg",
+          "quantity": 30,
+          "instruction": "Once daily (Morning)"
+        },
+        {
+          "name": "Atorvastatin 40mg",
+          "quantity": 30,
+          "instruction": "Once daily (Evening)"
+        }
+      ]
+    },
+    "namespace": "pharmacy-orders",
+    "version": "a8d96a32-0490-4c87-9f04-375c5514fb1c:1",
+    "updatedAt": "2026-07-03T16:41:40.544Z",
+    "txId": "a8d96a32-0490-4c87-9f04-375c5514fb1c",
+    "docType": "pharmacy-orders"
+  },
+  "pho_002": {
+    "key": "pho_002",
+    "value": {
+      "id": "pho_002",
+      "patientDid": "did:hosp:0x643a3a37",
+      "orderedOn": "2026-05-20",
+      "status": "dispensed",
+      "medicines": [
+        {
+          "name": "Metformin 1000mg",
+          "quantity": 60,
+          "instruction": "Twice daily with meals"
+        }
+      ]
+    },
+    "namespace": "pharmacy-orders",
+    "version": "0e84f5db-a50f-45c4-95e9-22a634789d32:1",
+    "updatedAt": "2026-07-03T16:41:40.544Z",
+    "txId": "0e84f5db-a50f-45c4-95e9-22a634789d32",
+    "docType": "pharmacy-orders"
+  }
+}

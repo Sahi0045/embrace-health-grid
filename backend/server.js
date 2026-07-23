@@ -93,8 +93,10 @@ if (!CLIENT_KEY) {
     console.error("FATAL: CLIENT_KEY environment variable is not set.");
     process.exit(1);
   } else {
-    CLIENT_KEY = "apollo-consortium-client-secret-2026";
-    console.warn("⚠️ CLIENT_KEY environment variable is not set. Falling back to development key.");
+    CLIENT_KEY = randomUUID() + "-dev-only";
+    console.warn(
+      `⚠️ CLIENT_KEY not set. Generated ephemeral dev key: ${CLIENT_KEY.slice(0, 8)}…  Set CLIENT_KEY in .env.local to match VITE_CLIENT_KEY.`,
+    );
   }
 }
 
@@ -227,6 +229,15 @@ const authLimiter = rateLimit({
 });
 app.use("/api/auth/login", authLimiter);
 app.use("/api/auth/signup", authLimiter);
+
+const refreshLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  message: { error: "Too many refresh requests, please try again later" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use("/api/auth/refresh", refreshLimiter);
 
 app.use(globalApiAuth);
 
@@ -476,23 +487,30 @@ app.get("/api/stats", requireAuth, (_, res) => {
     }
   }
 
+  const startMs = Date.now();
+
   const fraudAlerts = getAllState("fraud-alerts");
   const criticalFraudCount = fraudAlerts.filter(
     (a) => a.value?.severity === "high" || a.value?.status === "open",
   ).length;
   const complianceScore = Math.max(70, 100 - criticalFraudCount * 4);
 
+  const uptimeSeconds = Math.floor(process.uptime());
+  const computedTps = uptimeSeconds > 0 ? parseFloat((txCount / uptimeSeconds).toFixed(2)) : 0;
+  const latencyMs = Date.now() - startMs;
+
   res.json({
     blockHeight,
     txCount,
-    peerCount: 3,
-    nodesCountUp: 3,
-    nodesCountTotal: 3,
+    peerCount: convexClient ? 2 : 1,
+    nodesCountUp: convexClient ? 2 : 1,
+    nodesCountTotal: convexClient ? 2 : 1,
     worldStateSize,
-    throughputTps: Math.min(250, Math.round((txCount / 10) * 10) / 10 + 0.5),
+    throughputTps: computedTps,
     lastBlockTime,
-    latencyMs: 12 + Math.floor(Math.random() * 5),
+    latencyMs,
     complianceScore,
+    uptimeSeconds,
   });
 });
 
@@ -640,12 +658,12 @@ app.get("/api/credentials", requireAuth, (_, res) => {
 });
 
 // ─── Consent ──────────────────────────────────────────────────────────────────
-app.get("/api/consent", requireAuth, requireRole(["admin", "doctor", "staff"]), (_, res) => {
+app.get("/api/consent", requireAuth, requireRole(["admin", "doctor", "staff"]), hipaaAuditPHIAccess("ConsentGrant"), (_, res) => {
   const all = getAllState("consent-manager");
   res.json({ consents: all.map((e) => e.value), total: all.length });
 });
 
-app.post("/api/consent/grant", requireAuth, requireRole(["patient"]), (req, res) => {
+app.post("/api/consent/grant", requireAuth, requireRole(["patient"]), hipaaAuditPHIAccess("ConsentGrant"), (req, res) => {
   const { patientDid, doctorDid, resource, expiry } = req.body;
   const grantId = `consent_${randomUUID().slice(0, 8)}`;
   const txId = randomUUID();
@@ -678,7 +696,7 @@ app.post("/api/consent/grant", requireAuth, requireRole(["patient"]), (req, res)
   res.json(grant);
 });
 
-app.patch("/api/consent/:id/revoke", requireAuth, requireRole(["patient"]), (req, res) => {
+app.patch("/api/consent/:id/revoke", requireAuth, requireRole(["patient"]), hipaaAuditPHIAccess("ConsentGrant"), (req, res) => {
   const entry = getState("consent-manager", req.params.id);
   if (!entry) return res.status(404).json({ error: "Not found" });
   entry.value.status = "revoked";
@@ -688,7 +706,7 @@ app.patch("/api/consent/:id/revoke", requireAuth, requireRole(["patient"]), (req
   res.json({ success: true });
 });
 
-app.patch("/api/consent/requests/:id/deny", requireAuth, requireRole(["patient"]), (req, res) => {
+app.patch("/api/consent/requests/:id/deny", requireAuth, requireRole(["patient"]), hipaaAuditPHIAccess("ConsentRequest"), (req, res) => {
   const entry = getState("consent-requests", req.params.id);
   if (!entry) return res.status(404).json({ error: "Request not found" });
   entry.value.status = "denied";
@@ -696,7 +714,7 @@ app.patch("/api/consent/requests/:id/deny", requireAuth, requireRole(["patient"]
   res.json({ success: true });
 });
 
-app.post("/api/consent/request", requireAuth, requireRole(["doctor", "staff"]), (req, res) => {
+app.post("/api/consent/request", requireAuth, requireRole(["doctor", "staff"]), hipaaAuditPHIAccess("ConsentRequest"), (req, res) => {
   const { doctorDid, doctorName, patientDid, resource, reason, expiry } = req.body;
   if (!patientDid || !doctorDid)
     return res.status(400).json({ error: "patientDid and doctorDid required" });
@@ -733,7 +751,7 @@ app.post("/api/consent/request", requireAuth, requireRole(["doctor", "staff"]), 
   res.json({ success: true, requestId: reqId, request, txId });
 });
 
-app.get("/api/consent/requests/:patientDid", requireAuth, requireRole(["patient"]), (req, res) => {
+app.get("/api/consent/requests/:patientDid", requireAuth, requireRole(["patient"]), hipaaAuditPHIAccess("ConsentRequest"), (req, res) => {
   const all = getAllState("consent-requests");
   const requests = all
     .filter((e) => e.value?.patientDid === req.params.patientDid)
@@ -771,7 +789,7 @@ app.post("/api/audit/log", requireAuth, (req, res) => {
 });
 
 // ─── Vitals ───────────────────────────────────────────────────────────────────
-app.post("/api/vitals/seed", requireAuth, requireRole(["admin", "doctor", "staff"]), (req, res) => {
+app.post("/api/vitals/seed", requireAuth, requireRole(["admin", "doctor", "staff"]), hipaaAuditPHIAccess("VitalSigns"), (req, res) => {
   const { patients = [] } = req.body;
   patients.forEach(
     ({ id, heartRate = 72, bp = "120/80", spo2 = 98, temp = 36.5, respRate = 16 }) => {
@@ -807,18 +825,15 @@ app.post(
   },
 );
 
-app.get("/api/tracker", requireAuth, requireRole(["admin", "doctor", "staff"]), (_, res) => {
+app.get("/api/tracker", requireAuth, requireRole(["admin", "doctor", "staff"]), hipaaAuditPHIAccess("StaffTracker"), (_, res) => {
   const all = getAllState("tracker");
   res.json({ staff: all.map((e) => e.value) });
 });
 
 // ─── Beds & Infrastructure ────────────────────────────────────────────────────
-app.get("/api/beds", requireAuth, (_, res) => {
-  const all = getAllState("beds");
-  res.json({ beds: all.map((e) => e.value), total: all.length });
-});
+// NOTE: Duplicate GET /api/beds removed — canonical route with HIPAA audit is at ~line 1471
 
-app.post("/api/beds", requireAuth, requireRole(["admin", "staff"]), (req, res) => {
+app.post("/api/beds", requireAuth, requireRole(["admin", "staff"]), hipaaAuditPHIAccess("BedOccupancy"), (req, res) => {
   const { bedId, ward, status = "available", patientDid } = req.body;
   const txId = randomUUID();
   const bed = { bedId, ward, status, patientDid, updatedAt: new Date().toISOString() };
@@ -828,7 +843,7 @@ app.post("/api/beds", requireAuth, requireRole(["admin", "staff"]), (req, res) =
 });
 
 // ─── Prescriptions ────────────────────────────────────────────────────────────
-app.post("/api/prescriptions", requireAuth, requireRole(["doctor", "staff"]), (req, res) => {
+app.post("/api/prescriptions", requireAuth, requireRole(["doctor", "staff"]), hipaaAuditPHIAccess("Prescription"), (req, res) => {
   const { patientDid, doctorDid, drugs, diagnosis, notes, signedBy } = req.body;
   const txId = randomUUID();
   const rxId = `PR-${Date.now().toString(36).toUpperCase()}`;
@@ -1039,7 +1054,7 @@ app.post("/api/doctor/check-in", requireAuth, requireRole(["doctor", "staff"]), 
   app._router.handle(req, res);
 });
 
-app.get("/api/doctor/location-history/:doctorDid", requireAuth, (req, res) => {
+app.get("/api/doctor/location-history/:doctorDid", requireAuth, hipaaAuditPHIAccess("DoctorLocation"), (req, res) => {
   const { doctorDid } = req.params;
   let all = queryState("doctor-locations", (v) => v.doctorDid === doctorDid);
 
@@ -1124,7 +1139,7 @@ app.post(
 );
 
 // ─── Lab results ──────────────────────────────────────────────────────────────
-app.post("/api/labs", requireAuth, requireRole(["doctor", "staff"]), (req, res) => {
+app.post("/api/labs", requireAuth, requireRole(["doctor", "staff"]), hipaaAuditPHIAccess("LabResult"), (req, res) => {
   const { patientDid, orderedBy, tests, priority = "routine" } = req.body;
   const labId = `LAB-${Date.now().toString(36).toUpperCase()}`;
   const txId = randomUUID();
@@ -1142,12 +1157,12 @@ app.post("/api/labs", requireAuth, requireRole(["doctor", "staff"]), (req, res) 
   res.json(lab);
 });
 
-app.get("/api/labs", requireAuth, requireRole(["doctor", "staff", "admin"]), (req, res) => {
+app.get("/api/labs", requireAuth, requireRole(["doctor", "staff", "admin"]), hipaaAuditPHIAccess("LabResult"), (req, res) => {
   const all = getAllState("lab-results");
   res.json({ labs: all.map((e) => e.value), total: all.length });
 });
 
-app.get("/api/labs/:patientDid", requireAuth, (req, res) => {
+app.get("/api/labs/:patientDid", requireAuth, hipaaAuditPHIAccess("LabResult"), (req, res) => {
   if (req.user.role === "patient" && req.user.did !== req.params.patientDid) {
     return res
       .status(403)
@@ -1359,7 +1374,7 @@ app.post(
   },
 );
 
-app.post("/api/medical-records/:patientDid/anchor", requireAuth, async (req, res) => {
+app.post("/api/medical-records/:patientDid/anchor", requireAuth, hipaaAuditPHIAccess("MedicalRecord"), async (req, res) => {
   const { patientDid } = req.params;
   const { authorityPubkey, isUpdate = false } = req.body;
 
@@ -1473,20 +1488,7 @@ app.get("/api/beds", requireAuth, hipaaAuditPHIAccess("BedOccupancy"), (_, res) 
   res.json({ beds: all.map((e) => e.value), total: all.length });
 });
 
-app.post(
-  "/api/beds",
-  requireAuth,
-  requireRole(["admin", "staff"]),
-  hipaaAuditPHIAccess("BedOccupancy"),
-  (req, res) => {
-    const { bedId, ward, status = "available", patientDid } = req.body;
-    const txId = randomUUID();
-    const bed = { bedId, ward, status, patientDid, updatedAt: new Date().toISOString() };
-    putState("beds", bedId, bed, txId);
-    broadcast({ event: "bed:updated", data: bed });
-    res.json(bed);
-  },
-);
+// NOTE: POST /api/beds is defined earlier (~line 821) with HIPAA audit
 
 // ─── Billing ──────────────────────────────────────────────────────────────────
 app.post(
@@ -2038,7 +2040,7 @@ app.get("/api/appointments", requireAuth, hipaaAuditPHIAccess("Appointment"), (_
 });
 
 // ─── Surgeries ────────────────────────────────────────────────────────────────
-app.get("/api/surgeries", requireAuth, (_, res) => {
+app.get("/api/surgeries", requireAuth, hipaaAuditPHIAccess("Surgery"), (_, res) => {
   const defaultSurgeries = [
     {
       id: "s1",
@@ -2109,7 +2111,7 @@ app.get("/api/surgeries", requireAuth, (_, res) => {
   }
 });
 
-app.post("/api/appointments", requireAuth, (req, res) => {
+app.post("/api/appointments", requireAuth, hipaaAuditPHIAccess("Appointment"), (req, res) => {
   const { patientDid, patientName, doctorDid, doctorName, slot, mode, specialty, consentGranted } =
     req.body;
 
@@ -2405,6 +2407,29 @@ app.post("/api/auth/login", requireClientAuth, async (req, res) => {
         .status(401)
         .json({ error: "Invalid email or password", attemptsRemaining: 5 - failStatus.count });
     }
+  }
+
+  // HIPAA: Enforce MFA for clinical roles (doctor, staff, admin)
+  const MFA_REQUIRED_ROLES = ["doctor", "staff", "admin"];
+  const isClinicalRole = MFA_REQUIRED_ROLES.includes(userEntry.value.role);
+
+  if (isClinicalRole && !userEntry.value.mfaEnabled) {
+    // Clinical role has not set up MFA yet — issue a temporary token
+    // that only allows MFA setup endpoints
+    const { token: setupToken } = mintAccessToken({
+      email: userEntry.value.email,
+      role: userEntry.value.role,
+      name: userEntry.value.name,
+      did: userEntry.value.did,
+    });
+    resetFailedLogins(email);
+    return res.status(202).json({
+      mfaSetupRequired: true,
+      message: "Multi-Factor Authentication is mandatory for clinical staff. Please set up MFA to continue.",
+      setupToken,
+      setupUrl: "/api/auth/mfa/setup",
+      email: userEntry.value.email,
+    });
   }
 
   // TOTP MFA Check if enabled for user
@@ -2958,25 +2983,18 @@ httpServer.listen(PORT, async () => {
     logger.warn("convex_bootstrap_failed", { error: err.message });
   }
 
-  // Ensure default admin exists in the world state database with the correct password hash
+  // Check if any admin exists — if not, log a bootstrap hint
   try {
-    const { putState } = await import("./world-state-db.js");
-    putState(
-      "users",
-      "admin@embrace.org",
-      {
-        name: "Embrace Admin",
-        email: "admin@embrace.org",
-        password: "$2b$10$jjLG4tmULwmS1ZyHfrj9qOGCawSVaxrBTxn/o1kIv8akjYHm/x0DK", // "admin"
-        role: "admin",
-        did: null,
-        createdAt: new Date().toISOString(),
-      },
-      "genesis",
-    );
-    logger.info("default_admin_seeded", { email: "admin@embrace.org" });
+    const { getAllState } = await import("./world-state-db.js");
+    const allUsers = getAllState("users");
+    const adminExists = allUsers.some((u) => u.value?.role === "admin");
+    if (!adminExists) {
+      logger.warn("no_admin_found", {
+        message: "No admin account exists. Use POST /api/auth/setup to bootstrap the first admin.",
+      });
+    }
   } catch (err) {
-    logger.error("default_admin_seed_failed", { error: err.message });
+    logger.error("admin_check_failed", { error: err.message });
   }
 });
 

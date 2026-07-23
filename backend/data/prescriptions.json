@@ -1,25 +1,7 @@
 {
   "PR-MR62O5HX": {
     "key": "PR-MR62O5HX",
-    "value": {
-      "rxId": "PR-MR62O5HX",
-      "patientDid": "did:hosp:patient:test",
-      "doctorDid": "did:hosp:doctor:test",
-      "drugs": [
-        {
-          "name": "Paracetamol 500mg",
-          "dosage": "500mg",
-          "frequency": "Three times daily"
-        }
-      ],
-      "diagnosis": "Fever",
-      "notes": "Take after meals",
-      "signedBy": "did:hosp:staff:test",
-      "signedAt": "2026-07-04T08:00:16.342Z",
-      "status": "active",
-      "hash": "sha256:2737726057aff6e69e5d47d2832d8e91",
-      "signed": true
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"Zh0kJ-_yI1e1vWjh\",\"tag\":\"ZwafBOxtAu4CE1QV395qcw\",\"ct\":\"kwur0piYvGBVedFvMByh71Zbj9gEa4mMuXOIDk9Zg3qtqMQ07b9eW26lKRqdBsp5EJRy3sxjoNLIxAKia9oDs_KcdXNwgfZz-lH6u2n5crHOP8EZLQzHEkSwvxlZDyzgNKIwFryRK_bme8aYeotyasplosiG0Y75qe9lRrOufchztfM-j3m0r-udKfUZ9FNMgmpHdMjnR0PNpyonxd-4AOm2adpSmBSK9c4Eu3DXAbjjLMlII71Cg1bXl3UPTHKGE16evAhIbmAGBOm4XzuZjtROXDoO5H2iBmjnjmJIv3iITPmklH_uCZK3QPjXxDIMmCKxwiOi9wnPIzFSiBic1gabD5790Y3vP6nSBBxQcNn_HdGmy4gb4H0zAe89tqBWaBScmkXFneqwRVJs7cGxfM60VyED4stC9z-H3bkQJpdamTChyDArW7ph68oFsPQLWNakZazRkBESFDx02DYZ_sEQVw49DrsmakeFZYxowwc9vzt-3COXe2_m6IBT\"}",
     "namespace": "prescriptions",
     "version": "a2efd394-c1f0-49a2-b26d-003d52dcb67a:1",
     "updatedAt": "2026-07-04T08:00:16.342Z",
@@ -28,24 +10,7 @@
   },
   "PR-MRQGECCL": {
     "key": "PR-MRQGECCL",
-    "value": {
-      "rxId": "PR-MRQGECCL",
-      "patientDid": "",
-      "drugs": [
-        {
-          "name": "Metoprolol",
-          "dosage": "50mg",
-          "frequency": "Daily",
-          "duration": "30 days"
-        }
-      ],
-      "diagnosis": "Hypertension & Migraine",
-      "notes": "Avoid direct sunlight.",
-      "signedBy": "did:hosp:doctor",
-      "signedAt": "2026-07-18T14:19:56.805Z",
-      "status": "active",
-      "hash": "sha256:6a3f7a1358f04d0b58754042a470eb11"
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"D4JYmoQTlf-S07PB\",\"tag\":\"jTp8tV56MMAuzmz9VhJ2Xg\",\"ct\":\"CPEG6xL7Lse-nN6V-Lqb3GzAN6bgRpQRBW0yLzMl9miYpgRXNfQ9pdYKXgM2ArQnshb_rE_ebwCnylOezYda1jZrId8wu4Xp3PPvfMhEezXnf7F6d6cK7L6DaBRULxbBUscFf3IRdQ9YhnCbREOlEPlF8koXL1z3QpOIOsJtgQ1AwQVr8xIfSyAlet-JWb8fiEgeDD_ev9xkdNBAR3QKA7EwUXuYBbjqireOhEtJya0JnbSEuQOwxMqFPdxtOqv2J1eR5tvXWq9e1p_fDDJWWGyOeChTh4eaWYIeMuGek9xV7pq_1kEO_-gpmxWuBA-kBprBj1aCOTdnFPrDy9S8ETy1aHZ2agSK2KQg6H4u26uRbIFO3Y4X5gfHXkgP-yriClhLSXGGmbJrNQyfczPASt489mgb4uCTUHgN1eV-RHPQVdpujZxnUB3Dr-4\"}",
     "namespace": "prescriptions",
     "version": "ef0fd789-cd5c-4e6f-8a64-95b9c3814632:1",
     "updatedAt": "2026-07-18T14:19:56.819Z",
@@ -54,24 +19,7 @@
   },
   "PR-MRQGF9HY": {
     "key": "PR-MRQGF9HY",
-    "value": {
-      "rxId": "PR-MRQGF9HY",
-      "patientDid": "",
-      "drugs": [
-        {
-          "name": "Metoprolol",
-          "dosage": "50mg",
-          "frequency": "Daily",
-          "duration": "30 days"
-        }
-      ],
-      "diagnosis": "Hypertension & Migraine",
-      "notes": "Avoid direct sunlight.",
-      "signedBy": "did:hosp:doctor",
-      "signedAt": "2026-07-18T14:20:39.766Z",
-      "status": "active",
-      "hash": "sha256:6a3f2a96425ac4acef59482bb83f0405"
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"Y54n4zS7mSIzvcVA\",\"tag\":\"S0n156sB1agrAmkWx4BE5w\",\"ct\":\"1OIMhwnFVJFjmG5m-Z5J12dcPEQz9U2dlgEiMrxM-RbWca-OVkon1HFfieW3lM1nffZUlXuja749OyYIyg47Ld34bbBXbSwwzJ_JUTFAqXj3Zp-eNfa0BUlKyEFHSSr1Lh_uMzwCvesbDkIbejq2U3AQ7ItSzGjKNhSjj69uabzGTAKUbuiyHXnlcIFqzEtk6yOtuCf0cmQyeR4qWM_yVJhjLYwKJtZybKussoP7lqR7HbbdcNK1cMw8yi4wr9FD44PVtPEenbvWF1pgfMrUl6G4iWKPboTDwil8Ovr6PUAr31Kp-yXGGfpmZRkaargxwA6hoPnbRzaztk6u6YudjL-JTOJz15bB-_jphpQnMbVBgyLFoh1rC5IhpRv4X5PoopF4CsEgNujFQw56pIcTBY29vmdRUczH8lkinlRuqsqid0zVBqL-afgq9qg\"}",
     "namespace": "prescriptions",
     "version": "48a65a4b-e14e-4cf3-9347-d194d3e80e85:1",
     "updatedAt": "2026-07-18T14:20:39.766Z",
@@ -80,24 +28,7 @@
   },
   "PR-MRQGHGIJ": {
     "key": "PR-MRQGHGIJ",
-    "value": {
-      "rxId": "PR-MRQGHGIJ",
-      "patientDid": "",
-      "drugs": [
-        {
-          "name": "Metoprolol",
-          "dosage": "50mg",
-          "frequency": "Daily",
-          "duration": "30 days"
-        }
-      ],
-      "diagnosis": "Hypertension & Migraine",
-      "notes": "Avoid direct sunlight.",
-      "signedBy": "did:hosp:doctor",
-      "signedAt": "2026-07-18T14:22:22.171Z",
-      "status": "active",
-      "hash": "sha256:6a3e0d3a3d26be6bf5c44ca5837e04a7"
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"zs05vp1GgBeO54h2\",\"tag\":\"h3l6ET0JsFVZXnioZKH8jQ\",\"ct\":\"ByaMZRKCtwLFPPUktBl2IHv6yX-8H9Bd21058s1dvonabw6_reh9nDClXmHaeaD3ldHhgsG4-w_C8o4E1ssy9dKkoIwnwUp8NP2YguRCrSvQnkjzIs4m02PYtsEAFJImOBkktXOA8-EjRuPo4egCAUPyKkrNVv1FWQR0WFBHF5kWRCeInsv-5SHhihUd1HT_jvu6hA_DVO1lZco8sE39bhNCgFm773YsET4Z1c5Awi7bgZ2FqbBhQP7PATB8u_3Xm3mqQX8zsGYk_aaf3d5Qy2iCu7_eKD5fLMBgFv7mGksMVmSjdJaszce-Rf42YuM5G--oZMLtoVYZpvzISE5Sq117OQdDvqgm4cjXv7jT7fVo1eDZVn5JGt4gwwoxpRLxC2XNLQIWJPz_B2bq9YRwddOsDG6zhrROh-q3NBbzW-49DXgO-hxkwJf6kXY\"}",
     "namespace": "prescriptions",
     "version": "f5bb9298-0fb3-4346-adc0-2eb9e1110152:1",
     "updatedAt": "2026-07-18T14:22:22.171Z",
@@ -106,24 +37,7 @@
   },
   "PR-MRQGHMBO": {
     "key": "PR-MRQGHMBO",
-    "value": {
-      "rxId": "PR-MRQGHMBO",
-      "patientDid": "",
-      "drugs": [
-        {
-          "name": "Metoprolol",
-          "dosage": "50mg",
-          "frequency": "Daily",
-          "duration": "30 days"
-        }
-      ],
-      "diagnosis": "Hypertension & Migraine",
-      "notes": "Avoid direct sunlight.",
-      "signedBy": "did:hosp:doctor",
-      "signedAt": "2026-07-18T14:22:29.700Z",
-      "status": "active",
-      "hash": "sha256:6a3df7887c89c116417944a5be25e8d6"
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"qEJUOSkujsraLQEt\",\"tag\":\"J3hZzPNz4F-c8V0o6TEoiA\",\"ct\":\"BdX7rTc7kxu0eyI4-3K7X0c52u6bFBP4RdLRFWA8as1mgc6UdE9PMPkj_3US9OA-kgXGHDnPNWydYV3Z6ej2_pDh-Xr2W25vqSYaDsxpIC5fYDyz9ETj59XNDT8nupZTdkuGK2uMxYpNTjgwN0in1XteGISG_PXVB-pdshODvI3HAgk_qfVXDCJbxUYvO1g3bmJ3BKVSORzYSCPa-gN-7aNg5OVqCVRs1d4F7r6FgP86aadrlhIiWedj3JTrsn8e3_n_z1s7L26i2dTNzeFkROXEdnENHqoioR8yxY-QFygOcNMC6hsZie-BJEo9VCx3mT9BzoQl5JJWs7ZWMKgvi_kjzyLCJ7yAhkbXTQDUbrlWJohDr4HFYNkT1InK0n25Z2tprmUtjmBxCwoiVpkS7w5ODU1doc-IE3aMC-2QDuOwuXjeDLNpHhyVt6w\"}",
     "namespace": "prescriptions",
     "version": "a50e445e-0c90-41ba-b41e-554bfa582507:1",
     "updatedAt": "2026-07-18T14:22:29.701Z",
@@ -132,24 +46,7 @@
   },
   "PR-MRQGI8HJ": {
     "key": "PR-MRQGI8HJ",
-    "value": {
-      "rxId": "PR-MRQGI8HJ",
-      "patientDid": "",
-      "drugs": [
-        {
-          "name": "Metoprolol",
-          "dosage": "50mg",
-          "frequency": "Daily",
-          "duration": "30 days"
-        }
-      ],
-      "diagnosis": "Hypertension & Migraine",
-      "notes": "Avoid direct sunlight.",
-      "signedBy": "did:hosp:doctor",
-      "signedAt": "2026-07-18T14:22:58.423Z",
-      "status": "active",
-      "hash": "sha256:6a3dd149f487d94817b648d99172045d"
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"j3cQcHrwx6LiW4ii\",\"tag\":\"4qyjNfYYcKRVVe65OBNY3w\",\"ct\":\"DSFuaS3wDkdS91VYId-ln4wfvyFzeAvr8AdDvg3hM52wxB5TCn9oiw9I1n9Zldadq_x-9iIMwG64yp9VSjlciKVaEXksAwMfCAcBwse88zYECroOKqM5uM5L9-S-q1h5ebX_Pg4uzWCWKMzugsRI8u6ooKjfeRfEZ6VbQlfMDsVkdfM1PMQ0Hcw4z41uklY6iDbtqm23-Gm4Gt_A_IaFyrJv-6aILfjIXcmvkWbvd74oVnWpckW3vs8nZJ_ce7-XwalPxCyDkHykqMssxm3H7jC-oe7NWInmJQf2XMG3MfYEHodQnAqtdHz4Ckpr4L1xEMmfuEBk39dvXE5rhIBQeoWsJ3jaWdyTI9Bfbg5U8X1Mz_h7dYjn-x5ea6iQJCQ5LsU0Fb3VOuhh4Fz-Itgkrtufplh0J42eUORD9kWAEy4DvKWSLeplCHOLUjo\"}",
     "namespace": "prescriptions",
     "version": "2f71d407-2b0b-4db5-937e-cbe77c6f4b41:1",
     "updatedAt": "2026-07-18T14:22:58.424Z",
@@ -158,24 +55,7 @@
   },
   "PR-MRQGIV15": {
     "key": "PR-MRQGIV15",
-    "value": {
-      "rxId": "PR-MRQGIV15",
-      "patientDid": "did:hosp:0x4dd44b9f",
-      "drugs": [
-        {
-          "name": "Metoprolol",
-          "dosage": "50mg",
-          "frequency": "Daily",
-          "duration": "30 days"
-        }
-      ],
-      "diagnosis": "Hypertension & Migraine",
-      "notes": "Avoid direct sunlight.",
-      "signedBy": "did:hosp:doctor",
-      "signedAt": "2026-07-18T14:23:27.641Z",
-      "status": "active",
-      "hash": "sha256:0b77d087b1ab4fb0352143de88680c33"
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"wiGaztT3KI0bBPPM\",\"tag\":\"31NtjQVapbKzqMhfGnRTfQ\",\"ct\":\"72_QWl7T95FyABDaanf2Vno1TxzTyDHGj3vWosQUfX2bGV4qjxj5OyxTEUqap-TU_6-w5EGrJvUVC4oOZ4URg-mlGxwhY3Ex0sfRrlpPxUzl_Uk3a-xoPVtrURp6tmSoIIE_gl45CPr3FoP_aQPoxbEAOzjE8E2Iw_ZKb1SDyHCldxHTS54rgpkqnUhHxzx6hIpf0KdLPssO-OAb2SeNgcd3I3Cl9lIYbgxm3XVKByoy-KXS6GF8zIhGXKZslsHehMqAZGPwHmELhfaj0wQ9sbxPEMk-L9OKJG7EGOJzWob0v6eCUx7d1zk_mW9EAahnvXfIx4hTpakIMTNXKZhtB1wUVxk1lcdgDW9cai4VbQuqGrdHTwLoYmQdHUsmVrNHUBeQ5S8JL3bHiqIhOGpnaznZd27ulT3KPfmvbSR3jgKZQ9-AN5-3tL_qc2BM3NKf6nIF5uEc9zUAiIwGhpAQ\"}",
     "namespace": "prescriptions",
     "version": "3bd2c69a-0d19-4bf1-943e-09a080787bec:1",
     "updatedAt": "2026-07-18T14:23:27.641Z",
@@ -184,24 +64,7 @@
   },
   "PR-MRQGK7C7": {
     "key": "PR-MRQGK7C7",
-    "value": {
-      "rxId": "PR-MRQGK7C7",
-      "patientDid": "did:hosp:0x4d7ebeda",
-      "drugs": [
-        {
-          "name": "Metoprolol",
-          "dosage": "50mg",
-          "frequency": "Daily",
-          "duration": "30 days"
-        }
-      ],
-      "diagnosis": "Hypertension & Migraine",
-      "notes": "Avoid direct sunlight.",
-      "signedBy": "did:hosp:doctor",
-      "signedAt": "2026-07-18T14:24:30.247Z",
-      "status": "active",
-      "hash": "sha256:42544125a1b2c3d4e5f67890a1b2c3d4"
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"VEQQG8oG2FHCl0Vx\",\"tag\":\"nVRGnY2FcsKXWXKlKDx1tQ\",\"ct\":\"QN6bFRY-6zV1bDvCEAlkNeq9YkQRjf0wCyUinD3WuCzHueSv-qs9ozSeq0x2D1vMGSaoCQxjKgPHEysyaVp0_z6ABFTwtidvIzUjYchGVHsoOvPJHkBu4Oe8lBhORpZgLuA-1z3dFWCx3HAVJv4MT8iaE1BadiT8xoHvXzK7MnufHUnZizEuTRiMcoGcR0WufpBohfq7r7wOWvvJ5wvYM0Vm5DOefBiHOcM0Z3C_L-9pWXjhXJyc_xFCouvgzPzMCQOFrv1HN22QFivs0_TOPs8MsI5KOMXe_3Ys3pLcxKIJ78UvNmM8jOJ1V3iGK8-Lffhtu1avuh4S1wKJmca5Sq_WTFd1cR13pqMpCOBrk0kByK-X0RDlI3h4dsNRfdtWYdutxV_3Z7NCiaR9Cc5YcKXYqgzCP37tEz7SzeWb89luoS5pqP72IxHmYwqEDbNPNX7dePbkJtZO62qaTZ5x\"}",
     "namespace": "prescriptions",
     "version": "6d6d5623-6e79-4e05-8e91-598656e686bd:1",
     "updatedAt": "2026-07-18T14:24:30.247Z",
@@ -210,24 +73,7 @@
   },
   "PR-MRQGKKBN": {
     "key": "PR-MRQGKKBN",
-    "value": {
-      "rxId": "PR-MRQGKKBN",
-      "patientDid": "did:hosp:0x4d63f153",
-      "drugs": [
-        {
-          "name": "Metoprolol",
-          "dosage": "50mg",
-          "frequency": "Daily",
-          "duration": "30 days"
-        }
-      ],
-      "diagnosis": "Hypertension & Migraine",
-      "notes": "Avoid direct sunlight.",
-      "signedBy": "did:hosp:doctor",
-      "signedAt": "2026-07-18T14:24:47.075Z",
-      "status": "active",
-      "hash": "sha256:0164c719a1b2c3d4e5f67890a1b2c3d4"
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"rXiOCyDkTHFNmvYq\",\"tag\":\"MaiVLo0lEYFXOIh58cq9jQ\",\"ct\":\"QL9i-EWVsThgVoVU-Skfd-9R_s6R1T5LQjtZFWsL05is0ErkskLc6oDsP29ToczDR8H6c12oYHKx2uVRe6aWQS_oDT_Ka3hHZQu2m4EDS8Z0o2QQho6ivt75ZQ5vFdnzqpyCBQ7xmVvNPfpdw-cH4tWwDvNLMBmmBV2B4jS3Ne925Xjf76q7_odWX5pc8mLRiisJk5E6jDucYUKGG6Mjkv7VnRlsT-Xwn-mBjoBcxlUmoa-H1pbcIOFtKJ2XGEji3bucgLvznULxD_Xu9odPbj2_5HKVH0wIcQEQyBjyQxoLGFpWxiXFQyuHwLRfA7SHZiRMdK6gOD_abA5-jv3cXxaN01GN0mCt9C1qlu9eS7spBbgoLuIBa7A3YwjhR2q3AX8WXPIyKHwf0OGifoOgLbQKSUzBZIJDh3JZ7MuwApASB-rPMimI_8kYjKJ8gocJQQHYxsxWXyqJSV-Jv7Vd\"}",
     "namespace": "prescriptions",
     "version": "d0c751e3-d964-4b8d-b82e-6456e7f243d5:1",
     "updatedAt": "2026-07-18T14:24:47.076Z",
@@ -236,24 +82,7 @@
   },
   "PR-MRQGKXFL": {
     "key": "PR-MRQGKXFL",
-    "value": {
-      "rxId": "PR-MRQGKXFL",
-      "patientDid": "did:hosp:0x4c21323a",
-      "drugs": [
-        {
-          "name": "Metoprolol",
-          "dosage": "50mg",
-          "frequency": "Daily",
-          "duration": "30 days"
-        }
-      ],
-      "diagnosis": "Hypertension & Migraine",
-      "notes": "Avoid direct sunlight.",
-      "signedBy": "did:hosp:doctor",
-      "signedAt": "2026-07-18T14:25:04.065Z",
-      "status": "active",
-      "hash": "sha256:05671bbba1b2c3d4e5f67890a1b2c3d4"
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"8WDPcSNO3uPnwmS9\",\"tag\":\"62v_fRRV8ZFzIUvBAj0XwA\",\"ct\":\"wxHkLelRKlz-8Yd9ezZpJ7wsaiqk5MoAuoWEewuoJYtXFOCTaQr5LU-yGhIuFZrVh31VPGWknAgpRPDtcN5niA6OnDs0fDW_LgeMbnutWbbTBRN2LmYL1EbO0A_E6FG80GV1sGesykuY9aSu3M8YF-XRIyYhuRaiQKQSmzAN3eLggHiNjMpuefrwoQ1sODCrBSdGJUBH6jaj6GPwsQZ0JUhwwQnoAs6lta_QXJbAZ1Ri7kiZ_s-MgH9quIyYk673xqAjyhFXvZdvCP4IERqzmwCYnO8Gboh1S9EEf4UtdifqR1U04AUBRWlAln8Dl51PX8aabLpezJ9_kdUVAAdao-phGUsALlkh4yw1DEqnS19z_VBVuN2sFcdL-OEz4JAR3Jdg0IVkwHz0vBY0oT-UPXFd7O2TjkPcCrOtJbER-9340tGaedw9nQzS1UeGogkOqIBLMWur8fev6NkVejCK\"}",
     "namespace": "prescriptions",
     "version": "b3cda8dd-16ae-41f6-9f82-e2716a1d9fd2:1",
     "updatedAt": "2026-07-18T14:25:04.066Z",
@@ -262,24 +91,7 @@
   },
   "PR-MRQGLC5O": {
     "key": "PR-MRQGLC5O",
-    "value": {
-      "rxId": "PR-MRQGLC5O",
-      "patientDid": "did:hosp:0x4c057794",
-      "drugs": [
-        {
-          "name": "Metoprolol",
-          "dosage": "50mg",
-          "frequency": "Daily",
-          "duration": "30 days"
-        }
-      ],
-      "diagnosis": "Hypertension & Migraine",
-      "notes": "Avoid direct sunlight.",
-      "signedBy": "did:hosp:doctor",
-      "signedAt": "2026-07-18T14:25:23.148Z",
-      "status": "active",
-      "hash": "sha256:195ff59ba1b2c3d4e5f67890a1b2c3d4"
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"o2E3xa0BLNb_-O8w\",\"tag\":\"nzHr-nwWsqpu5m9vglyl7w\",\"ct\":\"yxGljQ_hRYlQaFmMy6k57rxYRVXlqYdcY0PPbzV53QA6JmUd4XwQMAwIAONhnJJ6iyrqcota8gwh6zBVx4ZS-BLmo6J619spI_RDYT9Jvs4RH7HZ-saKKJOaMUMDH8fSpT-tBPsHdK_qSvLIxoDntAmuR5nxMeWwARajYXzAOFRB00YKLvJh6KMOfRRJd4-RLwMyL73qwX3j6UOAROdH2F8wc6r5B66KCGXJi-Tb0GkdHw3oR7fNl9H8z1B-ST6DNw9I7A9pAAKmNkFLUc6DrJoVA6_EXkr9qn3R2Z_MvkzkhWUbjwynRFhfba0hFi-tgQflhhOex17pbpgij6m3tB0_guQlUc7p741sqvvB4l87ATqbMjVQvUnHn9KwlW5TE750S2lCk46I2eHkgGUSRP8p7koZtskSVXDChpvMkKuS1uNZGGJQ7wMbeDfrKh207C8iYNqA4xaRfLOuQgoR\"}",
     "namespace": "prescriptions",
     "version": "7558a896-bd8e-48a8-a6fa-a8568a290482:1",
     "updatedAt": "2026-07-18T14:25:23.148Z",

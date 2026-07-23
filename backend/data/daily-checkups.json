@@ -1,62 +1,29 @@
 {
   "dc1": {
     "key": "dc1",
-    "value": {
-      "id": "dc1",
-      "patientDid": "pat_001",
-      "date": "2026-05-30",
-      "time": "08:00",
-      "type": "routine",
-      "doctor": "Dr. Ravi Menon",
-      "specialty": "Cardiology",
-      "notes": "Patient stable, chest pain resolved. Continue current medications.",
-      "findings": ["Heart sounds normal", "No respiratory distress", "Wound healing well"],
-      "status": "completed"
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"eFtUeKcruAqC_ZKv\",\"tag\":\"GrmEpt_GvY3a_pNgv-eUKQ\",\"ct\":\"6qYId7iIrgmVx-ecaBP7rs4hWC9n2W8zofZP5UHRUeaTMir1hOQz4atdj9oT9EbQzK7fujT4Y42aBfHhA-oaBtHH2jYX8RDcKGnnX_zBo-ucEDuXd36AoMWpNAB8p586Rg9pQioZW_UWN-ApxlOMFcHAxhJIND-_cTjNPhZ8dJ_BtOFThKCqZ7MSC_onPmJuYakPWnHhH786KR8BOOivwkJLF6FGptgCf2xWCq0usZUJeRidFXt8PgdFTFp3HNNSjSP5iEzlbTOIaFHG0obZzq0x5pwVokCQcyPFPFlM1BKMrEJR_AT0615qWuneaW-wCrWzLN461BMEcbZh2FkJlkhhoif33810Z6752zsuf5j7nn9UL22OP-xHZ3y_K-bmpeHeZQ3cO91TeI4-uKBf6B8OyFwwsEXRs69Qhkd5Py_ZtS1IIclRXCNE\"}",
     "namespace": "daily-checkups",
-    "version": "ebc90c41-2ac0-488d-a137-2cfc7684ef50:1",
-    "updatedAt": "2026-07-21T17:58:59.443Z",
-    "txId": "ebc90c41-2ac0-488d-a137-2cfc7684ef50",
+    "version": "da7299b6-1eb3-4429-9747-ef0a35c84aee:1",
+    "updatedAt": "2026-07-03T16:41:44.575Z",
+    "txId": "da7299b6-1eb3-4429-9747-ef0a35c84aee",
     "docType": "daily-checkups"
   },
   "dc2": {
     "key": "dc2",
-    "value": {
-      "id": "dc2",
-      "patientDid": "pat_001",
-      "date": "2026-05-30",
-      "time": "14:00",
-      "type": "specialist",
-      "doctor": "Dr. Sameer Khan",
-      "specialty": "Endocrinology",
-      "notes": "Blood sugar levels improving with insulin therapy.",
-      "findings": ["HbA1c trending down", "No hypoglycemic episodes"],
-      "status": "scheduled"
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"wZi0vjLRqn13Lys0\",\"tag\":\"aWJ1yuu60szp6k3aFU_XGw\",\"ct\":\"97BhlgpkHqjjPn_tNSb72lRGdtEq3xm-E5d-aqwGB-e8K04MoOKRLQPdI-klbBqFTyh33hUQoF13rbW8XOYIu8eEn7g8Ac1Xc5KOKaZx3DIjLvXHHb7BEFwuzG3516dtPrVwmMEEAWcbssGDmMbJKvFifbSJc77j4D9oF1LlchlHp-D6lee_0orqWICtwJZ94W1goy1qETMyjy_aBPbRrRhX2-_KrBaQn_tLInUbQ7Q5oUcUtVww0fYLXxYOkkaN8OY75vNUKQH3r_vfZwXID2MMJ9eqPUEGQMLRBwFGVVtahmQ3d4vv-uUGHc_hpCwzkcEgQ1TL2oSwFFf4lhfzNUc05l3LOUw8WNLbQJxcKAsE4nxGdYdeEKqsHxjzxVV5de8oLbRmJqi9mCf0EQ\"}",
     "namespace": "daily-checkups",
-    "version": "329c10c1-277b-46ce-9dd9-d4a563aa48f0:1",
-    "updatedAt": "2026-07-21T17:58:59.444Z",
-    "txId": "329c10c1-277b-46ce-9dd9-d4a563aa48f0",
+    "version": "64235539-2e9a-4854-b9f4-d3bd52355fbe:1",
+    "updatedAt": "2026-07-03T16:41:44.575Z",
+    "txId": "64235539-2e9a-4854-b9f4-d3bd52355fbe",
     "docType": "daily-checkups"
   },
   "dc3": {
     "key": "dc3",
-    "value": {
-      "id": "dc3",
-      "patientDid": "pat_001",
-      "date": "2026-05-29",
-      "time": "08:30",
-      "type": "routine",
-      "doctor": "Dr. Ravi Menon",
-      "specialty": "Cardiology",
-      "notes": "Post-procedure check. Patient recovering well.",
-      "findings": ["Vital signs stable", "No complications", "Pain managed"],
-      "status": "completed"
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"9QervfP3eYsLIppn\",\"tag\":\"cYSxsu9RcpPgLI7VyG9SbA\",\"ct\":\"4OnE-r24B-MUbB9AyUuE2qP4MKZYjNStfitELfuiZm2iSB-Ucxy7PvUSrWjToa2aE5oNxa6TErvJDpWYlXevk0RK9zSN6nNQ0jMq7uQBBNfzd49U_GvI3jfIxlgCL5Pm2LNTOEGs1JI0xhAhV4O1tZFpmOu20o-WoFUGx9KRcgyElYsYPizAeGdbeoZPPMWAtR8iGAaLnqFQvdLcSrlHpxvm8XFUHKRERfUMh9hXGzvX0Y3Q70mK1IsJiJvoR2LHPJA0aVEfG6OgRKLjyZUrqZ26n9cEhAFZechEWyJkNDyvukgZcFePEuSp9nhwrkiQRv8i0b1-8OEvcALj2p38oiAtLMnQBfRswYaRwRFk8YONCa3tgypKHnNyeTt4xDQUOCrWBqNlxr4\"}",
     "namespace": "daily-checkups",
-    "version": "e2a48147-cef0-470e-84f9-f8faba78e7bc:1",
-    "updatedAt": "2026-07-21T17:58:59.445Z",
-    "txId": "e2a48147-cef0-470e-84f9-f8faba78e7bc",
+    "version": "2ca1f5f8-97d2-4292-88f5-dbd1ae9319e1:1",
+    "updatedAt": "2026-07-03T16:41:44.576Z",
+    "txId": "2ca1f5f8-97d2-4292-88f5-dbd1ae9319e1",
     "docType": "daily-checkups"
   }
 }
