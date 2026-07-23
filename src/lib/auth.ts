@@ -54,7 +54,7 @@ let _refreshTimer: ReturnType<typeof setTimeout> | null = null;
 export function getToken(): string | null {
   if (_memToken) return _memToken;
   if (typeof window === "undefined") return null;
-  return sessionStorage.getItem(ACCESS_TOKEN_KEY);
+  return sessionStorage.getItem(ACCESS_TOKEN_KEY) || localStorage.getItem(ACCESS_TOKEN_KEY);
 }
 
 /** Read the opaque refresh token from sessionStorage. */
@@ -96,8 +96,9 @@ export function setSession(
 
   if (!user) return;
 
-  // Access token → sessionStorage + memory
+  // Access token → sessionStorage + localStorage + memory
   sessionStorage.setItem(ACCESS_TOKEN_KEY, token);
+  localStorage.setItem(ACCESS_TOKEN_KEY, token);
   _memToken = token;
 
   // Refresh token → sessionStorage only
@@ -280,18 +281,25 @@ export async function logout(redirectToLogin = true): Promise<void> {
   }
 
   // Clear all storage
+  clearSession(redirectToLogin);
+}
+
+export function clearSession(redirectToLogin = false): void {
   _memToken = null;
+  if (typeof window === "undefined") return;
   sessionStorage.removeItem(ACCESS_TOKEN_KEY);
   sessionStorage.removeItem(REFRESH_TOKEN_KEY);
+  localStorage.removeItem(ACCESS_TOKEN_KEY);
   localStorage.removeItem("userRole");
   localStorage.removeItem("userEmail");
   localStorage.removeItem("userName");
   localStorage.removeItem("userDID");
+  localStorage.removeItem("userDid");
   localStorage.removeItem("userMRN");
   localStorage.removeItem("userEmployeeId");
   localStorage.removeItem("userWalletAddress");
 
-  if (redirectToLogin && typeof window !== "undefined") {
+  if (redirectToLogin) {
     window.location.href = "/login";
   }
 }
