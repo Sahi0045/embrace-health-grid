@@ -386,5 +386,23 @@
     "updatedAt": "2026-07-18T14:25:23.227Z",
     "txId": "loc_adee81f4",
     "docType": "solana-anchors"
+  },
+  "loc_2a9fc5ed": {
+    "key": "loc_2a9fc5ed",
+    "value": {
+      "anchorId": "loc_2a9fc5ed",
+      "recordHash": "3db0b9ad86a939945b79af5d334c0f62c67741019275f3381c16158df5712ebb",
+      "recordType": "doctor-location",
+      "actorDid": "did:hosp:0x7a99d9fe",
+      "signature": "solana_loc_3db0b9ad86a9_mrtju6ow",
+      "slot": 4461428933,
+      "network": "devnet-simulated",
+      "anchoredAt": "2026-07-20T18:19:33.342Z"
+    },
+    "namespace": "solana-anchors",
+    "version": "loc_2a9fc5ed:1",
+    "updatedAt": "2026-07-20T18:19:33.354Z",
+    "txId": "loc_2a9fc5ed",
+    "docType": "solana-anchors"
   }
 }

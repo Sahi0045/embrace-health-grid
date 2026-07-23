@@ -144,10 +144,15 @@ export function emitStoreEvent(event: string, detail?: unknown) {
 let _convexClient: ConvexHttpClient | null = null;
 
 // Initialize Convex client
-function getConvexClient(): ConvexHttpClient {
+function getConvexClient(): ConvexHttpClient | null {
   if (!_convexClient) {
-    // TODO: Replace with your actual Convex deployment URL
-    const CONVEX_URL = process.env.NEXT_PUBLIC_CONVEX_URL || "";
+    const CONVEX_URL =
+      process.env.NEXT_PUBLIC_CONVEX_URL ||
+      (typeof import.meta !== "undefined" && import.meta.env?.VITE_CONVEX_URL) ||
+      "";
+    if (!CONVEX_URL || (!CONVEX_URL.startsWith("http://") && !CONVEX_URL.startsWith("https://"))) {
+      return null;
+    }
     _convexClient = new ConvexHttpClient(CONVEX_URL);
   }
   return _convexClient;
@@ -392,9 +397,9 @@ function hashInt(s: string): number {
  * Replaces the old rebuildLiveListsFromRegistry() that used localStorage
  */
 export async function rebuildLiveListsFromConvex() {
-  // TODO: Fetch data from Convex instead of localStorage
   try {
     const client = getConvexClient();
+    if (!client) return;
 
     // Fetch patients and staff from Convex
     const patientsData = await client.query(api.records.getPatients, {});

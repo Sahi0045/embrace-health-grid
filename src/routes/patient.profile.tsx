@@ -21,9 +21,9 @@ import { RouteGuard } from "@/components/RouteGuard";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { getCurrentUser, setSession, logout } from "@/lib/auth";
-import { linkWalletAddress, updateProfile } from "@/lib/api";
+import { linkWalletAddress, updateProfile, getMe } from "@/lib/api";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -57,6 +57,18 @@ function PatientProfile() {
   const [currentUser, setCurrentUser] = useState(getCurrentUser());
   const { publicKey, connected } = useWallet();
   const [linking, setLinking] = useState(false);
+
+  useEffect(() => {
+    getMe()
+      .then((res) => {
+        if (res.user) {
+          const token = localStorage.getItem("authToken") || "";
+          setSession(token, res.user);
+          setCurrentUser(getCurrentUser());
+        }
+      })
+      .catch((err) => console.warn("Could not load latest user session:", err));
+  }, []);
 
   const userEmail = currentUser?.email || "";
   const patientRecord = patients?.find((p: any) => p.email === userEmail || p.id === "pat_001") || {
@@ -257,7 +269,7 @@ function PatientProfile() {
             <CardContent>
               <div className="rounded-lg bg-muted p-4">
                 <div className="text-sm text-muted-foreground">DID</div>
-                <div className="mt-1 font-mono text-sm font-medium">{patientRecord.did}</div>
+                <div className="mt-1 font-mono text-sm font-medium">{currentUser?.did || patientRecord?.did || "Pending Admin Issuance"}</div>
               </div>
               <div className="mt-4 text-xs text-muted-foreground">
                 This DID is cryptographically secured and gives you control over your health data.

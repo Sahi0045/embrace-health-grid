@@ -261,10 +261,6 @@ export function useAppointments() {
     },
     "appointment:booked",
     [],
-    {
-      query: api.records.getAppointments,
-      mapFn: (raw: any) => ({ appointments: raw, total: raw.length }),
-    },
   );
 }
 

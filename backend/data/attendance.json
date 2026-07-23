@@ -1,0 +1,128 @@
+{
+  "ATT-SEED-nan1@gmail.com-0": {
+    "key": "ATT-SEED-nan1@gmail.com-0",
+    "value": {
+      "staffEmail": "nan1@gmail.com",
+      "action": "in",
+      "timestamp": "2026-06-02T07:52:00.000Z",
+      "location": "Cardiology OPD"
+    },
+    "namespace": "attendance",
+    "version": "eba16483-3601-4085-be35-d8ef2f604e56:1",
+    "updatedAt": "2026-07-21T17:46:29.132Z",
+    "txId": "eba16483-3601-4085-be35-d8ef2f604e56",
+    "docType": "attendance"
+  },
+  "ATT-SEED-nan1@gmail.com-1": {
+    "key": "ATT-SEED-nan1@gmail.com-1",
+    "value": {
+      "staffEmail": "nan1@gmail.com",
+      "action": "in",
+      "timestamp": "2026-06-01T07:58:00.000Z",
+      "location": "Cardiology OPD"
+    },
+    "namespace": "attendance",
+    "version": "271cbb2d-b725-4ab4-8fa0-a64716a3eb83:1",
+    "updatedAt": "2026-07-21T17:46:29.133Z",
+    "txId": "271cbb2d-b725-4ab4-8fa0-a64716a3eb83",
+    "docType": "attendance"
+  },
+  "ATT-SEED-nan1@gmail.com-2": {
+    "key": "ATT-SEED-nan1@gmail.com-2",
+    "value": {
+      "staffEmail": "nan1@gmail.com",
+      "action": "out",
+      "timestamp": "2026-06-01T16:14:00.000Z",
+      "location": "Cardiology OPD"
+    },
+    "namespace": "attendance",
+    "version": "6da0ff36-ed84-4204-90fc-3b7c52297495:1",
+    "updatedAt": "2026-07-21T17:46:29.134Z",
+    "txId": "6da0ff36-ed84-4204-90fc-3b7c52297495",
+    "docType": "attendance"
+  },
+  "ATT-SEED-nan1@gmail.com-3": {
+    "key": "ATT-SEED-nan1@gmail.com-3",
+    "value": {
+      "staffEmail": "nan1@gmail.com",
+      "action": "in",
+      "timestamp": "2026-05-30T08:05:00.000Z",
+      "location": "Cardiology OPD"
+    },
+    "namespace": "attendance",
+    "version": "73d29102-3a47-44c2-b191-638883d98ac3:1",
+    "updatedAt": "2026-07-21T17:46:29.135Z",
+    "txId": "73d29102-3a47-44c2-b191-638883d98ac3",
+    "docType": "attendance"
+  },
+  "ATT-SEED-nan1@gmail.com-4": {
+    "key": "ATT-SEED-nan1@gmail.com-4",
+    "value": {
+      "staffEmail": "nan1@gmail.com",
+      "action": "out",
+      "timestamp": "2026-05-30T16:02:00.000Z",
+      "location": "Cardiology OPD"
+    },
+    "namespace": "attendance",
+    "version": "e6eede4f-d80e-43c9-af89-7b3d67ae1898:1",
+    "updatedAt": "2026-07-21T17:46:29.136Z",
+    "txId": "e6eede4f-d80e-43c9-af89-7b3d67ae1898",
+    "docType": "attendance"
+  },
+  "ATT-SEED-nan1@gmail.com-5": {
+    "key": "ATT-SEED-nan1@gmail.com-5",
+    "value": {
+      "staffEmail": "nan1@gmail.com",
+      "action": "in",
+      "timestamp": "2026-05-29T08:10:00.000Z",
+      "location": "Cardiology OPD"
+    },
+    "namespace": "attendance",
+    "version": "c6b6ee79-e36e-413c-af08-ade2be486c2a:1",
+    "updatedAt": "2026-07-21T17:46:29.148Z",
+    "txId": "c6b6ee79-e36e-413c-af08-ade2be486c2a",
+    "docType": "attendance"
+  },
+  "ATT-SEED-nan1@gmail.com-6": {
+    "key": "ATT-SEED-nan1@gmail.com-6",
+    "value": {
+      "staffEmail": "nan1@gmail.com",
+      "action": "out",
+      "timestamp": "2026-05-29T19:22:00.000Z",
+      "location": "Cardiology OPD"
+    },
+    "namespace": "attendance",
+    "version": "5860b05c-d7e6-4f0c-aea2-d7724c0f029c:1",
+    "updatedAt": "2026-07-21T17:46:29.148Z",
+    "txId": "5860b05c-d7e6-4f0c-aea2-d7724c0f029c",
+    "docType": "attendance"
+  },
+  "ATT-SEED-nan1@gmail.com-7": {
+    "key": "ATT-SEED-nan1@gmail.com-7",
+    "value": {
+      "staffEmail": "nan1@gmail.com",
+      "action": "in",
+      "timestamp": "2026-05-28T07:45:00.000Z",
+      "location": "Cardiology OPD"
+    },
+    "namespace": "attendance",
+    "version": "3b4ccfb2-cc0f-4a8b-a777-019cc0accc84:1",
+    "updatedAt": "2026-07-21T17:46:29.163Z",
+    "txId": "3b4ccfb2-cc0f-4a8b-a777-019cc0accc84",
+    "docType": "attendance"
+  },
+  "ATT-SEED-nan1@gmail.com-8": {
+    "key": "ATT-SEED-nan1@gmail.com-8",
+    "value": {
+      "staffEmail": "nan1@gmail.com",
+      "action": "out",
+      "timestamp": "2026-05-28T16:00:00.000Z",
+      "location": "Cardiology OPD"
+    },
+    "namespace": "attendance",
+    "version": "7f99ab6a-82a9-4ec2-b056-e59a7a72ca72:1",
+    "updatedAt": "2026-07-21T17:46:29.185Z",
+    "txId": "7f99ab6a-82a9-4ec2-b056-e59a7a72ca72",
+    "docType": "attendance"
+  }
+}

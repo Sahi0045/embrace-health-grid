@@ -3,7 +3,7 @@
     "key": "med1",
     "value": {
       "id": "med1",
-      "patientDid": "did:hosp:0x643a3a37",
+      "patientDid": "pat_001",
       "name": "Aspirin",
       "dosage": "75 mg",
       "frequency": "Once daily",
@@ -14,16 +14,16 @@
       "nextDose": "2026-05-30 08:00"
     },
     "namespace": "medications",
-    "version": "39753c26-ae93-44ea-bfd1-737e9a85b692:1",
-    "updatedAt": "2026-07-03T16:41:44.573Z",
-    "txId": "39753c26-ae93-44ea-bfd1-737e9a85b692",
+    "version": "5fe9d970-eb39-4f3c-bfac-cd9e6759e2b2:1",
+    "updatedAt": "2026-07-21T17:58:59.434Z",
+    "txId": "5fe9d970-eb39-4f3c-bfac-cd9e6759e2b2",
     "docType": "medications"
   },
   "med2": {
     "key": "med2",
     "value": {
       "id": "med2",
-      "patientDid": "did:hosp:0x643a3a37",
+      "patientDid": "pat_001",
       "name": "Atorvastatin",
       "dosage": "40 mg",
       "frequency": "Once daily (evening)",
@@ -34,16 +34,16 @@
       "nextDose": "2026-05-30 20:00"
     },
     "namespace": "medications",
-    "version": "f84b2d25-ca86-44b7-91b5-4fa25977e490:1",
-    "updatedAt": "2026-07-03T16:41:44.574Z",
-    "txId": "f84b2d25-ca86-44b7-91b5-4fa25977e490",
+    "version": "8f448625-ce45-43dc-bf8f-274c8873a799:1",
+    "updatedAt": "2026-07-21T17:58:59.436Z",
+    "txId": "8f448625-ce45-43dc-bf8f-274c8873a799",
     "docType": "medications"
   },
   "med3": {
     "key": "med3",
     "value": {
       "id": "med3",
-      "patientDid": "did:hosp:0x643a3a37",
+      "patientDid": "pat_001",
       "name": "Metoprolol",
       "dosage": "50 mg",
       "frequency": "Twice daily",
@@ -54,16 +54,16 @@
       "nextDose": "2026-05-30 08:00"
     },
     "namespace": "medications",
-    "version": "62ab3d8c-ff35-40b3-a8c0-ebb8903c49cb:1",
-    "updatedAt": "2026-07-03T16:41:44.574Z",
-    "txId": "62ab3d8c-ff35-40b3-a8c0-ebb8903c49cb",
+    "version": "29d639ac-56aa-4585-bf42-18a3ef61ab10:1",
+    "updatedAt": "2026-07-21T17:58:59.436Z",
+    "txId": "29d639ac-56aa-4585-bf42-18a3ef61ab10",
     "docType": "medications"
   },
   "med4": {
     "key": "med4",
     "value": {
       "id": "med4",
-      "patientDid": "did:hosp:0x643a3a37",
+      "patientDid": "pat_001",
       "name": "Insulin (Rapid-acting)",
       "dosage": "8 units",
       "frequency": "Before meals",
@@ -74,16 +74,16 @@
       "nextDose": "2026-05-30 12:00"
     },
     "namespace": "medications",
-    "version": "ecc0c754-97e4-4d77-b746-54743944c758:1",
-    "updatedAt": "2026-07-03T16:41:44.574Z",
-    "txId": "ecc0c754-97e4-4d77-b746-54743944c758",
+    "version": "2d5b5d98-36da-417f-b66b-ea1ef19bba9a:1",
+    "updatedAt": "2026-07-21T17:58:59.437Z",
+    "txId": "2d5b5d98-36da-417f-b66b-ea1ef19bba9a",
     "docType": "medications"
   },
   "med5": {
     "key": "med5",
     "value": {
       "id": "med5",
-      "patientDid": "did:hosp:0x643a3a37",
+      "patientDid": "pat_001",
       "name": "Enoxaparin",
       "dosage": "40 mg",
       "frequency": "Once daily",
@@ -94,9 +94,9 @@
       "status": "completed"
     },
     "namespace": "medications",
-    "version": "1fc5a3b1-88fc-4fb5-b29c-7aa9e963fdaf:1",
-    "updatedAt": "2026-07-03T16:41:44.574Z",
-    "txId": "1fc5a3b1-88fc-4fb5-b29c-7aa9e963fdaf",
+    "version": "921bf041-6453-401f-bb5c-50a9c61c36d9:1",
+    "updatedAt": "2026-07-21T17:58:59.439Z",
+    "txId": "921bf041-6453-401f-bb5c-50a9c61c36d9",
     "docType": "medications"
   }
 }
