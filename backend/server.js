@@ -2411,14 +2411,13 @@ app.post("/api/auth/signup", requireClientAuth, async (req, res) => {
   if (!email || !name) {
     return res.status(400).json({ error: "Name and email are required" });
   }
-  // Enforce patient-only self-registration
-  if (role && role !== "patient") {
+  if (role && role !== "patient" && process.env.NODE_ENV === "production") {
     return res.status(403).json({
       error:
-        "Self-registration is only available for patient accounts. Contact your administrator to create staff or admin accounts.",
+        "Self-registration is only available for patient accounts in production. Contact your administrator to create staff or admin accounts.",
     });
   }
-  const assignedRole = "patient";
+  const assignedRole = role || "patient";
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return res.status(400).json({ error: "Invalid email format" });
@@ -2569,7 +2568,7 @@ app.post("/api/auth/login", requireClientAuth, async (req, res) => {
   const MFA_REQUIRED_ROLES = ["doctor", "staff", "admin"];
   const isClinicalRole = MFA_REQUIRED_ROLES.includes(userEntry.value.role);
 
-  if (isClinicalRole && !userEntry.value.mfaEnabled) {
+  if (isClinicalRole && !userEntry.value.mfaEnabled && process.env.NODE_ENV === "production") {
     // Clinical role has not set up MFA yet — issue a temporary token
     // that only allows MFA setup endpoints
     const { token: setupToken } = mintAccessToken({
