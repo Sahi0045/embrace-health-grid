@@ -10,113 +10,15 @@ import {
   BreakGlassRequestCard,
   type BreakGlassRequest,
 } from "@/components/emergency/BreakGlassRequestCard";
-import { useAmbulances } from "@/hooks/use-api";
-import { AlertTriangle, Ambulance, ShieldAlert } from "lucide-react";
+import { useAmbulances, useLivePatients, useAudit, useBeds } from "@/hooks/use-api";
+import { AlertTriangle, Ambulance, ShieldAlert, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 
 export const Route = createFileRoute("/staff/emergency")({
   head: () => ({ meta: [{ title: "Emergency — Staff Portal" }] }),
   component: StaffEmergencyPage,
 });
-
-const traumaQueue = [
-  {
-    id: "t1",
-    name: "Unknown Male ~40y",
-    condition: "Polytrauma — RTA",
-    severity: "critical",
-    arrived: "10:22",
-    bedNo: "ER-01",
-    doctor: "Dr. Priya Nair",
-  },
-  {
-    id: "t2",
-    name: "Sunita Verma",
-    mrn: "MRN-208441",
-    condition: "Acute MI",
-    severity: "critical",
-    arrived: "10:35",
-    bedNo: "ER-02",
-    doctor: "Dr. Ravi Menon",
-  },
-  {
-    id: "t3",
-    name: "Arjun Mehta",
-    mrn: "MRN-209001",
-    condition: "Acute Appendicitis",
-    severity: "urgent",
-    arrived: "09:48",
-    bedNo: "ER-05",
-    doctor: "Dr. Kiran Bose",
-  },
-  {
-    id: "t4",
-    name: "Kavya Reddy",
-    mrn: "MRN-206114",
-    condition: "Fractured Femur — Fall",
-    severity: "urgent",
-    arrived: "09:15",
-    bedNo: "ER-07",
-    doctor: "Dr. Priya Nair",
-  },
-  {
-    id: "t5",
-    name: "Elderly Male ~72y",
-    condition: "Respiratory Distress",
-    severity: "warning",
-    arrived: "08:30",
-    bedNo: "ER-11",
-    doctor: "Dr. Sameer Khan",
-  },
-];
-
-const breakGlassRequests: EmergencyAccessEvent[] = [
-  {
-    id: "bg1",
-    actor: "Dr. Priya Nair",
-    actorRole: "ER Physician",
-    reason: "Unconscious polytrauma patient, no consent, need allergy + blood group",
-    at: new Date(Date.now() - 4 * 60 * 60 * 1000).toLocaleString().replace(/\//g, "-"),
-    autoAudited: true,
-  },
-  {
-    id: "bg2",
-    actor: "Dr. Ravi Menon",
-    actorRole: "Cardiologist",
-    reason: "STEMI patient, urgent medication history needed",
-    at: new Date(Date.now() - 3 * 60 * 60 * 1000).toLocaleString().replace(/\//g, "-"),
-    autoAudited: true,
-  },
-];
-
-const pendingBreakGlass: BreakGlassRequest[] = [
-  {
-    id: "pbg1",
-    requestedBy: "Dr. Sameer Khan",
-    requestorRole: "General Physician",
-    patientName: "Unknown Male ~40y",
-    patientMRN: "MRN-UNKNOWN",
-    reason: "Unconscious trauma patient — need full medical history and allergies",
-    urgency: "critical",
-    requestedAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toLocaleString().replace(/\//g, "-"),
-    status: "pending",
-    autoApproved: false,
-  },
-  {
-    id: "pbg2",
-    requestedBy: "Nurse Priya K.",
-    requestorRole: "ICU Nursing",
-    patientName: "Sunita Verma",
-    patientMRN: "MRN-208441",
-    reason: "Cardiac arrest — need medication contraindications immediately",
-    urgency: "critical",
-    requestedAt: new Date(Date.now() - 3.5 * 60 * 60 * 1000).toLocaleString().replace(/\//g, "-"),
-    status: "approved",
-    autoApproved: true,
-    approvedBy: "System (Auto — Critical)",
-  },
-];
 
 const severityConfig = {
   critical: { badge: "bg-destructive/15 text-destructive", dot: "bg-destructive" },
@@ -124,13 +26,103 @@ const severityConfig = {
   warning: { badge: "bg-chart-2/10 text-chart-2", dot: "bg-chart-2" },
 };
 
+function hasSevereCondition(conditions?: string[]): boolean {
+  return (conditions || []).some(
+    (c) => c.includes("Cardiac") || c.includes("Trauma") || c.includes("Respiratory"),
+  );
+}
+
 function StaffEmergencyPage() {
-  const [bgRequests, setBgRequests] = useState(pendingBreakGlass);
   const { data: ambulancesData } = useAmbulances();
+  const { patients: livePatients = [], loading: patientsLoading } = useLivePatients();
+  const { data: bedsData } = useBeds();
+  const { data: auditData, loading: auditLoading } = useAudit(0);
+
   const allAmbulances = ambulancesData?.ambulances ?? [];
+  const allBeds = bedsData?.beds ?? [];
   const incomingAmbulances = allAmbulances
     .filter((a: any) => a.status === "en-route" || a.status === "at-scene")
-    .slice(0, 3);
+    .slice(0, 5);
+
+  const traumaQueue = useMemo(() => {
+    const emergencyBeds = allBeds.filter(
+      (b: any) => b.ward?.toLowerCase().includes("er") || b.ward?.toLowerCase().includes("emergency"),
+    );
+    const emergencyPatients = livePatients.filter((p) => {
+      const isInpatient = p.status === "inpatient";
+      const hasSevereCond = (p.conditions || []).some(
+        (c: string) =>
+          c.includes("Cardiac") ||
+          c.includes("Trauma") ||
+          c.includes("COPD") ||
+          c.includes("Fracture") ||
+          c.includes("Respiratory"),
+      );
+      return isInpatient || hasSevereCond;
+    });
+
+    return emergencyPatients.map((p, i) => {
+      const bed = emergencyBeds[i];
+      return {
+        id: p.did || `er-${i}`,
+        name: p.name || "Unknown Patient",
+        mrn: p.mrn || "—",
+        condition: (p.conditions || []).join(", ") || "Under Assessment",
+        severity: hasSevereCondition(p.conditions) ? "critical" : "urgent",
+        arrived: p.admitDate
+          ? new Date(p.admitDate).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+          : "—",
+        bedNo: bed?.bedId || `ER-${String(i + 1).padStart(2, "0")}`,
+        doctor: p.primaryDoctor || "—",
+      };
+    });
+  }, [livePatients, allBeds]);
+
+  const breakGlassAuditEvents: EmergencyAccessEvent[] = useMemo(() => {
+    const events = auditData?.events ?? [];
+    return events
+      .filter((e: any) => e.action === "BREAK_GLASS" || e.action === "EMERGENCY_ACCESS")
+      .slice(0, 10)
+      .map((e: any) => ({
+        id: e.id ?? e.logId ?? String(Math.random()),
+        actor: e.actor ?? e.email ?? "Unknown",
+        actorRole: e.role ?? "Clinical Staff",
+        reason: e.reason ?? e.details ?? "Emergency access",
+        at: e.loggedAt
+          ? new Date(e.loggedAt).toLocaleString()
+          : "—",
+        autoAudited: true,
+      }));
+  }, [auditData]);
+
+  const [bgRequests, setBgRequests] = useState<BreakGlassRequest[]>([]);
+
+  useMemo(() => {
+    const events = auditData?.events ?? [];
+    const pending: BreakGlassRequest[] = events
+      .filter(
+        (e: any) =>
+          (e.action === "BREAK_GLASS_REQUEST" || e.action === "BREAK_GLASS") &&
+          e.status !== "denied",
+      )
+      .slice(0, 10)
+      .map((e: any) => ({
+        id: e.id ?? e.logId ?? String(Math.random()),
+        requestedBy: e.actor ?? e.email ?? "Unknown",
+        requestorRole: e.role ?? "Clinical Staff",
+        patientName: e.resource ?? "Unknown Patient",
+        patientMRN: e.mrn ?? "—",
+        reason: e.reason ?? e.details ?? "Emergency override requested",
+        urgency: "critical" as const,
+        requestedAt: e.loggedAt ? new Date(e.loggedAt).toLocaleString() : "—",
+        status: (e.status ?? "pending") as "pending" | "approved" | "denied",
+        autoApproved: e.status === "approved",
+        approvedBy: e.approvedBy,
+      }));
+    setBgRequests(pending);
+  }, [auditData]);
+
+  const loading = patientsLoading || auditLoading;
 
   return (
     <RouteGuard requiredRole="staff">
@@ -141,7 +133,13 @@ function StaffEmergencyPage() {
       />
 
       <div className="p-6 space-y-6">
-        {/* Stats row */}
+        {loading && (
+          <div className="flex items-center justify-center py-4 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            Loading emergency data…
+          </div>
+        )}
+
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           {[
             {
@@ -161,7 +159,7 @@ function StaffEmergencyPage() {
             },
             {
               label: "Break-Glass Today",
-              value: breakGlassRequests.length,
+              value: breakGlassAuditEvents.length,
               color: "text-primary bg-primary/10",
             },
           ].map((s) => (
@@ -172,7 +170,6 @@ function StaffEmergencyPage() {
           ))}
         </div>
 
-        {/* Ambulance arrivals */}
         <div className="rounded-xl border border-border bg-card p-4 shadow-clinical">
           <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
             <Ambulance className="h-4 w-4 text-destructive" />
@@ -205,78 +202,93 @@ function StaffEmergencyPage() {
           )}
         </div>
 
-        {/* Trauma Queue */}
         <div className="rounded-xl border border-border bg-card p-4 shadow-clinical">
           <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-foreground">
             <AlertTriangle className="h-4 w-4 text-destructive" />
             Trauma Queue ({traumaQueue.length})
           </div>
-          <div className="space-y-2">
-            {traumaQueue.map((p) => {
-              const cfg = severityConfig[p.severity as keyof typeof severityConfig];
-              return (
-                <div
-                  key={p.id}
-                  className="flex items-center gap-3 rounded-lg border border-border px-3 py-3"
-                >
-                  <div className={`h-2.5 w-2.5 rounded-full shrink-0 ${cfg.dot}`} />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-foreground">{p.name}</div>
-                    <div className="text-xs text-muted-foreground">{p.condition}</div>
-                  </div>
-                  <div className="text-right shrink-0 space-y-0.5">
-                    <span
-                      className={`block rounded-full px-2 py-0.5 text-[10px] font-semibold ${cfg.badge}`}
-                    >
-                      {p.severity}
-                    </span>
-                    <div className="text-[10px] text-muted-foreground">
-                      {p.bedNo} · {p.arrived}
+          {traumaQueue.length === 0 ? (
+            <div className="py-6 text-center text-sm text-muted-foreground">
+              No active trauma cases
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {traumaQueue.map((p) => {
+                const cfg = severityConfig[p.severity as keyof typeof severityConfig] ?? severityConfig.urgent;
+                return (
+                  <div
+                    key={p.id}
+                    className="flex items-center gap-3 rounded-lg border border-border px-3 py-3"
+                  >
+                    <div className={`h-2.5 w-2.5 rounded-full shrink-0 ${cfg.dot}`} />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-foreground">{p.name}</div>
+                      <div className="text-xs text-muted-foreground">{p.condition}</div>
+                    </div>
+                    <div className="text-right shrink-0 space-y-0.5">
+                      <span
+                        className={`block rounded-full px-2 py-0.5 text-[10px] font-semibold ${cfg.badge}`}
+                      >
+                        {p.severity}
+                      </span>
+                      <div className="text-[10px] text-muted-foreground">
+                        {p.bedNo} · {p.arrived}
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
-        {/* Break-glass requests */}
         <div className="rounded-xl border border-border bg-card p-4 shadow-clinical">
           <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
             <ShieldAlert className="h-4 w-4 text-destructive" />
             Emergency Override Requests ({bgRequests.length})
           </div>
-          <div className="space-y-3">
-            {bgRequests.map((r) => (
-              <BreakGlassRequestCard
-                key={r.id}
-                request={r}
-                onApprove={(id) =>
-                  setBgRequests((prev) =>
-                    prev.map((x) => (x.id === id ? { ...x, status: "approved" as const } : x)),
-                  )
-                }
-                onDeny={(id) =>
-                  setBgRequests((prev) =>
-                    prev.map((x) => (x.id === id ? { ...x, status: "denied" as const } : x)),
-                  )
-                }
-              />
-            ))}
-          </div>
+          {bgRequests.length === 0 ? (
+            <div className="py-6 text-center text-sm text-muted-foreground">
+              No pending override requests
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {bgRequests.map((r) => (
+                <BreakGlassRequestCard
+                  key={r.id}
+                  request={r}
+                  onApprove={(id) =>
+                    setBgRequests((prev) =>
+                      prev.map((x) => (x.id === id ? { ...x, status: "approved" as const } : x)),
+                    )
+                  }
+                  onDeny={(id) =>
+                    setBgRequests((prev) =>
+                      prev.map((x) => (x.id === id ? { ...x, status: "denied" as const } : x)),
+                    )
+                  }
+                />
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Historical break-glass log */}
         <div className="rounded-xl border border-border bg-card p-4 shadow-clinical">
           <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
             <AlertTriangle className="h-4 w-4 text-warning-foreground" />
             Audit Log — Break-Glass History
           </div>
-          <div className="space-y-3">
-            {breakGlassRequests.map((e) => (
-              <EmergencyAccessCard key={e.id} event={e} />
-            ))}
-          </div>
+          {breakGlassAuditEvents.length === 0 ? (
+            <div className="py-6 text-center text-sm text-muted-foreground">
+              No break-glass events recorded
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {breakGlassAuditEvents.map((e) => (
+                <EmergencyAccessCard key={e.id} event={e} />
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </RouteGuard>

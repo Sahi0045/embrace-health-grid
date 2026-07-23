@@ -284,22 +284,27 @@ function StaffDashboard() {
                 </Link>
               </div>
               <ul className="space-y-3 text-sm">
-                <li className="rounded-lg border border-destructive/20 bg-destructive/5 p-3">
-                  <div className="flex items-center gap-2 font-medium text-destructive text-xs mb-1">
-                    <ShieldAlert className="h-3.5 w-3.5" /> Code Blue — ICU B-07
-                  </div>
-                  <div className="text-xs text-muted-foreground">Anika Sharma · 2 min ago</div>
-                </li>
-                <li className="rounded-lg border border-border bg-card p-3">
-                  <div className="font-medium text-foreground text-sm">Consent granted</div>
-                  <div className="text-xs text-muted-foreground">
-                    Anika Sharma → ECG report · just now
-                  </div>
-                </li>
-                <li className="rounded-lg border border-border bg-card p-3">
-                  <div className="font-medium text-foreground text-sm">Access request pending</div>
-                  <div className="text-xs text-muted-foreground">Rohan Iyer → 2 min ago</div>
-                </li>
+                {(auditData?.events ?? []).slice(0, 3).map((evt: any, i: number) => (
+                  <li
+                    key={evt.id ?? i}
+                    className={`rounded-lg border p-3 ${i === 0 ? "border-destructive/20 bg-destructive/5" : "border-border bg-card"}`}
+                  >
+                    <div
+                      className={`flex items-center gap-2 font-medium text-xs mb-1 ${i === 0 ? "text-destructive" : "text-foreground text-sm"}`}
+                    >
+                      {i === 0 && <ShieldAlert className="h-3.5 w-3.5" />}
+                      {evt.action ?? "Event"} — {evt.resource ?? "System"}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {evt.actor ?? "System"} · {evt.loggedAt ? new Date(evt.loggedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"}
+                    </div>
+                  </li>
+                ))}
+                {(auditData?.events ?? []).length === 0 && (
+                  <li className="rounded-lg border border-border bg-card p-3 text-xs text-muted-foreground text-center">
+                    No recent activity
+                  </li>
+                )}
               </ul>
             </div>
           </div>

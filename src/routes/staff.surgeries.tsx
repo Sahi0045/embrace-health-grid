@@ -13,68 +13,6 @@ export const Route = createFileRoute("/staff/surgeries")({
   component: SurgeriesPage,
 });
 
-const defaultSurgeries = [
-  {
-    id: "s1",
-    patient: "Anika Sharma",
-    mrn: "MRN-204871",
-    procedure: "Cardiac Catheterization (PCI)",
-    room: "Cath Lab 2",
-    date: "2026-06-04",
-    time: "11:00",
-    surgeon: "Dr. Ravi Menon",
-    anesthesiologist: "Dr. Deepak Joshi",
-    nurses: ["Nurse Priya K.", "Nurse Ananya V."],
-    equipment: ["Cath Lab C-Arm", "Defibrillator", "Hemodynamic Monitor", "Infusion Pump ×3"],
-    status: "scheduled",
-    estDuration: "90 min",
-  },
-  {
-    id: "s2",
-    patient: "Rohan Iyer",
-    mrn: "MRN-204902",
-    procedure: "Total Hip Replacement (Left)",
-    room: "OR-4",
-    date: "2026-06-04",
-    time: "13:30",
-    surgeon: "Dr. Priya Nair",
-    anesthesiologist: "Dr. Sunita Kapoor",
-    nurses: ["Nurse Rekha S.", "Nurse Vijay T."],
-    equipment: ["Orthopedic Power Tools Set", "C-Arm", "Cell Saver", "Electrosurgical Unit"],
-    status: "scheduled",
-    estDuration: "3 hours",
-  },
-  {
-    id: "s3",
-    patient: "Deepak Joshi",
-    mrn: "MRN-203001",
-    procedure: "Laparoscopic Appendectomy",
-    room: "OR-2",
-    date: "2026-06-02",
-    time: "09:00",
-    surgeon: "Dr. Kiran Bose",
-    anesthesiologist: "Dr. Alok Sharma",
-    nurses: ["Nurse Sunita V.", "Nurse Ram K."],
-    equipment: ["Laparoscopic Tower", "Ultrasonic Scalpel", "Electrosurgical Unit"],
-    status: "in-progress",
-    estDuration: "45 min",
-  },
-  {
-    id: "s4",
-    patient: "Kavya Reddy",
-    mrn: "MRN-206114",
-    procedure: "LASIK Eye Surgery (Bilateral)",
-    room: "Eye Suite 1",
-    date: "2026-06-01",
-    time: "14:00",
-    surgeon: "Dr. Reena Pillai",
-    anesthesiologist: "Local Anesthesia",
-    nurses: ["Nurse Pooja A."],
-    equipment: ["LASIK Excimer Laser", "Microkeratome", "Aberrometer"],
-    status: "completed",
-    estDuration: "30 min",
-  },
-];
 
 const statusConfig = {
   scheduled: { label: "Scheduled", badge: "bg-primary/10 text-primary", dot: "bg-primary" },
@@ -98,12 +36,11 @@ function SurgeriesPage() {
   useEffect(() => {
     getSurgeries()
       .then((res) => {
-        setSurgeriesList(res.surgeries || defaultSurgeries);
+        setSurgeriesList(res.surgeries ?? []);
       })
       .catch((err) => {
         console.error(err);
         toast.error("Failed to load surgeries schedule", { description: err.message });
-        setSurgeriesList(defaultSurgeries);
       })
       .finally(() => {
         setLoading(false);
