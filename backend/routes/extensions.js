@@ -29,7 +29,7 @@ export function registerExtensionRoutes(app, deps) {
 
   const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 300,
+    max: 50000,
     standardHeaders: true,
     legacyHeaders: false,
   });
@@ -1576,6 +1576,68 @@ export function registerExtensionRoutes(app, deps) {
       return res.json({ alert: entry.value });
     }
     res.json({ success: true, id: req.params.id, updatedFields: req.body });
+  });
+  // ─── Insurance Claims & Policy Updates ──────────────────────────────────────
+  app.post("/api/insurance/claims", requireRole("patient", "staff", "admin"), (req, res) => {
+    const { patientDid, provider, policyNo, claimType, amount, diagnosis, description } = req.body;
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ error: "Valid claim amount is required" });
+    }
+    const claimId = `CLM-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+    const txId = randomUUID();
+    const claim = {
+      id: claimId,
+      claimId,
+      patientDid: patientDid || req.user.did || "did:hosp:0x4302bbea",
+      provider: provider || "Embrace Health Insurance",
+      policyNo: policyNo || "POL-2026-GLOBAL",
+      claimType: claimType || "OPD & Diagnostic Reimbursement",
+      amount: Number(amount),
+      diagnosis: diagnosis || "Routine Medical Care",
+      description: description || "Patient filed claim reimbursement",
+      status: "under-review",
+      filedDate: new Date().toISOString().slice(0, 10),
+      submittedAt: new Date().toISOString(),
+    };
+
+    putState("insurance-claims", claimId, claim, txId);
+    logAudit(req, { resource: claimId, action: "CLAIM_SUBMITTED" });
+    broadcast({ event: "claim:submitted", data: claim });
+    res.json({ claim, txId });
+  });
+
+  app.patch("/api/patient/insurance-policy", (req, res) => {
+    const { insuranceProvider, insurancePolicyNo, sumInsured, policyType, validFrom, validTo } = req.body;
+    const email = req.user.email;
+    const userEntry = getState("users", email);
+
+    if (!userEntry) {
+      return res.status(404).json({ error: "User profile not found" });
+    }
+
+    const user = userEntry.value;
+    if (insuranceProvider !== undefined) user.insuranceProvider = insuranceProvider;
+    if (insurancePolicyNo !== undefined) user.insurancePolicyNo = insurancePolicyNo;
+    if (sumInsured !== undefined) user.sumInsured = sumInsured;
+    if (policyType !== undefined) user.policyType = policyType;
+    if (validFrom !== undefined) user.validFrom = validFrom;
+    if (validTo !== undefined) user.validTo = validTo;
+
+    putState("users", email, user, randomUUID());
+
+    const allPatients = getAllState("patients");
+    const pMatch = allPatients.find((p) => p.value.email === email || p.value.did === user.did);
+    if (pMatch) {
+      const pVal = pMatch.value;
+      if (insuranceProvider !== undefined) pVal.insuranceProvider = insuranceProvider;
+      if (insurancePolicyNo !== undefined) pVal.insurancePolicyNo = insurancePolicyNo;
+      if (sumInsured !== undefined) pVal.sumInsured = sumInsured;
+      if (policyType !== undefined) pVal.policyType = policyType;
+      putState("patients", pMatch.key, pVal, randomUUID());
+    }
+
+    broadcast({ event: "insurance:updated", data: user });
+    res.json({ success: true, patient: user });
   });
 
   // Export helpers for server.js to use

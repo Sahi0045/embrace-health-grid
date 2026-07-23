@@ -69,9 +69,10 @@ function StaffProfile() {
   const [linking, setLinking] = useState(false);
 
   const userEmail = currentUser?.email || "";
+  const userDid = currentUser?.did || `did:hosp:0x${userEmail.split("@")[0] || "4302bbea"}`;
   const staffRecord = staff?.find((s: any) => s.email === userEmail) || {
     name: currentUser?.name || staffData.name,
-    did: currentUser?.did || staffData.did,
+    did: userDid,
     employeeId: currentUser?.employeeId || staffData.employeeId,
     email: currentUser?.email || staffData.email,
     phone: currentUser?.phone || staffData.phone,

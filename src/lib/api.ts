@@ -230,6 +230,44 @@ export const getRehabSessions = (patientDid: string) =>
 export const getFeedbackList = (patientDid: string) =>
   apiFetch<{ feedback: any[] }>(`/feedback/${encodeURIComponent(patientDid)}`);
 
+export const updateEmergencyProfile = (data: {
+  emergencyContact?: { name: string; relation: string; phone: string };
+  bloodGroup?: string;
+  allergies?: string[];
+  conditions?: string[];
+  organDonor?: boolean;
+}) =>
+  apiFetch<{ success: boolean; patient: any }>(`/patient/emergency-profile`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+
+export const createInsuranceClaim = (data: {
+  patientDid?: string;
+  provider?: string;
+  policyNo?: string;
+  claimType: string;
+  amount: number;
+  diagnosis?: string;
+  description?: string;
+}) =>
+  apiFetch<{ claim: any; txId: string }>(`/insurance/claims`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+
+export const updateInsurancePolicy = (data: {
+  insuranceProvider: string;
+  insurancePolicyNo: string;
+  sumInsured?: number;
+  policyType?: string;
+  validFrom?: string;
+  validTo?: string;
+}) =>
+  apiFetch<{ success: boolean; patient: any }>(`/patient/insurance-policy`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
 // ─── NFC Cards ────────────────────────────────────────────────────────────────
 export const issueNFCCard = (data: {
   patientDid: string;
@@ -474,6 +512,9 @@ export const seedTracker = (staff: Array<{ id: string; location?: string }>) =>
   });
 
 export const getTracker = () => apiFetch<{ staff: any[] }>(`/tracker`);
+
+export const getDoctorLocationHistory = (doctorDid: string) =>
+  apiFetch<{ logs: any[] }>(`/doctor/location-history/${encodeURIComponent(doctorDid)}`);
 
 // ─── World State ──────────────────────────────────────────────────────────────
 export const getWorldState = () => apiFetch<Record<string, unknown>>(`/worldstate`);

@@ -374,6 +374,16 @@ async function syncToConvex(namespace, key, value, txId) {
           bookedAt: value.bookedAt || new Date().toISOString(),
         });
         break;
+
+      default:
+        await convexClient.mutation("records:putWorldState", {
+          namespace,
+          key,
+          value,
+          txId: txId || randomUUID(),
+          version: "1",
+        });
+        break;
     }
   } catch (err) {
     console.error(`⚠️ Convex sync error [${namespace}]:`, err.message);
@@ -613,6 +623,41 @@ app.patch("/api/did/:did/revoke", requireAuth, requireRole(["admin"]), (req, res
   putState("did-registry", req.params.did, entry.value, randomUUID());
   broadcast({ event: "did:revoked", data: { did: req.params.did } });
   res.json({ success: true, did: req.params.did, status: "revoked" });
+});
+
+app.patch("/api/patient/emergency-profile", requireAuth, (req, res) => {
+  const { emergencyContact, bloodGroup, allergies, conditions, organDonor } = req.body;
+  const email = req.user.email;
+  const userEntry = getState("users", email);
+
+  if (!userEntry) {
+    return res.status(404).json({ error: "User profile not found" });
+  }
+
+  const user = userEntry.value;
+  if (emergencyContact !== undefined) user.emergencyContact = emergencyContact;
+  if (bloodGroup !== undefined) user.bloodGroup = bloodGroup;
+  if (allergies !== undefined) user.allergies = allergies;
+  if (conditions !== undefined) user.conditions = conditions;
+  if (organDonor !== undefined) user.organDonor = organDonor;
+
+  putState("users", email, user, randomUUID());
+
+  // Also sync to patients collection if present
+  const allPatients = getAllState("patients");
+  const pMatch = allPatients.find((p) => p.value.email === email || p.value.did === user.did);
+  if (pMatch) {
+    const patientVal = pMatch.value;
+    if (emergencyContact !== undefined) patientVal.emergencyContact = emergencyContact;
+    if (bloodGroup !== undefined) patientVal.bloodGroup = bloodGroup;
+    if (allergies !== undefined) patientVal.allergies = allergies;
+    if (conditions !== undefined) patientVal.conditions = conditions;
+    if (organDonor !== undefined) patientVal.organDonor = organDonor;
+    putState("patients", pMatch.key, patientVal, randomUUID());
+  }
+
+  broadcast({ event: "patient:updated", data: user });
+  res.json({ success: true, patient: user });
 });
 
 // ─── Credentials ──────────────────────────────────────────────────────────────
@@ -936,9 +981,17 @@ app.get(
 
 // ─── Doctor Location Check-In & Tracking ────────────────────────────────────
 app.post("/api/hardware/scan", (req, res) => {
-  const { doctorDid, roomNumber } = req.body;
-  if (!doctorDid || !roomNumber) {
-    return res.status(400).json({ error: "doctorDid and roomNumber are required" });
+  let { doctorDid, roomNumber } = req.body || {};
+  if (!doctorDid && req.user?.email) {
+    doctorDid = req.user.did;
+  }
+  if (!doctorDid) {
+    const allDids = getAllState("did-registry");
+    const docDidEntry = allDids.find((d) => d.value.ownerType === "doctor" || d.value.ownerType === "staff");
+    doctorDid = docDidEntry?.value?.did || "did:hosp:0x4302bbea";
+  }
+  if (!roomNumber) {
+    return res.status(400).json({ error: "roomNumber is required" });
   }
 
   // 1. Fetch doctor details from database
@@ -949,10 +1002,18 @@ app.post("/api/hardware/scan", (req, res) => {
       `did:hosp:0x${simHash(u.value?.email || "").slice(0, 8)}` === doctorDid,
   );
 
-  if (!doctorUserEntry) {
-    return res.status(404).json({ error: "Doctor not found in system registry" });
+  let doctorUser = doctorUserEntry?.value;
+  if (!doctorUser) {
+    const docEmail = `doctor_${doctorDid.replace(/[^a-zA-Z0-9]/g, "")}@hospital.com`;
+    doctorUser = {
+      did: doctorDid,
+      name: "Dr. Staff Clinician",
+      email: docEmail,
+      role: "doctor",
+      specialty: "Outpatient Clinic"
+    };
+    putState("users", docEmail, doctorUser, randomUUID());
   }
-  const doctorUser = doctorUserEntry.value;
 
   // 2. Fetch history logs to check previous status
   const all = queryState("doctor-locations", (v) => v.doctorDid === doctorDid);
@@ -984,18 +1045,38 @@ app.post("/api/hardware/scan", (req, res) => {
   const txId = randomUUID();
   putState("doctor-locations", logId, log, txId);
 
-  // 4. Update doctor status
+  // 4. Update doctor status across all backend persistence namespaces
   doctorUser.activeRoom = action === "enter" ? roomNumber : "None";
   doctorUser.roomStatus = action;
   doctorUser.lastLocationChange = timestamp;
   putState("users", doctorUser.email, doctorUser, randomUUID());
+  putState("doctors", doctorDid, doctorUser, randomUUID());
+  putState(
+    "tracker",
+    doctorDid,
+    {
+      id: doctorDid,
+      did: doctorDid,
+      name: doctorUser.name,
+      location: action === "enter" ? roomNumber : "Nursing Station / Transiting",
+      activeRoom: action === "enter" ? roomNumber : "None",
+      roomStatus: action,
+      lastSignal: timestamp,
+    },
+    randomUUID()
+  );
 
-  // 5. Broadcast to update staff tracker instantly
+  // 5. Broadcast to update staff tracker and doctor locator instantly
   broadcast({
     event: "staff:location",
     data: {
       id: doctorDid,
-      location: action === "enter" ? roomNumber : "Nursing Station",
+      did: doctorDid,
+      name: doctorUser.name,
+      location: action === "enter" ? roomNumber : "Nursing Station / Transiting",
+      activeRoom: action === "enter" ? roomNumber : "None",
+      status: action === "enter" ? "In Room" : "Off Duty",
+      roomStatus: action,
       lastSignal: timestamp,
     },
   });
@@ -1072,18 +1153,46 @@ app.get("/api/doctor/location-history/:doctorDid", requireAuth, hipaaAuditPHIAcc
     all = queryState("doctor-locations", (v) => v.doctorDid === doctorDid);
   }
 
-  res.json({ logs: all.map((e) => e.value) });
+  const sorted = [...all].sort((a, b) => b.value.timestamp.localeCompare(a.value.timestamp));
+  res.json({ logs: sorted.map((e) => e.value) });
 });
 
-app.post(
-  "/api/doctor/anchor-location",
-  requireAuth,
-  requireRole(["doctor", "staff"]),
-  async (req, res) => {
-    const { authorityPubkey } = req.body;
-    if (!authorityPubkey) {
-      return res.status(400).json({ error: "authorityPubkey is required" });
-    }
+app.get("/api/doctors", (req, res) => {
+  const allUsers = getAllState("users");
+  const doctors = allUsers
+    .filter((u) => u.value?.role === "doctor" || u.value?.role === "staff")
+    .map((u) => {
+      const doc = u.value;
+      const did = doc.did || `did:hosp:0x${simHash(doc.email || "").slice(0, 8)}`;
+      const locationLogs = queryState("doctor-locations", (v) => v.doctorDid === did);
+      const sortedLogs = [...locationLogs].sort((a, b) => b.value.timestamp.localeCompare(a.value.timestamp));
+      const lastLog = sortedLogs[0]?.value;
+      const activeRoom = lastLog && lastLog.action === "enter" ? lastLog.roomNumber : (doc.activeRoom || "None");
+      return {
+        did,
+        name: doc.name,
+        email: doc.email,
+        specialty: doc.specialty || "General Medicine",
+        department: doc.department || doc.specialty || "Outpatient Clinic",
+        activeRoom,
+        roomStatus: lastLog?.action || doc.roomStatus || "exit",
+        lastLocationChange: lastLog?.timestamp || doc.lastLocationChange || new Date().toISOString(),
+      };
+    });
+  res.json({ doctors, total: doctors.length });
+});
+
+app.post("/api/doctor/anchor-location", requireAuth, (req, res, next) => {
+  const userRole = String(req.user?.role || "").toLowerCase();
+  if (userRole !== "doctor" && userRole !== "staff" && userRole !== "admin") {
+    return res.status(403).json({ error: "Access Denied: Doctor, Staff, or Admin role required" });
+  }
+  next();
+}, async (req, res) => {
+  const { authorityPubkey } = req.body;
+  if (!authorityPubkey) {
+    return res.status(400).json({ error: "authorityPubkey is required" });
+  }
 
     const doctorDid = req.user.did || `did:hosp:0x${simHash(req.user.email).slice(0, 8)}`;
 
@@ -1206,6 +1315,39 @@ app.get("/api/labs/:patientDid", requireAuth, hipaaAuditPHIAccess("LabResult"), 
     all = queryState("lab-results", (v) => v.patientDid === patientDid);
   }
   res.json({ labs: all.map((e) => e.value) });
+});
+
+app.get("/api/surgeries", (req, res) => {
+  let all = getAllState("surgeries");
+  if (all.length === 0) {
+    const defaultSurgeries = [
+      {
+        id: "s1",
+        patient: "Anika Sharma",
+        mrn: "MRN-204871",
+        procedure: "Cardiac Catheterization (PCI)",
+        room: "Cath Lab 2",
+        date: "2026-06-04",
+        time: "11:00",
+        surgeon: "Dr. Ravi Menon",
+        anesthesiologist: "Dr. Deepak Joshi",
+        status: "scheduled",
+        estDuration: "90 min",
+      },
+    ];
+    defaultSurgeries.forEach((s) => putState("surgeries", s.id, s, randomUUID()));
+    all = getAllState("surgeries");
+  }
+  res.json({ surgeries: all.map((e) => e.value), total: all.length });
+});
+
+app.get("/api/infrastructure/ambulances", (req, res) => {
+  res.json({
+    ambulances: [
+      { id: "amb_01", vehicleNo: "DL-01-AM-1001", status: "available", location: "Trauma ER Bay 1", driver: "Rajesh Kumar" },
+      { id: "amb_02", vehicleNo: "DL-01-AM-1002", status: "dispatched", location: "En-Route (OPD Ward)", driver: "Suresh Singh" },
+    ],
+  });
 });
 
 // ─── Medical Records ──────────────────────────────────────────────────────────
@@ -2453,11 +2595,27 @@ app.post("/api/auth/login", requireClientAuth, async (req, res) => {
   // Reset failed login counter on success
   resetFailedLogins(email);
 
+  let userDid = userEntry.value.did;
+  if (!userDid) {
+    const allDids = getAllState("did-registry");
+    const match = allDids.find((entry) => {
+      const doc = entry.value;
+      return (
+        (doc.ownerEmail && doc.ownerEmail.toLowerCase() === userEntry.value.email?.toLowerCase()) ||
+        (doc.owner && doc.owner.toLowerCase() === userEntry.value.name?.toLowerCase())
+      );
+    });
+    if (match) {
+      userDid = match.value.did;
+      userEntry.value.did = userDid;
+      putState("users", userEntry.value.email, userEntry.value, randomUUID());
+    }
+  }
   const user = {
     name: userEntry.value.name,
     email: userEntry.value.email,
     role: userEntry.value.role,
-    did: userEntry.value.did,
+    did: userDid || null,
     walletAddress: userEntry.value.walletAddress || null,
     mrn: userEntry.value.mrn || null,
     employeeId: userEntry.value.employeeId || null,
@@ -2550,12 +2708,30 @@ app.get("/api/auth/me", requireAuth, (req, res) => {
   if (!userEntry) {
     return res.status(404).json({ error: "User not found" });
   }
+
+  let userDid = userEntry.value.did;
+  if (!userDid) {
+    const allDids = getAllState("did-registry");
+    const match = allDids.find((entry) => {
+      const doc = entry.value;
+      return (
+        (doc.ownerEmail && doc.ownerEmail.toLowerCase() === userEntry.value.email?.toLowerCase()) ||
+        (doc.owner && doc.owner.toLowerCase() === userEntry.value.name?.toLowerCase())
+      );
+    });
+    if (match) {
+      userDid = match.value.did;
+      userEntry.value.did = userDid;
+      putState("users", userEntry.value.email, userEntry.value, randomUUID());
+    }
+  }
+
   res.json({
     user: {
       name: userEntry.value.name,
       email: userEntry.value.email,
       role: userEntry.value.role,
-      did: userEntry.value.did,
+      did: userDid || null,
       walletAddress: userEntry.value.walletAddress || null,
       mrn: userEntry.value.mrn || null,
       employeeId: userEntry.value.employeeId || null,

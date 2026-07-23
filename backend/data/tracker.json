@@ -830,5 +830,21 @@
     "updatedAt": "2026-06-08T13:59:30.864Z",
     "txId": "tx_19ea7880930_cfa49e58",
     "docType": "tracker"
+  },
+  "pager_c2e96249": {
+    "key": "pager_c2e96249",
+    "value": {
+      "id": "pager_c2e96249",
+      "staffDid": "did:hosp:0x87a9b0c1",
+      "name": "Dr. Sameer Khan",
+      "location": "Room 101 - Outpatient Clinic",
+      "dispatchedAt": "2026-07-22T17:59:08.258Z",
+      "status": "delivered"
+    },
+    "namespace": "tracker",
+    "version": "c2e96249-1114-4482-acb4-cf0fd69cbfe4:1",
+    "updatedAt": "2026-07-22T17:59:08.278Z",
+    "txId": "c2e96249-1114-4482-acb4-cf0fd69cbfe4",
+    "docType": "tracker"
   }
 }

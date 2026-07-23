@@ -112,9 +112,12 @@ export function setSession(
 
   if (user.did) {
     localStorage.setItem("userDID", user.did);
+    localStorage.setItem("userDid", user.did);
   } else {
     localStorage.removeItem("userDID");
+    localStorage.removeItem("userDid");
   }
+
   if (user.walletAddress) {
     localStorage.setItem("userWalletAddress", user.walletAddress);
   } else {
@@ -216,7 +219,7 @@ export function getCurrentUser(): AuthUser | null {
   if (!role || !email) return null;
 
   const name = localStorage.getItem("userName") ?? undefined;
-  const did = localStorage.getItem("userDID") ?? undefined;
+  const did = localStorage.getItem("userDID") || localStorage.getItem("userDid") || undefined;
   const walletAddress = localStorage.getItem("userWalletAddress") ?? undefined;
   const mrn = localStorage.getItem("userMRN") ?? undefined;
   const employeeId = localStorage.getItem("userEmployeeId") ?? undefined;

@@ -574,57 +574,70 @@ function handleStoreWebSocketMessage(event: string, data: any) {
       emitStoreEvent("vitals:update");
     }
   } else if (event === "staff:location") {
-    const { id, location, lastSignal } = data;
-    const staffMember = _liveStaff.find((s) => s.did === id || s.id === id);
-    if (staffMember) {
-      const newStatus =
-        location === "Operation Theatre 2" || location === "OR Suite 2"
-          ? "In Surgery"
-          : location === "Emergency Ward"
-            ? "Emergency Response"
-            : location === "ICU Block B"
-              ? "In Consultation"
-              : "Available";
-      const now = lastSignal
-        ? new Date(lastSignal).toLocaleTimeString("en-US", {
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-          })
-        : new Date().toLocaleTimeString("en-US", {
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-          });
-      const beaconStrength = `${70 + Math.floor(Math.random() * 30)}%`;
-      _staffLocations.set(staffMember.id, {
-        location,
-        status: newStatus,
-        lastSignal: now,
-        beacon: beaconStrength,
-      });
+    const { id, did, location, lastSignal } = data;
+    const targetDid = did || id;
+    let staffMember = _liveStaff.find(
+      (s) => s.did === targetDid || s.id === targetDid || s.did?.toLowerCase() === targetDid?.toLowerCase()
+    );
 
-      (async () => {
-        try {
+    const memberId = staffMember?.id || targetDid;
+    const newStatus =
+      location === "Off Duty"
+        ? "Off Duty"
+        : location?.includes("OT") || location?.includes("Operating")
+          ? "In Surgery"
+          : location?.includes("ER") || location?.includes("Emergency")
+            ? "Emergency Response"
+            : "Available";
+
+    const now = lastSignal
+      ? new Date(lastSignal).toLocaleTimeString("en-US", {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        })
+      : new Date().toLocaleTimeString("en-US", {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        });
+
+    (async () => {
+      try {
+        if (staffMember?.did) {
           const client = getConvexClient();
           await client.mutation(api.records.updateStaffLocation, {
             did: staffMember.did,
             location,
-            beaconStrength,
+            beaconStrength: "-68 dBm",
             txId: `ws_${Date.now()}`,
             version: "1.0",
           });
-        } catch (error) {
-          console.error("[Store] Error syncing staff location to Convex:", error);
         }
-      })();
+      } catch (error) {
+        console.error("[Store] Error syncing staff location to Convex:", error);
+      }
+    })();
 
-      emitStoreEvent("staff:location:update", {
-        memberId: staffMember.id,
-        location,
-        status: newStatus,
-      });
+    const beaconStrength = `${70 + Math.floor(Math.random() * 30)}%`;
+    _staffLocations.set(memberId, {
+      location: location || "Room 101 - Outpatient Clinic",
+      status: newStatus,
+      lastSignal: now,
+      beacon: beaconStrength,
+    });
+
+    if (staffMember) {
+      staffMember.currentLocation = location;
+      staffMember.lastSignal = now;
     }
+
+    emitStoreEvent("staff:location:update", {
+      memberId,
+      did: targetDid,
+      location,
+      status: newStatus,
+    });
   } else if (event === "appointment:booked") {
     const appt = data;
     if (appt && appt.apptId) {
