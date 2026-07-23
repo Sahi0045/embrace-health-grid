@@ -137,11 +137,12 @@ function StaffRooms() {
         },
         body: JSON.stringify({ doctorDid: sessionDid, roomNumber }),
       });
-      });
 
       if (!res.ok) {
         throw new Error("Failed to process room scanner check-in");
       }
+
+      const data = await res.json();
 
       toast.success(
         data.action === "enter"

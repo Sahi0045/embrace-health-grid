@@ -141,7 +141,6 @@ function InsurancePage() {
       setIsFilingClaim(false);
     }
   };
->>>>>>> Stashed changes
 
   if (loading) {
     return (
@@ -280,9 +279,6 @@ function InsurancePage() {
 
             <StaggerItem>
               <div className="space-y-4">
-<<<<<<< Updated upstream
-                <div className="text-sm font-semibold text-foreground">Active Coverage</div>
-=======
                 <div className="flex items-center justify-between">
                   <div className="text-sm font-semibold text-foreground">Active Coverage</div>
                   <button
@@ -292,7 +288,6 @@ function InsurancePage() {
                     + Edit Policy Info
                   </button>
                 </div>
->>>>>>> Stashed changes
                 {livePolicies
                   .filter((p) => p.status === "active")
                   .map((p, i) => (

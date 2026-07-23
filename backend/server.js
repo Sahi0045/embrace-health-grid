@@ -2298,6 +2298,27 @@ app.post("/api/appointments", requireAuth, hipaaAuditPHIAccess("Appointment"), (
   res.json(appt);
 });
 
+app.patch("/api/appointments/:id/status", requireAuth, hipaaAuditPHIAccess("Appointment"), (req, res) => {
+  const { id } = req.params;
+  const { status, notes } = req.body;
+  const existing = getState("appointments", id);
+  if (!existing) {
+    return res.status(404).json({ error: "Appointment not found" });
+  }
+
+  const updated = {
+    ...existing,
+    status: status || existing.status,
+    notes: notes !== undefined ? notes : existing.notes,
+    updatedAt: new Date().toISOString(),
+  };
+
+  const txId = randomUUID();
+  putState("appointments", id, updated, txId);
+  broadcast({ event: "appointment:updated", data: updated });
+  res.json({ success: true, appointment: updated });
+});
+
 // ─── Pager notifications (added for locator integrations) ────────────────────
 app.post(
   "/api/tracker/notify",

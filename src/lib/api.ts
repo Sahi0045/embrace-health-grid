@@ -443,6 +443,12 @@ export const bookAppointment = (data: {
     body: JSON.stringify(data),
   });
 
+export const updateAppointmentStatus = (id: string, status: string, notes?: string) =>
+  apiFetch<any>(`/appointments/${encodeURIComponent(id)}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status, notes }),
+  });
+
 // ─── Beds ─────────────────────────────────────────────────────────────────────
 export const getBeds = () => apiFetch<{ beds: any[]; total: number }>(`/beds`);
 
