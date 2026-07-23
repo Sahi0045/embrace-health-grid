@@ -1,6 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState, useEffect } from "react";
 import { StaggerList, StaggerItem } from "@/components/Motion";
 import { useLivePatients, useConsents, useAppointments } from "@/hooks/use-api";
+import { getMe } from "@/lib/api";
+import { getCurrentUser, setSession } from "@/lib/auth";
 import {
   QrCode,
   Wallet,
@@ -21,7 +24,6 @@ import { motion } from "framer-motion";
 import { RouteGuard } from "@/components/RouteGuard";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
-import { getCurrentUser } from "@/lib/auth";
 
 export const Route = createFileRoute("/patient/")({
   head: () => ({ meta: [{ title: "Patient · Home — Embrace Health Grid" }] }),
