@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { RouteGuard } from "@/components/RouteGuard";
-import { useLivePatients, useNFCCards, useInpatientData } from "@/hooks/use-api";
+import { useLivePatients, useNFCCards, useInpatientData, useAppointments } from "@/hooks/use-api";
 import {
   Search,
   X,
@@ -17,6 +17,11 @@ import {
   ShieldAlert,
   Lock,
   CheckCircle2,
+  Filter,
+  Calendar,
+  Stethoscope,
+  Users,
+  UserCheck,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -30,10 +35,21 @@ export const Route = createFileRoute("/staff/patients")({
   component: Patients,
 });
 
+type StatusFilter = "all" | "inpatient" | "outpatient" | "discharged";
+type ScopeFilter = "mine" | "all";
+
+const statusStyles: Record<string, { bg: string; text: string }> = {
+  inpatient: { bg: "bg-primary/10", text: "text-primary" },
+  outpatient: { bg: "bg-chart-2/10", text: "text-chart-2" },
+  discharged: { bg: "bg-muted", text: "text-muted-foreground" },
+};
+
 function Patients() {
   const [q, setQ] = useState("");
   const [selected, setSelected] = useState<any | null>(null);
   const [cardToRevoke, setCardToRevoke] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [scope, setScope] = useState<ScopeFilter>("mine");
 
   // New record form states
   const [recordTitle, setRecordTitle] = useState("");
@@ -85,80 +101,216 @@ function Patients() {
   const isAdmin = currentUser?.role === "admin";
   const { data: nfcCardsData, refetch: refetchNFCCards } = useNFCCards();
   const nfcCards = nfcCardsData || [];
+  const { data: appointmentsData } = useAppointments();
+  const allAppointments = appointmentsData?.appointments ?? [];
 
-  const filtered = patients.filter((p: any) =>
-    [p.name, p.mrn, p.did, p.phone || ""].some((f) => f.toLowerCase().includes(q.toLowerCase())),
-  );
+  const doctorDid = currentUser?.did ?? "";
+  const doctorName = currentUser?.name ?? "";
+
+  const myPatientDids = useMemo(() => {
+    if (!doctorDid && !doctorName) return new Set<string>();
+    return new Set(
+      (allAppointments as any[])
+        .filter(
+          (a) =>
+            a.doctorDid === doctorDid ||
+            (doctorName && a.doctorName === doctorName),
+        )
+        .map((a) => a.patientDid)
+        .filter(Boolean),
+    );
+  }, [allAppointments, doctorDid, doctorName]);
+
+  const myPatientApptMap = useMemo(() => {
+    const map = new Map<string, { lastDate: string; count: number }>();
+    for (const a of allAppointments as any[]) {
+      if (!a.patientDid) continue;
+      const existing = map.get(a.patientDid);
+      const aDate = a.date ?? a.bookedAt?.split("T")[0] ?? "";
+      if (!existing || aDate > existing.lastDate) {
+        map.set(a.patientDid, {
+          lastDate: aDate,
+          count: (existing?.count ?? 0) + 1,
+        });
+      } else {
+        map.set(a.patientDid, { ...existing, count: existing.count + 1 });
+      }
+    }
+    return map;
+  }, [allAppointments]);
+
+  const filtered = useMemo(() => {
+    let list = patients;
+
+    if (scope === "mine" && myPatientDids.size > 0) {
+      list = list.filter((p: any) => myPatientDids.has(p.did));
+    }
+
+    if (statusFilter !== "all") {
+      list = list.filter((p: any) => p.status === statusFilter);
+    }
+
+    if (q.trim()) {
+      const lq = q.toLowerCase();
+      list = list.filter((p: any) =>
+        [p.name, p.mrn, p.did, p.phone || "", ...(p.conditions || [])].some((f) =>
+          f.toLowerCase().includes(lq),
+        ),
+      );
+    }
+
+    return list;
+  }, [patients, scope, myPatientDids, statusFilter, q]);
+
+  const statusCounts = useMemo(() => {
+    const base = scope === "mine" && myPatientDids.size > 0
+      ? patients.filter((p: any) => myPatientDids.has(p.did))
+      : patients;
+    return {
+      all: base.length,
+      inpatient: base.filter((p: any) => p.status === "inpatient").length,
+      outpatient: base.filter((p: any) => p.status === "outpatient").length,
+      discharged: base.filter((p: any) => p.status === "discharged").length,
+    };
+  }, [patients, scope, myPatientDids]);
 
   return (
     <RouteGuard requiredRole="staff">
       <PageHeader
         eyebrow="Patients"
-        title="My active patients"
-        description="Search by name, MRN, DID, or phone."
+        title={scope === "mine" ? "My Patients" : "All Patients"}
+        description="View patient records, appointments history, and clinical data."
+        actions={
+          <div className="flex items-center gap-2">
+            <div className="flex rounded-lg border border-border overflow-hidden">
+              {(["mine", "all"] as const).map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setScope(s)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium capitalize transition-colors ${
+                    scope === s
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-card text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {s === "mine" ? <UserCheck className="h-3.5 w-3.5" /> : <Users className="h-3.5 w-3.5" />}
+                  {s === "mine" ? "My Patients" : "All Patients"}
+                </button>
+              ))}
+            </div>
+          </div>
+        }
       />
-      <div className="p-8">
-        <div className="mb-4 flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 shadow-clinical">
-          <Search className="h-4 w-4 text-muted-foreground" />
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search patients…"
-            className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
-          />
+      <div className="p-6 sm:p-8 space-y-4">
+        {/* Search + Filter bar */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex-1 flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 shadow-clinical">
+            <Search className="h-4 w-4 text-muted-foreground" />
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search by name, MRN, DID, condition…"
+              className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+            />
+            {q && (
+              <button onClick={() => setQ("")} className="text-muted-foreground hover:text-foreground">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
         </div>
 
+        {/* Status filter tabs */}
+        <div className="flex items-center gap-1 rounded-lg border border-border bg-card p-1 w-fit">
+          {(["all", "inpatient", "outpatient", "discharged"] as const).map((s) => (
+            <button
+              key={s}
+              onClick={() => setStatusFilter(s)}
+              className={`rounded-md px-3 py-1.5 text-xs font-medium capitalize transition-colors ${
+                statusFilter === s
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              }`}
+            >
+              {s === "all" ? "All" : s} ({statusCounts[s]})
+            </button>
+          ))}
+        </div>
+
+        {/* Patient table */}
         <div className="overflow-hidden rounded-xl border border-border bg-card shadow-clinical">
           <table className="w-full text-sm">
             <thead className="bg-muted/40 text-left text-xs uppercase tracking-wider text-muted-foreground">
               <tr>
                 <th className="px-4 py-3 font-medium">Patient</th>
                 <th className="px-4 py-3 font-medium">MRN</th>
-                <th className="px-4 py-3 font-medium hidden md:table-cell">DID</th>
-                <th className="px-4 py-3 font-medium">Blood</th>
-                <th className="px-4 py-3 font-medium hidden sm:table-cell">Allergies</th>
+                <th className="px-4 py-3 font-medium hidden lg:table-cell">Status</th>
+                <th className="px-4 py-3 font-medium hidden md:table-cell">Conditions</th>
+                <th className="px-4 py-3 font-medium hidden sm:table-cell">Last Visit</th>
                 <th className="px-4 py-3 font-medium">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filtered.map((p: any) => (
-                <tr key={p.id} className="hover:bg-muted/30">
-                  <td className="px-4 py-3">
-                    <div className="font-medium text-foreground">{p.name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {p.age} · {p.gender}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">{p.mrn}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground hidden md:table-cell">
-                    {p.did}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-medium">
-                      {p.bloodGroup}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground hidden sm:table-cell">
-                    {p.allergies.length ? (
-                      <span className="text-destructive">{p.allergies.join(", ")}</span>
-                    ) : (
-                      "—"
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <button
-                      onClick={() => setSelected(p)}
-                      className="rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted transition-colors"
-                    >
-                      Open chart
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {filtered.map((p: any) => {
+                const apptInfo = myPatientApptMap.get(p.did);
+                const sCfg = statusStyles[p.status] ?? statusStyles.outpatient;
+                return (
+                  <tr key={p.id} className="hover:bg-muted/30 transition-colors">
+                    <td className="px-4 py-3">
+                      <div className="font-medium text-foreground">{p.name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {p.age}y · {p.gender} · {p.bloodGroup}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{p.mrn}</td>
+                    <td className="px-4 py-3 hidden lg:table-cell">
+                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold capitalize ${sCfg.bg} ${sCfg.text}`}>
+                        {p.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 hidden md:table-cell">
+                      {(p.conditions || []).length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {(p.conditions as string[]).slice(0, 2).map((c: string) => (
+                            <span key={c} className="rounded-md bg-muted px-2 py-0.5 text-[10px] font-medium text-foreground">
+                              {c}
+                            </span>
+                          ))}
+                          {(p.conditions as string[]).length > 2 && (
+                            <span className="text-[10px] text-muted-foreground">+{p.conditions.length - 2}</span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 hidden sm:table-cell">
+                      {apptInfo ? (
+                        <div>
+                          <div className="text-xs text-foreground">{apptInfo.lastDate}</div>
+                          <div className="text-[10px] text-muted-foreground">{apptInfo.count} visit{apptInfo.count > 1 ? "s" : ""}</div>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => setSelected(p)}
+                        className="rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+                      >
+                        Open chart
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
               {filtered.length === 0 && (
                 <tr>
                   <td colSpan={6} className="px-4 py-10 text-center text-sm text-muted-foreground">
-                    No patients match "{q}"
+                    {scope === "mine" && myPatientDids.size === 0
+                      ? "No appointments found for your account. Switch to \"All Patients\" to view the full registry."
+                      : `No patients match "${q}"`}
                   </td>
                 </tr>
               )}
