@@ -14,17 +14,15 @@ export function RouteGuard({ requiredRole, children }: RouteGuardProps) {
   const [user, setUser] = useState<AuthUser | null | undefined>(undefined); // undefined = not yet checked
 
   useEffect(() => {
-    setUser(getCurrentUser());
-  }, []);
+    const currentUser = getCurrentUser();
+    setUser(currentUser);
+    if (currentUser === null) {
+      navigate({ to: "/login" });
+    }
+  }, [navigate]);
 
-  // Still loading on client — render nothing to avoid flash
-  if (user === undefined) return null;
-
-  // Not logged in — redirect to login
-  if (user === null) {
-    navigate({ to: "/login" });
-    return null;
-  }
+  // Still loading on client or redirecting — render nothing
+  if (user === undefined || user === null) return null;
 
   // Logged in but wrong role
   if (!hasAccess(user.role, requiredRole)) {

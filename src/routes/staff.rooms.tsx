@@ -101,17 +101,20 @@ function StaffRooms() {
     if (!sessionDid) return;
     try {
       const PROGRAM_ID = new PublicKey("BxkLrjBYdb3nh2m9GCfpLXBWrAj3s9MqnRbwktLqSfN3");
+      const encoder = new TextEncoder();
       const [locationPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from("doctor-location"), Buffer.from(sessionDid)],
+        [encoder.encode("doctor-location"), encoder.encode(sessionDid)],
         PROGRAM_ID
       );
       const connection = new Connection("https://api.devnet.solana.com", "confirmed");
       const accountInfo = await connection.getAccountInfo(locationPda);
       if (accountInfo) {
-        const didLen = accountInfo.data.readUInt32LE(8);
+        const view = new DataView(accountInfo.data.buffer, accountInfo.data.byteOffset, accountInfo.data.byteLength);
+        const didLen = view.getUint32(8, true);
         const rootOffset = 8 + 4 + didLen;
         const rootBytes = accountInfo.data.slice(rootOffset, rootOffset + 32);
-        setOnChainRoot(Buffer.from(rootBytes).toString("hex"));
+        const hexRoot = Array.from(rootBytes).map((b) => b.toString(16).padStart(2, "0")).join("");
+        setOnChainRoot(hexRoot);
       } else {
         setOnChainRoot(null);
       }
