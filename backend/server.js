@@ -61,7 +61,12 @@ import {
 
 // Load Environment Variables first
 function loadEnv() {
-  const envPaths = [join(process.cwd(), ".env"), join(process.cwd(), ".env.local")];
+  const envPaths = [
+    join(process.cwd(), ".env"),
+    join(process.cwd(), ".env.local"),
+    join(process.cwd(), "..", ".env"),
+    join(process.cwd(), "..", ".env.local"),
+  ];
   envPaths.forEach((envPath) => {
     if (existsSync(envPath)) {
       try {
