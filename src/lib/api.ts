@@ -86,18 +86,6 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   });
   if (!r.ok) {
     const err = await r.json().catch(() => ({ error: r.statusText }));
-    if (r.status === 401) {
-      if (typeof window !== "undefined") {
-        localStorage.removeItem("authToken");
-        sessionStorage.removeItem("authToken");
-        localStorage.removeItem("userRole");
-        localStorage.removeItem("userEmail");
-        sessionStorage.removeItem("userRole");
-        sessionStorage.removeItem("userEmail");
-      }
-      const { logout } = await import("./auth");
-      logout(false).catch(() => {});
-    }
     throw new Error(err.error ?? r.statusText);
   }
   return r.json();

@@ -10,7 +10,7 @@ import { WebSocketServer } from "ws";
 import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
-import { randomUUID } from "crypto";
+import crypto, { randomUUID } from "crypto";
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
 import jwt from "jsonwebtoken";

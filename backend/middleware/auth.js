@@ -197,7 +197,7 @@ export function buildAuth(jwt, jwtSecret) {
 
     if (role === "patient") {
       for (const prefix of STAFF_PREFIXES) {
-        if (apiPath.startsWith(prefix)) {
+        if (apiPath.startsWith(prefix) && req.method !== "GET") {
           return res.status(403).json({ error: "Forbidden: staff or admin only" });
         }
       }
