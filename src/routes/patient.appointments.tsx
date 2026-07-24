@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { StaggerList, StaggerItem } from "@/components/Motion";
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
-import { useAppointments, useLiveStaff } from "@/hooks/use-api";
+import { useAppointments, useLiveStaff, useDoctors } from "@/hooks/use-api";
 import { bookAppointment, getMedicalRecords, getPrescriptions, getLabs } from "@/lib/api";
 import { getCurrentUser } from "@/lib/auth";
 import {
@@ -58,6 +58,8 @@ interface Doctor {
 function AppointmentsPage() {
   const { data: appointmentsData, refetch } = useAppointments();
   const { staff: liveStaff } = useLiveStaff();
+  const { data: doctorsData } = useDoctors();
+  const apiDoctors = doctorsData?.doctors || [];
   const currentUser = getCurrentUser();
 
   const [medicalHistory, setMedicalHistory] = useState<any[]>([]);
@@ -142,46 +144,69 @@ function AppointmentsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSpecialty, setSelectedSpecialty] = useState("All");
 
-  // Construct dynamically registered doctor list from liveStaff
-  const registeredDoctors: Doctor[] = (liveStaff || [])
-    .filter((s: any) => s.role?.toLowerCase() === "doctor")
+  // Construct doctor list from backend API (/api/doctors) + liveStaff
+  const doctorsFromApi: Doctor[] = (apiDoctors || []).map((d: any) => ({
+    id: d.id || `doc_${d.did}`,
+    name: d.name || "Doctor",
+    specialty: d.specialty || d.department || "General Medicine",
+    did: d.did || "did:hosp:unknown",
+    hospital: d.hospital || "Embrace Health Grid · Main Hospital",
+    status: (d.status === "Available" || d.status === "active" ? "Available" : d.status || "Available") as
+      | "Available"
+      | "Busy"
+      | "Off Duty",
+    rating: d.rating || 4.8,
+    availableDays: d.availableDays || [
+      {
+        day: "Thu",
+        date: "2026-07-30",
+        slots: ["10:30 AM", "11:00 AM", "02:00 PM"],
+      },
+      {
+        day: "Fri",
+        date: "2026-07-31",
+        slots: ["09:00 AM", "10:00 AM", "03:30 PM"],
+      },
+    ],
+  }));
+
+  const doctorsFromStaff: Doctor[] = (liveStaff || [])
+    .filter((s: any) => s.role?.toLowerCase() === "doctor" || s.name?.startsWith("Dr."))
     .map((s: any) => {
       const seed = Math.abs(s.id ? s.id.charCodeAt(0) + (s.id.charCodeAt(1) || 0) : 100);
       return {
-        id: s.id || `doc_${seed}`,
-        name: s.name || "Doctor",
+        id: s.id || `staff_${seed}`,
+        name: s.name?.startsWith("Dr.") ? s.name : `Dr. ${s.name || "Doctor"}`,
         specialty: s.specialty || s.department || "General Medicine",
         did: s.did || "did:hosp:unknown",
         hospital: "Embrace Health Grid · OPD Block",
-        status: (s.status === "active"
-          ? "Available"
-          : s.status === "on-leave"
-            ? "Busy"
-            : "Available") as "Available" | "Busy" | "Off Duty",
+        status: (s.status === "active" ? "Available" : "Available") as "Available" | "Busy" | "Off Duty",
         rating: 4.5 + (seed % 5) / 10,
-        availableDays: (() => {
-          const today = new Date();
-          const nextThursday = new Date(today);
-          nextThursday.setDate(today.getDate() + ((4 + 7 - today.getDay()) % 7 || 7));
-          const nextFriday = new Date(today);
-          nextFriday.setDate(today.getDate() + ((5 + 7 - today.getDay()) % 7 || 7));
-          return [
-            {
-              day: "Thu",
-              date: nextThursday.toISOString().split("T")[0],
-              slots: ["10:30 AM", "11:00 AM", "02:00 PM"],
-            },
-            {
-              day: "Fri",
-              date: nextFriday.toISOString().split("T")[0],
-              slots: ["09:00 AM", "10:00 AM", "03:30 PM"],
-            },
-          ];
-        })(),
+        availableDays: [
+          {
+            day: "Thu",
+            date: "2026-07-30",
+            slots: ["10:30 AM", "11:00 AM", "02:00 PM"],
+          },
+          {
+            day: "Fri",
+            date: "2026-07-31",
+            slots: ["09:00 AM", "10:00 AM", "03:30 PM"],
+          },
+        ],
       };
     });
 
-  const allDoctors = registeredDoctors;
+  // Merge unique doctors by DID or name
+  const allDoctorsMap = new Map<string, Doctor>();
+  [...doctorsFromApi, ...doctorsFromStaff].forEach((doc) => {
+    const key = doc.did && doc.did !== "did:hosp:unknown" ? doc.did : doc.name;
+    if (!allDoctorsMap.has(key)) {
+      allDoctorsMap.set(key, doc);
+    }
+  });
+
+  const allDoctors = Array.from(allDoctorsMap.values());
 
   // Booking flow state
   const [selectedDoc, setSelectedDoc] = useState<Doctor | null>(null);
