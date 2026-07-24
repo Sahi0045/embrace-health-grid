@@ -133,6 +133,31 @@ export function buildAuth(jwt, jwtSecret) {
     if (PUBLIC_PATHS.has(fullPath) || PUBLIC_PATHS.has(path)) return next();
     if (!fullPath.startsWith("/api") && !path.startsWith("/api")) return next();
 
+    const targetPath = fullPath.startsWith("/api") ? fullPath : path;
+
+    // Optional auth paths — verify token if present, but do not block unauthenticated or expired sessions
+    if (
+      targetPath.startsWith("/api/doctors") ||
+      targetPath.startsWith("/api/appointments") ||
+      targetPath.startsWith("/api/consent") ||
+      targetPath.startsWith("/api/identity") ||
+      targetPath.startsWith("/api/worldstate") ||
+      targetPath.startsWith("/api/auth/logout")
+    ) {
+      const token = req.headers.authorization?.replace("Bearer ", "");
+      if (token) {
+        try {
+          const payload = jwt.verify(token, jwtSecret);
+          if (!isTokenBlocked(payload.jti) && !isUserRevoked(payload.email)) {
+            req.user = payload;
+          }
+        } catch {
+          req.user = null;
+        }
+      }
+      return next();
+    }
+
     const token = req.headers.authorization?.replace("Bearer ", "");
     if (!token) return res.status(401).json({ error: "Authentication required" });
 
