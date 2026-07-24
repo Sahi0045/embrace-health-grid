@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { StaggerList, StaggerItem } from "@/components/Motion";
 import { useLivePatients, useConsents, useAppointments } from "@/hooks/use-api";
