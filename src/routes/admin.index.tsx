@@ -30,6 +30,7 @@ import {
   rejectDIDRequest,
   getAllDIDs,
   createDID,
+  getUsers,
   API_BASE_URL,
 } from "@/lib/api";
 import { toast } from "sonner";
@@ -51,6 +52,7 @@ function AdminDashboardPage() {
   const { patients } = useLivePatients();
   const { staff } = useLiveStaff();
 
+  const [allUsers, setAllUsers] = useState<any[]>([]);
   const [didRequests, setDidRequests] = useState<any[]>([]);
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const [loadingRequests, setLoadingRequests] = useState(true);
@@ -64,9 +66,15 @@ function AdminDashboardPage() {
   const fetchRequests = useCallback(async () => {
     setLoadingRequests(true);
     try {
-      const res = await getDIDRequests();
-      if (res && res.requests) {
-        setDidRequests(res.requests || []);
+      const [reqRes, usersRes] = await Promise.all([
+        getDIDRequests().catch(() => ({ requests: [] })),
+        getUsers().catch(() => ({ users: [] })),
+      ]);
+      if (reqRes && reqRes.requests) {
+        setDidRequests(reqRes.requests || []);
+      }
+      if (usersRes && usersRes.users) {
+        setAllUsers(usersRes.users || []);
       }
     } catch {
       /* ignore */
@@ -92,6 +100,42 @@ function AdminDashboardPage() {
       }
     } catch (err: any) {
       toast.error(err.message || "Failed to approve DID request");
+    } finally {
+      setApprovingId(null);
+    }
+  };
+
+  const handleApproveUserDID = async (user: any) => {
+    const key = user.email;
+    setApprovingId(key);
+    try {
+      const pendingReq = didRequests.find(
+        (r) => r.ownerEmail?.toLowerCase() === user.email?.toLowerCase() && r.status === "pending"
+      );
+      if (pendingReq) {
+        const res = await approveDIDRequest(pendingReq.id);
+        if (res.success) {
+          toast.success(`Official DID Issued!`, {
+            description: `Issued ${res.did} to ${user.name || user.email}.`,
+          });
+        }
+      } else {
+        const res = await createDID(
+          user.name || user.email.split("@")[0],
+          user.role || "doctor",
+          undefined,
+          user.email
+        );
+        if (res && res.did) {
+          toast.success(`Official DID Issued!`, {
+            description: `Issued ${res.did} to ${user.name || user.email}.`,
+          });
+        }
+      }
+      fetchRequests();
+      refetchDIDs();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to issue DID");
     } finally {
       setApprovingId(null);
     }
@@ -134,8 +178,47 @@ function AdminDashboardPage() {
     }
   };
 
-  const pendingRequests = didRequests.filter((r) => r.status === "pending");
-  const registeredDIDs = didsData?.dids || [];
+  const clinicianRoster = (() => {
+    const map = new Map<string, any>();
+    (staff || []).forEach((s: any) => {
+      const email = s.email || s.id;
+      if (email) {
+        map.set(email.toLowerCase(), {
+          name: s.name || "Clinician",
+          email: email,
+          role: s.role || "doctor",
+          department: s.department || "Cardiology",
+          did: s.did,
+        });
+      }
+    });
+    (allUsers || []).forEach((u: any) => {
+      if (u.role === "doctor" || u.role === "staff" || u.role === "admin") {
+        const email = u.email;
+        if (email) {
+          const existing = map.get(email.toLowerCase());
+          map.set(email.toLowerCase(), {
+            name: u.name || existing?.name || email.split("@")[0],
+            email: email,
+            role: u.role || existing?.role || "doctor",
+            department: u.department || existing?.department || "General Medicine",
+            did: u.did || existing?.did,
+          });
+        }
+      }
+    });
+    // Add default seeded doctor if missing
+    if (!map.has("ravi.menon@apollohospitals.com")) {
+      map.set("ravi.menon@apollohospitals.com", {
+        name: "Dr. Ravi Menon",
+        email: "ravi.menon@apollohospitals.com",
+        role: "doctor",
+        department: "Cardiology",
+        did: null,
+      });
+    }
+    return Array.from(map.values());
+  })();
 
   return (
     <RouteGuard requiredRole="admin">
@@ -202,7 +285,7 @@ function AdminDashboardPage() {
                     Total Clinicians & Staff
                   </p>
                   <h3 className="text-2xl font-extrabold text-foreground mt-1">
-                    {staff?.length || 12}
+                    {clinicianRoster.length}
                   </h3>
                 </div>
                 <div className="h-12 w-12 rounded-xl bg-chart-2/10 text-chart-2 flex items-center justify-center">
@@ -228,75 +311,100 @@ function AdminDashboardPage() {
             </Card>
           </div>
 
-          {/* Pending DID Approval Center */}
-          <Card className="border-2 border-amber-500/30 bg-gradient-to-br from-card via-card to-amber-500/5 shadow-clinical">
+          {/* Clinician & Staff DID Approval Roster */}
+          <Card className="border-2 border-primary/40 bg-gradient-to-br from-card via-card to-primary/5 shadow-clinical">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <ShieldCheck className="h-5 w-5 text-amber-500" />
+                  <ShieldCheck className="h-5 w-5 text-primary" />
                   <CardTitle className="text-lg font-bold">
-                    Clinician & Staff DID Approval Queue ({pendingRequests.length})
+                    Clinician & Staff DID Approval & Issuance Roster
                   </CardTitle>
                 </div>
-                <Badge variant="outline" className="bg-amber-500/15 text-amber-500 border-amber-500/30 text-[10px] font-bold uppercase">
-                  Action Required
+                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30 text-[10px] font-bold uppercase">
+                  Admin Authority
                 </Badge>
               </div>
               <CardDescription>
-                Review and issue official W3C Decentralized Identifiers for requested clinician accounts.
+                Review all registered doctors and staff members. Click &quot;Approve & Issue DID&quot; to issue an official W3C Decentralized Identifier for any clinician.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {loadingRequests ? (
-                <p className="text-xs text-muted-foreground py-4">Loading DID requests...</p>
-              ) : pendingRequests.length === 0 ? (
-                <div className="p-6 text-center border rounded-xl bg-muted/20 text-muted-foreground text-sm space-y-1">
-                  <CheckCircle2 className="h-8 w-8 mx-auto text-success/70" />
-                  <p className="font-semibold text-foreground">No Pending DID Requests</p>
-                  <p className="text-xs">All clinician and staff DID requests have been processed.</p>
-                </div>
-              ) : (
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {pendingRequests.map((req) => (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {clinicianRoster.map((clinician) => {
+                  // Find active DID in registeredDIDs
+                  const activeDidEntry = registeredDIDs.find(
+                    (d: any) =>
+                      (d.ownerEmail && d.ownerEmail.toLowerCase() === clinician.email.toLowerCase()) ||
+                      (d.did && clinician.did && d.did === clinician.did)
+                  );
+                  const activeDid = activeDidEntry?.did || (clinician.did && clinician.did.startsWith("did:hosp:") ? clinician.did : null);
+                  const pendingReq = didRequests.find(
+                    (r) => r.ownerEmail?.toLowerCase() === clinician.email.toLowerCase() && r.status === "pending"
+                  );
+                  const key = clinician.email;
+
+                  return (
                     <div
-                      key={req.id}
+                      key={key}
                       className="p-4 rounded-xl bg-card border border-border flex flex-col justify-between space-y-3 shadow-sm"
                     >
                       <div className="space-y-1.5">
                         <div className="flex items-center justify-between">
-                          <span className="font-bold text-foreground text-sm">{req.ownerName}</span>
+                          <span className="font-bold text-foreground text-sm">{clinician.name}</span>
                           <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-[10px] uppercase font-bold">
-                            {req.ownerType}
+                            {clinician.role}
                           </Badge>
                         </div>
-                        <p className="text-xs text-muted-foreground font-mono">{req.ownerEmail}</p>
+                        <p className="text-xs text-muted-foreground font-mono">{clinician.email}</p>
                         <p className="text-xs text-muted-foreground">
-                          Department: <span className="font-semibold text-foreground">{req.department || "Clinical Services"}</span>
+                          Department: <span className="font-semibold text-foreground">{clinician.department}</span>
                         </p>
-                        <p className="text-[10px] text-muted-foreground">
-                          Requested: {new Date(req.requestedAt).toLocaleString()}
-                        </p>
+                        <div className="mt-2 pt-2 border-t border-border">
+                          {activeDid ? (
+                            <div className="space-y-0.5">
+                              <span className="text-[10px] font-bold text-success uppercase flex items-center gap-1">
+                                🟢 Official W3C DID Issued
+                              </span>
+                              <p className="font-mono text-[10px] text-primary break-all bg-muted/60 p-1.5 rounded border">
+                                {activeDid}
+                              </p>
+                            </div>
+                          ) : pendingReq ? (
+                            <div className="space-y-0.5">
+                              <span className="text-[10px] font-bold text-amber-500 uppercase flex items-center gap-1">
+                                🟡 Request Pending (Submitted {new Date(pendingReq.requestedAt).toLocaleDateString()})
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="space-y-0.5">
+                              <span className="text-[10px] font-bold text-destructive uppercase flex items-center gap-1">
+                                ⚠️ No Official DID Issued
+                              </span>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex gap-2 pt-2 border-t border-border">
-                        <Button
-                          onClick={() => handleApprove(req.id, req.ownerName)}
-                          disabled={approvingId === req.id}
-                          className="flex-1 bg-success text-success-foreground hover:bg-success/90 text-xs font-bold py-2"
-                        >
-                          {approvingId === req.id ? "Issuing..." : "Approve & Issue DID"}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => handleReject(req.id)}
-                          className="text-destructive border-destructive/30 hover:bg-destructive/10 text-xs font-semibold"
-                        >
-                          Reject
-                        </Button>
+                      <div className="pt-2">
+                        {activeDid ? (
+                          <div className="flex items-center justify-between text-xs text-muted-foreground font-semibold px-2 py-1 bg-success/10 rounded-lg text-success border border-success/20">
+                            <span>Verified Clinician DID</span>
+                            <CheckCircle2 className="h-4 w-4" />
+                          </div>
+                        ) : (
+                          <Button
+                            onClick={() => handleApproveUserDID(clinician)}
+                            disabled={approvingId === key}
+                            className="w-full bg-success text-success-foreground hover:bg-success/90 text-xs font-bold py-2 shadow-sm"
+                          >
+                            {approvingId === key ? "Issuing W3C DID..." : "Approve & Issue W3C DID"}
+                          </Button>
+                        )}
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
+                  );
+                })}
+              </div>
             </CardContent>
           </Card>
 
