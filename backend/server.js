@@ -1717,7 +1717,7 @@ app.post("/api/fraud/alert", requireAuth, (req, res) => {
   res.json(alert);
 });
 
-app.get("/api/fraud/alerts", requireAuth, requireRole(["admin"]), (_, res) => {
+app.get("/api/fraud/alerts", requireAuth, requireRole(["admin", "doctor", "staff"]), (_, res) => {
   let all = getAllState("fraud-alerts");
   if (all.length === 0) {
     const defaultAlerts = [
