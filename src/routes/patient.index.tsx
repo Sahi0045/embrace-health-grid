@@ -64,7 +64,9 @@ function PatientHome() {
           setCurrentUser(getCurrentUser());
         }
       })
-      .catch((err) => console.warn("Could not fetch user profile:", err));
+      .catch(() => {
+        /* silent catch on expired token */
+      });
   }, []);
 
   const userEmail = currentUser?.email || "";
