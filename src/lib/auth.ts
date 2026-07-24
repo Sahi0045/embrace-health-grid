@@ -50,17 +50,17 @@ let _refreshTimer: ReturnType<typeof setTimeout> | null = null;
 
 // ─── Token accessors ───────────────────────────────────────────────────────────
 
-/** Read the access JWT. Prefers in-memory, falls back to sessionStorage. */
+/** Read the access JWT. Prefers in-memory, falls back to sessionStorage or localStorage. */
 export function getToken(): string | null {
   if (_memToken) return _memToken;
   if (typeof window === "undefined") return null;
-  return sessionStorage.getItem(ACCESS_TOKEN_KEY);
+  return sessionStorage.getItem(ACCESS_TOKEN_KEY) || localStorage.getItem(ACCESS_TOKEN_KEY);
 }
 
-/** Read the opaque refresh token from sessionStorage. */
+/** Read the opaque refresh token from sessionStorage or localStorage. */
 export function getRefreshToken(): string | null {
   if (typeof window === "undefined") return null;
-  return sessionStorage.getItem(REFRESH_TOKEN_KEY);
+  return sessionStorage.getItem(REFRESH_TOKEN_KEY) || localStorage.getItem(REFRESH_TOKEN_KEY);
 }
 
 // ─── Session management ────────────────────────────────────────────────────────
@@ -96,13 +96,15 @@ export function setSession(
 
   if (!user) return;
 
-  // Access token → sessionStorage + memory
+  // Access token → sessionStorage + localStorage + memory
   sessionStorage.setItem(ACCESS_TOKEN_KEY, token);
+  localStorage.setItem(ACCESS_TOKEN_KEY, token);
   _memToken = token;
 
-  // Refresh token → sessionStorage only
+  // Refresh token → sessionStorage + localStorage
   if (refreshToken) {
     sessionStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+    localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
   }
 
   // Non-sensitive profile metadata → localStorage (for UI display only)
@@ -207,19 +209,18 @@ async function _autoRefresh(): Promise<void> {
 export function getCurrentUser(): AuthUser | null {
   if (typeof window === "undefined") return null;
 
-  const role = localStorage.getItem("userRole") as UserRole;
-  const email = localStorage.getItem("userEmail");
+  const role = (localStorage.getItem("userRole") || sessionStorage.getItem("userRole")) as UserRole;
+  const email = localStorage.getItem("userEmail") || sessionStorage.getItem("userEmail");
 
-  // If there's no token in sessionStorage, treat as logged out
-  const token = sessionStorage.getItem(ACCESS_TOKEN_KEY);
+  const token = getToken();
   if (!token) return null;
   if (!role || !email) return null;
 
-  const name = localStorage.getItem("userName") ?? undefined;
-  const did = localStorage.getItem("userDID") ?? undefined;
-  const walletAddress = localStorage.getItem("userWalletAddress") ?? undefined;
-  const mrn = localStorage.getItem("userMRN") ?? undefined;
-  const employeeId = localStorage.getItem("userEmployeeId") ?? undefined;
+  const name = localStorage.getItem("userName") ?? sessionStorage.getItem("userName") ?? undefined;
+  const did = localStorage.getItem("userDID") ?? sessionStorage.getItem("userDID") ?? undefined;
+  const walletAddress = localStorage.getItem("userWalletAddress") ?? sessionStorage.getItem("userWalletAddress") ?? undefined;
+  const mrn = localStorage.getItem("userMRN") ?? sessionStorage.getItem("userMRN") ?? undefined;
+  const employeeId = localStorage.getItem("userEmployeeId") ?? sessionStorage.getItem("userEmployeeId") ?? undefined;
 
   return { email, role, name, did, walletAddress, mrn, employeeId };
 }
@@ -278,10 +279,13 @@ export async function logout(redirectToLogin = true): Promise<void> {
   _memToken = null;
   sessionStorage.removeItem(ACCESS_TOKEN_KEY);
   sessionStorage.removeItem(REFRESH_TOKEN_KEY);
+  localStorage.removeItem(ACCESS_TOKEN_KEY);
+  localStorage.removeItem(REFRESH_TOKEN_KEY);
   localStorage.removeItem("userRole");
   localStorage.removeItem("userEmail");
   localStorage.removeItem("userName");
   localStorage.removeItem("userDID");
+  localStorage.removeItem("userWalletAddress");
   localStorage.removeItem("userMRN");
   localStorage.removeItem("userEmployeeId");
   localStorage.removeItem("userWalletAddress");
