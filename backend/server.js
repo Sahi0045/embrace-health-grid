@@ -126,7 +126,9 @@ const IDENTITY_SECRET = process.env.IDENTITY_SECRET || JWT_SECRET + "-identity";
 const ACCESS_TOKEN_TTL = "2h"; // Short-lived access token
 const REFRESH_TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days (opaque, stored server-side)
 const JWT_EXPIRES = ACCESS_TOKEN_TTL; // backward-compat alias
-const CORS_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:5173";
+const CORS_ORIGIN =
+  process.env.CORS_ORIGIN ||
+  "http://localhost:5173,http://localhost:8080,http://localhost:3000,http://127.0.0.1:8080,http://127.0.0.1:5173";
 
 /**
  * Mint a signed access JWT with a unique jti for revocation support.
@@ -154,9 +156,9 @@ app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
-      if (allowedOrigins.indexOf(origin) !== -1) {
+      if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes("*")) {
         callback(null, true);
-      } else if (allowedOrigins.includes("*") && process.env.NODE_ENV !== "production") {
+      } else if (process.env.NODE_ENV !== "production") {
         callback(null, true);
       } else {
         callback(new Error("Not allowed by CORS"));
