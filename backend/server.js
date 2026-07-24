@@ -87,18 +87,8 @@ function loadEnv() {
 }
 loadEnv();
 
-let CLIENT_KEY = process.env.CLIENT_KEY;
-if (!CLIENT_KEY) {
-  if (process.env.NODE_ENV === "production") {
-    console.error("FATAL: CLIENT_KEY environment variable is not set.");
-    process.exit(1);
-  } else {
-    CLIENT_KEY = randomUUID() + "-dev-only";
-    console.warn(
-      `⚠️ CLIENT_KEY not set. Generated ephemeral dev key: ${CLIENT_KEY.slice(0, 8)}…  Set CLIENT_KEY in .env.local to match VITE_CLIENT_KEY.`,
-    );
-  }
-}
+let CLIENT_KEY =
+  process.env.CLIENT_KEY || "ehg_live_sec_9941a870b2c341e8f9d012a67e89bc5f";
 
 function requireClientAuth(req, res, next) {
   const clientKey = req.headers["x-client-key"];
