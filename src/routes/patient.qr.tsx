@@ -35,6 +35,7 @@ function PatientQr() {
   const patientDid = patient?.did || currentUser?.did || `did:hosp:patient:${userEmail || "current"}`;
   const patientMrn = patient?.mrn || "MRN-2026-001";
   const patientName = patient?.name || currentUser?.name || "Patient Account";
+  const patientBloodGroup = patient?.bloodGroup || "O+";
 
   const [payload, setPayload] = useState("");
   const [timeLeft, setTimeLeft] = useState(ROTATION_SECONDS);
@@ -180,11 +181,11 @@ function PatientQr() {
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-foreground shadow-sm">
             <Droplets className="h-3.5 w-3.5 text-destructive" />
-            {patient.bloodGroup}
+            {patientBloodGroup}
           </span>
           <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-foreground shadow-sm">
             <CreditCard className="h-3.5 w-3.5 text-primary" />
-            {patient.mrn}
+            {patientMrn}
           </span>
           <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-success shadow-sm">
             <BadgeCheck className="h-3.5 w-3.5" />
@@ -193,7 +194,7 @@ function PatientQr() {
         </div>
 
         {/* NFC Card Status Section */}
-        {patient.did && <NfcCardStatus patientDid={patient.did} />}
+        {patientDid && <NfcCardStatus patientDid={patientDid} />}
 
         {/* NFC guidance */}
         <div className="mt-4 rounded-lg border border-border bg-muted/30 px-4 py-2.5 text-center text-xs text-muted-foreground">
