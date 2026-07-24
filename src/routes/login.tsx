@@ -94,7 +94,11 @@ function LoginPage() {
         }
       }
     } catch (err: any) {
-      toast.error(err.message || "Authentication failed");
+      const msg =
+        err.message?.includes("fetch") || err.name === "TypeError"
+          ? "Connection Error: Cannot reach backend server. Please ensure your network is connected."
+          : err.message || "Authentication failed";
+      toast.error(msg);
     } finally {
       setIsLoading(false);
     }
