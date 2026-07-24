@@ -25,6 +25,9 @@ import {
   LogIn,
   UserCheck,
   ShieldCheck,
+  ShieldAlert,
+  Lock,
+  AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -60,11 +63,16 @@ function StaffRooms() {
     loggedInUser?.role ||
     (typeof window !== "undefined" ? localStorage.getItem("userRole") || "doctor" : "doctor");
   const sessionSpecialty = loggedInUser?.specialty || "Clinical Services";
-  const sessionDid =
+
+  const rawSessionDid =
     loggedInUser?.did ||
     (typeof window !== "undefined"
-      ? localStorage.getItem("userDID") || localStorage.getItem("userDid") || "did:hosp:0x4302bbea"
-      : "did:hosp:0x4302bbea");
+      ? localStorage.getItem("userDID") || localStorage.getItem("userDid") || ""
+      : "");
+
+  const [didChecked, setDidChecked] = useState(false);
+  const [hasAdminIssuedDid, setHasAdminIssuedDid] = useState(false);
+  const [adminIssuedDid, setAdminIssuedDid] = useState<string>("");
 
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,12 +81,55 @@ function StaffRooms() {
   const [onChainRoot, setOnChainRoot] = useState<string | null>(null);
   const [onChainTx, setOnChainTx] = useState<string | null>(null);
 
+  useEffect(() => {
+    async function checkAdminIssuedDid() {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/did`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+            "x-client-key": "apollo-consortium-client-secret-2026",
+          },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const dids = data.dids || [];
+          const match = dids.find(
+            (d: any) =>
+              (d.ownerEmail && d.ownerEmail.toLowerCase() === sessionEmail.toLowerCase()) ||
+              (d.owner && d.owner.toLowerCase() === sessionName.toLowerCase()) ||
+              (d.did && rawSessionDid && d.did === rawSessionDid)
+          );
+          if (match && match.did) {
+            setHasAdminIssuedDid(true);
+            setAdminIssuedDid(match.did);
+          } else if (rawSessionDid && rawSessionDid.startsWith("did:hosp:")) {
+            setHasAdminIssuedDid(true);
+            setAdminIssuedDid(rawSessionDid);
+          } else {
+            setHasAdminIssuedDid(false);
+          }
+        } else {
+          setHasAdminIssuedDid(Boolean(rawSessionDid && rawSessionDid.startsWith("did:hosp:")));
+          if (rawSessionDid) setAdminIssuedDid(rawSessionDid);
+        }
+      } catch {
+        setHasAdminIssuedDid(Boolean(rawSessionDid && rawSessionDid.startsWith("did:hosp:")));
+        if (rawSessionDid) setAdminIssuedDid(rawSessionDid);
+      } finally {
+        setDidChecked(true);
+      }
+    }
+    checkAdminIssuedDid();
+  }, [sessionEmail, sessionName, rawSessionDid]);
+
+  const effectiveDid = adminIssuedDid || rawSessionDid;
+
   const fetchHistory = useCallback(async () => {
-    if (!sessionDid) return;
+    if (!effectiveDid) return;
     setLoading(true);
     try {
       const res = await fetch(
-        `${API_BASE_URL}/api/doctor/location-history/${encodeURIComponent(sessionDid)}`,
+        `${API_BASE_URL}/api/doctor/location-history/${encodeURIComponent(effectiveDid)}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("authToken")}`,
@@ -95,15 +146,15 @@ function StaffRooms() {
     } finally {
       setLoading(false);
     }
-  }, [sessionDid]);
+  }, [effectiveDid]);
 
   const fetchOnChainRoot = useCallback(async () => {
-    if (!sessionDid) return;
+    if (!effectiveDid) return;
     try {
       const PROGRAM_ID = new PublicKey("BxkLrjBYdb3nh2m9GCfpLXBWrAj3s9MqnRbwktLqSfN3");
       const encoder = new TextEncoder();
       const [locationPda] = PublicKey.findProgramAddressSync(
-        [encoder.encode("doctor-location"), encoder.encode(sessionDid)],
+        [encoder.encode("doctor-location"), encoder.encode(effectiveDid)],
         PROGRAM_ID
       );
       const connection = new Connection("https://api.devnet.solana.com", "confirmed");
@@ -121,7 +172,7 @@ function StaffRooms() {
     } catch (err) {
       console.warn("Could not load on-chain location Merkle Root:", err);
     }
-  }, [sessionDid]);
+  }, [effectiveDid]);
 
   useEffect(() => {
     fetchHistory();
@@ -138,7 +189,7 @@ function StaffRooms() {
           Authorization: `Bearer ${localStorage.getItem("authToken")}`,
           "x-client-key": "apollo-consortium-client-secret-2026",
         },
-        body: JSON.stringify({ doctorDid: sessionDid, roomNumber }),
+        body: JSON.stringify({ doctorDid: effectiveDid, roomNumber }),
       });
 
       if (!res.ok) {
@@ -226,6 +277,49 @@ function StaffRooms() {
   const lastLog = logs[0];
   const activeRoom = lastLog && lastLog.action === "enter" ? lastLog.roomNumber : "None";
 
+  if (didChecked && !hasAdminIssuedDid) {
+    return (
+      <RouteGuard requiredRole="staff">
+        <>
+          <PageHeader
+            eyebrow="Clinician Terminal · Access Control"
+            title={`Room Check-In Restricted — ${sessionName}`}
+            description="Room check-in is strictly allocated for staff and doctors who have been issued an official DID by the hospital administrator."
+          />
+          <div className="p-6 max-w-3xl mx-auto">
+            <Card className="border-2 border-amber-500/40 bg-gradient-to-br from-card via-card to-amber-500/5 shadow-clinical text-center p-8">
+              <div className="flex justify-center mb-4">
+                <div className="h-16 w-16 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center">
+                  <ShieldAlert className="h-8 w-8" />
+                </div>
+              </div>
+              <h2 className="text-2xl font-bold text-foreground">Admin DID Authorization Required</h2>
+              <p className="text-muted-foreground mt-2 max-w-lg mx-auto text-sm leading-relaxed">
+                This room check-in console is strictly allocated to staff members and doctors who have been issued an official W3C Decentralized Identifier (DID) by the hospital administrator.
+              </p>
+              <div className="my-6 p-4 rounded-xl bg-muted/40 border border-border inline-block text-left text-xs space-y-1.5 font-mono">
+                <div>User: <span className="text-foreground font-bold">{sessionName}</span> ({sessionEmail})</div>
+                <div>Role: <span className="text-foreground font-bold uppercase">{sessionRole}</span></div>
+                <div>Admin DID Status: <span className="text-amber-500 font-bold">⚠️ NO ADMIN DID ALLOTTED</span></div>
+              </div>
+              <p className="text-xs text-muted-foreground mb-6">
+                Please contact your system administrator to issue an official DID for your staff account. Once issued, your personal room check-in console will unlock automatically.
+              </p>
+              <div className="flex justify-center gap-4">
+                <Link
+                  to="/did-explorer"
+                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
+                >
+                  <ShieldCheck className="h-4 w-4" /> Explore Registered DIDs
+                </Link>
+              </div>
+            </Card>
+          </div>
+        </>
+      </RouteGuard>
+    );
+  }
+
   return (
     <RouteGuard requiredRole="staff">
       <>
@@ -277,7 +371,7 @@ function StaffRooms() {
                       Role / Specialty: <span className="text-foreground font-semibold uppercase">{sessionRole}</span> · <span className="text-foreground font-semibold">{sessionSpecialty}</span>
                     </div>
                     <div className="font-mono text-[10px] text-primary break-all bg-muted/60 p-2 rounded-lg border border-border">
-                      {sessionDid}
+                      {effectiveDid}
                     </div>
                   </div>
 
