@@ -101,6 +101,14 @@ const staffNav: Item[] = [
   { title: "Emergency", url: "/staff/emergency", icon: ShieldAlert },
 ];
 
+const adminNav: Item[] = [
+  { title: "Admin Portal Hub", url: "/admin", icon: LayoutDashboard },
+  { title: "DID Registry", url: "/did-explorer", icon: Search },
+  { title: "Verifiable Credentials", url: "/credential-explorer", icon: Award },
+  { title: "Security & Audit Trail", url: "/audit-timeline", icon: GitBranch },
+  { title: "Hospital Command Center", url: "/staff/command", icon: Command },
+];
+
 const globalNav: Item[] = [
   { title: "DID Explorer", url: "/did-explorer", icon: Search },
   { title: "Credential Explorer", url: "/credential-explorer", icon: Award },
@@ -147,14 +155,17 @@ export function AppSidebar() {
     setUser(getCurrentUser());
   }, [pathname]);
 
-  const role: "patient" | "staff" | null = pathname.startsWith("/patient")
+  const currentPortal: "patient" | "staff" | "admin" = pathname.startsWith("/patient")
     ? "patient"
     : pathname.startsWith("/staff")
       ? "staff"
-      : null;
+      : pathname.startsWith("/admin") || pathname === "/did-explorer" || pathname === "/credential-explorer" || pathname === "/audit-timeline"
+        ? "admin"
+        : (user?.role as any) || "patient";
 
-  const canSeePatient = user?.role === "patient";
-  const canSeeStaff = user?.role === "staff";
+  const isPatientUser = user?.role === "patient";
+  const isStaffUser = user?.role === "staff";
+  const isAdminUser = user?.role === "admin";
 
   return (
     <Sidebar collapsible="icon">
@@ -180,8 +191,9 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        {canSeePatient && role === "patient" && <NavGroup label="Patient App" items={patientNav} />}
-        {canSeeStaff && role === "staff" && <NavGroup label="Staff Portal" items={staffNav} />}
+        {(currentPortal === "patient" || isPatientUser) && <NavGroup label="Patient Portal" items={patientNav} />}
+        {(currentPortal === "staff" || isStaffUser || isAdminUser) && <NavGroup label="Doctor & Staff Portal" items={staffNav} />}
+        {(currentPortal === "admin" || isAdminUser) && <NavGroup label="Admin Portal" items={adminNav} />}
 
         <NavGroup label="Network" items={globalNav} />
 

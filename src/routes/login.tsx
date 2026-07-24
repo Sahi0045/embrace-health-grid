@@ -24,23 +24,23 @@ type Role = "patient" | "staff" | "admin";
 const roles = [
   {
     id: "patient" as Role,
-    label: "Patient",
+    label: "Patient Portal",
     icon: User,
-    description: "Access your health records and appointments",
+    description: "Access personal health records, appointments, QR identity & telemedicine",
     color: "from-primary/10",
   },
   {
     id: "staff" as Role,
-    label: "Staff",
+    label: "Doctor & Staff Portal",
     icon: Stethoscope,
-    description: "Clinician portal for patient care",
+    description: "Room check-in, live doctor locator, e-prescriptions, labs & surgeries",
     color: "from-chart-2/15",
   },
   {
     id: "admin" as Role,
-    label: "Admin",
+    label: "Admin Portal",
     icon: ShieldCheck,
-    description: "System administration and oversight",
+    description: "Consortium governance, DID approval queue, credentials & audit trail",
     color: "from-chart-4/15",
   },
 ];

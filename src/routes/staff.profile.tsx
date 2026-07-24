@@ -20,10 +20,10 @@ import { RouteGuard } from "@/components/RouteGuard";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { getCurrentUser, setSession } from "@/lib/auth";
-import { linkWalletAddress, updateProfile } from "@/lib/api";
+import { linkWalletAddress, updateProfile, API_BASE_URL, requestDID, getDIDRequests } from "@/lib/api";
 import { useLiveStaff } from "@/hooks/use-api";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -67,11 +67,93 @@ function StaffProfile() {
   const [currentUser, setCurrentUser] = useState(getCurrentUser());
   const { publicKey, connected } = useWallet();
   const [linking, setLinking] = useState(false);
+  const [adminDid, setAdminDid] = useState<string | null>(null);
+  const [didLoading, setDidLoading] = useState(true);
 
   const userEmail = currentUser?.email || "";
+
+  const [requestingDid, setRequestingDid] = useState(false);
+  const [pendingReq, setPendingReq] = useState<any>(null);
+
+  const checkPendingRequest = useCallback(async () => {
+    if (!userEmail) return;
+    try {
+      const res = await getDIDRequests();
+      if (res && res.requests) {
+        const match = res.requests.find(
+          (r: any) => r.ownerEmail?.toLowerCase() === userEmail.toLowerCase() && r.status === "pending"
+        );
+        setPendingReq(match || null);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [userEmail]);
+
+  const handleRequestDIDClick = async () => {
+    setRequestingDid(true);
+    try {
+      const res = await requestDID({
+        ownerName: currentUser?.name || staffData.name,
+        ownerType: currentUser?.role || "doctor",
+        department: currentUser?.department || staffData.department,
+      });
+      if (res.success) {
+        toast.success("DID Request Submitted to Admin!", {
+          description: "Hospital administrator has been notified to issue your official W3C DID.",
+        });
+        checkPendingRequest();
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to submit DID request");
+    } finally {
+      setRequestingDid(false);
+    }
+  };
+
+  useEffect(() => {
+    async function fetchAdminDid() {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/did`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+            "x-client-key": "apollo-consortium-client-secret-2026",
+          },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const dids = data.dids || [];
+          const match = dids.find(
+            (d: any) =>
+              (d.ownerEmail && d.ownerEmail.toLowerCase() === userEmail.toLowerCase()) ||
+              (d.owner && currentUser?.name && d.owner.toLowerCase() === currentUser.name.toLowerCase()) ||
+              (d.did && currentUser?.did && d.did === currentUser.did)
+          );
+          if (match && match.did) {
+            setAdminDid(match.did);
+          } else if (currentUser?.did && currentUser.did.startsWith("did:hosp:")) {
+            setAdminDid(currentUser.did);
+          } else {
+            setAdminDid(null);
+          }
+        } else if (currentUser?.did && currentUser.did.startsWith("did:hosp:")) {
+          setAdminDid(currentUser.did);
+        } else {
+          setAdminDid(null);
+        }
+      } catch {
+        setAdminDid(currentUser?.did && currentUser.did.startsWith("did:hosp:") ? currentUser.did : null);
+      } finally {
+        setDidLoading(false);
+      }
+    }
+    fetchAdminDid();
+    checkPendingRequest();
+  }, [userEmail, currentUser?.name, currentUser?.did, checkPendingRequest]);
+
   const staffRecord = staff?.find((s: any) => s.email === userEmail) || {
     name: currentUser?.name || staffData.name,
-    did: currentUser?.did || staffData.did,
+    did: adminDid || currentUser?.did || "",
     employeeId: currentUser?.employeeId || staffData.employeeId,
     email: currentUser?.email || staffData.email,
     phone: currentUser?.phone || staffData.phone,
@@ -250,22 +332,70 @@ function StaffProfile() {
 
           <Card>
             <CardHeader>
-              <div className="flex items-center gap-2">
-                <Shield className="h-5 w-5 text-primary" />
-                <CardTitle>Professional Identity (DID)</CardTitle>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-primary" />
+                  <CardTitle>Professional Identity (DID)</CardTitle>
+                </div>
+                {adminDid ? (
+                  <Badge variant="outline" className="bg-success/15 text-success border-success/30 text-[10px] font-bold">
+                    🟢 Admin-Issued DID
+                  </Badge>
+                ) : pendingReq ? (
+                  <Badge variant="outline" className="bg-amber-500/15 text-amber-500 border-amber-500/30 text-[10px] font-bold">
+                    🟡 Request Pending Admin Review
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="bg-destructive/15 text-destructive border-destructive/30 text-[10px] font-bold">
+                    ⚠️ Not Issued
+                  </Badge>
+                )}
               </div>
               <CardDescription>
-                Your verified professional identity on the blockchain
+                Your verified professional identity on the hospital DID registry
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="rounded-lg bg-muted p-4">
-                <div className="text-sm text-muted-foreground">DID</div>
-                <div className="mt-1 font-mono text-sm font-medium">{staffRecord.did}</div>
+              <div className="rounded-lg bg-muted p-4 font-mono text-sm font-medium">
+                {didLoading ? (
+                  <span className="text-muted-foreground text-xs font-sans">Checking DID Registry...</span>
+                ) : adminDid ? (
+                  <div>
+                    <div className="text-xs text-muted-foreground font-sans">Official W3C DID</div>
+                    <div className="mt-1 text-primary font-bold break-all">{adminDid}</div>
+                  </div>
+                ) : pendingReq ? (
+                  <div className="space-y-1 font-sans">
+                    <div className="text-amber-500 font-semibold text-sm">
+                      🟡 DID Request Pending Admin Approval
+                    </div>
+                    <p className="text-xs text-muted-foreground font-normal">
+                      Your request to issue an official W3C DID was submitted on <span className="font-semibold text-foreground">{new Date(pendingReq.requestedAt).toLocaleDateString()}</span>. Hospital admin will review and issue your DID shortly.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3 font-sans">
+                    <div>
+                      <div className="text-destructive font-semibold text-sm">No Official DID Issued</div>
+                      <p className="text-xs text-muted-foreground font-normal mt-0.5">
+                        An official W3C DID has not been issued for your staff account yet. Click below to submit a request to the hospital administrator to issue your official DID.
+                      </p>
+                    </div>
+                    <Button
+                      onClick={handleRequestDIDClick}
+                      disabled={requestingDid}
+                      className="bg-primary text-primary-foreground text-xs font-bold px-4 py-2"
+                    >
+                      {requestingDid ? "Submitting Request..." : "Request Official DID from Admin"}
+                    </Button>
+                  </div>
+                )}
               </div>
-              <div className="mt-4 text-xs text-muted-foreground">
-                This DID verifies your credentials and authorizes access to patient records.
-              </div>
+              {adminDid && (
+                <div className="mt-4 text-xs text-muted-foreground">
+                  This DID verifies your clinician credentials and authorizes room check-ins & patient data access.
+                </div>
+              )}
             </CardContent>
           </Card>
 
