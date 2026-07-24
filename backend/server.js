@@ -653,7 +653,7 @@ app.get("/api/credentials", requireAuth, (_, res) => {
 });
 
 // ─── Consent ──────────────────────────────────────────────────────────────────
-app.get("/api/consent", requireAuth, requireRole(["admin", "doctor", "staff"]), hipaaAuditPHIAccess("ConsentGrant"), (_, res) => {
+app.get("/api/consent", requireAuth, requireRole(["patient", "doctor", "staff", "admin"]), hipaaAuditPHIAccess("ConsentGrant"), (_, res) => {
   const all = getAllState("consent-manager");
   res.json({ consents: all.map((e) => e.value), total: all.length });
 });
