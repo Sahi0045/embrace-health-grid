@@ -111,8 +111,8 @@ function PatientQr() {
 
         {/* Patient name / MRN */}
         <div className="mt-6 flex flex-col items-center text-center">
-          <div className="text-lg font-semibold text-foreground">{patient.name}</div>
-          <div className="text-sm text-muted-foreground font-mono">{patient.mrn}</div>
+          <div className="text-lg font-semibold text-foreground">{patientName}</div>
+          <div className="text-sm text-muted-foreground font-mono">{patientMrn}</div>
         </div>
 
         {/* Valid indicator */}
@@ -148,7 +148,7 @@ function PatientQr() {
 
           {/* DID monospace */}
           <p className="mt-3 max-w-xs truncate text-center font-mono text-[10px] text-muted-foreground">
-            {patient.did}
+            {patientDid}
           </p>
         </div>
 
