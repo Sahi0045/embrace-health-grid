@@ -178,6 +178,9 @@ function AdminDashboardPage() {
     }
   };
 
+  const registeredDIDs = didsData?.dids || [];
+  const pendingRequests = didRequests.filter((r) => r.status === "pending");
+
   const clinicianRoster = (() => {
     const map = new Map<string, any>();
     (staff || []).forEach((s: any) => {
