@@ -20,7 +20,7 @@ import { RouteGuard } from "@/components/RouteGuard";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { getCurrentUser, setSession } from "@/lib/auth";
-import { linkWalletAddress, updateProfile, API_BASE_URL } from "@/lib/api";
+import { linkWalletAddress, updateProfile, API_BASE_URL, requestDID, getDIDRequests } from "@/lib/api";
 import { useLiveStaff } from "@/hooks/use-api";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
@@ -72,6 +72,45 @@ function StaffProfile() {
 
   const userEmail = currentUser?.email || "";
 
+  const [requestingDid, setRequestingDid] = useState(false);
+  const [pendingReq, setPendingReq] = useState<any>(null);
+
+  const checkPendingRequest = useCallback(async () => {
+    if (!userEmail) return;
+    try {
+      const res = await getDIDRequests();
+      if (res && res.requests) {
+        const match = res.requests.find(
+          (r: any) => r.ownerEmail?.toLowerCase() === userEmail.toLowerCase() && r.status === "pending"
+        );
+        setPendingReq(match || null);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [userEmail]);
+
+  const handleRequestDIDClick = async () => {
+    setRequestingDid(true);
+    try {
+      const res = await requestDID({
+        ownerName: currentUser?.name || staffData.name,
+        ownerType: currentUser?.role || "doctor",
+        department: currentUser?.department || staffData.department,
+      });
+      if (res.success) {
+        toast.success("DID Request Submitted to Admin!", {
+          description: "Hospital administrator has been notified to issue your official W3C DID.",
+        });
+        checkPendingRequest();
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to submit DID request");
+    } finally {
+      setRequestingDid(false);
+    }
+  };
+
   useEffect(() => {
     async function fetchAdminDid() {
       try {
@@ -109,7 +148,8 @@ function StaffProfile() {
       }
     }
     fetchAdminDid();
-  }, [userEmail, currentUser?.name, currentUser?.did]);
+    checkPendingRequest();
+  }, [userEmail, currentUser?.name, currentUser?.did, checkPendingRequest]);
 
   const staffRecord = staff?.find((s: any) => s.email === userEmail) || {
     name: currentUser?.name || staffData.name,
@@ -301,8 +341,12 @@ function StaffProfile() {
                   <Badge variant="outline" className="bg-success/15 text-success border-success/30 text-[10px] font-bold">
                     🟢 Admin-Issued DID
                   </Badge>
-                ) : (
+                ) : pendingReq ? (
                   <Badge variant="outline" className="bg-amber-500/15 text-amber-500 border-amber-500/30 text-[10px] font-bold">
+                    🟡 Request Pending Admin Review
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="bg-destructive/15 text-destructive border-destructive/30 text-[10px] font-bold">
                     ⚠️ Not Issued
                   </Badge>
                 )}
@@ -320,12 +364,30 @@ function StaffProfile() {
                     <div className="text-xs text-muted-foreground font-sans">Official W3C DID</div>
                     <div className="mt-1 text-primary font-bold break-all">{adminDid}</div>
                   </div>
-                ) : (
+                ) : pendingReq ? (
                   <div className="space-y-1 font-sans">
-                    <div className="text-amber-500 font-semibold text-sm">No Official DID Issued</div>
+                    <div className="text-amber-500 font-semibold text-sm">
+                      🟡 DID Request Pending Admin Approval
+                    </div>
                     <p className="text-xs text-muted-foreground font-normal">
-                      An official W3C DID has not been issued for your staff account yet. Please contact your system administrator to issue a DID for <span className="font-semibold text-foreground">{userEmail}</span>.
+                      Your request to issue an official W3C DID was submitted on <span className="font-semibold text-foreground">{new Date(pendingReq.requestedAt).toLocaleDateString()}</span>. Hospital admin will review and issue your DID shortly.
                     </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3 font-sans">
+                    <div>
+                      <div className="text-destructive font-semibold text-sm">No Official DID Issued</div>
+                      <p className="text-xs text-muted-foreground font-normal mt-0.5">
+                        An official W3C DID has not been issued for your staff account yet. Click below to submit a request to the hospital administrator to issue your official DID.
+                      </p>
+                    </div>
+                    <Button
+                      onClick={handleRequestDIDClick}
+                      disabled={requestingDid}
+                      className="bg-primary text-primary-foreground text-xs font-bold px-4 py-2"
+                    >
+                      {requestingDid ? "Submitting Request..." : "Request Official DID from Admin"}
+                    </Button>
                   </div>
                 )}
               </div>

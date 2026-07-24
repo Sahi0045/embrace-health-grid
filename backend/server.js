@@ -618,6 +618,143 @@ app.patch("/api/did/:did/revoke", requireAuth, requireRole(["admin"]), (req, res
   res.json({ success: true, did: req.params.did, status: "revoked" });
 });
 
+// ─── DID Request Workflow ───────────────────────────────────────────────────
+app.get("/api/did/requests", requireAuth, (req, res) => {
+  const all = getAllState("did-requests");
+  let requests = all.map((e) => e.value);
+  if (req.user.role !== "admin") {
+    requests = requests.filter((r) => r.ownerEmail?.toLowerCase() === req.user.email?.toLowerCase());
+  }
+  res.json({ requests, total: requests.length });
+});
+
+app.post("/api/did/request", requireAuth, (req, res) => {
+  const ownerEmail = req.user.email;
+  const ownerName = req.body.ownerName || req.user.name || "Clinician";
+  const ownerType = req.body.ownerType || req.user.role || "doctor";
+  const department = req.body.department || "Clinical Services";
+
+  const existingDid = getAllState("did-registry").find(
+    (d) => d.value.ownerEmail?.toLowerCase() === ownerEmail.toLowerCase()
+  );
+  if (existingDid) {
+    return res.status(400).json({ error: "DID already issued for this account", did: existingDid.value.did });
+  }
+
+  const allReqs = getAllState("did-requests");
+  const existingReq = allReqs.find(
+    (r) => r.value.ownerEmail?.toLowerCase() === ownerEmail.toLowerCase() && r.value.status === "pending"
+  );
+  if (existingReq) {
+    return res.json({ success: true, message: "DID request is already pending admin approval", request: existingReq.value });
+  }
+
+  const reqId = `DID-REQ-${randomUUID().slice(0, 8)}`;
+  const txId = randomUUID();
+  const requestDoc = {
+    id: reqId,
+    ownerName,
+    ownerEmail,
+    ownerType,
+    department,
+    status: "pending",
+    requestedAt: new Date().toISOString(),
+  };
+
+  putState("did-requests", reqId, requestDoc, txId);
+  broadcast({ event: "did:request_created", data: requestDoc });
+
+  pushNotification({
+    type: "did_request",
+    title: "New DID Issuance Request",
+    message: `${ownerName} (${ownerEmail}) requested an official W3C DID issuance.`,
+    link: "/admin/did",
+  });
+
+  res.status(201).json({ success: true, request: requestDoc, txId });
+});
+
+app.post("/api/did/requests/:id/approve", requireAuth, requireRole(["admin"]), async (req, res) => {
+  const reqId = req.params.id;
+  const entry = getState("did-requests", reqId);
+  if (!entry) return res.status(404).json({ error: "DID request not found" });
+
+  const reqDoc = entry.value;
+  if (reqDoc.status === "approved") {
+    return res.status(400).json({ error: "Request already approved" });
+  }
+
+  const ownerEmail = reqDoc.ownerEmail;
+  const owner = reqDoc.ownerName;
+  const ownerType = reqDoc.ownerType || "doctor";
+  const assignedEmployeeId = ownerType !== "patient" ? `EMP-${Math.floor(1000 + Math.random() * 9000)}` : null;
+  const assignedMrn = ownerType === "patient" ? `MRN-${Math.floor(100000 + Math.random() * 900000)}` : null;
+
+  const did = `did:hosp:0x${simHash(owner + Date.now()).slice(0, 8)}`;
+  const txId = randomUUID();
+  const DID_RESOLVER_BASE = process.env.DID_RESOLVER_BASE || "https://did.embracehealth.in";
+
+  const didDoc = {
+    did,
+    publicKey: `MFkw${simHash(did).slice(0, 32).toUpperCase()}`,
+    controller: "did:hosp:consortium:authority",
+    owner,
+    ownerType,
+    status: "active",
+    credentials: [],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    serviceEndpoint: `${DID_RESOLVER_BASE}/resolve/${did}`,
+    ownerEmail,
+    mrn: assignedMrn,
+    employeeId: assignedEmployeeId,
+  };
+
+  putState("did-registry", did, didDoc, txId);
+
+  reqDoc.status = "approved";
+  reqDoc.issuedDid = did;
+  reqDoc.approvedAt = new Date().toISOString();
+  reqDoc.approvedBy = req.user.email;
+  putState("did-requests", reqId, reqDoc, randomUUID());
+
+  if (ownerEmail) {
+    const userEntry = getState("users", ownerEmail);
+    if (userEntry) {
+      userEntry.value.did = did;
+      if (ownerType === "patient") userEntry.value.mrn = assignedMrn;
+      else userEntry.value.employeeId = assignedEmployeeId;
+      putState("users", ownerEmail, userEntry.value, randomUUID());
+    }
+  }
+
+  broadcast({ event: "did:approved", data: { did, ownerEmail, reqId } });
+
+  pushNotification({
+    type: "did_approved",
+    title: "Official DID Issued!",
+    message: `Your official W3C DID (${did}) has been issued by the administrator.`,
+    link: "/staff/profile",
+  });
+
+  res.json({ success: true, did, doc: didDoc, txId });
+});
+
+app.post("/api/did/requests/:id/reject", requireAuth, requireRole(["admin"]), (req, res) => {
+  const reqId = req.params.id;
+  const entry = getState("did-requests", reqId);
+  if (!entry) return res.status(404).json({ error: "DID request not found" });
+
+  const reqDoc = entry.value;
+  reqDoc.status = "rejected";
+  reqDoc.rejectedAt = new Date().toISOString();
+  reqDoc.rejectedBy = req.user.email;
+  putState("did-requests", reqId, reqDoc, randomUUID());
+
+  broadcast({ event: "did:rejected", data: { reqId } });
+  res.json({ success: true, request: reqDoc });
+});
+
 app.patch("/api/patient/emergency-profile", requireAuth, (req, res) => {
   const { emergencyContact, bloodGroup, allergies, conditions, organDonor } = req.body;
   const email = req.user.email;

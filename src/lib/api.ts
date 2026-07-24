@@ -120,6 +120,25 @@ export const revokeDID = (did: string) =>
     },
   );
 
+export const requestDID = (data: { ownerName?: string; ownerType?: string; department?: string }) =>
+  apiFetch<{ success: boolean; request: any; message?: string }>(`/did/request`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+
+export const getDIDRequests = () =>
+  apiFetch<{ requests: any[]; total: number }>(`/did/requests`);
+
+export const approveDIDRequest = (requestId: string) =>
+  apiFetch<{ success: boolean; did: string; doc: any }>(`/did/requests/${encodeURIComponent(requestId)}/approve`, {
+    method: "POST",
+  });
+
+export const rejectDIDRequest = (requestId: string) =>
+  apiFetch<{ success: boolean; request: any }>(`/did/requests/${encodeURIComponent(requestId)}/reject`, {
+    method: "POST",
+  });
+
 // ─── Credentials ──────────────────────────────────────────────────────────────
 export const issueCredential = (
   did: string,

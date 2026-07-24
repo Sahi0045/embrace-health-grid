@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { PublicKey, Transaction, Connection } from "@solana/web3.js";
-import { API_BASE_URL } from "@/lib/api";
+import { API_BASE_URL, requestDID, getDIDRequests } from "@/lib/api";
 import { Buffer } from "buffer";
 import {
   Building2,
@@ -81,6 +81,24 @@ function StaffRooms() {
   const [onChainRoot, setOnChainRoot] = useState<string | null>(null);
   const [onChainTx, setOnChainTx] = useState<string | null>(null);
 
+  const [requestingDid, setRequestingDid] = useState(false);
+  const [pendingReq, setPendingReq] = useState<any>(null);
+
+  const checkPendingRequest = useCallback(async () => {
+    if (!sessionEmail) return;
+    try {
+      const res = await getDIDRequests();
+      if (res && res.requests) {
+        const match = res.requests.find(
+          (r: any) => r.ownerEmail?.toLowerCase() === sessionEmail.toLowerCase() && r.status === "pending"
+        );
+        setPendingReq(match || null);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [sessionEmail]);
+
   useEffect(() => {
     async function checkAdminIssuedDid() {
       try {
@@ -120,7 +138,29 @@ function StaffRooms() {
       }
     }
     checkAdminIssuedDid();
-  }, [sessionEmail, sessionName, rawSessionDid]);
+    checkPendingRequest();
+  }, [sessionEmail, sessionName, rawSessionDid, checkPendingRequest]);
+
+  const handleRequestDIDClick = async () => {
+    setRequestingDid(true);
+    try {
+      const res = await requestDID({
+        ownerName: sessionName,
+        ownerType: sessionRole,
+        department: sessionSpecialty,
+      });
+      if (res.success) {
+        toast.success("DID Request Submitted to Admin!", {
+          description: "Hospital administrator has been notified to issue your official W3C DID.",
+        });
+        checkPendingRequest();
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to submit DID request");
+    } finally {
+      setRequestingDid(false);
+    }
+  };
 
   const effectiveDid = adminIssuedDid || rawSessionDid;
 
@@ -293,25 +333,49 @@ function StaffRooms() {
                   <ShieldAlert className="h-8 w-8" />
                 </div>
               </div>
-              <h2 className="text-2xl font-bold text-foreground">Admin DID Authorization Required</h2>
+              <h2 className="text-2xl font-bold text-foreground">
+                {pendingReq ? "🟡 DID Request Pending Admin Approval" : "Admin DID Authorization Required"}
+              </h2>
               <p className="text-muted-foreground mt-2 max-w-lg mx-auto text-sm leading-relaxed">
-                This room check-in console is strictly allocated to staff members and doctors who have been issued an official W3C Decentralized Identifier (DID) by the hospital administrator.
+                {pendingReq
+                  ? "Your request for an official W3C DID has been submitted to the hospital administrator and is currently under review."
+                  : "This room check-in console is strictly allocated to staff members and doctors who have been issued an official W3C Decentralized Identifier (DID) by the hospital administrator."}
               </p>
               <div className="my-6 p-4 rounded-xl bg-muted/40 border border-border inline-block text-left text-xs space-y-1.5 font-mono">
                 <div>User: <span className="text-foreground font-bold">{sessionName}</span> ({sessionEmail})</div>
                 <div>Role: <span className="text-foreground font-bold uppercase">{sessionRole}</span></div>
-                <div>Admin DID Status: <span className="text-amber-500 font-bold">⚠️ NO ADMIN DID ALLOTTED</span></div>
+                <div>
+                  Admin DID Status:{" "}
+                  {pendingReq ? (
+                    <span className="text-amber-500 font-bold">🟡 REQUEST PENDING (Submitted {new Date(pendingReq.requestedAt).toLocaleDateString()})</span>
+                  ) : (
+                    <span className="text-destructive font-bold">⚠️ NO ADMIN DID ALLOTTED</span>
+                  )}
+                </div>
               </div>
               <p className="text-xs text-muted-foreground mb-6">
-                Please contact your system administrator to issue an official DID for your staff account. Once issued, your personal room check-in console will unlock automatically.
+                {pendingReq
+                  ? "Once your administrator approves the request, your official W3C DID will be issued and room check-in will unlock automatically."
+                  : "Click below to submit a request to the hospital administrator to issue an official W3C DID for your staff account."}
               </p>
               <div className="flex justify-center gap-4">
-                <Link
-                  to="/did-explorer"
-                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
-                >
-                  <ShieldCheck className="h-4 w-4" /> Explore Registered DIDs
-                </Link>
+                {!pendingReq ? (
+                  <Button
+                    onClick={handleRequestDIDClick}
+                    disabled={requestingDid}
+                    className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
+                  >
+                    <ShieldAlert className="h-4 w-4" />
+                    {requestingDid ? "Submitting Request..." : "Request Official DID from Admin"}
+                  </Button>
+                ) : (
+                  <Link
+                    to="/did-explorer"
+                    className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
+                  >
+                    <ShieldCheck className="h-4 w-4" /> Explore Registered DIDs
+                  </Link>
+                )}
               </div>
             </Card>
           </div>
