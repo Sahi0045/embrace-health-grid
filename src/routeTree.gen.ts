@@ -16,6 +16,7 @@ import { Route as AuditTimelineRouteImport } from './routes/audit-timeline'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StaffIndexRouteImport } from './routes/staff.index'
 import { Route as PatientIndexRouteImport } from './routes/patient.index'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as StaffVisitorsRouteImport } from './routes/staff.visitors'
 import { Route as StaffVerifyRouteImport } from './routes/staff.verify'
 import { Route as StaffTrackerRouteImport } from './routes/staff.tracker'
@@ -80,6 +81,11 @@ const StaffIndexRoute = StaffIndexRouteImport.update({
 const PatientIndexRoute = PatientIndexRouteImport.update({
   id: '/patient/',
   path: '/patient/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/admin/',
+  path: '/admin/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StaffVisitorsRoute = StaffVisitorsRouteImport.update({
@@ -269,6 +275,7 @@ export interface FileRoutesByFullPath {
   '/staff/tracker': typeof StaffTrackerRoute
   '/staff/verify': typeof StaffVerifyRoute
   '/staff/visitors': typeof StaffVisitorsRoute
+  '/admin/': typeof AdminIndexRoute
   '/patient/': typeof PatientIndexRoute
   '/staff/': typeof StaffIndexRoute
 }
@@ -308,6 +315,7 @@ export interface FileRoutesByTo {
   '/staff/tracker': typeof StaffTrackerRoute
   '/staff/verify': typeof StaffVerifyRoute
   '/staff/visitors': typeof StaffVisitorsRoute
+  '/admin': typeof AdminIndexRoute
   '/patient': typeof PatientIndexRoute
   '/staff': typeof StaffIndexRoute
 }
@@ -348,6 +356,7 @@ export interface FileRoutesById {
   '/staff/tracker': typeof StaffTrackerRoute
   '/staff/verify': typeof StaffVerifyRoute
   '/staff/visitors': typeof StaffVisitorsRoute
+  '/admin/': typeof AdminIndexRoute
   '/patient/': typeof PatientIndexRoute
   '/staff/': typeof StaffIndexRoute
 }
@@ -389,6 +398,7 @@ export interface FileRouteTypes {
     | '/staff/tracker'
     | '/staff/verify'
     | '/staff/visitors'
+    | '/admin/'
     | '/patient/'
     | '/staff/'
   fileRoutesByTo: FileRoutesByTo
@@ -428,6 +438,7 @@ export interface FileRouteTypes {
     | '/staff/tracker'
     | '/staff/verify'
     | '/staff/visitors'
+    | '/admin'
     | '/patient'
     | '/staff'
   id:
@@ -467,6 +478,7 @@ export interface FileRouteTypes {
     | '/staff/tracker'
     | '/staff/verify'
     | '/staff/visitors'
+    | '/admin/'
     | '/patient/'
     | '/staff/'
   fileRoutesById: FileRoutesById
@@ -507,6 +519,7 @@ export interface RootRouteChildren {
   StaffTrackerRoute: typeof StaffTrackerRoute
   StaffVerifyRoute: typeof StaffVerifyRoute
   StaffVisitorsRoute: typeof StaffVisitorsRoute
+  AdminIndexRoute: typeof AdminIndexRoute
   PatientIndexRoute: typeof PatientIndexRoute
   StaffIndexRoute: typeof StaffIndexRoute
 }
@@ -560,6 +573,13 @@ declare module '@tanstack/react-router' {
       path: '/patient'
       fullPath: '/patient/'
       preLoaderRoute: typeof PatientIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/admin'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/staff/visitors': {
@@ -811,6 +831,7 @@ const rootRouteChildren: RootRouteChildren = {
   StaffTrackerRoute: StaffTrackerRoute,
   StaffVerifyRoute: StaffVerifyRoute,
   StaffVisitorsRoute: StaffVisitorsRoute,
+  AdminIndexRoute: AdminIndexRoute,
   PatientIndexRoute: PatientIndexRoute,
   StaffIndexRoute: StaffIndexRoute,
 }
