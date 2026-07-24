@@ -2717,20 +2717,24 @@ app.post("/api/auth/refresh", requireClientAuth, (req, res) => {
  * The JTI of the access token is blocklisted so it can't be reused
  * even before its 2-hour expiry.
  */
-app.post("/api/auth/logout", requireAuth, (req, res) => {
-  const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
-
-  if (req.user?.jti && req.user?.exp) {
-    blockToken(req.user.jti, req.user.exp * 1000);
-  }
-
-  if (req.user?.email) {
-    revokeAllRefreshTokens(req.user.email);
+app.post("/api/auth/logout", (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    try {
+      const decoded = jwt.decode(authHeader.slice(7));
+      if (decoded && decoded.jti && decoded.exp) {
+        blockToken(decoded.jti, decoded.exp * 1000);
+      }
+      if (decoded && decoded.email) {
+        revokeAllRefreshTokens(decoded.email);
+      }
+    } catch {
+      /* ignore */
+    }
   }
 
   res.clearCookie("refreshToken", { path: "/api/auth" });
-
-  logger.info("user_logged_out", { email: req.user?.email });
+  res.json({ success: true, message: "Logged out successfully" });
 });
 
 /**

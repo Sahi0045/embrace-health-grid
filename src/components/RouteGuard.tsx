@@ -11,20 +11,18 @@ interface RouteGuardProps {
 
 export function RouteGuard({ requiredRole, children }: RouteGuardProps) {
   const navigate = useNavigate();
-  const [user, setUser] = useState<AuthUser | null | undefined>(undefined); // undefined = not yet checked
+  const [user, setUser] = useState<AuthUser | null | undefined>(undefined);
 
   useEffect(() => {
-    setUser(getCurrentUser());
-  }, []);
+    const u = getCurrentUser();
+    setUser(u);
+    if (u === null) {
+      navigate({ to: "/login" });
+    }
+  }, [navigate]);
 
-  // Still loading on client — render nothing to avoid flash
-  if (user === undefined) return null;
-
-  // Not logged in — redirect to login
-  if (user === null) {
-    navigate({ to: "/login" });
-    return null;
-  }
+  // Still loading or unauthenticated — render null
+  if (user === undefined || user === null) return null;
 
   // Logged in but wrong role
   if (!hasAccess(user.role, requiredRole)) {
