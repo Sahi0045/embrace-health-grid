@@ -23,7 +23,7 @@ import { getCurrentUser, setSession } from "@/lib/auth";
 import { linkWalletAddress, updateProfile, API_BASE_URL, requestDID, getDIDRequests } from "@/lib/api";
 import { useLiveStaff } from "@/hooks/use-api";
 import { toast } from "sonner";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
