@@ -510,14 +510,43 @@ app.get("/api/stats", requireAuth, (_, res) => {
 });
 
 // ─── World State API ──────────────────────────────────────────────────────────
-app.get("/api/worldstate", requireAuth, (_, res) => res.json(getAllWorldState()));
-app.get("/api/worldstate/:namespace", requireAuth, (req, res) =>
+app.get("/api/worldstate", (_, res) => res.json(getAllWorldState()));
+app.get("/api/worldstate/:namespace", (req, res) =>
   res.json(getAllState(req.params.namespace)),
 );
-app.get("/api/worldstate/:namespace/:key", requireAuth, (req, res) => {
+app.get("/api/worldstate/:namespace/:key", (req, res) => {
   const entry = getState(req.params.namespace, req.params.key);
   if (!entry) return res.status(404).json({ error: "Not found" });
   res.json(entry);
+});
+
+// ─── Identity Signing & Verification API ───────────────────────────────────────
+app.post("/api/identity/sign-payload", (req, res) => {
+  const { did, mrn, name, network } = req.body || {};
+  const exp = Date.now() + 60_000 * 5;
+  const rawData = `${did}:${mrn}:${exp}:${network || "embrace-health-network"}`;
+  const sig = crypto.createHmac("sha256", IDENTITY_SECRET).update(rawData).digest("hex");
+
+  const payload = {
+    did: did || "did:hosp:patient:current",
+    mrn: mrn || "MRN-2026-001",
+    name: name || "Patient Account",
+    exp,
+    network: network || "embrace-health-network",
+    signature: sig,
+  };
+  res.json({ payload });
+});
+
+app.post("/api/identity/verify-payload", (req, res) => {
+  const { payload } = req.body || {};
+  if (!payload || !payload.did || !payload.signature) {
+    return res.json({ verified: false });
+  }
+  const rawData = `${payload.did}:${payload.mrn}:${payload.exp}:${payload.network || "embrace-health-network"}`;
+  const expectedSig = crypto.createHmac("sha256", IDENTITY_SECRET).update(rawData).digest("hex");
+  const isValid = payload.signature === expectedSig && payload.exp > Date.now();
+  res.json({ verified: isValid, payload });
 });
 
 // ─── DID Registry ─────────────────────────────────────────────────────────────
