@@ -3185,15 +3185,59 @@ httpServer.listen(PORT, async () => {
     logger.warn("convex_bootstrap_failed", { error: err.message });
   }
 
-  // Check if any admin exists — if not, log a bootstrap hint
-  try {
-    const { getAllState } = await import("./world-state-db.js");
-    const allUsers = getAllState("users");
-    const adminExists = allUsers.some((u) => u.value?.role === "admin");
-    if (!adminExists) {
-      logger.warn("no_admin_found", {
-        message: "No admin account exists. Use POST /api/auth/setup to bootstrap the first admin.",
-      });
+    // Seed default demo accounts if not already present
+    const demoAccounts = [
+      {
+        email: "doctor@embracehealth.org",
+        name: "Dr. Sameer Khan",
+        role: "staff",
+        password: "Doctor123!",
+        department: "Cardiology",
+        did: "did:hosp:0x8f2c3a11",
+      },
+      {
+        email: "doctor@example.com",
+        name: "Dr. Ravi Menon",
+        role: "staff",
+        password: "Doctor123!",
+        department: "OPD",
+        did: "did:hosp:0xd10399aa",
+      },
+      {
+        email: "patient@example.com",
+        name: "John Doe",
+        role: "patient",
+        password: "Patient123!",
+        did: "did:hosp:0x9a8b7c6d",
+      },
+      {
+        email: "admin@embracehealth.org",
+        name: "System Administrator",
+        role: "admin",
+        password: "Admin123!456",
+        did: "did:hosp:0x11223344",
+      },
+    ];
+
+    for (const demo of demoAccounts) {
+      if (!getState("users", demo.email)) {
+        const hashedPassword = await bcrypt.hash(demo.password, 10);
+        putState(
+          "users",
+          demo.email,
+          {
+            name: demo.name,
+            email: demo.email,
+            password: hashedPassword,
+            role: demo.role,
+            department: demo.department || null,
+            did: demo.did || null,
+            createdAt: new Date().toISOString(),
+          },
+          randomUUID(),
+        );
+        logger.info("seeded_demo_user", { email: demo.email, role: demo.role });
+      }
     }
   } catch (err) {
     logger.error("admin_check_failed", { error: err.message });
