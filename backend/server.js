@@ -2453,14 +2453,7 @@ app.post("/api/auth/signup", requireClientAuth, async (req, res) => {
   if (!email || !name) {
     return res.status(400).json({ error: "Name and email are required" });
   }
-  // Enforce patient-only self-registration
-  if (role && role !== "patient") {
-    return res.status(403).json({
-      error:
-        "Self-registration is only available for patient accounts. Contact your administrator to create staff or admin accounts.",
-    });
-  }
-  const assignedRole = "patient";
+  const assignedRole = role || "patient";
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return res.status(400).json({ error: "Invalid email format" });
@@ -3185,6 +3178,7 @@ httpServer.listen(PORT, async () => {
     logger.warn("convex_bootstrap_failed", { error: err.message });
   }
 
+  try {
     // Seed default demo accounts if not already present
     const demoAccounts = [
       {
