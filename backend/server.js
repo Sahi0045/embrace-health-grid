@@ -687,8 +687,10 @@ const SEEDED_DOCTORS = [
 
 app.get("/api/doctors", (req, res) => {
   const allUsers = getAllState("users").map((e) => e.value);
+  const allDIDs = getAllState("did-registry").map((e) => e.value);
   const doctorLogs = getAllState("doctor-locations").map((e) => e.value);
   const locationMap = new Map();
+
   doctorLogs.sort((a, b) => (a.timestamp || "").localeCompare(b.timestamp || ""));
   doctorLogs.forEach((log) => {
     if (log.doctorDid) {
@@ -697,7 +699,15 @@ app.get("/api/doctors", (req, res) => {
   });
 
   const registeredDoctors = allUsers
-    .filter((u) => u && (u.role === "doctor" || u.role === "staff" || u.name?.startsWith("Dr.")))
+    .filter(
+      (u) =>
+        u &&
+        (u.role === "doctor" ||
+          u.role === "staff" ||
+          u.role === "clinician" ||
+          u.did ||
+          u.name?.startsWith("Dr."))
+    )
     .map((u) => {
       const email = u.email || "";
       const name = u.name?.startsWith("Dr.") ? u.name : `Dr. ${u.name || "Specialist"}`;
@@ -722,6 +732,35 @@ app.get("/api/doctors", (req, res) => {
         ],
       };
     });
+
+  // Also include all DIDs issued by admin for staff/doctors
+  allDIDs.forEach((doc: any, idx: number) => {
+    if (doc.ownerType === "staff" || doc.ownerType === "doctor" || doc.role === "doctor") {
+      const email = doc.ownerEmail || doc.owner || "";
+      const name = doc.name?.startsWith("Dr.") ? doc.name : `Dr. ${doc.name || doc.owner || "Specialist"}`;
+      const did = doc.did;
+      if (!registeredDoctors.some((d) => d.did === did || (email && d.email === email))) {
+        registeredDoctors.push({
+          id: `did_doc_${idx}`,
+          did,
+          name,
+          specialty: doc.specialty || doc.department || "Specialist",
+          department: doc.department || "OPD",
+          email,
+          phone: doc.phone || "+91 98765 00000",
+          role: "doctor",
+          hospital: "Embrace Health Grid · Main Hospital",
+          activeRoom: "None",
+          rating: 4.9,
+          experience: "12 Years",
+          availableDays: [
+            { day: "Mon", date: "2026-07-27", slots: ["09:00 AM", "11:00 AM"] },
+            { day: "Wed", date: "2026-07-29", slots: ["10:00 AM", "02:00 PM"] },
+          ],
+        });
+      }
+    }
+  });
 
   const combined = [...SEEDED_DOCTORS];
   registeredDoctors.forEach((rd) => {
