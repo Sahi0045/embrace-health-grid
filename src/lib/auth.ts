@@ -73,6 +73,15 @@ export interface SessionUser {
   walletAddress?: string | null;
   mrn?: string | null;
   employeeId?: string | null;
+  phone?: string | null;
+  age?: number | null;
+  gender?: string | null;
+  bloodGroup?: string | null;
+  allergies?: string[] | string | null;
+  address?: string | null;
+  emergencyContact?: string | null;
+  department?: string | null;
+  specialty?: string | null;
 }
 
 export function setSession(token: string, user: SessionUser): void;
@@ -112,25 +121,25 @@ export function setSession(
   localStorage.setItem("userEmail", user.email);
   localStorage.setItem("userName", user.name);
 
-  if (user.did) {
-    localStorage.setItem("userDID", user.did);
-  } else {
-    localStorage.removeItem("userDID");
-  }
-  if (user.walletAddress) {
-    localStorage.setItem("userWalletAddress", user.walletAddress);
-  } else {
-    localStorage.removeItem("userWalletAddress");
-  }
-  if (user.mrn) {
-    localStorage.setItem("userMRN", user.mrn);
-  } else {
-    localStorage.removeItem("userMRN");
-  }
-  if (user.employeeId) {
-    localStorage.setItem("userEmployeeId", user.employeeId);
-  } else {
-    localStorage.removeItem("userEmployeeId");
+  if (user.did) localStorage.setItem("userDID", user.did);
+  else localStorage.removeItem("userDID");
+
+  if (user.walletAddress) localStorage.setItem("userWalletAddress", user.walletAddress);
+  else localStorage.removeItem("userWalletAddress");
+
+  if (user.mrn) localStorage.setItem("userMRN", user.mrn);
+  else localStorage.removeItem("userMRN");
+
+  if (user.employeeId) localStorage.setItem("userEmployeeId", user.employeeId);
+  else localStorage.removeItem("userEmployeeId");
+
+  if (user.phone) localStorage.setItem("userPhone", user.phone);
+  if (user.age) localStorage.setItem("userAge", String(user.age));
+  if (user.gender) localStorage.setItem("userGender", user.gender);
+  if (user.bloodGroup) localStorage.setItem("userBloodGroup", user.bloodGroup);
+  if (user.allergies) {
+    const algStr = Array.isArray(user.allergies) ? user.allergies.join(", ") : String(user.allergies);
+    localStorage.setItem("userAllergies", algStr);
   }
 
   // Schedule automatic token refresh
@@ -221,8 +230,14 @@ export function getCurrentUser(): AuthUser | null {
   const walletAddress = localStorage.getItem("userWalletAddress") ?? sessionStorage.getItem("userWalletAddress") ?? undefined;
   const mrn = localStorage.getItem("userMRN") ?? sessionStorage.getItem("userMRN") ?? undefined;
   const employeeId = localStorage.getItem("userEmployeeId") ?? sessionStorage.getItem("userEmployeeId") ?? undefined;
+  const phone = localStorage.getItem("userPhone") ?? undefined;
+  const age = localStorage.getItem("userAge") ? parseInt(localStorage.getItem("userAge")!) : undefined;
+  const gender = localStorage.getItem("userGender") ?? undefined;
+  const bloodGroup = localStorage.getItem("userBloodGroup") ?? undefined;
+  const allergiesRaw = localStorage.getItem("userAllergies");
+  const allergies = allergiesRaw ? allergiesRaw.split(",").map((s) => s.trim()) : undefined;
 
-  return { email, role, name, did, walletAddress, mrn, employeeId };
+  return { email, role, name, did, walletAddress, mrn, employeeId, phone, age, gender, bloodGroup, allergies };
 }
 
 export function isAuthenticated(): boolean {

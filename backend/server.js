@@ -3025,12 +3025,37 @@ app.post("/api/auth/link-wallet", requireAuth, (req, res) => {
 });
 
 app.post("/api/auth/update-profile", requireAuth, (req, res) => {
-  const { name, phone, age, gender, bloodGroup, allergies, department, role, specializations } =
-    req.body;
+  const {
+    name,
+    phone,
+    age,
+    gender,
+    bloodGroup,
+    allergies,
+    address,
+    emergencyContact,
+    insuranceProvider,
+    department,
+    role,
+    specializations,
+  } = req.body;
   const email = req.user.email;
-  const userEntry = getState("users", email);
+  let userEntry = getState("users", email);
+
   if (!userEntry) {
-    return res.status(404).json({ error: "User not found" });
+    const userRole = req.user.role || "patient";
+    const userDid = req.user.did || `did:hosp:0x${simHash(email).slice(0, 8)}`;
+    const userObj = {
+      name: name || req.user.name || "User Account",
+      email,
+      role: userRole,
+      did: userDid,
+      mrn: userRole === "patient" ? "MRN-2026-8841" : null,
+      employeeId: userRole !== "patient" ? "EMP-1001" : null,
+      createdAt: new Date().toISOString(),
+    };
+    putState("users", email, userObj, randomUUID());
+    userEntry = getState("users", email);
   }
 
   // Update main user account properties
@@ -3039,6 +3064,9 @@ app.post("/api/auth/update-profile", requireAuth, (req, res) => {
   if (age) userEntry.value.age = parseInt(age) || userEntry.value.age;
   if (gender) userEntry.value.gender = gender;
   if (bloodGroup) userEntry.value.bloodGroup = bloodGroup;
+  if (address) userEntry.value.address = address;
+  if (emergencyContact) userEntry.value.emergencyContact = emergencyContact;
+  if (insuranceProvider) userEntry.value.insuranceProvider = insuranceProvider;
   if (allergies) {
     userEntry.value.allergies = Array.isArray(allergies)
       ? allergies
@@ -3060,6 +3088,9 @@ app.post("/api/auth/update-profile", requireAuth, (req, res) => {
   }
 
   putState("users", email, userEntry.value, randomUUID());
+  if (userEntry.value.did) {
+    putState("users", userEntry.value.did, userEntry.value, randomUUID());
+  }
 
   // Also sync with DID document if active
   if (userEntry.value.did) {
@@ -3070,9 +3101,9 @@ app.post("/api/auth/update-profile", requireAuth, (req, res) => {
       if (age) didEntry.value.age = parseInt(age) || didEntry.value.age;
       if (gender) didEntry.value.gender = gender;
       if (bloodGroup) didEntry.value.bloodGroup = bloodGroup;
-      if (allergies) {
-        didEntry.value.allergies = userEntry.value.allergies;
-      }
+      if (allergies) didEntry.value.allergies = userEntry.value.allergies;
+      if (address) didEntry.value.address = address;
+      if (emergencyContact) didEntry.value.emergencyContact = emergencyContact;
       if (department) didEntry.value.department = department;
       if (specializations) didEntry.value.specializations = userEntry.value.specializations;
 
@@ -3080,6 +3111,8 @@ app.post("/api/auth/update-profile", requireAuth, (req, res) => {
       broadcast({ event: "did:updated", data: didEntry.value });
     }
   }
+
+  broadcast({ event: "user:updated", data: userEntry.value });
 
   res.json({
     success: true,
@@ -3096,6 +3129,9 @@ app.post("/api/auth/update-profile", requireAuth, (req, res) => {
       gender: userEntry.value.gender || null,
       bloodGroup: userEntry.value.bloodGroup || null,
       allergies: userEntry.value.allergies || [],
+      address: userEntry.value.address || null,
+      emergencyContact: userEntry.value.emergencyContact || null,
+      insuranceProvider: userEntry.value.insuranceProvider || null,
       department: userEntry.value.department || null,
       specializations: userEntry.value.specializations || [],
     },
