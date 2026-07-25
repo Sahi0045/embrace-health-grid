@@ -2460,14 +2460,11 @@ app.get("/api/surgeries", requireAuth, hipaaAuditPHIAccess("Surgery"), (_, res) 
 });
 
 app.post("/api/appointments", requireAuth, hipaaAuditPHIAccess("Appointment"), (req, res) => {
-  const { patientDid, patientName, doctorDid, doctorName, slot, mode, specialty, consentGranted } =
+  const { patientDid: bodyDid, patientName: bodyName, doctorDid, doctorName, slot, mode, specialty, consentGranted } =
     req.body;
 
-  if (req.user.role === "patient" && req.user.did !== patientDid) {
-    return res
-      .status(403)
-      .json({ error: "Access Denied: Cannot book appointments for another patient" });
-  }
+  const patientDid = bodyDid || req.user.did || `did:hosp:0x${simHash(req.user.email || "patient").slice(0, 8)}`;
+  const patientName = bodyName || req.user.name || "Patient Account";
 
   const apptId = `appt_${randomUUID().slice(0, 8)}`;
   const txId = randomUUID();
