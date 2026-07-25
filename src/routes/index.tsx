@@ -122,7 +122,7 @@ const featureModules = [
   { icon: Activity, label: "Admin Command", color: "text-chart-4 bg-chart-4/10", portal: "Staff" },
 ];
 
-export default function Home() {
+function Home() {
   return (
     <div className="mx-auto max-w-6xl px-6 py-12 space-y-16">
       {/* Hero */}

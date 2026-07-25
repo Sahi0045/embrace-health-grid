@@ -30,6 +30,7 @@ import { Route as StaffPatientsRouteImport } from './routes/staff.patients'
 import { Route as StaffLabsRouteImport } from './routes/staff.labs'
 import { Route as StaffEmergencyRouteImport } from './routes/staff.emergency'
 import { Route as StaffCommandRouteImport } from './routes/staff.command'
+import { Route as StaffCheckinRouteImport } from './routes/staff.checkin'
 import { Route as StaffAttendanceRouteImport } from './routes/staff.attendance'
 import { Route as PatientZkproofRouteImport } from './routes/patient.zkproof'
 import { Route as PatientWalletRouteImport } from './routes/patient.wallet'
@@ -153,6 +154,11 @@ const StaffCommandRoute = StaffCommandRouteImport.update({
   path: '/staff/command',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StaffCheckinRoute = StaffCheckinRouteImport.update({
+  id: '/staff/checkin',
+  path: '/staff/checkin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StaffAttendanceRoute = StaffAttendanceRouteImport.update({
   id: '/staff/attendance',
   path: '/staff/attendance',
@@ -262,6 +268,7 @@ export interface FileRoutesByFullPath {
   '/patient/wallet': typeof PatientWalletRoute
   '/patient/zkproof': typeof PatientZkproofRoute
   '/staff/attendance': typeof StaffAttendanceRoute
+  '/staff/checkin': typeof StaffCheckinRoute
   '/staff/command': typeof StaffCommandRoute
   '/staff/emergency': typeof StaffEmergencyRoute
   '/staff/labs': typeof StaffLabsRoute
@@ -302,6 +309,7 @@ export interface FileRoutesByTo {
   '/patient/wallet': typeof PatientWalletRoute
   '/patient/zkproof': typeof PatientZkproofRoute
   '/staff/attendance': typeof StaffAttendanceRoute
+  '/staff/checkin': typeof StaffCheckinRoute
   '/staff/command': typeof StaffCommandRoute
   '/staff/emergency': typeof StaffEmergencyRoute
   '/staff/labs': typeof StaffLabsRoute
@@ -343,6 +351,7 @@ export interface FileRoutesById {
   '/patient/wallet': typeof PatientWalletRoute
   '/patient/zkproof': typeof PatientZkproofRoute
   '/staff/attendance': typeof StaffAttendanceRoute
+  '/staff/checkin': typeof StaffCheckinRoute
   '/staff/command': typeof StaffCommandRoute
   '/staff/emergency': typeof StaffEmergencyRoute
   '/staff/labs': typeof StaffLabsRoute
@@ -385,6 +394,7 @@ export interface FileRouteTypes {
     | '/patient/wallet'
     | '/patient/zkproof'
     | '/staff/attendance'
+    | '/staff/checkin'
     | '/staff/command'
     | '/staff/emergency'
     | '/staff/labs'
@@ -425,6 +435,7 @@ export interface FileRouteTypes {
     | '/patient/wallet'
     | '/patient/zkproof'
     | '/staff/attendance'
+    | '/staff/checkin'
     | '/staff/command'
     | '/staff/emergency'
     | '/staff/labs'
@@ -465,6 +476,7 @@ export interface FileRouteTypes {
     | '/patient/wallet'
     | '/patient/zkproof'
     | '/staff/attendance'
+    | '/staff/checkin'
     | '/staff/command'
     | '/staff/emergency'
     | '/staff/labs'
@@ -506,6 +518,7 @@ export interface RootRouteChildren {
   PatientWalletRoute: typeof PatientWalletRoute
   PatientZkproofRoute: typeof PatientZkproofRoute
   StaffAttendanceRoute: typeof StaffAttendanceRoute
+  StaffCheckinRoute: typeof StaffCheckinRoute
   StaffCommandRoute: typeof StaffCommandRoute
   StaffEmergencyRoute: typeof StaffEmergencyRoute
   StaffLabsRoute: typeof StaffLabsRoute
@@ -673,6 +686,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StaffCommandRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/staff/checkin': {
+      id: '/staff/checkin'
+      path: '/staff/checkin'
+      fullPath: '/staff/checkin'
+      preLoaderRoute: typeof StaffCheckinRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/staff/attendance': {
       id: '/staff/attendance'
       path: '/staff/attendance'
@@ -818,6 +838,7 @@ const rootRouteChildren: RootRouteChildren = {
   PatientWalletRoute: PatientWalletRoute,
   PatientZkproofRoute: PatientZkproofRoute,
   StaffAttendanceRoute: StaffAttendanceRoute,
+  StaffCheckinRoute: StaffCheckinRoute,
   StaffCommandRoute: StaffCommandRoute,
   StaffEmergencyRoute: StaffEmergencyRoute,
   StaffLabsRoute: StaffLabsRoute,

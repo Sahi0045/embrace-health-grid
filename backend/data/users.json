@@ -82,11 +82,11 @@
   },
   "doctor@example.com": {
     "key": "doctor@example.com",
-    "value": "__phi_enc__:{\"v\":1,\"iv\":\"Y-cmAPVjw0w_Rh02\",\"tag\":\"9FrgU1F1AWO4nwulFP822w\",\"ct\":\"r3DkLNS6wO6VrpklkdRiF84cOTsW5X8k4bx03m06LJcglPkWCoabtlvjeyM98NpI7-McbXLGs6dN6nQdS_nmYZtPumcFXQ9LpgYYE24JAiD_iFX4--_pBkZYTDzPYYIE-ABbqW0SawQERIEoDdDRjolgcqw32QkKtECgGcHcsxVKbqZsx2HNX1NSSE4qH-Im2fNFtVgWFeIa3Otf-_6nNAG0bcBESCUE89XTyvvUoUn4YNsnG353pD5ovFl53QPae04bVEb-McX7bOBUIOU0ZCGy\"}",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"Grs9ZjgmJTIMCNtK\",\"tag\":\"QYKwuWx-ok1lJ_-ba4EPRg\",\"ct\":\"eorJGzdMo3vohB9PJrQ_Q_ey30z8ghdAFyELMFDfRyREjL6wEga45krCe9pRwxBai-L1DUl9tLkKYo48BzCvPhW4G_4ABNeXuc3VhpZ4X5OZ0uV-WH2zFruj0QkudIG2t8LknlR_2yXaAkDP0MRnonVUGwcvF0WJ1jQ750a1LjZfDMZevwNAm7piNilJJHloa2KvpSpLPP2imyle1E5bDS3EVS8PPmciaAvwnc-wOrPUwTo5v0zcmzBUcO-ODIykgxSQnYIzypF_ZzBPt_HnBKWLlL_-lgUrt2U4u6GVDB8EfUKsIBgs-aQ44AMh-tTQqztimeiX_idUKOqkoPMipJvcl-vkUsgODBOlgbrmuCfOkN6GUyP1NTDYi-0X8Vu4jho8-tpe3S6IbS4OzpqX0I2x_6LyY8oxltZbiPd8D9hWJB4MzQysfFveAOejhfD5g2F84_8cno-CwKPpBIvgf2y-95aOaGODlkQ7_I5KCkDlRXX0EAlx6w4haE-wSMQUKVjfI3IH7zbDQmsImDQwwpd18ahDlNi0mAkUWoAH76M0S2z93k-QUBVbSUd74QMJuQZWMS919gwyNLsEvDF2UQ\"}",
     "namespace": "users",
-    "version": "genesis:1",
-    "updatedAt": "2026-06-25T05:00:00.000Z",
-    "txId": "genesis",
+    "version": "005b4e46-e960-418b-8fe1-53cfedfdd762:1",
+    "updatedAt": "2026-07-25T18:34:31.017Z",
+    "txId": "005b4e46-e960-418b-8fe1-53cfedfdd762",
     "docType": "users"
   },
   "nurse@example.com": {
@@ -100,11 +100,11 @@
   },
   "soulnani2441@gmail.com": {
     "key": "soulnani2441@gmail.com",
-    "value": "__phi_enc__:{\"v\":1,\"iv\":\"htgLh10CjUueew4M\",\"tag\":\"giSWL65pxd0BNg7ZEEhuRw\",\"ct\":\"bqwWdcH06lkn39t_xhib88zDdoa4X21p7znA97ee7Y2ZVtfeEUFVkGKqW9Fw-fhUv2v_NugoM2hgAJcCvaZVQU_t-EpQhbeBvAKt_6J04OJi8A5zYpiKqe-dzxhS-vbWNzr9uJrKOIANrfHTGcx0TWBO1bR6fH615BEkciyQNfftY5lIG6gONf5_fmAiOj-5SFKMpkRj_YEZgLzh8WbEqJwNUw2euY6Bj-vq1z1wkEMMVY8Vbm0popFq2Go6a6Gm___1WJGHzzVxpZXVqxtkBbNLk0V3-re5d4bSUcmX0QjQU9zz0Dv9GJPa4dDfVcEkeCa_iWAoQp5jK8LDr8U-ioGMoxAbgtTDyowmpAIS2QqDWZZ9S7aLatldKx4iqBCaLA72-do8AsbCkQTdCD_xKnoHIFo2NnACQTcJxcNmQ8BpJUQ8BCIwM3OWShUp2a465SvVDIy156qmT-TCaT6VhJA6--Y\"}",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"Kzl0JSG8AUXzAOBZ\",\"tag\":\"tdqrjeuzKyPqndUeCoCJyQ\",\"ct\":\"--IX2a13hJy9eRs8aY3m6DpF9IbYuzso1Op_TCSFy9W60QNgoRcFgimIiiWJ_-PW03LYfBDwTzCe90apwZhQqOwjePr9v-D6iUmDkx87lbLnQCK-VIBtc5KNbh8uNUJjXXAMXG0QngNs3J8savDTibuborvsN5_-_Ep3i8Dfd_19fw_h2u0ulzXFe266F5wIk1i3eWI0S_eEqJ_wlbxLorE3N6RaW92u2kn63d3YbmzZLriQNqlQRNByV8DoP7iBXNLWP612bimBcyJKkit69hLOW-p1-LzMWwP1VsjxqKo7sIS31c3iD9XX1-g2_KoGPXgsQbr-rtMaTIe1nab1okkuczkrJq3aExyVJ4IhtGsLhsqJ_y6TGgKoi-DguMqGUQOdq3KPZX1qkHK-I7KS-yGJFQAdxKWvgafLJ_WRu5xDFiX08CszZwCHwEIcqfZTObcs5ffhRKfCtrLU2Ikkz3dq_aOKCgCMoS_zPzRDMjX8oNzJyId2RzvRQGbn0tYRz30AR6cywvCw89RuTvddiwhAwRSyTnYc4h_UtVBBJ1ttXFgqhXwBF2jSoGQbLIxNjrEsEtBSJ7ZQ2VBOMMZ1RaPJw2ubtJpraChmdGumqld1VssVNyDgrmkgdtVuN-71nYK-QFSN2G9frVEXWDe9ucXkbymz357zOViuH2rNLL-ygE8XIEJ_9zOM8dpwR_4bEHIBntV_3ec-LsMDY8nB\"}",
     "namespace": "users",
-    "version": "c9a19c8d-18e0-488c-808d-788f6c9daf3f:1",
-    "updatedAt": "2026-07-01T17:11:49.048Z",
-    "txId": "c9a19c8d-18e0-488c-808d-788f6c9daf3f",
+    "version": "26ab9f67-3b3c-4cc6-b959-9b8e4b3b7e68:1",
+    "updatedAt": "2026-07-25T09:14:31.551Z",
+    "txId": "26ab9f67-3b3c-4cc6-b959-9b8e4b3b7e68",
     "docType": "users"
   },
   "soulnani241@gmail.com": {
@@ -1104,6 +1104,141 @@
     "version": "genesis:1",
     "updatedAt": "2026-07-21T11:00:04.266Z",
     "txId": "genesis",
+    "docType": "users"
+  },
+  "doctor@embracehealth.org": {
+    "key": "doctor@embracehealth.org",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"BslNuXK6k4q9onha\",\"tag\":\"MtyVgLeZfseLhhcONRB5Gg\",\"ct\":\"ju7Ii88zIzBY-q0qoAUTU8s17fjTpQSdW7q44ppj250NfXOyYG6heEHNQCPyrvb08jLWcnspK-cnCwDxmfZ-CxRcJlIEPqBMOd-599FX0-90FxHBrPvBUcOk2tjwlHicB-q3Tpms8m6DUJSyHUh5R6SSDxteywW_Q8JKeYz76k_kdzEYf7w73xPjzuZYn5xqyW4_XePiF8_xFS9O8bgF9KVO5wFsIeBwUuZcnPrsxBq_WbxNLJ478JNc6EWf1S338krW7_5rnmMq2EtSS97CRelv7OsofRJer8kTQ08OPFGpo60ySHlZ4pUjWZ4FZLh3b1g-uur5O48R-E-LRw8isHt3-crkGUlc3VkM1_7LfjFu6lF_W8Cniilk9QswlHuz4h_l473Jo7l50tUdRj7vgqLy3_hfdkOEBGf-KHJZuONUzR_eqJh_hWGmPiOD518oSyywurVsCPnvL2gMeG2QyHEaSfUyCtOc3nxRBWQKx1euVAo_J7WdcWMWMgkPJvnwyyUhhsbCevJGFUivPxvx-UP4i4PmMDbJ9vLtSvr6s9fHuPaukvuEoIA6IxFKcFybqdCC78Mxrc7MTb74EeBsAYHxmDV22rTH-5j_H3mGSinXqWuFuiQaN34LoP92\"}",
+    "namespace": "users",
+    "version": "50b1d162-7956-438d-9a90-fe81d44c08df:1",
+    "updatedAt": "2026-07-25T18:34:30.928Z",
+    "txId": "50b1d162-7956-438d-9a90-fe81d44c08df",
+    "docType": "users"
+  },
+  "patient@example.com": {
+    "key": "patient@example.com",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"I5p4LNvcHK4P4mBt\",\"tag\":\"u2izXpaF7CazbTy3Tnixug\",\"ct\":\"-J9Iie535nmKPZ2juIPkMIoiskiIqIiFPzi_11n38KCkU1nyhNVuL5D0MDpMlcINPYk4gA56zapOTHXvdd1UbzDxosfggXcI1FmcMantn4Vz-4uY7QwgC99oLUU8aTF0_WBBs-ekcAYmyUZld9FrKD39BBRWtjdD_xuupIHYDaNOVhzWoRB2QyxlndSbYJ6e45EGDPjHnJSWgWSq-kAAsen9TPA9D5cNv1si1OfPX5EKtQ9V0F6ywYYybtWp5_sGHH3Yi0B8w8eCR4wFikMlth9_AmfFYtN1TxTpcYZS0cSLR10wupSZGOt-t6uNPcDYVCKTaOsiAPRp1N3WtpuW2lvNHBK2DZcJDlhmEWkBiN3nTybW8UA71I_s6I8aNNbAV5F26AZiqYa6EuSP77FguaPZcsBpboc-F19P11KWH4Z7ON6L27FwaEBKCEA1PtsM-74jhhgFFM1AbF3cH0AXZw-LBRG3KT6_PYeU47HR2mvVlz579xt9BQeD3YDU\"}",
+    "namespace": "users",
+    "version": "54287a05-3aae-42ae-bcc0-ed90432f5ced:1",
+    "updatedAt": "2026-07-25T18:34:31.178Z",
+    "txId": "54287a05-3aae-42ae-bcc0-ed90432f5ced",
+    "docType": "users"
+  },
+  "admin@embracehealth.org": {
+    "key": "admin@embracehealth.org",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"-5121yqqmf48RpBH\",\"tag\":\"ml68i7NtOgq17TX6BNiS1w\",\"ct\":\"e16IUfLcKXsyLNTlkkPrLW20Xfl4JWnuGgrUtW3EyHtNW3m16tMQgUOP6uXJcKvilPzVmJwvqvqSAwJPQjO-z7G6GekoPlxAg5o6LBMwfsDVb3kOc2-hEVdp0AgPkhoo423CTWuioGvTjXE6Z0Kyq3VcCNADMN_ym067XvENdLyV0-tdF8fdRFeoovbM8EQHJRotHSv1nvJLHFZwZ3jTm3cz22QAIf1rJ8OWhiLOQu2efU24UPynFib92A0zql39j4VAqbU0Oyso4RE9GIQvsY6RMQs56MZyDaVnduGNDn0PvLPrXSOBJlVroFlPu9la6nnue1XyRmHFgKgQG8qdQv1J7tzzEdVXR631fMKkYFgYQdnKB2WgoPMjKKVCHrU61n6ecssiCimTjnJPbk_wdRofaKwcOswuxwzrXqDfsosbj3QZigvZJ95gttXaNYRNuSYXoITDcne1ezDMgjBNUqc9LUVSH3Axu6SsEdaQbAqIWzh856ZF7MZLP70Pqty4cfqyNE3Hta9aNapHZc-gtG8rZuWr9bkQB4xwuvxIdadJ-ERXxLAIDbQrap34XYjZeo_NJvZPZnoAomXG832iVaiPONqsu9Ii49T_zB8ckMrxePaPdPo\"}",
+    "namespace": "users",
+    "version": "10b24148-e348-4406-ab03-cc630ea77447:1",
+    "updatedAt": "2026-07-25T18:34:31.339Z",
+    "txId": "10b24148-e348-4406-ab03-cc630ea77447",
+    "docType": "users"
+  },
+  "drtestsignup@example.com": {
+    "key": "drtestsignup@example.com",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"GjfRvkfant4U5rg4\",\"tag\":\"YLNoRh8YOFaCUUS-Fb3rIg\",\"ct\":\"PtacjCTwxqLDljfq4nfaLOIDWdYabwUZ9IVZ4It1S56YMS2yQWrAHbCmWaha7oP95QaGFxTsGyaqP23iQWc2Hbwu3uisLlOJoV00tVoywSsSVrjDMqHjUNNTSksgB269ILbRXuCwsOvwhuluwWHr_SzgfOkZNwINtvNLlOQwts0WJJIY1e2Bs8vy2TMNcl_zJajX9zjscfsQ1drcwnz0PnGUfDA2tC5nxABc3vUz5cJzw9IA6DfjaLin2W2g8A2yOMv-ZMIT-mw\"}",
+    "namespace": "users",
+    "version": "f2580071-f97b-41d3-9b3a-20523af9b45d:1",
+    "updatedAt": "2026-07-24T16:02:33.422Z",
+    "txId": "f2580071-f97b-41d3-9b3a-20523af9b45d",
+    "docType": "users"
+  },
+  "did:hosp:0x4ba0999d": {
+    "key": "did:hosp:0x4ba0999d",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"cPLLgT0p-vTRGSKz\",\"tag\":\"R9ZPNedPWKdVq0Pw-NndJw\",\"ct\":\"u6K2OL-ULsimcvER8dZg7b29rm2qV_XYcKdY0nDul9cYzo9-udvMm5GcTKkPqoG1pfGu4ZZfKTh7xbaAMWnNjK-5vHF9IIwwkI8MuKxskiy7zsVaAFA85OOGuyBCgmozg70dZi8tRCu6voHqtaLnTE0pI7s-FJ2j-jjVjps16OWnk9xRe-iw6n2-c7r2ezSLxwpG26uiwOdWqc1gPdbg1FEku4hBSitVR4LIs72n7HzeBq0mQKKyZJIXOWmrzzuZchX13HGGEAho8FANltYQupX0yoPM84nIYFplvo4RUeMFoz7h3nPe_meVtjmqyrbfaUcxQIuT7fkaWhYolt9MgQFGIiLVgU1ZJR6Vm129fmYVH-_rAZQjGZnYtNcqoCx24_ky2WSt1vcaeoUaNkoikFV-EgOxhsCaP23lHKMeKqRdrKij6KW8fuifQW7Sc3ePn6N61a_Fad5Ywzeq4II4lqS-c9pDXw43eyCUDqd3rxbnv_CEzizGYHRJylBMY2hQVxqI1ClX_QyTPCC2MrzF5NjwbTMXS9WHJTEYwgFO7jenfrOxFchNfun7jpwgfNpGiNa9Fxg1jMBbq3ATweCG56pKB0W8dI3B6boDp1qdJ2Lhi7L3QwSQLgTf1XcR-W6yX6CUdoGKNMEwaFCNq2nZc6vfr9VCv0Z7ikLt4i3yqA8kC_3IHGwYfNHNvnZ7LSQM1CtpnYlBFTJHqeQBTjpZ\"}",
+    "namespace": "users",
+    "version": "285f613a-ad63-481d-b969-9b753485fe34:1",
+    "updatedAt": "2026-07-25T09:14:31.552Z",
+    "txId": "285f613a-ad63-481d-b969-9b753485fe34",
+    "docType": "users"
+  },
+  "doctor_1784973714536@embracehealth.org": {
+    "key": "doctor_1784973714536@embracehealth.org",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"5rljZrI9OjMyRiMm\",\"tag\":\"EdZQXdUQxUfqBDOcApgunQ\",\"ct\":\"5xgWqYKJAwHztZeZ4YRDI73_9PLu2xWAFkQ9l_ChlUSy_1xMzJuB4w3M-fm5HRqene00_QbE5ISeBacBqRVsaB0B2oKD-YYUBhCiVItRl5ALM3nkPs6GUUn-T5N-VkFY80XpqV0JW_mklCxWAIONX60YQbupajIpCx6xvJZJIUyEH--alMoGupm6mP8WsjZjMU1kjzaJPv-39mVPCB0Byl4oCeHcwmHuMMCNV2VsIcrzWNViP9HYnOlpUJ6lN8iMYZzIHDHTEKAZ-d9T25dFYhFsZJ5ykMbf_molnX_MeVD_hdp3m3zgvh1xxTBtjhjmQZfVsDUvVoQTdBd0rPxGEOqE1YFAmbKReY39gPG8yC4EVOXXKH8Raxo37HTbNaZ81vGNkTKdpyBzc57Itc8\"}",
+    "namespace": "users",
+    "version": "ff1a951e-8df7-4934-87be-bc984005c180:1",
+    "updatedAt": "2026-07-25T10:01:54.536Z",
+    "txId": "ff1a951e-8df7-4934-87be-bc984005c180",
+    "docType": "users"
+  },
+  "did:hosp:0xdoctor": {
+    "key": "did:hosp:0xdoctor",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"_sahRPX2hnJjLejh\",\"tag\":\"i3CtfMu_M1P_Gp0LhnMFAA\",\"ct\":\"mqCPwtlHU_ZD4RUD4oFGJZV68T5V3DRk1ZH--r0QLvP742VxnHZOhyUsqLmSXLSvtA-SamL6eGfIoomn_1Ktg1ZniuxwQzHqeq5JqmincM5MqhzaP4z5o636ohMEtDczGyhpFE1CBjYawVyN-gvYfqn-EZBhJMFk6IHOWmKF9oypNjZXWg8w8jCV38WkkKnwpGT2tCy9XFTmd163m5nY9TyFE63Ncoaqr3yP6ToTLe_H7t0Bt5a_5aMi0KxDVQyNMSnwKd47k7X7GNPQmdZyfKoDZYSIg7d6rKD2dJUDYxmWKBt8cUoNUsbUczO8sxqd57ld6bEVAKQErmas2dIxSNwHXKA8nyJRFbfbJ5CaLrngarYPhi6DtGvKzTSqS6tbnBDBy8sG_fCqarOAD4A\"}",
+    "namespace": "users",
+    "version": "da0ba5fb-09a5-4fcc-a0e1-3f841a769280:1",
+    "updatedAt": "2026-07-25T10:01:54.536Z",
+    "txId": "da0ba5fb-09a5-4fcc-a0e1-3f841a769280",
+    "docType": "users"
+  },
+  "did:hosp:0x8f2c3a11": {
+    "key": "did:hosp:0x8f2c3a11",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"NBOzTGRaIuZseeXF\",\"tag\":\"FdDZiCGiY-RRIMWvEHZEzw\",\"ct\":\"V4A80cv_qGgqKaQlcjQlF76_1-L_cBrvw5BgVVhauwUMF79hp1ZCDIcLTmAcvrU5D1mSe1m1nemhLL0XPHHBrJUwMbjHfjuKx2XHPIwyCbmDS29OMKYDEsw9dSNWq2C2SWVu5MqXjNgzOcI4UIz-h2K_srP2VfXMf_u73V-zUvMwTywGENFEbQM2sYTM_lmNhGfLjucaGmNdcSKELSddFyNMT9kkTGQxHDYIyfbcrRkDwa0xqEcMzdfVlMK0mMGmQt7l_ikVlpLDhuP0JpG5u85K5a8WHN4phwc3VxSDBnF-Gq8-481sZ6JgIxUES6RW1jluONdhkqCMea_MXqifyYkoDdFyaxX0Av9eTgUChzzRUX4OwfiyK-yGOhLzQEwaD57TntOONMIjZ3pm4wilVZFAo1h_a7iXN3lNDQ1UTXhYVZ9rjFWb0UblSu8de3jdEkzqdHCkivpdd1NqTpRN6bvtDr3uqLS0kVTN85-vDbe-53grHPSLG57FuF8lgmrX8AXkYxpc5UTIoufM0YR-5EElw-1tD_hNiQhQOziXcLRfguv8k6WyrCaqwdPCcuheZ_wADyyjh1Y7wGrDHtIuetxWJ9RwGYgD-fWCH4sckp0gtGFfzoRpJQQre2kn\"}",
+    "namespace": "users",
+    "version": "74921121-7c76-4f5c-9732-d22ae05f1410:1",
+    "updatedAt": "2026-07-25T18:34:30.928Z",
+    "txId": "74921121-7c76-4f5c-9732-d22ae05f1410",
+    "docType": "users"
+  },
+  "did:hosp:0xd10399aa": {
+    "key": "did:hosp:0xd10399aa",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"v0HQ-d5yGrGweBr7\",\"tag\":\"rcb_eyBQxb171ILiUbKtdg\",\"ct\":\"R-ohQ2FXHtdGvTPjqCI1faLn0WNOPgIlRxdOehTUixr5W4pgfN-NQ4hLlbUk9SIuO91njnYpnKnPw1Um_Y-rnrX4it68HOb8IM6_E-P172GQclmlxnVBTPgJNW5wuk6CUhFx5Uz4wReGfmYweHvR9-7fDKWUCdeC93hrCgw-lB3tChfwb8kic7u2j3nQLOjMwRTxDFs0gnwfQ15KBfnB3ie7AkGkHH-OS0pJ5SlEMPUbcE4PSnYpRPwYzFhnydL0IGkKyjgk0OmTWmgPsM91CqWg-OVpN0BVUGhW1vCOU6OnZXJVkUt9y9D0MTel8WvLkEg75jbIqwAH8eMGGMoNUdavmWGmhD03MlnDAU2a_eGYzuDn61bFyZ1zk12KBv0p4Rw-xUO8pC5bs8E3aeQbreqrS7vyz6sTaMC1HdYp617wgNiNc2i3AzcRUzpMBbUZN0mkIIW-Fj0xfvSRj6hNH44Hmwfd-QdcDhYSZBOdzqzUO7Yqxv_SXJwmiFk9uyUWarUYEVrGm425_A9YnMgoAAOTGCpTuSuMWXbPD4WdGbOGvwugPUsbSeFReLnBLLpdjT9FvnJgKsVbif3Yhw8Rbg\"}",
+    "namespace": "users",
+    "version": "cdf36dbe-d54c-4d9a-ba73-cd04ec1cfca2:1",
+    "updatedAt": "2026-07-25T18:34:31.017Z",
+    "txId": "cdf36dbe-d54c-4d9a-ba73-cd04ec1cfca2",
+    "docType": "users"
+  },
+  "doctor@staff.com": {
+    "key": "doctor@staff.com",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"i6s5pIbDyIjxayS0\",\"tag\":\"-QodKgSVsj25GheseTneYQ\",\"ct\":\"uwmqhNorgYZxI4wB8jzdbSInfGwKcOxKISN1v6AOS9QYu24kdAt1QB9L-7t-91OiMTMAmBUDadeZBq1jS0q2XEgu5dm_rMsGlhquNS7MHKooAEtaN0Hv_xTtvvWCaO951QcC4OxQKm02kVjNJhvK6nTOmFKYJH2sLK9641-zdvOC13sdDygAM-3WVxLED2RG5yQhqk_ssNhlmg4HL4SUH9_uLD3Ohlbd1zBSKTL7GRQioLLp249Mol8sMXCC8a7QxLMLAi3wl_c2ovb0PD-gxZUD20XozX3wp62taNSFP0OgrR4aPMaf3amZ3iW2RRaIy7wUgg1l6zZlX93RkPXYT0LuxdwcyzJmQ6nwTMKKssb45PGmeWUog3oUiVWqtZvKRoTIRtet_JiS6NlRzmSewN7L65dg4LlXm41-cB-jvzWIsbpNH8WRfftf_QoPMrU3J4EK7OFSlxmpM8HO3q9vicaMtLqTlfSDQtASaj6DBSwrdclHQo9dku1EbOTMnrcmpw1SMJmhgNuNrNUS5IZ3vuBgBx8RhAYShbUmPtk_pXDntvFHBtf1vB_W9bADfeXScb2F4oLl1mQhc3gLYoPFs_ZdWa4937-m6mDJiip2\"}",
+    "namespace": "users",
+    "version": "15ea19bd-9648-4ca8-bee4-67e2a0ae7305:1",
+    "updatedAt": "2026-07-25T18:34:31.097Z",
+    "txId": "15ea19bd-9648-4ca8-bee4-67e2a0ae7305",
+    "docType": "users"
+  },
+  "did:hosp:0x7a3f91b2": {
+    "key": "did:hosp:0x7a3f91b2",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"VX6heWIqTD5r0lvQ\",\"tag\":\"jlE_ZOmusQH8wP1pcDhlxg\",\"ct\":\"uSnSrFvnq7xKRwvpjJtAi8BeIsa8HTYS35Md9FDaNiiCVQBqJ2OTA8S6Knxoq2KuVMzymrKzYMs3XGEUbpvgj0EokJj6590VHyqPxGCfyq2DiHjtYJlwIUSGsqet3AWvaLVJXvFqRLQZ-7kZ210hbcoIZ0lnuH69KGTcUZUvUVmVxkvKdfooilZ3gihmCtduryZaYEom-eI-kP72nvOSsFFX7efkinWnYvKcZbmbFYIMlHqg0ti4diqyWk263L0Y-KWuH0_y-gEG1w8lGRJyGtJGZ5IhBBoIPR5g6b7ztgHeqsF0R7cPOUr7ePWIbT_nvP6pqUd7rpf_SF3qwKrA-tII_6Gpuxe9vgGQDFri8CgtSHNrnwIaF7aTg9w0ULXFGn4946SCimJVpvB_BDPT5xPBqodWFyIZPCKHQMGY8hUp4rrdrKZV7WPKRA_iS7RBKHW-_xST-WcD1GYJ4HA8xBv9nHnScpU_Krbvi0GLAank-CWKEsSDOg0urXq824nRnWWAisGtD6s_85tlsVMaco6YKgDsq78vnKIjLAm0KalkKQcWOC3FsZa-9WMx_yZH1iFeDM7ljb1bRbnzZvSJIpGovHhL2mzPlZ2X9-ga\"}",
+    "namespace": "users",
+    "version": "82acc0be-9e67-40ab-92af-3132b9af6e58:1",
+    "updatedAt": "2026-07-25T18:34:31.098Z",
+    "txId": "82acc0be-9e67-40ab-92af-3132b9af6e58",
+    "docType": "users"
+  },
+  "did:hosp:0x9a8b7c6d": {
+    "key": "did:hosp:0x9a8b7c6d",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"GDFv6yVBFhE-dSHt\",\"tag\":\"Lzh-ThkhzUhVjHb4gvjGNQ\",\"ct\":\"CLh4DSPl-lAjgxz4amaJAIJdOpyMaDBxSob0UCnLbvBtpK7y_ILkJ7zdby0W9zDKkszr_gt1yiyaGv86wRAcTheusYn8yGJ0NoTSTvaEEN6lutnp4-TLRR1SBPK7buF-lHlBWg27uo9xvYJJEKS-2fqKeyt6x8Z6beWM8hjuHVNdoS-pEdg-TrnAwsvm0-2DAE4EHEtTXYzpbX1Aqowdxyl0AhD4PhyNuAmmb32-zbApI0-2KcdPgzgg-EygyUqLoJRSVFk-_84--HQZzjm8IIHxZLw6DACJANhaOsliocvMJfdLC2HDOI3wUIO3B0TXUeQUsu4JWf0LHShoo20vQW8Pr61TLGQzK8dSXWe1pBCyjJ3Z5FbowcZOlYquAh-DYpTC3CrNH15Sq2aEl4qcuDtyMnOyHGubbjVnjFaBXZkJoHarRwWJn8ffGDC45kuxDTEfsMeOn6OY0OLIKVpATRtQFlSU_Hkl6oqKUNf6rSdl5FkONG6lqv-XKHXn\"}",
+    "namespace": "users",
+    "version": "40a44820-1630-45e8-843b-f08b510cc5fa:1",
+    "updatedAt": "2026-07-25T18:34:31.178Z",
+    "txId": "40a44820-1630-45e8-843b-f08b510cc5fa",
+    "docType": "users"
+  },
+  "patient@embracehealth.org": {
+    "key": "patient@embracehealth.org",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"mHPx3qPQlwdVWAq2\",\"tag\":\"J8S2YOQgw97NQRON_87ofQ\",\"ct\":\"Zo5QSUWqyUvk3r2DOSDw4W6H-EcQtU0HwAJVrC34nJdmkCockJEcGHxblfIj0xcLAG78yJtZYHtVytB33MMFnDJLM125C2jNm-sRxhe2ITcdm1VRJob8Vy-ohK5l_hSMjd6jfgU9ZyWVHHBv7awlokIa0kiuuCXjqVMuFMqtu6vu6URisnNOiqhmQctaYqlYxGHbOcjB9vqEknRGHAfWfB8x6hlkmcZeEPpBwvTgcUCrgsq_0cEqE_HpJgakCmmLm-rqgiA49pjcAJTFfOBrbgpG3zbSQPYnK1a9fCsNSwkBaiXnYxikkF9Pd7q0-T2T5Lrn2B57RdFkJng7gowOxwrgyxu4KEA03VaB97nw_n4jz7vkO9x5nhyUuTV9SCrrAwzDvJwIzfaMK0quLH7tDytIT5Kb_pZRVaSALXsRBZBL8EupHD2iN0ObtflA7pB9JF7l3YRES1hqIWfxGcCVF7cxyVwgZdCpbvXZT3746x7dQp_Sml-V3Jk\"}",
+    "namespace": "users",
+    "version": "7c886c33-d7c6-45d4-aca6-77b2bcb7783c:1",
+    "updatedAt": "2026-07-25T18:34:31.256Z",
+    "txId": "7c886c33-d7c6-45d4-aca6-77b2bcb7783c",
+    "docType": "users"
+  },
+  "did:hosp:0x5e4d3c2b": {
+    "key": "did:hosp:0x5e4d3c2b",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"Jzh1sJHp9HbCHCyF\",\"tag\":\"uVgPxM0yt0xMrL8yNKElUA\",\"ct\":\"RltSdyF-s62ygEMIZGdk1INcAHxsUqQCXlef2dH57qG8Y3G6NnRMzvIzRhqtMTDYyQkcxvfb915d-lQ8DwxugiY7dDfD5VONNaDYlnfrNECY7AB8gXDFsDMnT0c7EdebbxeWMHXf2-LsTX_03at4tXWphkGZTV25-od8-ZDDVoLge80owBDH429iy98Nk9f-s_OJY0EkBCVULzjtnxs8t8ztodOZhUER7nS7NZHk_DjXUdgu5W8HMJVDyEtidKx7cLRJCuDHOAQxQsT_pI6QYYJKipejTbcAvIbJulkh0MMZfafEYgw8X7L4g_5p7PiwYjEWvz0iWoRxeVqeCUFBx1O81Bl8a9fUlbVjCZ2nHyE_--c88Z6xTGr0kEifeaLieGAm-ePXUrh5PClCa6o3k--FLFLbocH2OmJMeCWaTazymb0ZLbpQhpbP0mdQPtQx0uNJ4v63k_GbitvntoJ9XunjJFWDuZLI1u2ey5Ct-O8EDYxfmU6LYzY\"}",
+    "namespace": "users",
+    "version": "3f60beca-2461-4796-9c56-7ff292e37285:1",
+    "updatedAt": "2026-07-25T18:34:31.256Z",
+    "txId": "3f60beca-2461-4796-9c56-7ff292e37285",
+    "docType": "users"
+  },
+  "did:hosp:0x11223344": {
+    "key": "did:hosp:0x11223344",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"0asreLGLUHDySzFq\",\"tag\":\"3i51Glynuw-s21_L6jhjrg\",\"ct\":\"UqHvmqxNQIQFjvARfpK_cvwicfXx9gqPgOfwCsDaFb2uPAsRU_mHINTbhrBPHMcsTGoZJuRd4ORGnL_18ijCLOUGE7hUm7VktwVoq1Dfa9nkCXxdyrzRTCQBp4ioVtdjSTbmLT2ctFPUDCBDu6_5pISlJtX4cQN85epusZXoilfjR2F-OZtXJUuIY3hxJfFsvWFtO_Ay06n0-id2XSxC1s7Kf1pkfSQ-4ATjwyW7iM4r8S0aTfbo3Juh-SdkJk4AOPjXvEO9_TgdwcH1Jyu8Y7FhO1zNdEEaYuWDMR5xPYF59TdPd8gP7ZLdPgdtDyFnDHTsb_NoWMVpRGs6rv7_JhDVhY8l0a21iO6rxdBEXF7pvgn9n6aa4y1KiLOpcXPRmfBBcQ1aALbVaoqA_7DQrMPVMrdu_bQroZCQmHwAruIN0NOcCZkcY2P4nlOIvNssLzOLniGMroUJ2spuv6YLhxAM9xWeIdPJKQt76jZ7c3dqQzosXS5NMUSFuiLWcndmuaYQSSy1N9ly8pGEE-aRUOXH_zZZ9PVH0RmrDz3bNj3qWBsysPArtkIkx8slYE5b5DI8s5i4nMcMWk8sfNqmMSr3u55eDdh4Yfze7hnw1tMzufMX3-Q\"}",
+    "namespace": "users",
+    "version": "5556fed4-cdcb-47e9-9466-ae293e098e9b:1",
+    "updatedAt": "2026-07-25T18:34:31.339Z",
+    "txId": "5556fed4-cdcb-47e9-9466-ae293e098e9b",
     "docType": "users"
   }
 }
