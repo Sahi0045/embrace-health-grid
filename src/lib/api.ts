@@ -757,3 +757,20 @@ export const payBill = (data: {
     method: "POST",
     body: JSON.stringify(data),
   });
+
+export const checkInDoctorRoom = (doctorDid: string, roomNumber: string, action?: "enter" | "exit") =>
+  apiFetch<{
+    logId: string;
+    doctorDid: string;
+    doctorName: string;
+    roomNumber: string;
+    action: string;
+    timestamp: string;
+    hash: string;
+  }>("/hardware/scan", {
+    method: "POST",
+    body: JSON.stringify({ doctorDid, roomNumber, action }),
+  });
+
+export const getDoctorLocations = () =>
+  apiFetch<{ locations: any[]; total: number }>("/doctor/locations");

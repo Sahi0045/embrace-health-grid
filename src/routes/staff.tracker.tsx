@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { RouteGuard } from "@/components/RouteGuard";
 import { PageHeader } from "@/components/PageHeader";
 import { getLiveStaff, storeEvents, updateStaffLocation, type LiveStaff } from "@/lib/realtime-store";
-import { dispatchPagerNotify } from "@/lib/api";
+import { dispatchPagerNotify, checkInDoctorRoom } from "@/lib/api";
 import { useDoctors } from "@/hooks/use-api";
 import {
   MapPin,
@@ -133,23 +133,22 @@ function DoctorLocatorPage() {
     };
   }, [refresh]);
 
-  const handlePage = async (member: LiveStaff) => {
-    toast.success("Pager dispatched", {
-      description: `${member.name} at ${member.currentLocation}`,
+  const handleRoomCheckIn = async (doctorDid: string, doctorName: string, roomName: string) => {
+    updateStaffLocation(doctorDid, roomName);
+    updateStaffLocation(doctorName, roomName);
+    toast.success(`Checked In ${doctorName}`, {
+      description: `Assigned to ${roomName}`,
     });
-    try {
-      await dispatchPagerNotify(member.did, member.name, member.currentLocation);
-    } catch (err: any) {
-      console.warn("REST pager dispatch failed, running in local mode:", err.message);
-    }
     setLogs((prev) => [
       {
-        id: `page_${Date.now()}`,
+        id: `loc_${Date.now()}`,
         time: new Date().toLocaleTimeString(),
-        event: `PAGER → ${member.name} at ${member.currentLocation}`,
+        event: `CHECK-IN → ${doctorName} moved to ${roomName}`,
       },
       ...prev.slice(0, 14),
     ]);
+    await checkInDoctorRoom(doctorDid, roomName, "enter").catch(() => null);
+    refresh();
   };
 
   const statusColor = (s: string) =>
@@ -241,6 +240,112 @@ function DoctorLocatorPage() {
               </div>
               <div className="text-muted-foreground">In Emergency</div>
             </div>
+          </div>
+        </div>
+
+        {/* Live Hospital Room Check-In & Floorplan Board */}
+        <div className="rounded-xl border border-primary/20 bg-card p-5 shadow-sm space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                <Building2 className="h-5 w-5 text-primary animate-pulse" />
+                Live Hospital Wards & Doctor Room Occupancy
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Real-time active room check-ins across hospital wings.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 text-xs">
+              <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2.5 py-1 font-bold text-success text-[10px]">
+                <div className="h-1.5 w-1.5 rounded-full bg-success animate-ping" />
+                Live Sync
+              </span>
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            {[
+              { id: "101", name: "Room 101 - OPD", type: "OPD" },
+              { id: "202", name: "Room 202 - Cardiology", type: "Cardiology" },
+              { id: "303", name: "Room 303 - Operation Theatre", type: "Surgery" },
+              { id: "404", name: "Room 404 - Emergency Room", type: "Emergency" },
+              { id: "505", name: "Room 505 - ICU Desk", type: "ICU" },
+            ].map((room) => {
+              const occupants = staff.filter(
+                (s) =>
+                  s.currentLocation?.toLowerCase().includes(room.id) ||
+                  s.currentLocation?.toLowerCase().includes(room.type.toLowerCase())
+              );
+              const primary = occupants[0];
+
+              return (
+                <div
+                  key={room.id}
+                  className={`rounded-xl border p-3 flex flex-col justify-between space-y-3 transition-all ${
+                    occupants.length > 0
+                      ? "border-primary/40 bg-primary/5 shadow-sm"
+                      : "border-border bg-muted/20"
+                  }`}
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                        {room.type}
+                      </span>
+                      <span
+                        className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                          occupants.length > 0
+                            ? "bg-success/15 text-success"
+                            : "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        {occupants.length > 0 ? "Occupied" : "Vacant"}
+                      </span>
+                    </div>
+                    <div className="font-bold text-xs text-foreground">{room.name}</div>
+                  </div>
+
+                  {primary ? (
+                    <div className="space-y-1.5 pt-2 border-t border-border/50">
+                      <div className="font-semibold text-xs text-foreground flex items-center gap-1">
+                        <User className="h-3 w-3 text-primary shrink-0" />
+                        <span className="truncate">{primary.name}</span>
+                      </div>
+                      <div className="text-[9px] font-mono text-primary flex items-center gap-1">
+                        <ShieldCheck className="h-2.5 w-2.5 text-success shrink-0" />
+                        <span className="truncate">{primary.did}</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-[10px] text-muted-foreground italic py-1">
+                      No doctor checked in
+                    </div>
+                  )}
+
+                  <select
+                    onChange={(e) => {
+                      if (!e.target.value) return;
+                      const selectedDoc = staff.find((s) => s.did === e.target.value || s.id === e.target.value);
+                      if (selectedDoc) {
+                        handleRoomCheckIn(selectedDoc.did, selectedDoc.name, room.name);
+                      }
+                      e.target.value = "";
+                    }}
+                    defaultValue=""
+                    className="w-full text-[10px] rounded border border-input bg-background p-1 outline-none text-foreground"
+                  >
+                    <option value="" disabled>
+                      Assign Doctor to Room…
+                    </option>
+                    {staff.map((doc) => (
+                      <option key={doc.id} value={doc.did || doc.id}>
+                        {doc.name} ({doc.specialty || doc.department})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -347,12 +452,7 @@ function DoctorLocatorPage() {
                             e.stopPropagation();
                             const room = prompt(`Enter new location / room for ${s.name}:`, s.currentLocation);
                             if (room && room.trim()) {
-                              updateStaffLocation(s.did, room.trim());
-                              updateStaffLocation(s.name, room.trim());
-                              toast.success(`Location Updated`, {
-                                description: `Moved ${s.name} to ${room.trim()}`,
-                              });
-                              refresh();
+                              handleRoomCheckIn(s.did, s.name, room.trim());
                             }
                           }}
                           className="inline-flex items-center gap-1 rounded-lg bg-secondary/80 text-secondary-foreground px-2 py-1 text-[9px] font-bold hover:bg-secondary"

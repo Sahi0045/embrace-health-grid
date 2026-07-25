@@ -1286,17 +1286,64 @@ app.post("/api/hardware/scan", (req, res) => {
   res.json({ success: true, action, log, txId });
 });
 
-app.post("/api/doctor/check-in", requireAuth, requireRole(["doctor", "staff"]), (req, res) => {
-  const { roomNumber } = req.body;
+app.get("/api/doctor/locations", (req, res) => {
+  const allUsers = getAllState("users").map((e) => e.value);
+  const doctorLogs = getAllState("doctor-locations").map((e) => e.value);
+  const locationMap = new Map();
+
+  doctorLogs.sort((a, b) => (a.timestamp || "").localeCompare(b.timestamp || ""));
+  doctorLogs.forEach((log) => {
+    if (log.doctorDid) {
+      locationMap.set(log.doctorDid, log);
+    }
+  });
+
+  const doctors = (SEEDED_DOCTORS || []).map((d) => {
+    const userMatch = allUsers.find(
+      (u) => u && (u.email === d.email || u.did === d.did || u.name === d.name)
+    );
+    const logMatch = locationMap.get(d.did) || (userMatch ? locationMap.get(userMatch.did) : null);
+
+    let activeRoom = userMatch?.activeRoom || logMatch?.roomNumber || (d as any).currentLocation || "OPD Room 3";
+    if (userMatch?.activeRoom === "None" || logMatch?.action === "exit") {
+      activeRoom = "Out of Rooms (Exited)";
+    }
+
+    let status = d.status || "Available";
+    const roomLower = activeRoom.toLowerCase();
+    if (roomLower.includes("surgery") || roomLower.includes("ot")) {
+      status = "In Surgery";
+    } else if (roomLower.includes("emergency") || roomLower.includes("er")) {
+      status = "Emergency Response";
+    } else if (roomLower.includes("exited") || activeRoom === "None") {
+      status = "Off Duty";
+    } else {
+      status = "In Consultation";
+    }
+
+    return {
+      ...d,
+      currentLocation: activeRoom,
+      activeRoom: activeRoom,
+      status: status,
+      lastSignal: logMatch?.timestamp ? new Date(logMatch.timestamp).toLocaleTimeString() : new Date().toLocaleTimeString(),
+    };
+  });
+
+  res.json({ locations: doctors, total: doctors.length });
+});
+
+app.post("/api/doctor/check-in", (req, res) => {
+  const { doctorDid, roomNumber, action } = req.body;
   if (!roomNumber) {
     return res.status(400).json({ error: "roomNumber is required" });
   }
 
-  const doctorDid = req.user.did || `did:hosp:0x${simHash(req.user.email).slice(0, 8)}`;
+  const targetDid = doctorDid || (req.user ? (req.user.did || `did:hosp:0x${simHash(req.user.email).slice(0, 8)}`) : "did:hosp:0xdoctor");
 
   // Call unified scan route logic directly
   req.url = "/api/hardware/scan";
-  req.body = { doctorDid, roomNumber };
+  req.body = { doctorDid: targetDid, roomNumber, action };
   app._router.handle(req, res);
 });
 
