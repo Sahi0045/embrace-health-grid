@@ -301,7 +301,143 @@ function seedTransactions() {
 // ---------------------------------------------------------------------------
 let _initialized = false;
 let _livePatients: LivePatient[] = [];
-let _liveStaff: LiveStaff[] = [];
+export const DEFAULT_FALLBACK_STAFF: LiveStaff[] = [
+  {
+    id: "doc_1",
+    name: "Dr. Sarah Jenkins",
+    role: "Doctor",
+    department: "Cardiology",
+    specialty: "Interventional Cardiology",
+    did: "did:hosp:0x7a3f91b2c4e5d6a7",
+    employeeId: "EMP-1001",
+    currentLocation: "Room 101 - OPD",
+    status: "In Consultation",
+    beaconStrength: "96%",
+    lastSignal: new Date().toLocaleTimeString(),
+    onDuty: true,
+    isOnChain: true,
+    activeCredentials: [
+      { id: "vc_1_1", type: "ProfessionalVC" },
+      { id: "vc_1_2", type: "AccessVC" },
+    ],
+  },
+  {
+    id: "doc_2",
+    name: "Dr. Rajesh Sharma",
+    role: "Doctor",
+    department: "Neurology",
+    specialty: "Neuro-oncology",
+    did: "did:hosp:0x8b2e41a3f5c6d7e8",
+    employeeId: "EMP-1002",
+    currentLocation: "Room 202 - Cardiology",
+    status: "Available",
+    beaconStrength: "91%",
+    lastSignal: new Date().toLocaleTimeString(),
+    onDuty: true,
+    isOnChain: true,
+    activeCredentials: [
+      { id: "vc_2_1", type: "ProfessionalVC" },
+      { id: "vc_2_2", type: "AccessVC" },
+    ],
+  },
+  {
+    id: "doc_3",
+    name: "Dr. Priya Patel",
+    role: "Doctor",
+    department: "Pediatrics",
+    specialty: "Pediatric Critical Care",
+    did: "did:hosp:0x9c1d52b4e6f7a8b9",
+    employeeId: "EMP-1003",
+    currentLocation: "Room 303 - Operation Theatre",
+    status: "In Surgery",
+    beaconStrength: "88%",
+    lastSignal: new Date().toLocaleTimeString(),
+    onDuty: true,
+    isOnChain: true,
+    activeCredentials: [
+      { id: "vc_3_1", type: "ProfessionalVC" },
+      { id: "vc_3_2", type: "AccessVC" },
+    ],
+  },
+  {
+    id: "doc_4",
+    name: "Dr. Amit Varma",
+    role: "Doctor",
+    department: "Orthopedics",
+    specialty: "Joint Replacement Surgery",
+    did: "did:hosp:0x4d5e63c7f8a9b0c1",
+    employeeId: "EMP-1004",
+    currentLocation: "Room 404 - Emergency Room",
+    status: "Emergency Response",
+    beaconStrength: "94%",
+    lastSignal: new Date().toLocaleTimeString(),
+    onDuty: true,
+    isOnChain: true,
+    activeCredentials: [
+      { id: "vc_4_1", type: "ProfessionalVC" },
+      { id: "vc_4_2", type: "AccessVC" },
+    ],
+  },
+  {
+    id: "doc_5",
+    name: "Dr. Ananya Iyer",
+    role: "Doctor",
+    department: "Oncology",
+    specialty: "Medical Oncology",
+    did: "did:hosp:0x6f7a81b2c3d4e5f6",
+    employeeId: "EMP-1005",
+    currentLocation: "Room 505 - ICU Desk",
+    status: "In Consultation",
+    beaconStrength: "92%",
+    lastSignal: new Date().toLocaleTimeString(),
+    onDuty: true,
+    isOnChain: true,
+    activeCredentials: [
+      { id: "vc_5_1", type: "ProfessionalVC" },
+      { id: "vc_5_2", type: "AccessVC" },
+    ],
+  },
+  {
+    id: "doc_6",
+    name: "Dr. Marcus Vance",
+    role: "Doctor",
+    department: "Emergency Medicine",
+    specialty: "Trauma Care",
+    did: "did:hosp:0x1b2c3d4e5f6a7b8c",
+    employeeId: "EMP-1006",
+    currentLocation: "Emergency Bay 1",
+    status: "Emergency Response",
+    beaconStrength: "97%",
+    lastSignal: new Date().toLocaleTimeString(),
+    onDuty: true,
+    isOnChain: true,
+    activeCredentials: [
+      { id: "vc_6_1", type: "ProfessionalVC" },
+      { id: "vc_6_2", type: "AccessVC" },
+    ],
+  },
+  {
+    id: "doc_7",
+    name: "Dr. Elena Rostova",
+    role: "Doctor",
+    department: "Anesthesiology",
+    specialty: "Surgical Anesthesia",
+    did: "did:hosp:0x3d4e5f6a7b8c9d0e",
+    employeeId: "EMP-1007",
+    currentLocation: "OT Suite 2",
+    status: "In Surgery",
+    beaconStrength: "89%",
+    lastSignal: new Date().toLocaleTimeString(),
+    onDuty: true,
+    isOnChain: true,
+    activeCredentials: [
+      { id: "vc_7_1", type: "ProfessionalVC" },
+      { id: "vc_7_2", type: "AccessVC" },
+    ],
+  },
+];
+
+let _liveStaff: LiveStaff[] = [...DEFAULT_FALLBACK_STAFF];
 let _wsConnected = false;
 let _socket: WebSocket | null = null;
 
@@ -488,7 +624,7 @@ export async function rebuildLiveListsFromConvex() {
     console.error("[Store] Error rebuilding lists from Convex:", error);
     // Fallback to empty lists if Convex fetch fails
     _livePatients = [];
-    _liveStaff = [];
+    _liveStaff = _liveStaff.length > 0 ? _liveStaff : [...DEFAULT_FALLBACK_STAFF];
   }
 }
 

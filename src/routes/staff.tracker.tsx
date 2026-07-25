@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useCallback } from "react";
 import { RouteGuard } from "@/components/RouteGuard";
 import { PageHeader } from "@/components/PageHeader";
-import { getLiveStaff, storeEvents, updateStaffLocation, type LiveStaff } from "@/lib/realtime-store";
+import { getLiveStaff, storeEvents, updateStaffLocation, DEFAULT_FALLBACK_STAFF, type LiveStaff } from "@/lib/realtime-store";
 import { dispatchPagerNotify, checkInDoctorRoom } from "@/lib/api";
 import { useDoctors } from "@/hooks/use-api";
 import {
@@ -20,6 +20,7 @@ import {
   ShieldCheck,
   Building2,
   Edit3,
+  User,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -38,17 +39,16 @@ function DoctorLocatorPage() {
   const [statusFilter, setStatusFilter] = useState("All");
   const [logs, setLogs] = useState<{ id: string; time: string; event: string }[]>([]);
   const [lastUpdate, setLastUpdate] = useState(new Date().toLocaleTimeString());
-  const [editingDoctor, setEditingDoctor] = useState<LiveStaff | null>(null);
-  const [newRoomName, setNewRoomName] = useState("");
 
   const refresh = useCallback(() => {
     const liveList = getLiveStaff();
+    const fallbackList = DEFAULT_FALLBACK_STAFF;
     const apiDocs = doctorsData?.doctors || [];
 
-    // Merge backend doctors into live staff list so all DID doctors appear on locator page
+    // Merge fallback, live list, and backend doctors so all DID doctors appear on locator page
     const mergedMap = new Map<string, LiveStaff>();
 
-    liveList.forEach((s) => {
+    [...fallbackList, ...liveList].forEach((s) => {
       const key = (s.did && s.did !== "did:hosp:unknown" ? s.did : s.id || s.name).toLowerCase().trim();
       mergedMap.set(key, s);
     });
