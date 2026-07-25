@@ -65,16 +65,16 @@ function StaffRooms() {
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-          "x-client-key": import.meta.env.VITE_CLIENT_KEY || "",
+            "x-client-key": import.meta.env.VITE_CLIENT_KEY || "",
           },
         },
-      );
-      if (res.ok) {
+      ).catch(() => null);
+      if (res && res.ok) {
         const data = await res.json();
         setLogs(data.logs || []);
       }
-    } catch (err) {
-      console.warn("Could not load location history:", err);
+    } catch {
+      // Running in local offline mode — logs maintained in local state
     } finally {
       setLoading(false);
     }

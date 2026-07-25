@@ -49,22 +49,35 @@ function DoctorLocatorPage() {
     const mergedMap = new Map<string, LiveStaff>();
 
     liveList.forEach((s) => {
-      mergedMap.set(s.did || s.id, s);
+      const key = (s.did && s.did !== "did:hosp:unknown" ? s.did : s.id || s.name).toLowerCase().trim();
+      mergedMap.set(key, s);
     });
 
     apiDocs.forEach((d: any, idx: number) => {
       const did = d.did || `did:hosp:0x${(d.id || idx.toString()).replace("doc_", "")}`;
-      const existing = mergedMap.get(did) || Array.from(mergedMap.values()).find((s) => s.name === d.name);
+      const key = (did && did !== "did:hosp:unknown" ? did : d.id || d.name).toLowerCase().trim();
+      const existing =
+        mergedMap.get(key) ||
+        Array.from(mergedMap.values()).find(
+          (s) => s.name?.toLowerCase().trim() === d.name?.toLowerCase().trim()
+        );
 
       if (existing) {
-        mergedMap.set(existing.id, {
+        const existingKey = (existing.did && existing.did !== "did:hosp:unknown"
+          ? existing.did
+          : existing.id || existing.name
+        )
+          .toLowerCase()
+          .trim();
+        mergedMap.set(existingKey, {
           ...existing,
           did: existing.did || did,
           specialty: existing.specialty || d.specialty || d.department || "Specialist",
           department: existing.department || d.department || "OPD",
+          currentLocation: d.currentLocation || existing.currentLocation,
         });
       } else {
-        const id = d.id || `doc_${idx}`;
+        const id = d.id || `doc_api_${idx}`;
         const newStaff: LiveStaff = {
           id,
           name: d.name,
@@ -73,7 +86,7 @@ function DoctorLocatorPage() {
           specialty: d.specialty || "General Medicine",
           did: did,
           employeeId: `EMP-${1000 + idx}`,
-          currentLocation: d.status === "Available" ? `Room ${101 + (idx % 10)} - OPD` : "Off Duty",
+          currentLocation: d.currentLocation || d.activeRoom || `Room ${101 + (idx % 10)} - OPD`,
           status: d.status || "Available",
           beaconStrength: `${85 + (idx % 12)}%`,
           lastSignal: new Date().toLocaleTimeString(),
@@ -84,7 +97,7 @@ function DoctorLocatorPage() {
             { id: `vc_${idx}_2`, type: "AccessVC" },
           ],
         };
-        mergedMap.set(did, newStaff);
+        mergedMap.set(key, newStaff);
       }
     });
 
@@ -258,9 +271,9 @@ function DoctorLocatorPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {filtered.slice(0, 40).map((s) => (
+                  {filtered.slice(0, 40).map((s, idx) => (
                     <tr
-                      key={s.id}
+                      key={`${s.did || s.id || "doc"}_${idx}`}
                       onClick={() => setSelectedId(s.id === selectedId ? null : s.id)}
                       className={`cursor-pointer transition-colors ${selectedId === s.id ? "bg-primary/5" : "hover:bg-muted/30"}`}
                     >

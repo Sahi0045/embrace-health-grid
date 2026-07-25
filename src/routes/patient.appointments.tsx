@@ -203,7 +203,9 @@ function AppointmentsPage() {
   // Merge unique doctors by DID or name
   const allDoctorsMap = new Map<string, Doctor>();
   [...doctorsFromApi, ...doctorsFromStaff].forEach((doc) => {
-    const key = doc.did && doc.did !== "did:hosp:unknown" ? doc.did : doc.name;
+    const key = (doc.did && doc.did !== "did:hosp:unknown" ? doc.did : doc.id || doc.name)
+      .toLowerCase()
+      .trim();
     if (!allDoctorsMap.has(key)) {
       allDoctorsMap.set(key, doc);
     }
@@ -428,9 +430,9 @@ function AppointmentsPage() {
 
             {/* Doctor Listing Grid */}
             <div className="grid gap-4 sm:grid-cols-2">
-              {filteredDoctors.map((doc) => (
+              {filteredDoctors.map((doc, docIdx) => (
                 <div
-                  key={doc.id}
+                  key={`${doc.did || doc.id || "doc"}_${docIdx}`}
                   className="rounded-xl border border-border bg-card p-4 shadow-clinical flex flex-col justify-between space-y-4"
                 >
                   <div>
