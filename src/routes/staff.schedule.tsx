@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader, StatCard } from "@/components/PageHeader";
 import { RouteGuard } from "@/components/RouteGuard";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { getStaffSchedule, createStaffRequest, getAppointments } from "@/lib/api";
 import { getCurrentUser } from "@/lib/auth";
 import { toast } from "sonner";
@@ -228,8 +228,30 @@ function ShiftCard({ shift }: { shift: Shift }) {
   );
 }
 
+function getWeekRange(offset: number) {
+  const now = new Date();
+  const day = now.getDay();
+  const mon = new Date(now);
+  mon.setDate(now.getDate() - (day === 0 ? 6 : day - 1) + offset * 7);
+  const sun = new Date(mon);
+  sun.setDate(mon.getDate() + 6);
+  return { start: mon, end: sun };
+}
+
+function formatDateRange(s: Date, e: Date) {
+  const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
+  const sStr = s.toLocaleDateString("en-US", opts);
+  const eStr = e.toLocaleDateString("en-US", { ...opts, year: "numeric" });
+  return `${sStr} – ${eStr}`;
+}
+
+function toDateStr(d: Date) {
+  return d.toISOString().split("T")[0];
+}
+
 function SchedulePage() {
-  const [view, setView] = useState<"week" | "day">("week");
+  const [view, setView] = useState<"week" | "day" | "month">("week");
+  const [weekOffset, setWeekOffset] = useState(0);
   const [weekShifts, setWeekShifts] = useState<Shift[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -321,24 +343,44 @@ function SchedulePage() {
       .finally(() => setLoading(false));
   }, [staffEmail]);
 
-  const [upcomingEvents, setUpcomingEvents] = useState<{ date: string; label: string; type: string }[]>([]);
+  const [doctorAppointments, setDoctorAppointments] = useState<any[]>([]);
   useEffect(() => {
     getAppointments()
       .then((res) => {
         const doctorDid = currentUser?.did || "";
         const appointments = (res.appointments ?? []) as any[];
-        const relevant = appointments
-          .filter((a: any) => !doctorDid || a.doctorDid === doctorDid || a.doctorName === currentUser?.name)
-          .slice(0, 8)
-          .map((a: any) => ({
-            date: a.date ?? a.slot?.split("T")[0] ?? "—",
-            label: `${a.patientName ?? "Patient"} — ${a.specialty ?? a.mode ?? "Consultation"}`,
-            type: a.mode === "tele" ? "education" : "meeting",
-          }));
-        setUpcomingEvents(relevant);
+        const relevant = appointments.filter(
+          (a: any) => !doctorDid || a.doctorDid === doctorDid || a.doctorName === currentUser?.name,
+        );
+        setDoctorAppointments(relevant);
       })
       .catch(() => {});
   }, [staffEmail]);
+
+  const weekRange = useMemo(() => getWeekRange(weekOffset), [weekOffset]);
+  const weekDates = useMemo(() => {
+    const dates: Date[] = [];
+    const d = new Date(weekRange.start);
+    for (let i = 0; i < 7; i++) {
+      dates.push(new Date(d));
+      d.setDate(d.getDate() + 1);
+    }
+    return dates;
+  }, [weekRange]);
+
+  const todayStr = toDateStr(new Date());
+
+  const appointmentsByDate = useMemo(() => {
+    const map = new Map<string, any[]>();
+    for (const a of doctorAppointments) {
+      const d = a.date ?? a.slot?.split(" · ")[0] ?? a.bookedAt?.split("T")[0] ?? "";
+      if (!d) continue;
+      const existing = map.get(d) || [];
+      existing.push(a);
+      map.set(d, existing);
+    }
+    return map;
+  }, [doctorAppointments]);
 
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
   const scheduledShifts = weekShifts.filter(
@@ -353,16 +395,27 @@ function SchedulePage() {
   }, 0);
   const totalHours = Math.round(totalMinutes / 60);
 
+  const onCallCount = weekShifts.filter((s) => s.role === "On-call").length;
+  const offCount = weekShifts.filter((s) => s.role === "Off" || s.role === "Leave").length;
+
+  const navLabel = view === "month"
+    ? new Date(weekRange.start.getFullYear(), weekRange.start.getMonth(), 1).toLocaleDateString("en-US", { month: "long", year: "numeric" })
+    : formatDateRange(weekRange.start, weekRange.end);
+
+  const handlePrev = () => setWeekOffset((o) => o - (view === "month" ? 4 : 1));
+  const handleNext = () => setWeekOffset((o) => o + (view === "month" ? 4 : 1));
+  const handleToday = () => setWeekOffset(0);
+
   return (
     <RouteGuard requiredRole="staff">
       <PageHeader
         eyebrow="My Schedule"
-        title="Week of June 8 – 14, 2026"
-        description={`Dr. ${currentUser?.name || "Ravi Menon"} · ${currentUser?.department || "Cardiology Department"} · Shift plan and upcoming events`}
+        title={navLabel}
+        description={`${currentUser?.name || "Doctor"} · ${currentUser?.department || "Department"} · Shift plan and appointments`}
         actions={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <div className="flex rounded-lg border border-border overflow-hidden">
-              {(["week", "day"] as const).map((v) => (
+              {(["day", "week", "month"] as const).map((v) => (
                 <button
                   key={v}
                   onClick={() => setView(v)}
@@ -399,26 +452,26 @@ function SchedulePage() {
           <StatCard
             label="Scheduled Hours"
             value={`${totalHours}h`}
-            delta="across 6 shifts"
+            delta={`across ${scheduledShifts.length} shift${scheduledShifts.length !== 1 ? "s" : ""}`}
             icon={Clock}
           />
           <StatCard
-            label="Patients This Week"
-            value={weekShifts.reduce((s, sh) => s + (sh.patients ?? 0), 0)}
-            delta="24 OPD + 20 inpatient"
-            icon={Users}
+            label="Appointments"
+            value={doctorAppointments.length}
+            delta="booked by patients"
+            icon={Stethoscope}
           />
           <StatCard
             label="On-Call Shifts"
-            value={1}
-            delta="Friday night"
+            value={onCallCount}
+            delta={onCallCount > 0 ? "this week" : "none"}
             icon={AlertCircle}
             tone="warning"
           />
           <StatCard
             label="Days Off / Leave"
-            value={2}
-            delta="Sat + Sun"
+            value={offCount}
+            delta={offCount > 0 ? "this week" : "none"}
             icon={Moon}
             tone="success"
           />
@@ -426,93 +479,235 @@ function SchedulePage() {
 
         {/* Navigation */}
         <div className="flex items-center justify-between">
-          <button
-            onClick={() =>
-              toast.info("Navigating to previous week...", {
-                description: "Viewing historical schedule.",
-              })
-            }
-            className="flex items-center gap-1 rounded-lg border border-border bg-card px-3 py-2 text-sm hover:bg-muted"
-          >
-            <ChevronLeft className="h-4 w-4" /> Prev Week
-          </button>
-          <div className="text-sm font-semibold text-foreground">June 2026</div>
-          <button
-            onClick={() =>
-              toast.info("Navigating to next week...", {
-                description: "Schedule is currently tentative.",
-              })
-            }
-            className="flex items-center gap-1 rounded-lg border border-border bg-card px-3 py-2 text-sm hover:bg-muted"
-          >
-            Next Week <ChevronRight className="h-4 w-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handlePrev}
+              className="flex items-center gap-1 rounded-lg border border-border bg-card px-3 py-2 text-sm hover:bg-muted transition-colors"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button
+              onClick={handleToday}
+              className="rounded-lg border border-border bg-card px-3 py-2 text-xs font-medium hover:bg-muted transition-colors"
+            >
+              Today
+            </button>
+            <button
+              onClick={handleNext}
+              className="flex items-center gap-1 rounded-lg border border-border bg-card px-3 py-2 text-sm hover:bg-muted transition-colors"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="text-sm font-semibold text-foreground">{navLabel}</div>
         </div>
 
-        {/* Day headers */}
-        <div className="grid grid-cols-7 gap-2">
-          {days.map((day, i) => {
-            const dateNum = 8 + i;
-            const dayShifts = weekShifts.filter((s) => s.day === day);
-            const isToday = day === "Mon";
-            return (
-              <div
-                key={day}
-                className={`rounded-xl border p-3 text-center transition-colors ${isToday ? "border-primary/50 bg-primary/5" : "border-border bg-card"}`}
-              >
-                <div
-                  className={`text-xs font-medium uppercase tracking-wide ${isToday ? "text-primary" : "text-muted-foreground"}`}
-                >
-                  {day}
-                </div>
-                <div
-                  className={`text-lg font-bold mt-0.5 ${isToday ? "text-primary" : "text-foreground"}`}
-                >
-                  {dateNum}
-                </div>
-                <div className="mt-1.5 flex flex-wrap justify-center gap-1">
-                  {dayShifts.map((s) => {
-                    const cfg = shiftConfig[s.role];
-                    return (
-                      <div
-                        key={s.id}
-                        className={`h-1.5 w-4 rounded-full ${cfg.accent} opacity-70`}
-                        title={s.role}
-                      />
-                    );
-                  })}
-                </div>
+        {/* ────── MONTH VIEW ────── */}
+        {view === "month" && (() => {
+          const monthStart = new Date(weekRange.start.getFullYear(), weekRange.start.getMonth(), 1);
+          const monthEnd = new Date(weekRange.start.getFullYear(), weekRange.start.getMonth() + 1, 0);
+          const startDay = monthStart.getDay() === 0 ? 6 : monthStart.getDay() - 1;
+          const cells: (Date | null)[] = [];
+          for (let i = 0; i < startDay; i++) cells.push(null);
+          for (let d = 1; d <= monthEnd.getDate(); d++) {
+            cells.push(new Date(monthStart.getFullYear(), monthStart.getMonth(), d));
+          }
+          while (cells.length % 7 !== 0) cells.push(null);
+
+          return (
+            <div className="rounded-xl border border-border bg-card overflow-hidden">
+              <div className="grid grid-cols-7 border-b border-border bg-muted/40">
+                {days.map((d) => (
+                  <div key={d} className="px-2 py-2.5 text-center text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    {d}
+                  </div>
+                ))}
               </div>
-            );
-          })}
-        </div>
+              <div className="grid grid-cols-7">
+                {cells.map((cell, i) => {
+                  if (!cell) {
+                    return <div key={`empty-${i}`} className="min-h-[80px] border-b border-r border-border bg-muted/10" />;
+                  }
+                  const ds = toDateStr(cell);
+                  const isT = ds === todayStr;
+                  const dayShifts = weekShifts.filter((s) => s.date === ds);
+                  const dayAppts = appointmentsByDate.get(ds) || [];
+                  const totalEvents = dayShifts.length + dayAppts.length;
 
-        {/* Shift cards */}
-        <div>
-          <div className="mb-3 text-sm font-semibold text-foreground">This Week's Shifts</div>
-          <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-3">
-            {weekShifts.map((s) => (
-              <ShiftCard key={s.id} shift={s} />
-            ))}
-          </motion.div>
-        </div>
+                  return (
+                    <div
+                      key={ds}
+                      className={`min-h-[80px] border-b border-r border-border p-1.5 transition-colors cursor-pointer hover:bg-muted/30 ${
+                        isT ? "bg-primary/5" : ""
+                      }`}
+                      onClick={() => { setView("day"); setWeekOffset(Math.round((cell.getTime() - new Date().getTime()) / (7 * 86400000))); }}
+                    >
+                      <div className={`text-xs font-semibold mb-1 ${isT ? "text-primary" : "text-foreground"}`}>
+                        {cell.getDate()}
+                      </div>
+                      <div className="flex flex-wrap gap-0.5">
+                        {dayShifts.slice(0, 3).map((s) => {
+                          const cfg = shiftConfig[s.role];
+                          return <div key={s.id} className={`h-1.5 w-3 rounded-full ${cfg.accent} opacity-70`} title={s.role} />;
+                        })}
+                        {dayAppts.slice(0, 3).map((a: any, j: number) => (
+                          <div key={j} className={`h-1.5 w-3 rounded-full ${a.mode === "tele" ? "bg-chart-4" : "bg-primary"} opacity-70`} title={a.patientName} />
+                        ))}
+                      </div>
+                      {totalEvents > 0 && (
+                        <div className="text-[9px] text-muted-foreground mt-0.5">{totalEvents} event{totalEvents > 1 ? "s" : ""}</div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
 
-        {/* Upcoming */}
+        {/* ────── WEEK VIEW ────── */}
+        {view === "week" && (
+          <>
+            <div className="grid grid-cols-7 gap-2">
+              {weekDates.map((wd) => {
+                const ds = toDateStr(wd);
+                const dayName = wd.toLocaleDateString("en-US", { weekday: "short" });
+                const dayShifts = weekShifts.filter((s) => s.day === dayName || s.date === ds);
+                const dayAppts = appointmentsByDate.get(ds) || [];
+                const isT = ds === todayStr;
+                return (
+                  <div
+                    key={ds}
+                    className={`rounded-xl border p-3 text-center transition-colors ${
+                      isT ? "border-primary/50 bg-primary/5 ring-1 ring-primary/20" : "border-border bg-card"
+                    }`}
+                  >
+                    <div className={`text-xs font-medium uppercase tracking-wide ${isT ? "text-primary" : "text-muted-foreground"}`}>
+                      {dayName}
+                    </div>
+                    <div className={`text-lg font-bold mt-0.5 ${isT ? "text-primary" : "text-foreground"}`}>
+                      {wd.getDate()}
+                    </div>
+                    <div className="mt-1.5 flex flex-wrap justify-center gap-1">
+                      {dayShifts.map((s) => {
+                        const cfg = shiftConfig[s.role];
+                        return <div key={s.id} className={`h-1.5 w-4 rounded-full ${cfg.accent} opacity-70`} title={s.role} />;
+                      })}
+                      {dayAppts.map((_: any, j: number) => (
+                        <div key={`a-${j}`} className="h-1.5 w-4 rounded-full bg-primary opacity-50" title="Appointment" />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div>
+              <div className="mb-3 text-sm font-semibold text-foreground">This Week&apos;s Shifts</div>
+              <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-3">
+                {weekShifts.map((s) => (
+                  <ShiftCard key={s.id} shift={s} />
+                ))}
+                {weekShifts.length === 0 && (
+                  <div className="py-6 text-center text-sm text-muted-foreground">No shifts scheduled this week</div>
+                )}
+              </motion.div>
+            </div>
+          </>
+        )}
+
+        {/* ────── DAY VIEW ────── */}
+        {view === "day" && (() => {
+          const dayShifts = weekShifts.filter((s) => {
+            const dateMatch = weekDates.some((wd) => toDateStr(wd) === s.date);
+            return dateMatch && s.role !== "Off" && s.role !== "Leave";
+          });
+          const dayAppts = weekDates.flatMap((wd) => (appointmentsByDate.get(toDateStr(wd)) || []));
+          const hours = Array.from({ length: 14 }, (_, i) => i + 7);
+          const now = new Date();
+          const nowH = now.getHours();
+          const nowM = now.getMinutes();
+
+          return (
+            <div className="rounded-xl border border-border bg-card overflow-hidden">
+              <div className="relative">
+                {hours.map((h) => (
+                  <div key={h} className="flex border-b border-border min-h-[56px]">
+                    <div className="w-16 shrink-0 py-2 px-3 text-xs text-muted-foreground font-medium border-r border-border bg-muted/20">
+                      {h.toString().padStart(2, "0")}:00
+                    </div>
+                    <div className="flex-1 px-2 py-1 flex flex-wrap gap-1.5">
+                      {dayShifts
+                        .filter((s) => {
+                          const [sh] = s.start.split(":").map(Number);
+                          return sh === h;
+                        })
+                        .map((s) => {
+                          const cfg = shiftConfig[s.role];
+                          const Icon = cfg.icon;
+                          return (
+                            <div key={s.id} className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium ${cfg.bg} ${cfg.text} ${cfg.border} border`}>
+                              <Icon className="h-3 w-3" />
+                              {s.role} · {s.unit} · {s.start}–{s.end}
+                            </div>
+                          );
+                        })}
+                      {dayAppts
+                        .filter((a: any) => {
+                          const slot = a.slot || a.time || "";
+                          const match = slot.match(/(\d{1,2})/);
+                          if (!match) return h === 10;
+                          let parsed = parseInt(match[1]);
+                          if (slot.toLowerCase().includes("pm") && parsed < 12) parsed += 12;
+                          return parsed === h;
+                        })
+                        .map((a: any, j: number) => (
+                          <div key={`appt-${j}`} className="inline-flex items-center gap-1.5 rounded-md border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+                            <Stethoscope className="h-3 w-3" />
+                            {a.patientName || "Patient"} · {a.specialty || "Consultation"}
+                            {a.mode === "tele" && <Video className="h-3 w-3" />}
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                ))}
+
+                {/* Current time indicator */}
+                {nowH >= 7 && nowH <= 20 && weekOffset === 0 && (
+                  <div
+                    className="absolute left-0 right-0 flex items-center z-10 pointer-events-none"
+                    style={{ top: `${((nowH - 7) * 56) + (nowM / 60) * 56}px` }}
+                  >
+                    <div className="h-2.5 w-2.5 rounded-full bg-destructive -ml-1 shadow-sm" />
+                    <div className="flex-1 h-[2px] bg-destructive/70" />
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Upcoming appointments */}
         <div className="rounded-xl border border-border bg-card p-5">
           <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-foreground">
             <Calendar className="h-4 w-4 text-primary" />
-            Upcoming Events
+            Upcoming Appointments
           </div>
           <div className="space-y-2">
-            {upcomingEvents.length === 0 ? (
+            {doctorAppointments.length === 0 ? (
               <div className="py-4 text-center text-xs text-muted-foreground">No upcoming appointments</div>
-            ) : upcomingEvents.map((e, i) => (
-              <div key={i} className="flex items-center gap-3 rounded-lg bg-muted/50 px-3 py-2.5">
-                <div
-                  className={`h-2 w-2 rounded-full ${e.type === "on-call" ? "bg-destructive" : e.type === "education" ? "bg-primary" : "bg-chart-2"}`}
-                />
-                <div className="flex-1 text-sm font-medium text-foreground">{e.label}</div>
-                <div className="text-xs text-muted-foreground">{e.date}</div>
+            ) : doctorAppointments.slice(0, 8).map((a: any, i: number) => (
+              <div key={a.apptId ?? i} className="flex items-center gap-3 rounded-lg bg-muted/50 px-3 py-2.5">
+                <div className={`h-2 w-2 rounded-full ${a.mode === "tele" ? "bg-chart-4" : "bg-primary"}`} />
+                <div className="flex-1">
+                  <div className="text-sm font-medium text-foreground">
+                    {a.patientName ?? "Patient"} — {a.specialty ?? a.mode ?? "Consultation"}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground">
+                    {a.status || "confirmed"} · {a.mode === "tele" ? "Telehealth" : "In-person"}
+                  </div>
+                </div>
+                <div className="text-xs text-muted-foreground">{a.date ?? a.slot?.split(" · ")[0] ?? "—"}</div>
               </div>
             ))}
           </div>

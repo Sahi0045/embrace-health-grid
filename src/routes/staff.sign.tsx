@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHeader } from "@/components/PageHeader";
 import { RouteGuard } from "@/components/RouteGuard";
@@ -28,9 +28,10 @@ import {
   Send,
 } from "lucide-react";
 import { toast } from "sonner";
-import { signPrescription, logAuditEvent, requestConsent } from "@/lib/api";
+import { signPrescription, logAuditEvent, requestConsent, getAppointments } from "@/lib/api";
 import { usePrescriptions, useLivePatients } from "@/hooks/use-api";
 import { getCurrentUser } from "@/lib/auth";
+
 
 export const Route = createFileRoute("/staff/sign")({
   head: () => ({ meta: [{ title: "Staff · Sign & Prescribe — Embrace Health Grid" }] }),
@@ -271,34 +272,83 @@ function SignPage() {
   const [showRecent, setShowRecent] = useState(true);
 
   const { data: rxData } = usePrescriptions();
-  const recentPrescriptions: RecentPrescription[] = ((rxData?.prescriptions ?? []) as any[])
-    .filter((rx: any) => rx.signed || rx.status === "signed")
-    .slice(0, 10)
-    .map((rx: any) => ({
-      id: rx.rxId ?? rx.id ?? "—",
-      patient: rx.patientName ?? rx.patientDid ?? "Unknown",
-      mrn: rx.mrn ?? "—",
-      drugs: Array.isArray(rx.drugs) ? rx.drugs.map((d: any) => d.name ?? d) : [],
-      signedAt: rx.signedAt ?? rx.date ?? "—",
-      hash: rx.txId ? `sha256:${rx.txId.slice(0, 8)}…` : "—",
-      status: (rx.status === "dispensed" ? "dispensed" : "active") as "active" | "dispensed" | "expired",
-    }));
 
   const { patients: livePatients = [] } = useLivePatients();
-  const patientList = livePatients.map((p) => ({
-    name: p.name || "Unknown",
-    mrn: p.mrn || "—",
-    dob: p.dob || "—",
-    ward: p.ward || "—",
-    did: p.did || "",
-  }));
 
-  const [selectedPatientIdx, setSelectedPatientIdx] = useState(0);
-  const patient = patientList[selectedPatientIdx] ?? { name: "—", mrn: "—", dob: "—", ward: "—", did: "" };
+  const currentUser = getCurrentUser();
+  const doctorDid = currentUser?.did ?? (typeof window !== "undefined" ? localStorage.getItem("userDID") ?? "" : "");
+  const doctorName = currentUser?.name ?? (typeof window !== "undefined" ? localStorage.getItem("userName") ?? "Doctor" : "Doctor");
 
-  const [diagnosis, setDiagnosis] = useState(
-    "Dyslipidaemia with cardiovascular risk — statin therapy initiated",
+  const [doctorAppointments, setDoctorAppointments] = useState<any[]>([]);
+  useEffect(() => {
+    getAppointments()
+      .then((res) => {
+        const appts = (res.appointments ?? []) as any[];
+        const mine = appts.filter(
+          (a: any) => a.doctorDid === doctorDid || (doctorName && a.doctorName === doctorName),
+        );
+        setDoctorAppointments(mine);
+      })
+      .catch(() => {});
+  }, [doctorDid, doctorName]);
+
+  const myPatientDids = useMemo(
+    () => new Set(doctorAppointments.map((a) => a.patientDid).filter(Boolean)),
+    [doctorAppointments],
   );
+
+  const patientList = useMemo(() => {
+    const base = myPatientDids.size > 0
+      ? livePatients.filter((p) => myPatientDids.has(p.did))
+      : livePatients;
+    return base.map((p) => ({
+      name: p.name || "Unknown",
+      mrn: p.mrn || "—",
+      dob: p.dob || "—",
+      ward: p.ward || "—",
+      did: p.did || "",
+      age: (p as any).age || "—",
+      gender: (p as any).gender || "—",
+      bloodGroup: (p as any).bloodGroup || "—",
+      conditions: (p as any).conditions || [],
+      allergies: (p as any).allergies || [],
+    }));
+  }, [livePatients, myPatientDids]);
+
+  const [selectedPatientDid, setSelectedPatientDid] = useState("");
+  const [patientSearch, setPatientSearch] = useState("");
+  const [showPatientDropdown, setShowPatientDropdown] = useState(false);
+  const patient = patientList.find((p) => p.did === selectedPatientDid) ?? null;
+
+  const filteredPatients = useMemo(() => {
+    if (!patientSearch.trim()) return patientList;
+    const lq = patientSearch.toLowerCase();
+    return patientList.filter(
+      (p) => p.name.toLowerCase().includes(lq) || p.mrn.toLowerCase().includes(lq),
+    );
+  }, [patientList, patientSearch]);
+
+  const recentPrescriptions: RecentPrescription[] = useMemo(() => {
+    const all = ((rxData?.prescriptions ?? []) as any[])
+      .filter((rx: any) => rx.signed || rx.status === "signed")
+      .slice(0, 20)
+      .map((rx: any) => ({
+        id: rx.rxId ?? rx.id ?? "—",
+        patient: rx.patientName ?? rx.patientDid ?? "Unknown",
+        patientDid: rx.patientDid ?? "",
+        mrn: rx.mrn ?? "—",
+        drugs: Array.isArray(rx.drugs) ? rx.drugs.map((d: any) => d.name ?? d) : [],
+        signedAt: rx.signedAt ?? rx.date ?? "—",
+        hash: rx.txId ? `sha256:${rx.txId.slice(0, 8)}…` : "—",
+        status: (rx.status === "dispensed" ? "dispensed" : "active") as "active" | "dispensed" | "expired",
+      }));
+    if (selectedPatientDid) {
+      return all.filter((rx) => rx.patientDid === selectedPatientDid || rx.patient === patient?.name);
+    }
+    return all.slice(0, 10);
+  }, [rxData, selectedPatientDid, patient]);
+
+  const [diagnosis, setDiagnosis] = useState("");
   const [notes, setNotes] = useState("");
 
   // ─── Consent request state ──────────────────────────────────────────────────
@@ -306,9 +356,6 @@ function SignPage() {
   const [consentReason, setConsentReason] = useState("");
   const [sendingConsent, setSendingConsent] = useState(false);
 
-  const currentUser = getCurrentUser();
-  const doctorDid = currentUser?.did ?? (typeof window !== "undefined" ? localStorage.getItem("userDID") ?? "" : "");
-  const doctorName = currentUser?.name ?? (typeof window !== "undefined" ? localStorage.getItem("userName") ?? "Doctor" : "Doctor");
 
   const handleRequestConsent = async () => {
     if (!consentReason.trim()) {
@@ -320,7 +367,7 @@ function SignPage() {
       await requestConsent({
         doctorDid,
         doctorName,
-        patientDid: patient.did,
+        patientDid: patient?.did ?? "",
         resource: consentResource,
         reason: consentReason,
       });
@@ -350,12 +397,16 @@ function SignPage() {
       toast.error("Add at least one medication before signing");
       return;
     }
+    if (!patient) {
+      toast.error("Please select a patient first");
+      return;
+    }
     setSigning(true);
 
     try {
       // Local signing path using the backend REST API.
       const result = await signPrescription({
-        patientDid: patient.did,
+        patientDid: patient?.did ?? "",
         doctorDid,
         drugs: drugs.map((d) => ({
           name: d.name,
@@ -405,36 +456,99 @@ function SignPage() {
         <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
           {/* Left: Prescription builder */}
           <div className="space-y-5">
-            {/* Patient info */}
+            {/* Patient selector */}
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               className="rounded-xl border border-border bg-card p-5"
             >
-              <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-foreground">
-                <User className="h-4 w-4 text-primary" /> Patient
+              <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
+                <User className="h-4 w-4 text-primary" /> Select Patient
               </div>
-              <div className="grid gap-3 sm:grid-cols-2 text-sm">
-                {[
-                  { k: "Name", v: patient.name },
-                  { k: "MRN", v: patient.mrn },
-                  { k: "DOB", v: patient.dob },
-                  { k: "Ward", v: patient.ward },
-                ].map((r) => (
-                  <div key={r.k} className="rounded-lg bg-muted/50 px-3 py-2">
-                    <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      {r.k}
-                    </div>
-                    <div className="mt-0.5 font-medium text-foreground">{r.v}</div>
-                  </div>
-                ))}
-                <div className="sm:col-span-2 rounded-lg bg-muted/50 px-3 py-2">
-                  <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    Patient DID
-                  </div>
-                  <div className="mt-0.5 font-mono text-xs text-primary">{patient.did}</div>
+              <div className="relative">
+                <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2">
+                  <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <input
+                    value={patientSearch}
+                    onChange={(e) => {
+                      setPatientSearch(e.target.value);
+                      setShowPatientDropdown(true);
+                    }}
+                    onFocus={() => setShowPatientDropdown(true)}
+                    placeholder="Search patient by name or MRN…"
+                    className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+                  />
+                  {patient && (
+                    <span className="shrink-0 text-xs font-medium text-primary">{patient.name}</span>
+                  )}
                 </div>
+                {showPatientDropdown && filteredPatients.length > 0 && (
+                  <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-48 overflow-y-auto rounded-lg border border-border bg-card shadow-lg">
+                    {filteredPatients.map((p) => (
+                      <button
+                        key={p.did}
+                        onClick={() => {
+                          setSelectedPatientDid(p.did);
+                          setPatientSearch("");
+                          setShowPatientDropdown(false);
+                        }}
+                        className={`w-full text-left px-3 py-2 text-sm hover:bg-muted/50 transition-colors flex items-center justify-between ${
+                          p.did === selectedPatientDid ? "bg-primary/5 text-primary" : "text-foreground"
+                        }`}
+                      >
+                        <span className="font-medium">{p.name}</span>
+                        <span className="text-xs text-muted-foreground">{p.mrn}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
+
+              {patient && (
+                <div className="mt-4 grid gap-3 sm:grid-cols-2 text-sm">
+                  {[
+                    { k: "Name", v: patient.name },
+                    { k: "MRN", v: patient.mrn },
+                    { k: "Age / Gender", v: `${patient.age}y · ${patient.gender}` },
+                    { k: "Blood Group", v: patient.bloodGroup },
+                  ].map((r) => (
+                    <div key={r.k} className="rounded-lg bg-muted/50 px-3 py-2">
+                      <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        {r.k}
+                      </div>
+                      <div className="mt-0.5 font-medium text-foreground">{r.v}</div>
+                    </div>
+                  ))}
+                  {patient.conditions.length > 0 && (
+                    <div className="sm:col-span-2 rounded-lg bg-muted/50 px-3 py-2">
+                      <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Conditions</div>
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {patient.conditions.map((c: string) => (
+                          <span key={c} className="rounded-md bg-primary/10 text-primary px-2 py-0.5 text-xs font-medium">{c}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {patient.allergies.length > 0 && (
+                    <div className="sm:col-span-2 rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2">
+                      <div className="text-[10px] font-semibold uppercase tracking-wider text-destructive">Allergies</div>
+                      <div className="mt-0.5 text-sm font-medium text-destructive">{patient.allergies.join(", ")}</div>
+                    </div>
+                  )}
+                  <div className="sm:col-span-2 rounded-lg bg-muted/50 px-3 py-2">
+                    <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Patient DID
+                    </div>
+                    <div className="mt-0.5 font-mono text-xs text-primary">{patient.did}</div>
+                  </div>
+                </div>
+              )}
+
+              {!patient && (
+                <div className="mt-4 py-4 text-center text-sm text-muted-foreground">
+                  Select a patient to begin prescribing
+                </div>
+              )}
             </motion.div>
 
             {/* Diagnosis */}
@@ -514,7 +628,7 @@ function SignPage() {
             </motion.div>
 
             {/* Request Data Access */}
-            {patient.did && (
+            {patient?.did && (
               <motion.div
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
