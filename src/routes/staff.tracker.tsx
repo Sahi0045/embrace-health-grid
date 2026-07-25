@@ -2,8 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useCallback } from "react";
 import { RouteGuard } from "@/components/RouteGuard";
 import { PageHeader } from "@/components/PageHeader";
-import { getLiveStaff, storeEvents, type LiveStaff } from "@/lib/realtime-store";
+import { getLiveStaff, storeEvents, updateStaffLocation, type LiveStaff } from "@/lib/realtime-store";
 import { dispatchPagerNotify } from "@/lib/api";
+import { useDoctors } from "@/hooks/use-api";
 import {
   MapPin,
   ShieldAlert,
@@ -16,6 +17,9 @@ import {
   Activity,
   Users,
   CheckCircle,
+  ShieldCheck,
+  Building2,
+  Edit3,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -26,6 +30,7 @@ export const Route = createFileRoute("/staff/tracker")({
 });
 
 function DoctorLocatorPage() {
+  const { data: doctorsData } = useDoctors();
   const [staff, setStaff] = useState<LiveStaff[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -33,12 +38,59 @@ function DoctorLocatorPage() {
   const [statusFilter, setStatusFilter] = useState("All");
   const [logs, setLogs] = useState<{ id: string; time: string; event: string }[]>([]);
   const [lastUpdate, setLastUpdate] = useState(new Date().toLocaleTimeString());
+  const [editingDoctor, setEditingDoctor] = useState<LiveStaff | null>(null);
+  const [newRoomName, setNewRoomName] = useState("");
 
   const refresh = useCallback(() => {
-    const data = getLiveStaff();
-    setStaff(data);
+    const liveList = getLiveStaff();
+    const apiDocs = doctorsData?.doctors || [];
+
+    // Merge backend doctors into live staff list so all DID doctors appear on locator page
+    const mergedMap = new Map<string, LiveStaff>();
+
+    liveList.forEach((s) => {
+      mergedMap.set(s.did || s.id, s);
+    });
+
+    apiDocs.forEach((d: any, idx: number) => {
+      const did = d.did || `did:hosp:0x${(d.id || idx.toString()).replace("doc_", "")}`;
+      const existing = mergedMap.get(did) || Array.from(mergedMap.values()).find((s) => s.name === d.name);
+
+      if (existing) {
+        mergedMap.set(existing.id, {
+          ...existing,
+          did: existing.did || did,
+          specialty: existing.specialty || d.specialty || d.department || "Specialist",
+          department: existing.department || d.department || "OPD",
+        });
+      } else {
+        const id = d.id || `doc_${idx}`;
+        const newStaff: LiveStaff = {
+          id,
+          name: d.name,
+          role: "Doctor",
+          department: d.department || "OPD",
+          specialty: d.specialty || "General Medicine",
+          did: did,
+          employeeId: `EMP-${1000 + idx}`,
+          currentLocation: d.status === "Available" ? `Room ${101 + (idx % 10)} - OPD` : "Off Duty",
+          status: d.status || "Available",
+          beaconStrength: `${85 + (idx % 12)}%`,
+          lastSignal: new Date().toLocaleTimeString(),
+          onDuty: true,
+          isOnChain: true,
+          activeCredentials: [
+            { id: `vc_${idx}_1`, type: "ProfessionalVC" },
+            { id: `vc_${idx}_2`, type: "AccessVC" },
+          ],
+        };
+        mergedMap.set(did, newStaff);
+      }
+    });
+
+    setStaff(Array.from(mergedMap.values()));
     setLastUpdate(new Date().toLocaleTimeString());
-  }, []);
+  }, [doctorsData]);
 
   useEffect(() => {
     refresh();
@@ -61,7 +113,7 @@ function DoctorLocatorPage() {
     };
 
     storeEvents.addEventListener("staff:location:update", locHandler);
-    const poll = setInterval(refresh, 5000);
+    const poll = setInterval(refresh, 3000);
     return () => {
       storeEvents.removeEventListener("staff:location:update", locHandler);
       clearInterval(poll);
@@ -222,11 +274,17 @@ function DoctorLocatorPage() {
                         <div>{s.role}</div>
                         <div className="text-[9px]">{s.department}</div>
                       </td>
-                      <td className="px-4 py-3 font-mono text-primary text-[9px] max-w-[120px] truncate">
-                        {s.did}
+                      <td className="px-4 py-3 font-mono text-primary text-[9px] max-w-[140px]">
+                        <div className="flex items-center gap-1">
+                          <ShieldCheck className="h-3 w-3 text-success shrink-0" />
+                          <span className="truncate">{s.did}</span>
+                        </div>
                       </td>
                       <td className="px-4 py-3 font-semibold text-foreground">
-                        {s.currentLocation}
+                        <div className="flex items-center gap-1.5">
+                          <Building2 className="h-3 w-3 text-primary shrink-0" />
+                          <span>{s.currentLocation}</span>
+                        </div>
                       </td>
                       <td className="px-4 py-3">
                         <span
@@ -248,7 +306,24 @@ function DoctorLocatorPage() {
                       <td className="px-4 py-3 text-muted-foreground font-mono text-[9px]">
                         {s.lastSignal}
                       </td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-3 text-right space-x-1">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const room = prompt(`Enter new location / room for ${s.name}:`, s.currentLocation);
+                            if (room && room.trim()) {
+                              updateStaffLocation(s.did, room.trim());
+                              updateStaffLocation(s.name, room.trim());
+                              toast.success(`Location Updated`, {
+                                description: `Moved ${s.name} to ${room.trim()}`,
+                              });
+                              refresh();
+                            }
+                          }}
+                          className="inline-flex items-center gap-1 rounded-lg bg-secondary/80 text-secondary-foreground px-2 py-1 text-[9px] font-bold hover:bg-secondary"
+                        >
+                          <Edit3 className="h-2.5 w-2.5" /> Check-In Room
+                        </button>
                         {s.onDuty && (
                           <button
                             onClick={(e) => {

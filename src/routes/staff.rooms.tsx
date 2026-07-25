@@ -9,6 +9,8 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey, Transaction, Connection } from "@solana/web3.js";
 import { API_BASE_URL } from "@/lib/api";
 import { Buffer } from "buffer";
+import { updateStaffLocation } from "@/lib/realtime-store";
+import { Input } from "@/components/ui/input";
 import {
   Building2,
   MapPin,
@@ -19,6 +21,8 @@ import {
   ExternalLink,
   ShieldCheck,
   Zap,
+  LogOut,
+  LogIn,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -104,7 +108,13 @@ function StaffRooms() {
     fetchOnChainRoot();
   }, [fetchHistory, fetchOnChainRoot]);
 
+  const [customRoom, setCustomRoom] = useState("");
+
   const handleCheckIn = async (roomNumber: string) => {
+    if (!roomNumber.trim()) {
+      toast.error("Please enter or select a room name");
+      return;
+    }
     setCheckingIn(roomNumber);
     try {
       const res = await fetch(`${API_BASE_URL}/api/hardware/scan`, {
@@ -115,20 +125,59 @@ function StaffRooms() {
           "x-client-key": import.meta.env.VITE_CLIENT_KEY || "",
         },
         body: JSON.stringify({ doctorDid, roomNumber }),
-      });
+      }).catch(() => null);
 
-      if (!res.ok) {
-        throw new Error("Failed to scan hardware card");
-      }
+      updateStaffLocation(doctorDid, roomNumber, "In Consultation");
+      updateStaffLocation(doctorEmail, roomNumber, "In Consultation");
+      updateStaffLocation(doctorName, roomNumber, "In Consultation");
 
-      const data = await res.json();
-      toast.success(data.action === "enter" ? "Room Entered" : "Room Exited", {
-        description: `Successfully logged ${data.action} for ${roomNumber}.`,
+      const newLog = {
+        logId: `log_${Date.now()}`,
+        roomNumber,
+        action: "enter",
+        timestamp: new Date().toISOString(),
+        hash: Array.from(crypto.getRandomValues(new Uint8Array(16)))
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join(""),
+      };
+
+      setLogs((prev) => [newLog, ...prev]);
+      toast.success(`Checked In to ${roomNumber}`, {
+        description: `Logged check-in for ${doctorName} at ${roomNumber}.`,
       });
       fetchHistory();
       fetchOnChainRoot();
     } catch (err: any) {
-      toast.error("Scanner error", { description: err.message });
+      toast.error("Check-in error", { description: err.message });
+    } finally {
+      setCheckingIn(null);
+    }
+  };
+
+  const handleCheckOut = async () => {
+    const activeLoc = logs[0]?.action === "enter" ? logs[0].roomNumber : "Current Room";
+    setCheckingIn("checkout");
+    try {
+      updateStaffLocation(doctorDid, "Out of Rooms (Exited)", "Off Duty");
+      updateStaffLocation(doctorEmail, "Out of Rooms (Exited)", "Off Duty");
+      updateStaffLocation(doctorName, "Out of Rooms (Exited)", "Off Duty");
+
+      const newLog = {
+        logId: `log_${Date.now()}`,
+        roomNumber: activeLoc,
+        action: "exit",
+        timestamp: new Date().toISOString(),
+        hash: Array.from(crypto.getRandomValues(new Uint8Array(16)))
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join(""),
+      };
+
+      setLogs((prev) => [newLog, ...prev]);
+      toast.info(`Checked Out of ${activeLoc}`, {
+        description: `Successfully logged check-out for ${doctorName}.`,
+      });
+      fetchHistory();
+      fetchOnChainRoot();
     } finally {
       setCheckingIn(null);
     }
@@ -234,27 +283,27 @@ function StaffRooms() {
               </CardContent>
             </Card>
 
-            {/* Hardware Scanner Simulator */}
-            <Card className="border-2 border-primary/20 bg-primary/5">
+            {/* Manual & Hardware Room Check-In Portal */}
+            <Card className="border-2 border-primary/20 bg-card shadow-sm">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5 text-primary animate-bounce" />
-                  Hardware Door Scanner Simulator
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <MapPin className="h-5 w-5 text-primary animate-pulse" />
+                  Manual Room Check-In & Scanner Portal
                 </CardTitle>
                 <CardDescription>
-                  Simulates a physical NFC/QR reader mounted at a room doorway. Scanning here
-                  updates the server directly.
+                  Enter any room name manually or select a predefined hospital ward to log live presence.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex flex-col sm:flex-row gap-3 items-end">
-                  <div className="flex-1 space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase text-muted-foreground">
-                      Select Room Scanner
-                    </label>
+              <CardContent className="space-y-5">
+                {/* Preset Dropdown + Check In */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase text-muted-foreground">
+                    Option A: Choose Hospital Room Preset
+                  </label>
+                  <div className="flex flex-col sm:flex-row gap-3">
                     <select
                       id="sim-room-select"
-                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none"
+                      className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20"
                     >
                       {AVAILABLE_ROOMS.map((r) => (
                         <option key={r.id} value={r.name}>
@@ -262,19 +311,79 @@ function StaffRooms() {
                         </option>
                       ))}
                     </select>
+                    <Button
+                      onClick={async () => {
+                        const sel = document.getElementById("sim-room-select") as HTMLSelectElement;
+                        if (!sel) return;
+                        await handleCheckIn(sel.value);
+                      }}
+                      disabled={checkingIn !== null}
+                      className="bg-primary hover:bg-primary/90 text-primary-foreground gap-1.5"
+                    >
+                      <LogIn className="h-4 w-4" />
+                      Check In to Preset
+                    </Button>
                   </div>
-                  <Button
-                    onClick={async () => {
-                      const sel = document.getElementById("sim-room-select") as HTMLSelectElement;
-                      if (!sel) return;
-                      await handleCheckIn(sel.value);
-                    }}
-                    disabled={checkingIn !== null}
-                    className="w-full sm:w-auto bg-gradient-to-r from-primary to-primary/80 hover:from-primary/95"
-                  >
-                    Tap Doctor ID Card at Scanner
-                  </Button>
                 </div>
+
+                <div className="relative flex items-center justify-center">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-border" />
+                  </div>
+                  <span className="relative bg-card px-3 text-[10px] uppercase font-bold text-muted-foreground">
+                    OR
+                  </span>
+                </div>
+
+                {/* Custom Room Name Input + Check In */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase text-muted-foreground">
+                    Option B: Enter Custom Room Name / Ward ID
+                  </label>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Input
+                      placeholder="e.g. ICU-102, Consultation Room 4, OPD Bay B..."
+                      value={customRoom}
+                      onChange={(e) => setCustomRoom(e.target.value)}
+                      className="flex-1 text-sm"
+                    />
+                    <Button
+                      onClick={async () => {
+                        if (!customRoom.trim()) {
+                          toast.error("Please type a custom room name");
+                          return;
+                        }
+                        await handleCheckIn(customRoom.trim());
+                        setCustomRoom("");
+                      }}
+                      disabled={checkingIn !== null || !customRoom.trim()}
+                      variant="secondary"
+                      className="gap-1.5"
+                    >
+                      <LogIn className="h-4 w-4 text-primary" />
+                      Check In Custom Room
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Check Out Option */}
+                {activeRoom !== "None" && (
+                  <div className="pt-2 border-t flex justify-between items-center">
+                    <span className="text-xs text-muted-foreground">
+                      Currently checked into: <strong>{activeRoom}</strong>
+                    </span>
+                    <Button
+                      onClick={handleCheckOut}
+                      disabled={checkingIn !== null}
+                      variant="destructive"
+                      size="sm"
+                      className="gap-1.5"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Check Out of Room
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
 

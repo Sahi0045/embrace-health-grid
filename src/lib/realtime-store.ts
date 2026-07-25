@@ -785,6 +785,54 @@ export function getLiveStaff(): LiveStaff[] {
   });
 }
 
+export function updateStaffLocation(idOrDid: string, location: string, status?: string) {
+  const staffMember = _liveStaff.find(
+    (s) => s.did === idOrDid || s.id === idOrDid || s.email === idOrDid || s.name === idOrDid
+  );
+  const targetId = staffMember ? staffMember.id : idOrDid;
+  const locLower = location.toLowerCase();
+  const newStatus =
+    status ??
+    (locLower.includes("surgery") || locLower.includes("ot")
+      ? "In Surgery"
+      : locLower.includes("emergency") || locLower.includes("er")
+        ? "Emergency Response"
+        : locLower.includes("off duty") || locLower.includes("exited")
+          ? "Off Duty"
+          : "In Consultation");
+
+  const now = new Date().toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+
+  _staffLocations.set(targetId, {
+    location,
+    status: newStatus,
+    lastSignal: now,
+    beacon: `${80 + Math.floor(Math.random() * 20)}%`,
+  });
+
+  if (staffMember) {
+    staffMember.currentLocation = location;
+    staffMember.status = newStatus as any;
+    staffMember.lastSignal = now;
+    _staffLocations.set(staffMember.did, {
+      location,
+      status: newStatus,
+      lastSignal: now,
+      beacon: `${80 + Math.floor(Math.random() * 20)}%`,
+    });
+  }
+
+  emitStoreEvent("staff:location:update", {
+    memberId: targetId,
+    location,
+    status: newStatus,
+  });
+}
+
 export function getLiveAppointments(): LiveAppointment[] {
   return Array.from(_appointments.values());
 }
