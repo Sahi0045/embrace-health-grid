@@ -1214,7 +1214,7 @@ app.get(
 
 // ─── Doctor Location Check-In & Tracking ────────────────────────────────────
 app.post("/api/hardware/scan", (req, res) => {
-  const { doctorDid, roomNumber } = req.body;
+  const { doctorDid, roomNumber, action: reqAction } = req.body;
   if (!doctorDid || !roomNumber) {
     return res.status(400).json({ error: "doctorDid and roomNumber are required" });
   }
@@ -1241,9 +1241,9 @@ app.post("/api/hardware/scan", (req, res) => {
   const sortedLogs = [...all].sort((a, b) => b.value.timestamp.localeCompare(a.value.timestamp));
   const lastLog = sortedLogs[0]?.value;
 
-  // Toggle action
-  let action = "enter";
-  if (lastLog && lastLog.roomNumber === roomNumber && lastLog.action === "enter") {
+  // Toggle action or use explicitly passed action
+  let action = reqAction || "enter";
+  if (!reqAction && lastLog && lastLog.roomNumber === roomNumber && lastLog.action === "enter") {
     action = "exit";
   }
 
@@ -1267,20 +1267,37 @@ app.post("/api/hardware/scan", (req, res) => {
   putState("doctor-locations", logId, log, txId);
 
   // 4. Update doctor status
-  doctorUser.activeRoom = action === "enter" ? roomNumber : "None";
+  const roomLower = roomNumber.toLowerCase();
+  const calculatedStatus =
+    action === "enter"
+      ? roomLower.includes("surgery") || roomLower.includes("ot")
+        ? "In Surgery"
+        : roomLower.includes("emergency") || roomLower.includes("er")
+          ? "Emergency Response"
+          : "In Consultation"
+      : "Off Duty";
+
+  doctorUser.activeRoom = action === "enter" ? roomNumber : "Out of Rooms (Exited)";
+  doctorUser.currentLocation = action === "enter" ? roomNumber : "Out of Rooms (Exited)";
+  doctorUser.status = calculatedStatus;
   doctorUser.roomStatus = action;
   doctorUser.lastLocationChange = timestamp;
+
   putState("users", doctorUser.email || doctorUser.did, doctorUser, randomUUID());
+  if (doctorUser.did) {
+    putState("users", doctorUser.did, doctorUser, randomUUID());
+  }
 
   // 5. Broadcast to update staff tracker & patient portal instantly
   broadcast({
     event: "staff:location",
     data: {
       id: doctorUser.did || doctorDid,
+      did: doctorUser.did || doctorDid,
       email: doctorUser.email,
       name: doctorUser.name,
       location: action === "enter" ? roomNumber : "Out of Rooms (Exited)",
-      status: action === "enter" ? "In Consultation" : "Off Duty",
+      status: calculatedStatus,
       lastSignal: timestamp,
     },
   });

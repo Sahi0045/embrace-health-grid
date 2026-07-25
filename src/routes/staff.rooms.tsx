@@ -7,9 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey, Transaction, Connection } from "@solana/web3.js";
-import { API_BASE_URL } from "@/lib/api";
+import { API_BASE_URL, checkInDoctorRoom } from "@/lib/api";
 import { Buffer } from "buffer";
 import { updateStaffLocation } from "@/lib/realtime-store";
+import { useDoctors } from "@/hooks/use-api";
 import { Input } from "@/components/ui/input";
 import {
   Building2,
@@ -23,6 +24,7 @@ import {
   Zap,
   LogOut,
   LogIn,
+  User,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -42,7 +44,11 @@ const AVAILABLE_ROOMS = [
 ];
 
 function StaffRooms() {
-  const { publicKey, signTransaction, connected } = useWallet();
+  const { publicKey, signTransaction } = useWallet();
+  const { data: doctorsData } = useDoctors();
+  const allDoctors = doctorsData?.doctors || [];
+  const [selectedDoctorDid, setSelectedDoctorDid] = useState<string>("");
+
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [checkingIn, setCheckingIn] = useState<string | null>(null);
@@ -55,13 +61,18 @@ function StaffRooms() {
     typeof window !== "undefined" ? localStorage.getItem("userName") || "Dr. Staff" : "Dr. Staff";
   const doctorDid =
     typeof window !== "undefined"
-      ? localStorage.getItem("userDid") || `did:hosp:0x${doctorEmail.split("@")[0]}`
+      ? localStorage.getItem("userDid") || `did:hosp:0x${doctorEmail.split("@")[0] || "doctor"}`
       : "did:hosp:0xunknown";
+
+  const activeTargetDid = selectedDoctorDid || doctorDid;
+  const activeDoctorObj = allDoctors.find(
+    (d: any) => d.did === activeTargetDid || d.email === activeTargetDid || d.name === activeTargetDid
+  ) || { name: doctorName, email: doctorEmail, did: activeTargetDid };
 
   const fetchHistory = useCallback(async () => {
     try {
       const res = await fetch(
-        `${API_BASE_URL}/api/doctor/location-history/${encodeURIComponent(doctorDid)}`,
+        `${API_BASE_URL}/api/doctor/location-history/${encodeURIComponent(activeTargetDid)}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("authToken")}`,
@@ -78,30 +89,26 @@ function StaffRooms() {
     } finally {
       setLoading(false);
     }
-  }, [doctorDid]);
+  }, [activeTargetDid]);
 
   const fetchOnChainRoot = useCallback(async () => {
-    if (!doctorDid) return;
+    if (!activeTargetDid) return;
     try {
       const PROGRAM_ID = new PublicKey("BxkLrjBYdb3nh2m9GCfpLXBWrAj3s9MqnRbwktLqSfN3");
       const [locationPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from("doctor-location"), Buffer.from(doctorDid)],
+        [Buffer.from("doctor-location"), Buffer.from(activeTargetDid)],
         PROGRAM_ID,
       );
       const connection = new Connection("https://api.devnet.solana.com", "confirmed");
       const accountInfo = await connection.getAccountInfo(locationPda);
       if (accountInfo) {
-        const didLen = accountInfo.data.readUInt32LE(8);
-        const rootOffset = 8 + 4 + didLen;
-        const rootBytes = accountInfo.data.slice(rootOffset, rootOffset + 32);
-        setOnChainRoot(Buffer.from(rootBytes).toString("hex"));
-      } else {
-        setOnChainRoot(null);
+        const hex = Buffer.from(accountInfo.data.slice(40, 72)).toString("hex");
+        setOnChainRoot(hex);
       }
     } catch (err) {
       console.warn("Could not load on-chain location Merkle Root:", err);
     }
-  }, [doctorDid]);
+  }, [activeTargetDid]);
 
   useEffect(() => {
     fetchHistory();
@@ -117,19 +124,17 @@ function StaffRooms() {
     }
     setCheckingIn(roomNumber);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/hardware/scan`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-          "x-client-key": import.meta.env.VITE_CLIENT_KEY || "",
-        },
-        body: JSON.stringify({ doctorDid, roomNumber }),
-      }).catch(() => null);
+      await checkInDoctorRoom(activeTargetDid, roomNumber, "enter").catch(() => null);
 
-      updateStaffLocation(doctorDid, roomNumber, "In Consultation");
-      updateStaffLocation(doctorEmail, roomNumber, "In Consultation");
-      updateStaffLocation(doctorName, roomNumber, "In Consultation");
+      const status = roomNumber.toLowerCase().includes("surgery") || roomNumber.toLowerCase().includes("ot")
+        ? "In Surgery"
+        : roomNumber.toLowerCase().includes("emergency")
+          ? "Emergency Response"
+          : "In Consultation";
+
+      updateStaffLocation(activeTargetDid, roomNumber, status);
+      if (activeDoctorObj.email) updateStaffLocation(activeDoctorObj.email, roomNumber, status);
+      if (activeDoctorObj.name) updateStaffLocation(activeDoctorObj.name, roomNumber, status);
 
       const newLog = {
         logId: `log_${Date.now()}`,
@@ -143,7 +148,7 @@ function StaffRooms() {
 
       setLogs((prev) => [newLog, ...prev]);
       toast.success(`Checked In to ${roomNumber}`, {
-        description: `Logged check-in for ${doctorName} at ${roomNumber}.`,
+        description: `Logged check-in for ${activeDoctorObj.name} at ${roomNumber}.`,
       });
       fetchHistory();
       fetchOnChainRoot();
@@ -158,9 +163,11 @@ function StaffRooms() {
     const activeLoc = logs[0]?.action === "enter" ? logs[0].roomNumber : "Current Room";
     setCheckingIn("checkout");
     try {
-      updateStaffLocation(doctorDid, "Out of Rooms (Exited)", "Off Duty");
-      updateStaffLocation(doctorEmail, "Out of Rooms (Exited)", "Off Duty");
-      updateStaffLocation(doctorName, "Out of Rooms (Exited)", "Off Duty");
+      await checkInDoctorRoom(activeTargetDid, activeLoc, "exit").catch(() => null);
+
+      updateStaffLocation(activeTargetDid, "Out of Rooms (Exited)", "Off Duty");
+      if (activeDoctorObj.email) updateStaffLocation(activeDoctorObj.email, "Out of Rooms (Exited)", "Off Duty");
+      if (activeDoctorObj.name) updateStaffLocation(activeDoctorObj.name, "Out of Rooms (Exited)", "Off Duty");
 
       const newLog = {
         logId: `log_${Date.now()}`,
@@ -174,7 +181,7 @@ function StaffRooms() {
 
       setLogs((prev) => [newLog, ...prev]);
       toast.info(`Checked Out of ${activeLoc}`, {
-        description: `Successfully logged check-out for ${doctorName}.`,
+        description: `Successfully logged check-out for ${activeDoctorObj.name}.`,
       });
       fetchHistory();
       fetchOnChainRoot();
@@ -251,13 +258,32 @@ function StaffRooms() {
         <div className="grid gap-6 p-6 sm:p-8 lg:grid-cols-3">
           {/* Main Check-In Controls */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Live Room Status Card */}
+            {/* Doctor Selection & Live Status Overview */}
             <Card className="border border-border bg-gradient-to-r from-card to-card/90">
-              <CardHeader>
-                <CardTitle className="text-lg">Live Status Overview</CardTitle>
-                <CardDescription>
-                  Your current presence status in the hospital wards.
-                </CardDescription>
+              <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-3">
+                <div>
+                  <CardTitle className="text-lg">Live Room Status Overview</CardTitle>
+                  <CardDescription>
+                    Select clinician and simulate room entry/exit logged to backend & Solana.
+                  </CardDescription>
+                </div>
+                {allDoctors.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-primary" />
+                    <select
+                      value={selectedDoctorDid}
+                      onChange={(e) => setSelectedDoctorDid(e.target.value)}
+                      className="rounded-lg border border-input bg-background px-3 py-1.5 text-xs text-foreground font-semibold outline-none"
+                    >
+                      <option value="">{doctorName} (Logged-in Doctor)</option>
+                      {allDoctors.map((doc: any) => (
+                        <option key={doc.id || doc.did} value={doc.did || doc.email}>
+                          {doc.name} ({doc.specialty || doc.department || "Clinician"})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </CardHeader>
               <CardContent>
                 <div className="flex items-center gap-4 p-4 rounded-xl border bg-muted/20">
