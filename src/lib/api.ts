@@ -448,6 +448,12 @@ export const getAllLabs = () => apiFetch<{ labs: any[]; total: number }>(`/labs`
 export const getAppointments = () =>
   apiFetch<{ appointments: any[]; total: number }>(`/appointments`);
 
+export const getAppointmentsByPatient = (patientDid: string) =>
+  apiFetch<{ appointments: any[]; total: number }>(`/appointments?patientDid=${encodeURIComponent(patientDid)}`);
+
+export const getAppointmentsByDoctor = (doctorDid: string) =>
+  apiFetch<{ appointments: any[]; total: number }>(`/appointments?doctorDid=${encodeURIComponent(doctorDid)}`);
+
 export const bookAppointment = (data: {
   patientDid: string;
   patientName: string;
@@ -765,6 +771,7 @@ export const getVaccines = (patientDid: string) =>
 
 // ─── Doctors ──────────────────────────────────────────────────────────────
 export const getDoctors = () => apiFetch<{ doctors: any[]; total: number }>(`/doctors`);
+export const getDIDVerifiedDoctors = () => apiFetch<{ doctors: any[]; total: number }>(`/doctors`);
 
 // ─── Inpatient ────────────────────────────────────────────────────────────
 export const getInpatientData = (patientDid: string) =>
