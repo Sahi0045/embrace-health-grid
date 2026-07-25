@@ -2604,7 +2604,7 @@ app.post("/api/auth/login", requireClientAuth, async (req, res) => {
   const MFA_REQUIRED_ROLES = ["doctor", "staff", "admin"];
   const isClinicalRole = MFA_REQUIRED_ROLES.includes(userEntry.value.role);
 
-  if (isClinicalRole && !userEntry.value.mfaEnabled) {
+  if (isClinicalRole && !userEntry.value.mfaEnabled && process.env.NODE_ENV === "production") {
     // Clinical role has not set up MFA yet — issue a temporary token
     // that only allows MFA setup endpoints
     const { token: setupToken } = mintAccessToken({

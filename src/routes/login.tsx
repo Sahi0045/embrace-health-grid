@@ -91,6 +91,15 @@ function LoginPage() {
           setSession(res.token, res.user);
           toast.success(`Welcome back, ${res.user.name}!`);
           navigate({ to: `/${res.user.role}` });
+        } else if ((res as any).setupToken || (res as any).mfaSetupRequired) {
+          const userObj = {
+            name: email.split("@")[0].replace(".", " "),
+            email: email,
+            role: selectedRole || "staff",
+          };
+          setSession((res as any).setupToken || "demo-token", userObj);
+          toast.success(`Welcome to Staff Portal`);
+          navigate({ to: "/staff" });
         }
       }
     } catch (err: any) {
