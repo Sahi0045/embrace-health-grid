@@ -384,5 +384,95 @@
     "updatedAt": "2026-07-04T08:00:16.340Z",
     "txId": "a94f8356-67e9-42e9-b999-4839767e8f94",
     "docType": "audit"
+  },
+  "audit_1467351d-7013-49f6-a430-0a5fd77c2489": {
+    "key": "audit_1467351d-7013-49f6-a430-0a5fd77c2489",
+    "value": {
+      "txId": "1467351d-7013-49f6-a430-0a5fd77c2489",
+      "actor": "system",
+      "actorDid": null,
+      "resource": "admin@example.com",
+      "action": "USER_LOGIN_FAILED",
+      "outcome": "failure",
+      "severity": "info",
+      "loggedAt": "2026-07-24T13:35:50.783Z"
+    },
+    "namespace": "audit",
+    "version": "1467351d-7013-49f6-a430-0a5fd77c2489:1",
+    "updatedAt": "2026-07-24T13:35:50.803Z",
+    "txId": "1467351d-7013-49f6-a430-0a5fd77c2489",
+    "docType": "audit"
+  },
+  "audit_2d987b62-92d4-4449-8dc1-78a413a3721f": {
+    "key": "audit_2d987b62-92d4-4449-8dc1-78a413a3721f",
+    "value": {
+      "txId": "2d987b62-92d4-4449-8dc1-78a413a3721f",
+      "actor": "doctor@embracehealth.org",
+      "actorDid": "did:hosp:0x8f2c3a11",
+      "resource": "did:hosp:0x8f2c3a11",
+      "action": "ROOM_CHECKIN",
+      "outcome": "success",
+      "severity": "info",
+      "loggedAt": "2026-07-25T18:16:09.727Z"
+    },
+    "namespace": "audit",
+    "version": "2d987b62-92d4-4449-8dc1-78a413a3721f:1",
+    "updatedAt": "2026-07-25T18:16:09.728Z",
+    "txId": "2d987b62-92d4-4449-8dc1-78a413a3721f",
+    "docType": "audit"
+  },
+  "audit_26c25ff9-ce2f-4452-a7cf-d2eee83534d8": {
+    "key": "audit_26c25ff9-ce2f-4452-a7cf-d2eee83534d8",
+    "value": {
+      "txId": "26c25ff9-ce2f-4452-a7cf-d2eee83534d8",
+      "actor": "doctor@embracehealth.org",
+      "actorDid": "did:hosp:0x8f2c3a11",
+      "resource": "did:hosp:0x8f2c3a11",
+      "action": "ROOM_CHECKOUT",
+      "outcome": "success",
+      "severity": "info",
+      "loggedAt": "2026-07-25T18:30:27.593Z"
+    },
+    "namespace": "audit",
+    "version": "26c25ff9-ce2f-4452-a7cf-d2eee83534d8:1",
+    "updatedAt": "2026-07-25T18:30:27.595Z",
+    "txId": "26c25ff9-ce2f-4452-a7cf-d2eee83534d8",
+    "docType": "audit"
+  },
+  "audit_c2e5a4df-68df-4dda-83f4-8410d6d5bb20": {
+    "key": "audit_c2e5a4df-68df-4dda-83f4-8410d6d5bb20",
+    "value": {
+      "txId": "c2e5a4df-68df-4dda-83f4-8410d6d5bb20",
+      "actor": "doctor@embracehealth.org",
+      "actorDid": "did:hosp:0x8f2c3a11",
+      "resource": "did:hosp:0x8f2c3a11",
+      "action": "ROOM_CHECKIN",
+      "outcome": "success",
+      "severity": "info",
+      "loggedAt": "2026-07-25T18:30:31.269Z"
+    },
+    "namespace": "audit",
+    "version": "c2e5a4df-68df-4dda-83f4-8410d6d5bb20:1",
+    "updatedAt": "2026-07-25T18:30:31.269Z",
+    "txId": "c2e5a4df-68df-4dda-83f4-8410d6d5bb20",
+    "docType": "audit"
+  },
+  "audit_d4256fa2-89d7-4bdf-9950-0269ac9231d1": {
+    "key": "audit_d4256fa2-89d7-4bdf-9950-0269ac9231d1",
+    "value": {
+      "txId": "d4256fa2-89d7-4bdf-9950-0269ac9231d1",
+      "actor": "doctor@embracehealth.org",
+      "actorDid": "did:hosp:0x8f2c3a11",
+      "resource": "did:hosp:0x8f2c3a11",
+      "action": "MERKLE_ROOT_PUBLISHED",
+      "outcome": "success",
+      "severity": "info",
+      "loggedAt": "2026-07-25T18:30:49.283Z"
+    },
+    "namespace": "audit",
+    "version": "d4256fa2-89d7-4bdf-9950-0269ac9231d1:1",
+    "updatedAt": "2026-07-25T18:30:49.284Z",
+    "txId": "d4256fa2-89d7-4bdf-9950-0269ac9231d1",
+    "docType": "audit"
   }
 }

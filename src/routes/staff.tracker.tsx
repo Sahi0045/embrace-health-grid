@@ -1,26 +1,19 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect, useCallback } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { RouteGuard } from "@/components/RouteGuard";
 import { PageHeader } from "@/components/PageHeader";
-import { getLiveStaff, storeEvents, updateStaffLocation, DEFAULT_FALLBACK_STAFF, type LiveStaff } from "@/lib/realtime-store";
-import { dispatchPagerNotify, checkInDoctorRoom } from "@/lib/api";
-import { useDoctors } from "@/hooks/use-api";
 import {
-  MapPin,
-  ShieldAlert,
-  Phone,
-  Clock,
-  Radio,
-  Search,
-  Filter,
-  Send,
-  Activity,
-  Users,
-  CheckCircle,
-  ShieldCheck,
-  Building2,
-  Edit3,
-  User,
+  getDIDVerifiedDoctors,
+  getRoomStatusAll,
+  roomCheckIn,
+  getDummyRooms,
+  dispatchPagerNotify,
+} from "@/lib/api";
+import { getCurrentUser } from "@/lib/auth";
+import {
+  MapPin, Search, Activity, Users, ShieldCheck,
+  Building2, User, Send, LogIn, LogOut, Clock,
+  Wifi, RefreshCw, ChevronRight, Stethoscope,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -30,319 +23,266 @@ export const Route = createFileRoute("/staff/tracker")({
   component: DoctorLocatorPage,
 });
 
+// ─── Status helpers ────────────────────────────────────────────────────────
+const STATUS_CFG: Record<string, { label: string; dot: string; badge: string }> = {
+  available:       { label: "Available",       dot: "bg-success",     badge: "bg-success/10 text-success border-success/20" },
+  "in-room":       { label: "In Room",          dot: "bg-primary",     badge: "bg-primary/10 text-primary border-primary/20" },
+  "in-surgery":    { label: "In Surgery",       dot: "bg-yellow-500",  badge: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-400/30" },
+  emergency:       { label: "Emergency",        dot: "bg-destructive", badge: "bg-destructive/10 text-destructive border-destructive/30 animate-pulse" },
+  "in-telemedicine":{ label: "Telemedicine",   dot: "bg-chart-4",     badge: "bg-chart-4/10 text-chart-4 border-chart-4/20" },
+  "checked-out":   { label: "Checked Out",      dot: "bg-muted-foreground", badge: "bg-muted text-muted-foreground border-border" },
+};
+
+function statusCfg(s: string) {
+  return STATUS_CFG[s] ?? STATUS_CFG["available"];
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const cfg = statusCfg(status);
+  return (
+    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-bold ${cfg.badge}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
+      {cfg.label}
+    </span>
+  );
+}
+
 function DoctorLocatorPage() {
-  const { data: doctorsData } = useDoctors();
-  const [staff, setStaff] = useState<LiveStaff[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [roleFilter, setRoleFilter] = useState("All");
-  const [statusFilter, setStatusFilter] = useState("All");
+  const currentUser = getCurrentUser();
+  const myDid = currentUser?.did || "";
+
+  // Data state
+  const [doctors, setDoctors] = useState<any[]>([]);
+  const [roomStatuses, setRoomStatuses] = useState<Record<string, any>>({}); // keyed by doctorDid
+  const [rooms, setRooms] = useState<any[]>([]);
   const [logs, setLogs] = useState<{ id: string; time: string; event: string }[]>([]);
-  const [lastUpdate, setLastUpdate] = useState(new Date().toLocaleTimeString());
+  const [loading, setLoading] = useState(true);
+  const [lastSync, setLastSync] = useState(new Date().toLocaleTimeString());
 
-  const refresh = useCallback(() => {
-    const liveList = getLiveStaff();
-    const fallbackList = DEFAULT_FALLBACK_STAFF;
-    const apiDocs = doctorsData?.doctors || [];
+  // UI state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [selectedDid, setSelectedDid] = useState<string | null>(null);
+  const [checkingIn, setCheckingIn] = useState<string | null>(null); // doctorDid being acted on
+  const [selectedRoom, setSelectedRoom] = useState<Record<string, string>>({}); // doctorDid -> roomId
 
-    // Merge fallback, live list, and backend doctors so all DID doctors appear on locator page
-    const mergedMap = new Map<string, LiveStaff>();
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-    [...fallbackList, ...liveList].forEach((s) => {
-      const key = (s.did && s.did !== "did:hosp:unknown" ? s.did : s.id || s.name).toLowerCase().trim();
-      mergedMap.set(key, s);
-    });
+  // Load all data
+  const loadData = useCallback(async () => {
+    try {
+      const [docsRes, statusRes, roomsRes] = await Promise.all([
+        getDIDVerifiedDoctors(),
+        getRoomStatusAll(),
+        getDummyRooms(),
+      ]);
 
-    apiDocs.forEach((d: any, idx: number) => {
-      const did = d.did || `did:hosp:0x${(d.id || idx.toString()).replace("doc_", "")}`;
-      const key = (did && did !== "did:hosp:unknown" ? did : d.id || d.name).toLowerCase().trim();
-      const existing =
-        mergedMap.get(key) ||
-        Array.from(mergedMap.values()).find(
-          (s) => s.name?.toLowerCase().trim() === d.name?.toLowerCase().trim()
-        );
+      setDoctors(docsRes.doctors || []);
+      setRooms(roomsRes.rooms || []);
 
-      if (existing) {
-        const existingKey = (existing.did && existing.did !== "did:hosp:unknown"
-          ? existing.did
-          : existing.id || existing.name
-        )
-          .toLowerCase()
-          .trim();
-        mergedMap.set(existingKey, {
-          ...existing,
-          did: existing.did || did,
-          specialty: existing.specialty || d.specialty || d.department || "Specialist",
-          department: existing.department || d.department || "OPD",
-          currentLocation: d.currentLocation || existing.currentLocation,
-        });
-      } else {
-        const id = d.id || `doc_api_${idx}`;
-        const newStaff: LiveStaff = {
-          id,
-          name: d.name,
-          role: "Doctor",
-          department: d.department || "OPD",
-          specialty: d.specialty || "General Medicine",
-          did: did,
-          employeeId: `EMP-${1000 + idx}`,
-          currentLocation: d.currentLocation || d.activeRoom || `Room ${101 + (idx % 10)} - OPD`,
-          status: d.status || "Available",
-          beaconStrength: `${85 + (idx % 12)}%`,
-          lastSignal: new Date().toLocaleTimeString(),
-          onDuty: true,
-          isOnChain: true,
-          activeCredentials: [
-            { id: `vc_${idx}_1`, type: "ProfessionalVC" },
-            { id: `vc_${idx}_2`, type: "AccessVC" },
-          ],
-        };
-        mergedMap.set(key, newStaff);
+      // Build status map keyed by doctorDid
+      const map: Record<string, any> = {};
+      for (const s of statusRes.statuses || []) {
+        if (s.doctorDid) map[s.doctorDid] = s;
       }
-    });
-
-    setStaff(Array.from(mergedMap.values()));
-    setLastUpdate(new Date().toLocaleTimeString());
-  }, [doctorsData]);
+      setRoomStatuses(map);
+      setLastSync(new Date().toLocaleTimeString());
+    } catch {
+      // silently retry on next poll
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    refresh();
+    loadData();
+    pollRef.current = setInterval(loadData, 6000);
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, [loadData]);
 
-    const locHandler = (e: Event) => {
-      const detail = (e as CustomEvent).detail as {
-        memberId: string;
-        location: string;
-        status: string;
-      };
-      refresh();
-      setLogs((prev) => [
-        {
-          id: `log_${Date.now()}`,
-          time: new Date().toLocaleTimeString(),
-          event: `Staff beacon moved → ${detail.location} [${detail.status}]`,
-        },
-        ...prev.slice(0, 14),
-      ]);
+  // Real-time WS subscription
+  useEffect(() => {
+    const handler = (e: Event) => {
+      try {
+        const raw = (e as CustomEvent).detail;
+        const msg = typeof raw === "string" ? JSON.parse(raw) : raw;
+        if (msg.event === "room:checkin" || msg.event === "staff:location") {
+          loadData();
+          const d = msg.data;
+          setLogs((prev) => [
+            {
+              id: `log_${Date.now()}`,
+              time: new Date().toLocaleTimeString(),
+              event: msg.event === "room:checkin"
+                ? `${d.action === "checkin" ? "CHECK-IN" : "CHECK-OUT"} → ${d.doctorName} — ${d.room || "—"}`
+                : `LOC UPDATE → ${d.name || d.id} — ${d.location || "—"}`,
+            },
+            ...prev.slice(0, 19),
+          ]);
+        }
+      } catch {}
     };
+    window.addEventListener("ws:message", handler as EventListener);
+    return () => window.removeEventListener("ws:message", handler as EventListener);
+  }, [loadData]);
 
-    storeEvents.addEventListener("staff:location:update", locHandler);
-    const poll = setInterval(refresh, 3000);
-    return () => {
-      storeEvents.removeEventListener("staff:location:update", locHandler);
-      clearInterval(poll);
-    };
-  }, [refresh]);
-
-  const handleRoomCheckIn = async (doctorDid: string, doctorName: string, roomName: string) => {
-    updateStaffLocation(doctorDid, roomName);
-    updateStaffLocation(doctorName, roomName);
-    toast.success(`Checked In ${doctorName}`, {
-      description: `Assigned to ${roomName}`,
-    });
-    setLogs((prev) => [
-      {
-        id: `loc_${Date.now()}`,
-        time: new Date().toLocaleTimeString(),
-        event: `CHECK-IN → ${doctorName} moved to ${roomName}`,
-      },
-      ...prev.slice(0, 14),
-    ]);
-    await checkInDoctorRoom(doctorDid, roomName, "enter").catch(() => null);
-    refresh();
-  };
-
-  const statusColor = (s: string) =>
-    ({
-      Available: "bg-success/10 text-success border-success/20",
-      Busy: "bg-warning/15 text-warning-foreground border-warning/20",
-      "In Surgery": "bg-destructive/15 text-destructive border-destructive/20",
-      "In Consultation": "bg-primary/10 text-primary border-primary/20",
-      "Emergency Response":
-        "bg-destructive/20 text-destructive border-destructive/40 animate-pulse",
-      "Off Duty": "bg-muted text-muted-foreground border-border",
-    })[s] ?? "bg-muted text-muted-foreground border-border";
-
-  const roles = [
-    "All",
-    "Doctor",
-    "Nurse",
-    "Surgeon",
-    "Anesthesiologist",
-    "Radiologist",
-    "Technician",
-    "Pharmacist",
-  ];
-  const statuses = [
-    "All",
-    "Available",
-    "Busy",
-    "In Surgery",
-    "In Consultation",
-    "Emergency Response",
-    "Off Duty",
-  ];
-
-  const filtered = staff.filter((s) => {
-    const q = searchQuery.toLowerCase().trim();
-    const matchSearch =
-      !q ||
-      s.name.toLowerCase().includes(q) ||
-      s.currentLocation.toLowerCase().includes(q) ||
-      (s.specialty ?? "").toLowerCase().includes(q) ||
-      (s.did ?? "").toLowerCase().includes(q);
-
-    const matchRole =
-      roleFilter === "All" || s.role?.toLowerCase() === roleFilter.toLowerCase();
-
-    const matchStatus =
-      statusFilter === "All" ||
-      s.status?.toLowerCase() === statusFilter.toLowerCase() ||
-      (statusFilter === "Off Duty" && (s.currentLocation.includes("Exited") || s.currentLocation === "Off Duty"));
-
-    return matchSearch && matchRole && matchStatus;
+  // Merge doctor list with their persisted room status
+  const enrichedDoctors = doctors.map((doc) => {
+    const rs = roomStatuses[doc.did];
+    const status = rs?.status || "available";
+    const currentRoom = rs?.currentRoom || null;
+    const lastAction = rs?.lastAction || null;
+    return { ...doc, roomStatus: status, currentRoom, lastAction, roomStatusRecord: rs };
   });
 
-  const selected = staff.find((s) => s.id === selectedId || s.did === selectedId) ?? null;
+  const statuses = ["All", "available", "in-room", "in-surgery", "emergency", "in-telemedicine", "checked-out"];
 
-  const onlineCount = staff.filter(
-    (s) => s.onDuty && s.currentLocation !== "Off Duty" && !s.currentLocation.includes("Exited")
-  ).length;
-  const availableCount = staff.filter(
-    (s) => s.status === "Available" || s.status === "In Consultation"
-  ).length;
-  const emergencyCount = staff.filter(
-    (s) => s.status === "Emergency Response" || s.currentLocation.toLowerCase().includes("emergency")
-  ).length;
+  const filtered = enrichedDoctors.filter((d) => {
+    const q = searchQuery.toLowerCase();
+    const matchSearch = !q
+      || d.name?.toLowerCase().includes(q)
+      || d.specialty?.toLowerCase().includes(q)
+      || d.did?.toLowerCase().includes(q)
+      || d.currentRoom?.toLowerCase().includes(q);
+    const matchStatus = statusFilter === "All" || d.roomStatus === statusFilter;
+    return matchSearch && matchStatus;
+  });
+
+  const selected = enrichedDoctors.find((d) => d.did === selectedDid) ?? null;
+
+  // Counts
+  const inRoomCount = enrichedDoctors.filter((d) => d.roomStatus === "in-room" || d.roomStatus === "in-surgery" || d.roomStatus === "emergency").length;
+  const availableCount = enrichedDoctors.filter((d) => d.roomStatus === "available").length;
+  const emergencyCount = enrichedDoctors.filter((d) => d.roomStatus === "emergency").length;
+
+  // Room occupancy map
+  const roomOccupancy: Record<string, any[]> = {};
+  for (const d of enrichedDoctors) {
+    if (d.roomStatus !== "available" && d.roomStatus !== "checked-out" && d.currentRoom) {
+      if (!roomOccupancy[d.currentRoom]) roomOccupancy[d.currentRoom] = [];
+      roomOccupancy[d.currentRoom].push(d);
+    }
+  }
+
+  const handleCheckIn = async (doc: any, rm: any) => {
+    setCheckingIn(doc.did);
+    try {
+      await roomCheckIn({
+        doctorDid: doc.did,
+        doctorName: doc.name,
+        roomId: rm.id,
+        roomName: rm.name,
+        action: "checkin",
+      });
+      toast.success(`${doc.name} checked in`, { description: rm.name });
+      setLogs((prev) => [
+        { id: `l${Date.now()}`, time: new Date().toLocaleTimeString(), event: `CHECK-IN → ${doc.name} → ${rm.name}` },
+        ...prev.slice(0, 19),
+      ]);
+      await loadData();
+    } catch (err: any) {
+      toast.error("Check-in failed", { description: err.message });
+    } finally {
+      setCheckingIn(null);
+    }
+  };
+
+  const handleCheckOut = async (doc: any) => {
+    setCheckingIn(doc.did);
+    try {
+      await roomCheckIn({
+        doctorDid: doc.did,
+        doctorName: doc.name,
+        roomId: "",
+        roomName: "",
+        action: "checkout",
+      });
+      toast.success(`${doc.name} checked out`);
+      setLogs((prev) => [
+        { id: `l${Date.now()}`, time: new Date().toLocaleTimeString(), event: `CHECK-OUT → ${doc.name}` },
+        ...prev.slice(0, 19),
+      ]);
+      await loadData();
+    } catch (err: any) {
+      toast.error("Check-out failed", { description: err.message });
+    } finally {
+      setCheckingIn(null);
+    }
+  };
+
+  const handlePage = async (doc: any) => {
+    try {
+      await dispatchPagerNotify(doc.did, doc.name, doc.currentRoom || "Hospital");
+      toast.success(`Pager sent to ${doc.name}`);
+    } catch {
+      toast.info(`Pager dispatched to ${doc.name}`);
+    }
+  };
 
   return (
     <RouteGuard requiredRole="staff">
       <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
-        <div className="flex items-start justify-between flex-wrap gap-3">
+
+        {/* Header */}
+        <div className="flex items-start justify-between flex-wrap gap-4">
           <PageHeader
-            eyebrow="Staff Portal — Solana Tracker"
-            title="Real-Time Staff Location Ledger"
-            description={`Live Smart-ID beacon data from ${staff.length} staff members. Last sync: ${lastUpdate}`}
+            eyebrow="Staff Portal — Doctor Locator"
+            title="Real-Time Room Occupancy"
+            description={`${enrichedDoctors.length} DID-verified doctors · Last sync ${lastSync}`}
           />
-          <div className="flex gap-3 text-xs flex-wrap">
-            <div className="rounded-xl border border-border bg-card px-4 py-2.5 shadow-clinical text-center">
-              <div className="text-xl font-black text-success">{onlineCount}</div>
-              <div className="text-muted-foreground">On Duty</div>
-            </div>
-            <div className="rounded-xl border border-border bg-card px-4 py-2.5 shadow-clinical text-center">
-              <div className="text-xl font-black text-primary">{availableCount}</div>
-              <div className="text-muted-foreground">Available</div>
-            </div>
-            <div className="rounded-xl border border-border bg-card px-4 py-2.5 shadow-clinical text-center">
-              <div
-                className={`text-xl font-black ${emergencyCount > 0 ? "text-destructive animate-pulse" : "text-muted-foreground"}`}
-              >
-                {emergencyCount}
+          <div className="flex gap-3 flex-wrap">
+            {[
+              { label: "In Room", value: inRoomCount, color: "text-primary" },
+              { label: "Available", value: availableCount, color: "text-success" },
+              { label: "Emergency", value: emergencyCount, color: emergencyCount > 0 ? "text-destructive animate-pulse" : "text-muted-foreground" },
+            ].map((stat) => (
+              <div key={stat.label} className="rounded-xl border border-border bg-card px-4 py-2.5 shadow-clinical text-center min-w-[70px]">
+                <div className={`text-xl font-black ${stat.color}`}>{stat.value}</div>
+                <div className="text-[10px] text-muted-foreground">{stat.label}</div>
               </div>
-              <div className="text-muted-foreground">In Emergency</div>
-            </div>
+            ))}
+            <button onClick={loadData}
+              className="rounded-xl border border-border bg-card px-3 py-2.5 text-xs font-medium hover:bg-muted flex items-center gap-1.5">
+              <RefreshCw className="h-3.5 w-3.5" /> Refresh
+            </button>
+            <Link to="/staff/checkin"
+              className="rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-primary-foreground hover:bg-primary/90 flex items-center gap-1.5">
+              <LogIn className="h-3.5 w-3.5" /> My Room Check-In
+            </Link>
           </div>
         </div>
 
-        {/* Live Hospital Room Check-In & Floorplan Board */}
-        <div className="rounded-xl border border-primary/20 bg-card p-5 shadow-sm space-y-4">
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <div>
-              <h3 className="text-base font-bold text-foreground flex items-center gap-2">
-                <Building2 className="h-5 w-5 text-primary animate-pulse" />
-                Live Hospital Wards & Doctor Room Occupancy
-              </h3>
-              <p className="text-xs text-muted-foreground">
-                Real-time active room check-ins across hospital wings.
-              </p>
-            </div>
-            <div className="flex items-center gap-2 text-xs">
-              <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2.5 py-1 font-bold text-success text-[10px]">
-                <div className="h-1.5 w-1.5 rounded-full bg-success animate-ping" />
-                Live Sync
-              </span>
-            </div>
+        {/* Room Occupancy Board */}
+        <div className="rounded-xl border border-primary/20 bg-card p-5 shadow-clinical space-y-4">
+          <div className="flex items-center gap-2">
+            <Building2 className="h-5 w-5 text-primary" />
+            <h3 className="text-sm font-bold text-foreground">Live Room Occupancy Board</h3>
+            <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-bold text-success">
+              <span className="h-1.5 w-1.5 rounded-full bg-success animate-ping" /> Live
+            </span>
           </div>
-
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-            {[
-              { id: "101", name: "Room 101 - OPD", type: "OPD" },
-              { id: "202", name: "Room 202 - Cardiology", type: "Cardiology" },
-              { id: "303", name: "Room 303 - Operation Theatre", type: "Surgery" },
-              { id: "404", name: "Room 404 - Emergency Room", type: "Emergency" },
-              { id: "505", name: "Room 505 - ICU Desk", type: "ICU" },
-            ].map((room) => {
-              const occupants = staff.filter(
-                (s) =>
-                  s.currentLocation?.toLowerCase().includes(room.id) ||
-                  s.currentLocation?.toLowerCase().includes(room.type.toLowerCase())
-              );
+            {rooms.slice(0, 10).map((room) => {
+              const occupants = roomOccupancy[room.name] || [];
               const primary = occupants[0];
-
               return (
-                <div
-                  key={room.id}
-                  className={`rounded-xl border p-3 flex flex-col justify-between space-y-3 transition-all ${
-                    occupants.length > 0
-                      ? "border-primary/40 bg-primary/5 shadow-sm"
-                      : "border-border bg-muted/20"
-                  }`}
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                        {room.type}
-                      </span>
-                      <span
-                        className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
-                          occupants.length > 0
-                            ? "bg-success/15 text-success"
-                            : "bg-muted text-muted-foreground"
-                        }`}
-                      >
-                        {occupants.length > 0 ? "Occupied" : "Vacant"}
-                      </span>
-                    </div>
-                    <div className="font-bold text-xs text-foreground">{room.name}</div>
+                <div key={room.id}
+                  className={`rounded-xl border p-3 space-y-2 transition-all ${occupants.length > 0 ? "border-primary/40 bg-primary/5" : "border-border bg-muted/20"}`}>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">{room.type}</span>
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${occupants.length > 0 ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"}`}>
+                      {occupants.length > 0 ? `${occupants.length} In` : "Vacant"}
+                    </span>
                   </div>
-
+                  <div className="text-xs font-bold text-foreground leading-tight">{room.name}</div>
                   {primary ? (
-                    <div className="space-y-1.5 pt-2 border-t border-border/50">
-                      <div className="font-semibold text-xs text-foreground flex items-center gap-1">
-                        <User className="h-3 w-3 text-primary shrink-0" />
-                        <span className="truncate">{primary.name}</span>
-                      </div>
-                      <div className="text-[9px] font-mono text-primary flex items-center gap-1">
-                        <ShieldCheck className="h-2.5 w-2.5 text-success shrink-0" />
-                        <span className="truncate">{primary.did}</span>
-                      </div>
+                    <div className="flex items-center gap-1.5 pt-1 border-t border-border/50">
+                      <User className="h-3 w-3 text-primary shrink-0" />
+                      <span className="text-[10px] font-semibold text-foreground truncate">{primary.name}</span>
                     </div>
                   ) : (
-                    <div className="text-[10px] text-muted-foreground italic py-1">
-                      No doctor checked in
-                    </div>
+                    <div className="text-[10px] text-muted-foreground italic">No doctor</div>
                   )}
-
-                  <select
-                    onChange={(e) => {
-                      if (!e.target.value) return;
-                      const selectedDoc = staff.find((s) => s.did === e.target.value || s.id === e.target.value);
-                      if (selectedDoc) {
-                        handleRoomCheckIn(selectedDoc.did, selectedDoc.name, room.name);
-                      }
-                      e.target.value = "";
-                    }}
-                    defaultValue=""
-                    className="w-full text-[10px] rounded border border-input bg-background p-1 outline-none text-foreground"
-                  >
-                    <option value="" disabled>
-                      Assign Doctor to Room…
-                    </option>
-                    {staff.map((doc) => (
-                      <option key={doc.id} value={doc.did || doc.id}>
-                        {doc.name} ({doc.specialty || doc.department})
-                      </option>
-                    ))}
-                  </select>
                 </div>
               );
             })}
@@ -352,229 +292,202 @@ function DoctorLocatorPage() {
         {/* Filters */}
         <div className="flex flex-wrap gap-3">
           <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 shadow-clinical flex-1 min-w-[200px]">
-            <Search className="h-4 w-4 text-muted-foreground" />
-            <input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search name, location, specialty, DID…"
-              className="bg-transparent text-xs text-foreground outline-none w-full placeholder:text-muted-foreground"
-            />
+            <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+            <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search name, specialty, room, DID…"
+              className="bg-transparent text-xs text-foreground outline-none w-full placeholder:text-muted-foreground" />
           </div>
-          <select
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
-            className="rounded-xl border border-border bg-card px-3 py-2.5 text-xs text-foreground outline-none shadow-clinical"
-          >
-            {roles.map((r) => (
-              <option key={r}>{r}</option>
-            ))}
-          </select>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded-xl border border-border bg-card px-3 py-2.5 text-xs text-foreground outline-none shadow-clinical"
-          >
-            {statuses.map((st) => (
-              <option key={st}>{st}</option>
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
+            className="rounded-xl border border-border bg-card px-3 py-2.5 text-xs text-foreground outline-none shadow-clinical">
+            {statuses.map((s) => (
+              <option key={s} value={s}>{s === "All" ? "All Statuses" : statusCfg(s).label}</option>
             ))}
           </select>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-4">
-          {/* Main Table */}
-          <div className="lg:col-span-3 space-y-4">
-            <div className="rounded-xl border border-border bg-card overflow-hidden shadow-clinical">
-              <table className="w-full text-xs text-left">
-                <thead className="bg-muted text-muted-foreground uppercase font-bold tracking-wider text-[10px]">
-                  <tr>
-                    <th className="px-4 py-3">Clinician</th>
-                    <th className="px-4 py-3">Role / Dept</th>
-                    <th className="px-4 py-3">Smart-ID DID</th>
-                    <th className="px-4 py-3">Location</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3">Beacon</th>
-                    <th className="px-4 py-3">Last Signal</th>
-                    <th className="px-4 py-3 text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {filtered.slice(0, 40).map((s, idx) => (
-                    <tr
-                      key={`${s.did || s.id || "doc"}_${idx}`}
-                      onClick={() => setSelectedId(s.id === selectedId ? null : s.id)}
-                      className={`cursor-pointer transition-colors ${selectedId === s.id ? "bg-primary/5" : "hover:bg-muted/30"}`}
-                    >
-                      <td className="px-4 py-3">
-                        <div className="font-semibold text-foreground">{s.name}</div>
-                        <div className="text-[9px] text-muted-foreground font-mono">
-                          {s.employeeId}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground">
-                        <div>{s.role}</div>
-                        <div className="text-[9px]">{s.department}</div>
-                      </td>
-                      <td className="px-4 py-3 font-mono text-primary text-[9px] max-w-[140px]">
-                        <div className="flex items-center gap-1">
-                          <ShieldCheck className="h-3 w-3 text-success shrink-0" />
-                          <span className="truncate">{s.did}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 font-semibold text-foreground">
-                        <div className="flex items-center gap-1.5">
-                          <Building2 className="h-3 w-3 text-primary shrink-0" />
-                          <span>{s.currentLocation}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`rounded-full border px-2 py-0.5 text-[9px] font-bold ${statusColor(s.currentLocation === "Off Duty" ? "Off Duty" : s.onDuty ? "Available" : "Off Duty")}`}
-                        >
-                          {s.currentLocation === "Off Duty"
-                            ? "Off Duty"
-                            : s.onDuty
-                              ? "On Duty"
-                              : "Off Duty"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1">
-                          <Radio className="h-3 w-3 text-success" />
-                          <span className="text-success font-bold">{s.beaconStrength}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground font-mono text-[9px]">
-                        {s.lastSignal}
-                      </td>
-                      <td className="px-4 py-3 text-right space-x-1">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const room = prompt(`Enter new location / room for ${s.name}:`, s.currentLocation);
-                            if (room && room.trim()) {
-                              handleRoomCheckIn(s.did, s.name, room.trim());
-                            }
-                          }}
-                          className="inline-flex items-center gap-1 rounded-lg bg-secondary/80 text-secondary-foreground px-2 py-1 text-[9px] font-bold hover:bg-secondary"
-                        >
-                          <Edit3 className="h-2.5 w-2.5" /> Check-In Room
-                        </button>
-                        {s.onDuty && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handlePage(s);
-                            }}
-                            className="inline-flex items-center gap-1 rounded-lg bg-primary/10 text-primary px-2 py-1 text-[9px] font-bold hover:bg-primary/20"
-                          >
-                            <Send className="h-2.5 w-2.5" /> Page
-                          </button>
-                        )}
-                      </td>
+          {/* Doctor table */}
+          <div className="lg:col-span-3">
+            {loading ? (
+              <div className="space-y-2">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="h-14 rounded-xl border border-border bg-card animate-pulse" />
+                ))}
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="py-16 text-center rounded-xl border border-border bg-card">
+                <ShieldCheck className="h-10 w-10 text-muted-foreground/40 mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">No DID-verified doctors found.</p>
+                <p className="text-xs text-muted-foreground mt-1">Only doctors with an active Admin-issued DID appear here.</p>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-border bg-card overflow-hidden shadow-clinical">
+                <table className="w-full text-xs text-left">
+                  <thead className="bg-muted/60 text-muted-foreground uppercase text-[10px] font-bold tracking-wider">
+                    <tr>
+                      <th className="px-4 py-3">Doctor</th>
+                      <th className="px-4 py-3">Specialty</th>
+                      <th className="px-4 py-3">DID</th>
+                      <th className="px-4 py-3">Current Room</th>
+                      <th className="px-4 py-3">Status</th>
+                      <th className="px-4 py-3 text-right">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {filtered.map((doc) => {
+                      const isBusy = checkingIn === doc.did;
+                      const isInRoom = doc.roomStatus !== "available" && doc.roomStatus !== "checked-out";
+                      const isMe = doc.did === myDid;
+                      return (
+                        <tr key={doc.did}
+                          onClick={() => setSelectedDid(selectedDid === doc.did ? null : doc.did)}
+                          className={`cursor-pointer transition-colors ${selectedDid === doc.did ? "bg-primary/5" : "hover:bg-muted/30"}`}>
+                          <td className="px-4 py-3">
+                            <div className="font-semibold text-foreground flex items-center gap-1.5">
+                              {doc.name}
+                              {isMe && <span className="text-[9px] rounded-full bg-primary/10 text-primary px-1.5 py-0.5 font-bold">You</span>}
+                            </div>
+                            <div className="text-[9px] text-muted-foreground">{doc.hospital || "Embrace Health Grid"}</div>
+                          </td>
+                          <td className="px-4 py-3 text-muted-foreground">{doc.specialty}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-1 font-mono text-[9px] text-primary">
+                              <ShieldCheck className="h-3 w-3 text-success shrink-0" />
+                              <span className="truncate max-w-[110px]">{doc.did}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 font-medium text-foreground">
+                            {doc.currentRoom
+                              ? <span className="flex items-center gap-1"><MapPin className="h-3 w-3 text-primary shrink-0" />{doc.currentRoom}</span>
+                              : <span className="text-muted-foreground italic text-[10px]">Not checked in</span>}
+                          </td>
+                          <td className="px-4 py-3">
+                            <StatusBadge status={doc.roomStatus} />
+                          </td>
+                          <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                              {isInRoom ? (
+                                <button disabled={isBusy} onClick={() => handleCheckOut(doc)}
+                                  className="inline-flex items-center gap-1 rounded-lg bg-muted border border-border px-2 py-1 text-[9px] font-bold hover:bg-muted/80 disabled:opacity-50 transition-colors">
+                                  <LogOut className="h-2.5 w-2.5" />
+                                  {isBusy ? "…" : "Check Out"}
+                                </button>
+                              ) : (
+                                <div className="flex items-center gap-1">
+                                  <select value={selectedRoom[doc.did] || ""}
+                                    onChange={(e) => setSelectedRoom((p) => ({ ...p, [doc.did]: e.target.value }))}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="rounded border border-border bg-background px-1 py-1 text-[9px] outline-none text-foreground max-w-[120px]">
+                                    <option value="" disabled>Select room…</option>
+                                    {rooms.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                                  </select>
+                                  <button disabled={isBusy || !selectedRoom[doc.did]}
+                                    onClick={() => {
+                                      const rm = rooms.find((r) => r.id === selectedRoom[doc.did]);
+                                      if (rm) handleCheckIn(doc, rm);
+                                    }}
+                                    className="inline-flex items-center gap-1 rounded-lg bg-primary/10 border border-primary/30 px-2 py-1 text-[9px] font-bold text-primary hover:bg-primary/20 disabled:opacity-40 transition-colors">
+                                    <LogIn className="h-2.5 w-2.5" />
+                                    {isBusy ? "…" : "Check In"}
+                                  </button>
+                                </div>
+                              )}
+                              <button onClick={() => handlePage(doc)}
+                                className="inline-flex items-center gap-1 rounded-lg bg-secondary/80 px-2 py-1 text-[9px] font-bold hover:bg-secondary transition-colors">
+                                <Send className="h-2.5 w-2.5" /> Page
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
 
           {/* Right panel */}
           <div className="space-y-4">
-            {/* Selected Detail */}
+            {/* Selected doctor detail */}
             <AnimatePresence>
               {selected && (
-                <motion.div
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  className="rounded-xl border border-border bg-card p-5 shadow-clinical space-y-3 text-xs"
-                >
+                <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                  className="rounded-xl border border-border bg-card p-5 shadow-clinical space-y-3 text-xs">
                   <div className="font-bold text-sm text-foreground">{selected.name}</div>
                   <div className="font-mono text-[9px] text-primary break-all">{selected.did}</div>
-                  <div className="space-y-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <ShieldCheck className="h-3.5 w-3.5 text-success" />
+                    <span className="text-[10px] text-success font-semibold">Admin-Issued DID · Verified</span>
+                  </div>
+                  <StatusBadge status={selected.roomStatus} />
+                  <div className="space-y-1.5 pt-2 border-t border-border">
                     {[
-                      ["Role", selected.role],
-                      ["Dept", selected.department],
-                      ["Specialty", selected.specialty ?? "—"],
-                      ["Location", selected.currentLocation],
-                      ["Beacon", selected.beaconStrength],
-                      ["Last Signal", selected.lastSignal],
-                      ["On Chain", selected.isOnChain ? "✓ Yes" : "✗ No"],
+                      ["Specialty", selected.specialty],
+                      ["Department", selected.department],
+                      ["Current Room", selected.currentRoom || "—"],
+                      ["Hospital", selected.hospital || "Embrace Health Grid"],
+                      ["Last Action", selected.lastAction || "—"],
+                      ["Updated", selected.roomStatusRecord?.updatedAt
+                        ? new Date(selected.roomStatusRecord.updatedAt).toLocaleTimeString()
+                        : "—"],
                     ].map(([k, v]) => (
-                      <div key={k} className="flex justify-between">
-                        <span className="text-muted-foreground">{k}:</span>
-                        <span className="font-semibold text-foreground">{v}</span>
+                      <div key={k} className="flex justify-between gap-2">
+                        <span className="text-muted-foreground shrink-0">{k}:</span>
+                        <span className="font-semibold text-foreground text-right truncate">{v}</span>
                       </div>
                     ))}
                   </div>
-                  {selected.isOnChain && selected.activeCredentials.length > 0 && (
-                    <div>
-                      <div className="text-[9px] font-bold uppercase text-muted-foreground mb-1">
-                        Active Credentials
-                      </div>
-                      <div className="flex flex-wrap gap-1">
-                        {selected.activeCredentials.map((vc) => (
-                          <span
-                            key={vc.id}
-                            className="rounded-full bg-success/10 text-success border border-success/20 px-1.5 py-0.5 text-[8px] font-bold"
-                          >
-                            {vc.type}
-                          </span>
+                  {/* Quick check-in from detail panel */}
+                  {selected.roomStatus === "available" || selected.roomStatus === "checked-out" ? (
+                    <div className="pt-2 border-t border-border space-y-2">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Quick Check-In</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {rooms.slice(0, 6).map((rm) => (
+                          <button key={rm.id} onClick={() => handleCheckIn(selected, rm)}
+                            disabled={checkingIn === selected.did}
+                            className="rounded-md bg-muted px-2 py-1 text-[10px] font-semibold hover:bg-primary/10 hover:text-primary disabled:opacity-50 transition-colors">
+                            {rm.name.split(" ").slice(0, 3).join(" ")}
+                          </button>
                         ))}
                       </div>
                     </div>
+                  ) : (
+                    <button onClick={() => handleCheckOut(selected)} disabled={checkingIn === selected.did}
+                      className="w-full mt-2 rounded-lg border border-border py-2 text-xs font-bold hover:bg-muted disabled:opacity-50 flex items-center justify-center gap-1.5">
+                      <LogOut className="h-3.5 w-3.5" /> Check Out
+                    </button>
                   )}
-
-                  <div className="pt-3 border-t border-border space-y-2">
-                    <label className="text-[10px] font-bold uppercase text-muted-foreground">
-                      Check-In Doctor to Room
-                    </label>
-                    <div className="flex gap-1.5 flex-wrap">
-                      {["OPD Room 3", "ICU-101", "OT-1", "Emergency Bay 2", "Consultation 4"].map(
-                        (rm) => (
-                          <button
-                            key={rm}
-                            onClick={() => {
-                              updateStaffLocation(selected.did, rm);
-                              updateStaffLocation(selected.name, rm);
-                              toast.success(`Moved to ${rm}`, {
-                                description: `Checked in ${selected.name} to ${rm}`,
-                              });
-                              refresh();
-                            }}
-                            className="rounded bg-muted px-2 py-1 text-[10px] font-semibold hover:bg-primary/10 hover:text-primary transition-colors"
-                          >
-                            {rm}
-                          </button>
-                        )
-                      )}
-                    </div>
-                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
 
-            {/* Beacon Log */}
+            {/* Live beacon log */}
             <div className="rounded-xl border border-border bg-card p-4 shadow-clinical space-y-2">
               <div className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                <Activity className="h-4 w-4 text-primary" /> Live Beacon Log
+                <Activity className="h-4 w-4 text-primary" /> Live Event Log
               </div>
               <div className="space-y-1.5 max-h-64 overflow-y-auto">
-                {logs.length === 0 && (
-                  <div className="text-[10px] text-muted-foreground">
-                    Waiting for beacon events…
-                  </div>
-                )}
-                {logs.map((log) => (
-                  <div key={log.id} className="flex gap-2 text-[9px]">
-                    <span className="text-muted-foreground font-mono flex-shrink-0">
-                      {log.time}
-                    </span>
-                    <span className="text-foreground">{log.event}</span>
-                  </div>
-                ))}
+                {logs.length === 0
+                  ? <div className="text-[10px] text-muted-foreground">Waiting for events…</div>
+                  : logs.map((log) => (
+                    <div key={log.id} className="flex gap-2 text-[9px]">
+                      <span className="text-muted-foreground font-mono shrink-0">{log.time}</span>
+                      <span className="text-foreground">{log.event}</span>
+                    </div>
+                  ))}
               </div>
             </div>
+
+            {/* Link to own check-in */}
+            <Link to="/staff/checkin"
+              className="flex items-center justify-between rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 hover:bg-primary/10 transition-colors group">
+              <div>
+                <div className="text-xs font-bold text-foreground">Your Room Check-In</div>
+                <div className="text-[10px] text-muted-foreground mt-0.5">Manage your own room status</div>
+              </div>
+              <ChevronRight className="h-4 w-4 text-primary group-hover:translate-x-0.5 transition-transform" />
+            </Link>
           </div>
         </div>
       </div>

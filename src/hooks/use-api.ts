@@ -18,6 +18,9 @@ import {
   getCredentials,
   getConsents,
   getAppointments,
+  getAppointmentsByPatient,
+  getAppointmentsByDoctor,
+  getDIDVerifiedDoctors,
   getBeds,
   getTracker,
   getFraudAlerts,
@@ -260,6 +263,33 @@ export function useAppointments() {
       return { appointments: appts, total: appts.length };
     },
     "appointment:booked",
+    [],
+  );
+}
+
+export function useAppointmentsByPatient(patientDid: string) {
+  return useApiData(
+    () => getAppointmentsByPatient(patientDid),
+    () => ({ appointments: [] as any[], total: 0 }),
+    "appointment:updated",
+    [patientDid],
+  );
+}
+
+export function useAppointmentsByDoctor(doctorDid: string) {
+  return useApiData(
+    () => getAppointmentsByDoctor(doctorDid),
+    () => ({ appointments: [] as any[], total: 0 }),
+    "appointment:updated",
+    [doctorDid],
+  );
+}
+
+export function useDIDVerifiedDoctors() {
+  return useApiData(
+    getDIDVerifiedDoctors,
+    () => ({ doctors: [] as any[], total: 0 }),
+    "did:created",
     [],
   );
 }

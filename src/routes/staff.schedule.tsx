@@ -1,48 +1,29 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader, StatCard } from "@/components/PageHeader";
 import { RouteGuard } from "@/components/RouteGuard";
-import { useState, useEffect, useMemo } from "react";
-import { getStaffSchedule, createStaffRequest, getAppointments } from "@/lib/api";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import {
+  getStaffSchedule, createStaffRequest, getAppointmentsByDoctor,
+  updateAppointmentStatus,
+} from "@/lib/api";
 import { getCurrentUser } from "@/lib/auth";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { stagger, fadeUp } from "@/components/Motion";
 import {
-  Calendar,
-  Clock,
-  MapPin,
-  Stethoscope,
-  Plane,
-  ChevronLeft,
-  ChevronRight,
-  Users,
-  Video,
-  Scissors,
-  Heart,
-  PlusCircle,
-  Check,
-  AlertCircle,
-  Moon,
-  Sun,
+  Calendar, Clock, MapPin, Stethoscope, Plane, ChevronLeft, ChevronRight,
+  Users, Video, Scissors, Heart, PlusCircle, Check, AlertCircle, Moon, Sun,
+  CheckCircle2, XCircle, RefreshCw, Bell, X,
 } from "lucide-react";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 
 export const Route = createFileRoute("/staff/schedule")({
@@ -228,6 +209,155 @@ function ShiftCard({ shift }: { shift: Shift }) {
   );
 }
 
+// ─── Appointment Request Card ──────────────────────────────────────────────
+const APPT_STATUS_STYLES: Record<string, { bg: string; text: string; icon: React.ComponentType<{ className?: string }> }> = {
+  pending:     { bg: "bg-warning/10 border-warning/30",     text: "text-yellow-700 dark:text-yellow-400", icon: Clock },
+  confirmed:   { bg: "bg-success/10 border-success/30",     text: "text-success",                         icon: CheckCircle2 },
+  rejected:    { bg: "bg-destructive/10 border-destructive/30", text: "text-destructive",                 icon: XCircle },
+  rescheduled: { bg: "bg-primary/10 border-primary/30",     text: "text-primary",                         icon: RefreshCw },
+  cancelled:   { bg: "bg-muted border-border",               text: "text-muted-foreground",                icon: X },
+};
+
+interface ApptRequest {
+  apptId: string;
+  patientName: string;
+  patientDid: string;
+  specialty: string;
+  slot: string;
+  mode: string;
+  status: string;
+  reason?: string;
+  bookedAt: string;
+  rejectionReason?: string;
+  suggestedSlot?: string;
+}
+
+function AppointmentRequestCard({
+  appt,
+  onAction,
+}: {
+  appt: ApptRequest;
+  onAction: (apptId: string, status: "confirmed" | "rejected" | "rescheduled", opts?: { rejectionReason?: string; suggestedSlot?: string }) => Promise<void>;
+}) {
+  const [processing, setProcessing] = useState(false);
+  const [showRejectInput, setShowRejectInput] = useState(false);
+  const [showSuggestInput, setShowSuggestInput] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const [suggestSlot, setSuggestSlot] = useState("");
+
+  const cfg = APPT_STATUS_STYLES[appt.status] ?? APPT_STATUS_STYLES.pending;
+  const StatusIcon = cfg.icon;
+  const isPending = appt.status === "pending";
+
+  const handle = async (status: "confirmed" | "rejected" | "rescheduled", opts?: any) => {
+    setProcessing(true);
+    try {
+      await onAction(appt.apptId, status, opts);
+    } finally {
+      setProcessing(false);
+      setShowRejectInput(false);
+      setShowSuggestInput(false);
+      setRejectReason("");
+      setSuggestSlot("");
+    }
+  };
+
+  return (
+    <motion.div variants={fadeUp}
+      className={`rounded-xl border p-4 transition-all ${cfg.bg}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-semibold text-foreground">{appt.patientName}</span>
+            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${cfg.text}`}>
+              <StatusIcon className="h-3 w-3" />
+              {appt.status.charAt(0).toUpperCase() + appt.status.slice(1)}
+            </span>
+          </div>
+          <div className="mt-1 text-xs text-muted-foreground">{appt.specialty} · {appt.mode === "tele" ? "Telehealth" : "In-Person"}</div>
+          <div className="mt-1 flex items-center gap-1.5 text-xs text-foreground font-medium">
+            <Clock className="h-3.5 w-3.5 text-primary shrink-0" />
+            <span>{appt.slot}</span>
+          </div>
+          {appt.reason && (
+            <div className="mt-1 text-[11px] text-muted-foreground">
+              <span className="font-medium">Reason:</span> {appt.reason}
+            </div>
+          )}
+          {appt.rejectionReason && appt.status === "rejected" && (
+            <div className="mt-1 text-[11px] text-destructive">
+              <span className="font-medium">Rejection note:</span> {appt.rejectionReason}
+            </div>
+          )}
+          {appt.suggestedSlot && appt.status === "rescheduled" && (
+            <div className="mt-1 text-[11px] text-primary font-medium">
+              Suggested: {appt.suggestedSlot}
+            </div>
+          )}
+          <div className="mt-1 text-[10px] text-muted-foreground">
+            Requested {new Date(appt.bookedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+          </div>
+        </div>
+      </div>
+
+      {/* Action buttons — only for pending requests */}
+      {isPending && (
+        <div className="mt-3 pt-3 border-t border-border/50 space-y-2">
+          {!showRejectInput && !showSuggestInput && (
+            <div className="flex gap-2">
+              <button disabled={processing} onClick={() => handle("confirmed")}
+                className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-success/10 border border-success/30 py-2 text-xs font-bold text-success hover:bg-success/20 disabled:opacity-50 transition-colors">
+                <CheckCircle2 className="h-3.5 w-3.5" /> Accept
+              </button>
+              <button disabled={processing} onClick={() => setShowSuggestInput(true)}
+                className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-primary/10 border border-primary/30 py-2 text-xs font-bold text-primary hover:bg-primary/20 disabled:opacity-50 transition-colors">
+                <RefreshCw className="h-3.5 w-3.5" /> Suggest Time
+              </button>
+              <button disabled={processing} onClick={() => setShowRejectInput(true)}
+                className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-destructive/10 border border-destructive/30 py-2 text-xs font-bold text-destructive hover:bg-destructive/20 disabled:opacity-50 transition-colors">
+                <XCircle className="h-3.5 w-3.5" /> Decline
+              </button>
+            </div>
+          )}
+
+          {showRejectInput && (
+            <div className="space-y-2">
+              <input value={rejectReason} onChange={(e) => setRejectReason(e.target.value)}
+                placeholder="Reason for declining (optional)..."
+                className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs outline-none focus:border-destructive" />
+              <div className="flex gap-2">
+                <button onClick={() => setShowRejectInput(false)}
+                  className="flex-1 rounded-lg border border-border py-1.5 text-xs font-medium hover:bg-muted">Cancel</button>
+                <button disabled={processing} onClick={() => handle("rejected", { rejectionReason: rejectReason })}
+                  className="flex-1 rounded-lg bg-destructive py-1.5 text-xs font-bold text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50">
+                  {processing ? "Declining…" : "Confirm Decline"}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {showSuggestInput && (
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">Suggest a new date and time</label>
+              <input value={suggestSlot} onChange={(e) => setSuggestSlot(e.target.value)}
+                placeholder="e.g. 2026-08-05 · 02:00 PM"
+                className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs outline-none focus:border-primary" />
+              <div className="flex gap-2">
+                <button onClick={() => setShowSuggestInput(false)}
+                  className="flex-1 rounded-lg border border-border py-1.5 text-xs font-medium hover:bg-muted">Cancel</button>
+                <button disabled={processing || !suggestSlot.trim()} onClick={() => handle("rescheduled", { suggestedSlot: suggestSlot.trim() })}
+                  className="flex-1 rounded-lg bg-primary py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+                  {processing ? "Sending…" : "Send Suggestion"}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
 function getWeekRange(offset: number) {
   const now = new Date();
   const day = now.getDay();
@@ -344,18 +474,54 @@ function SchedulePage() {
   }, [staffEmail]);
 
   const [doctorAppointments, setDoctorAppointments] = useState<any[]>([]);
-  useEffect(() => {
-    getAppointments()
+  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+
+  const loadDoctorAppointments = useCallback(() => {
+    const doctorDid = currentUser?.did || "";
+    if (!doctorDid) return;
+    getAppointmentsByDoctor(doctorDid)
       .then((res) => {
-        const doctorDid = currentUser?.did || "";
-        const appointments = (res.appointments ?? []) as any[];
-        const relevant = appointments.filter(
-          (a: any) => !doctorDid || a.doctorDid === doctorDid || a.doctorName === currentUser?.name,
-        );
-        setDoctorAppointments(relevant);
+        const all = (res.appointments ?? []) as any[];
+        setDoctorAppointments(all);
+        setPendingRequests(all.filter((a: any) => a.status === "pending"));
       })
       .catch(() => {});
-  }, [staffEmail]);
+  }, [currentUser?.did]);
+
+  useEffect(() => {
+    loadDoctorAppointments();
+  }, [loadDoctorAppointments]);
+
+  // Subscribe to real-time appointment updates via WebSocket custom event
+  useEffect(() => {
+    const handler = (e: Event) => {
+      try {
+        const msg = JSON.parse((e as CustomEvent).detail);
+        if (msg.event === "appointment:updated" || msg.event === "appointment:booked") {
+          loadDoctorAppointments();
+        }
+      } catch {}
+    };
+    window.addEventListener("ws:message", handler as EventListener);
+    return () => window.removeEventListener("ws:message", handler as EventListener);
+  }, [loadDoctorAppointments]);
+
+  const handleAppointmentAction = async (
+    apptId: string,
+    status: "confirmed" | "rejected" | "rescheduled" | "cancelled",
+    opts?: { rejectionReason?: string; suggestedSlot?: string },
+  ) => {
+    try {
+      await updateAppointmentStatus(apptId, status, opts);
+      const label = status === "confirmed" ? "Accepted" : status === "rejected" ? "Declined" : "New time suggested";
+      toast.success(`Appointment ${label}`, {
+        description: status === "confirmed" ? "Patient has been notified." : opts?.suggestedSlot ? `Suggested: ${opts.suggestedSlot}` : "Patient has been notified.",
+      });
+      loadDoctorAppointments();
+    } catch (err: any) {
+      toast.error("Action failed", { description: err.message });
+    }
+  };
 
   const weekRange = useMemo(() => getWeekRange(weekOffset), [weekOffset]);
   const weekDates = useMemo(() => {
@@ -458,8 +624,9 @@ function SchedulePage() {
           <StatCard
             label="Appointments"
             value={doctorAppointments.length}
-            delta="booked by patients"
+            delta={`${pendingRequests.length} pending review`}
             icon={Stethoscope}
+            tone={pendingRequests.length > 0 ? "warning" : undefined}
           />
           <StatCard
             label="On-Call Shifts"
@@ -476,6 +643,63 @@ function SchedulePage() {
             tone="success"
           />
         </motion.div>
+
+        {/* ─── Appointment Requests Panel ─── */}
+        <div className="rounded-xl border border-border bg-card shadow-clinical overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+            <div className="flex items-center gap-2">
+              <Bell className={`h-5 w-5 ${pendingRequests.length > 0 ? "text-warning-foreground" : "text-primary"}`} />
+              <h2 className="text-sm font-bold text-foreground">Appointment Requests</h2>
+              {pendingRequests.length > 0 && (
+                <span className="inline-flex items-center justify-center rounded-full bg-warning/20 px-2 py-0.5 text-[10px] font-bold text-yellow-700 dark:text-yellow-400">
+                  {pendingRequests.length} pending
+                </span>
+              )}
+            </div>
+            <button onClick={loadDoctorAppointments}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted transition-colors">
+              <RefreshCw className="h-3.5 w-3.5" /> Refresh
+            </button>
+          </div>
+
+          <div className="p-5">
+            {doctorAppointments.length === 0 ? (
+              <div className="py-8 text-center">
+                <Stethoscope className="h-10 w-10 text-muted-foreground/40 mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">No appointment requests yet.</p>
+                <p className="text-xs text-muted-foreground mt-1">Patients will appear here once they book with you.</p>
+              </div>
+            ) : (
+              <>
+                {/* Pending first, then all others */}
+                {pendingRequests.length > 0 && (
+                  <div className="mb-4">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Awaiting Your Response</p>
+                    <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-3">
+                      {pendingRequests.map((appt: any) => (
+                        <AppointmentRequestCard key={appt.apptId} appt={appt} onAction={handleAppointmentAction} />
+                      ))}
+                    </motion.div>
+                  </div>
+                )}
+
+                {doctorAppointments.filter((a: any) => a.status !== "pending").length > 0 && (
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Reviewed</p>
+                    <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-2">
+                      {doctorAppointments
+                        .filter((a: any) => a.status !== "pending")
+                        .slice(0, 8)
+                        .map((appt: any) => (
+                          <AppointmentRequestCard key={appt.apptId} appt={appt} onAction={handleAppointmentAction} />
+                        ))}
+                    </motion.div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
 
         {/* Navigation */}
         <div className="flex items-center justify-between">

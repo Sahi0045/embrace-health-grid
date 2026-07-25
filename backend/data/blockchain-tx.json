@@ -1,0 +1,21 @@
+{
+  "0x53666825a1b2c3d4e5f67890a1b2c3d4": {
+    "key": "0x53666825a1b2c3d4e5f67890a1b2c3d4",
+    "value": {
+      "txHash": "0x53666825a1b2c3d4e5f67890a1b2c3d4",
+      "type": "merkle-root-publish",
+      "doctorDid": "did:hosp:0x8f2c3a11",
+      "merkleRoot": "e56f5c3bbbe56ab0ac45f3fbd353e8d25995e2b0d225a7c7232164ff229a30b5",
+      "merklePublishId": "MRP-MS0PFXKZ",
+      "blockNumber": 1785004249,
+      "confirmedAt": "2026-07-25T18:30:49.283Z",
+      "status": "confirmed",
+      "network": "solana-devnet"
+    },
+    "namespace": "blockchain-tx",
+    "version": "87d46744-b80b-4ff7-9e90-c64cbf9eb237:1",
+    "updatedAt": "2026-07-25T18:30:49.283Z",
+    "txId": "87d46744-b80b-4ff7-9e90-c64cbf9eb237",
+    "docType": "blockchain-tx"
+  }
+}

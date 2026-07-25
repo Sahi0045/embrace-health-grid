@@ -203,37 +203,21 @@
     "key": "did:hosp:0xd10399aa",
     "value": {
       "did": "did:hosp:0xd10399aa",
-      "publicKey": "MFkw66D084CD863A347762ED4FE0BB2302C4",
+      "publicKey": "MFkw66D084CDA1B2C3D4E5F67890A1B2C3D4",
       "controller": "did:hosp:consortium:authority",
       "owner": "Dr. Ravi Menon",
       "ownerType": "staff",
-      "ownerEmail": "doctor@example.com",
       "status": "active",
-      "credentials": [
-        {
-          "id": "vc_prof_doc_001",
-          "type": "ProfessionalVC",
-          "issuer": "Medical Council of India",
-          "subject": "did:hosp:0xd10399aa",
-          "issuedAt": "2026-06-08T07:29:06.696Z",
-          "expiresAt": "2027-06-08T07:29:06.700Z",
-          "claims": {
-            "name": "Dr. Ravi Menon",
-            "role": "Doctor",
-            "employeeId": "doc_001"
-          },
-          "signature": "MEQCIBas08ee1b26a8d47aa84183==",
-          "status": "active"
-        }
-      ],
-      "createdAt": "2026-06-08T07:29:06.696Z",
-      "updatedAt": "2026-06-08T07:29:06.696Z",
-      "serviceEndpoint": "https://did.embracehealth.in/resolve/did:hosp:0xd10399aa"
+      "createdAt": "2026-07-25T18:34:31.017Z",
+      "updatedAt": "2026-07-25T18:34:31.017Z",
+      "ownerEmail": "doctor@example.com",
+      "mrn": null,
+      "employeeId": "EMP-1002"
     },
     "namespace": "did-registry",
-    "version": "genesis_seed_19ea6229c88:1",
-    "updatedAt": "2026-06-08T07:29:06.700Z",
-    "txId": "genesis_seed_19ea6229c88",
+    "version": "fb7ee0ca-4808-4ac3-a843-7fdb2e78077d:1",
+    "updatedAt": "2026-07-25T18:34:31.017Z",
+    "txId": "fb7ee0ca-4808-4ac3-a843-7fdb2e78077d",
     "docType": "did-registry"
   },
   "did:hosp:0x55ef7711": {
@@ -313,7 +297,11 @@
     "key": "generic_tx_19ea6f2c0e3_d4fa8a09",
     "value": {
       "fcn": "batchSeedDIDs",
-      "args": ["50 patients", "30 staff", "initial-seed"],
+      "args": [
+        "50 patients",
+        "30 staff",
+        "initial-seed"
+      ],
       "executedAt": "2026-06-08T11:16:27.491Z"
     },
     "namespace": "did-registry",
@@ -870,6 +858,111 @@
     "version": "b8686409-d491-42ba-b1fb-09b5ab4d1af9:1",
     "updatedAt": "2026-07-21T17:38:28.558Z",
     "txId": "b8686409-d491-42ba-b1fb-09b5ab4d1af9",
+    "docType": "did-registry"
+  },
+  "did:hosp:0x8f2c3a11": {
+    "key": "did:hosp:0x8f2c3a11",
+    "value": {
+      "did": "did:hosp:0x8f2c3a11",
+      "publicKey": "MFkw47CE0750A1B2C3D4E5F67890A1B2C3D4",
+      "controller": "did:hosp:consortium:authority",
+      "owner": "Dr. Sameer Khan",
+      "ownerType": "staff",
+      "status": "active",
+      "createdAt": "2026-07-25T18:34:30.928Z",
+      "updatedAt": "2026-07-25T18:34:30.928Z",
+      "ownerEmail": "doctor@embracehealth.org",
+      "mrn": null,
+      "employeeId": "EMP-1001"
+    },
+    "namespace": "did-registry",
+    "version": "9e83b3a1-e134-401e-ba39-14a3a5c585c8:1",
+    "updatedAt": "2026-07-25T18:34:30.929Z",
+    "txId": "9e83b3a1-e134-401e-ba39-14a3a5c585c8",
+    "docType": "did-registry"
+  },
+  "did:hosp:0x7a3f91b2": {
+    "key": "did:hosp:0x7a3f91b2",
+    "value": {
+      "did": "did:hosp:0x7a3f91b2",
+      "publicKey": "MFkw49B2CEA8A1B2C3D4E5F67890A1B2C3D4",
+      "controller": "did:hosp:consortium:authority",
+      "owner": "Dr. Sarah Jenkins",
+      "ownerType": "staff",
+      "status": "active",
+      "createdAt": "2026-07-25T18:34:31.098Z",
+      "updatedAt": "2026-07-25T18:34:31.098Z",
+      "ownerEmail": "doctor@staff.com",
+      "mrn": null,
+      "employeeId": "EMP-1003"
+    },
+    "namespace": "did-registry",
+    "version": "31f08116-16ad-4478-9eb2-16c367be410e:1",
+    "updatedAt": "2026-07-25T18:34:31.098Z",
+    "txId": "31f08116-16ad-4478-9eb2-16c367be410e",
+    "docType": "did-registry"
+  },
+  "did:hosp:0x9a8b7c6d": {
+    "key": "did:hosp:0x9a8b7c6d",
+    "value": {
+      "did": "did:hosp:0x9a8b7c6d",
+      "publicKey": "MFkw21C4D34FA1B2C3D4E5F67890A1B2C3D4",
+      "controller": "did:hosp:consortium:authority",
+      "owner": "John Doe",
+      "ownerType": "patient",
+      "status": "active",
+      "createdAt": "2026-07-25T18:34:31.178Z",
+      "updatedAt": "2026-07-25T18:34:31.178Z",
+      "ownerEmail": "patient@example.com",
+      "mrn": "MRN-2026-8841",
+      "employeeId": null
+    },
+    "namespace": "did-registry",
+    "version": "7cb8bf27-2fb5-42a6-8f76-a17193387e28:1",
+    "updatedAt": "2026-07-25T18:34:31.178Z",
+    "txId": "7cb8bf27-2fb5-42a6-8f76-a17193387e28",
+    "docType": "did-registry"
+  },
+  "did:hosp:0x5e4d3c2b": {
+    "key": "did:hosp:0x5e4d3c2b",
+    "value": {
+      "did": "did:hosp:0x5e4d3c2b",
+      "publicKey": "MFkw4F200763A1B2C3D4E5F67890A1B2C3D4",
+      "controller": "did:hosp:consortium:authority",
+      "owner": "Anita Sharma",
+      "ownerType": "patient",
+      "status": "active",
+      "createdAt": "2026-07-25T18:34:31.257Z",
+      "updatedAt": "2026-07-25T18:34:31.257Z",
+      "ownerEmail": "patient@embracehealth.org",
+      "mrn": "MRN-2026-9932",
+      "employeeId": null
+    },
+    "namespace": "did-registry",
+    "version": "37b2cb26-0eca-4c69-bcc2-8f6eda3fc3af:1",
+    "updatedAt": "2026-07-25T18:34:31.257Z",
+    "txId": "37b2cb26-0eca-4c69-bcc2-8f6eda3fc3af",
+    "docType": "did-registry"
+  },
+  "did:hosp:0x11223344": {
+    "key": "did:hosp:0x11223344",
+    "value": {
+      "did": "did:hosp:0x11223344",
+      "publicKey": "MFkw1553B1DDA1B2C3D4E5F67890A1B2C3D4",
+      "controller": "did:hosp:consortium:authority",
+      "owner": "System Administrator",
+      "ownerType": "staff",
+      "status": "active",
+      "createdAt": "2026-07-25T18:34:31.339Z",
+      "updatedAt": "2026-07-25T18:34:31.339Z",
+      "ownerEmail": "admin@embracehealth.org",
+      "mrn": null,
+      "employeeId": "ADM-0001"
+    },
+    "namespace": "did-registry",
+    "version": "97cfc953-dd69-4bbb-97f7-bd00860ec7d1:1",
+    "updatedAt": "2026-07-25T18:34:31.339Z",
+    "txId": "97cfc953-dd69-4bbb-97f7-bd00860ec7d1",
     "docType": "did-registry"
   }
 }

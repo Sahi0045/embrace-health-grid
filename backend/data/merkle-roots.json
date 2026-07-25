@@ -1,0 +1,29 @@
+{
+  "MRP-MS0PFXKZ": {
+    "key": "MRP-MS0PFXKZ",
+    "value": {
+      "publishId": "MRP-MS0PFXKZ",
+      "doctorDid": "did:hosp:0x8f2c3a11",
+      "doctorName": "Dr. Sameer Khan",
+      "date": "2026-07-25",
+      "merkleRoot": "e56f5c3bbbe56ab0ac45f3fbd353e8d25995e2b0d225a7c7232164ff229a30b5",
+      "eventCount": 3,
+      "events": [
+        "RC-MS0OX2WT",
+        "RC-MS0PFGUE",
+        "RC-MS0PFJOK"
+      ],
+      "transactionHash": "0x53666825a1b2c3d4e5f67890a1b2c3d4",
+      "blockNumber": 1785004249,
+      "publishedAt": "2026-07-25T18:30:49.283Z",
+      "status": "published",
+      "blockchain": "solana-devnet",
+      "chainId": "devnet"
+    },
+    "namespace": "merkle-roots",
+    "version": "87d46744-b80b-4ff7-9e90-c64cbf9eb237:1",
+    "updatedAt": "2026-07-25T18:30:49.283Z",
+    "txId": "87d46744-b80b-4ff7-9e90-c64cbf9eb237",
+    "docType": "merkle-roots"
+  }
+}

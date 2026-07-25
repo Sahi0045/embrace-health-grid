@@ -227,6 +227,28 @@ export const getAppointments = query({
   },
 });
 
+export const getAppointmentsByPatient = query({
+  args: { patientDid: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("appointments")
+      .withIndex("by_patientDid", (q) => q.eq("patientDid", args.patientDid))
+      .order("desc")
+      .collect();
+  },
+});
+
+export const getAppointmentsByDoctor = query({
+  args: { doctorDid: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("appointments")
+      .withIndex("by_doctorDid", (q) => q.eq("doctorDid", args.doctorDid))
+      .order("desc")
+      .collect();
+  },
+});
+
 export const createAppointment = mutation({
   args: {
     apptId: v.string(),
@@ -238,10 +260,48 @@ export const createAppointment = mutation({
     mode: v.string(),
     specialty: v.string(),
     status: v.string(),
+    reason: v.optional(v.string()),
+    suggestedSlot: v.optional(v.string()),
+    rejectionReason: v.optional(v.string()),
     bookedAt: v.string(),
+    updatedAt: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Deduplicate by apptId
+    const existing = await ctx.db
+      .query("appointments")
+      .withIndex("by_apptId", (q) => q.eq("apptId", args.apptId))
+      .unique();
+    if (existing) return existing._id;
     return await ctx.db.insert("appointments", args);
+  },
+});
+
+export const updateAppointment = mutation({
+  args: {
+    apptId: v.string(),
+    status: v.string(),
+    suggestedSlot: v.optional(v.string()),
+    rejectionReason: v.optional(v.string()),
+    updatedAt: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const appt = await ctx.db
+      .query("appointments")
+      .withIndex("by_apptId", (q) => q.eq("apptId", args.apptId))
+      .unique();
+    if (!appt) throw new Error(`Appointment ${args.apptId} not found`);
+
+    const patch: Record<string, any> = {
+      status: args.status,
+      updatedAt: args.updatedAt,
+    };
+    if (args.suggestedSlot !== undefined) patch.suggestedSlot = args.suggestedSlot;
+    if (args.rejectionReason !== undefined) patch.rejectionReason = args.rejectionReason;
+    if (args.status === "rescheduled" && args.suggestedSlot) patch.slot = args.suggestedSlot;
+
+    await ctx.db.patch(appt._id, patch);
+    return appt._id;
   },
 });
 

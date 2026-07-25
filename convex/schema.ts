@@ -76,9 +76,16 @@ export default defineSchema({
     slot: v.string(),
     mode: v.string(),
     specialty: v.string(),
-    status: v.string(),
+    status: v.string(),  // pending | confirmed | rejected | rescheduled | cancelled
+    reason: v.optional(v.string()),
+    suggestedSlot: v.optional(v.string()),
+    rejectionReason: v.optional(v.string()),
     bookedAt: v.string(),
-  }).index("by_apptId", ["apptId"]),
+    updatedAt: v.optional(v.string()),
+  })
+    .index("by_apptId", ["apptId"])
+    .index("by_patientDid", ["patientDid"])
+    .index("by_doctorDid", ["doctorDid"]),
 
   patients: defineTable({
     patientId: v.string(),

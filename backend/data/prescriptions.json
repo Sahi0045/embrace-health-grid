@@ -126,35 +126,11 @@
   },
   "RX-SEED-1": {
     "key": "RX-SEED-1",
-    "value": {
-      "rxId": "RX-SEED-1",
-      "patientDid": "did:hosp:0x4302bbea",
-      "diagnosis": "Hypertension & Diabetes",
-      "signedBy": "Dr. Sameer Khan",
-      "signedAt": "2026-05-18T10:00:00.000Z",
-      "status": "active",
-      "notes": "Take Metformin with meals.",
-      "drugs": [
-        {
-          "name": "Metoprolol 50mg",
-          "dosage": "50mg",
-          "frequency": "Once daily (Morning)",
-          "duration": "3 months",
-          "instructions": "Before breakfast"
-        },
-        {
-          "name": "Metformin 1000mg",
-          "dosage": "1000mg",
-          "frequency": "Twice daily",
-          "duration": "3 months",
-          "instructions": "With meals"
-        }
-      ]
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"AEl0yq-qo6HAxXVB\",\"tag\":\"0pW8rbK5TYoqDBRGM5cBwA\",\"ct\":\"l7i0A0_wLe90X3l18bs49oGjTcI00SMYjYFCqVPLH_XZfYkYtzep9uJrvH1-ZTPm_j7nM94h0TNWA5AVmr-QOkcK9Bl8M-i_lu3EFPeYvlsc4J4lFK9qBwfjy6G4czFuTyNQnyw6yJCSCi8BxfNedsIun8hQz0scqEC7lRi4NWpWNRps_wP_vcZFoh2JnwQjI92pYqdJLovfNm4YYuhjzvwUagmgQ0cieTaWaQAztUj56WU6G4MQbudnFI3rpvO3Z3kOPbjowGLC-pP_jMUEpz6WSKARit5A4aheyLtAqPoIeQtqkGJKH8mr87djWQzwJEEFusCQ157OSBcU8Dm9TV3MVZ_-tXvQnl9WicTK-Nq-Ywr48jdZS3aVmf1Esdk4ujwSLYHUROVUXHKTDA26Kk40Gfb2hNI3f26lebXpaC3Mi0WQmR1uLUfSgFWBOiTKUkBWfYKLfJmizh8o7zJfE9kwBcIskS9nCG63ug8NNdr3LCigek7Z5HElYYEUIq2UbVLInOc1eS6hHmtFQJkvr1u0X5v-PkApkHbr7SM8y38h3n9FClu26ISH0jAJ9KhcahPaz4CcYqaDU8B4WtQb8Bt46C9DrrP8Un7iemLQCk8w8tPuSPMf92hzKNcyDN1_yA\"}",
     "namespace": "prescriptions",
-    "version": "7b533ca3-75b1-4343-bbc6-3a74817b553c:1",
-    "updatedAt": "2026-07-22T09:31:05.180Z",
-    "txId": "7b533ca3-75b1-4343-bbc6-3a74817b553c",
+    "version": "80e99b0e-747e-4916-9d22-f16211c7b098:1",
+    "updatedAt": "2026-07-25T09:59:26.358Z",
+    "txId": "80e99b0e-747e-4916-9d22-f16211c7b098",
     "docType": "prescriptions"
   }
 }

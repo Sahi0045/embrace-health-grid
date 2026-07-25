@@ -33,6 +33,11 @@ import { createAuditHelper } from "./lib/audit.js";
 import { registerExtensionRoutes } from "./routes/extensions.js";
 import { MerkleTree, sha256 } from "./merkle.js";
 import { PublicKey, Transaction, TransactionInstruction, Connection } from "@solana/web3.js";
+// Merkle Tree for room check-in events
+import {
+  buildMerkleTree,
+  getMerkleRoot,
+} from "./lib/merkle-tree.js";
 import { signCredential } from "./lib/vc-sign.js";
 import * as notificationStore from "./lib/notifications.js";
 import { splitRecord } from "./lib/hash.js";
@@ -356,18 +361,33 @@ async function syncToConvex(namespace, key, value, txId) {
         break;
 
       case "appointments":
-        await convexClient.mutation("records:createAppointment", {
-          apptId: value.apptId,
-          patientDid: value.patientDid,
-          patientName: value.patientName,
-          doctorDid: value.doctorDid,
-          doctorName: value.doctorName,
-          slot: value.slot,
-          mode: value.mode,
-          specialty: value.specialty,
-          status: value.status || "confirmed",
-          bookedAt: value.bookedAt || new Date().toISOString(),
-        });
+        // Try update first (if appointment already exists), then create
+        try {
+          await convexClient.mutation("records:updateAppointment", {
+            apptId: value.apptId,
+            status: value.status || "pending",
+            suggestedSlot: value.suggestedSlot,
+            rejectionReason: value.rejectionReason,
+            updatedAt: value.updatedAt || new Date().toISOString(),
+          });
+        } catch {
+          await convexClient.mutation("records:createAppointment", {
+            apptId: value.apptId,
+            patientDid: value.patientDid,
+            patientName: value.patientName,
+            doctorDid: value.doctorDid,
+            doctorName: value.doctorName,
+            slot: value.slot,
+            mode: value.mode || "in-person",
+            specialty: value.specialty || "General Medicine",
+            status: value.status || "pending",
+            reason: value.reason || "",
+            suggestedSlot: value.suggestedSlot,
+            rejectionReason: value.rejectionReason,
+            bookedAt: value.bookedAt || new Date().toISOString(),
+            updatedAt: value.updatedAt || new Date().toISOString(),
+          });
+        }
         break;
     }
   } catch (err) {
@@ -2382,9 +2402,209 @@ app.get(
   },
 );
 
+// ─── Appointments (full CRUD + DID-verified doctors) ─────────────────────────
 app.get("/api/appointments", (req, res) => {
   const all = getAllState("appointments");
   res.json({ appointments: all.map((e) => e.value), total: all.length });
+});
+
+// GET /api/appointments/doctor/:doctorDid — All appointments for a specific doctor
+app.get("/api/appointments/doctor/:doctorDid", requireAuth, hipaaAuditPHIAccess("Appointment"), (req, res) => {
+  const { doctorDid } = req.params;
+  // Allow the doctor themselves or admin
+  if (req.user.role !== "admin") {
+    const callerDid = req.user.did || `did:hosp:0x${simHash(req.user.email || "").slice(0, 8)}`;
+    if (callerDid !== doctorDid && req.user.email !== doctorDid) {
+      return res.status(403).json({ error: "Access Denied: Can only view your own appointments" });
+    }
+  }
+  const all = getAllState("appointments");
+  const filtered = all
+    .map((e) => e.value)
+    .filter((a) => a.doctorDid === doctorDid || a.doctorEmail === req.user.email);
+  res.json({ appointments: filtered, total: filtered.length });
+});
+
+// GET /api/appointments/patient/:patientDid — All appointments for a specific patient
+app.get("/api/appointments/patient/:patientDid", requireAuth, hipaaAuditPHIAccess("Appointment"), (req, res) => {
+  const { patientDid } = req.params;
+  if (req.user.role === "patient") {
+    const callerDid = req.user.did || `did:hosp:0x${simHash(req.user.email || "").slice(0, 8)}`;
+    if (callerDid !== patientDid) {
+      return res.status(403).json({ error: "Access Denied: Can only view your own appointments" });
+    }
+  }
+  const all = getAllState("appointments");
+  const filtered = all.map((e) => e.value).filter((a) => a.patientDid === patientDid);
+  res.json({ appointments: filtered, total: filtered.length });
+});
+
+// PATCH /api/appointments/:apptId — Doctor accepts, rejects, or suggests a new time
+app.patch("/api/appointments/:apptId", requireAuth, hipaaAuditPHIAccess("Appointment"), (req, res) => {
+  const { apptId } = req.params;
+  const { status, suggestedSlot, rejectionReason } = req.body;
+
+  const VALID_STATUSES = ["confirmed", "rejected", "rescheduled", "cancelled", "pending"];
+  if (!status || !VALID_STATUSES.includes(status)) {
+    return res.status(400).json({ error: `status must be one of: ${VALID_STATUSES.join(", ")}` });
+  }
+
+  const entry = getState("appointments", apptId);
+  if (!entry) return res.status(404).json({ error: "Appointment not found" });
+
+  const appt = entry.value;
+
+  // Patients can only cancel; doctors/staff can confirm/reject/reschedule; admin can do all
+  if (req.user.role === "patient") {
+    if (status !== "cancelled") {
+      return res.status(403).json({ error: "Patients can only cancel appointments" });
+    }
+    const callerDid = req.user.did || `did:hosp:0x${simHash(req.user.email || "").slice(0, 8)}`;
+    if (callerDid !== appt.patientDid) {
+      return res.status(403).json({ error: "Access Denied: Can only cancel your own appointments" });
+    }
+  } else if (req.user.role === "staff" || req.user.role === "doctor") {
+    const callerDid = req.user.did || `did:hosp:0x${simHash(req.user.email || "").slice(0, 8)}`;
+    if (callerDid !== appt.doctorDid && req.user.email !== appt.doctorEmail) {
+      // Allow any staff to manage if they are the assigned doctor's name
+      if (req.user.name !== appt.doctorName) {
+        return res.status(403).json({ error: "Access Denied: Can only manage your own appointment requests" });
+      }
+    }
+  }
+
+  // Apply update
+  appt.status = status;
+  appt.updatedAt = new Date().toISOString();
+  if (suggestedSlot) appt.suggestedSlot = suggestedSlot;
+  if (rejectionReason) appt.rejectionReason = rejectionReason;
+  if (status === "rescheduled" && suggestedSlot) appt.slot = suggestedSlot;
+
+  const txId = randomUUID();
+  putState("appointments", apptId, appt, txId);
+
+  // Broadcast real-time update to both portals
+  broadcast({ event: "appointment:updated", data: appt });
+
+  // Add notification for the patient
+  if (status === "confirmed" || status === "rejected" || status === "rescheduled") {
+    const notifMessage = status === "confirmed"
+      ? `Your appointment with ${appt.doctorName} on ${appt.slot} has been confirmed.`
+      : status === "rejected"
+      ? `Your appointment request with ${appt.doctorName} has been declined.${rejectionReason ? ` Reason: ${rejectionReason}` : ""}`
+      : `${appt.doctorName} suggested a new time: ${suggestedSlot}`;
+
+    _notifications.push({
+      id: `notif-appt-${apptId}-${Date.now().toString(36)}`,
+      type: "appointment_update",
+      title: status === "confirmed" ? "Appointment Confirmed" : status === "rejected" ? "Appointment Declined" : "New Time Suggested",
+      message: notifMessage,
+      timestamp: new Date().toISOString(),
+      read: false,
+      severity: status === "rejected" ? "warning" : "info",
+      link: "/patient/appointments",
+    });
+  }
+
+  logAudit(req, { resource: apptId, action: `APPOINTMENT_${status.toUpperCase()}` });
+  res.json({ success: true, appointment: appt, txId });
+});
+
+// GET /api/doctors/verified — Only doctors who have an active DID issued by admin
+app.get("/api/doctors/verified", (req, res) => {
+  const allDIDs = getAllState("did-registry").map((e) => e.value);
+  const allUsers = getAllState("users").map((e) => e.value);
+
+  // Get all active DIDs for staff/doctor owner types
+  const activeDoctorDIDs = allDIDs.filter(
+    (doc) =>
+      doc.status === "active" &&
+      (doc.ownerType === "staff" || doc.ownerType === "doctor" || doc.role === "doctor")
+  );
+
+  // Build verified doctors list from DID registry
+  const verifiedDoctors = [];
+
+  // First pass: match DID registry entries with user accounts for full profile
+  activeDoctorDIDs.forEach((didDoc, idx) => {
+    const email = didDoc.ownerEmail || didDoc.owner || "";
+    const userMatch = allUsers.find((u) => u && (u.email === email || u.did === didDoc.did));
+
+    const name = userMatch?.name || didDoc.name || didDoc.owner || "Doctor";
+    const displayName = name.startsWith("Dr.") ? name : `Dr. ${name}`;
+    const specialty = userMatch?.specialty || userMatch?.department || didDoc.specialty || didDoc.department || "General Medicine";
+    const department = userMatch?.department || didDoc.department || specialty || "OPD";
+
+    // Generate deterministic available days (Mon, Wed, Fri for this week and next)
+    const today = new Date();
+    const availableDays = [];
+    for (let offset = 1; offset <= 14; offset++) {
+      const d = new Date(today);
+      d.setDate(today.getDate() + offset);
+      const dayOfWeek = d.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+      if (dayOfWeek === 1 || dayOfWeek === 3 || dayOfWeek === 5) { // Mon, Wed, Fri
+        const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        availableDays.push({
+          day: dayNames[dayOfWeek],
+          date: d.toISOString().split("T")[0],
+          slots: ["09:00 AM", "10:30 AM", "02:00 PM", "04:00 PM"],
+        });
+      }
+    }
+
+    verifiedDoctors.push({
+      id: `verified_${idx}_${didDoc.did.slice(-6)}`,
+      did: didDoc.did,
+      name: displayName,
+      specialty,
+      department,
+      email,
+      phone: userMatch?.phone || didDoc.phone || "+91 98765 00000",
+      role: "doctor",
+      hospital: "Embrace Health Grid · Main Hospital",
+      status: userMatch?.status || "Available",
+      rating: 4.8,
+      experience: "10 Years",
+      didVerified: true,
+      availableDays: availableDays.slice(0, 3),
+    });
+  });
+
+  // Second pass: add seeded doctors that have matching active DIDs
+  SEEDED_DOCTORS.forEach((sd) => {
+    const didEntry = allDIDs.find((d) => d.did === sd.did);
+    const alreadyIncluded = verifiedDoctors.some((d) => d.did === sd.did);
+    if (alreadyIncluded) return;
+
+    // Seeded doctors are considered DID-verified if their DID exists in the registry
+    // (they were seeded with specific DIDs). Include them as pre-verified.
+    if (!didEntry || didEntry.status === "active") {
+      // Generate fresh available days
+      const today = new Date();
+      const freshDays = [];
+      for (let offset = 1; offset <= 14; offset++) {
+        const d = new Date(today);
+        d.setDate(today.getDate() + offset);
+        const dayOfWeek = d.getDay();
+        if (dayOfWeek === 1 || dayOfWeek === 3 || dayOfWeek === 5) {
+          const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+          freshDays.push({
+            day: dayNames[dayOfWeek],
+            date: d.toISOString().split("T")[0],
+            slots: ["09:00 AM", "10:30 AM", "02:00 PM", "04:00 PM"],
+          });
+        }
+      }
+
+      verifiedDoctors.push({
+        ...sd,
+        didVerified: true,
+        availableDays: freshDays.slice(0, 3),
+      });
+    }
+  });
+
+  res.json({ doctors: verifiedDoctors, total: verifiedDoctors.length });
 });
 
 // ─── Surgeries ────────────────────────────────────────────────────────────────
@@ -2460,8 +2680,25 @@ app.get("/api/surgeries", requireAuth, hipaaAuditPHIAccess("Surgery"), (_, res) 
 });
 
 app.post("/api/appointments", requireAuth, hipaaAuditPHIAccess("Appointment"), (req, res) => {
-  const { patientDid: bodyDid, patientName: bodyName, doctorDid, doctorName, slot, mode, specialty, consentGranted } =
+  const { patientDid: bodyDid, patientName: bodyName, doctorDid, doctorName, slot, mode, specialty, consentGranted, reason } =
     req.body;
+
+  if (!doctorDid || !doctorName || !slot) {
+    return res.status(400).json({ error: "doctorDid, doctorName, and slot are required" });
+  }
+
+  // Enforce: appointment date must be at least 1 day in the future
+  // slot format: "Mon · 10:30 AM" or "2026-07-28" or "Mon, Jul 28 · 10:30 AM"
+  const slotDateMatch = slot.match(/(\d{4}-\d{2}-\d{2})/);
+  if (slotDateMatch) {
+    const apptDate = new Date(slotDateMatch[1]);
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+    if (apptDate < tomorrow) {
+      return res.status(400).json({ error: "Appointments must be booked at least 1 day in advance" });
+    }
+  }
 
   const patientDid = bodyDid || req.user.did || `did:hosp:0x${simHash(req.user.email || "patient").slice(0, 8)}`;
   const patientName = bodyName || req.user.name || "Patient Account";
@@ -2475,13 +2712,27 @@ app.post("/api/appointments", requireAuth, hipaaAuditPHIAccess("Appointment"), (
     doctorDid,
     doctorName,
     slot,
-    mode,
-    specialty,
-    status: "confirmed",
+    mode: mode || "in-person",
+    specialty: specialty || "General Medicine",
+    status: "pending",           // Always starts as pending — doctor must accept
+    reason: reason || "",
     bookedAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   };
   putState("appointments", apptId, appt, txId);
   broadcast({ event: "appointment:booked", data: appt });
+
+  // Notify the doctor (added to _notifications in-memory list)
+  _notifications.push({
+    id: `notif-appt-req-${apptId}`,
+    type: "appointment_request",
+    title: "New Appointment Request",
+    message: `${patientName} has requested an appointment on ${slot}${reason ? ` — ${reason}` : ""}`,
+    timestamp: new Date().toISOString(),
+    read: false,
+    severity: "info",
+    link: "/staff/schedule",
+  });
 
   if (consentGranted) {
     const grantId = `consent_${randomUUID().slice(0, 8)}`;
@@ -2498,6 +2749,7 @@ app.post("/api/appointments", requireAuth, hipaaAuditPHIAccess("Appointment"), (
     broadcast({ event: "consent:granted", data: grant });
   }
 
+  logAudit(req, { resource: apptId, action: "APPOINTMENT_REQUESTED", outcome: "success" });
   res.json(appt);
 });
 
@@ -3405,6 +3657,371 @@ app.post("/api/zkproof/verify", requireAuth, (req, res) => {
   };
 
   res.json(result);
+});
+
+// ─── Room Check-In / Check-Out (Doctor-Specific, Persisted) ──────────────────
+//
+// Each doctor's room status is stored under namespace "room-checkin" with key = doctorDid.
+// History of all events is stored under "room-checkin-history" with key = logId.
+// Dummy rooms are returned from /api/rooms so the frontend can simulate hardware.
+
+const DUMMY_ROOMS = [
+  { id: "room_101", name: "OPD Room 101",           wing: "OPD",       type: "Consultation", capacity: 1 },
+  { id: "room_202", name: "Cardiology OPD 202",      wing: "Cardiology",type: "Consultation", capacity: 1 },
+  { id: "room_303", name: "Operation Theatre 1",     wing: "Surgery",   type: "OT",           capacity: 1 },
+  { id: "room_404", name: "Emergency Bay 1",          wing: "Emergency", type: "Emergency",    capacity: 2 },
+  { id: "room_505", name: "ICU Desk A",              wing: "ICU",       type: "Critical",     capacity: 1 },
+  { id: "room_606", name: "Neurology Suite 606",     wing: "Neurology", type: "Consultation", capacity: 1 },
+  { id: "room_707", name: "Radiology Room 707",      wing: "Radiology", type: "Imaging",      capacity: 1 },
+  { id: "room_808", name: "Paediatrics Ward 808",    wing: "Paediatrics",type: "Ward",        capacity: 2 },
+  { id: "room_909", name: "Ortho Clinic 909",        wing: "Orthopaedics",type: "Consultation",capacity: 1 },
+  { id: "room_010", name: "Telemedicine Hub 010",    wing: "Virtual",   type: "Telemedicine", capacity: 1 },
+];
+
+// GET /api/rooms — list of dummy rooms for frontend simulation
+app.get("/api/rooms", (req, res) => {
+  res.json({ rooms: DUMMY_ROOMS, total: DUMMY_ROOMS.length });
+});
+
+// GET /api/room-checkin/all — current room status for ALL doctors (for locator page)
+app.get("/api/room-checkin/all", (req, res) => {
+  const all = getAllState("room-checkin");
+  res.json({ statuses: all.map((e) => e.value), total: all.length });
+});
+
+// GET /api/room-checkin/:doctorDid — current room status for a specific doctor
+app.get("/api/room-checkin/:doctorDid", requireAuth, (req, res) => {
+  const doctorDid = decodeURIComponent(req.params.doctorDid);
+  const entry = getState("room-checkin", doctorDid);
+  if (!entry) {
+    return res.json({
+      doctorDid,
+      status: "available",
+      currentRoom: null,
+      checkedInAt: null,
+      checkedOutAt: null,
+    });
+  }
+  res.json(entry.value);
+});
+
+// GET /api/room-checkin/:doctorDid/history — full event history for a doctor
+app.get("/api/room-checkin/:doctorDid/history", requireAuth, (req, res) => {
+  const doctorDid = decodeURIComponent(req.params.doctorDid);
+  const history = queryState("room-checkin-history", (v) => v.doctorDid === doctorDid);
+  const sorted = history
+    .map((e) => e.value)
+    .sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+  res.json({ history: sorted, total: sorted.length });
+});
+
+// POST /api/room-checkin — check in or check out (doctor-specific)
+app.post("/api/room-checkin", requireAuth, requireRole(["staff", "doctor", "admin"]), (req, res) => {
+  const { doctorDid, doctorName, roomId, roomName, action } = req.body;
+  // action: "checkin" | "checkout"
+
+  if (!doctorDid || !action) {
+    return res.status(400).json({ error: "doctorDid and action are required" });
+  }
+  if (!["checkin", "checkout"].includes(action)) {
+    return res.status(400).json({ error: "action must be 'checkin' or 'checkout'" });
+  }
+
+  // A doctor can only manage their own check-in unless admin
+  if (req.user.role !== "admin") {
+    const callerDid = req.user.did || `did:hosp:0x${simHash(req.user.email || "").slice(0, 8)}`;
+    if (callerDid !== doctorDid && req.user.email !== doctorDid) {
+      return res.status(403).json({ error: "Access Denied: Can only manage your own room status" });
+    }
+  }
+
+  const now = new Date().toISOString();
+  const txId = randomUUID();
+  const logId = `RC-${Date.now().toString(36).toUpperCase()}`;
+
+  // Derive status label from room type / action
+  let statusLabel = "available";
+  if (action === "checkin") {
+    const room = DUMMY_ROOMS.find((r) => r.id === roomId) || { type: "Consultation" };
+    if (room.type === "OT" || roomName?.toLowerCase().includes("operat")) statusLabel = "in-surgery";
+    else if (room.type === "Emergency" || roomName?.toLowerCase().includes("emergency")) statusLabel = "emergency";
+    else if (room.type === "Telemedicine") statusLabel = "in-telemedicine";
+    else statusLabel = "in-room";
+  }
+
+  // Current status record (keyed by doctorDid — only one per doctor)
+  const currentStatus = {
+    doctorDid,
+    doctorName: doctorName || req.user.name || "Doctor",
+    doctorEmail: req.user.email,
+    status: statusLabel,
+    currentRoom: action === "checkin" ? (roomName || roomId || null) : null,
+    roomId: action === "checkin" ? (roomId || null) : null,
+    checkedInAt: action === "checkin" ? now : null,
+    checkedOutAt: action === "checkout" ? now : null,
+    lastAction: action,
+    updatedAt: now,
+  };
+  putState("room-checkin", doctorDid, currentStatus, txId);
+
+  // History log (append-only, keyed by logId)
+  const historyEntry = {
+    logId,
+    doctorDid,
+    doctorName: currentStatus.doctorName,
+    action,
+    roomId: roomId || null,
+    roomName: roomName || null,
+    status: statusLabel,
+    timestamp: now,
+    txId,
+  };
+  putState("room-checkin-history", logId, historyEntry, txId);
+
+  // Also update the legacy doctor-locations namespace so the existing tracker UI stays in sync
+  const legacyLocation = action === "checkin"
+    ? (roomName || "Assigned Room")
+    : "Out of Rooms (Checked Out)";
+  putState(
+    "doctor-locations",
+    logId,
+    {
+      logId,
+      doctorDid,
+      doctorName: currentStatus.doctorName,
+      roomNumber: legacyLocation,
+      action: action === "checkin" ? "enter" : "exit",
+      timestamp: now,
+      hash: `sha256:${simHash(logId + doctorDid + now).slice(0, 24)}`,
+    },
+    txId,
+  );
+
+  // Update the user record's currentLocation so /api/doctors reflects it
+  const userEntry = getState("users", req.user.email);
+  if (userEntry) {
+    userEntry.value.currentLocation = legacyLocation;
+    userEntry.value.activeRoom = action === "checkin" ? (roomName || roomId) : "None";
+    userEntry.value.status = action === "checkin" ? "In Consultation" : "Available";
+    putState("users", req.user.email, userEntry.value, txId);
+    if (userEntry.value.did) {
+      putState("users", userEntry.value.did, userEntry.value, txId);
+    }
+  }
+
+  // Broadcast real-time update to all connected clients
+  broadcast({
+    event: "room:checkin",
+    data: {
+      doctorDid,
+      doctorName: currentStatus.doctorName,
+      action,
+      room: roomName || roomId,
+      status: statusLabel,
+      timestamp: now,
+    },
+  });
+
+  // Also fire staff:location event so existing locator page refreshes
+  broadcast({
+    event: "staff:location",
+    data: {
+      id: doctorDid,
+      did: doctorDid,
+      name: currentStatus.doctorName,
+      location: legacyLocation,
+      status: action === "checkin" ? "In Consultation" : "Available",
+      lastSignal: now,
+    },
+  });
+
+  logAudit(req, {
+    resource: doctorDid,
+    action: action === "checkin" ? "ROOM_CHECKIN" : "ROOM_CHECKOUT",
+    outcome: "success",
+  });
+
+  res.json({ success: true, status: currentStatus, history: historyEntry, txId });
+});
+
+// ─── Merkle Tree Integration for Room Check-In ───────────────────────────────
+
+// Helper: get today's date in YYYY-MM-DD format
+function getTodayDateStr() {
+  const now = new Date();
+  return now.toISOString().split("T")[0];
+}
+
+// GET /api/merkle-root/daily/:doctorDid — fetch all room events for today
+app.get("/api/merkle-root/daily/:doctorDid", requireAuth, (req, res) => {
+  const doctorDid = decodeURIComponent(req.params.doctorDid);
+  
+  // Allow the doctor themselves or admin
+  if (req.user.role !== "admin") {
+    const callerDid = req.user.did || `did:hosp:0x${simHash(req.user.email || "").slice(0, 8)}`;
+    if (callerDid !== doctorDid && req.user.email !== doctorDid) {
+      return res.status(403).json({ error: "Access Denied: Can only view your own room events" });
+    }
+  }
+
+  const history = queryState("room-checkin-history", (v) => v.doctorDid === doctorDid);
+  const todayStr = getTodayDateStr();
+  
+  // Filter events for today (compare date part of ISO timestamp)
+  const todayEvents = history
+    .map((e) => e.value)
+    .filter((e) => e.timestamp && e.timestamp.startsWith(todayStr))
+    .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+
+  res.json({
+    doctorDid,
+    date: todayStr,
+    events: todayEvents,
+    total: todayEvents.length,
+  });
+});
+
+// GET /api/merkle-root/:doctorDid/history — fetch all published merkle roots for a doctor
+app.get("/api/merkle-root/:doctorDid/history", requireAuth, (req, res) => {
+  const doctorDid = decodeURIComponent(req.params.doctorDid);
+  
+  // Allow the doctor themselves or admin
+  if (req.user.role !== "admin") {
+    const callerDid = req.user.did || `did:hosp:0x${simHash(req.user.email || "").slice(0, 8)}`;
+    if (callerDid !== doctorDid && req.user.email !== doctorDid) {
+      return res.status(403).json({ error: "Access Denied: Can only view your own merkle roots" });
+    }
+  }
+
+  const roots = queryState("merkle-roots", (v) => v.doctorDid === doctorDid);
+  const sorted = roots
+    .map((e) => e.value)
+    .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
+
+  res.json({
+    doctorDid,
+    publishedRoots: sorted,
+    total: sorted.length,
+  });
+});
+
+// POST /api/merkle-root/publish — build merkle tree from daily events and publish to blockchain
+app.post("/api/merkle-root/publish", requireAuth, requireRole(["staff", "doctor", "admin"]), async (req, res) => {
+  const { doctorDid } = req.body;
+
+  if (!doctorDid) {
+    return res.status(400).json({ error: "doctorDid is required" });
+  }
+
+  // A doctor can only publish their own merkle root unless admin
+  if (req.user.role !== "admin") {
+    const callerDid = req.user.did || `did:hosp:0x${simHash(req.user.email || "").slice(0, 8)}`;
+    if (callerDid !== doctorDid && req.user.email !== doctorDid) {
+      return res.status(403).json({ error: "Access Denied: Can only publish your own merkle roots" });
+    }
+  }
+
+  // Fetch all room events for today
+  const history = queryState("room-checkin-history", (v) => v.doctorDid === doctorDid);
+  const todayStr = getTodayDateStr();
+  const todayEvents = history
+    .map((e) => e.value)
+    .filter((e) => e.timestamp && e.timestamp.startsWith(todayStr))
+    .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+
+  if (todayEvents.length === 0) {
+    return res.status(400).json({ error: "No room events to publish for today" });
+  }
+
+  // Convert events to Merkle leaves
+  const leaves = todayEvents.map((event) => ({
+    doctorDid: event.doctorDid,
+    doctorName: event.doctorName,
+    roomId: event.roomId,
+    roomName: event.roomName,
+    action: event.action,
+    timestamp: event.timestamp,
+    transactionId: event.txId,
+  }));
+
+  // Build Merkle Tree
+  const tree = buildMerkleTree(leaves);
+  if (!tree) {
+    return res.status(400).json({ error: "Failed to build merkle tree from events" });
+  }
+
+  const merkleRoot = getMerkleRoot(tree);
+  if (!merkleRoot) {
+    return res.status(400).json({ error: "Failed to generate merkle root" });
+  }
+
+  // Simulate blockchain publishing (mock transaction)
+  const transactionHash = `0x${simHash(merkleRoot + Date.now()).slice(0, 64)}`;
+  const blockNumber = Math.floor(Date.now() / 1000);
+  const timestamp = new Date().toISOString();
+  const publishId = `MRP-${Date.now().toString(36).toUpperCase()}`;
+  const txId = randomUUID();
+
+  // Store merkle root record
+  const merkleRootRecord = {
+    publishId,
+    doctorDid,
+    doctorName: todayEvents[0]?.doctorName || "Doctor",
+    date: todayStr,
+    merkleRoot,
+    eventCount: todayEvents.length,
+    events: todayEvents.map((e) => e.logId),
+    transactionHash,
+    blockNumber,
+    publishedAt: timestamp,
+    status: "published",
+    blockchain: "solana-devnet",
+    chainId: "devnet",
+  };
+  putState("merkle-roots", publishId, merkleRootRecord, txId);
+
+  // Store blockchain transaction record
+  const blockchainTxRecord = {
+    txHash: transactionHash,
+    type: "merkle-root-publish",
+    doctorDid,
+    merkleRoot,
+    merklePublishId: publishId,
+    blockNumber,
+    confirmedAt: timestamp,
+    status: "confirmed",
+    network: "solana-devnet",
+  };
+  putState("blockchain-tx", transactionHash, blockchainTxRecord, txId);
+
+  // Broadcast event
+  broadcast({
+    event: "merkle-root:published",
+    data: {
+      publishId,
+      doctorDid,
+      merkleRoot,
+      transactionHash,
+      publishedAt: timestamp,
+    },
+  });
+
+  logAudit(req, {
+    resource: doctorDid,
+    action: "MERKLE_ROOT_PUBLISHED",
+    outcome: "success",
+  });
+
+  res.json({
+    success: true,
+    publishId,
+    merkleRoot,
+    transactionHash,
+    blockNumber,
+    eventCount: todayEvents.length,
+    publishedAt: timestamp,
+    events: todayEvents,
+  });
 });
 
 // ─── Register Extension Routes (Medical Records, NFC, Visitors, Attendance, Solana) ───

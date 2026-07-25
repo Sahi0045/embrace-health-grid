@@ -1,0 +1,59 @@
+{
+  "RC-MS0OX2WT": {
+    "key": "RC-MS0OX2WT",
+    "value": {
+      "logId": "RC-MS0OX2WT",
+      "doctorDid": "did:hosp:0x8f2c3a11",
+      "doctorName": "Dr. Sameer Khan",
+      "action": "checkin",
+      "roomId": "room_909",
+      "roomName": "Ortho Clinic 909",
+      "status": "in-room",
+      "timestamp": "2026-07-25T18:16:09.725Z",
+      "txId": "0b47ff67-072b-42cc-b7a9-bdea140e49c8"
+    },
+    "namespace": "room-checkin-history",
+    "version": "0b47ff67-072b-42cc-b7a9-bdea140e49c8:1",
+    "updatedAt": "2026-07-25T18:16:09.725Z",
+    "txId": "0b47ff67-072b-42cc-b7a9-bdea140e49c8",
+    "docType": "room-checkin-history"
+  },
+  "RC-MS0PFGUE": {
+    "key": "RC-MS0PFGUE",
+    "value": {
+      "logId": "RC-MS0PFGUE",
+      "doctorDid": "did:hosp:0x8f2c3a11",
+      "doctorName": "Dr. Sameer Khan",
+      "action": "checkout",
+      "roomId": null,
+      "roomName": null,
+      "status": "available",
+      "timestamp": "2026-07-25T18:30:27.590Z",
+      "txId": "cf0c2e74-d4b0-422c-9dc3-960bf5b5e741"
+    },
+    "namespace": "room-checkin-history",
+    "version": "cf0c2e74-d4b0-422c-9dc3-960bf5b5e741:1",
+    "updatedAt": "2026-07-25T18:30:27.590Z",
+    "txId": "cf0c2e74-d4b0-422c-9dc3-960bf5b5e741",
+    "docType": "room-checkin-history"
+  },
+  "RC-MS0PFJOK": {
+    "key": "RC-MS0PFJOK",
+    "value": {
+      "logId": "RC-MS0PFJOK",
+      "doctorDid": "did:hosp:0x8f2c3a11",
+      "doctorName": "Dr. Sameer Khan",
+      "action": "checkin",
+      "roomId": "room_404",
+      "roomName": "Emergency Bay 1",
+      "status": "emergency",
+      "timestamp": "2026-07-25T18:30:31.268Z",
+      "txId": "41bfa8bb-37a3-40ee-a1b9-c617acaf8e59"
+    },
+    "namespace": "room-checkin-history",
+    "version": "41bfa8bb-37a3-40ee-a1b9-c617acaf8e59:1",
+    "updatedAt": "2026-07-25T18:30:31.268Z",
+    "txId": "41bfa8bb-37a3-40ee-a1b9-c617acaf8e59",
+    "docType": "room-checkin-history"
+  }
+}

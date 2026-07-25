@@ -1,56 +1,20 @@
 {
   "LAB-SEED-1": {
     "key": "LAB-SEED-1",
-    "value": {
-      "labId": "LAB-SEED-1",
-      "patientDid": "did:hosp:0x4302bbea",
-      "tests": [
-        "HbA1c Glycated Hemoglobin"
-      ],
-      "orderedBy": "Dr. Sameer Khan",
-      "status": "completed",
-      "orderedAt": "2026-05-18T10:00:00.000Z",
-      "completedAt": "2026-05-20T09:00:00.000Z",
-      "results": [
-        {
-          "parameter": "HbA1c",
-          "value": "6.4",
-          "unit": "%",
-          "referenceRange": "4.0-5.6%"
-        }
-      ]
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"wT1mMbP9HKlsZZkq\",\"tag\":\"GlVFi4voewOZcZWpxG1Sag\",\"ct\":\"jEU_7WQOUqiDlAWQkyiP71b8tgZrGzebXZsyu_QSoK0jO5cN7RJfEBgzVg7AKkTHHr1WwmSE3Vr1WyL_76BuoD6joHP5Z8eygD96_RwA3Gav9ySV-RnmXt061KU8xCxWFkzFOTdPTg_DhIXZpr-n6Fn6TeqqEXI25BhDxR164JxnZYT2LFrOfvdN8ATRjnYa8D7frRPEm0lA5BDQZPYMq-Y4-VOhnw5w4C5svUeAjMBvLSuyJsUUaTIyaeX4DzNA1IQQeqiB_ATXLTEf48SG9XGcN4ygGDi9Ppzm38MeaBOP5wqxi9qYsVfiQm60gkyur44iX-l5UcPhqNyd-V742_7OrlgmRhGf1ShrurBtBVm6llvCpbDIw2GRKdc3obQbQw4KYIHvA-9U1-IdRqEIqGT0_hKrRrEvVg\"}",
     "namespace": "lab-results",
-    "version": "27ff7bdb-8e69-4ee0-b445-d05fbb1021d3:1",
-    "updatedAt": "2026-07-22T09:31:05.252Z",
-    "txId": "27ff7bdb-8e69-4ee0-b445-d05fbb1021d3",
+    "version": "a2d28b9f-5d44-4bc3-9707-afbad4687a73:1",
+    "updatedAt": "2026-07-25T09:59:23.083Z",
+    "txId": "a2d28b9f-5d44-4bc3-9707-afbad4687a73",
     "docType": "lab-results"
   },
   "LAB-SEED-2": {
     "key": "LAB-SEED-2",
-    "value": {
-      "labId": "LAB-SEED-2",
-      "patientDid": "did:hosp:0x4302bbea",
-      "tests": [
-        "Lipid Profile Panel"
-      ],
-      "orderedBy": "Dr. Ravi Menon",
-      "status": "completed",
-      "orderedAt": "2026-04-10T10:00:00.000Z",
-      "completedAt": "2026-04-12T11:00:00.000Z",
-      "results": [
-        {
-          "parameter": "LDL Cholesterol",
-          "value": "92",
-          "unit": "mg/dL",
-          "referenceRange": "<100 mg/dL"
-        }
-      ]
-    },
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"44G4uCve8HxHTYKf\",\"tag\":\"XL6A2JtatbcAZnSmrK5oig\",\"ct\":\"Bol2WcOMOiPgF6BtPmSiPjG1LOHRXRgcRM7hdvsBbjiKazjisFcazE8Cc6GbfCCYQTFBmrap6xDAx0kbqba4VYwUWCUtFptv2CDLPyIHWO3r1MdWa7EIr8XLF778o-Mie0GwDIF8ne0G3xOPnEfzx9sp-S69F6ZQ_oq6TNPPpEW_eNbc9CLjyjAk24YDhTtNVUX3SO4Pdm4YHi2QgE1Gqwoy3--ppLr5kzODl9lYS8nwADg0KKCUpKBmyuSmFYis-c8ZDSnKegLv3yeBryrmD-3q03DYEKai9iOGWXSjYfNN4RvNczBouCtdjzYwU_-kInZbwbtrBm0dSIoIp-1p9kRtRvevTs8jnUWiS0hXDA0_oOfpBoexadTEEWovsmgxdbx5DsnvMxJIsX5AFj6du1xKJnJDyJtmCfJWZ7RQXeZL\"}",
     "namespace": "lab-results",
-    "version": "6c350384-b597-475e-9819-b9b969b04415:1",
-    "updatedAt": "2026-07-22T09:31:05.254Z",
-    "txId": "6c350384-b597-475e-9819-b9b969b04415",
+    "version": "7a4e4fb6-dd52-45fd-96f1-09b09d064eb9:1",
+    "updatedAt": "2026-07-25T09:59:23.083Z",
+    "txId": "7a4e4fb6-dd52-45fd-96f1-09b09d064eb9",
     "docType": "lab-results"
   }
 }

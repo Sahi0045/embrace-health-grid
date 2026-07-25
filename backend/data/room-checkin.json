@@ -1,0 +1,22 @@
+{
+  "did:hosp:0x8f2c3a11": {
+    "key": "did:hosp:0x8f2c3a11",
+    "value": {
+      "doctorDid": "did:hosp:0x8f2c3a11",
+      "doctorName": "Dr. Sameer Khan",
+      "doctorEmail": "doctor@embracehealth.org",
+      "status": "emergency",
+      "currentRoom": "Emergency Bay 1",
+      "roomId": "room_404",
+      "checkedInAt": "2026-07-25T18:30:31.268Z",
+      "checkedOutAt": null,
+      "lastAction": "checkin",
+      "updatedAt": "2026-07-25T18:30:31.268Z"
+    },
+    "namespace": "room-checkin",
+    "version": "41bfa8bb-37a3-40ee-a1b9-c617acaf8e59:1",
+    "updatedAt": "2026-07-25T18:30:31.268Z",
+    "txId": "41bfa8bb-37a3-40ee-a1b9-c617acaf8e59",
+    "docType": "room-checkin"
+  }
+}

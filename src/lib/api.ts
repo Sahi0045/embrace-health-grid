@@ -387,6 +387,16 @@ export const getAllLabs = () => apiFetch<{ labs: any[]; total: number }>(`/labs`
 export const getAppointments = () =>
   apiFetch<{ appointments: any[]; total: number }>(`/appointments`);
 
+export const getAppointmentsByPatient = (patientDid: string) =>
+  apiFetch<{ appointments: any[]; total: number }>(
+    `/appointments/patient/${encodeURIComponent(patientDid)}`,
+  );
+
+export const getAppointmentsByDoctor = (doctorDid: string) =>
+  apiFetch<{ appointments: any[]; total: number }>(
+    `/appointments/doctor/${encodeURIComponent(doctorDid)}`,
+  );
+
 export const bookAppointment = (data: {
   patientDid: string;
   patientName: string;
@@ -396,11 +406,25 @@ export const bookAppointment = (data: {
   mode: string;
   specialty: string;
   consentGranted?: boolean;
+  reason?: string;
 }) =>
   apiFetch<any>(`/appointments`, {
     method: "POST",
     body: JSON.stringify(data),
   });
+
+export const updateAppointmentStatus = (
+  apptId: string,
+  status: "confirmed" | "rejected" | "rescheduled" | "cancelled",
+  opts?: { suggestedSlot?: string; rejectionReason?: string },
+) =>
+  apiFetch<{ success: boolean; appointment: any; txId: string }>(
+    `/appointments/${encodeURIComponent(apptId)}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ status, ...opts }),
+    },
+  );
 
 // ─── Beds ─────────────────────────────────────────────────────────────────────
 export const getBeds = () => apiFetch<{ beds: any[]; total: number }>(`/beds`);
@@ -696,6 +720,45 @@ export const getVaccines = (patientDid: string) =>
 // ─── Doctors ──────────────────────────────────────────────────────────────
 export const getDoctors = () => apiFetch<{ doctors: any[]; total: number }>(`/doctors`);
 
+export const getDIDVerifiedDoctors = () =>
+  apiFetch<{ doctors: any[]; total: number }>(`/doctors/verified`);
+
+// ─── Rooms & Check-In ─────────────────────────────────────────────────────
+export const getDummyRooms = () =>
+  apiFetch<{ rooms: any[]; total: number }>(`/rooms`);
+
+export const getMyRoomStatus = (doctorDid: string) =>
+  apiFetch<{
+    doctorDid: string;
+    status: string;
+    currentRoom: string | null;
+    roomId: string | null;
+    checkedInAt: string | null;
+    checkedOutAt: string | null;
+    lastAction: string | null;
+    updatedAt: string | null;
+  }>(`/room-checkin/${encodeURIComponent(doctorDid)}`);
+
+export const getRoomStatusAll = () =>
+  apiFetch<{ statuses: any[]; total: number }>(`/room-checkin/all`);
+
+export const getRoomCheckInHistory = (doctorDid: string) =>
+  apiFetch<{ history: any[]; total: number }>(
+    `/room-checkin/${encodeURIComponent(doctorDid)}/history`,
+  );
+
+export const roomCheckIn = (data: {
+  doctorDid: string;
+  doctorName: string;
+  roomId: string;
+  roomName: string;
+  action: "checkin" | "checkout";
+}) =>
+  apiFetch<{ success: boolean; status: any; history: any; txId: string }>(`/room-checkin`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+
 // ─── Inpatient ────────────────────────────────────────────────────────────
 export const getInpatientData = (patientDid: string) =>
   apiFetch<{
@@ -774,3 +837,34 @@ export const checkInDoctorRoom = (doctorDid: string, roomNumber: string, action?
 
 export const getDoctorLocations = () =>
   apiFetch<{ locations: any[]; total: number }>("/doctor/locations");
+
+// ─── Merkle Root & Room Events ─────────────────────────────────────────────
+export const getDailyRoomEvents = (doctorDid: string) =>
+  apiFetch<{
+    doctorDid: string;
+    date: string;
+    events: any[];
+    total: number;
+  }>(`/merkle-root/daily/${encodeURIComponent(doctorDid)}`);
+
+export const getMerkleRootHistory = (doctorDid: string) =>
+  apiFetch<{
+    doctorDid: string;
+    publishedRoots: any[];
+    total: number;
+  }>(`/merkle-root/${encodeURIComponent(doctorDid)}/history`);
+
+export const publishMerkleRoot = (doctorDid: string) =>
+  apiFetch<{
+    success: boolean;
+    publishId: string;
+    merkleRoot: string;
+    transactionHash: string;
+    blockNumber: number;
+    eventCount: number;
+    publishedAt: string;
+    events: any[];
+  }>(`/merkle-root/publish`, {
+    method: "POST",
+    body: JSON.stringify({ doctorDid }),
+  });

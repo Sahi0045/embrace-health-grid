@@ -166,5 +166,33 @@
     "updatedAt": "2026-07-20T18:19:33.364Z",
     "txId": "461c7b06-5359-4cd5-9e0e-dc7f4ccf4f8e",
     "docType": "doctor-location-roots"
+  },
+  "did:hosp:0x4ba0999d": {
+    "key": "did:hosp:0x4ba0999d",
+    "value": {
+      "doctorDid": "did:hosp:0x4ba0999d",
+      "merkleRoot": "9351d1a59e54181aee96902be6bd2a6607a4e29fcf1789f86f7a2501c49354b6",
+      "lastUpdated": "2026-07-25T09:14:31.551Z",
+      "signature": "solana_loc_9351d1a59e54_ms05kj75"
+    },
+    "namespace": "doctor-location-roots",
+    "version": "c7c066e7-5684-4845-b3b7-e052d3072e80:1",
+    "updatedAt": "2026-07-25T09:14:31.601Z",
+    "txId": "c7c066e7-5684-4845-b3b7-e052d3072e80",
+    "docType": "doctor-location-roots"
+  },
+  "did:hosp:0xdoctor": {
+    "key": "did:hosp:0xdoctor",
+    "value": {
+      "doctorDid": "did:hosp:0xdoctor",
+      "merkleRoot": "ef48801f9cded8b59c10627fe540307e15521e6f1432ddd0b0cea3aa1a4146c2",
+      "lastUpdated": "2026-07-25T10:01:54.536Z",
+      "signature": "solana_loc_ef48801f9cde_ms079gur"
+    },
+    "namespace": "doctor-location-roots",
+    "version": "e68cbb36-c5f1-4997-9dba-0af4a67fb036:1",
+    "updatedAt": "2026-07-25T10:01:54.579Z",
+    "txId": "e68cbb36-c5f1-4997-9dba-0af4a67fb036",
+    "docType": "doctor-location-roots"
   }
 }
