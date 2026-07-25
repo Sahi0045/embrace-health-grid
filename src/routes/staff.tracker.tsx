@@ -184,23 +184,36 @@ function DoctorLocatorPage() {
   ];
 
   const filtered = staff.filter((s) => {
+    const q = searchQuery.toLowerCase().trim();
     const matchSearch =
-      s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.currentLocation.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (s.specialty ?? "").toLowerCase().includes(searchQuery.toLowerCase());
-    const matchRole = roleFilter === "All" || s.role === roleFilter;
+      !q ||
+      s.name.toLowerCase().includes(q) ||
+      s.currentLocation.toLowerCase().includes(q) ||
+      (s.specialty ?? "").toLowerCase().includes(q) ||
+      (s.did ?? "").toLowerCase().includes(q);
+
+    const matchRole =
+      roleFilter === "All" || s.role?.toLowerCase() === roleFilter.toLowerCase();
+
     const matchStatus =
-      statusFilter === "All" || s.currentLocation === "Off Duty"
-        ? statusFilter === "All" || statusFilter === "Off Duty"
-        : true;
-    return matchSearch && matchRole;
+      statusFilter === "All" ||
+      s.status?.toLowerCase() === statusFilter.toLowerCase() ||
+      (statusFilter === "Off Duty" && (s.currentLocation.includes("Exited") || s.currentLocation === "Off Duty"));
+
+    return matchSearch && matchRole && matchStatus;
   });
 
-  const selected = staff.find((s) => s.id === selectedId) ?? null;
+  const selected = staff.find((s) => s.id === selectedId || s.did === selectedId) ?? null;
 
-  const onlineCount = staff.filter((s) => s.onDuty).length;
-  const availableCount = staff.filter((s) => s.currentLocation !== "Off Duty" && s.onDuty).length;
-  const emergencyCount = staff.filter((s) => s.currentLocation === "Emergency Ward").length;
+  const onlineCount = staff.filter(
+    (s) => s.onDuty && s.currentLocation !== "Off Duty" && !s.currentLocation.includes("Exited")
+  ).length;
+  const availableCount = staff.filter(
+    (s) => s.status === "Available" || s.status === "In Consultation"
+  ).length;
+  const emergencyCount = staff.filter(
+    (s) => s.status === "Emergency Response" || s.currentLocation.toLowerCase().includes("emergency")
+  ).length;
 
   return (
     <RouteGuard requiredRole="staff">
@@ -238,7 +251,7 @@ function DoctorLocatorPage() {
             <input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search name, location, specialty…"
+              placeholder="Search name, location, specialty, DID…"
               className="bg-transparent text-xs text-foreground outline-none w-full placeholder:text-muted-foreground"
             />
           </div>
@@ -249,6 +262,15 @@ function DoctorLocatorPage() {
           >
             {roles.map((r) => (
               <option key={r}>{r}</option>
+            ))}
+          </select>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="rounded-xl border border-border bg-card px-3 py-2.5 text-xs text-foreground outline-none shadow-clinical"
+          >
+            {statuses.map((st) => (
+              <option key={st}>{st}</option>
             ))}
           </select>
         </div>
@@ -402,6 +424,32 @@ function DoctorLocatorPage() {
                       </div>
                     </div>
                   )}
+
+                  <div className="pt-3 border-t border-border space-y-2">
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground">
+                      Check-In Doctor to Room
+                    </label>
+                    <div className="flex gap-1.5 flex-wrap">
+                      {["OPD Room 3", "ICU-101", "OT-1", "Emergency Bay 2", "Consultation 4"].map(
+                        (rm) => (
+                          <button
+                            key={rm}
+                            onClick={() => {
+                              updateStaffLocation(selected.did, rm);
+                              updateStaffLocation(selected.name, rm);
+                              toast.success(`Moved to ${rm}`, {
+                                description: `Checked in ${selected.name} to ${rm}`,
+                              });
+                              refresh();
+                            }}
+                            className="rounded bg-muted px-2 py-1 text-[10px] font-semibold hover:bg-primary/10 hover:text-primary transition-colors"
+                          >
+                            {rm}
+                          </button>
+                        )
+                      )}
+                    </div>
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>

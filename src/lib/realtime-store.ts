@@ -257,42 +257,8 @@ function initStaffLocations(staff: StaffMember[]) {
 }
 
 function runStaffTick() {
-  if (_wsConnected) return; // Use live WebSocket locations when connected
-  const onDuty = _liveStaff.filter((s) => s.onDuty);
-  const idx = Math.floor(Math.random() * onDuty.length);
-  const member = onDuty[idx];
-  if (!member) return;
-
-  const current = _staffLocations.get(member.id);
-  const newLoc = LOCATIONS[Math.floor(Math.random() * LOCATIONS.length)];
-  if (current?.location === newLoc) return;
-
-  const newStatus =
-    newLoc === "Operation Theatre 2"
-      ? "In Surgery"
-      : newLoc === "Emergency Ward"
-        ? "Emergency Response"
-        : newLoc === "ICU Block B"
-          ? "In Consultation"
-          : "Available";
-
-  const now = new Date().toLocaleTimeString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
-  _staffLocations.set(member.id, {
-    location: newLoc,
-    status: newStatus,
-    lastSignal: now,
-    beacon: `${70 + Math.floor(Math.random() * 30)}%`,
-  });
-
-  emitStoreEvent("staff:location:update", {
-    memberId: member.id,
-    location: newLoc,
-    status: newStatus,
-  });
+  // Disabled random tick overrides to keep room check-in locations persistent and accurate
+  return;
 }
 
 // ---------------------------------------------------------------------------
