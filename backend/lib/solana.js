@@ -34,8 +34,80 @@ export async function anchorHash({ recordHash, recordType, actorDid, recordId })
     return entry;
   }
 
-  // Real devnet integration point — submit tx via @solana/web3.js when configured
-  throw new Error("Real Solana RPC not yet wired — set SOLANA_RPC_URL and SOLANA_PROGRAM_ID");
+  try {
+    const { Connection, PublicKey, Keypair, Transaction, TransactionInstruction, SystemProgram } = await import("@solana/web3.js");
+    const connection = new Connection(process.env.SOLANA_RPC_URL, "confirmed");
+    const programPubkey = new PublicKey(process.env.SOLANA_PROGRAM_ID);
+
+    let walletKeypair;
+    try {
+      const secretKey = JSON.parse(process.env.SOLANA_WALLET_SECRET || "[]");
+      walletKeypair = Keypair.fromSecretKey(Uint8Array.from(secretKey));
+    } catch {
+      const simEntry = {
+        anchorId,
+        recordHash,
+        recordType,
+        actorDid: actorDid || "system",
+        recordId: recordId || null,
+        signature: `sim_${recordHash.slice(0, 16)}_${Date.now().toString(36)}`,
+        slot: Math.floor(Date.now() / 400),
+        network: "devnet-simulated",
+        anchoredAt: timestamp,
+        note: "wallet not configured",
+      };
+      putState("solana-anchors", anchorId, simEntry, anchorId);
+      return simEntry;
+    }
+
+    const hashBytes = Buffer.from(recordHash.replace(/^0x/, "").slice(0, 64), "hex");
+    const ix = new TransactionInstruction({
+      keys: [
+        { pubkey: walletKeypair.publicKey, isSigner: true, isWritable: true },
+        { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+      ],
+      programId: programPubkey,
+      data: hashBytes,
+    });
+
+    const tx = new Transaction().add(ix);
+    tx.feePayer = walletKeypair.publicKey;
+    const { blockhash } = await connection.getLatestBlockhash("confirmed");
+    tx.recentBlockhash = blockhash;
+    tx.sign(walletKeypair);
+
+    const signature = await connection.sendRawTransaction(tx.serialize());
+    await connection.confirmTransaction(signature, "confirmed");
+
+    const realEntry = {
+      anchorId,
+      recordHash,
+      recordType,
+      actorDid: actorDid || "system",
+      recordId: recordId || null,
+      signature,
+      slot: 0,
+      network: "devnet",
+      anchoredAt: timestamp,
+    };
+    putState("solana-anchors", anchorId, realEntry, anchorId);
+    return realEntry;
+  } catch (err) {
+    const errorEntry = {
+      anchorId,
+      recordHash,
+      recordType,
+      actorDid: actorDid || "system",
+      recordId: recordId || null,
+      signature: `err_${Date.now().toString(36)}`,
+      slot: 0,
+      network: "devnet-error",
+      anchoredAt: timestamp,
+      error: err.message,
+    };
+    putState("solana-anchors", anchorId, errorEntry, anchorId);
+    return errorEntry;
+  }
 }
 
 export function verifyAnchor(signature) {

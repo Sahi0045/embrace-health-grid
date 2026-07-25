@@ -21,7 +21,9 @@ import { motion } from "framer-motion";
 import { RouteGuard } from "@/components/RouteGuard";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
-import { getCurrentUser } from "@/lib/auth";
+import { useState, useEffect } from "react";
+import { getCurrentUser, setSession } from "@/lib/auth";
+import { getMe } from "@/lib/api";
 
 export const Route = createFileRoute("/patient/")({
   head: () => ({ meta: [{ title: "Patient · Home — Embrace Health Grid" }] }),
@@ -55,14 +57,14 @@ function PatientHome() {
 
   useEffect(() => {
     getMe()
-      .then((res) => {
+      .then((res: { user: any }) => {
         if (res.user) {
-          const token = localStorage.getItem("authToken") || "";
+          const token = sessionStorage.getItem("authToken") || "";
           setSession(token, res.user);
           setCurrentUser(getCurrentUser());
         }
       })
-      .catch((err) => console.warn("Could not fetch user profile:", err));
+      .catch((err: Error) => console.warn("Could not fetch user profile:", err.message));
   }, []);
 
   const userEmail = currentUser?.email || "";

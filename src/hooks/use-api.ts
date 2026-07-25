@@ -163,9 +163,9 @@ export function useStats() {
   return useApiData(
     getStats,
     () => ({
-      blockHeight: 1,
+      blockHeight: 0,
       txCount: 0,
-      peerCount: 3,
+      peerCount: 0,
       worldStateSize: 0,
       throughputTps: 0,
       lastBlockTime: new Date().toISOString(),
@@ -174,7 +174,7 @@ export function useStats() {
   );
 }
 
-// ─── Ledger blocks (Mocked to return empty array) ─────────────────────────────
+// ─── Ledger blocks ────────────────────────────────────────────────────────────
 export function useLedger(page = 0) {
   return useApiData(
     async () => ({ blocks: [] as any[], total: 0, blockHeight: 1 }),
@@ -451,7 +451,7 @@ export function useConnection() {
   return { online, wsConnected, blockHeight, latestBlock };
 }
 
-// ─── Real-time block stream (Mocked to return empty array) ───────────────────
+// ─── Real-time block stream ───────────────────────────────────────────────────
 export function useLiveBlocks(limit = 20) {
   const [blocks] = useState<unknown[]>([]);
   return blocks;

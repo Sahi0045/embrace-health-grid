@@ -896,40 +896,7 @@ app.get(
       }
     }
 
-    let all = queryState("prescriptions", (v) => v.patientDid === patientDid);
-    if (all.length === 0) {
-      const defaultPrescriptions = [
-        {
-          rxId: "RX-SEED-1",
-          patientDid,
-          diagnosis: "Hypertension & Diabetes",
-          signedBy: "Dr. Sameer Khan",
-          signedAt: "2026-05-18T10:00:00.000Z",
-          status: "active",
-          notes: "Take Metformin with meals.",
-          drugs: [
-            {
-              name: "Metoprolol 50mg",
-              dosage: "50mg",
-              frequency: "Once daily (Morning)",
-              duration: "3 months",
-              instructions: "Before breakfast",
-            },
-            {
-              name: "Metformin 1000mg",
-              dosage: "1000mg",
-              frequency: "Twice daily",
-              duration: "3 months",
-              instructions: "With meals",
-            },
-          ],
-        },
-      ];
-      defaultPrescriptions.forEach((rx) => {
-        putState("prescriptions", rx.rxId, rx, randomUUID());
-      });
-      all = queryState("prescriptions", (v) => v.patientDid === patientDid);
-    }
+    const all = queryState("prescriptions", (v) => v.patientDid === patientDid);
     res.json({ prescriptions: all.map((e) => e.value) });
   },
 );
@@ -1169,42 +1136,7 @@ app.get("/api/labs/:patientDid", requireAuth, hipaaAuditPHIAccess("LabResult"), 
       .json({ error: "Access Denied: Cannot view other patients' lab results" });
   }
   const patientDid = req.params.patientDid;
-  let all = queryState("lab-results", (v) => v.patientDid === patientDid);
-  if (all.length === 0) {
-    const defaultLabs = [
-      {
-        labId: "LAB-SEED-1",
-        patientDid,
-        tests: ["HbA1c Glycated Hemoglobin"],
-        orderedBy: "Dr. Sameer Khan",
-        status: "completed",
-        orderedAt: "2026-05-18T10:00:00.000Z",
-        completedAt: "2026-05-20T09:00:00.000Z",
-        results: [{ parameter: "HbA1c", value: "6.4", unit: "%", referenceRange: "4.0-5.6%" }],
-      },
-      {
-        labId: "LAB-SEED-2",
-        patientDid,
-        tests: ["Lipid Profile Panel"],
-        orderedBy: "Dr. Ravi Menon",
-        status: "completed",
-        orderedAt: "2026-04-10T10:00:00.000Z",
-        completedAt: "2026-04-12T11:00:00.000Z",
-        results: [
-          {
-            parameter: "LDL Cholesterol",
-            value: "92",
-            unit: "mg/dL",
-            referenceRange: "<100 mg/dL",
-          },
-        ],
-      },
-    ];
-    defaultLabs.forEach((l) => {
-      putState("lab-results", l.labId, l, randomUUID());
-    });
-    all = queryState("lab-results", (v) => v.patientDid === patientDid);
-  }
+  const all = queryState("lab-results", (v) => v.patientDid === patientDid);
   res.json({ labs: all.map((e) => e.value) });
 });
 
@@ -2791,76 +2723,29 @@ app.get("/api/auth/users", requireAuth, requireRole(["admin"]), (req, res) => {
 });
 
 // ─── Notifications ──────────────────────────────────────────────────────────
-const _notifications = [];
-let _notifSeeded = false;
-
-function seedNotifications() {
-  if (_notifSeeded) return;
-  _notifSeeded = true;
-  const now = Date.now();
-  _notifications.push(
-    {
-      id: "notif-001",
-      type: "consent_request",
-      title: "Consent Request",
-      message: "Dr. Ravi Menon requests access to your ECG reports",
-      timestamp: new Date(now - 3 * 60000).toISOString(),
-      read: false,
-      severity: "warning",
-      link: "/patient/consent",
-    },
-    {
-      id: "notif-002",
-      type: "credential_issued",
-      title: "New Credential Issued",
-      message: "DID Medical License credential issued",
-      timestamp: new Date(now - 15 * 60000).toISOString(),
-      read: false,
-      severity: "info",
-      link: "/patient/wallet",
-    },
-    {
-      id: "notif-003",
-      type: "fraud_alert",
-      title: "Fraud Alert Raised",
-      message: "Unusual access pattern detected from IP 10.14.2.88",
-      timestamp: new Date(now - 30 * 60000).toISOString(),
-      read: false,
-      severity: "critical",
-      link: "/admin/fraud",
-    },
-    {
-      id: "notif-005",
-      type: "lab_ready",
-      title: "Lab Results Ready",
-      message: "CBC and Lipid Panel results are now available",
-      timestamp: new Date(now - 2 * 3600000).toISOString(),
-      read: true,
-      severity: "info",
-      link: "/patient/records",
-    },
-  );
-}
-
 app.get("/api/notifications", requireAuth, (req, res) => {
-  seedNotifications();
-  res.json({
-    notifications: _notifications,
-    unreadCount: _notifications.filter((n) => !n.read).length,
-  });
+  const userEmail = req.user.email;
+  const all = queryState("notifications", (v) => v.recipientEmail === userEmail);
+  const notifications = all.map((e) => e.value);
+  const unreadCount = notifications.filter((n) => !n.read).length;
+  res.json({ notifications, unreadCount });
 });
 
 app.patch("/api/notifications/read-all", requireAuth, (req, res) => {
-  seedNotifications();
-  _notifications.forEach((n) => (n.read = true));
+  const userEmail = req.user.email;
+  const all = queryState("notifications", (v) => v.recipientEmail === userEmail);
+  all.forEach((e) => {
+    putState("notifications", e.key, { ...e.value, read: true }, randomUUID());
+  });
   broadcast({ event: "notifications:update", data: { unreadCount: 0 } });
   res.json({ success: true });
 });
 
 app.patch("/api/notifications/:id/read", requireAuth, (req, res) => {
-  seedNotifications();
-  const n = _notifications.find((x) => x.id === req.params.id);
-  if (n) n.read = true;
+  const entry = getState("notifications", req.params.id);
+  if (entry && entry.value) {
+    putState("notifications", req.params.id, { ...entry.value, read: true }, randomUUID());
+  }
   res.json({ success: true });
 });
 
@@ -2928,9 +2813,6 @@ app.post("/api/zkproof/verify", requireAuth, (req, res) => {
       .forEach((c) => {
         disclosedAttributes[c.attribute] = c.value;
       });
-  } else {
-    disclosedAttributes["bloodGroup"] = "B+";
-    disclosedAttributes["insuranceValid"] = "true";
   }
 
   const result = {

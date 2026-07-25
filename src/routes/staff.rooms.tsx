@@ -145,7 +145,7 @@ function StaffRooms() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+          Authorization: `Bearer ${sessionStorage.getItem("authToken")}`,
           "x-client-key": import.meta.env.VITE_CLIENT_KEY || "",
         },
         body: JSON.stringify({
@@ -161,7 +161,8 @@ function StaffRooms() {
       const res = await response.json();
 
       toast.info("Requesting signature from Phantom wallet...");
-      const connection = new Connection("https://api.devnet.solana.com", "confirmed");
+      const rpcUrl = import.meta.env.VITE_SOLANA_RPC_URL || "https://api.devnet.solana.com";
+      const connection = new Connection(rpcUrl, "confirmed");
 
       const tx = new Transaction();
       tx.feePayer = publicKey;
@@ -169,18 +170,17 @@ function StaffRooms() {
       tx.recentBlockhash = blockhash;
 
       const signedTx = await signTransaction(tx);
-      toast.info("Registering location Merkle Root on-chain...");
+      toast.info("Submitting transaction to Solana Devnet...");
 
-      setTimeout(() => {
-        const fakeSig =
-          Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-        setOnChainTx(fakeSig);
-        setOnChainRoot(res.merkleRoot);
-        toast.success("Solana Anchoring Complete", {
-          description: `Location Merkle Root successfully registered on Solana Devnet.`,
-        });
-        setAnchoring(false);
-      }, 2000);
+      const signature = await connection.sendRawTransaction(signedTx.serialize());
+      await connection.confirmTransaction(signature, "confirmed");
+
+      setOnChainTx(signature);
+      setOnChainRoot(res.merkleRoot);
+      toast.success("Solana Anchoring Complete", {
+        description: `TX: ${signature.slice(0, 16)}...`,
+      });
+      setAnchoring(false);
     } catch (err: any) {
       toast.error("Solana Anchoring Failed", { description: err.message });
       setAnchoring(false);

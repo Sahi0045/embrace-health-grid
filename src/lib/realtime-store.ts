@@ -38,7 +38,7 @@ import { ConvexHttpClient } from "convex/browser";
 
 // TODO: Generate Convex API types by running: npx convex dev
 // This will create convex/_generated/api.ts
-// @ts-expect-error - Convex API will be generated
+// @ts-ignore - Convex API will be generated
 import { api } from "../../convex/_generated/api";
 
 // ---------------------------------------------------------------------------
@@ -228,6 +228,14 @@ const LOCATIONS = [
   "Admin Block",
 ];
 
+export function isVitalsSimulated(): boolean {
+  return !_wsConnected;
+}
+
+export function isLocationSimulated(): boolean {
+  return !_wsConnected;
+}
+
 const _staffLocations: Map<
   string,
   { location: string; status: string; lastSignal: string; beacon: string }
@@ -347,6 +355,7 @@ async function fetchDIDsFromConvex(): Promise<Record<string, DIDDocument>> {
   // TODO: Implement Convex query to fetch DIDs
   try {
     const client = getConvexClient();
+    if (!client) return {};
     const dids = await client.query(api.records.getDIDs);
     const credentials = await client.query(api.records.getCredentials);
 
@@ -549,22 +558,24 @@ function handleStoreWebSocketMessage(event: string, data: any) {
 
             try {
               const client = getConvexClient();
-              await client.mutation(api.records.updatePatientVitals, {
-                patientDid: patient.did,
-                vitals: {
-                  heartRate: mappedVitals.heartRate,
-                  bloodPressure: {
-                    systolic: parseInt(mappedVitals.bp.split("/")[0]),
-                    diastolic: parseInt(mappedVitals.bp.split("/")[1]),
+              if (client) {
+                await client.mutation(api.records.updatePatientVitals, {
+                  patientDid: patient.did,
+                  vitals: {
+                    heartRate: mappedVitals.heartRate,
+                    bloodPressure: {
+                      systolic: parseInt(mappedVitals.bp.split("/")[0]),
+                      diastolic: parseInt(mappedVitals.bp.split("/")[1]),
+                    },
+                    temperature: mappedVitals.temp,
+                    respiratoryRate: mappedVitals.respRate,
+                    oxygenSaturation: mappedVitals.spo2,
                   },
-                  temperature: mappedVitals.temp,
-                  respiratoryRate: mappedVitals.respRate,
-                  oxygenSaturation: mappedVitals.spo2,
-                },
-                txId: `ws_${Date.now()}`,
-                version: "1.0",
-                recordedAt: new Date().toISOString(),
-              });
+                  txId: `ws_${Date.now()}`,
+                  version: "1.0",
+                  recordedAt: new Date().toISOString(),
+                });
+              }
             } catch (error) {
               console.error("[Store] Error syncing vitals to Convex:", error);
             }
@@ -607,13 +618,15 @@ function handleStoreWebSocketMessage(event: string, data: any) {
       (async () => {
         try {
           const client = getConvexClient();
-          await client.mutation(api.records.updateStaffLocation, {
-            did: staffMember.did,
-            location,
-            beaconStrength,
-            txId: `ws_${Date.now()}`,
-            version: "1.0",
-          });
+          if (client) {
+            await client.mutation(api.records.updateStaffLocation, {
+              did: staffMember.did,
+              location,
+              beaconStrength,
+              txId: `ws_${Date.now()}`,
+              version: "1.0",
+            });
+          }
         } catch (error) {
           console.error("[Store] Error syncing staff location to Convex:", error);
         }
@@ -824,6 +837,7 @@ export async function refreshFromConvex(): Promise<void> {
 export async function getPatientFromConvex(did: string): Promise<LivePatient | null> {
   try {
     const client = getConvexClient();
+    if (!client) return null;
     const patient = await client.query(api.records.getPatientByDID, { did });
     if (!patient) return null;
 
@@ -907,6 +921,7 @@ export async function getPatientFromConvex(did: string): Promise<LivePatient | n
 export async function getStaffFromConvex(did: string): Promise<LiveStaff | null> {
   try {
     const client = getConvexClient();
+    if (!client) return null;
     const staff = await client.query(api.records.getStaffByDID, { did });
     if (!staff) return null;
 

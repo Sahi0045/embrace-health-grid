@@ -9,11 +9,11 @@ const rawUrl = import.meta.env?.VITE_CONVEX_URL;
 if (!rawUrl && import.meta.env?.PROD) {
   console.error("FATAL: VITE_CONVEX_URL is required in production environment!");
 }
-const convexUrl = rawUrl || "https://dummy-url.convex.cloud";
+const convexUrl = rawUrl || "";
 
-export const convexClient = new ConvexReactClient(convexUrl);
+export const convexClient = new ConvexReactClient(convexUrl || "https://placeholder.convex.cloud");
 
 export const isConvexConfigured = () => {
   const url = import.meta.env?.VITE_CONVEX_URL;
-  return !!url && url !== "https://dummy-url.convex.cloud";
+  return !!url && url.startsWith("https://");
 };

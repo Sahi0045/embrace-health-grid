@@ -45,37 +45,7 @@ export function registerExtensionRoutes(app, deps) {
         return res.status(403).json({ error: "Forbidden: own records only" });
       }
       const patientDid = req.params.patientDid;
-      let all = queryState("medical-records", (v) => v.patientDid === patientDid);
-      if (all.length === 0) {
-        const defaultRecords = [
-          {
-            recordId: "MR-SEED-1",
-            patientDid,
-            title: "Type 2 Diabetes Checkup",
-            type: "lab-report",
-            content: "Blood sugar levels stable. HBA1c at 6.4%.",
-            doctorDid: "did:key:z6Mku",
-            doctorName: "Dr. Sameer Khan",
-            createdAt: "2026-05-18T10:00:00.000Z",
-            status: "Controlled",
-          },
-          {
-            recordId: "MR-SEED-2",
-            patientDid,
-            title: "Routine Cardiac Echo",
-            type: "procedure-report",
-            content: "Healthy Ejection Fraction (60%). No signs of ischemia.",
-            doctorDid: "did:key:z6Mkv",
-            doctorName: "Dr. Ravi Menon",
-            createdAt: "2026-04-12T14:30:00.000Z",
-            status: "Healthy",
-          },
-        ];
-        defaultRecords.forEach((rec) => {
-          putState("medical-records", rec.recordId, rec, randomUUID());
-        });
-        all = queryState("medical-records", (v) => v.patientDid === patientDid);
-      }
+      const all = queryState("medical-records", (v) => v.patientDid === patientDid);
       res.json({ records: all.map((e) => e.value), total: all.length });
     },
   );
@@ -1026,70 +996,7 @@ export function registerExtensionRoutes(app, deps) {
     if (req.user.role === "staff" && req.user.email !== email) {
       return res.status(403).json({ error: "Forbidden: own attendance only" });
     }
-    let all = queryState("attendance", (v) => v.staffEmail === email);
-
-    if (all.length === 0) {
-      const defaultHistory = [
-        {
-          staffEmail: email,
-          action: "in",
-          timestamp: "2026-06-02T07:52:00.000Z",
-          location: "Cardiology OPD",
-        },
-        {
-          staffEmail: email,
-          action: "in",
-          timestamp: "2026-06-01T07:58:00.000Z",
-          location: "Cardiology OPD",
-        },
-        {
-          staffEmail: email,
-          action: "out",
-          timestamp: "2026-06-01T16:14:00.000Z",
-          location: "Cardiology OPD",
-        },
-        {
-          staffEmail: email,
-          action: "in",
-          timestamp: "2026-05-30T08:05:00.000Z",
-          location: "Cardiology OPD",
-        },
-        {
-          staffEmail: email,
-          action: "out",
-          timestamp: "2026-05-30T16:02:00.000Z",
-          location: "Cardiology OPD",
-        },
-        {
-          staffEmail: email,
-          action: "in",
-          timestamp: "2026-05-29T08:10:00.000Z",
-          location: "Cardiology OPD",
-        },
-        {
-          staffEmail: email,
-          action: "out",
-          timestamp: "2026-05-29T19:22:00.000Z",
-          location: "Cardiology OPD",
-        },
-        {
-          staffEmail: email,
-          action: "in",
-          timestamp: "2026-05-28T07:45:00.000Z",
-          location: "Cardiology OPD",
-        },
-        {
-          staffEmail: email,
-          action: "out",
-          timestamp: "2026-05-28T16:00:00.000Z",
-          location: "Cardiology OPD",
-        },
-      ];
-      defaultHistory.forEach((h, idx) => {
-        putState("attendance", `ATT-SEED-${email}-${idx}`, h, randomUUID());
-      });
-      all = queryState("attendance", (v) => v.staffEmail === email);
-    }
+    const all = queryState("attendance", (v) => v.staffEmail === email);
     res.json({ records: all.map((e) => e.value), total: all.length });
   });
 
