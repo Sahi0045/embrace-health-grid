@@ -126,5 +126,14 @@
     "updatedAt": "2026-07-22T15:15:03.899Z",
     "txId": "904434c8-e22c-4f00-a4dc-2a784e53e85e",
     "docType": "consent-manager"
+  },
+  "consent_c39b4897": {
+    "key": "consent_c39b4897",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"yDk9J6LKNTlVdwEG\",\"tag\":\"1UvX34WCrmwybTBZ-0Qx2w\",\"ct\":\"NDcyb-f4AYSJbx0PrafJ0vn2qA2J7EcVExJvN584zDFekZaI8g1c2kdmvGQZyXWY0E3i18WitKVIu0kYFxNR19DMagqiome6-lBOoLbyPkgBnFZPHpXYijRH9nNkQvnfcTKF2pSXw9ymz5SaJxi_jwpPcT0JWHoA89R6_pWO6BJAwzieNR2F9njc_9bKt5vtvkOk1mFDqxjUeSOSKy4CP2vCJuKGW6YwofPjRBU0moRKe6U7p-x5HV6C3_nmWozx_BpIWajaS18PBK2f-6uoU5we_95THK38Rp-QIhAe\"}",
+    "namespace": "consent-manager",
+    "version": "1cc02d20-c75a-4f09-bbc3-f2e4fd79a6c8:1",
+    "updatedAt": "2026-07-25T18:50:59.084Z",
+    "txId": "1cc02d20-c75a-4f09-bbc3-f2e4fd79a6c8",
+    "docType": "consent-manager"
   }
 }
