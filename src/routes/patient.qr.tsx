@@ -27,20 +27,38 @@ export const Route = createFileRoute("/patient/qr")({
 
 const ROTATION_SECONDS = 60;
 
+function simHash(str: string): string {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return Math.abs(h).toString(16).padStart(8, "0");
+}
+
 function PatientQr() {
   const { patients: patientsList } = useLivePatients();
   const currentUser = getCurrentUser();
-  const userEmail = currentUser?.email || "";
-  const patient = patientsList?.find((p: any) => p.email === userEmail) ||
-    patientsList?.[0] || {
-      name: "",
-      mrn: "",
-      did: "",
-      bloodGroup: "",
-      age: 0,
-      gender: "F" as const,
-      allergies: [] as string[],
-    };
+  const userEmail = currentUser?.email || (typeof window !== "undefined" ? localStorage.getItem("userEmail") || "" : "");
+  const userDid = currentUser?.did || (typeof window !== "undefined" ? localStorage.getItem("userDID") || localStorage.getItem("userDid") || "" : "");
+  const userMrn = currentUser?.mrn || (typeof window !== "undefined" ? localStorage.getItem("userMRN") || "" : "");
+  const userName = currentUser?.name || (typeof window !== "undefined" ? localStorage.getItem("userName") || "" : "");
+
+  const matchedPatient = patientsList?.find((p: any) => p.email?.toLowerCase() === userEmail.toLowerCase()) || patientsList?.[0];
+
+  const activeDid = matchedPatient?.did || userDid || `did:hosp:0x${simHash(userEmail || "patient").slice(0, 8)}`;
+  const activeName = matchedPatient?.name || userName || "Patient";
+  const activeMrn = matchedPatient?.mrn || userMrn || "MRN-100234";
+
+  const patient = {
+    name: activeName,
+    mrn: activeMrn,
+    did: activeDid,
+    bloodGroup: matchedPatient?.bloodGroup || "O+",
+    age: matchedPatient?.age || 32,
+    gender: matchedPatient?.gender || "F",
+    allergies: matchedPatient?.allergies || [],
+  };
 
   const [payload, setPayload] = useState("");
   const [timeLeft, setTimeLeft] = useState(ROTATION_SECONDS);
@@ -48,13 +66,12 @@ function PatientQr() {
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
-    if (!patient.did) return;
     setLoading(true);
     try {
       const res = await signIdentityPayload({
-        did: patient.did,
-        mrn: patient.mrn,
-        name: patient.name,
+        did: activeDid,
+        mrn: activeMrn,
+        name: activeName,
         network: "embrace-health-network",
       });
       if (res && res.payload) {
@@ -62,9 +79,9 @@ function PatientQr() {
       } else {
         setPayload(
           JSON.stringify({
-            did: patient.did,
-            mrn: patient.mrn,
-            name: patient.name,
+            did: activeDid,
+            mrn: activeMrn,
+            name: activeName,
             exp: Date.now() + 60_000,
             network: "embrace-health-network",
           }),
@@ -73,9 +90,9 @@ function PatientQr() {
     } catch {
       setPayload(
         JSON.stringify({
-          did: patient.did,
-          mrn: patient.mrn,
-          name: patient.name,
+          did: activeDid,
+          mrn: activeMrn,
+          name: activeName,
           exp: Date.now() + 60_000,
           network: "embrace-health-network",
         }),
@@ -85,11 +102,11 @@ function PatientQr() {
       setTimeLeft(ROTATION_SECONDS);
       setRefreshKey((k) => k + 1);
     }
-  }, [patient]);
+  }, [activeDid, activeMrn, activeName]);
 
   useEffect(() => {
     refresh();
-  }, [patient.did, refresh]);
+  }, [activeDid, refresh]);
 
   useEffect(() => {
     const id = setInterval(() => {

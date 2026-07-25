@@ -861,3 +861,39 @@ export const updatePatientVitals = mutation({
     });
   },
 });
+
+export const putWorldState = mutation({
+  args: {
+    namespace: v.string(),
+    key: v.string(),
+    value: v.any(),
+    txId: v.string(),
+    version: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("worldState")
+      .withIndex("by_ns_key", (q) => q.eq("namespace", args.namespace).eq("key", args.key))
+      .unique();
+
+    const updatedAt = new Date().toISOString();
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        value: args.value,
+        txId: args.txId,
+        version: args.version || "1",
+        updatedAt,
+      });
+      return existing._id;
+    }
+
+    return await ctx.db.insert("worldState", {
+      namespace: args.namespace,
+      key: args.key,
+      value: args.value,
+      txId: args.txId,
+      version: args.version || "1",
+      updatedAt,
+    });
+  },
+});

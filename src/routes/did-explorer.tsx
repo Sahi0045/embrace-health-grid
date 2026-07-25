@@ -16,11 +16,11 @@ import {
   XCircle,
   AlertTriangle,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDIDs, useAudit, useNFCCards } from "@/hooks/use-api";
 import { getCurrentUser } from "@/lib/auth";
-import { issueNFCCard, revokeNFCCard } from "@/lib/api";
+import { issueNFCCard, revokeNFCCard, getDIDRequests, approveDIDRequest, rejectDIDRequest } from "@/lib/api";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/did-explorer")({
@@ -60,6 +60,55 @@ function DIDExplorerPage() {
 
   const currentUser = getCurrentUser();
   const isAdmin = currentUser?.role === "admin";
+
+  const [didRequests, setDidRequests] = useState<any[]>([]);
+  const [approvingId, setApprovingId] = useState<string | null>(null);
+
+  const fetchRequests = useCallback(async () => {
+    try {
+      const res = await getDIDRequests();
+      if (res && res.requests) {
+        setDidRequests(res.requests || []);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchRequests();
+  }, [fetchRequests]);
+
+  const handleApproveRequest = async (reqId: string, ownerName: string) => {
+    setApprovingId(reqId);
+    try {
+      const res = await approveDIDRequest(reqId);
+      if (res.success) {
+        toast.success(`Official DID Issued!`, {
+          description: `Issued ${res.did} to ${ownerName}.`,
+        });
+        fetchRequests();
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to approve DID request");
+    } finally {
+      setApprovingId(null);
+    }
+  };
+
+  const handleRejectRequest = async (reqId: string) => {
+    try {
+      const res = await rejectDIDRequest(reqId);
+      if (res.success) {
+        toast.info("DID Request rejected.");
+        fetchRequests();
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to reject DID request");
+    }
+  };
+
+  const pendingRequests = didRequests.filter((r) => r.status === "pending");
 
   const { data: didsData } = useDIDs();
   const { data: auditData } = useAudit();
@@ -171,6 +220,58 @@ function DIDExplorerPage() {
             >
               NFC Cards Registry
             </button>
+          </div>
+        )}
+
+        {/* Pending Clinician DID Requests Section (Admin View) */}
+        {isAdmin && pendingRequests.length > 0 && (
+          <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-5 shadow-sm space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="h-5 w-5 text-amber-500" />
+                <h3 className="text-base font-bold text-foreground">
+                  Pending DID Issuance Requests ({pendingRequests.length})
+                </h3>
+              </div>
+              <span className="text-xs text-amber-500 font-semibold uppercase tracking-wider bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20">
+                Requires Admin Approval
+              </span>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {pendingRequests.map((req) => (
+                <div
+                  key={req.id}
+                  className="p-4 rounded-xl bg-card border border-border flex flex-col justify-between space-y-3 shadow-sm"
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-foreground text-sm">{req.ownerName}</span>
+                      <span className="text-[10px] font-bold uppercase bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                        {req.ownerType}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground font-mono">{req.ownerEmail}</p>
+                    <p className="text-xs text-muted-foreground">Department: <span className="font-semibold text-foreground">{req.department || "Clinical Services"}</span></p>
+                    <p className="text-[10px] text-muted-foreground">Requested: {new Date(req.requestedAt).toLocaleString()}</p>
+                  </div>
+                  <div className="flex gap-2 pt-2 border-t border-border">
+                    <button
+                      onClick={() => handleApproveRequest(req.id, req.ownerName)}
+                      disabled={approvingId === req.id}
+                      className="flex-1 rounded-lg bg-success text-success-foreground text-xs font-bold py-2 hover:bg-success/90 transition-colors shadow-sm"
+                    >
+                      {approvingId === req.id ? "Issuing..." : "Approve & Issue DID"}
+                    </button>
+                    <button
+                      onClick={() => handleRejectRequest(req.id)}
+                      className="px-3 rounded-lg border border-destructive/30 text-destructive hover:bg-destructive/10 text-xs font-semibold py-2 transition-colors"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

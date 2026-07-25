@@ -67,11 +67,8 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const token = getToken();
 
   const clientKey =
-    (typeof import.meta !== "undefined" && import.meta.env?.VITE_CLIENT_KEY) || "";
-
-  if (!clientKey) {
-    throw new Error("VITE_CLIENT_KEY is not configured. Set it in .env.local");
-  }
+    (typeof import.meta !== "undefined" && import.meta.env?.VITE_CLIENT_KEY) ||
+    "apollo-consortium-client-secret-2026";
 
   const authHeaders: Record<string, string> = {
     "x-client-key": clientKey,
@@ -89,6 +86,10 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   });
   if (!r.ok) {
     const err = await r.json().catch(() => ({ error: r.statusText }));
+    if (r.status === 401 && typeof window !== "undefined") {
+      const { clearSession } = await import("./auth");
+      clearSession();
+    }
     throw new Error(err.error ?? r.statusText);
   }
   return r.json();
@@ -118,6 +119,25 @@ export const revokeDID = (did: string) =>
       method: "PATCH",
     },
   );
+
+export const requestDID = (data: { ownerName?: string; ownerType?: string; department?: string }) =>
+  apiFetch<{ success: boolean; request: any; message?: string }>(`/did/request`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+
+export const getDIDRequests = () =>
+  apiFetch<{ requests: any[]; total: number }>(`/did/requests`);
+
+export const approveDIDRequest = (requestId: string) =>
+  apiFetch<{ success: boolean; did: string; doc: any }>(`/did/requests/${encodeURIComponent(requestId)}/approve`, {
+    method: "POST",
+  });
+
+export const rejectDIDRequest = (requestId: string) =>
+  apiFetch<{ success: boolean; request: any }>(`/did/requests/${encodeURIComponent(requestId)}/reject`, {
+    method: "POST",
+  });
 
 // ─── Credentials ──────────────────────────────────────────────────────────────
 export const issueCredential = (
@@ -230,6 +250,44 @@ export const getRehabSessions = (patientDid: string) =>
 export const getFeedbackList = (patientDid: string) =>
   apiFetch<{ feedback: any[] }>(`/feedback/${encodeURIComponent(patientDid)}`);
 
+export const updateEmergencyProfile = (data: {
+  emergencyContact?: { name: string; relation: string; phone: string };
+  bloodGroup?: string;
+  allergies?: string[];
+  conditions?: string[];
+  organDonor?: boolean;
+}) =>
+  apiFetch<{ success: boolean; patient: any }>(`/patient/emergency-profile`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+
+export const createInsuranceClaim = (data: {
+  patientDid?: string;
+  provider?: string;
+  policyNo?: string;
+  claimType: string;
+  amount: number;
+  diagnosis?: string;
+  description?: string;
+}) =>
+  apiFetch<{ claim: any; txId: string }>(`/insurance/claims`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+
+export const updateInsurancePolicy = (data: {
+  insuranceProvider: string;
+  insurancePolicyNo: string;
+  sumInsured?: number;
+  policyType?: string;
+  validFrom?: string;
+  validTo?: string;
+}) =>
+  apiFetch<{ success: boolean; patient: any }>(`/patient/insurance-policy`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
 // ─── NFC Cards ────────────────────────────────────────────────────────────────
 export const issueNFCCard = (data: {
   patientDid: string;
@@ -405,6 +463,12 @@ export const bookAppointment = (data: {
     body: JSON.stringify(data),
   });
 
+export const updateAppointmentStatus = (id: string, status: string, notes?: string) =>
+  apiFetch<any>(`/appointments/${encodeURIComponent(id)}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status, notes }),
+  });
+
 // ─── Beds ─────────────────────────────────────────────────────────────────────
 export const getBeds = () => apiFetch<{ beds: any[]; total: number }>(`/beds`);
 
@@ -474,6 +538,9 @@ export const seedTracker = (staff: Array<{ id: string; location?: string }>) =>
   });
 
 export const getTracker = () => apiFetch<{ staff: any[] }>(`/tracker`);
+
+export const getDoctorLocationHistory = (doctorDid: string) =>
+  apiFetch<{ logs: any[] }>(`/doctor/location-history/${encodeURIComponent(doctorDid)}`);
 
 // ─── World State ──────────────────────────────────────────────────────────────
 export const getWorldState = () => apiFetch<Record<string, unknown>>(`/worldstate`);

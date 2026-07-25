@@ -54,7 +54,7 @@ let _refreshTimer: ReturnType<typeof setTimeout> | null = null;
 export function getToken(): string | null {
   if (_memToken) return _memToken;
   if (typeof window === "undefined") return null;
-  return sessionStorage.getItem(ACCESS_TOKEN_KEY);
+  return sessionStorage.getItem(ACCESS_TOKEN_KEY) || localStorage.getItem(ACCESS_TOKEN_KEY);
 }
 
 /** Read the opaque refresh token from sessionStorage. */
@@ -96,8 +96,9 @@ export function setSession(
 
   if (!user) return;
 
-  // Access token → sessionStorage + memory
+  // Access token → sessionStorage + localStorage + memory
   sessionStorage.setItem(ACCESS_TOKEN_KEY, token);
+  localStorage.setItem(ACCESS_TOKEN_KEY, token);
   _memToken = token;
 
   // Refresh token → sessionStorage only
@@ -112,9 +113,12 @@ export function setSession(
 
   if (user.did) {
     localStorage.setItem("userDID", user.did);
+    localStorage.setItem("userDid", user.did);
   } else {
     localStorage.removeItem("userDID");
+    localStorage.removeItem("userDid");
   }
+
   if (user.walletAddress) {
     localStorage.setItem("userWalletAddress", user.walletAddress);
   } else {
@@ -174,7 +178,8 @@ async function _autoRefresh(): Promise<void> {
   if (!rt) throw new Error("No refresh token");
 
   const clientKey =
-    (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_CLIENT_KEY) || "";
+    (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_CLIENT_KEY) ||
+    "apollo-consortium-client-secret-2026";
 
   const apiBase =
     (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_API_BASE_URL) ||
@@ -216,7 +221,7 @@ export function getCurrentUser(): AuthUser | null {
   if (!role || !email) return null;
 
   const name = localStorage.getItem("userName") ?? undefined;
-  const did = localStorage.getItem("userDID") ?? undefined;
+  const did = localStorage.getItem("userDID") || localStorage.getItem("userDid") || undefined;
   const walletAddress = localStorage.getItem("userWalletAddress") ?? undefined;
   const mrn = localStorage.getItem("userMRN") ?? undefined;
   const employeeId = localStorage.getItem("userEmployeeId") ?? undefined;
@@ -255,7 +260,8 @@ export async function logout(redirectToLogin = true): Promise<void> {
     const rt = getRefreshToken();
     if (token) {
       const clientKey =
-        (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_CLIENT_KEY) || "";
+        (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_CLIENT_KEY) ||
+        "apollo-consortium-client-secret-2026";
       const apiBase =
         (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_API_BASE_URL) ||
         "http://localhost:3001";
@@ -275,18 +281,25 @@ export async function logout(redirectToLogin = true): Promise<void> {
   }
 
   // Clear all storage
+  clearSession(redirectToLogin);
+}
+
+export function clearSession(redirectToLogin = false): void {
   _memToken = null;
+  if (typeof window === "undefined") return;
   sessionStorage.removeItem(ACCESS_TOKEN_KEY);
   sessionStorage.removeItem(REFRESH_TOKEN_KEY);
+  localStorage.removeItem(ACCESS_TOKEN_KEY);
   localStorage.removeItem("userRole");
   localStorage.removeItem("userEmail");
   localStorage.removeItem("userName");
   localStorage.removeItem("userDID");
+  localStorage.removeItem("userDid");
   localStorage.removeItem("userMRN");
   localStorage.removeItem("userEmployeeId");
   localStorage.removeItem("userWalletAddress");
 
-  if (redirectToLogin && typeof window !== "undefined") {
+  if (redirectToLogin) {
     window.location.href = "/login";
   }
 }

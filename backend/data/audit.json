@@ -384,5 +384,23 @@
     "updatedAt": "2026-07-04T08:00:16.340Z",
     "txId": "a94f8356-67e9-42e9-b999-4839767e8f94",
     "docType": "audit"
+  },
+  "audit_d6491200-6a61-4c88-9bec-809e86a78b56": {
+    "key": "audit_d6491200-6a61-4c88-9bec-809e86a78b56",
+    "value": {
+      "txId": "d6491200-6a61-4c88-9bec-809e86a78b56",
+      "actor": "nan1@gmail.com",
+      "actorDid": null,
+      "resource": "did:hosp:0x87a9b0c1",
+      "action": "PAGER_DISPATCH",
+      "outcome": "success",
+      "severity": "info",
+      "loggedAt": "2026-07-22T17:59:08.282Z"
+    },
+    "namespace": "audit",
+    "version": "d6491200-6a61-4c88-9bec-809e86a78b56:1",
+    "updatedAt": "2026-07-22T17:59:08.284Z",
+    "txId": "d6491200-6a61-4c88-9bec-809e86a78b56",
+    "docType": "audit"
   }
 }

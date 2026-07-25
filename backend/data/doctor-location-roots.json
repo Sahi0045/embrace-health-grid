@@ -166,5 +166,47 @@
     "updatedAt": "2026-07-20T18:19:33.364Z",
     "txId": "461c7b06-5359-4cd5-9e0e-dc7f4ccf4f8e",
     "docType": "doctor-location-roots"
+  },
+  "did:hosp:0x87a9b0c1": {
+    "key": "did:hosp:0x87a9b0c1",
+    "value": {
+      "doctorDid": "did:hosp:0x87a9b0c1",
+      "merkleRoot": "752c17e1d4a144f35fb77edba39a4896b0c6acd50954a9d960c1cc13034a2149",
+      "lastUpdated": "2026-07-22T17:59:54.729Z",
+      "signature": "solana_loc_752c17e1d4a1_mrwe0mls"
+    },
+    "namespace": "doctor-location-roots",
+    "version": "640937f1-3940-4909-bbff-e15037fbf47d:1",
+    "updatedAt": "2026-07-22T17:59:54.737Z",
+    "txId": "640937f1-3940-4909-bbff-e15037fbf47d",
+    "docType": "doctor-location-roots"
+  },
+  "did:hosp:0x4302bbea": {
+    "key": "did:hosp:0x4302bbea",
+    "value": {
+      "doctorDid": "did:hosp:0x4302bbea",
+      "merkleRoot": "82d44ac6142d79f1cc481bbc1ec0fd42fbf8c6e737ece6e70b127f62bd0f770a",
+      "lastUpdated": "2026-07-22T18:57:23.722Z",
+      "signature": "solana_loc_82d44ac6142d_mrwg2jv9"
+    },
+    "namespace": "doctor-location-roots",
+    "version": "480cfa54-366f-490b-b561-b7d7f47030e6:1",
+    "updatedAt": "2026-07-22T18:57:23.739Z",
+    "txId": "480cfa54-366f-490b-b561-b7d7f47030e6",
+    "docType": "doctor-location-roots"
+  },
+  "did:hosp:0xnan1": {
+    "key": "did:hosp:0xnan1",
+    "value": {
+      "doctorDid": "did:hosp:0xnan1",
+      "merkleRoot": "f178b31acc933e9b441eb6b34d8436cad43f96b9f1f38d71044ad03efceba71a",
+      "lastUpdated": "2026-07-22T18:44:59.536Z",
+      "signature": "solana_loc_f178b31acc93_mrwfmlnb"
+    },
+    "namespace": "doctor-location-roots",
+    "version": "b5ca8d9c-3347-4305-bdb7-b295c5207948:1",
+    "updatedAt": "2026-07-22T18:44:59.544Z",
+    "txId": "b5ca8d9c-3347-4305-bdb7-b295c5207948",
+    "docType": "doctor-location-roots"
   }
 }

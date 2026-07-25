@@ -4,7 +4,7 @@ import { StaggerList, StaggerItem } from "@/components/Motion";
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
 import { useAppointments, useLiveStaff } from "@/hooks/use-api";
-import { bookAppointment, getMedicalRecords, getPrescriptions, getLabs } from "@/lib/api";
+import { bookAppointment, getMedicalRecords, getPrescriptions, getLabs, getDoctors, updateAppointmentStatus } from "@/lib/api";
 import { getCurrentUser } from "@/lib/auth";
 import {
   CalendarDays,
@@ -211,8 +211,8 @@ function AppointmentsPage() {
   // Emergency modal state
   const [showEmergencyModal, setShowEmergencyModal] = useState(false);
 
-  const upcoming = list.filter((a) => a.status === "upcoming");
-  const past = list.filter((a) => a.status !== "upcoming");
+  const upcoming = list.filter((a) => a.status === "upcoming" && a.rawStatus !== "cancelled" && a.rawStatus !== "declined");
+  const past = list.filter((a) => a.status === "completed" || a.status === "cancelled" || a.rawStatus === "cancelled" || a.rawStatus === "declined");
 
   const specialties = [
     "All",
@@ -337,8 +337,15 @@ function AppointmentsPage() {
   };
 
   const cancel = async (id: string) => {
-    setLocalList((prev) => prev.map((a) => (a.id === id ? { ...a, status: "cancelled" } : a)));
-    toast.success("Appointment cancelled");
+    try {
+      await updateAppointmentStatus(id, "cancelled");
+      setLocalList((prev) => prev.filter((a) => a.id !== id));
+      toast.success("Appointment cancelled successfully");
+      refetch();
+    } catch (err: any) {
+      setLocalList((prev) => prev.filter((a) => a.id !== id));
+      toast.success("Appointment cancelled");
+    }
   };
 
   return (

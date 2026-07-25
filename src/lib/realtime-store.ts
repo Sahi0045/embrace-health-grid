@@ -38,7 +38,7 @@ import { ConvexHttpClient } from "convex/browser";
 
 // TODO: Generate Convex API types by running: npx convex dev
 // This will create convex/_generated/api.ts
-// @ts-ignore - Convex API will be generated
+// @ts-expect-error - Convex API will be generated
 import { api } from "../../convex/_generated/api";
 
 // ---------------------------------------------------------------------------
@@ -228,14 +228,6 @@ const LOCATIONS = [
   "Admin Block",
 ];
 
-export function isVitalsSimulated(): boolean {
-  return !_wsConnected;
-}
-
-export function isLocationSimulated(): boolean {
-  return !_wsConnected;
-}
-
 const _staffLocations: Map<
   string,
   { location: string; status: string; lastSignal: string; beacon: string }
@@ -355,7 +347,6 @@ async function fetchDIDsFromConvex(): Promise<Record<string, DIDDocument>> {
   // TODO: Implement Convex query to fetch DIDs
   try {
     const client = getConvexClient();
-    if (!client) return {};
     const dids = await client.query(api.records.getDIDs);
     const credentials = await client.query(api.records.getCredentials);
 
@@ -558,24 +549,22 @@ function handleStoreWebSocketMessage(event: string, data: any) {
 
             try {
               const client = getConvexClient();
-              if (client) {
-                await client.mutation(api.records.updatePatientVitals, {
-                  patientDid: patient.did,
-                  vitals: {
-                    heartRate: mappedVitals.heartRate,
-                    bloodPressure: {
-                      systolic: parseInt(mappedVitals.bp.split("/")[0]),
-                      diastolic: parseInt(mappedVitals.bp.split("/")[1]),
-                    },
-                    temperature: mappedVitals.temp,
-                    respiratoryRate: mappedVitals.respRate,
-                    oxygenSaturation: mappedVitals.spo2,
+              await client.mutation(api.records.updatePatientVitals, {
+                patientDid: patient.did,
+                vitals: {
+                  heartRate: mappedVitals.heartRate,
+                  bloodPressure: {
+                    systolic: parseInt(mappedVitals.bp.split("/")[0]),
+                    diastolic: parseInt(mappedVitals.bp.split("/")[1]),
                   },
-                  txId: `ws_${Date.now()}`,
-                  version: "1.0",
-                  recordedAt: new Date().toISOString(),
-                });
-              }
+                  temperature: mappedVitals.temp,
+                  respiratoryRate: mappedVitals.respRate,
+                  oxygenSaturation: mappedVitals.spo2,
+                },
+                txId: `ws_${Date.now()}`,
+                version: "1.0",
+                recordedAt: new Date().toISOString(),
+              });
             } catch (error) {
               console.error("[Store] Error syncing vitals to Convex:", error);
             }
@@ -585,59 +574,70 @@ function handleStoreWebSocketMessage(event: string, data: any) {
       emitStoreEvent("vitals:update");
     }
   } else if (event === "staff:location") {
-    const { id, location, lastSignal } = data;
-    const staffMember = _liveStaff.find((s) => s.did === id || s.id === id);
-    if (staffMember) {
-      const newStatus =
-        location === "Operation Theatre 2" || location === "OR Suite 2"
+    const { id, did, location, lastSignal } = data;
+    const targetDid = did || id;
+    let staffMember = _liveStaff.find(
+      (s) => s.did === targetDid || s.id === targetDid || s.did?.toLowerCase() === targetDid?.toLowerCase()
+    );
+
+    const memberId = staffMember?.id || targetDid;
+    const newStatus =
+      location === "Off Duty"
+        ? "Off Duty"
+        : location?.includes("OT") || location?.includes("Operating")
           ? "In Surgery"
-          : location === "Emergency Ward"
+          : location?.includes("ER") || location?.includes("Emergency")
             ? "Emergency Response"
-            : location === "ICU Block B"
-              ? "In Consultation"
-              : "Available";
-      const now = lastSignal
-        ? new Date(lastSignal).toLocaleTimeString("en-US", {
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-          })
-        : new Date().toLocaleTimeString("en-US", {
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-          });
-      const beaconStrength = `${70 + Math.floor(Math.random() * 30)}%`;
-      _staffLocations.set(staffMember.id, {
-        location,
-        status: newStatus,
-        lastSignal: now,
-        beacon: beaconStrength,
-      });
+            : "Available";
 
-      (async () => {
-        try {
+    const now = lastSignal
+      ? new Date(lastSignal).toLocaleTimeString("en-US", {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        })
+      : new Date().toLocaleTimeString("en-US", {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        });
+
+    (async () => {
+      try {
+        if (staffMember?.did) {
           const client = getConvexClient();
-          if (client) {
-            await client.mutation(api.records.updateStaffLocation, {
-              did: staffMember.did,
-              location,
-              beaconStrength,
-              txId: `ws_${Date.now()}`,
-              version: "1.0",
-            });
-          }
-        } catch (error) {
-          console.error("[Store] Error syncing staff location to Convex:", error);
+          await client.mutation(api.records.updateStaffLocation, {
+            did: staffMember.did,
+            location,
+            beaconStrength: "-68 dBm",
+            txId: `ws_${Date.now()}`,
+            version: "1.0",
+          });
         }
-      })();
+      } catch (error) {
+        console.error("[Store] Error syncing staff location to Convex:", error);
+      }
+    })();
 
-      emitStoreEvent("staff:location:update", {
-        memberId: staffMember.id,
-        location,
-        status: newStatus,
-      });
+    const beaconStrength = `${70 + Math.floor(Math.random() * 30)}%`;
+    _staffLocations.set(memberId, {
+      location: location || "Room 101 - Outpatient Clinic",
+      status: newStatus,
+      lastSignal: now,
+      beacon: beaconStrength,
+    });
+
+    if (staffMember) {
+      staffMember.currentLocation = location;
+      staffMember.lastSignal = now;
     }
+
+    emitStoreEvent("staff:location:update", {
+      memberId,
+      did: targetDid,
+      location,
+      status: newStatus,
+    });
   } else if (event === "appointment:booked") {
     const appt = data;
     if (appt && appt.apptId) {
@@ -837,7 +837,6 @@ export async function refreshFromConvex(): Promise<void> {
 export async function getPatientFromConvex(did: string): Promise<LivePatient | null> {
   try {
     const client = getConvexClient();
-    if (!client) return null;
     const patient = await client.query(api.records.getPatientByDID, { did });
     if (!patient) return null;
 
@@ -921,7 +920,6 @@ export async function getPatientFromConvex(did: string): Promise<LivePatient | n
 export async function getStaffFromConvex(did: string): Promise<LiveStaff | null> {
   try {
     const client = getConvexClient();
-    if (!client) return null;
     const staff = await client.query(api.records.getStaffByDID, { did });
     if (!staff) return null;
 

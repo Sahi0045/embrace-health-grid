@@ -43,5 +43,145 @@
     "updatedAt": "2026-07-03T16:41:40.538Z",
     "txId": "ef1f825d-abe1-4120-8cae-726fb43028b1",
     "docType": "health-metrics"
+  },
+  "HM-did:hosp:0x4302bbea-0": {
+    "key": "HM-did:hosp:0x4302bbea-0",
+    "value": {
+      "date": "2026-06-01",
+      "weight": 68.5,
+      "bmi": 25.2,
+      "bloodSugar": {
+        "fasting": 112,
+        "postMeal": 148
+      },
+      "bloodPressure": {
+        "systolic": 138,
+        "diastolic": 88
+      },
+      "cholesterol": {
+        "total": 210,
+        "hdl": 42,
+        "ldl": 142
+      },
+      "hba1c": 7.2,
+      "patientDid": "did:hosp:0x4302bbea"
+    },
+    "namespace": "health-metrics",
+    "version": "e2f3ddb9-72aa-4dff-aa89-5bd36b9ff5a4:1",
+    "updatedAt": "2026-07-22T17:40:29.135Z",
+    "txId": "e2f3ddb9-72aa-4dff-aa89-5bd36b9ff5a4",
+    "docType": "health-metrics"
+  },
+  "HM-did:hosp:0x4302bbea-1": {
+    "key": "HM-did:hosp:0x4302bbea-1",
+    "value": {
+      "date": "2026-05-01",
+      "weight": 69.2,
+      "bmi": 25.4,
+      "bloodSugar": {
+        "fasting": 118,
+        "postMeal": 154
+      },
+      "bloodPressure": {
+        "systolic": 142,
+        "diastolic": 90
+      },
+      "cholesterol": {
+        "total": 218,
+        "hdl": 40,
+        "ldl": 150
+      },
+      "hba1c": 7.4,
+      "patientDid": "did:hosp:0x4302bbea"
+    },
+    "namespace": "health-metrics",
+    "version": "21c7c728-3c5a-433b-832d-6279998e7461:1",
+    "updatedAt": "2026-07-22T17:40:29.136Z",
+    "txId": "21c7c728-3c5a-433b-832d-6279998e7461",
+    "docType": "health-metrics"
+  },
+  "HM-did:hosp:0x4302bbea-2": {
+    "key": "HM-did:hosp:0x4302bbea-2",
+    "value": {
+      "date": "2026-04-01",
+      "weight": 70.1,
+      "bmi": 25.8,
+      "bloodSugar": {
+        "fasting": 124,
+        "postMeal": 162
+      },
+      "bloodPressure": {
+        "systolic": 145,
+        "diastolic": 92
+      },
+      "cholesterol": {
+        "total": 225,
+        "hdl": 38,
+        "ldl": 158
+      },
+      "hba1c": 7.6,
+      "patientDid": "did:hosp:0x4302bbea"
+    },
+    "namespace": "health-metrics",
+    "version": "e4ddda16-20a7-472f-94b6-7897b0481833:1",
+    "updatedAt": "2026-07-22T17:40:29.137Z",
+    "txId": "e4ddda16-20a7-472f-94b6-7897b0481833",
+    "docType": "health-metrics"
+  },
+  "HM-did:hosp:0x4302bbea-3": {
+    "key": "HM-did:hosp:0x4302bbea-3",
+    "value": {
+      "date": "2026-03-01",
+      "weight": 70.8,
+      "bmi": 26,
+      "bloodSugar": {
+        "fasting": 130,
+        "postMeal": 170
+      },
+      "bloodPressure": {
+        "systolic": 148,
+        "diastolic": 95
+      },
+      "cholesterol": {
+        "total": 232,
+        "hdl": 36,
+        "ldl": 166
+      },
+      "hba1c": 7.9,
+      "patientDid": "did:hosp:0x4302bbea"
+    },
+    "namespace": "health-metrics",
+    "version": "49f2309a-695f-46e0-a299-b140bb307478:1",
+    "updatedAt": "2026-07-22T17:40:29.139Z",
+    "txId": "49f2309a-695f-46e0-a299-b140bb307478",
+    "docType": "health-metrics"
+  },
+  "HM-did:hosp:0x4302bbea-4": {
+    "key": "HM-did:hosp:0x4302bbea-4",
+    "value": {
+      "date": "2026-02-01",
+      "weight": 71.5,
+      "bmi": 26.3,
+      "bloodSugar": {
+        "fasting": 135,
+        "postMeal": 178
+      },
+      "bloodPressure": {
+        "systolic": 152,
+        "diastolic": 98
+      },
+      "cholesterol": {
+        "total": 240,
+        "hdl": 35,
+        "ldl": 175
+      },
+      "hba1c": 8.2,
+      "patientDid": "did:hosp:0x4302bbea"
+    },
+    "namespace": "health-metrics",
+    "version": "c9d2a12b-daee-4001-ab5d-e1c27d2567f4:1",
+    "updatedAt": "2026-07-22T17:40:29.141Z",
+    "txId": "c9d2a12b-daee-4001-ab5d-e1c27d2567f4",
+    "docType": "health-metrics"
   }
 }
