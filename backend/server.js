@@ -217,7 +217,7 @@ app.use(
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: process.env.NODE_ENV === "production" ? 15 : 1000,
   message: { error: "Too many login/signup attempts, please try again after 15 minutes" },
   standardHeaders: true,
   legacyHeaders: false,
@@ -227,7 +227,7 @@ app.use("/api/auth/signup", authLimiter);
 
 const refreshLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 30,
+  max: process.env.NODE_ENV === "production" ? 50 : 5000,
   message: { error: "Too many refresh requests, please try again later" },
   standardHeaders: true,
   legacyHeaders: false,
