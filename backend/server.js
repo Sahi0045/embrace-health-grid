@@ -1418,6 +1418,39 @@ app.get("/api/infrastructure/ambulances", (req, res) => {
   });
 });
 
+app.get("/api/surgeries", (req, res) => {
+  let all = getAllState("surgeries");
+  if (all.length === 0) {
+    const defaultSurgeries = [
+      {
+        id: "s1",
+        patient: "Anika Sharma",
+        mrn: "MRN-204871",
+        procedure: "Cardiac Catheterization (PCI)",
+        room: "Cath Lab 2",
+        date: "2026-06-04",
+        time: "11:00",
+        surgeon: "Dr. Ravi Menon",
+        anesthesiologist: "Dr. Deepak Joshi",
+        status: "scheduled",
+        estDuration: "90 min",
+      },
+    ];
+    defaultSurgeries.forEach((s) => putState("surgeries", s.id, s, randomUUID()));
+    all = getAllState("surgeries");
+  }
+  res.json({ surgeries: all.map((e) => e.value), total: all.length });
+});
+
+app.get("/api/infrastructure/ambulances", (req, res) => {
+  res.json({
+    ambulances: [
+      { id: "amb_01", vehicleNo: "DL-01-AM-1001", status: "available", location: "Trauma ER Bay 1", driver: "Rajesh Kumar" },
+      { id: "amb_02", vehicleNo: "DL-01-AM-1002", status: "dispatched", location: "En-Route (OPD Ward)", driver: "Suresh Singh" },
+    ],
+  });
+});
+
 // ─── Medical Records ──────────────────────────────────────────────────────────
 async function getAnchorDiscriminator(name) {
   const hash = await sha256(`global:${name}`);
