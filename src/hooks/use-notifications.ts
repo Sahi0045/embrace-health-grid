@@ -72,34 +72,22 @@ function handleNotifWsEvent(event: string) {
   }
 }
 
+import { storeEvents } from "@/lib/realtime-store";
+
 function initNotifWebSocket() {
   if (typeof window === "undefined" || _wsInitialized) return;
   _wsInitialized = true;
 
-  const wsUrl = API_BASE_URL.replace("http", "ws");
-  try {
-    _notifWs = new WebSocket(wsUrl);
-
-    _notifWs.onmessage = (e) => {
-      try {
-        const msg = JSON.parse(e.data) as { event: string; data: unknown };
-        handleNotifWsEvent(msg.event);
-      } catch {
-        // ignore malformed frames
+  storeEvents.addEventListener("ws:message", (e: Event) => {
+    try {
+      const customEvent = e as CustomEvent<{ event: string; data: unknown }>;
+      if (customEvent?.detail?.event) {
+        handleNotifWsEvent(customEvent.detail.event);
       }
-    };
-
-    _notifWs.onerror = () => {};
-
-    _notifWs.onclose = () => {
-      _notifWs = null;
-      _wsInitialized = false;
-      // Reconnect after a short backoff when the server is live
-      setTimeout(initNotifWebSocket, 6000);
-    };
-  } catch {
-    _wsInitialized = false;
-  }
+    } catch {
+      // ignore
+    }
+  });
 }
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
