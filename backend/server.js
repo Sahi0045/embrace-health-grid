@@ -734,7 +734,7 @@ app.get("/api/doctors", (req, res) => {
     });
 
   // Also include all DIDs issued by admin for staff/doctors
-  allDIDs.forEach((doc: any, idx: number) => {
+  allDIDs.forEach((doc, idx) => {
     if (doc.ownerType === "staff" || doc.ownerType === "doctor" || doc.role === "doctor") {
       const email = doc.ownerEmail || doc.owner || "";
       const name = doc.name?.startsWith("Dr.") ? doc.name : `Dr. ${doc.name || doc.owner || "Specialist"}`;
@@ -775,7 +775,7 @@ app.get("/api/doctors", (req, res) => {
     );
     const logMatch = locationMap.get(d.did) || (userMatch ? locationMap.get(userMatch.did) : null);
 
-    let activeRoom = userMatch?.activeRoom || logMatch?.roomNumber || (d as any).currentLocation || "OPD Room 3";
+    let activeRoom = userMatch?.activeRoom || logMatch?.roomNumber || d.currentLocation || "OPD Room 3";
     if (userMatch?.activeRoom === "None" || logMatch?.action === "exit") {
       activeRoom = "Out of Rooms (Exited)";
     }
@@ -1360,7 +1360,7 @@ app.get("/api/doctor/locations", (req, res) => {
     );
     const logMatch = locationMap.get(d.did) || (userMatch ? locationMap.get(userMatch.did) : null);
 
-    let activeRoom = userMatch?.activeRoom || logMatch?.roomNumber || (d as any).currentLocation || "OPD Room 3";
+    let activeRoom = userMatch?.activeRoom || logMatch?.roomNumber || d.currentLocation || "OPD Room 3";
     if (userMatch?.activeRoom === "None" || logMatch?.action === "exit") {
       activeRoom = "Out of Rooms (Exited)";
     }
