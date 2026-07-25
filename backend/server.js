@@ -687,6 +687,15 @@ const SEEDED_DOCTORS = [
 
 app.get("/api/doctors", (req, res) => {
   const allUsers = getAllState("users").map((e) => e.value);
+  const doctorLogs = getAllState("doctor-locations").map((e) => e.value);
+  const locationMap = new Map();
+  doctorLogs.sort((a, b) => (a.timestamp || "").localeCompare(b.timestamp || ""));
+  doctorLogs.forEach((log) => {
+    if (log.doctorDid) {
+      locationMap.set(log.doctorDid, log);
+    }
+  });
+
   const registeredDoctors = allUsers
     .filter((u) => u && (u.role === "doctor" || u.role === "staff" || u.name?.startsWith("Dr.")))
     .map((u) => {
@@ -703,7 +712,7 @@ app.get("/api/doctors", (req, res) => {
         phone: u.phone || "+91 98765 00000",
         role: u.role || "doctor",
         hospital: "Embrace Health Grid · Main Hospital",
-        status: u.activeRoom && u.activeRoom !== "None" ? "Available" : "Available",
+        activeRoom: u.activeRoom || "None",
         rating: 4.8,
         experience: "10 Years",
         availableDays: [
@@ -721,7 +730,38 @@ app.get("/api/doctors", (req, res) => {
     }
   });
 
-  res.json({ doctors: combined, total: combined.length });
+  const updatedCombined = combined.map((d) => {
+    const userMatch = allUsers.find(
+      (u) => u && (u.email === d.email || u.did === d.did || u.name === d.name)
+    );
+    const logMatch = locationMap.get(d.did) || (userMatch ? locationMap.get(userMatch.did) : null);
+
+    let activeRoom = userMatch?.activeRoom || logMatch?.roomNumber || (d as any).currentLocation || "OPD Room 3";
+    if (userMatch?.activeRoom === "None" || logMatch?.action === "exit") {
+      activeRoom = "Out of Rooms (Exited)";
+    }
+
+    let status = d.status || "Available";
+    const roomLower = activeRoom.toLowerCase();
+    if (roomLower.includes("surgery") || roomLower.includes("ot")) {
+      status = "In Surgery";
+    } else if (roomLower.includes("emergency") || roomLower.includes("er")) {
+      status = "Emergency Response";
+    } else if (roomLower.includes("exited") || activeRoom === "None") {
+      status = "Off Duty";
+    } else {
+      status = "In Consultation";
+    }
+
+    return {
+      ...d,
+      currentLocation: activeRoom,
+      activeRoom: activeRoom,
+      status: status,
+    };
+  });
+
+  res.json({ doctors: updatedCombined, total: updatedCombined.length });
 });
 
 // ─── DID Registry ─────────────────────────────────────────────────────────────
@@ -1145,16 +1185,20 @@ app.post("/api/hardware/scan", (req, res) => {
   const doctorUserEntry = allUsers.find(
     (u) =>
       u.value?.did === doctorDid ||
-      `did:hosp:0x${simHash(u.value?.email || "").slice(0, 8)}` === doctorDid,
+      u.value?.email === doctorDid ||
+      u.value?.name === doctorDid ||
+      `did:hosp:0x${simHash(u.value?.email || "").slice(0, 8)}` === doctorDid
   );
 
-  if (!doctorUserEntry) {
-    return res.status(404).json({ error: "Doctor not found in system registry" });
-  }
-  const doctorUser = doctorUserEntry.value;
+  const doctorUser = doctorUserEntry?.value || {
+    email: doctorDid.includes("@") ? doctorDid : `doctor_${Date.now()}@embracehealth.org`,
+    name: doctorDid.startsWith("Dr.") ? doctorDid : "Dr. Specialist",
+    did: doctorDid.startsWith("did:") ? doctorDid : `did:hosp:0x${simHash(doctorDid).slice(0, 8)}`,
+    role: "doctor",
+  };
 
   // 2. Fetch history logs to check previous status
-  const all = queryState("doctor-locations", (v) => v.doctorDid === doctorDid);
+  const all = queryState("doctor-locations", (v) => v.doctorDid === doctorDid || v.doctorDid === doctorUser.did);
   const sortedLogs = [...all].sort((a, b) => b.value.timestamp.localeCompare(a.value.timestamp));
   const lastLog = sortedLogs[0]?.value;
 
@@ -1172,7 +1216,7 @@ app.post("/api/hardware/scan", (req, res) => {
 
   const log = {
     logId,
-    doctorDid,
+    doctorDid: doctorUser.did || doctorDid,
     doctorName: doctorUser.name || "Dr. Staff",
     roomNumber,
     action,
@@ -1187,14 +1231,17 @@ app.post("/api/hardware/scan", (req, res) => {
   doctorUser.activeRoom = action === "enter" ? roomNumber : "None";
   doctorUser.roomStatus = action;
   doctorUser.lastLocationChange = timestamp;
-  putState("users", doctorUser.email, doctorUser, randomUUID());
+  putState("users", doctorUser.email || doctorUser.did, doctorUser, randomUUID());
 
-  // 5. Broadcast to update staff tracker instantly
+  // 5. Broadcast to update staff tracker & patient portal instantly
   broadcast({
     event: "staff:location",
     data: {
-      id: doctorDid,
-      location: action === "enter" ? roomNumber : "Nursing Station",
+      id: doctorUser.did || doctorDid,
+      email: doctorUser.email,
+      name: doctorUser.name,
+      location: action === "enter" ? roomNumber : "Out of Rooms (Exited)",
+      status: action === "enter" ? "In Consultation" : "Off Duty",
       lastSignal: timestamp,
     },
   });

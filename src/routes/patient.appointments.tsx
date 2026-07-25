@@ -43,6 +43,7 @@ interface Doctor {
   specialty: string;
   did: string;
   hospital: string;
+  currentLocation?: string;
   status: "Available" | "Busy" | "Off Duty";
   rating: number;
   availableDays: {
@@ -151,7 +152,8 @@ function AppointmentsPage() {
     specialty: d.specialty || d.department || "General Medicine",
     did: d.did || "did:hosp:unknown",
     hospital: d.hospital || "Embrace Health Grid · Main Hospital",
-    status: (d.status === "Available" || d.status === "active" ? "Available" : d.status || "Available") as
+    currentLocation: d.currentLocation || d.activeRoom || "OPD Room 3",
+    status: (d.currentLocation === "Off Duty" ? "Off Duty" : d.status === "Available" || d.status === "active" ? "Available" : d.status || "Available") as
       | "Available"
       | "Busy"
       | "Off Duty",
@@ -180,7 +182,8 @@ function AppointmentsPage() {
         specialty: s.specialty || s.department || "General Medicine",
         did: s.did || "did:hosp:unknown",
         hospital: "Embrace Health Grid · OPD Block",
-        status: (s.status === "active" ? "Available" : "Available") as "Available" | "Busy" | "Off Duty",
+        currentLocation: s.currentLocation || "OPD Room 3",
+        status: (s.currentLocation === "Off Duty" ? "Off Duty" : "Available") as "Available" | "Busy" | "Off Duty",
         rating: 4.5 + (seed % 5) / 10,
         availableDays: [
           {
@@ -446,7 +449,13 @@ function AppointmentsPage() {
                     </div>
                     <h3 className="text-base font-bold text-foreground mt-1">{doc.name}</h3>
                     <p className="text-xs text-muted-foreground font-mono mt-0.5">{doc.did}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{doc.hospital}</p>
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-foreground font-medium">
+                      <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 text-primary px-2 py-0.5 text-[11px] font-bold">
+                        <MapPin className="h-3 w-3" />
+                        {doc.currentLocation || "OPD Room 3"}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">{doc.hospital}</span>
+                    </div>
                   </div>
                   <div className="flex items-center justify-between pt-2 border-t border-border">
                     <span className="text-xs font-semibold text-yellow-500">
