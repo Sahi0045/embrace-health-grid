@@ -44,7 +44,7 @@ const AVAILABLE_ROOMS = [
 ];
 
 function StaffRooms() {
-  const { publicKey, signTransaction } = useWallet();
+  const { publicKey, signTransaction, connected } = useWallet();
   const { data: doctorsData } = useDoctors();
   const allDoctors = doctorsData?.doctors || [];
   const [selectedDoctorDid, setSelectedDoctorDid] = useState<string>("");
