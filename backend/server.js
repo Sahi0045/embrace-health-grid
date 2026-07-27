@@ -1285,274 +1285,7 @@ app.get("/api/doctors", (req, res) => {
   res.json({ doctors, total: doctors.length });
 });
 
-// ─── Room Master List ─────────────────────────────────────────────────────────
-const HOSPITAL_ROOMS = [
-  { id: "101", name: "Room 101 - Outpatient Clinic",    type: "OPD",  floor: "Ground",  capacity: 4 },
-  { id: "102", name: "Room 102 - General Consultation", type: "OPD",  floor: "Ground",  capacity: 3 },
-  { id: "201", name: "Room 201 - Cardiology Ward",      type: "Ward", floor: "First",   capacity: 6 },
-  { id: "202", name: "Room 202 - Neurology Ward",       type: "Ward", floor: "First",   capacity: 6 },
-  { id: "203", name: "Room 203 - Orthopedics Ward",     type: "Ward", floor: "First",   capacity: 5 },
-  { id: "301", name: "Room 301 - Operating Theater 1",  type: "OT",   floor: "Second",  capacity: 1 },
-  { id: "302", name: "Room 302 - Operating Theater 2",  type: "OT",   floor: "Second",  capacity: 1 },
-  { id: "401", name: "Room 401 - Emergency Room A",     type: "ER",   floor: "Ground",  capacity: 8 },
-  { id: "402", name: "Room 402 - Emergency Room B",     type: "ER",   floor: "Ground",  capacity: 8 },
-  { id: "501", name: "Room 501 - ICU Bay 1",            type: "ICU",  floor: "Third",   capacity: 2 },
-  { id: "502", name: "Room 502 - ICU Bay 2",            type: "ICU",  floor: "Third",   capacity: 2 },
-  { id: "601", name: "Room 601 - Radiology Suite",      type: "Diag", floor: "Basement",capacity: 3 },
-  { id: "602", name: "Room 602 - Pathology Lab",        type: "Lab",  floor: "Basement",capacity: 4 },
-];
-
-app.get("/api/rooms", requireAuth, (req, res) => {
-  // Annotate each room with current occupancy from doctor-locations
-  const rooms = HOSPITAL_ROOMS.map((room) => {
-    const occupants = queryState("doctor-locations", (v) => {
-      const entries = queryState("doctor-locations", (vv) => vv.doctorDid === v.doctorDid);
-      const sorted = [...entries].sort((a, b) =>
-        b.value.timestamp.localeCompare(a.value.timestamp),
-      );
-      return sorted[0]?.value?.roomNumber === room.name && sorted[0]?.value?.action === "enter";
-    });
-    return { ...room, activeCount: occupants.length };
-  });
-  res.json({ rooms, total: rooms.length });
-});
-
-// ─── Room Check-In: multi-room (one call, multiple rooms) ────────────────────
-app.post(
-  "/api/room-checkin/multi",
-  requireAuth,
-  requireRole(["doctor", "staff", "admin"]),
-  hipaaAuditPHIAccess("RoomCheckIn"),
-  (req, res) => {
-    const { roomIds, action } = req.body; // action: "checkin" | "checkout"
-    if (!Array.isArray(roomIds) || roomIds.length === 0) {
-      return res.status(400).json({ error: "roomIds array is required" });
-    }
-    if (!["checkin", "checkout"].includes(action)) {
-      return res.status(400).json({ error: "action must be 'checkin' or 'checkout'" });
-    }
-
-    const doctorDid  = req.user.did || `did:hosp:0x${simHash(req.user.email).slice(0, 8)}`;
-    const doctorName = req.user.name || "Dr. Staff";
-    const results    = [];
-    const timestamp  = new Date().toISOString();
-
-    for (const roomId of roomIds) {
-      const room = HOSPITAL_ROOMS.find((r) => r.id === roomId);
-      if (!room) continue;
-
-      const logId      = `RCI-${Date.now().toString(36).toUpperCase()}-${roomId}`;
-      const txId       = randomUUID();
-      const leafData   = `${logId}:${doctorDid}:${room.name}:${action}:${timestamp}`;
-      const hash       = `sha256:${simHash(leafData)}`;
-
-      const historyEntry = {
-        logId,
-        doctorDid,
-        doctorName,
-        action,
-        roomId:   room.id,
-        roomName: room.name,
-        roomType: room.type,
-        status:   action === "checkin" ? "checked-in" : "checked-out",
-        timestamp,
-        txId,
-        hash,
-      };
-
-      // Append to audit history (append-only)
-      putState("room-checkin-history", logId, historyEntry, txId);
-
-      // Update current room state (latest status per doctor+room)
-      const stateKey = `${doctorDid}::${room.id}`;
-      putState("room-checkin", stateKey, {
-        doctorDid,
-        doctorName,
-        roomId:    room.id,
-        roomName:  room.name,
-        roomType:  room.type,
-        action,
-        status:    action === "checkin" ? "checked-in" : "checked-out",
-        updatedAt: timestamp,
-        txId,
-        hash,
-      }, txId);
-
-      // Also push into doctor-locations for Merkle / tracker compatibility
-      putState("doctor-locations", logId, {
-        logId,
-        doctorDid,
-        doctorName,
-        roomNumber: room.name,
-        action:     action === "checkin" ? "enter" : "exit",
-        timestamp,
-        hash,
-      }, txId);
-
-      results.push(historyEntry);
-    }
-
-    // Derive overall doctor status from all active rooms
-    const allCurrentStates = queryState(
-      "room-checkin",
-      (v) => v.doctorDid === doctorDid && v.action === "checkin",
-    );
-    const hasActiveRoom = allCurrentStates.length > 0;
-    const activeRooms   = allCurrentStates.map((e) => e.value.roomName);
-
-    // Update doctors & tracker namespaces for locator page
-    const userEntry = getAllState("users").find(
-      (u) => u.value?.did === doctorDid || u.value?.email === req.user.email,
-    );
-    if (userEntry) {
-      const doc = { ...userEntry.value };
-      doc.activeRoom           = hasActiveRoom ? activeRooms[0] : "None";
-      doc.activeRooms          = hasActiveRoom ? activeRooms : [];
-      doc.roomStatus           = hasActiveRoom ? "enter" : "exit";
-      doc.lastLocationChange   = timestamp;
-      putState("users",   doc.email,  doc, randomUUID());
-      putState("doctors", doctorDid,  doc, randomUUID());
-    }
-
-    putState("tracker", doctorDid, {
-      id:         doctorDid,
-      did:        doctorDid,
-      name:       doctorName,
-      location:   hasActiveRoom ? activeRooms.join(", ") : "Nursing Station",
-      activeRoom: hasActiveRoom ? activeRooms[0] : "None",
-      activeRooms,
-      roomStatus: hasActiveRoom ? "enter" : "exit",
-      lastSignal: timestamp,
-    }, randomUUID());
-
-    // Broadcast to locator + rooms pages
-    broadcast({
-      event: "room:checkin",
-      data: {
-        doctorDid,
-        doctorName,
-        action,
-        rooms:       results.map((r) => ({ id: r.roomId, name: r.roomName })),
-        activeRooms,
-        hasActiveRoom,
-        timestamp,
-      },
-    });
-    broadcast({
-      event: "staff:location",
-      data: {
-        id:         doctorDid,
-        did:        doctorDid,
-        name:       doctorName,
-        location:   hasActiveRoom ? activeRooms[0] : "Nursing Station",
-        activeRooms,
-        status:     hasActiveRoom ? "In Room" : "Available",
-        roomStatus: hasActiveRoom ? "enter" : "exit",
-        lastSignal: timestamp,
-      },
-    });
-
-    res.status(201).json({ success: true, results, activeRooms, hasActiveRoom });
-  },
-);
-
-// GET current room check-in state for one doctor
-app.get(
-  "/api/room-checkin/status/:doctorDid",
-  requireAuth,
-  hipaaAuditPHIAccess("RoomCheckIn"),
-  (req, res) => {
-    const { doctorDid } = req.params;
-    const states = queryState("room-checkin", (v) => v.doctorDid === doctorDid);
-    const checkedIn = states
-      .filter((e) => e.value.action === "checkin")
-      .map((e) => e.value);
-    res.json({ checkedInRooms: checkedIn, total: checkedIn.length });
-  },
-);
-
-// GET all active room check-ins (for doctor locator overview)
-app.get(
-  "/api/room-checkin/all",
-  requireAuth,
-  hipaaAuditPHIAccess("RoomCheckIn"),
-  (req, res) => {
-    const allStates = getAllState("room-checkin");
-    // Group by doctorDid, only keep checkin entries
-    const byDoctor = new Map();
-    allStates.forEach((e) => {
-      const v = e.value;
-      if (!v || !v.doctorDid) return;
-      if (v.action === "checkin") {
-        if (!byDoctor.has(v.doctorDid)) byDoctor.set(v.doctorDid, []);
-        byDoctor.get(v.doctorDid).push(v);
-      } else {
-        // checkout removes the room from the active list
-        if (byDoctor.has(v.doctorDid)) {
-          byDoctor.set(
-            v.doctorDid,
-            byDoctor.get(v.doctorDid).filter((r) => r.roomId !== v.roomId),
-          );
-        }
-      }
-    });
-
-    const result = [];
-    byDoctor.forEach((rooms, doctorDid) => {
-      if (rooms.length > 0) {
-        result.push({
-          doctorDid,
-          doctorName: rooms[0].doctorName,
-          activeRooms: rooms.map((r) => ({ id: r.roomId, name: r.roomName, type: r.roomType })),
-          status: "In Room",
-          updatedAt: rooms[0].updatedAt,
-        });
-      }
-    });
-
-    // Also add doctors with no active rooms as "Available"
-    const allVerifiedDocs = getAllState("did-registry")
-      .filter((d) => d.value?.status === "active")
-      .map((d) => d.value?.did)
-      .filter(Boolean);
-
-    allVerifiedDocs.forEach((did) => {
-      if (!byDoctor.has(did) || byDoctor.get(did).length === 0) {
-        const userEntry = getAllState("users").find(
-          (u) => u.value?.did === did,
-        );
-        if (userEntry) {
-          result.push({
-            doctorDid: did,
-            doctorName: userEntry.value.name,
-            activeRooms: [],
-            status: "Available",
-            updatedAt: userEntry.value.lastLocationChange || new Date().toISOString(),
-          });
-        }
-      }
-    });
-
-    res.json({ statuses: result, total: result.length });
-  },
-);
-
-// GET room check-in history for one doctor
-app.get(
-  "/api/room-checkin/history/:doctorDid",
-  requireAuth,
-  hipaaAuditPHIAccess("RoomCheckIn"),
-  (req, res) => {
-    const { doctorDid } = req.params;
-    const all = queryState("room-checkin-history", (v) => v.doctorDid === doctorDid);
-    const sorted = [...all].sort((a, b) =>
-      b.value.timestamp.localeCompare(a.value.timestamp),
-    );
-    res.json({ logs: sorted.map((e) => e.value), total: sorted.length });
-  },
-);
-
-
+app.post("/api/doctor/anchor-location", requireAuth, (req, res, next) => {
   const userRole = String(req.user?.role || "").toLowerCase();
   if (userRole !== "doctor" && userRole !== "staff" && userRole !== "admin") {
     return res.status(403).json({ error: "Access Denied: Doctor, Staff, or Admin role required" });
@@ -2544,10 +2277,110 @@ app.get(
 );
 
 // ─── Appointments ─────────────────────────────────────────────────────────────
-app.get("/api/appointments", requireAuth, hipaaAuditPHIAccess("Appointment"), (_, res) => {
-  const all = getAllState("appointments");
-  res.json({ appointments: all.map((e) => e.value), total: all.length });
+
+// GET /api/doctors/verified — only users who have an active DID in the registry
+app.get("/api/doctors/verified", requireAuth, (req, res) => {
+  const allUsers = getAllState("users");
+  const allDIDs = getAllState("did-registry");
+
+  // Build a set of DIDs that are active
+  const activeDIDs = new Set(
+    allDIDs
+      .filter((d) => d.value?.status === "active")
+      .map((d) => d.value?.did)
+      .filter(Boolean),
+  );
+
+  const doctors = allUsers
+    .filter((u) => {
+      const user = u.value;
+      if (!user) return false;
+      const role = (user.role || "").toLowerCase();
+      if (role !== "doctor" && role !== "staff") return false;
+      const did = user.did || `did:hosp:0x${simHash(user.email || "").slice(0, 8)}`;
+      return activeDIDs.has(did);
+    })
+    .map((u) => {
+      const doc = u.value;
+      const did = doc.did || `did:hosp:0x${simHash(doc.email || "").slice(0, 8)}`;
+      return {
+        did,
+        name: doc.name,
+        email: doc.email,
+        specialty: doc.specialty || doc.specializations?.[0] || "General Medicine",
+        department: doc.department || "Outpatient Clinic",
+        hospital: "Embrace Health Grid · OPD Block",
+        rating: 4.5,
+        status: "Available",
+      };
+    });
+
+  res.json({ doctors, total: doctors.length });
 });
+
+// GET /api/appointments — server-side filtering by patientDid or doctorDid
+app.get("/api/appointments", requireAuth, hipaaAuditPHIAccess("Appointment"), (req, res) => {
+  const all = getAllState("appointments");
+  let results = all.map((e) => e.value);
+
+  const { patientDid, doctorDid, status } = req.query;
+
+  // Patients may only see their own appointments
+  if (req.user.role === "patient") {
+    const myDid = req.user.did;
+    results = results.filter((a) => a.patientDid === myDid);
+  } else {
+    if (patientDid) results = results.filter((a) => a.patientDid === patientDid);
+    if (doctorDid)  results = results.filter((a) => a.doctorDid  === doctorDid);
+  }
+
+  if (status) results = results.filter((a) => a.status === status);
+
+  res.json({ appointments: results, total: results.length });
+});
+
+// GET /api/appointments/requests — pending requests for the authenticated doctor
+app.get(
+  "/api/appointments/requests",
+  requireAuth,
+  requireRole(["doctor", "staff", "admin"]),
+  hipaaAuditPHIAccess("Appointment"),
+  (req, res) => {
+    const doctorDid = req.user.did;
+    const doctorName = req.user.name;
+    const all = getAllState("appointments");
+    const pending = all
+      .map((e) => e.value)
+      .filter(
+        (a) =>
+          a.status === "pending" &&
+          (a.doctorDid === doctorDid ||
+            (doctorName && a.doctorName === doctorName)),
+      );
+    res.json({ requests: pending, total: pending.length });
+  },
+);
+
+// GET /api/appointments/my — all appointments for the authenticated doctor (any status)
+app.get(
+  "/api/appointments/my",
+  requireAuth,
+  requireRole(["doctor", "staff", "admin"]),
+  hipaaAuditPHIAccess("Appointment"),
+  (req, res) => {
+    const doctorDid = req.user.did;
+    const doctorName = req.user.name;
+    const all = getAllState("appointments");
+    const mine = all
+      .map((e) => e.value)
+      .filter(
+        (a) =>
+          a.doctorDid === doctorDid ||
+          (doctorName && a.doctorName === doctorName),
+      );
+    res.json({ appointments: mine, total: mine.length });
+  },
+);
 
 // ─── Surgeries ────────────────────────────────────────────────────────────────
 app.get("/api/surgeries", requireAuth, hipaaAuditPHIAccess("Surgery"), (_, res) => {
@@ -2622,8 +2455,22 @@ app.get("/api/surgeries", requireAuth, hipaaAuditPHIAccess("Surgery"), (_, res) 
 });
 
 app.post("/api/appointments", requireAuth, hipaaAuditPHIAccess("Appointment"), (req, res) => {
-  const { patientDid, patientName, doctorDid, doctorName, slot, mode, specialty, consentGranted } =
-    req.body;
+  const {
+    patientDid,
+    patientName,
+    doctorDid,
+    doctorName,
+    slot,
+    date,
+    mode,
+    specialty,
+    reason,
+    consentGranted,
+  } = req.body;
+
+  if (!patientDid || !doctorDid || !slot) {
+    return res.status(400).json({ error: "patientDid, doctorDid, and slot are required" });
+  }
 
   if (req.user.role === "patient" && req.user.did !== patientDid) {
     return res
@@ -2631,19 +2478,37 @@ app.post("/api/appointments", requireAuth, hipaaAuditPHIAccess("Appointment"), (
       .json({ error: "Access Denied: Cannot book appointments for another patient" });
   }
 
+  // Enforce minimum 1 day ahead (skip for emergency slots)
+  if (date && slot !== "Immediate Triage Priority") {
+    const appointmentDate = new Date(date);
+    appointmentDate.setHours(0, 0, 0, 0);
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+    if (appointmentDate < tomorrow) {
+      return res
+        .status(400)
+        .json({ error: "Appointments must be booked at least 1 day in advance" });
+    }
+  }
+
   const apptId = `appt_${randomUUID().slice(0, 8)}`;
   const txId = randomUUID();
   const appt = {
     apptId,
     patientDid,
-    patientName,
+    patientName: patientName || "Patient",
     doctorDid,
-    doctorName,
+    doctorName: doctorName || "Doctor",
     slot,
-    mode,
-    specialty,
-    status: "confirmed",
+    date: date || slot.split(" · ")[0] || new Date().toISOString().split("T")[0],
+    mode: mode || "in-person",
+    specialty: specialty || "General Medicine",
+    reason: reason || "",
+    // New appointments go to pending — doctor must accept
+    status: slot === "Immediate Triage Priority" ? "confirmed" : "pending",
     bookedAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   };
   putState("appointments", apptId, appt, txId);
   broadcast({ event: "appointment:booked", data: appt });
@@ -2663,27 +2528,69 @@ app.post("/api/appointments", requireAuth, hipaaAuditPHIAccess("Appointment"), (
     broadcast({ event: "consent:granted", data: grant });
   }
 
-  res.json(appt);
+  res.status(201).json(appt);
 });
 
 app.patch("/api/appointments/:id/status", requireAuth, hipaaAuditPHIAccess("Appointment"), (req, res) => {
   const { id } = req.params;
-  const { status, notes } = req.body;
+  const { status, notes, suggestedSlot } = req.body;
+
+  if (!status) return res.status(400).json({ error: "status is required" });
+
   const existing = getState("appointments", id);
   if (!existing) {
     return res.status(404).json({ error: "Appointment not found" });
   }
 
+  const userRole = (req.user.role || "").toLowerCase();
+  const userDid  = req.user.did;
+
+  // Accept / reject / suggest — only the assigned doctor (or admin) may do this
+  if (["accepted", "rejected", "suggested"].includes(status)) {
+    const isAssignedDoctor =
+      existing.doctorDid === userDid ||
+      (req.user.name && existing.doctorName === req.user.name);
+    if (!isAssignedDoctor && userRole !== "admin") {
+      return res.status(403).json({
+        error: "Access Denied: Only the assigned doctor can accept or reject appointments",
+      });
+    }
+  }
+
+  // Cancel — only the booking patient (or admin) may cancel
+  if (status === "cancelled") {
+    const isOwner = existing.patientDid === userDid;
+    if (!isOwner && userRole !== "admin") {
+      return res.status(403).json({
+        error: "Access Denied: Only the patient who booked this appointment can cancel it",
+      });
+    }
+  }
+
+  // Map "accepted" → "confirmed" for legacy compatibility
+  const normalizedStatus = status === "accepted" ? "confirmed" : status;
+
   const updated = {
     ...existing,
-    status: status || existing.status,
+    status: normalizedStatus,
     notes: notes !== undefined ? notes : existing.notes,
+    suggestedSlot: suggestedSlot || existing.suggestedSlot || null,
+    reviewedBy: ["accepted", "rejected", "suggested"].includes(status)
+      ? req.user.name || userDid
+      : existing.reviewedBy,
     updatedAt: new Date().toISOString(),
   };
 
   const txId = randomUUID();
   putState("appointments", id, updated, txId);
+  // Broadcast with granular event names so the patient portal can react
   broadcast({ event: "appointment:updated", data: updated });
+  if (normalizedStatus === "confirmed") {
+    broadcast({ event: "appointment:accepted", data: updated });
+  } else if (normalizedStatus === "rejected") {
+    broadcast({ event: "appointment:rejected", data: updated });
+  }
+
   res.json({ success: true, appointment: updated });
 });
 
