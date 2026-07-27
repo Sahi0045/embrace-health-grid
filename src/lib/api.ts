@@ -786,6 +786,46 @@ export const getDIDVerifiedDoctors = () => apiFetch<{ doctors: any[]; total: num
 export const getVerifiedDoctors = () =>
   apiFetch<{ doctors: any[]; total: number }>(`/doctors/verified`);
 
+// ─── Rooms & Room Check-In ────────────────────────────────────────────────
+export const getRooms = () =>
+  apiFetch<{ rooms: any[]; total: number }>(`/rooms`);
+
+export const roomCheckInMulti = (roomIds: string[], action: "checkin" | "checkout") =>
+  apiFetch<{ success: boolean; results: any[]; activeRooms: string[]; hasActiveRoom: boolean }>(
+    `/room-checkin/multi`,
+    { method: "POST", body: JSON.stringify({ roomIds, action }) },
+  );
+
+export const getRoomCheckinStatus = (doctorDid: string) =>
+  apiFetch<{ checkedInRooms: any[]; total: number }>(
+    `/room-checkin/status/${encodeURIComponent(doctorDid)}`,
+  );
+
+export const getRoomCheckinHistory = (doctorDid: string) =>
+  apiFetch<{ logs: any[]; total: number }>(
+    `/room-checkin/history/${encodeURIComponent(doctorDid)}`,
+  );
+
+// ─── Merkle Tree: Room Check-In daily aggregation & publishing ────────────
+/** Fetch today's room events + pre-computed Merkle root for a doctor */
+export const getDailyRoomEvents = (doctorDid: string) =>
+  apiFetch<{ events: any[]; merkleRoot: string | null; eventCount: number; date: string }>(
+    `/merkle-root/daily/${encodeURIComponent(doctorDid)}`,
+  );
+
+/** Publish today's Merkle root to blockchain (mock) */
+export const publishMerkleRoot = (doctorDid: string) =>
+  apiFetch<{ success: boolean; merkleRoot: string; txHash: string; rootId: string; eventCount: number; publishedAt: string }>(
+    `/merkle-root/publish`,
+    { method: "POST", body: JSON.stringify({ doctorDid }) },
+  );
+
+/** Fetch history of all published Merkle roots for a doctor */
+export const getMerkleRootHistory = (doctorDid: string) =>
+  apiFetch<{ roots: any[]; total: number }>(
+    `/merkle-root/${encodeURIComponent(doctorDid)}/history`,
+  );
+
 // ─── Inpatient ────────────────────────────────────────────────────────────
 export const getInpatientData = (patientDid: string) =>
   apiFetch<{

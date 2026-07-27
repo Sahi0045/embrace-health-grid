@@ -32,6 +32,7 @@ import { buildAuth, requestFingerprint } from "./middleware/auth.js";
 import { createAuditHelper } from "./lib/audit.js";
 import { registerExtensionRoutes } from "./routes/extensions.js";
 import { MerkleTree, sha256 } from "./merkle.js";
+import { buildMerkleTree, getMerkleRoot, hashLeaf } from "./lib/merkle-tree.js";
 import { PublicKey, Transaction, TransactionInstruction, Connection } from "@solana/web3.js";
 import { signCredential } from "./lib/vc-sign.js";
 import * as notificationStore from "./lib/notifications.js";
@@ -1283,6 +1284,197 @@ app.get("/api/doctors", (req, res) => {
       };
     });
   res.json({ doctors, total: doctors.length });
+});
+
+// ─── Room Master List ─────────────────────────────────────────────────────────
+const HOSPITAL_ROOMS = [
+  { id: "101", name: "Room 101 - Outpatient Clinic",    type: "OPD",  floor: "Ground"   },
+  { id: "102", name: "Room 102 - General Consultation", type: "OPD",  floor: "Ground"   },
+  { id: "201", name: "Room 201 - Cardiology Ward",      type: "Ward", floor: "First"    },
+  { id: "202", name: "Room 202 - Neurology Ward",       type: "Ward", floor: "First"    },
+  { id: "203", name: "Room 203 - Orthopedics Ward",     type: "Ward", floor: "First"    },
+  { id: "301", name: "Room 301 - Operating Theater 1",  type: "OT",   floor: "Second"   },
+  { id: "302", name: "Room 302 - Operating Theater 2",  type: "OT",   floor: "Second"   },
+  { id: "401", name: "Room 401 - Emergency Room A",     type: "ER",   floor: "Ground"   },
+  { id: "402", name: "Room 402 - Emergency Room B",     type: "ER",   floor: "Ground"   },
+  { id: "501", name: "Room 501 - ICU Bay 1",            type: "ICU",  floor: "Third"    },
+  { id: "502", name: "Room 502 - ICU Bay 2",            type: "ICU",  floor: "Third"    },
+  { id: "601", name: "Room 601 - Radiology Suite",      type: "Diag", floor: "Basement" },
+  { id: "602", name: "Room 602 - Pathology Lab",        type: "Lab",  floor: "Basement" },
+];
+
+app.get("/api/rooms", requireAuth, (req, res) => {
+  res.json({ rooms: HOSPITAL_ROOMS, total: HOSPITAL_ROOMS.length });
+});
+
+// ─── Multi-room check-in / check-out ─────────────────────────────────────────
+app.post(
+  "/api/room-checkin/multi",
+  requireAuth,
+  requireRole(["doctor", "staff", "admin"]),
+  (req, res) => {
+    const { roomIds, action } = req.body;
+    if (!Array.isArray(roomIds) || roomIds.length === 0)
+      return res.status(400).json({ error: "roomIds[] is required" });
+    if (!["checkin", "checkout"].includes(action))
+      return res.status(400).json({ error: "action must be 'checkin' or 'checkout'" });
+
+    const doctorDid  = req.user.did || `did:hosp:0x${simHash(req.user.email).slice(0, 8)}`;
+    const doctorName = req.user.name || "Dr. Staff";
+    const timestamp  = new Date().toISOString();
+    const results    = [];
+
+    for (const roomId of roomIds) {
+      const room = HOSPITAL_ROOMS.find((r) => r.id === roomId);
+      if (!room) continue;
+
+      const logId    = `RCI-${Date.now().toString(36).toUpperCase()}-${roomId}`;
+      const txId     = randomUUID();
+      const leafData = `${logId}:${doctorDid}:${room.name}:${action}:${timestamp}`;
+      const hash     = `sha256:${simHash(leafData)}`;
+
+      const entry = {
+        logId, doctorDid, doctorName,
+        action, roomId: room.id, roomName: room.name, roomType: room.type,
+        status: action === "checkin" ? "checked-in" : "checked-out",
+        timestamp, txId, hash,
+      };
+
+      // Append-only audit history
+      putState("room-checkin-history", logId, entry, txId);
+
+      // Latest state per doctor+room key
+      putState("room-checkin", `${doctorDid}::${room.id}`, {
+        doctorDid, doctorName, roomId: room.id, roomName: room.name,
+        roomType: room.type, action, timestamp, txId, hash,
+      }, txId);
+
+      // Feed into doctor-locations for Merkle / location-history compat
+      putState("doctor-locations", logId, {
+        logId, doctorDid, doctorName,
+        roomNumber: room.name,
+        action: action === "checkin" ? "enter" : "exit",
+        timestamp, hash,
+      }, txId);
+
+      results.push(entry);
+    }
+
+    // Derive active rooms
+    const active = queryState("room-checkin", (v) => v.doctorDid === doctorDid && v.action === "checkin");
+    const activeRooms = active.map((e) => e.value.roomName);
+    const hasActive   = activeRooms.length > 0;
+
+    // Update tracker state
+    putState("tracker", doctorDid, {
+      id: doctorDid, did: doctorDid, name: doctorName,
+      location:   hasActive ? activeRooms[0] : "Nursing Station",
+      activeRooms, roomStatus: hasActive ? "enter" : "exit",
+      lastSignal: timestamp,
+    }, randomUUID());
+
+    broadcast({ event: "room:checkin", data: { doctorDid, doctorName, action, rooms: results.map((r) => ({ id: r.roomId, name: r.roomName })), activeRooms, timestamp } });
+    broadcast({ event: "staff:location", data: { id: doctorDid, did: doctorDid, name: doctorName, location: hasActive ? activeRooms[0] : "Nursing Station", activeRooms, status: hasActive ? "In Room" : "Available", lastSignal: timestamp } });
+
+    res.status(201).json({ success: true, results, activeRooms, hasActiveRoom: hasActive });
+  },
+);
+
+app.get("/api/room-checkin/status/:doctorDid", requireAuth, (req, res) => {
+  const { doctorDid } = req.params;
+  const active = queryState("room-checkin", (v) => v.doctorDid === doctorDid && v.action === "checkin");
+  res.json({ checkedInRooms: active.map((e) => e.value), total: active.length });
+});
+
+app.get("/api/room-checkin/history/:doctorDid", requireAuth, (req, res) => {
+  const { doctorDid } = req.params;
+  const all    = queryState("room-checkin-history", (v) => v.doctorDid === doctorDid);
+  const sorted = [...all].sort((a, b) => b.value.timestamp.localeCompare(a.value.timestamp));
+  res.json({ logs: sorted.map((e) => e.value), total: sorted.length });
+});
+
+// ─── Merkle Tree: daily room events ──────────────────────────────────────────
+app.get("/api/merkle-root/daily/:doctorDid", requireAuth, (req, res) => {
+  const { doctorDid } = req.params;
+  const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+  const all   = queryState("room-checkin-history", (v) => v.doctorDid === doctorDid);
+  const todayEvents = all
+    .map((e) => e.value)
+    .filter((v) => v.timestamp && v.timestamp.startsWith(today))
+    .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+
+  if (todayEvents.length === 0)
+    return res.json({ events: [], merkleRoot: null, eventCount: 0, date: today });
+
+  // Build the Merkle tree from today's events
+  const leaves = todayEvents.map((ev) => ({
+    doctorDid: ev.doctorDid,
+    roomId:    ev.roomId,
+    roomName:  ev.roomName,
+    action:    ev.action,
+    timestamp: ev.timestamp,
+  }));
+  const tree = buildMerkleTree(leaves);
+  const root = getMerkleRoot(tree);
+
+  res.json({ events: todayEvents, merkleRoot: root, eventCount: todayEvents.length, date: today });
+});
+
+// ─── Merkle Tree: publish daily root to blockchain (mock) ────────────────────
+app.post("/api/merkle-root/publish", requireAuth, requireRole(["doctor", "staff", "admin"]), (req, res) => {
+  const { doctorDid } = req.body;
+  if (!doctorDid) return res.status(400).json({ error: "doctorDid is required" });
+
+  const today = new Date().toISOString().split("T")[0];
+  const all   = queryState("room-checkin-history", (v) => v.doctorDid === doctorDid);
+  const todayEvents = all
+    .map((e) => e.value)
+    .filter((v) => v.timestamp && v.timestamp.startsWith(today))
+    .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+
+  if (todayEvents.length === 0)
+    return res.status(400).json({ error: "No room events today to publish" });
+
+  const leaves = todayEvents.map((ev) => ({
+    doctorDid: ev.doctorDid,
+    roomId:    ev.roomId,
+    roomName:  ev.roomName,
+    action:    ev.action,
+    timestamp: ev.timestamp,
+  }));
+  const tree    = buildMerkleTree(leaves);
+  const root    = getMerkleRoot(tree);
+
+  // Mock blockchain transaction
+  const txHash  = `sol_${simHash(`${doctorDid}:${root}:${Date.now()}`).slice(0, 32)}`;
+  const rootId  = `mr_${randomUUID().slice(0, 8)}`;
+  const publishedAt = new Date().toISOString();
+
+  const record = {
+    rootId, doctorDid,
+    merkleRoot: root,
+    txHash,
+    date:        today,
+    eventCount:  todayEvents.length,
+    publishedAt,
+    network:     "solana-devnet-simulated",
+    verified:    true,
+  };
+
+  putState("merkle-roots",   rootId,    record,              randomUUID());
+  putState("blockchain-tx",  txHash,    { txHash, rootId, doctorDid, publishedAt }, randomUUID());
+
+  broadcast({ event: "merkle:published", data: record });
+
+  res.status(201).json({ success: true, merkleRoot: root, txHash, rootId, eventCount: todayEvents.length, publishedAt });
+});
+
+// ─── Merkle Tree: history of published roots ──────────────────────────────────
+app.get("/api/merkle-root/:doctorDid/history", requireAuth, (req, res) => {
+  const { doctorDid } = req.params;
+  const all    = queryState("merkle-roots", (v) => v.doctorDid === doctorDid);
+  const sorted = [...all].sort((a, b) => b.value.publishedAt.localeCompare(a.value.publishedAt));
+  res.json({ roots: sorted.map((e) => e.value), total: sorted.length });
 });
 
 app.post("/api/doctor/anchor-location", requireAuth, (req, res, next) => {
