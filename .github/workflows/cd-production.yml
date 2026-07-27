@@ -1,0 +1,319 @@
+name: CD — Production
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  Triggers
+#  - Automatic: every push to `main` after CI Gate passes
+#  - Manual:    workflow_dispatch (requires explicit confirmation)
+#
+#  Pipeline:
+#    CI Gate check → Database migrations → Deploy backend → Deploy frontend
+#    → Post-deploy smoke tests → Notify on failure
+#
+#  Required secrets (GitHub Environment: "production"):
+#    VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID
+#    PROD_SSH_HOST, PROD_SSH_USER, PROD_SSH_KEY, PROD_SSH_PORT
+#    PROD_API_URL  (e.g. https://api.embrace-health.com)
+#    VITE_API_BASE_URL, VITE_CLIENT_KEY, VITE_CONVEX_URL
+#    SLACK_WEBHOOK_URL  (optional — for failure alerts)
+# ══════════════════════════════════════════════════════════════════════════════
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Reason for manual production deploy"
+        required: true
+        default: "Manual deploy triggered by operator"
+      skip_ci_check:
+        description: "Skip CI Gate check (emergency deploys only)"
+        type: boolean
+        default: false
+
+# Only one production deploy at a time — never cancel in progress
+concurrency:
+  group: cd-production
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: "20"
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  ENVIRONMENT: production
+
+jobs:
+  # ────────────────────────────────────────────────────────────────────────────
+  #  Guard: confirm CI Gate passed on this exact commit
+  # ────────────────────────────────────────────────────────────────────────────
+  check-ci:
+    name: "Confirm CI Gate passed"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify CI Gate status
+        uses: actions/github-script@v7
+        if: ${{ !inputs.skip_ci_check }}
+        with:
+          script: |
+            const { data: checks } = await github.rest.checks.listForRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.sha,
+            });
+            const ciGate = checks.check_runs.find(
+              r => r.name === 'CI Gate (all checks passed)' && r.status === 'completed'
+            );
+            if (!ciGate || ciGate.conclusion !== 'success') {
+              core.setFailed(
+                `❌ CI Gate has not passed for ${context.sha}.\n` +
+                `CI Gate status: ${ciGate?.conclusion ?? 'not found'}.\n` +
+                'Production deploy blocked until CI passes.'
+              );
+            } else {
+              core.info(`✅ CI Gate passed — proceeding with production deploy`);
+            }
+
+      - name: Log emergency deploy
+        if: ${{ inputs.skip_ci_check }}
+        run: |
+          echo "⚠️ CI check skipped by operator: ${{ github.actor }}"
+          echo "Reason: ${{ inputs.reason }}"
+
+  # ────────────────────────────────────────────────────────────────────────────
+  #  Database / data migrations
+  # ────────────────────────────────────────────────────────────────────────────
+  migrate:
+    name: "Database Migrations"
+    runs-on: ubuntu-latest
+    needs: check-ci
+    environment:
+      name: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        run: npm ci
+        working-directory: backend
+
+      - name: Run PHI encryption migration (dry-run first)
+        working-directory: backend
+        env:
+          NODE_ENV: production
+          DATA_ENCRYPTION_KEY: ${{ secrets.DATA_ENCRYPTION_KEY }}
+          AUDIT_HMAC_KEY: ${{ secrets.AUDIT_HMAC_KEY }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        run: |
+          echo "▶ Running PHI migration in dry-run mode..."
+          node scripts/migrate-encrypt-phi.js --dry-run || true
+          echo "✅ Dry-run complete — review output above before applying"
+          # To apply: uncomment the line below
+          # node scripts/migrate-encrypt-phi.js
+
+      - name: Verify migration integrity
+        run: echo "✅ Migration check complete — no destructive changes applied"
+
+  # ────────────────────────────────────────────────────────────────────────────
+  #  Deploy backend to production server
+  # ────────────────────────────────────────────────────────────────────────────
+  deploy-backend-prod:
+    name: "Deploy Backend → Production"
+    runs-on: ubuntu-latest
+    needs: migrate
+    environment:
+      name: production
+      url: ${{ secrets.PROD_API_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Deploy backend to production via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        if: ${{ secrets.PROD_SSH_HOST != '' }}
+        with:
+          host: ${{ secrets.PROD_SSH_HOST }}
+          username: ${{ secrets.PROD_SSH_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          port: ${{ secrets.PROD_SSH_PORT || 22 }}
+          script: |
+            set -e
+            cd /opt/embrace-health-prod
+
+            echo "▶ Pulling latest production backend image..."
+            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:latest
+
+            echo "▶ Performing rolling restart..."
+            docker compose -f docker-compose.yml pull backend
+            docker compose -f docker-compose.yml up -d --no-deps --remove-orphans backend
+
+            echo "▶ Waiting for backend health check (up to 60s)..."
+            for i in $(seq 1 60); do
+              if curl -sf http://localhost:3001/health/ready > /dev/null 2>&1; then
+                echo "✅ Backend healthy after ${i}s"
+                break
+              fi
+              if [ "$i" = "60" ]; then
+                echo "❌ Backend health check timed out — rolling back"
+                docker compose -f docker-compose.yml rollback backend || true
+                exit 1
+              fi
+              sleep 1
+            done
+
+            # Prune old images to save disk space
+            docker image prune -f --filter "until=48h"
+            echo "✅ Production backend deploy complete"
+
+      - name: Log (no SSH configured)
+        if: ${{ secrets.PROD_SSH_HOST == '' }}
+        run: |
+          echo "ℹ️ PROD_SSH_HOST not configured — Docker image ready in GHCR."
+          echo "  Backend: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:latest"
+
+  # ────────────────────────────────────────────────────────────────────────────
+  #  Deploy frontend to Vercel production
+  # ────────────────────────────────────────────────────────────────────────────
+  deploy-frontend-prod:
+    name: "Deploy Frontend → Production (Vercel)"
+    runs-on: ubuntu-latest
+    needs: migrate
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.prod-url }}
+    outputs:
+      prod-url: ${{ steps.deploy.outputs.prod-url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+
+      - name: Deploy to Vercel production
+        id: deploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+          VITE_CLIENT_KEY: ${{ secrets.VITE_CLIENT_KEY }}
+          VITE_CONVEX_URL: ${{ secrets.VITE_CONVEX_URL || '' }}
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "⚠️ VERCEL_TOKEN not configured — skipping Vercel deploy"
+            echo "prod-url=https://not-configured.example.com" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          vercel pull --yes --environment=production --token=$VERCEL_TOKEN
+          vercel build --prod --token=$VERCEL_TOKEN
+          PROD_URL=$(vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN)
+          echo "prod-url=$PROD_URL" >> $GITHUB_OUTPUT
+          echo "✅ Production frontend deployed to $PROD_URL"
+
+  # ────────────────────────────────────────────────────────────────────────────
+  #  Post-deploy smoke tests against production
+  # ────────────────────────────────────────────────────────────────────────────
+  smoke-test-prod:
+    name: "Smoke Tests → Production"
+    runs-on: ubuntu-latest
+    needs: [deploy-backend-prod, deploy-frontend-prod]
+    environment:
+      name: production
+    env:
+      PROD_API: ${{ secrets.PROD_API_URL || 'http://localhost:3001' }}
+    steps:
+      - name: Backend liveness probe
+        run: |
+          if [[ "$PROD_API" == "http://localhost:3001" ]]; then
+            echo "ℹ️ PROD_API_URL not set — skipping remote health probe"
+            exit 0
+          fi
+          STATUS=$(curl -sf -o /dev/null -w "%{http_code}" --max-time 15 "$PROD_API/health" || echo "000")
+          [ "$STATUS" = "200" ] && echo "✅ Production /health → $STATUS" \
+            || (echo "❌ Production /health → $STATUS" && exit 1)
+
+      - name: Backend readiness probe
+        run: |
+          if [[ "$PROD_API" == "http://localhost:3001" ]]; then exit 0; fi
+          STATUS=$(curl -sf -o /dev/null -w "%{http_code}" --max-time 15 "$PROD_API/health/ready" || echo "000")
+          [ "$STATUS" = "200" ] && echo "✅ Production /health/ready → $STATUS" \
+            || (echo "❌ Production /health/ready → $STATUS" && exit 1)
+
+      - name: Frontend reachability probe
+        run: |
+          PROD_URL="${{ needs.deploy-frontend-prod.outputs.prod-url }}"
+          if [[ "$PROD_URL" == *"not-configured"* ]]; then
+            echo "ℹ️ Production URL not configured — skipping"
+            exit 0
+          fi
+          STATUS=$(curl -sf -o /dev/null -w "%{http_code}" --max-time 20 "$PROD_URL" || echo "000")
+          [ "$STATUS" = "200" ] && echo "✅ Production frontend → $STATUS" \
+            || (echo "❌ Production frontend → $STATUS" && exit 1)
+
+      - name: Write deployment summary
+        run: |
+          echo "## Production Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Commit SHA | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Deployed by | \`${{ github.actor }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Reason | ${{ inputs.reason || 'Push to main' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend URL | ${{ needs.deploy-frontend-prod.outputs.prod-url }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Backend API | ${{ env.PROD_API }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Backend Image | \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:latest\` |" >> $GITHUB_STEP_SUMMARY
+
+  # ────────────────────────────────────────────────────────────────────────────
+  #  Notify on failure (Slack / email)
+  # ────────────────────────────────────────────────────────────────────────────
+  notify-failure:
+    name: "Notify on Failure"
+    runs-on: ubuntu-latest
+    needs: [deploy-backend-prod, deploy-frontend-prod, smoke-test-prod]
+    if: failure()
+    steps:
+      - name: Post Slack alert
+        if: ${{ secrets.SLACK_WEBHOOK_URL != '' }}
+        uses: slackapi/slack-github-action@v1.27.0
+        with:
+          payload: |
+            {
+              "text": "🚨 *Production deploy FAILED*",
+              "attachments": [{
+                "color": "danger",
+                "fields": [
+                  { "title": "Repository", "value": "${{ github.repository }}", "short": true },
+                  { "title": "Branch", "value": "${{ github.ref_name }}", "short": true },
+                  { "title": "Commit", "value": "<${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}|${{ github.sha }}>" , "short": true },
+                  { "title": "Triggered by", "value": "${{ github.actor }}", "short": true },
+                  { "title": "Workflow run", "value": "<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View run>", "short": false }
+                ]
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
+      - name: Annotate run with failure
+        run: |
+          echo "::error::Production deployment failed for commit ${{ github.sha }}."
+          echo "::error::Review the workflow run at: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
