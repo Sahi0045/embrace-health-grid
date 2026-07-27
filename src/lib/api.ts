@@ -454,14 +454,24 @@ export const getAppointmentsByPatient = (patientDid: string) =>
 export const getAppointmentsByDoctor = (doctorDid: string) =>
   apiFetch<{ appointments: any[]; total: number }>(`/appointments?doctorDid=${encodeURIComponent(doctorDid)}`);
 
+/** Pending appointment requests waiting for the authenticated doctor to accept/reject */
+export const getDoctorAppointmentRequests = () =>
+  apiFetch<{ requests: any[]; total: number }>(`/appointments/requests`);
+
+/** All appointments for the authenticated doctor (any status) */
+export const getDoctorAppointments = () =>
+  apiFetch<{ appointments: any[]; total: number }>(`/appointments/my`);
+
 export const bookAppointment = (data: {
   patientDid: string;
   patientName: string;
   doctorDid: string;
   doctorName: string;
   slot: string;
+  date: string;
   mode: string;
   specialty: string;
+  reason?: string;
   consentGranted?: boolean;
 }) =>
   apiFetch<any>(`/appointments`, {
@@ -469,10 +479,10 @@ export const bookAppointment = (data: {
     body: JSON.stringify(data),
   });
 
-export const updateAppointmentStatus = (id: string, status: string, notes?: string) =>
+export const updateAppointmentStatus = (id: string, status: string, notes?: string, suggestedSlot?: string) =>
   apiFetch<any>(`/appointments/${encodeURIComponent(id)}/status`, {
     method: "PATCH",
-    body: JSON.stringify({ status, notes }),
+    body: JSON.stringify({ status, notes, suggestedSlot }),
   });
 
 // ─── Beds ─────────────────────────────────────────────────────────────────────
@@ -772,6 +782,49 @@ export const getVaccines = (patientDid: string) =>
 // ─── Doctors ──────────────────────────────────────────────────────────────
 export const getDoctors = () => apiFetch<{ doctors: any[]; total: number }>(`/doctors`);
 export const getDIDVerifiedDoctors = () => apiFetch<{ doctors: any[]; total: number }>(`/doctors`);
+/** Only doctors who have an active DID issued by admin */
+export const getVerifiedDoctors = () =>
+  apiFetch<{ doctors: any[]; total: number }>(`/doctors/verified`);
+
+// ─── Rooms & Room Check-In ────────────────────────────────────────────────
+export const getRooms = () =>
+  apiFetch<{ rooms: any[]; total: number }>(`/rooms`);
+
+export const roomCheckInMulti = (roomIds: string[], action: "checkin" | "checkout") =>
+  apiFetch<{ success: boolean; results: any[]; activeRooms: string[]; hasActiveRoom: boolean }>(
+    `/room-checkin/multi`,
+    { method: "POST", body: JSON.stringify({ roomIds, action }) },
+  );
+
+export const getRoomCheckinStatus = (doctorDid: string) =>
+  apiFetch<{ checkedInRooms: any[]; total: number }>(
+    `/room-checkin/status/${encodeURIComponent(doctorDid)}`,
+  );
+
+export const getRoomCheckinHistory = (doctorDid: string) =>
+  apiFetch<{ logs: any[]; total: number }>(
+    `/room-checkin/history/${encodeURIComponent(doctorDid)}`,
+  );
+
+// ─── Merkle Tree: Room Check-In daily aggregation & publishing ────────────
+/** Fetch today's room events + pre-computed Merkle root for a doctor */
+export const getDailyRoomEvents = (doctorDid: string) =>
+  apiFetch<{ events: any[]; merkleRoot: string | null; eventCount: number; date: string }>(
+    `/merkle-root/daily/${encodeURIComponent(doctorDid)}`,
+  );
+
+/** Publish today's Merkle root to blockchain (mock) */
+export const publishMerkleRoot = (doctorDid: string) =>
+  apiFetch<{ success: boolean; merkleRoot: string; txHash: string; rootId: string; eventCount: number; publishedAt: string }>(
+    `/merkle-root/publish`,
+    { method: "POST", body: JSON.stringify({ doctorDid }) },
+  );
+
+/** Fetch history of all published Merkle roots for a doctor */
+export const getMerkleRootHistory = (doctorDid: string) =>
+  apiFetch<{ roots: any[]; total: number }>(
+    `/merkle-root/${encodeURIComponent(doctorDid)}/history`,
+  );
 
 // ─── Inpatient ────────────────────────────────────────────────────────────
 export const getInpatientData = (patientDid: string) =>

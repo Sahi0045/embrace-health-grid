@@ -846,5 +846,42 @@
     "updatedAt": "2026-07-22T17:59:08.278Z",
     "txId": "c2e96249-1114-4482-acb4-cf0fd69cbfe4",
     "docType": "tracker"
+  },
+  "did:hosp:0xadmin": {
+    "key": "did:hosp:0xadmin",
+    "value": {
+      "id": "did:hosp:0xadmin",
+      "did": "did:hosp:0xadmin",
+      "name": "Dr. Staff Clinician",
+      "location": "Room 303 - Operating Theater",
+      "activeRoom": "Room 303 - Operating Theater",
+      "roomStatus": "enter",
+      "lastSignal": "2026-07-25T19:36:57.740Z"
+    },
+    "namespace": "tracker",
+    "version": "bc6a9fa5-6aa1-45fd-8ab1-a1d5a55e1c01:1",
+    "updatedAt": "2026-07-25T19:36:57.789Z",
+    "txId": "bc6a9fa5-6aa1-45fd-8ab1-a1d5a55e1c01",
+    "docType": "tracker"
+  },
+  "did:hosp:0x8f2c3a11": {
+    "key": "did:hosp:0x8f2c3a11",
+    "value": {
+      "id": "did:hosp:0x8f2c3a11",
+      "did": "did:hosp:0x8f2c3a11",
+      "name": "Dr. Sameer Khan",
+      "location": "Room 101 - Outpatient Clinic",
+      "activeRooms": [
+        "Room 101 - Outpatient Clinic",
+        "Room 203 - Orthopedics Ward"
+      ],
+      "roomStatus": "enter",
+      "lastSignal": "2026-07-27T07:06:50.732Z"
+    },
+    "namespace": "tracker",
+    "version": "0872c237-0655-42a4-a9dd-65311641dd0f:1",
+    "updatedAt": "2026-07-27T07:06:50.738Z",
+    "txId": "0872c237-0655-42a4-a9dd-65311641dd0f",
+    "docType": "tracker"
   }
 }
