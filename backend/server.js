@@ -1285,7 +1285,274 @@ app.get("/api/doctors", (req, res) => {
   res.json({ doctors, total: doctors.length });
 });
 
-app.post("/api/doctor/anchor-location", requireAuth, (req, res, next) => {
+// ─── Room Master List ─────────────────────────────────────────────────────────
+const HOSPITAL_ROOMS = [
+  { id: "101", name: "Room 101 - Outpatient Clinic",    type: "OPD",  floor: "Ground",  capacity: 4 },
+  { id: "102", name: "Room 102 - General Consultation", type: "OPD",  floor: "Ground",  capacity: 3 },
+  { id: "201", name: "Room 201 - Cardiology Ward",      type: "Ward", floor: "First",   capacity: 6 },
+  { id: "202", name: "Room 202 - Neurology Ward",       type: "Ward", floor: "First",   capacity: 6 },
+  { id: "203", name: "Room 203 - Orthopedics Ward",     type: "Ward", floor: "First",   capacity: 5 },
+  { id: "301", name: "Room 301 - Operating Theater 1",  type: "OT",   floor: "Second",  capacity: 1 },
+  { id: "302", name: "Room 302 - Operating Theater 2",  type: "OT",   floor: "Second",  capacity: 1 },
+  { id: "401", name: "Room 401 - Emergency Room A",     type: "ER",   floor: "Ground",  capacity: 8 },
+  { id: "402", name: "Room 402 - Emergency Room B",     type: "ER",   floor: "Ground",  capacity: 8 },
+  { id: "501", name: "Room 501 - ICU Bay 1",            type: "ICU",  floor: "Third",   capacity: 2 },
+  { id: "502", name: "Room 502 - ICU Bay 2",            type: "ICU",  floor: "Third",   capacity: 2 },
+  { id: "601", name: "Room 601 - Radiology Suite",      type: "Diag", floor: "Basement",capacity: 3 },
+  { id: "602", name: "Room 602 - Pathology Lab",        type: "Lab",  floor: "Basement",capacity: 4 },
+];
+
+app.get("/api/rooms", requireAuth, (req, res) => {
+  // Annotate each room with current occupancy from doctor-locations
+  const rooms = HOSPITAL_ROOMS.map((room) => {
+    const occupants = queryState("doctor-locations", (v) => {
+      const entries = queryState("doctor-locations", (vv) => vv.doctorDid === v.doctorDid);
+      const sorted = [...entries].sort((a, b) =>
+        b.value.timestamp.localeCompare(a.value.timestamp),
+      );
+      return sorted[0]?.value?.roomNumber === room.name && sorted[0]?.value?.action === "enter";
+    });
+    return { ...room, activeCount: occupants.length };
+  });
+  res.json({ rooms, total: rooms.length });
+});
+
+// ─── Room Check-In: multi-room (one call, multiple rooms) ────────────────────
+app.post(
+  "/api/room-checkin/multi",
+  requireAuth,
+  requireRole(["doctor", "staff", "admin"]),
+  hipaaAuditPHIAccess("RoomCheckIn"),
+  (req, res) => {
+    const { roomIds, action } = req.body; // action: "checkin" | "checkout"
+    if (!Array.isArray(roomIds) || roomIds.length === 0) {
+      return res.status(400).json({ error: "roomIds array is required" });
+    }
+    if (!["checkin", "checkout"].includes(action)) {
+      return res.status(400).json({ error: "action must be 'checkin' or 'checkout'" });
+    }
+
+    const doctorDid  = req.user.did || `did:hosp:0x${simHash(req.user.email).slice(0, 8)}`;
+    const doctorName = req.user.name || "Dr. Staff";
+    const results    = [];
+    const timestamp  = new Date().toISOString();
+
+    for (const roomId of roomIds) {
+      const room = HOSPITAL_ROOMS.find((r) => r.id === roomId);
+      if (!room) continue;
+
+      const logId      = `RCI-${Date.now().toString(36).toUpperCase()}-${roomId}`;
+      const txId       = randomUUID();
+      const leafData   = `${logId}:${doctorDid}:${room.name}:${action}:${timestamp}`;
+      const hash       = `sha256:${simHash(leafData)}`;
+
+      const historyEntry = {
+        logId,
+        doctorDid,
+        doctorName,
+        action,
+        roomId:   room.id,
+        roomName: room.name,
+        roomType: room.type,
+        status:   action === "checkin" ? "checked-in" : "checked-out",
+        timestamp,
+        txId,
+        hash,
+      };
+
+      // Append to audit history (append-only)
+      putState("room-checkin-history", logId, historyEntry, txId);
+
+      // Update current room state (latest status per doctor+room)
+      const stateKey = `${doctorDid}::${room.id}`;
+      putState("room-checkin", stateKey, {
+        doctorDid,
+        doctorName,
+        roomId:    room.id,
+        roomName:  room.name,
+        roomType:  room.type,
+        action,
+        status:    action === "checkin" ? "checked-in" : "checked-out",
+        updatedAt: timestamp,
+        txId,
+        hash,
+      }, txId);
+
+      // Also push into doctor-locations for Merkle / tracker compatibility
+      putState("doctor-locations", logId, {
+        logId,
+        doctorDid,
+        doctorName,
+        roomNumber: room.name,
+        action:     action === "checkin" ? "enter" : "exit",
+        timestamp,
+        hash,
+      }, txId);
+
+      results.push(historyEntry);
+    }
+
+    // Derive overall doctor status from all active rooms
+    const allCurrentStates = queryState(
+      "room-checkin",
+      (v) => v.doctorDid === doctorDid && v.action === "checkin",
+    );
+    const hasActiveRoom = allCurrentStates.length > 0;
+    const activeRooms   = allCurrentStates.map((e) => e.value.roomName);
+
+    // Update doctors & tracker namespaces for locator page
+    const userEntry = getAllState("users").find(
+      (u) => u.value?.did === doctorDid || u.value?.email === req.user.email,
+    );
+    if (userEntry) {
+      const doc = { ...userEntry.value };
+      doc.activeRoom           = hasActiveRoom ? activeRooms[0] : "None";
+      doc.activeRooms          = hasActiveRoom ? activeRooms : [];
+      doc.roomStatus           = hasActiveRoom ? "enter" : "exit";
+      doc.lastLocationChange   = timestamp;
+      putState("users",   doc.email,  doc, randomUUID());
+      putState("doctors", doctorDid,  doc, randomUUID());
+    }
+
+    putState("tracker", doctorDid, {
+      id:         doctorDid,
+      did:        doctorDid,
+      name:       doctorName,
+      location:   hasActiveRoom ? activeRooms.join(", ") : "Nursing Station",
+      activeRoom: hasActiveRoom ? activeRooms[0] : "None",
+      activeRooms,
+      roomStatus: hasActiveRoom ? "enter" : "exit",
+      lastSignal: timestamp,
+    }, randomUUID());
+
+    // Broadcast to locator + rooms pages
+    broadcast({
+      event: "room:checkin",
+      data: {
+        doctorDid,
+        doctorName,
+        action,
+        rooms:       results.map((r) => ({ id: r.roomId, name: r.roomName })),
+        activeRooms,
+        hasActiveRoom,
+        timestamp,
+      },
+    });
+    broadcast({
+      event: "staff:location",
+      data: {
+        id:         doctorDid,
+        did:        doctorDid,
+        name:       doctorName,
+        location:   hasActiveRoom ? activeRooms[0] : "Nursing Station",
+        activeRooms,
+        status:     hasActiveRoom ? "In Room" : "Available",
+        roomStatus: hasActiveRoom ? "enter" : "exit",
+        lastSignal: timestamp,
+      },
+    });
+
+    res.status(201).json({ success: true, results, activeRooms, hasActiveRoom });
+  },
+);
+
+// GET current room check-in state for one doctor
+app.get(
+  "/api/room-checkin/status/:doctorDid",
+  requireAuth,
+  hipaaAuditPHIAccess("RoomCheckIn"),
+  (req, res) => {
+    const { doctorDid } = req.params;
+    const states = queryState("room-checkin", (v) => v.doctorDid === doctorDid);
+    const checkedIn = states
+      .filter((e) => e.value.action === "checkin")
+      .map((e) => e.value);
+    res.json({ checkedInRooms: checkedIn, total: checkedIn.length });
+  },
+);
+
+// GET all active room check-ins (for doctor locator overview)
+app.get(
+  "/api/room-checkin/all",
+  requireAuth,
+  hipaaAuditPHIAccess("RoomCheckIn"),
+  (req, res) => {
+    const allStates = getAllState("room-checkin");
+    // Group by doctorDid, only keep checkin entries
+    const byDoctor = new Map();
+    allStates.forEach((e) => {
+      const v = e.value;
+      if (!v || !v.doctorDid) return;
+      if (v.action === "checkin") {
+        if (!byDoctor.has(v.doctorDid)) byDoctor.set(v.doctorDid, []);
+        byDoctor.get(v.doctorDid).push(v);
+      } else {
+        // checkout removes the room from the active list
+        if (byDoctor.has(v.doctorDid)) {
+          byDoctor.set(
+            v.doctorDid,
+            byDoctor.get(v.doctorDid).filter((r) => r.roomId !== v.roomId),
+          );
+        }
+      }
+    });
+
+    const result = [];
+    byDoctor.forEach((rooms, doctorDid) => {
+      if (rooms.length > 0) {
+        result.push({
+          doctorDid,
+          doctorName: rooms[0].doctorName,
+          activeRooms: rooms.map((r) => ({ id: r.roomId, name: r.roomName, type: r.roomType })),
+          status: "In Room",
+          updatedAt: rooms[0].updatedAt,
+        });
+      }
+    });
+
+    // Also add doctors with no active rooms as "Available"
+    const allVerifiedDocs = getAllState("did-registry")
+      .filter((d) => d.value?.status === "active")
+      .map((d) => d.value?.did)
+      .filter(Boolean);
+
+    allVerifiedDocs.forEach((did) => {
+      if (!byDoctor.has(did) || byDoctor.get(did).length === 0) {
+        const userEntry = getAllState("users").find(
+          (u) => u.value?.did === did,
+        );
+        if (userEntry) {
+          result.push({
+            doctorDid: did,
+            doctorName: userEntry.value.name,
+            activeRooms: [],
+            status: "Available",
+            updatedAt: userEntry.value.lastLocationChange || new Date().toISOString(),
+          });
+        }
+      }
+    });
+
+    res.json({ statuses: result, total: result.length });
+  },
+);
+
+// GET room check-in history for one doctor
+app.get(
+  "/api/room-checkin/history/:doctorDid",
+  requireAuth,
+  hipaaAuditPHIAccess("RoomCheckIn"),
+  (req, res) => {
+    const { doctorDid } = req.params;
+    const all = queryState("room-checkin-history", (v) => v.doctorDid === doctorDid);
+    const sorted = [...all].sort((a, b) =>
+      b.value.timestamp.localeCompare(a.value.timestamp),
+    );
+    res.json({ logs: sorted.map((e) => e.value), total: sorted.length });
+  },
+);
+
+
   const userRole = String(req.user?.role || "").toLowerCase();
   if (userRole !== "doctor" && userRole !== "staff" && userRole !== "admin") {
     return res.status(403).json({ error: "Access Denied: Doctor, Staff, or Admin role required" });

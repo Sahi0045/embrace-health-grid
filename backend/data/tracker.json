@@ -846,5 +846,22 @@
     "updatedAt": "2026-07-22T17:59:08.278Z",
     "txId": "c2e96249-1114-4482-acb4-cf0fd69cbfe4",
     "docType": "tracker"
+  },
+  "did:hosp:0xadmin": {
+    "key": "did:hosp:0xadmin",
+    "value": {
+      "id": "did:hosp:0xadmin",
+      "did": "did:hosp:0xadmin",
+      "name": "Dr. Staff Clinician",
+      "location": "Room 303 - Operating Theater",
+      "activeRoom": "Room 303 - Operating Theater",
+      "roomStatus": "enter",
+      "lastSignal": "2026-07-25T19:36:57.740Z"
+    },
+    "namespace": "tracker",
+    "version": "bc6a9fa5-6aa1-45fd-8ab1-a1d5a55e1c01:1",
+    "updatedAt": "2026-07-25T19:36:57.789Z",
+    "txId": "bc6a9fa5-6aa1-45fd-8ab1-a1d5a55e1c01",
+    "docType": "tracker"
   }
 }

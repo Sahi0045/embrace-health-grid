@@ -773,6 +773,29 @@ export const getVaccines = (patientDid: string) =>
 export const getDoctors = () => apiFetch<{ doctors: any[]; total: number }>(`/doctors`);
 export const getDIDVerifiedDoctors = () => apiFetch<{ doctors: any[]; total: number }>(`/doctors`);
 
+// ─── Rooms & Room Check-In ────────────────────────────────────────────────
+export const getRooms = () =>
+  apiFetch<{ rooms: any[]; total: number }>(`/rooms`);
+
+export const roomCheckInMulti = (roomIds: string[], action: "checkin" | "checkout") =>
+  apiFetch<{ success: boolean; results: any[]; activeRooms: string[]; hasActiveRoom: boolean }>(
+    `/room-checkin/multi`,
+    { method: "POST", body: JSON.stringify({ roomIds, action }) },
+  );
+
+export const getRoomCheckinStatus = (doctorDid: string) =>
+  apiFetch<{ checkedInRooms: any[]; total: number }>(
+    `/room-checkin/status/${encodeURIComponent(doctorDid)}`,
+  );
+
+export const getAllRoomStatuses = () =>
+  apiFetch<{ statuses: any[]; total: number }>(`/room-checkin/all`);
+
+export const getRoomCheckinHistory = (doctorDid: string) =>
+  apiFetch<{ logs: any[]; total: number }>(
+    `/room-checkin/history/${encodeURIComponent(doctorDid)}`,
+  );
+
 // ─── Inpatient ────────────────────────────────────────────────────────────
 export const getInpatientData = (patientDid: string) =>
   apiFetch<{
