@@ -454,14 +454,24 @@ export const getAppointmentsByPatient = (patientDid: string) =>
 export const getAppointmentsByDoctor = (doctorDid: string) =>
   apiFetch<{ appointments: any[]; total: number }>(`/appointments?doctorDid=${encodeURIComponent(doctorDid)}`);
 
+/** Pending appointment requests waiting for the authenticated doctor to accept/reject */
+export const getDoctorAppointmentRequests = () =>
+  apiFetch<{ requests: any[]; total: number }>(`/appointments/requests`);
+
+/** All appointments for the authenticated doctor (any status) */
+export const getDoctorAppointments = () =>
+  apiFetch<{ appointments: any[]; total: number }>(`/appointments/my`);
+
 export const bookAppointment = (data: {
   patientDid: string;
   patientName: string;
   doctorDid: string;
   doctorName: string;
   slot: string;
+  date: string;
   mode: string;
   specialty: string;
+  reason?: string;
   consentGranted?: boolean;
 }) =>
   apiFetch<any>(`/appointments`, {
@@ -469,10 +479,10 @@ export const bookAppointment = (data: {
     body: JSON.stringify(data),
   });
 
-export const updateAppointmentStatus = (id: string, status: string, notes?: string) =>
+export const updateAppointmentStatus = (id: string, status: string, notes?: string, suggestedSlot?: string) =>
   apiFetch<any>(`/appointments/${encodeURIComponent(id)}/status`, {
     method: "PATCH",
-    body: JSON.stringify({ status, notes }),
+    body: JSON.stringify({ status, notes, suggestedSlot }),
   });
 
 // ─── Beds ─────────────────────────────────────────────────────────────────────
@@ -772,6 +782,9 @@ export const getVaccines = (patientDid: string) =>
 // ─── Doctors ──────────────────────────────────────────────────────────────
 export const getDoctors = () => apiFetch<{ doctors: any[]; total: number }>(`/doctors`);
 export const getDIDVerifiedDoctors = () => apiFetch<{ doctors: any[]; total: number }>(`/doctors`);
+/** Only doctors who have an active DID issued by admin */
+export const getVerifiedDoctors = () =>
+  apiFetch<{ doctors: any[]; total: number }>(`/doctors/verified`);
 
 // ─── Inpatient ────────────────────────────────────────────────────────────
 export const getInpatientData = (patientDid: string) =>

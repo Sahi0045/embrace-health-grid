@@ -32,6 +32,7 @@ import { Route as StaffEmergencyRouteImport } from './routes/staff.emergency'
 import { Route as StaffCommandRouteImport } from './routes/staff.command'
 import { Route as StaffCheckinRouteImport } from './routes/staff.checkin'
 import { Route as StaffAttendanceRouteImport } from './routes/staff.attendance'
+import { Route as StaffAppointmentsRouteImport } from './routes/staff.appointments'
 import { Route as PatientZkproofRouteImport } from './routes/patient.zkproof'
 import { Route as PatientWalletRouteImport } from './routes/patient.wallet'
 import { Route as PatientVisitorsRouteImport } from './routes/patient.visitors'
@@ -164,6 +165,11 @@ const StaffAttendanceRoute = StaffAttendanceRouteImport.update({
   path: '/staff/attendance',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StaffAppointmentsRoute = StaffAppointmentsRouteImport.update({
+  id: '/staff/appointments',
+  path: '/staff/appointments',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PatientZkproofRoute = PatientZkproofRouteImport.update({
   id: '/patient/zkproof',
   path: '/patient/zkproof',
@@ -267,6 +273,7 @@ export interface FileRoutesByFullPath {
   '/patient/visitors': typeof PatientVisitorsRoute
   '/patient/wallet': typeof PatientWalletRoute
   '/patient/zkproof': typeof PatientZkproofRoute
+  '/staff/appointments': typeof StaffAppointmentsRoute
   '/staff/attendance': typeof StaffAttendanceRoute
   '/staff/checkin': typeof StaffCheckinRoute
   '/staff/command': typeof StaffCommandRoute
@@ -308,6 +315,7 @@ export interface FileRoutesByTo {
   '/patient/visitors': typeof PatientVisitorsRoute
   '/patient/wallet': typeof PatientWalletRoute
   '/patient/zkproof': typeof PatientZkproofRoute
+  '/staff/appointments': typeof StaffAppointmentsRoute
   '/staff/attendance': typeof StaffAttendanceRoute
   '/staff/checkin': typeof StaffCheckinRoute
   '/staff/command': typeof StaffCommandRoute
@@ -350,6 +358,7 @@ export interface FileRoutesById {
   '/patient/visitors': typeof PatientVisitorsRoute
   '/patient/wallet': typeof PatientWalletRoute
   '/patient/zkproof': typeof PatientZkproofRoute
+  '/staff/appointments': typeof StaffAppointmentsRoute
   '/staff/attendance': typeof StaffAttendanceRoute
   '/staff/checkin': typeof StaffCheckinRoute
   '/staff/command': typeof StaffCommandRoute
@@ -393,6 +402,7 @@ export interface FileRouteTypes {
     | '/patient/visitors'
     | '/patient/wallet'
     | '/patient/zkproof'
+    | '/staff/appointments'
     | '/staff/attendance'
     | '/staff/checkin'
     | '/staff/command'
@@ -434,6 +444,7 @@ export interface FileRouteTypes {
     | '/patient/visitors'
     | '/patient/wallet'
     | '/patient/zkproof'
+    | '/staff/appointments'
     | '/staff/attendance'
     | '/staff/checkin'
     | '/staff/command'
@@ -475,6 +486,7 @@ export interface FileRouteTypes {
     | '/patient/visitors'
     | '/patient/wallet'
     | '/patient/zkproof'
+    | '/staff/appointments'
     | '/staff/attendance'
     | '/staff/checkin'
     | '/staff/command'
@@ -517,6 +529,7 @@ export interface RootRouteChildren {
   PatientVisitorsRoute: typeof PatientVisitorsRoute
   PatientWalletRoute: typeof PatientWalletRoute
   PatientZkproofRoute: typeof PatientZkproofRoute
+  StaffAppointmentsRoute: typeof StaffAppointmentsRoute
   StaffAttendanceRoute: typeof StaffAttendanceRoute
   StaffCheckinRoute: typeof StaffCheckinRoute
   StaffCommandRoute: typeof StaffCommandRoute
@@ -700,6 +713,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StaffAttendanceRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/staff/appointments': {
+      id: '/staff/appointments'
+      path: '/staff/appointments'
+      fullPath: '/staff/appointments'
+      preLoaderRoute: typeof StaffAppointmentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/patient/zkproof': {
       id: '/patient/zkproof'
       path: '/patient/zkproof'
@@ -837,6 +857,7 @@ const rootRouteChildren: RootRouteChildren = {
   PatientVisitorsRoute: PatientVisitorsRoute,
   PatientWalletRoute: PatientWalletRoute,
   PatientZkproofRoute: PatientZkproofRoute,
+  StaffAppointmentsRoute: StaffAppointmentsRoute,
   StaffAttendanceRoute: StaffAttendanceRoute,
   StaffCheckinRoute: StaffCheckinRoute,
   StaffCommandRoute: StaffCommandRoute,

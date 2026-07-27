@@ -2277,10 +2277,110 @@ app.get(
 );
 
 // ─── Appointments ─────────────────────────────────────────────────────────────
-app.get("/api/appointments", requireAuth, hipaaAuditPHIAccess("Appointment"), (_, res) => {
-  const all = getAllState("appointments");
-  res.json({ appointments: all.map((e) => e.value), total: all.length });
+
+// GET /api/doctors/verified — only users who have an active DID in the registry
+app.get("/api/doctors/verified", requireAuth, (req, res) => {
+  const allUsers = getAllState("users");
+  const allDIDs = getAllState("did-registry");
+
+  // Build a set of DIDs that are active
+  const activeDIDs = new Set(
+    allDIDs
+      .filter((d) => d.value?.status === "active")
+      .map((d) => d.value?.did)
+      .filter(Boolean),
+  );
+
+  const doctors = allUsers
+    .filter((u) => {
+      const user = u.value;
+      if (!user) return false;
+      const role = (user.role || "").toLowerCase();
+      if (role !== "doctor" && role !== "staff") return false;
+      const did = user.did || `did:hosp:0x${simHash(user.email || "").slice(0, 8)}`;
+      return activeDIDs.has(did);
+    })
+    .map((u) => {
+      const doc = u.value;
+      const did = doc.did || `did:hosp:0x${simHash(doc.email || "").slice(0, 8)}`;
+      return {
+        did,
+        name: doc.name,
+        email: doc.email,
+        specialty: doc.specialty || doc.specializations?.[0] || "General Medicine",
+        department: doc.department || "Outpatient Clinic",
+        hospital: "Embrace Health Grid · OPD Block",
+        rating: 4.5,
+        status: "Available",
+      };
+    });
+
+  res.json({ doctors, total: doctors.length });
 });
+
+// GET /api/appointments — server-side filtering by patientDid or doctorDid
+app.get("/api/appointments", requireAuth, hipaaAuditPHIAccess("Appointment"), (req, res) => {
+  const all = getAllState("appointments");
+  let results = all.map((e) => e.value);
+
+  const { patientDid, doctorDid, status } = req.query;
+
+  // Patients may only see their own appointments
+  if (req.user.role === "patient") {
+    const myDid = req.user.did;
+    results = results.filter((a) => a.patientDid === myDid);
+  } else {
+    if (patientDid) results = results.filter((a) => a.patientDid === patientDid);
+    if (doctorDid)  results = results.filter((a) => a.doctorDid  === doctorDid);
+  }
+
+  if (status) results = results.filter((a) => a.status === status);
+
+  res.json({ appointments: results, total: results.length });
+});
+
+// GET /api/appointments/requests — pending requests for the authenticated doctor
+app.get(
+  "/api/appointments/requests",
+  requireAuth,
+  requireRole(["doctor", "staff", "admin"]),
+  hipaaAuditPHIAccess("Appointment"),
+  (req, res) => {
+    const doctorDid = req.user.did;
+    const doctorName = req.user.name;
+    const all = getAllState("appointments");
+    const pending = all
+      .map((e) => e.value)
+      .filter(
+        (a) =>
+          a.status === "pending" &&
+          (a.doctorDid === doctorDid ||
+            (doctorName && a.doctorName === doctorName)),
+      );
+    res.json({ requests: pending, total: pending.length });
+  },
+);
+
+// GET /api/appointments/my — all appointments for the authenticated doctor (any status)
+app.get(
+  "/api/appointments/my",
+  requireAuth,
+  requireRole(["doctor", "staff", "admin"]),
+  hipaaAuditPHIAccess("Appointment"),
+  (req, res) => {
+    const doctorDid = req.user.did;
+    const doctorName = req.user.name;
+    const all = getAllState("appointments");
+    const mine = all
+      .map((e) => e.value)
+      .filter(
+        (a) =>
+          a.doctorDid === doctorDid ||
+          (doctorName && a.doctorName === doctorName),
+      );
+    res.json({ appointments: mine, total: mine.length });
+  },
+);
 
 // ─── Surgeries ────────────────────────────────────────────────────────────────
 app.get("/api/surgeries", requireAuth, hipaaAuditPHIAccess("Surgery"), (_, res) => {
@@ -2355,8 +2455,22 @@ app.get("/api/surgeries", requireAuth, hipaaAuditPHIAccess("Surgery"), (_, res) 
 });
 
 app.post("/api/appointments", requireAuth, hipaaAuditPHIAccess("Appointment"), (req, res) => {
-  const { patientDid, patientName, doctorDid, doctorName, slot, mode, specialty, consentGranted } =
-    req.body;
+  const {
+    patientDid,
+    patientName,
+    doctorDid,
+    doctorName,
+    slot,
+    date,
+    mode,
+    specialty,
+    reason,
+    consentGranted,
+  } = req.body;
+
+  if (!patientDid || !doctorDid || !slot) {
+    return res.status(400).json({ error: "patientDid, doctorDid, and slot are required" });
+  }
 
   if (req.user.role === "patient" && req.user.did !== patientDid) {
     return res
@@ -2364,19 +2478,37 @@ app.post("/api/appointments", requireAuth, hipaaAuditPHIAccess("Appointment"), (
       .json({ error: "Access Denied: Cannot book appointments for another patient" });
   }
 
+  // Enforce minimum 1 day ahead (skip for emergency slots)
+  if (date && slot !== "Immediate Triage Priority") {
+    const appointmentDate = new Date(date);
+    appointmentDate.setHours(0, 0, 0, 0);
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+    if (appointmentDate < tomorrow) {
+      return res
+        .status(400)
+        .json({ error: "Appointments must be booked at least 1 day in advance" });
+    }
+  }
+
   const apptId = `appt_${randomUUID().slice(0, 8)}`;
   const txId = randomUUID();
   const appt = {
     apptId,
     patientDid,
-    patientName,
+    patientName: patientName || "Patient",
     doctorDid,
-    doctorName,
+    doctorName: doctorName || "Doctor",
     slot,
-    mode,
-    specialty,
-    status: "confirmed",
+    date: date || slot.split(" · ")[0] || new Date().toISOString().split("T")[0],
+    mode: mode || "in-person",
+    specialty: specialty || "General Medicine",
+    reason: reason || "",
+    // New appointments go to pending — doctor must accept
+    status: slot === "Immediate Triage Priority" ? "confirmed" : "pending",
     bookedAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   };
   putState("appointments", apptId, appt, txId);
   broadcast({ event: "appointment:booked", data: appt });
@@ -2396,27 +2528,69 @@ app.post("/api/appointments", requireAuth, hipaaAuditPHIAccess("Appointment"), (
     broadcast({ event: "consent:granted", data: grant });
   }
 
-  res.json(appt);
+  res.status(201).json(appt);
 });
 
 app.patch("/api/appointments/:id/status", requireAuth, hipaaAuditPHIAccess("Appointment"), (req, res) => {
   const { id } = req.params;
-  const { status, notes } = req.body;
+  const { status, notes, suggestedSlot } = req.body;
+
+  if (!status) return res.status(400).json({ error: "status is required" });
+
   const existing = getState("appointments", id);
   if (!existing) {
     return res.status(404).json({ error: "Appointment not found" });
   }
 
+  const userRole = (req.user.role || "").toLowerCase();
+  const userDid  = req.user.did;
+
+  // Accept / reject / suggest — only the assigned doctor (or admin) may do this
+  if (["accepted", "rejected", "suggested"].includes(status)) {
+    const isAssignedDoctor =
+      existing.doctorDid === userDid ||
+      (req.user.name && existing.doctorName === req.user.name);
+    if (!isAssignedDoctor && userRole !== "admin") {
+      return res.status(403).json({
+        error: "Access Denied: Only the assigned doctor can accept or reject appointments",
+      });
+    }
+  }
+
+  // Cancel — only the booking patient (or admin) may cancel
+  if (status === "cancelled") {
+    const isOwner = existing.patientDid === userDid;
+    if (!isOwner && userRole !== "admin") {
+      return res.status(403).json({
+        error: "Access Denied: Only the patient who booked this appointment can cancel it",
+      });
+    }
+  }
+
+  // Map "accepted" → "confirmed" for legacy compatibility
+  const normalizedStatus = status === "accepted" ? "confirmed" : status;
+
   const updated = {
     ...existing,
-    status: status || existing.status,
+    status: normalizedStatus,
     notes: notes !== undefined ? notes : existing.notes,
+    suggestedSlot: suggestedSlot || existing.suggestedSlot || null,
+    reviewedBy: ["accepted", "rejected", "suggested"].includes(status)
+      ? req.user.name || userDid
+      : existing.reviewedBy,
     updatedAt: new Date().toISOString(),
   };
 
   const txId = randomUUID();
   putState("appointments", id, updated, txId);
+  // Broadcast with granular event names so the patient portal can react
   broadcast({ event: "appointment:updated", data: updated });
+  if (normalizedStatus === "confirmed") {
+    broadcast({ event: "appointment:accepted", data: updated });
+  } else if (normalizedStatus === "rejected") {
+    broadcast({ event: "appointment:rejected", data: updated });
+  }
+
   res.json({ success: true, appointment: updated });
 });
 
