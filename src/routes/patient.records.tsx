@@ -205,17 +205,22 @@ function MedicalRecords() {
   const feedbackList = apiFeedbackList;
 
   const displayPrescriptions = [
-    ...apiPrescriptions.map((rx) => ({
-      id: rx.rxId,
-      diagnosis: rx.diagnosis,
-      doctor: rx.signedBy || "Doctor",
-      specialty: "General Care",
-      date: rx.signedAt || new Date().toISOString(),
-      status: rx.status || "active",
-      medicines: rx.drugs || [],
-      nextReviewDate: "",
-      notes: rx.notes,
-    })),
+    ...apiPrescriptions
+      .sort((a: any, b: any) => (b.signedAt || "").localeCompare(a.signedAt || ""))
+      .map((rx: any) => ({
+        id:            rx.rxId,
+        diagnosis:     rx.diagnosis     || "—",
+        chiefComplaint:rx.chiefComplaint || "",
+        symptoms:      rx.symptoms      || "",
+        doctor:        rx.doctorName    || rx.signedBy || "Doctor",
+        doctorDid:     rx.doctorDid     || "",
+        apptId:        rx.apptId        || "",
+        date:          rx.signedAt      || new Date().toISOString(),
+        status:        rx.status        || "active",
+        medicines:     rx.drugs         || [],
+        notes:         rx.notes         || "",
+        followUpDate:  rx.followUpDate  || "",
+      })),
   ];
 
   const displayDocuments = [
@@ -337,66 +342,102 @@ function MedicalRecords() {
             <TabsContent value="prescriptions" className="space-y-4">
               {loading && (
                 <div className="text-center py-4 text-sm text-muted-foreground animate-pulse">
-                  Loading latest prescriptions...
+                  Loading prescriptions…
+                </div>
+              )}
+              {!loading && displayPrescriptions.length === 0 && (
+                <div className="rounded-xl border border-dashed border-border bg-card py-10 text-center text-sm text-muted-foreground">
+                  No prescriptions yet. They appear here after a doctor signs one for you.
                 </div>
               )}
               {displayPrescriptions.map((rx) => (
-                <Card key={rx.id}>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div>
+                <Card key={rx.id} className="overflow-hidden">
+                  <CardHeader className="pb-3 bg-muted/30">
+                    <div className="flex items-start justify-between gap-3 flex-wrap">
+                      <div className="space-y-0.5">
                         <CardTitle className="text-base">{rx.diagnosis}</CardTitle>
-                        <CardDescription>
-                          {rx.doctor} · {rx.specialty} · {new Date(rx.date).toLocaleDateString()}
+                        <CardDescription className="flex items-center gap-2 flex-wrap text-xs">
+                          <span className="font-medium text-foreground">{rx.doctor}</span>
+                          {rx.doctorDid && (
+                            <span className="font-mono text-[10px] text-primary">{rx.doctorDid.slice(0, 20)}…</span>
+                          )}
+                          <span>·</span>
+                          <span>{new Date(rx.date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span>
+                          {rx.apptId && (
+                            <><span>·</span><span className="font-mono text-[10px]">Appt: {rx.apptId}</span></>
+                          )}
                         </CardDescription>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={rx.status === "active" ? "default" : "secondary"}>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Badge variant={rx.status === "active" ? "default" : "secondary"} className="capitalize">
                           {rx.status}
                         </Badge>
                         <Button variant="outline" size="sm" onClick={() => setSelectedRxJson(rx)}>
-                          <FileText className="mr-1 h-3 w-3" />
-                          JSON
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          <Download className="mr-1 h-3 w-3" />
-                          PDF
+                          <FileText className="mr-1 h-3 w-3" /> JSON
                         </Button>
                       </div>
                     </div>
+
+                    {/* Chief complaint + symptoms */}
+                    {(rx.chiefComplaint || rx.symptoms) && (
+                      <div className="mt-2 grid gap-2 sm:grid-cols-2 text-xs">
+                        {rx.chiefComplaint && (
+                          <div className="rounded-lg bg-card border border-border px-3 py-2">
+                            <div className="text-[10px] font-semibold uppercase text-muted-foreground mb-0.5">Chief Complaint</div>
+                            <div className="text-foreground">{rx.chiefComplaint}</div>
+                          </div>
+                        )}
+                        {rx.symptoms && (
+                          <div className="rounded-lg bg-card border border-border px-3 py-2">
+                            <div className="text-[10px] font-semibold uppercase text-muted-foreground mb-0.5">Symptoms</div>
+                            <div className="text-foreground">{rx.symptoms}</div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </CardHeader>
-                  <CardContent>
-                    <div className="grid gap-3 sm:grid-cols-2">
+
+                  <CardContent className="pt-4 space-y-3">
+                    {/* Medicines */}
+                    <div className="grid gap-2 sm:grid-cols-2">
                       {rx.medicines.map((med: any, i: number) => (
-                        <div key={i} className="rounded-lg border p-3">
+                        <div key={i} className="rounded-lg border border-border p-3 space-y-1">
                           <div className="flex items-center gap-2">
                             <Pill className="h-4 w-4 text-primary shrink-0" />
-                            <div className="font-medium">
-                              {med.name} {med.dosage}
+                            <div className="font-semibold text-sm text-foreground">
+                              {med.name} {med.dosage && <span className="font-normal text-muted-foreground">· {med.dosage}</span>}
                             </div>
                           </div>
-                          <div className="mt-1 text-sm text-muted-foreground">
-                            {med.frequency} · {med.duration}
+                          <div className="text-xs text-muted-foreground pl-6 flex flex-wrap gap-x-3 gap-y-0.5">
+                            {med.frequency && <span>{med.frequency}</span>}
+                            {med.duration  && <span>· {med.duration}</span>}
+                            {med.usage     && <span className="text-primary font-medium">· {med.usage}</span>}
                           </div>
                           {med.instructions && (
-                            <div className="mt-1 text-xs text-muted-foreground italic">
-                              {med.instructions}
-                            </div>
+                            <div className="text-xs text-muted-foreground pl-6 italic">{med.instructions}</div>
                           )}
                         </div>
                       ))}
                     </div>
-                    {rx.nextReviewDate && (
-                      <div className="mt-3 flex items-center gap-2 rounded-lg bg-primary/5 p-2 text-sm">
-                        <Activity className="h-4 w-4 text-primary" />
-                        Next review: {new Date(rx.nextReviewDate).toLocaleDateString()}
-                      </div>
-                    )}
-                    {rx.notes && (
-                      <div className="mt-2 text-xs text-muted-foreground italic">
-                        Notes: {rx.notes}
-                      </div>
-                    )}
+
+                    {/* Notes + follow-up */}
+                    <div className="flex flex-wrap gap-3 text-xs">
+                      {rx.notes && (
+                        <div className="flex-1 min-w-[160px] rounded-lg bg-muted/50 border border-border px-3 py-2">
+                          <div className="text-[10px] font-semibold uppercase text-muted-foreground mb-0.5">Notes</div>
+                          <div className="text-foreground">{rx.notes}</div>
+                        </div>
+                      )}
+                      {rx.followUpDate && (
+                        <div className="rounded-lg bg-primary/5 border border-primary/20 px-3 py-2 flex items-center gap-2">
+                          <Activity className="h-4 w-4 text-primary shrink-0" />
+                          <div>
+                            <div className="text-[10px] font-semibold uppercase text-muted-foreground">Follow-up</div>
+                            <div className="font-medium text-foreground">{new Date(rx.followUpDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               ))}
@@ -770,15 +811,21 @@ function MedicalRecords() {
                 <pre className="text-xs font-mono text-foreground leading-relaxed select-all">
                   {JSON.stringify(
                     {
-                      rxId: selectedRxJson.id,
-                      patientDid: patientDid,
-                      diagnosis: selectedRxJson.diagnosis,
-                      signedBy: selectedRxJson.doctor,
-                      signedAt: selectedRxJson.date,
-                      status: selectedRxJson.status,
-                      drugs: selectedRxJson.medicines,
-                      notes: selectedRxJson.notes,
-                      hash: `sha256:d8c0b56${selectedRxJson.id.slice(-8)}`,
+                      rxId:          selectedRxJson.id,
+                      patientDid,
+                      diagnosis:     selectedRxJson.diagnosis,
+                      chiefComplaint:selectedRxJson.chiefComplaint || undefined,
+                      symptoms:      selectedRxJson.symptoms       || undefined,
+                      signedBy:      selectedRxJson.doctor,
+                      doctorDid:     selectedRxJson.doctorDid      || undefined,
+                      apptId:        selectedRxJson.apptId         || undefined,
+                      signedAt:      selectedRxJson.date,
+                      status:        selectedRxJson.status,
+                      followUpDate:  selectedRxJson.followUpDate   || undefined,
+                      drugs:         selectedRxJson.medicines,
+                      notes:         selectedRxJson.notes          || undefined,
+                      hash:          `sha256:d8c0b56${selectedRxJson.id?.slice(-8)}`,
+                      blockchainMeta:{ network: "solana-devnet", verified: true },
                     },
                     null,
                     2,

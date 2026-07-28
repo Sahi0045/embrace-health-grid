@@ -399,10 +399,15 @@ export const solanaGetAnchors = (limit = 50) =>
 // ─── Prescriptions ────────────────────────────────────────────────────────────
 export const signPrescription = (data: {
   patientDid?: string;
+  patientName?: string;
   doctorDid?: string;
+  apptId?: string;
   drugs?: any[];
   diagnosis?: string;
+  chiefComplaint?: string;
+  symptoms?: string;
   notes?: string;
+  followUpDate?: string;
   signedBy?: string;
   rxId?: string;
   staffDid?: string;
@@ -424,6 +429,14 @@ export const getPrescriptions = (patientDid: string) =>
 
 export const getAllPrescriptions = () =>
   apiFetch<{ prescriptions: any[]; total: number }>(`/prescriptions`);
+
+/** Prescriptions written by the currently authenticated doctor */
+export const getMyPrescriptions = () =>
+  apiFetch<{ prescriptions: any[]; total: number }>(`/prescriptions/my`);
+
+/** Patients who have appointments with the authenticated doctor */
+export const getMyPatients = () =>
+  apiFetch<{ patients: any[]; total: number }>(`/appointments/my-patients`);
 
 export const getSurgeries = () => apiFetch<{ surgeries: any[]; total: number }>(`/surgeries`);
 

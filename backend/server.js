@@ -1026,25 +1026,85 @@ app.post("/api/beds", requireAuth, requireRole(["admin", "staff"]), hipaaAuditPH
 
 // ─── Prescriptions ────────────────────────────────────────────────────────────
 app.post("/api/prescriptions", requireAuth, requireRole(["doctor", "staff"]), hipaaAuditPHIAccess("Prescription"), (req, res) => {
-  const { patientDid, doctorDid, drugs, diagnosis, notes, signedBy } = req.body;
-  const txId = randomUUID();
-  const rxId = `PR-${Date.now().toString(36).toUpperCase()}`;
+  const {
+    patientDid, patientName, doctorDid: bodyDoctorDid,
+    apptId, drugs, diagnosis, chiefComplaint, symptoms,
+    notes, followUpDate, signedBy,
+  } = req.body;
+
+  // Always derive doctorDid from the authenticated token — never trust body
+  const doctorDid  = req.user.did || `did:hosp:0x${simHash(req.user.email).slice(0, 8)}`;
+  const doctorName = req.user.name || signedBy || "Doctor";
+
+  if (!patientDid) return res.status(400).json({ error: "patientDid is required" });
+  if (!drugs || !Array.isArray(drugs) || drugs.length === 0)
+    return res.status(400).json({ error: "At least one drug is required" });
+
+  const txId  = randomUUID();
+  const rxId  = `PR-${Date.now().toString(36).toUpperCase()}`;
   const rx = {
     rxId,
     patientDid,
+    patientName:    patientName  || "Patient",
     doctorDid,
+    doctorName,
+    apptId:         apptId       || null,
     drugs,
-    diagnosis,
-    notes,
-    signedBy,
-    signedAt: new Date().toISOString(),
-    status: "active",
-    hash: `sha256:${simHash(rxId + patientDid)}`,
+    diagnosis:      diagnosis    || "",
+    chiefComplaint: chiefComplaint || "",
+    symptoms:       symptoms     || "",
+    notes:          notes        || "",
+    followUpDate:   followUpDate || null,
+    signedBy:       doctorName,
+    signedAt:       new Date().toISOString(),
+    status:         "active",
+    hash:           `sha256:${simHash(rxId + patientDid + doctorDid)}`,
+    txId,
+    // Future blockchain hook — embed structured data for on-chain verification
+    blockchainMeta: {
+      patientDid, doctorDid, rxId, apptId: apptId || null,
+      timestamp: new Date().toISOString(), network: "solana-devnet",
+    },
   };
   putState("prescriptions", rxId, rx, txId);
-  broadcast({ event: "prescription:signed", data: { rxId } });
-  res.json({ rxId, rx, txId });
+  broadcast({ event: "prescription:signed", data: { rxId, patientDid, doctorDid } });
+  res.status(201).json({ rxId, rx, txId });
 });
+
+// GET prescriptions I wrote (doctor's own view — no consent gate)
+app.get(
+  "/api/prescriptions/my",
+  requireAuth,
+  requireRole(["doctor", "staff", "admin"]),
+  hipaaAuditPHIAccess("Prescription"),
+  (req, res) => {
+    const doctorDid  = req.user.did || `did:hosp:0x${simHash(req.user.email).slice(0, 8)}`;
+    const doctorName = req.user.name || "";
+    const all = queryState(
+      "prescriptions",
+      (v) => v.doctorDid === doctorDid || (doctorName && v.doctorName === doctorName),
+    );
+    const sorted = [...all].sort((a, b) =>
+      (b.value.signedAt || "").localeCompare(a.value.signedAt || ""),
+    );
+    res.json({ prescriptions: sorted.map((e) => e.value), total: sorted.length });
+  },
+);
+
+// GET all prescriptions (admin/staff overview — must be before :patientDid route)
+app.get(
+  "/api/prescriptions",
+  requireAuth,
+  requireRole(["admin", "staff", "doctor"]),
+  hipaaAuditPHIAccess("Prescription"),
+  (req, res) => {
+    const all    = getAllState("prescriptions");
+    const sorted = [...all].sort((a, b) =>
+      (b.value.signedAt || "").localeCompare(a.value.signedAt || ""),
+    );
+    res.json({ prescriptions: sorted.map((e) => e.value), total: sorted.length });
+  },
+);
 
 app.get(
   "/api/prescriptions/:patientDid",
@@ -1052,34 +1112,100 @@ app.get(
   hipaaAuditPHIAccess("Prescription"),
   (req, res) => {
     const patientDid = req.params.patientDid;
+    const role       = (req.user.role || "").toLowerCase();
 
-    if (req.user.role === "patient" && req.user.did && req.user.did !== patientDid) {
-      return res
-        .status(403)
-        .json({ error: "Access Denied: Cannot view other patients' prescriptions" });
+    // Patient can only see their own
+    if (role === "patient") {
+      if (req.user.did && req.user.did !== patientDid) {
+        return res.status(403).json({ error: "Access Denied: Cannot view another patient's prescriptions" });
+      }
     }
 
-    if (req.user.role === "doctor" || req.user.role === "staff") {
-      const doctorDid = req.user.did || `did:hosp:0x${simHash(req.user.email).slice(0, 8)}`;
-      const consents = queryState(
+    // Doctor / staff can see if:
+    //   (a) they wrote the prescription, OR
+    //   (b) they have an active appointment with this patient, OR
+    //   (c) they have active consent
+    if (role === "doctor" || role === "staff") {
+      const doctorDid  = req.user.did || `did:hosp:0x${simHash(req.user.email).slice(0, 8)}`;
+      const doctorName = req.user.name || "";
+
+      const hasAppointment = queryState(
+        "appointments",
+        (v) =>
+          v.patientDid === patientDid &&
+          (v.doctorDid === doctorDid || (doctorName && v.doctorName === doctorName)),
+      ).length > 0;
+
+      const hasConsent = queryState(
         "consent-manager",
         (v) =>
           v.patientDid === patientDid &&
           v.doctorDid === doctorDid &&
           v.status === "active" &&
           new Date(v.expiry) > new Date(),
-      );
+      ).length > 0;
 
-      if (consents.length === 0) {
+      if (!hasAppointment && !hasConsent) {
         return res.status(403).json({
-          error:
-            "Access Denied: No active consent from this patient. Consent must be granted during appointment booking.",
+          error: "Access Denied: No appointment or active consent for this patient.",
         });
       }
     }
 
-    const all = queryState("prescriptions", (v) => v.patientDid === patientDid);
-    res.json({ prescriptions: all.map((e) => e.value) });
+    const all    = queryState("prescriptions", (v) => v.patientDid === patientDid);
+    const sorted = [...all].sort((a, b) =>
+      (b.value.signedAt || "").localeCompare(a.value.signedAt || ""),
+    );
+    res.json({ prescriptions: sorted.map((e) => e.value) });
+  },
+);
+
+// GET patients who have appointments with the logged-in doctor
+app.get(
+  "/api/appointments/my-patients",
+  requireAuth,
+  requireRole(["doctor", "staff", "admin"]),
+  (req, res) => {
+    const doctorDid  = req.user.did || `did:hosp:0x${simHash(req.user.email).slice(0, 8)}`;
+    const doctorName = req.user.name || "";
+
+    const myAppts = queryState(
+      "appointments",
+      (v) =>
+        v.doctorDid === doctorDid ||
+        (doctorName && v.doctorName === doctorName),
+    ).map((e) => e.value);
+
+    // Deduplicate patients, attach latest appointment info
+    const patientMap = new Map();
+    for (const appt of myAppts.sort((a, b) => (b.bookedAt || "").localeCompare(a.bookedAt || ""))) {
+      if (!appt.patientDid) continue;
+      if (!patientMap.has(appt.patientDid)) {
+        patientMap.set(appt.patientDid, {
+          patientDid:  appt.patientDid,
+          patientName: appt.patientName || "Patient",
+          latestAppt: {
+            apptId:    appt.apptId,
+            slot:      appt.slot,
+            date:      appt.date,
+            status:    appt.status,
+            specialty: appt.specialty,
+            reason:    appt.reason || "",
+          },
+          appointments: [],
+        });
+      }
+      patientMap.get(appt.patientDid).appointments.push({
+        apptId:  appt.apptId,
+        slot:    appt.slot,
+        date:    appt.date,
+        status:  appt.status,
+        reason:  appt.reason || "",
+        mode:    appt.mode,
+      });
+    }
+
+    res.json({ patients: Array.from(patientMap.values()), total: patientMap.size });
   },
 );
 
