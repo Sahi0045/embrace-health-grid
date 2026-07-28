@@ -17,6 +17,8 @@ import {
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { getCurrentUser } from "@/lib/auth";
+import { ShieldAlert, ShieldCheck, UserCheck } from "lucide-react";
 import { clockAttendance, createStaffRequest } from "@/lib/api";
 import { useAttendance, useStaffRequests } from "@/hooks/use-api";
 
@@ -28,13 +30,18 @@ export const Route = createFileRoute("/staff/attendance")({
 });
 
 function StaffAttendance() {
+  const currentUser = getCurrentUser();
+  const userEmail = currentUser?.email || "";
+  const userDid = currentUser?.did || null;
+  const employeeId = currentUser?.employeeId || null;
+  const hasDid = Boolean(userDid);
+
   const [clockedIn, setClockedIn] = useState(false);
   const [checkInTime, setCheckInTime] = useState("08:00");
+  const [isClocking, setIsClocking] = useState(false);
   const now = new Date();
 
-  const userEmail = typeof window !== "undefined" ? localStorage.getItem("userEmail") || "" : "";
-
-  const { data: attendanceData, loading: loadingAttendance } = useAttendance(userEmail);
+  const { data: attendanceData, loading: loadingAttendance, refetch: refetchAttendance } = useAttendance(userEmail);
   const {
     data: requestsData,
     loading: loadingRequests,
@@ -69,30 +76,49 @@ function StaffAttendance() {
   }, [apiHistory]);
 
   const handleClockIn = async () => {
-    const timeStr = now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
-    try {
-      await clockAttendance({ action: "in", location: "Cardiology OPD" });
-      setClockedIn(true);
-      setCheckInTime(timeStr);
-      toast.success("Clocked in", { description: `${timeStr} — Have a great shift!` });
-    } catch (err: any) {
-      setClockedIn(true);
-      setCheckInTime(timeStr);
-      toast.success("Clocked in (offline mode)", {
-        description: `${timeStr} — Have a great shift!`,
+    if (!hasDid) {
+      toast.error("Attendance Denied", {
+        description: "Official W3C DID has not been issued to your account by Admin.",
       });
+      return;
+    }
+    const timeStr = now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+    setIsClocking(true);
+    try {
+      const res = await clockAttendance({ action: "in", location: "Cardiology OPD" });
+      if (res.success || res.record) {
+        setClockedIn(true);
+        setCheckInTime(timeStr);
+        toast.success("Clocked in successfully!", { description: `${timeStr} — Linked to DID: ${userDid}` });
+        refetchAttendance();
+      }
+    } catch (err: any) {
+      toast.error("Clock In Failed", { description: err.message || "DID authorization error" });
+    } finally {
+      setIsClocking(false);
     }
   };
 
   const handleClockOut = async () => {
+    if (!hasDid) {
+      toast.error("Attendance Denied", {
+        description: "Official W3C DID has not been issued to your account by Admin.",
+      });
+      return;
+    }
     const timeStr = now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+    setIsClocking(true);
     try {
-      await clockAttendance({ action: "out", location: "Cardiology OPD" });
-      setClockedIn(false);
-      toast("Clocked out", { description: `${timeStr} — See you next shift.` });
+      const res = await clockAttendance({ action: "out", location: "Cardiology OPD" });
+      if (res.success || res.record) {
+        setClockedIn(false);
+        toast.success("Clocked out successfully!", { description: `${timeStr} — Recorded on blockchain ledger.` });
+        refetchAttendance();
+      }
     } catch (err: any) {
-      setClockedIn(false);
-      toast("Clocked out (offline mode)", { description: `${timeStr} — See you next shift.` });
+      toast.error("Clock Out Failed", { description: err.message || "DID authorization error" });
+    } finally {
+      setIsClocking(false);
     }
   };
 
@@ -219,6 +245,40 @@ function StaffAttendance() {
         />
 
         <div className="space-y-6 p-6 sm:p-8">
+          {/* DID Ineligibility Warning Banner */}
+          {!hasDid ? (
+            <Card className="border-2 border-destructive/50 bg-destructive/5">
+              <CardContent className="p-4 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-destructive/10 text-destructive flex items-center justify-center shrink-0">
+                    <ShieldAlert className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-destructive">W3C DID Required for Attendance</h4>
+                    <p className="text-xs text-muted-foreground">
+                      You have not been issued an official W3C DID by Admin. You are currently ineligible to mark attendance.
+                    </p>
+                  </div>
+                </div>
+                <Badge variant="outline" className="border-destructive/30 text-destructive text-[10px] uppercase font-bold shrink-0">
+                  Ineligible
+                </Badge>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="flex items-center justify-between p-3 rounded-lg border border-primary/20 bg-primary/5 text-xs text-foreground">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-primary" />
+                <span>
+                  Verified Staff Member: <strong className="font-semibold">{currentUser?.name}</strong> ({employeeId || "EMP-1002"})
+                </span>
+              </div>
+              <Badge variant="outline" className="font-mono text-[10px] bg-background text-primary border-primary/30">
+                {userDid}
+              </Badge>
+            </div>
+          )}
+
           {/* Clock-in card */}
           <Card
             className={`border-2 ${clockedIn ? "border-success/40 bg-success/5" : "border-border"}`}
@@ -246,13 +306,21 @@ function StaffAttendance() {
                 </div>
                 <div className="flex gap-3">
                   {!clockedIn ? (
-                    <Button size="lg" onClick={handleClockIn}>
-                      <LogIn className="mr-2 h-5 w-5" />
+                    <Button size="lg" onClick={handleClockIn} disabled={!hasDid || isClocking}>
+                      {isClocking ? (
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      ) : (
+                        <LogIn className="mr-2 h-5 w-5" />
+                      )}
                       Clock In
                     </Button>
                   ) : (
-                    <Button size="lg" variant="destructive" onClick={handleClockOut}>
-                      <LogOut className="mr-2 h-5 w-5" />
+                    <Button size="lg" variant="destructive" onClick={handleClockOut} disabled={!hasDid || isClocking}>
+                      {isClocking ? (
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      ) : (
+                        <LogOut className="mr-2 h-5 w-5" />
+                      )}
                       Clock Out
                     </Button>
                   )}

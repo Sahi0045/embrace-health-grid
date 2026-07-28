@@ -36,6 +36,7 @@ import {
   getAmbulances,
   getEquipment,
   getAttendance,
+  getAdminAttendanceSummary,
   getStaffRequests,
 } from "@/lib/api";
 
@@ -406,7 +407,11 @@ export function useLivePatients() {
     };
   }, []);
 
-  return { patients, loading };
+  const refetch = useCallback(() => {
+    setPatients(getLivePatients());
+  }, []);
+
+  return { patients, loading, refetch };
 }
 
 // ─── Live Staff (store-driven + WS location) ──────────────────────────────────
@@ -646,6 +651,25 @@ export function useAttendance(staffEmail: string) {
     () => ({ records: [] as any[], total: 0 }),
     "attendance:clocked",
     [staffEmail],
+  );
+}
+
+export function useAdminAttendance() {
+  return useApiData(
+    getAdminAttendanceSummary,
+    () => ({
+      summary: {
+        totalEligibleStaff: 0,
+        presentToday: 0,
+        checkedInCount: 0,
+        checkedOutCount: 0,
+        absentToday: 0,
+        date: new Date().toISOString().split("T")[0],
+      },
+      roster: [] as any[],
+      allRecords: [] as any[],
+    }),
+    "attendance:clocked",
   );
 }
 

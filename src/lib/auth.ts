@@ -38,6 +38,12 @@ export interface AuthUser {
   allergies?: string[];
   department?: string;
   specializations?: string[];
+  insuranceProvider?: string;
+  insurancePolicyNo?: string;
+  sumInsured?: number;
+  policyType?: string;
+  validFrom?: string;
+  validTo?: string;
 }
 
 // ─── Storage keys ──────────────────────────────────────────────────────────────

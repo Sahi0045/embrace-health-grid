@@ -36,7 +36,7 @@ function InsurancePage() {
   const { data: claimsData, refetch: refetchClaims } = useInsuranceClaims();
   const { patients, loading, refetch: refetchPatients } = useLivePatients();
   const currentUser = getCurrentUser();
-  const patient = patients?.find((p: any) => p.email === currentUser?.email) || {
+  const patient: any = patients?.find((p: any) => p.email === currentUser?.email) || {
     insuranceProvider: currentUser?.insuranceProvider || "Star Health & Allied Insurance",
     insurancePolicyNo: currentUser?.insurancePolicyNo || "POL-2026-STAR-9942",
     sumInsured: currentUser?.sumInsured || 1000000,
@@ -99,7 +99,7 @@ function InsurancePage() {
           validFrom,
           validTo,
         };
-        setSession(token, updatedUser);
+        setSession(token, updatedUser as any);
 
         toast.success("Insurance Policy Updated On-Chain!", {
           description: `${provider} (${policyNo}) linked to your health identity.`,
@@ -311,7 +311,7 @@ function InsurancePage() {
                   </button>
                 </div>
                 <div className="space-y-3">
-                  {patientClaims.slice(0, 5).map((c) => (
+                  {patientClaims.slice(0, 5).map((c: any) => (
                     <ClaimsCard key={c.id} claim={c} />
                   ))}
                   {patientClaims.length === 0 && (
@@ -354,7 +354,7 @@ function InsurancePage() {
               </button>
             </div>
             <div className="space-y-3">
-              {patientClaims.map((c) => (
+              {patientClaims.map((c: any) => (
                 <ClaimsCard key={c.id} claim={c} />
               ))}
               {patientClaims.length === 0 && (
