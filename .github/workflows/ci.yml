@@ -1,83 +1,141 @@
-name: CI/CD — Embrace Health Grid
+name: CI — Embrace Health Grid
 
+# ══════════════════════════════════════════════════════════════════════════════
+#  Triggers
+#  - Every push to main or develop
+#  - Every PR targeting main or develop
+#  - Manual trigger from the GitHub Actions tab
+# ══════════════════════════════════════════════════════════════════════════════
 on:
   push:
     branches: [main, develop]
   pull_request:
-    branches: [main]
+    branches: [main, develop]
   workflow_dispatch:
+
+# Cancel in-flight runs for the same branch on new pushes
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   NODE_VERSION: "20"
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
-# ════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════════════
 #  JOBS
-# ════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════════════
 jobs:
-  # ──────────────────────────────────────────────────────────────
-  #  1. Lint & Type-check (frontend)
-  # ──────────────────────────────────────────────────────────────
-  lint:
-    name: Lint & Type-check
+
+  # ────────────────────────────────────────────────────────────────────────────
+  #  1. Frontend — Lint, Format, Type-check
+  # ────────────────────────────────────────────────────────────────────────────
+  lint-frontend:
+    name: "Frontend · Lint & Type-check"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
+          cache: npm
 
-      - name: Install dependencies
+      - name: Install root dependencies
         run: npm ci
 
-      - name: Run ESLint
-        run: npm run lint
+      - name: ESLint (zero warnings in CI)
+        run: npm run lint:ci
 
-      - name: Check Prettier formatting
-        run: npx prettier --check "src/**/*.{ts,tsx,js,jsx,css}"
+      - name: Prettier format check
+        run: npm run format:check
 
-  # ──────────────────────────────────────────────────────────────
-  #  2. Build frontend
-  # ──────────────────────────────────────────────────────────────
+      - name: TypeScript type-check
+        run: npm run typecheck
+
+  # ────────────────────────────────────────────────────────────────────────────
+  #  2. Admin Portal — Lint, Type-check, Build
+  # ────────────────────────────────────────────────────────────────────────────
+  lint-admin-portal:
+    name: "Admin Portal · Lint, Type-check & Build"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: admin-portal
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: admin-portal/package-lock.json
+
+      - name: Install admin-portal dependencies
+        run: npm ci
+
+      - name: ESLint (zero warnings in CI)
+        run: npm run lint:ci
+        # Treat as warning only until admin-portal baseline is clean
+        continue-on-error: true
+
+      - name: TypeScript type-check
+        run: npm run typecheck
+
+      - name: Vite build
+        env:
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL || 'http://localhost:3001' }}
+          VITE_CLIENT_KEY: ${{ secrets.VITE_CLIENT_KEY || 'ci-placeholder' }}
+        run: npm run build
+
+      - name: Upload admin-portal dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: admin-portal-dist
+          path: admin-portal/dist/
+          retention-days: 7
+
+  # ────────────────────────────────────────────────────────────────────────────
+  #  3. Frontend — Build
+  # ────────────────────────────────────────────────────────────────────────────
   build-frontend:
-    name: Build Frontend
+    name: "Frontend · Build"
     runs-on: ubuntu-latest
-    needs: lint
+    needs: lint-frontend
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
+          cache: npm
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Build
+      - name: Vite build
         env:
           VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL || 'http://localhost:3001' }}
           VITE_CLIENT_KEY: ${{ secrets.VITE_CLIENT_KEY || 'ci-placeholder' }}
           VITE_CONVEX_URL: ${{ secrets.VITE_CONVEX_URL || '' }}
         run: npm run build
 
-      - name: Upload dist artifact
+      - name: Upload frontend dist artifact
         uses: actions/upload-artifact@v4
         with:
           name: frontend-dist
           path: dist/
           retention-days: 7
 
-  # ──────────────────────────────────────────────────────────────
-  #  3. Backend smoke tests
-  # ──────────────────────────────────────────────────────────────
-  test-backend:
-    name: Backend Smoke Tests
+  # ────────────────────────────────────────────────────────────────────────────
+  #  4. Backend — Unit Tests (Merkle Tree)
+  # ────────────────────────────────────────────────────────────────────────────
+  test-unit:
+    name: "Backend · Unit Tests"
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -85,77 +143,190 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
+          cache: npm
           cache-dependency-path: backend/package-lock.json
 
       - name: Install backend dependencies
         run: npm ci
 
-      - name: Start backend server (background)
-        env:
-          NODE_ENV: test
-          PORT: 3001
-          JWT_SECRET: ci-test-jwt-secret-do-not-use-in-prod
-          CLIENT_KEY: ci-test-client-key
-          LOG_LEVEL: error
-          DATA_ENCRYPTION_KEY: 0000000000000000000000000000000000000000000000000000000000000000
-          AUDIT_HMAC_KEY: 0000000000000000000000000000000000000000000000000000000000000000
+      - name: Run Merkle Tree unit tests
+        run: npm test
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-results
+          path: backend/test-results/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # ────────────────────────────────────────────────────────────────────────────
+  #  5. Backend — API Integration / Smoke Tests
+  # ────────────────────────────────────────────────────────────────────────────
+  test-backend-api:
+    name: "Backend · API Smoke Tests"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      NODE_ENV: test
+      PORT: 3001
+      JWT_SECRET: ci-test-jwt-secret-minimum-32-characters-long
+      CLIENT_KEY: ci-test-client-key
+      IDENTITY_SECRET: ci-test-identity-secret
+      SETUP_KEY: ci-test-setup-key-min-16
+      LOG_LEVEL: error
+      DATA_ENCRYPTION_KEY: "0000000000000000000000000000000000000000000000000000000000000000"
+      AUDIT_HMAC_KEY: "1111111111111111111111111111111111111111111111111111111111111111"
+      CORS_ORIGIN: "*"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        run: npm ci
+
+      - name: Start backend server
         run: |
           node server.js &
           echo "BACKEND_PID=$!" >> $GITHUB_ENV
-          # Wait for server to be ready (up to 20 seconds)
-          for i in $(seq 1 20); do
+          for i in $(seq 1 30); do
             if curl -sf http://localhost:3001/health > /dev/null 2>&1; then
-              echo "✅ Backend is ready"
+              echo "✅ Backend ready after ${i}s"
               break
             fi
-            echo "Waiting for backend... ($i/20)"
+            if [ "$i" = "30" ]; then
+              echo "❌ Backend failed to start within 30s"
+              exit 1
+            fi
+            echo "Waiting... ($i/30)"
             sleep 1
           done
 
-      - name: Health check — liveness
+      - name: Liveness probe
         run: |
           STATUS=$(curl -sf -o /dev/null -w "%{http_code}" http://localhost:3001/health)
-          [ "$STATUS" = "200" ] && echo "✅ /health OK" || (echo "❌ /health returned $STATUS" && exit 1)
+          [ "$STATUS" = "200" ] && echo "✅ /health → $STATUS" || (echo "❌ /health → $STATUS" && exit 1)
 
-      - name: Health check — readiness
+      - name: Readiness probe
         run: |
           STATUS=$(curl -sf -o /dev/null -w "%{http_code}" http://localhost:3001/health/ready)
-          [ "$STATUS" = "200" ] && echo "✅ /health/ready OK" || (echo "❌ /health/ready returned $STATUS" && exit 1)
+          [ "$STATUS" = "200" ] && echo "✅ /health/ready → $STATUS" || (echo "❌ /health/ready → $STATUS" && exit 1)
 
-      - name: Health check — metrics
+      - name: Metrics endpoint
         run: |
           STATUS=$(curl -sf -o /dev/null -w "%{http_code}" http://localhost:3001/health/metrics)
-          [ "$STATUS" = "200" ] && echo "✅ /health/metrics OK" || (echo "❌ /health/metrics returned $STATUS" && exit 1)
+          [ "$STATUS" = "200" ] && echo "✅ /health/metrics → $STATUS" || (echo "❌ /health/metrics → $STATUS" && exit 1)
 
-      - name: Auth endpoint reachable
+      - name: Auth endpoint (expect 401 on bad credentials)
         run: |
           STATUS=$(curl -sf -o /dev/null -w "%{http_code}" -X POST http://localhost:3001/api/auth/login \
             -H "Content-Type: application/json" \
             -H "x-client-key: ci-test-client-key" \
-            -d '{"email":"nonexistent@test.com","password":"test"}')
-          # Expect 401 (wrong creds) not 500
-          [ "$STATUS" = "401" ] && echo "✅ Auth endpoint OK" || (echo "❌ Auth returned unexpected $STATUS" && exit 1)
+            -d '{"email":"nobody@test.com","password":"wrong"}')
+          [ "$STATUS" = "401" ] && echo "✅ Auth endpoint → $STATUS" || (echo "❌ Auth endpoint → $STATUS (expected 401)" && exit 1)
+
+      - name: Protected routes reject unauthenticated requests
+        run: |
+          for route in "/api/rooms" "/api/room-checkin/all" "/api/doctors/verified"; do
+            STATUS=$(curl -sf -o /dev/null -w "%{http_code}" http://localhost:3001$route)
+            if [ "$STATUS" = "401" ] || [ "$STATUS" = "403" ]; then
+              echo "✅ $route → $STATUS (correctly rejected)"
+            else
+              echo "❌ $route → $STATUS (expected 401 or 403)"
+              exit 1
+            fi
+          done
+
+      - name: Merkle root endpoints reject unauthenticated requests
+        run: |
+          for route in "/api/merkle-root/daily/did:hosp:0xtest" "/api/merkle-root/did:hosp:0xtest/history"; do
+            STATUS=$(curl -sf -o /dev/null -w "%{http_code}" http://localhost:3001$route)
+            if [ "$STATUS" = "401" ] || [ "$STATUS" = "403" ]; then
+              echo "✅ $route → $STATUS (correctly rejected)"
+            else
+              echo "❌ $route → $STATUS (expected 401 or 403)"
+              exit 1
+            fi
+          done
+
+      - name: Unknown route returns 404
+        run: |
+          STATUS=$(curl -sf -o /dev/null -w "%{http_code}" http://localhost:3001/api/this-does-not-exist-xyz)
+          [ "$STATUS" = "404" ] && echo "✅ 404 handler works" || (echo "❌ 404 handler → $STATUS" && exit 1)
+
+      - name: Run Node.js API test suite
+        run: npm run test:api
 
       - name: Stop backend
         if: always()
         run: kill $BACKEND_PID 2>/dev/null || true
 
-  # ──────────────────────────────────────────────────────────────
-  #  4. Docker build & push (main branch only)
-  # ──────────────────────────────────────────────────────────────
-  docker:
-    name: Docker Build & Push
+  # ────────────────────────────────────────────────────────────────────────────
+  #  6. Anchor (Solana) — Build check
+  # ────────────────────────────────────────────────────────────────────────────
+  build-anchor:
+    name: "Anchor Program · Build check"
     runs-on: ubuntu-latest
-    needs: [build-frontend, test-backend]
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    # Only run on pushes to main/develop — anchor build is slow
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+
+      - name: Cache Rust build artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: anchor-program
+
+      - name: cargo fmt check
+        working-directory: anchor-program
+        run: cargo fmt --all -- --check
+
+      - name: cargo clippy
+        working-directory: anchor-program
+        run: cargo clippy --all-targets --all-features -- -D warnings
+        continue-on-error: true  # Advisory — does not block merge
+
+      - name: cargo build (verify compilation)
+        working-directory: anchor-program
+        run: cargo build --release 2>&1 | tail -20
+
+  # ────────────────────────────────────────────────────────────────────────────
+  #  7. Docker — Build & Push to GHCR (main / develop only)
+  # ────────────────────────────────────────────────────────────────────────────
+  docker:
+    name: "Docker · Build & Push"
+    runs-on: ubuntu-latest
+    needs: [build-frontend, test-backend-api, test-unit]
+    if: >
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+      && github.event_name != 'pull_request'
     permissions:
       contents: read
       packages: write
+    outputs:
+      backend-image: ${{ steps.meta-backend.outputs.tags }}
+      frontend-image: ${{ steps.meta-frontend.outputs.tags }}
+      backend-digest: ${{ steps.push-backend.outputs.digest }}
+      frontend-digest: ${{ steps.push-frontend.outputs.digest }}
     steps:
       - uses: actions/checkout@v4
 
@@ -169,7 +340,8 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract Docker metadata (backend)
+      # ── Backend image ──────────────────────────────────────────────────────
+      - name: Docker metadata — backend
         id: meta-backend
         uses: docker/metadata-action@v5
         with:
@@ -177,9 +349,11 @@ jobs:
           tags: |
             type=ref,event=branch
             type=sha,prefix=sha-,format=short
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=staging,enable=${{ github.ref == 'refs/heads/develop' }}
 
       - name: Build & push backend image
+        id: push-backend
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -191,7 +365,8 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Extract Docker metadata (frontend)
+      # ── Frontend image ─────────────────────────────────────────────────────
+      - name: Docker metadata — frontend
         id: meta-frontend
         uses: docker/metadata-action@v5
         with:
@@ -199,9 +374,11 @@ jobs:
           tags: |
             type=ref,event=branch
             type=sha,prefix=sha-,format=short
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=staging,enable=${{ github.ref == 'refs/heads/develop' }}
 
       - name: Build & push frontend image
+        id: push-frontend
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -217,38 +394,42 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # ──────────────────────────────────────────────────────────────
-  #  5. Deploy to Vercel (frontend — main only)
-  # ──────────────────────────────────────────────────────────────
-  deploy-vercel:
-    name: Deploy Frontend to Vercel
+  # ────────────────────────────────────────────────────────────────────────────
+  #  8. CI Summary gate — PRs must pass this before merging
+  # ────────────────────────────────────────────────────────────────────────────
+  ci-gate:
+    name: "CI Gate (all checks passed)"
     runs-on: ubuntu-latest
-    needs: [build-frontend, test-backend]
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-    environment:
-      name: production
-      url: ${{ steps.deploy.outputs.url }}
+    # Always run so the gate job appears even when upstream jobs are skipped
+    if: always()
+    needs:
+      - lint-frontend
+      - lint-admin-portal
+      - build-frontend
+      - test-unit
+      - test-backend-api
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
-
-      - name: Install Vercel CLI
-        run: npm install -g vercel@latest
-
-      - name: Deploy to Vercel
-        id: deploy
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      - name: Evaluate upstream job results
         run: |
-          vercel pull --yes --environment=production --token=$VERCEL_TOKEN
-          vercel build --prod --token=$VERCEL_TOKEN
-          URL=$(vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN)
-          echo "url=$URL" >> $GITHUB_OUTPUT
-          echo "✅ Deployed to $URL"
+          results='${{ toJSON(needs) }}'
+          echo "Job results: $results"
+
+          failed=0
+          for job in lint-frontend build-frontend test-unit test-backend-api; do
+            result=$(echo "$results" | python3 -c "
+          import json, sys
+          data = json.load(sys.stdin)
+          job = '$job'
+          print(data.get(job, {}).get('result', 'missing'))
+          ")
+            echo "  $job → $result"
+            if [ "$result" != "success" ] && [ "$result" != "skipped" ]; then
+              failed=1
+            fi
+          done
+
+          if [ "$failed" = "1" ]; then
+            echo "❌ One or more required jobs failed."
+            exit 1
+          fi
+          echo "✅ All required CI checks passed."

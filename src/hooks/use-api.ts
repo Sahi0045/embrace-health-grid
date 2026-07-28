@@ -21,6 +21,9 @@ import {
   getAppointmentsByPatient,
   getAppointmentsByDoctor,
   getDIDVerifiedDoctors,
+  getVerifiedDoctors,
+  getDoctorAppointmentRequests,
+  getDoctorAppointments,
   getBeds,
   getTracker,
   getFraudAlerts,
@@ -291,6 +294,36 @@ export function useDIDVerifiedDoctors() {
     getDIDVerifiedDoctors,
     () => ({ doctors: [] as any[], total: 0 }),
     "did:created",
+    [],
+  );
+}
+
+/** Hook: only doctors with an active DID — used in patient portal booking */
+export function useVerifiedDoctors() {
+  return useApiData(
+    getVerifiedDoctors,
+    () => ({ doctors: [] as any[], total: 0 }),
+    "did:created",
+    [],
+  );
+}
+
+/** Hook: pending appointment requests for the logged-in doctor */
+export function useDoctorAppointmentRequests() {
+  return useApiData(
+    getDoctorAppointmentRequests,
+    () => ({ requests: [] as any[], total: 0 }),
+    "appointment:booked",
+    [],
+  );
+}
+
+/** Hook: all appointments (any status) for the logged-in doctor */
+export function useDoctorAppointments() {
+  return useApiData(
+    getDoctorAppointments,
+    () => ({ appointments: [] as any[], total: 0 }),
+    "appointment:updated",
     [],
   );
 }

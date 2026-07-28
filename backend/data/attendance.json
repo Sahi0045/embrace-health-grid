@@ -250,5 +250,56 @@
     "updatedAt": "2026-07-25T09:15:02.362Z",
     "txId": "4a7eca44-e0e3-4ee2-b0dd-30dc38cabaae",
     "docType": "attendance"
+  },
+  "att-d1c0059b": {
+    "key": "att-d1c0059b",
+    "value": {
+      "id": "att-d1c0059b",
+      "staffEmail": "admin@embracehealth.org",
+      "staffDid": "did:hosp:0x11223344",
+      "action": "in",
+      "nfcCardId": null,
+      "location": "Cardiology OPD",
+      "timestamp": "2026-07-26T04:57:42.917Z"
+    },
+    "namespace": "attendance",
+    "version": "e9470b30-21ee-468f-a77d-b50b36001d39:1",
+    "updatedAt": "2026-07-26T04:57:42.918Z",
+    "txId": "e9470b30-21ee-468f-a77d-b50b36001d39",
+    "docType": "attendance"
+  },
+  "att-39b99859": {
+    "key": "att-39b99859",
+    "value": {
+      "id": "att-39b99859",
+      "staffEmail": "admin@embracehealth.org",
+      "staffDid": "did:hosp:0x11223344",
+      "action": "in",
+      "nfcCardId": null,
+      "location": "Cardiology OPD",
+      "timestamp": "2026-07-26T04:57:42.971Z"
+    },
+    "namespace": "attendance",
+    "version": "5f7bbaa0-8740-492f-b32d-395643dc9890:1",
+    "updatedAt": "2026-07-26T04:57:42.971Z",
+    "txId": "5f7bbaa0-8740-492f-b32d-395643dc9890",
+    "docType": "attendance"
+  },
+  "att-9b3ebcb8": {
+    "key": "att-9b3ebcb8",
+    "value": {
+      "id": "att-9b3ebcb8",
+      "staffEmail": "admin@embracehealth.org",
+      "staffDid": "did:hosp:0x11223344",
+      "action": "out",
+      "nfcCardId": null,
+      "location": "Cardiology OPD",
+      "timestamp": "2026-07-26T04:57:45.970Z"
+    },
+    "namespace": "attendance",
+    "version": "64c934a8-3149-48d8-b3b4-1b085b8bc1df:1",
+    "updatedAt": "2026-07-26T04:57:45.970Z",
+    "txId": "64c934a8-3149-48d8-b3b4-1b085b8bc1df",
+    "docType": "attendance"
   }
 }

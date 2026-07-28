@@ -1,0 +1,116 @@
+# ══════════════════════════════════════════════════════════════════════════════
+#  docker-compose.staging.yml — Staging environment override
+#
+#  Usage (on staging server):
+#    docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d
+#
+#  This file overrides the base docker-compose.yml with staging-specific
+#  image tags, environment variables, resource limits, and logging config.
+#
+#  Required environment variables on the staging host (set in .env.staging
+#  or as host environment variables):
+#    BACKEND_IMAGE   — e.g. ghcr.io/sahi0045/embrace-health-grid-backend:staging
+#    FRONTEND_IMAGE  — e.g. ghcr.io/sahi0045/embrace-health-grid-frontend:staging
+#    JWT_SECRET, CLIENT_KEY, DATA_ENCRYPTION_KEY, AUDIT_HMAC_KEY
+#    CORS_ORIGIN     — e.g. https://staging.embrace-health.com
+# ══════════════════════════════════════════════════════════════════════════════
+
+version: "3.9"
+
+services:
+  # ─── Backend (staging) ──────────────────────────────────────────────────────
+  backend:
+    # Use the pre-built staging image from GHCR instead of building locally
+    image: ${BACKEND_IMAGE:-ghcr.io/sahi0045/embrace-health-grid-backend:staging}
+    build: !reset null   # Disable local build in staging
+    container_name: embrace-backend-staging
+    environment:
+      NODE_ENV: staging
+      PORT: 3001
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      CLIENT_KEY: ${CLIENT_KEY:?CLIENT_KEY is required}
+      IDENTITY_SECRET: ${IDENTITY_SECRET:-}
+      SETUP_KEY: ${SETUP_KEY:-}
+      DATA_ENCRYPTION_KEY: ${DATA_ENCRYPTION_KEY:?DATA_ENCRYPTION_KEY is required}
+      AUDIT_HMAC_KEY: ${AUDIT_HMAC_KEY:?AUDIT_HMAC_KEY is required}
+      CORS_ORIGIN: ${CORS_ORIGIN:-https://staging.embrace-health.com}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      SOLANA_RPC_URL: ${SOLANA_RPC_URL:-https://api.devnet.solana.com}
+      SOLANA_PROGRAM_ID: ${SOLANA_PROGRAM_ID:-}
+      SOLANA_WALLET_SECRET: ${SOLANA_WALLET_SECRET:-}
+      CONVEX_URL: ${CONVEX_URL:-}
+      # Staging banner — visible in all log output
+      DEPLOYMENT_ENV: staging
+      GIT_SHA: ${GIT_SHA:-unknown}
+    # Resource limits (adjust to your staging server capacity)
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+    # Extended logging for staging debugging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "10"
+        labels: "env=staging"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend-staging.rule=Host(`api-staging.embrace-health.com`)"
+      - "traefik.http.routers.backend-staging.tls=true"
+      - "traefik.http.services.backend-staging.loadbalancer.server.port=3001"
+      - "com.embrace.environment=staging"
+      - "com.embrace.git-sha=${GIT_SHA:-unknown}"
+
+  # ─── Frontend (staging) ─────────────────────────────────────────────────────
+  frontend:
+    image: ${FRONTEND_IMAGE:-ghcr.io/sahi0045/embrace-health-grid-frontend:staging}
+    build: !reset null   # Disable local build in staging
+    container_name: embrace-frontend-staging
+    environment:
+      NGINX_HOST: staging.embrace-health.com
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+        reservations:
+          cpus: "0.05"
+          memory: 32M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+        labels: "env=staging"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend-staging.rule=Host(`staging.embrace-health.com`)"
+      - "traefik.http.routers.frontend-staging.tls=true"
+      - "traefik.http.services.frontend-staging.loadbalancer.server.port=80"
+      - "com.embrace.environment=staging"
+      - "com.embrace.git-sha=${GIT_SHA:-unknown}"
+
+# ─── Staging-specific named volume (isolated from production) ─────────────────
+volumes:
+  backend_data:
+    name: embrace-staging-backend-data
+    driver: local
+
+# ─── Staging network ──────────────────────────────────────────────────────────
+networks:
+  health-net:
+    name: embrace-staging-net
+    driver: bridge

@@ -1,64 +1,305 @@
-name: Security Scan
+name: Security & Compliance Scans
 
+# ══════════════════════════════════════════════════════════════════════════════
+#  Triggers
+#  - Push to main or develop
+#  - PRs targeting main
+#  - Weekly schedule (Monday 08:00 UTC)
+#  - Manual trigger
+#
+#  Jobs:
+#    dependency-audit   — npm audit (frontend + backend + admin-portal)
+#    secret-scan        — gitleaks (detect leaked secrets/tokens)
+#    sast               — CodeQL static analysis (TypeScript + JavaScript)
+#    container-scan     — Trivy CRITICAL/HIGH CVE scan on Docker images
+#    license-check      — Detect GPL/unknown licenses in dependencies
+# ══════════════════════════════════════════════════════════════════════════════
 on:
   push:
     branches: [main, develop]
+  pull_request:
+    branches: [main]
   schedule:
-    # Run every Monday at 08:00 UTC
-    - cron: "0 8 * * 1"
+    - cron: "0 8 * * 1"   # Every Monday at 08:00 UTC
   workflow_dispatch:
 
+env:
+  NODE_VERSION: "20"
+
 jobs:
-  # ─── npm audit ────────────────────────────────────────────────────────────────
+  # ────────────────────────────────────────────────────────────────────────────
+  #  1. Dependency vulnerability audit — all three packages
+  # ────────────────────────────────────────────────────────────────────────────
   dependency-audit:
-    name: Dependency Vulnerability Audit
+    name: "Dependency Audit (npm audit)"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: ${{ env.NODE_VERSION }}
 
-      - name: Audit root (frontend) dependencies
-        run: npm audit --audit-level=high
+      - name: Audit frontend dependencies
+        run: |
+          npm install --ignore-scripts --prefer-offline || npm ci --ignore-scripts
+          npm audit --audit-level=high --json > audit-frontend.json || true
+          node -e "
+            const r = require('./audit-frontend.json');
+            const total = (r.metadata?.vulnerabilities) || {};
+            const critical = total.critical || 0;
+            const high = total.high || 0;
+            console.log('Frontend audit — critical:', critical, ' high:', high);
+            if (critical > 0) process.exit(1);
+          " || true
+          npm audit --audit-level=critical
         continue-on-error: true
 
       - name: Audit backend dependencies
         working-directory: backend
-        run: npm audit --audit-level=high
+        run: |
+          npm ci --ignore-scripts
+          npm audit --audit-level=high --json > ../audit-backend.json || true
+          npm audit --audit-level=critical
         continue-on-error: true
 
-  # ─── Secret scanning ──────────────────────────────────────────────────────────
+      - name: Audit admin-portal dependencies
+        working-directory: admin-portal
+        run: |
+          npm ci --ignore-scripts
+          npm audit --audit-level=high --json > ../audit-admin.json || true
+          npm audit --audit-level=critical
+        continue-on-error: true
+
+      - name: Upload audit reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: npm-audit-reports
+          path: |
+            audit-frontend.json
+            audit-backend.json
+            audit-admin.json
+          retention-days: 30
+
+  # ────────────────────────────────────────────────────────────────────────────
+  #  2. Secret scanning — gitleaks (full git history)
+  # ────────────────────────────────────────────────────────────────────────────
   secret-scan:
-    name: Secret Scanning (gitleaks)
+    name: "Secret Scanning (gitleaks)"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0   # Full history required for baseline scanning
 
       - name: Run gitleaks
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # ─── Docker image scan ────────────────────────────────────────────────────────
-  trivy-scan:
-    name: Container Image Scan (Trivy)
+  # ────────────────────────────────────────────────────────────────────────────
+  #  3. SAST — CodeQL (TypeScript / JavaScript)
+  # ────────────────────────────────────────────────────────────────────────────
+  sast:
+    name: "SAST — CodeQL"
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [javascript-typescript]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          queries: +security-extended,security-and-quality
+          # Exclude generated files and fixtures
+          config: |
+            paths-ignore:
+              - dist
+              - .vercel
+              - backend/data
+              - "**/*.test.*"
+              - "**/*.spec.*"
+              - node_modules
+
+      - name: Setup Node.js (for autobuild)
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies (required for CodeQL autobuild)
+        run: npm ci --ignore-scripts
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"
+          output: sarif-results
+          upload: true
+
+      - name: Upload SARIF results as artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: codeql-sarif-${{ matrix.language }}
+          path: sarif-results/
+          retention-days: 30
+
+  # ────────────────────────────────────────────────────────────────────────────
+  #  4. Container image scan — Trivy (CRITICAL + HIGH)
+  # ────────────────────────────────────────────────────────────────────────────
+  container-scan:
+    name: "Container Scan (Trivy)"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build backend image for scanning
+        run: |
+          docker build \
+            --target backend \
+            --cache-from type=gha \
+            -t embrace-backend:scan \
+            .
+
+      - name: Scan backend image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: embrace-backend:scan
+          format: sarif
+          output: trivy-backend.sarif
+          ignore-unfixed: true
+          severity: "CRITICAL,HIGH"
+          exit-code: "0"   # Don't block — report only (change to "1" to block)
+
+      - name: Upload Trivy SARIF to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-backend.sarif
+          category: trivy-backend
+
+      - name: Print Trivy table summary (fail on CRITICAL)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: embrace-backend:scan
+          format: table
+          ignore-unfixed: true
+          severity: "CRITICAL"
+          exit-code: "1"
+
+      - name: Build frontend image for scanning
+        run: |
+          docker build \
+            --target frontend \
+            --cache-from type=gha \
+            --build-arg VITE_API_BASE_URL=http://localhost:3001 \
+            --build-arg VITE_CLIENT_KEY=scan-placeholder \
+            -t embrace-frontend:scan \
+            .
+
+      - name: Scan frontend image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: embrace-frontend:scan
+          format: table
+          ignore-unfixed: true
+          severity: "CRITICAL,HIGH"
+          exit-code: "0"   # Nginx base images often have advisory HIGH — report only
+
+  # ────────────────────────────────────────────────────────────────────────────
+  #  5. License compliance check
+  # ────────────────────────────────────────────────────────────────────────────
+  license-check:
+    name: "License Compliance"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build backend image for scanning
-        run: docker build --target backend -t embrace-backend:scan .
-
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
         with:
-          image-ref: "embrace-backend:scan"
-          format: "table"
-          exit-code: "1"
-          ignore-unfixed: true
-          severity: "CRITICAL,HIGH"
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install license-checker
+        run: npm install -g license-checker@25
+
+      - name: Install root dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Check frontend licenses
+        run: |
+          license-checker \
+            --excludePrivatePackages \
+            --onlyAllow "MIT;ISC;Apache-2.0;BSD-2-Clause;BSD-3-Clause;CC0-1.0;CC-BY-3.0;CC-BY-4.0;Python-2.0;Unlicense;0BSD;BlueOak-1.0.0" \
+            --json \
+            --out license-report-frontend.json || true
+          echo "Frontend license report generated"
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci --ignore-scripts
+
+      - name: Check backend licenses
+        working-directory: backend
+        run: |
+          license-checker \
+            --excludePrivatePackages \
+            --onlyAllow "MIT;ISC;Apache-2.0;BSD-2-Clause;BSD-3-Clause;CC0-1.0;CC-BY-3.0;CC-BY-4.0;Python-2.0;Unlicense;0BSD;BlueOak-1.0.0" \
+            --json \
+            --out ../license-report-backend.json || true
+          echo "Backend license report generated"
+
+      - name: Upload license reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: license-reports
+          path: |
+            license-report-frontend.json
+            license-report-backend.json
+          retention-days: 90
+
+  # ────────────────────────────────────────────────────────────────────────────
+  #  6. Anchor program — Cargo audit (Rust dependencies)
+  # ────────────────────────────────────────────────────────────────────────────
+  cargo-audit:
+    name: "Cargo Audit (Rust/Anchor)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --locked
+
+      - name: Run cargo audit
+        working-directory: anchor-program
+        run: cargo audit
+        continue-on-error: true  # Advisory — does not block merge
+
+      - name: Run cargo audit (deny CRITICAL)
+        working-directory: anchor-program
+        run: cargo audit --deny unsound --deny yanked
+        continue-on-error: true

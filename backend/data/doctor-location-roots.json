@@ -194,5 +194,19 @@
     "updatedAt": "2026-07-25T10:01:54.579Z",
     "txId": "e68cbb36-c5f1-4997-9dba-0af4a67fb036",
     "docType": "doctor-location-roots"
+  },
+  "did:hosp:0xadmin": {
+    "key": "did:hosp:0xadmin",
+    "value": {
+      "doctorDid": "did:hosp:0xadmin",
+      "merkleRoot": "f89f82db4b3ebb931eb59fe75b0a4da04cd78d78a0103fbda575e53cc2243c49",
+      "lastUpdated": "2026-07-25T19:36:57.740Z",
+      "signature": "solana_loc_f89f82db4b3e_ms0rszr1"
+    },
+    "namespace": "doctor-location-roots",
+    "version": "e1bf91fe-1371-421b-bf2d-a8eb8805810b:1",
+    "updatedAt": "2026-07-25T19:36:57.883Z",
+    "txId": "e1bf91fe-1371-421b-bf2d-a8eb8805810b",
+    "docType": "doctor-location-roots"
   }
 }

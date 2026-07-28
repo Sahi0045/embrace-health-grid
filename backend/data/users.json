@@ -1240,5 +1240,14 @@
     "updatedAt": "2026-07-25T18:34:31.339Z",
     "txId": "5556fed4-cdcb-47e9-9466-ae293e098e9b",
     "docType": "users"
+  },
+  "doctor_didhosp0xadmin@hospital.com": {
+    "key": "doctor_didhosp0xadmin@hospital.com",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"LEKkZ99YN2p6pjHV\",\"tag\":\"b0xDzClaIw5XmmetF0qYug\",\"ct\":\"N3IyvwD95hx97Edl3YaibR3Jd5gscSgADRgN8Wknj3emf714S1WMKtu9txNIPOjTNBIMgoCOJ2QBYQWbyFQN9pFHD7d35Q8FH1TH6HFGA-iK4h1J4zb7_1wFCW26kUu2fJQhKrR_eY22ipK_rSU1TrVvY8HNus1DeQwOZeNixH4ER_MKbBXXAhVFxvnR1FxRwFaaieBR1WJemAwHuBvK8G5ULcaBY0c02huxoznUtuTCWWc51M7UFB2mRe-OJR26JTlOn0QviKPj8q2SfsklFE4WOZ2gYLCtS3BKPK7ZzOMRxaedEEfJCkw37M-YGfMwQvE-1ufIdBgSZxH0QXkFgAuyUIp4\"}",
+    "namespace": "users",
+    "version": "07e59a1b-62da-4c58-a377-5320c9151288:1",
+    "updatedAt": "2026-07-25T19:36:57.741Z",
+    "txId": "07e59a1b-62da-4c58-a377-5320c9151288",
+    "docType": "users"
   }
 }

@@ -1,0 +1,20 @@
+{
+  "did:hosp:0xadmin": {
+    "key": "did:hosp:0xadmin",
+    "value": {
+      "did": "did:hosp:0xadmin",
+      "name": "Dr. Staff Clinician",
+      "email": "doctor_didhosp0xadmin@hospital.com",
+      "role": "doctor",
+      "specialty": "Outpatient Clinic",
+      "activeRoom": "Room 303 - Operating Theater",
+      "roomStatus": "enter",
+      "lastLocationChange": "2026-07-25T19:36:57.740Z"
+    },
+    "namespace": "doctors",
+    "version": "3c8fbe94-ad05-486e-9b8a-05cb4cc78919:1",
+    "updatedAt": "2026-07-25T19:36:57.741Z",
+    "txId": "3c8fbe94-ad05-486e-9b8a-05cb4cc78919",
+    "docType": "doctors"
+  }
+}

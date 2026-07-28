@@ -19,17 +19,17 @@
     "key": "LOC-INIT",
     "value": {
       "logId": "LOC-INIT",
-      "doctorDid": "did:hosp:0xdoctor",
+      "doctorDid": "did:hosp:0xadmin",
       "doctorName": "Dr. Staff",
       "roomNumber": "Room 101 - Outpatient Clinic",
       "action": "enter",
-      "timestamp": "2026-07-25T08:14:55.225Z",
-      "hash": "sha256:79f686bea1b2c3d4e5f67890a1b2c3d4"
+      "timestamp": "2026-07-25T18:36:52.538Z",
+      "hash": "sha256:05a0e8daa1b2c3d4e5f67890a1b2c3d4"
     },
     "namespace": "doctor-locations",
-    "version": "64643b9a-a80d-433b-bc73-5fb343c8708e:1",
-    "updatedAt": "2026-07-25T09:14:55.225Z",
-    "txId": "64643b9a-a80d-433b-bc73-5fb343c8708e",
+    "version": "8482bca4-53c6-4a75-ae4a-39cdee669ae5:1",
+    "updatedAt": "2026-07-25T19:36:52.538Z",
+    "txId": "8482bca4-53c6-4a75-ae4a-39cdee669ae5",
     "docType": "doctor-locations"
   },
   "LOC-MRAXXQ8L": {
@@ -352,6 +352,57 @@
     "version": "41bfa8bb-37a3-40ee-a1b9-c617acaf8e59:1",
     "updatedAt": "2026-07-25T18:30:31.268Z",
     "txId": "41bfa8bb-37a3-40ee-a1b9-c617acaf8e59",
+    "docType": "doctor-locations"
+  },
+  "LOC-MS0RSZNW": {
+    "key": "LOC-MS0RSZNW",
+    "value": {
+      "logId": "LOC-MS0RSZNW",
+      "doctorDid": "did:hosp:0xadmin",
+      "doctorName": "Dr. Staff Clinician",
+      "roomNumber": "Room 303 - Operating Theater",
+      "action": "enter",
+      "timestamp": "2026-07-25T19:36:57.740Z",
+      "hash": "sha256:31e41f75a1b2c3d4e5f67890a1b2c3d4"
+    },
+    "namespace": "doctor-locations",
+    "version": "78519086-2774-4254-bdcd-e01dc8d83660:1",
+    "updatedAt": "2026-07-25T19:36:57.740Z",
+    "txId": "78519086-2774-4254-bdcd-e01dc8d83660",
+    "docType": "doctor-locations"
+  },
+  "RCI-MS2VVWLQ-101": {
+    "key": "RCI-MS2VVWLQ-101",
+    "value": {
+      "logId": "RCI-MS2VVWLQ-101",
+      "doctorDid": "did:hosp:0x8f2c3a11",
+      "doctorName": "Dr. Sameer Khan",
+      "roomNumber": "Room 101 - Outpatient Clinic",
+      "action": "enter",
+      "timestamp": "2026-07-27T07:06:44.558Z",
+      "hash": "sha256:29eabfc3a1b2c3d4e5f67890a1b2c3d4"
+    },
+    "namespace": "doctor-locations",
+    "version": "1e3353af-9355-42a1-b34a-360fe2a43c3a:1",
+    "updatedAt": "2026-07-27T07:06:44.559Z",
+    "txId": "1e3353af-9355-42a1-b34a-360fe2a43c3a",
+    "docType": "doctor-locations"
+  },
+  "RCI-MS2VW1D8-203": {
+    "key": "RCI-MS2VW1D8-203",
+    "value": {
+      "logId": "RCI-MS2VW1D8-203",
+      "doctorDid": "did:hosp:0x8f2c3a11",
+      "doctorName": "Dr. Sameer Khan",
+      "roomNumber": "Room 203 - Orthopedics Ward",
+      "action": "enter",
+      "timestamp": "2026-07-27T07:06:50.732Z",
+      "hash": "sha256:569b7705a1b2c3d4e5f67890a1b2c3d4"
+    },
+    "namespace": "doctor-locations",
+    "version": "d0323b17-782a-4ad5-a5b1-97d5b334accc:1",
+    "updatedAt": "2026-07-27T07:06:50.735Z",
+    "txId": "d0323b17-782a-4ad5-a5b1-97d5b334accc",
     "docType": "doctor-locations"
   }
 }
