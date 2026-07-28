@@ -3,473 +3,282 @@ import { RouteGuard } from "@/components/RouteGuard";
 import { PageHeader } from "@/components/PageHeader";
 import { StaggerList, StaggerItem } from "@/components/Motion";
 import {
-  Pill,
-  Search,
-  Plus,
-  FileSignature,
-  User,
-  Calendar,
-  Clock,
-  ChevronDown,
-  RefreshCw,
-  Wifi,
-  WifiOff,
+  Pill, Search, FileSignature, RefreshCw, Wifi, WifiOff,
+  CalendarDays, Hash, ChevronDown, ChevronUp, Shield, User,
 } from "lucide-react";
-import { motion } from "framer-motion";
-import { useState } from "react";
-import { usePrescriptions } from "@/hooks/use-api";
+import { useState, useEffect, useCallback } from "react";
+import { getAllPrescriptions } from "@/lib/api";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/staff/prescriptions")({
   head: () => ({ meta: [{ title: "Prescriptions — Staff Portal" }] }),
   component: PrescriptionsPage,
 });
 
-type Frequency =
-  | "Once daily"
-  | "Twice daily"
-  | "Three times daily"
-  | "Four times daily"
-  | "As needed"
-  | "Every 8 hours"
-  | "Every 12 hours";
-type Duration = "3 days" | "5 days" | "7 days" | "10 days" | "14 days" | "30 days" | "Ongoing";
-
-const medicationDb = [
-  { name: "Metoprolol", strengths: ["25mg", "50mg", "100mg"], route: "Oral" },
-  { name: "Amlodipine", strengths: ["2.5mg", "5mg", "10mg"], route: "Oral" },
-  { name: "Atorvastatin", strengths: ["10mg", "20mg", "40mg", "80mg"], route: "Oral" },
-  { name: "Pantoprazole", strengths: ["20mg", "40mg"], route: "Oral" },
-  { name: "Metformin", strengths: ["500mg", "850mg", "1000mg"], route: "Oral" },
-  { name: "Furosemide", strengths: ["20mg", "40mg", "80mg"], route: "Oral" },
-  { name: "Aspirin", strengths: ["75mg", "150mg", "325mg"], route: "Oral" },
-  { name: "Clopidogrel", strengths: ["75mg"], route: "Oral" },
-  { name: "Amoxicillin", strengths: ["250mg", "500mg", "875mg"], route: "Oral" },
-  { name: "Azithromycin", strengths: ["250mg", "500mg"], route: "Oral" },
-];
-
-// Prescription list is sourced entirely from Solana / backend API
-// No local fallback — empty state shown when no data exists
-
-interface RxLine {
-  medication: string;
-  strength: string;
-  frequency: Frequency;
-  duration: Duration;
-  instructions: string;
-}
-
 function PrescriptionsPage() {
-  const [view, setView] = useState<"list" | "builder">("list");
-  const [medSearch, setMedSearch] = useState("");
-  const [lines, setLines] = useState<RxLine[]>([]);
-  const [patient, setPatient] = useState("");
-  const [selectedMed, setSelectedMed] = useState<(typeof medicationDb)[0] | null>(null);
-  const [strength, setStrength] = useState("");
-  const [frequency, setFrequency] = useState<Frequency>("Once daily");
-  const [duration, setDuration] = useState<Duration>("7 days");
-  const [instructions, setInstructions] = useState("");
+  const [prescriptions, setPrescriptions] = useState<any[]>([]);
+  const [loading,       setLoading]       = useState(true);
+  const [online,        setOnline]        = useState(false);
+  const [searchQ,       setSearchQ]       = useState("");
+  const [doctorFilter,  setDoctorFilter]  = useState("All");
+  const [statusFilter,  setStatusFilter]  = useState("All");
+  const [expandedId,    setExpandedId]    = useState<string | null>(null);
 
-  // ─── Live prescription data from Solana ──────────────────────────────────────
-  const { data: rxData, loading: rxLoading, online, refetch } = usePrescriptions();
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await getAllPrescriptions();
+      setPrescriptions(res.prescriptions ?? []);
+      setOnline(true);
+    } catch (err: any) {
+      setOnline(false);
+      toast.error("Could not load prescriptions", { description: err.message });
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  const rxList = ((rxData?.prescriptions ?? []) as any[]).map((rx: any) => ({
-    id: rx.id ?? rx.rxId ?? rx.txId ?? String(Math.random()),
-    patient: rx.patientName ?? rx.patientDid ?? "Unknown Patient",
-    mrn: rx.mrn ?? rx.patientDid ?? "—",
-    meds: Array.isArray(rx.drugs)
-      ? (rx.drugs as any[]).map((d: any) => [d.name, d.dose, d.frequency].filter(Boolean).join(" "))
-      : [],
-    signed: rx.signed !== false,
-    date: rx.timestamp ? new Date(rx.timestamp).toLocaleDateString("en-IN") : (rx.signedAt ?? "—"),
-    rxNo: rx.rxId ?? rx.id ?? "—",
-  }));
+  useEffect(() => { load(); }, [load]);
 
-  const filteredMeds = medicationDb.filter((m) =>
-    m.name.toLowerCase().includes(medSearch.toLowerCase()),
-  );
+  // Real-time WebSocket: refresh when any prescription is signed
+  useEffect(() => {
+    const wsUrl = (
+      (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE_URL) ||
+      "http://localhost:3001"
+    ).replace(/^http/, "ws");
+    let ws: WebSocket | null = null;
+    let retry: ReturnType<typeof setTimeout>;
+    const connect = () => {
+      try {
+        ws = new WebSocket(wsUrl);
+        ws.onmessage = (e) => {
+          try { if (JSON.parse(e.data).event === "prescription:signed") load(); } catch { /* ignore */ }
+        };
+        ws.onclose = () => { retry = setTimeout(connect, 5000); };
+      } catch { /* no WS */ }
+    };
+    connect();
+    return () => { ws?.close(); clearTimeout(retry); };
+  }, [load]);
 
-  const addLine = () => {
-    if (!selectedMed || !strength) return;
-    setLines([
-      ...lines,
-      { medication: selectedMed.name, strength, frequency, duration, instructions },
-    ]);
-    setSelectedMed(null);
-    setStrength("");
-    setMedSearch("");
-    setInstructions("");
-  };
+  // Unique doctor names for filter dropdown
+  const doctors = ["All", ...Array.from(new Set(prescriptions.map((rx) => rx.doctorName || rx.signedBy).filter(Boolean)))];
+
+  const filtered = prescriptions.filter((rx) => {
+    const q = searchQ.toLowerCase();
+    const matchQ = !q
+      || rx.patientName?.toLowerCase().includes(q)
+      || rx.patientDid?.toLowerCase().includes(q)
+      || rx.doctorName?.toLowerCase().includes(q)
+      || rx.diagnosis?.toLowerCase().includes(q)
+      || rx.rxId?.toLowerCase().includes(q);
+    const matchD = doctorFilter === "All" || rx.doctorName === doctorFilter || rx.signedBy === doctorFilter;
+    const matchS = statusFilter === "All" || rx.status === statusFilter;
+    return matchQ && matchD && matchS;
+  });
 
   return (
     <RouteGuard requiredRole="staff">
       <PageHeader
         eyebrow="Staff Portal"
-        title="Prescriptions"
-        description="Build, sign, and issue digital prescriptions"
+        title="All Prescriptions"
+        description="Read-only view of all prescriptions issued by doctors across the hospital. Updates in real time."
         actions={
-          <div className="flex items-center gap-2">
-            {/* Live/offline indicator */}
-            <span
-              className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold ${
-                online ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"
-              }`}
-            >
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold ${online ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"}`}>
               {online ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
-              {online ? "Solana Live" : "Local Sim"}
+              {online ? "Live" : "Offline"}
             </span>
-            <button
-              onClick={refetch}
-              className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-muted"
-            >
-              <RefreshCw className={`h-3 w-3 ${rxLoading ? "animate-spin" : ""}`} />
-              Refresh
+            <button onClick={load} className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-muted">
+              <RefreshCw className={`h-3 w-3 ${loading ? "animate-spin" : ""}`} /> Refresh
             </button>
-            {/* Sign New Prescription – links to the full DID sign page */}
-            <Link
-              to="/staff/sign"
-              className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-            >
-              <FileSignature className="h-4 w-4" />
-              Sign New Prescription
+            <Link to="/staff/sign"
+              className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+              <FileSignature className="h-4 w-4" /> Sign Prescription
             </Link>
-            <button
-              onClick={() => setView(view === "list" ? "builder" : "list")}
-              className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-muted transition-colors"
-            >
-              <Plus className="h-4 w-4" />
-              {view === "list" ? "Quick Builder" : "View All"}
-            </button>
           </div>
         }
       />
 
-      <div className="p-6 space-y-6">
-        {view === "list" ? (
-          <>
-            {/* Loading skeleton */}
-            {rxLoading && (
-              <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
-                <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-                Loading prescriptions from Solana Devnet…
-              </div>
-            )}
+      <div className="p-6 space-y-5">
+        {/* Read-only banner */}
+        <div className="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-4 py-2.5 text-xs text-primary">
+          <Shield className="h-4 w-4 shrink-0" />
+          <span className="font-medium">Read-only view — Staff can view but cannot modify prescriptions issued by doctors.</span>
+        </div>
 
-            {/* Prescription list */}
-            {!rxLoading && (
-              <StaggerList className="space-y-4">
-                {rxList.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card p-16 text-center">
-                    <Pill className="h-12 w-12 text-muted-foreground/30 mb-3" />
-                    <div className="text-sm font-semibold text-foreground">
-                      No prescriptions found
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      Signed prescriptions will appear here
-                    </div>
-                    <Link
-                      to="/staff/sign"
-                      className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-                    >
-                      <FileSignature className="h-4 w-4" />
-                      Sign First Prescription
-                    </Link>
-                  </div>
-                ) : (
-                  rxList.map((rx) => (
-                    <StaggerItem key={rx.id}>
-                      <div className="rounded-xl border border-border bg-card p-5 shadow-clinical">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-chart-2/10">
-                              <Pill className="h-5 w-5 text-chart-2" />
-                            </div>
-                            <div>
-                              <div className="text-sm font-semibold text-foreground">
-                                {rx.patient}
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                {rx.mrn} · {rx.date}
-                              </div>
-                            </div>
+        {/* Stats */}
+        <div className="grid grid-cols-3 gap-3 text-center">
+          {[
+            { label: "Total Prescriptions", value: prescriptions.length, cls: "text-primary" },
+            { label: "Active", value: prescriptions.filter((r) => r.status === "active").length, cls: "text-success" },
+            { label: "Doctors", value: doctors.length - 1, cls: "text-foreground" },
+          ].map((s) => (
+            <div key={s.label} className="rounded-xl border border-border bg-card p-3 shadow-clinical">
+              <div className={`text-2xl font-black ${s.cls}`}>{s.value}</div>
+              <div className="text-xs text-muted-foreground mt-0.5">{s.label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Filters */}
+        <div className="flex flex-wrap gap-2">
+          <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 flex-1 min-w-[200px]">
+            <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+            <input value={searchQ} onChange={(e) => setSearchQ(e.target.value)}
+              placeholder="Search patient, doctor, diagnosis, Rx ID…"
+              className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground" />
+          </div>
+          <select value={doctorFilter} onChange={(e) => setDoctorFilter(e.target.value)}
+            className="rounded-xl border border-border bg-card px-3 py-2 text-xs font-semibold outline-none">
+            {doctors.map((d) => <option key={d} value={d}>Doctor: {d}</option>)}
+          </select>
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
+            className="rounded-xl border border-border bg-card px-3 py-2 text-xs font-semibold outline-none">
+            {["All", "active", "dispensed", "expired"].map((s) => (
+              <option key={s} value={s}>Status: {s === "All" ? "All" : s.charAt(0).toUpperCase() + s.slice(1)}</option>
+            ))}
+          </select>
+        </div>
+
+        {loading ? (
+          <div className="flex justify-center py-12 text-sm text-muted-foreground gap-2">
+            <RefreshCw className="h-4 w-4 animate-spin" /> Loading…
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card p-16 text-center space-y-3">
+            <Pill className="h-10 w-10 text-muted-foreground/30" />
+            <div className="text-sm font-semibold text-foreground">No prescriptions found</div>
+            <div className="text-xs text-muted-foreground">
+              {searchQ || doctorFilter !== "All" || statusFilter !== "All"
+                ? "No results match your filters." 
+                : "Prescriptions issued by doctors appear here instantly."}
+            </div>
+          </div>
+        ) : (
+          <StaggerList className="space-y-3">
+            {filtered.map((rx) => {
+              const isExp = expandedId === rx.rxId;
+              const statusCls = rx.status === "active" ? "bg-primary/10 text-primary" : rx.status === "dispensed" ? "bg-success/15 text-success" : "bg-muted text-muted-foreground";
+              return (
+                <StaggerItem key={rx.rxId}>
+                  <div className="rounded-xl border border-border bg-card shadow-clinical overflow-hidden">
+                    {/* Summary row */}
+                    <button className="w-full text-left p-4" onClick={() => setExpandedId(isExp ? null : rx.rxId)}>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-chart-2/10">
+                            <Pill className="h-5 w-5 text-chart-2" />
                           </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <span
-                              className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${
-                                rx.signed
-                                  ? "bg-success/10 text-success"
-                                  : "bg-warning/10 text-warning-foreground"
-                              }`}
-                            >
-                              {rx.signed ? "Signed" : "Unsigned"}
-                            </span>
+                          <div>
+                            <div className="text-sm font-semibold text-foreground flex items-center gap-2 flex-wrap">
+                              {rx.patientName || rx.patientDid}
+                              <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${statusCls}`}>{rx.status || "active"}</span>
+                            </div>
+                            <div className="text-xs text-muted-foreground truncate max-w-[340px]">
+                              {rx.diagnosis}{rx.chiefComplaint ? ` · ${rx.chiefComplaint}` : ""}
+                            </div>
+                            <div className="flex items-center gap-3 mt-0.5 text-[10px] text-muted-foreground flex-wrap">
+                              <span className="flex items-center gap-1">
+                                <User className="h-3 w-3" />
+                                {rx.doctorName || rx.signedBy || "Doctor"}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <CalendarDays className="h-3 w-3" />
+                                {rx.signedAt ? new Date(rx.signedAt).toLocaleString("en-IN") : "—"}
+                              </span>
+                              <span className="font-mono">{rx.rxId}</span>
+                            </div>
                           </div>
                         </div>
-                        <div className="mt-3 space-y-1">
-                          {rx.meds.map((m) => (
-                            <div key={m} className="flex items-center gap-2 text-xs">
-                              <Pill className="h-3 w-3 text-muted-foreground shrink-0" />
-                              <span className="text-foreground">{m}</span>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-xs text-muted-foreground">
+                            {(rx.drugs ?? []).length} drug{(rx.drugs ?? []).length !== 1 ? "s" : ""}
+                          </span>
+                          {isExp ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                        </div>
+                      </div>
+                    </button>
+
+                    {/* Expanded detail */}
+                    {isExp && (
+                      <div className="border-t border-border px-4 pb-4 pt-3 space-y-3">
+                        {/* Read-only notice */}
+                        <div className="flex items-center gap-2 rounded-lg border border-warning/30 bg-warning/5 px-3 py-2 text-xs text-muted-foreground">
+                          <Shield className="h-3.5 w-3.5 shrink-0 text-warning-foreground" />
+                          Read-only — Staff cannot modify prescriptions issued by doctors.
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          {[
+                            ["Doctor",      rx.doctorName || rx.signedBy || "—"],
+                            ["Doctor DID",  rx.doctorDid  || "—"],
+                            ["Patient DID", rx.patientDid ?? "—"],
+                            ["Appointment", rx.apptId    ?? "—"],
+                            ["Follow-up",   rx.followUpDate ? new Date(rx.followUpDate).toLocaleDateString("en-IN") : "—"],
+                            ["Status",      rx.status    ?? "active"],
+                          ].map(([k, v]) => (
+                            <div key={k} className="rounded-lg bg-muted/50 px-3 py-2">
+                              <div className="text-[9px] font-bold uppercase text-muted-foreground mb-0.5">{k}</div>
+                              <div className="font-medium text-foreground truncate">{v}</div>
                             </div>
                           ))}
-                          {rx.meds.length === 0 && (
-                            <div className="text-xs text-muted-foreground italic">
-                              No medications recorded
-                            </div>
-                          )}
                         </div>
-                        <div className="mt-2 font-mono text-[10px] text-muted-foreground/50">
-                          {rx.rxNo}
-                        </div>
-                      </div>
-                    </StaggerItem>
-                  ))
-                )}
-              </StaggerList>
-            )}
-          </>
-        ) : (
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="grid gap-6 lg:grid-cols-2"
-          >
-            {/* Builder */}
-            <div className="rounded-xl border border-border bg-card p-5 shadow-clinical space-y-4">
-              <div className="text-sm font-semibold text-foreground">
-                Quick Prescription Builder
-              </div>
 
-              {/* Patient */}
-              <div>
-                <label className="text-xs text-muted-foreground uppercase tracking-wide">
-                  Patient Name / MRN
-                </label>
-                <input
-                  className="mt-1 w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/20"
-                  placeholder="Search patient..."
-                  value={patient}
-                  onChange={(e) => setPatient(e.target.value)}
-                />
-              </div>
-
-              {/* Medication search */}
-              <div>
-                <label className="text-xs text-muted-foreground uppercase tracking-wide">
-                  Medication
-                </label>
-                <div className="mt-1 relative">
-                  <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-                  <input
-                    className="w-full rounded-lg border border-border bg-muted pl-8 pr-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/20"
-                    placeholder="Search medication..."
-                    value={medSearch}
-                    onChange={(e) => setMedSearch(e.target.value)}
-                  />
-                </div>
-                {medSearch && !selectedMed && (
-                  <div className="mt-1 rounded-lg border border-border bg-card shadow-clinical-md">
-                    {filteredMeds.slice(0, 5).map((m) => (
-                      <button
-                        key={m.name}
-                        onClick={() => {
-                          setSelectedMed(m);
-                          setMedSearch(m.name);
-                          setStrength(m.strengths[0]);
-                        }}
-                        className="flex w-full items-center justify-between px-3 py-2 text-sm hover:bg-muted transition-colors"
-                      >
-                        <span className="font-medium text-foreground">{m.name}</span>
-                        <span className="text-xs text-muted-foreground">{m.route}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Strength */}
-              {selectedMed && (
-                <div>
-                  <label className="text-xs text-muted-foreground uppercase tracking-wide">
-                    Strength
-                  </label>
-                  <div className="mt-1 flex flex-wrap gap-2">
-                    {selectedMed.strengths.map((s) => (
-                      <button
-                        key={s}
-                        onClick={() => setStrength(s)}
-                        className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors ${
-                          strength === s
-                            ? "bg-primary text-primary-foreground border-primary"
-                            : "border-border text-muted-foreground hover:border-primary"
-                        }`}
-                      >
-                        {s}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Frequency */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-muted-foreground uppercase tracking-wide">
-                    Frequency
-                  </label>
-                  <select
-                    className="mt-1 w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground outline-none"
-                    value={frequency}
-                    onChange={(e) => setFrequency(e.target.value as Frequency)}
-                  >
-                    {[
-                      "Once daily",
-                      "Twice daily",
-                      "Three times daily",
-                      "Four times daily",
-                      "As needed",
-                      "Every 8 hours",
-                      "Every 12 hours",
-                    ].map((f) => (
-                      <option key={f}>{f}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground uppercase tracking-wide">
-                    Duration
-                  </label>
-                  <select
-                    className="mt-1 w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground outline-none"
-                    value={duration}
-                    onChange={(e) => setDuration(e.target.value as Duration)}
-                  >
-                    {["3 days", "5 days", "7 days", "10 days", "14 days", "30 days", "Ongoing"].map(
-                      (d) => (
-                        <option key={d}>{d}</option>
-                      ),
-                    )}
-                  </select>
-                </div>
-              </div>
-
-              {/* Instructions */}
-              <div>
-                <label className="text-xs text-muted-foreground uppercase tracking-wide">
-                  Special Instructions
-                </label>
-                <input
-                  className="mt-1 w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground outline-none"
-                  placeholder="Take after meals, avoid alcohol..."
-                  value={instructions}
-                  onChange={(e) => setInstructions(e.target.value)}
-                />
-              </div>
-
-              <button
-                onClick={addLine}
-                disabled={!selectedMed || !strength}
-                className="w-full rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
-              >
-                <Plus className="inline h-4 w-4 mr-1.5" />
-                Add Medication
-              </button>
-
-              <div className="pt-1 border-t border-border">
-                <Link
-                  to="/staff/sign"
-                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-4 py-2 text-sm font-medium text-primary hover:bg-primary/20 transition-colors"
-                >
-                  <FileSignature className="h-4 w-4" />
-                  Open Full Sign & Prescribe
-                </Link>
-              </div>
-            </div>
-
-            {/* Preview */}
-            <div className="rounded-xl border border-border bg-card p-5 shadow-clinical">
-              <div className="text-sm font-semibold text-foreground mb-4">Prescription Preview</div>
-
-              <div className="rounded-xl border border-border p-4 space-y-4">
-                <div className="flex justify-between">
-                  <div>
-                    <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      Embrace Health Grid
-                    </div>
-                    <div className="text-xs text-muted-foreground">Embrace Health Campus</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-[10px] text-muted-foreground">
-                      Date: {new Date().toLocaleDateString("en-IN")}
-                    </div>
-                    <div className="font-mono text-[10px] text-muted-foreground">RX-PREVIEW</div>
-                  </div>
-                </div>
-
-                <div className="border-t border-border pt-3">
-                  <div className="text-[10px] text-muted-foreground uppercase tracking-wide">
-                    Patient
-                  </div>
-                  <div className="text-sm font-semibold text-foreground">{patient || "—"}</div>
-                </div>
-
-                <div className="border-t border-border pt-3 space-y-2">
-                  <div className="text-[10px] text-muted-foreground uppercase tracking-wide">
-                    Medications
-                  </div>
-                  {lines.length === 0 && (
-                    <div className="text-xs text-muted-foreground italic">
-                      No medications added yet
-                    </div>
-                  )}
-                  {lines.map((l, i) => (
-                    <div
-                      key={i}
-                      className="flex items-start justify-between rounded-lg bg-muted px-3 py-2 text-xs"
-                    >
-                      <div>
-                        <div className="font-semibold text-foreground">
-                          {l.medication} {l.strength}
-                        </div>
-                        <div className="text-muted-foreground">
-                          {l.frequency} × {l.duration}
-                        </div>
-                        {l.instructions && (
-                          <div className="text-muted-foreground italic">{l.instructions}</div>
+                        {/* Symptoms if present */}
+                        {(rx.chiefComplaint || rx.symptoms) && (
+                          <div className="grid gap-2 sm:grid-cols-2 text-xs">
+                            {rx.chiefComplaint && (
+                              <div className="rounded-lg bg-card border border-border px-3 py-2">
+                                <div className="text-[9px] font-bold uppercase text-muted-foreground mb-0.5">Chief Complaint</div>
+                                <div>{rx.chiefComplaint}</div>
+                              </div>
+                            )}
+                            {rx.symptoms && (
+                              <div className="rounded-lg bg-card border border-border px-3 py-2">
+                                <div className="text-[9px] font-bold uppercase text-muted-foreground mb-0.5">Symptoms</div>
+                                <div>{rx.symptoms}</div>
+                              </div>
+                            )}
+                          </div>
                         )}
+
+                        {(rx.drugs ?? []).length > 0 && (
+                          <div className="space-y-1.5">
+                            <div className="text-[10px] font-bold uppercase text-muted-foreground">Medicines</div>
+                            {(rx.drugs ?? []).map((d: any, i: number) => (
+                              <div key={i} className="flex items-start gap-2 rounded-lg border border-border bg-background px-3 py-2 text-xs">
+                                <Pill className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+                                <div>
+                                  <span className="font-semibold text-foreground">{d.name}</span>
+                                  {d.dosage    && <span className="text-muted-foreground"> · {d.dosage}</span>}
+                                  {d.frequency && <span className="text-muted-foreground"> · {d.frequency}</span>}
+                                  {d.duration  && <span className="text-muted-foreground"> · {d.duration}</span>}
+                                  {d.usage     && <span className="text-primary"> ({d.usage})</span>}
+                                  {d.instructions && <div className="italic text-muted-foreground mt-0.5">{d.instructions}</div>}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {rx.notes && (
+                          <div className="rounded-lg bg-muted/40 border border-border px-3 py-2 text-xs">
+                            <span className="font-semibold text-foreground">Notes: </span>
+                            <span className="text-muted-foreground">{rx.notes}</span>
+                          </div>
+                        )}
+
+                        <div className="flex items-center gap-1.5 rounded-lg bg-muted px-2 py-1.5 font-mono text-[9px] text-primary overflow-x-auto">
+                          <Hash className="h-3 w-3 shrink-0" />{rx.hash}
+                        </div>
                       </div>
-                      <button
-                        onClick={() => setLines(lines.filter((_, j) => j !== i))}
-                        className="text-muted-foreground hover:text-destructive text-lg leading-none ml-2"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-
-                {lines.length > 0 && (
-                  <div className="border-t border-border pt-3">
-                    <div className="text-[10px] text-muted-foreground">
-                      Dr. Ravi Menon, MD — Cardiologist
-                    </div>
-                    <div className="font-mono text-[10px] text-muted-foreground">
-                      did:hosp:0xd103…99aa
-                    </div>
+                    )}
                   </div>
-                )}
-              </div>
-
-              {lines.length > 0 && (
-                <Link
-                  to="/staff/sign"
-                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-                >
-                  <FileSignature className="h-4 w-4" />
-                  Sign & Issue on Solana
-                </Link>
-              )}
-            </div>
-          </motion.div>
+                </StaggerItem>
+              );
+            })}
+          </StaggerList>
         )}
       </div>
     </RouteGuard>

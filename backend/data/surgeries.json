@@ -1,0 +1,23 @@
+{
+  "s1": {
+    "key": "s1",
+    "value": {
+      "id": "s1",
+      "patient": "Anika Sharma",
+      "mrn": "MRN-204871",
+      "procedure": "Cardiac Catheterization (PCI)",
+      "room": "Cath Lab 2",
+      "date": "2026-06-04",
+      "time": "11:00",
+      "surgeon": "Dr. Ravi Menon",
+      "anesthesiologist": "Dr. Deepak Joshi",
+      "status": "scheduled",
+      "estDuration": "90 min"
+    },
+    "namespace": "surgeries",
+    "version": "1ebe9c2e-e864-4128-95a0-caa6a5f32303:1",
+    "updatedAt": "2026-07-27T16:54:58.623Z",
+    "txId": "1ebe9c2e-e864-4128-95a0-caa6a5f32303",
+    "docType": "surgeries"
+  }
+}
