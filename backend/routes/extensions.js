@@ -991,12 +991,108 @@ export function registerExtensionRoutes(app, deps) {
   });
 
   // ─── Attendance ─────────────────────────────────────────────────────────────
+  app.get("/api/attendance/admin/summary", requireRole("admin"), (req, res) => {
+    const allDids = getAllState("did-registry");
+    const allUsers = getAllState("users");
+
+    // Eligible staff members = users/DIDs registered with staff/doctor role and active DID
+    const staffDidDocs = allDids.filter(
+      (e) => e.value.status === "active" && (e.value.ownerType === "doctor" || e.value.ownerType === "staff" || e.value.employeeId)
+    );
+
+    const eligibleMap = new Map();
+
+    staffDidDocs.forEach((e) => {
+      const doc = e.value;
+      const email = doc.ownerEmail || doc.owner;
+      if (email) {
+        eligibleMap.set(email.toLowerCase(), {
+          did: doc.did,
+          owner: doc.owner,
+          ownerEmail: email,
+          ownerType: doc.ownerType,
+          employeeId: doc.employeeId || `EMP-${Math.floor(1000 + Math.random() * 9000)}`,
+          department: doc.department || "Clinical Services",
+        });
+      }
+    });
+
+    // Add users from 'users' DB who have a DID and role doctor/staff
+    allUsers.forEach((e) => {
+      const u = e.value;
+      if ((u.role === "doctor" || u.role === "staff") && u.did) {
+        const key = u.email.toLowerCase();
+        if (!eligibleMap.has(key)) {
+          eligibleMap.set(key, {
+            did: u.did,
+            owner: u.name || u.email.split("@")[0],
+            ownerEmail: u.email,
+            ownerType: u.role,
+            employeeId: u.employeeId || `EMP-${Math.floor(1000 + Math.random() * 9000)}`,
+            department: u.department || "General Medicine",
+          });
+        }
+      }
+    });
+
+    const todayStr = new Date().toISOString().split("T")[0];
+    const allAttendance = getAllState("attendance").map((e) => e.value);
+
+    const roster = Array.from(eligibleMap.values()).map((staff) => {
+      const staffRecords = allAttendance.filter(
+        (r) =>
+          (r.staffEmail && r.staffEmail.toLowerCase() === staff.ownerEmail.toLowerCase()) ||
+          (r.staffDid && r.staffDid === staff.did)
+      );
+
+      const todayRecords = staffRecords.filter((r) => r.timestamp && r.timestamp.startsWith(todayStr));
+      const inRec = todayRecords.filter((r) => r.action === "in").sort((a, b) => a.timestamp.localeCompare(b.timestamp))[0];
+      const outRec = todayRecords.filter((r) => r.action === "out").sort((a, b) => b.timestamp.localeCompare(a.timestamp))[0];
+
+      let status = "absent";
+      if (inRec && !outRec) status = "checked-in";
+      else if (inRec && outRec) status = "checked-out";
+
+      return {
+        staffId: staff.employeeId,
+        did: staff.did,
+        staffEmail: staff.ownerEmail,
+        staffName: staff.owner,
+        role: staff.ownerType,
+        department: staff.department,
+        status,
+        checkInTime: inRec ? inRec.timestamp : null,
+        checkOutTime: outRec ? outRec.timestamp : null,
+        date: todayStr,
+        history: staffRecords,
+      };
+    });
+
+    const presentToday = roster.filter((r) => r.status !== "absent").length;
+    const checkedInCount = roster.filter((r) => r.status === "checked-in").length;
+    const checkedOutCount = roster.filter((r) => r.status === "checked-out").length;
+    const absentToday = roster.filter((r) => r.status === "absent").length;
+
+    res.json({
+      summary: {
+        totalEligibleStaff: roster.length,
+        presentToday,
+        checkedInCount,
+        checkedOutCount,
+        absentToday,
+        date: todayStr,
+      },
+      roster,
+      allRecords: allAttendance,
+    });
+  });
+
   app.get("/api/attendance/:staffEmail", requireRole("staff", "admin"), (req, res) => {
     const email = req.params.staffEmail;
     if (req.user.role === "staff" && req.user.email !== email) {
       return res.status(403).json({ error: "Forbidden: own attendance only" });
     }
-    const all = queryState("attendance", (v) => v.staffEmail === email);
+    const all = queryState("attendance", (v) => v.staffEmail === email || v.staffDid === req.user.did);
     res.json({ records: all.map((e) => e.value), total: all.length });
   });
 
@@ -1005,21 +1101,54 @@ export function registerExtensionRoutes(app, deps) {
     if (!action || !["in", "out"].includes(action)) {
       return res.status(400).json({ error: "action must be 'in' or 'out'" });
     }
+
+    // 🔴 DID Verification: Verify user has an official active DID issued by Admin
+    const userEmail = req.user.email;
+    const allDids = getAllState("did-registry");
+    const userEntry = getState("users", userEmail);
+
+    let activeDid = req.user.did;
+    if (!activeDid) {
+      const matchDoc = allDids.find(
+        (e) => e.value.status === "active" && e.value.ownerEmail && e.value.ownerEmail.toLowerCase() === userEmail.toLowerCase()
+      );
+      if (matchDoc) activeDid = matchDoc.value.did;
+      else if (userEntry && userEntry.value.did) activeDid = userEntry.value.did;
+    }
+
+    if (!activeDid) {
+      return res.status(403).json({
+        error: "Attendance denied: Official W3C DID has not been issued to your account by Admin.",
+        code: "DID_REQUIRED",
+      });
+    }
+
+    const staffId = userEntry?.value.employeeId || req.user.employeeId || `EMP-${Math.floor(1000 + Math.random() * 9000)}`;
+    const staffName = userEntry?.value.name || req.user.name || "Staff Member";
+    const department = userEntry?.value.department || req.user.department || "Clinical Services";
+
     const id = `att-${randomUUID().slice(0, 8)}`;
     const record = {
       id,
-      staffEmail: req.user.email,
-      staffDid: req.user.did,
+      staffEmail: userEmail,
+      staffDid: activeDid,
+      staffId,
+      staffName,
+      department,
       action,
       nfcCardId: nfcCardId || null,
-      location: location || "Main Hospital",
+      location: location || "Main Hospital OPD",
       timestamp: new Date().toISOString(),
+      date: new Date().toISOString().split("T")[0],
+      status: action === "in" ? "checked-in" : "checked-out",
     };
+
     putState("attendance", id, record, randomUUID());
-    logAudit(req, { resource: id, action: `ATTENDANCE_CLOCK_${action.toUpperCase()}` });
-    solana.scheduleAnchor({ computeRecordHash }, record, "attendance", req.user.did);
+    logAudit(req, { resource: id, action: `ATTENDANCE_CLOCK_${action.toUpperCase()}`, details: `Staff ID: ${staffId}, DID: ${activeDid}` });
+    solana.scheduleAnchor({ computeRecordHash }, record, "attendance", activeDid);
     broadcast({ event: "attendance:clocked", data: record });
-    res.json({ record });
+
+    res.json({ success: true, record });
   });
 
   app.get("/api/staff-requests/:staffEmail", requireRole("staff", "admin"), (req, res) => {

@@ -21,7 +21,12 @@ import {
   UserPlus,
   RefreshCw,
   Database,
+  UserCheck,
+  LogIn,
+  LogOut,
+  CalendarCheck,
   Lock,
+  ShieldAlert,
 } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import {
@@ -34,7 +39,7 @@ import {
   API_BASE_URL,
 } from "@/lib/api";
 import { toast } from "sonner";
-import { useDIDs, useLivePatients, useLiveStaff } from "@/hooks/use-api";
+import { useDIDs, useLivePatients, useLiveStaff, useAdminAttendance } from "@/hooks/use-api";
 
 export const Route = createFileRoute("/admin/")({
   head: () => ({
@@ -51,6 +56,7 @@ function AdminDashboardPage() {
   const { data: didsData, refetch: refetchDIDs } = useDIDs();
   const { patients } = useLivePatients();
   const { staff } = useLiveStaff();
+  const { data: adminAttendance, refetch: refetchAdminAttendance } = useAdminAttendance();
 
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const [didRequests, setDidRequests] = useState<any[]>([]);
@@ -407,6 +413,127 @@ function AdminDashboardPage() {
                     </div>
                   );
                 })}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Staff Attendance Governance & Real-Time Roster */}
+          <Card className="border-2 border-emerald-500/40 bg-gradient-to-br from-card via-card to-emerald-500/5 shadow-clinical">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CalendarCheck className="h-5 w-5 text-emerald-500" />
+                  <CardTitle className="text-lg font-bold">
+                    Staff Attendance Real-Time Roster (DID Verified)
+                  </CardTitle>
+                </div>
+                <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 text-[10px] font-bold uppercase flex items-center gap-1">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live WS Sync
+                </Badge>
+              </div>
+              <CardDescription>
+                Track real-time attendance for all staff members who have been issued an official W3C DID by Admin.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Daily Attendance Summary Cards */}
+              <div className="grid gap-3 sm:grid-cols-4">
+                <div className="p-3 rounded-xl bg-card border border-border flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase">Eligible Staff</span>
+                    <p className="text-xl font-extrabold text-foreground">{adminAttendance?.summary?.totalEligibleStaff || 0}</p>
+                  </div>
+                  <UserCheck className="h-5 w-5 text-primary opacity-80" />
+                </div>
+                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-semibold text-emerald-600 uppercase">Checked In</span>
+                    <p className="text-xl font-extrabold text-emerald-600">{adminAttendance?.summary?.checkedInCount || 0}</p>
+                  </div>
+                  <LogIn className="h-5 w-5 text-emerald-600 opacity-80" />
+                </div>
+                <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-semibold text-blue-600 uppercase">Checked Out</span>
+                    <p className="text-xl font-extrabold text-blue-600">{adminAttendance?.summary?.checkedOutCount || 0}</p>
+                  </div>
+                  <LogOut className="h-5 w-5 text-blue-600 opacity-80" />
+                </div>
+                <div className="p-3 rounded-xl bg-muted/60 border border-border flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase">Absent / Unmarked</span>
+                    <p className="text-xl font-extrabold text-muted-foreground">{adminAttendance?.summary?.absentToday || 0}</p>
+                  </div>
+                  <Clock className="h-5 w-5 text-muted-foreground opacity-80" />
+                </div>
+              </div>
+
+              {/* Roster Table / List */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Today&apos;s Staff Attendance Status ({adminAttendance?.summary?.date || new Date().toISOString().split("T")[0]})
+                </h4>
+                {(!adminAttendance?.roster || adminAttendance.roster.length === 0) ? (
+                  <div className="p-6 text-center text-xs text-muted-foreground bg-muted/20 rounded-xl border border-dashed">
+                    No staff members with active DIDs registered yet. Issue DIDs above to enable staff attendance tracking.
+                  </div>
+                ) : (
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {adminAttendance.roster.map((record: any) => {
+                      const inTimeStr = record.checkInTime
+                        ? new Date(record.checkInTime).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })
+                        : "–";
+                      const outTimeStr = record.checkOutTime
+                        ? new Date(record.checkOutTime).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })
+                        : "–";
+
+                      return (
+                        <div
+                          key={record.did || record.staffEmail}
+                          className="p-4 rounded-xl bg-card border border-border flex flex-col justify-between space-y-3 shadow-sm"
+                        >
+                          <div className="space-y-1.5">
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold text-foreground text-sm">{record.staffName}</span>
+                              <Badge
+                                variant="outline"
+                                className={`text-[10px] uppercase font-bold ${
+                                  record.status === "checked-in"
+                                    ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/30"
+                                    : record.status === "checked-out"
+                                    ? "bg-blue-500/10 text-blue-600 border-blue-500/30"
+                                    : "bg-muted text-muted-foreground border-border"
+                                }`}
+                              >
+                                {record.status === "checked-in" ? "🟢 Checked In" : record.status === "checked-out" ? "🔵 Checked Out" : "⚪ Absent"}
+                              </Badge>
+                            </div>
+                            <p className="text-xs text-muted-foreground font-mono">{record.staffEmail}</p>
+                            <div className="flex items-center justify-between text-xs pt-1">
+                              <span className="text-muted-foreground">Staff ID: <strong className="text-foreground font-mono">{record.staffId}</strong></span>
+                              <span className="text-muted-foreground">Dept: <strong className="text-foreground">{record.department}</strong></span>
+                            </div>
+                            <div className="mt-2 pt-2 border-t border-border space-y-1 text-xs">
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Check-In:</span>
+                                <span className="font-semibold text-foreground">{inTimeStr}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Check-Out:</span>
+                                <span className="font-semibold text-foreground">{outTimeStr}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="pt-1 border-t border-border">
+                            <span className="font-mono text-[9px] text-muted-foreground truncate block">
+                              DID: {record.did}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

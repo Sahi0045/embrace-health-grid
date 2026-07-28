@@ -342,12 +342,26 @@ export const approveVisitorRequest = (id: string, approved: boolean) =>
 export const getAttendance = (staffEmail: string) =>
   apiFetch<{ records: any[]; total: number }>(`/attendance/${encodeURIComponent(staffEmail)}`);
 
+export const getAdminAttendanceSummary = () =>
+  apiFetch<{
+    summary: {
+      totalEligibleStaff: number;
+      presentToday: number;
+      checkedInCount: number;
+      checkedOutCount: number;
+      absentToday: number;
+      date: string;
+    };
+    roster: any[];
+    allRecords: any[];
+  }>(`/attendance/admin/summary`);
+
 export const clockAttendance = (data: {
   action: "in" | "out";
   nfcCardId?: string;
   location?: string;
 }) =>
-  apiFetch<{ record: any }>(`/attendance/clock`, {
+  apiFetch<{ success: boolean; record: any }>(`/attendance/clock`, {
     method: "POST",
     body: JSON.stringify(data),
   });

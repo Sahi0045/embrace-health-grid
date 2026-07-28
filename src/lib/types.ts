@@ -135,7 +135,7 @@ export type StaffMember = {
   shift: "morning" | "evening" | "night" | "on-call";
   onDuty: boolean;
   joinedDate: string;
-  status: "active" | "on-leave" | "inactive";
+  status: "active" | "on-leave" | "inactive" | "In Surgery" | "Emergency Response" | "In Consultation";
   credentials: number;
   patientsToday: number;
 };

@@ -38,7 +38,6 @@ import { ConvexHttpClient } from "convex/browser";
 
 // TODO: Generate Convex API types by running: npx convex dev
 // This will create convex/_generated/api.ts
-// @ts-expect-error - Convex API will be generated
 import { api } from "../../convex/_generated/api";
 
 // ---------------------------------------------------------------------------
@@ -310,6 +309,13 @@ export const DEFAULT_FALLBACK_STAFF: LiveStaff[] = [
     specialty: "Interventional Cardiology",
     did: "did:hosp:0x7a3f91b2c4e5d6a7",
     employeeId: "EMP-1001",
+    email: "sarah.jenkins@embracehealth.org",
+    phone: "+91 98765 43210",
+    shift: "morning",
+    joinedDate: "2023-01-15",
+    credentials: 2,
+    patientsToday: 6,
+    didDocument: null,
     currentLocation: "Room 101 - OPD",
     status: "In Consultation",
     beaconStrength: "96%",
@@ -317,8 +323,8 @@ export const DEFAULT_FALLBACK_STAFF: LiveStaff[] = [
     onDuty: true,
     isOnChain: true,
     activeCredentials: [
-      { id: "vc_1_1", type: "ProfessionalVC" },
-      { id: "vc_1_2", type: "AccessVC" },
+      { id: "vc_1_1", type: "ProfessionalVC", issuer: "did:hosp:consortium:authority", subject: "did:hosp:0x7a3f91b2c4e5d6a7", issuedAt: "2026-01-01T00:00:00Z", expiresAt: "2027-01-01T00:00:00Z", claims: { role: "Doctor" }, signature: "0xsig", status: "active" },
+      { id: "vc_1_2", type: "AccessVC", issuer: "did:hosp:consortium:authority", subject: "did:hosp:0x7a3f91b2c4e5d6a7", issuedAt: "2026-01-01T00:00:00Z", expiresAt: "2027-01-01T00:00:00Z", claims: { access: "OPD" }, signature: "0xsig", status: "active" },
     ],
   },
   {
@@ -329,15 +335,22 @@ export const DEFAULT_FALLBACK_STAFF: LiveStaff[] = [
     specialty: "Neuro-oncology",
     did: "did:hosp:0x8b2e41a3f5c6d7e8",
     employeeId: "EMP-1002",
+    email: "rajesh.sharma@embracehealth.org",
+    phone: "+91 98765 43211",
+    shift: "morning",
+    joinedDate: "2022-08-10",
+    credentials: 2,
+    patientsToday: 4,
+    didDocument: null,
     currentLocation: "Room 202 - Cardiology",
-    status: "Available",
+    status: "active" as any,
     beaconStrength: "91%",
     lastSignal: new Date().toLocaleTimeString(),
     onDuty: true,
     isOnChain: true,
     activeCredentials: [
-      { id: "vc_2_1", type: "ProfessionalVC" },
-      { id: "vc_2_2", type: "AccessVC" },
+      { id: "vc_2_1", type: "ProfessionalVC", issuer: "did:hosp:consortium:authority", subject: "did:hosp:0x8b2e41a3f5c6d7e8", issuedAt: "2026-01-01T00:00:00Z", expiresAt: "2027-01-01T00:00:00Z", claims: { role: "Doctor" }, signature: "0xsig", status: "active" },
+      { id: "vc_2_2", type: "AccessVC", issuer: "did:hosp:consortium:authority", subject: "did:hosp:0x8b2e41a3f5c6d7e8", issuedAt: "2026-01-01T00:00:00Z", expiresAt: "2027-01-01T00:00:00Z", claims: { access: "Cardiology" }, signature: "0xsig", status: "active" },
     ],
   },
   {
@@ -348,6 +361,13 @@ export const DEFAULT_FALLBACK_STAFF: LiveStaff[] = [
     specialty: "Pediatric Critical Care",
     did: "did:hosp:0x9c1d52b4e6f7a8b9",
     employeeId: "EMP-1003",
+    email: "priya.patel@embracehealth.org",
+    phone: "+91 98765 43212",
+    shift: "morning",
+    joinedDate: "2023-04-01",
+    credentials: 2,
+    patientsToday: 8,
+    didDocument: null,
     currentLocation: "Room 303 - Operation Theatre",
     status: "In Surgery",
     beaconStrength: "88%",
@@ -355,8 +375,8 @@ export const DEFAULT_FALLBACK_STAFF: LiveStaff[] = [
     onDuty: true,
     isOnChain: true,
     activeCredentials: [
-      { id: "vc_3_1", type: "ProfessionalVC" },
-      { id: "vc_3_2", type: "AccessVC" },
+      { id: "vc_3_1", type: "ProfessionalVC", issuer: "did:hosp:consortium:authority", subject: "did:hosp:0x9c1d52b4e6f7a8b9", issuedAt: "2026-01-01T00:00:00Z", expiresAt: "2027-01-01T00:00:00Z", claims: { role: "Doctor" }, signature: "0xsig", status: "active" },
+      { id: "vc_3_2", type: "AccessVC", issuer: "did:hosp:consortium:authority", subject: "did:hosp:0x9c1d52b4e6f7a8b9", issuedAt: "2026-01-01T00:00:00Z", expiresAt: "2027-01-01T00:00:00Z", claims: { access: "OT" }, signature: "0xsig", status: "active" },
     ],
   },
   {
@@ -367,6 +387,13 @@ export const DEFAULT_FALLBACK_STAFF: LiveStaff[] = [
     specialty: "Joint Replacement Surgery",
     did: "did:hosp:0x4d5e63c7f8a9b0c1",
     employeeId: "EMP-1004",
+    email: "amit.varma@embracehealth.org",
+    phone: "+91 98765 43213",
+    shift: "evening",
+    joinedDate: "2021-11-20",
+    credentials: 2,
+    patientsToday: 3,
+    didDocument: null,
     currentLocation: "Room 404 - Emergency Room",
     status: "Emergency Response",
     beaconStrength: "94%",
@@ -374,8 +401,8 @@ export const DEFAULT_FALLBACK_STAFF: LiveStaff[] = [
     onDuty: true,
     isOnChain: true,
     activeCredentials: [
-      { id: "vc_4_1", type: "ProfessionalVC" },
-      { id: "vc_4_2", type: "AccessVC" },
+      { id: "vc_4_1", type: "ProfessionalVC", issuer: "did:hosp:consortium:authority", subject: "did:hosp:0x4d5e63c7f8a9b0c1", issuedAt: "2026-01-01T00:00:00Z", expiresAt: "2027-01-01T00:00:00Z", claims: { role: "Doctor" }, signature: "0xsig", status: "active" },
+      { id: "vc_4_2", type: "AccessVC", issuer: "did:hosp:consortium:authority", subject: "did:hosp:0x4d5e63c7f8a9b0c1", issuedAt: "2026-01-01T00:00:00Z", expiresAt: "2027-01-01T00:00:00Z", claims: { access: "ER" }, signature: "0xsig", status: "active" },
     ],
   },
   {
@@ -386,6 +413,13 @@ export const DEFAULT_FALLBACK_STAFF: LiveStaff[] = [
     specialty: "Medical Oncology",
     did: "did:hosp:0x6f7a81b2c3d4e5f6",
     employeeId: "EMP-1005",
+    email: "ananya.iyer@embracehealth.org",
+    phone: "+91 98765 43214",
+    shift: "morning",
+    joinedDate: "2022-03-14",
+    credentials: 2,
+    patientsToday: 5,
+    didDocument: null,
     currentLocation: "Room 505 - ICU Desk",
     status: "In Consultation",
     beaconStrength: "92%",
@@ -393,8 +427,8 @@ export const DEFAULT_FALLBACK_STAFF: LiveStaff[] = [
     onDuty: true,
     isOnChain: true,
     activeCredentials: [
-      { id: "vc_5_1", type: "ProfessionalVC" },
-      { id: "vc_5_2", type: "AccessVC" },
+      { id: "vc_5_1", type: "ProfessionalVC", issuer: "did:hosp:consortium:authority", subject: "did:hosp:0x6f7a81b2c3d4e5f6", issuedAt: "2026-01-01T00:00:00Z", expiresAt: "2027-01-01T00:00:00Z", claims: { role: "Doctor" }, signature: "0xsig", status: "active" },
+      { id: "vc_5_2", type: "AccessVC", issuer: "did:hosp:consortium:authority", subject: "did:hosp:0x6f7a81b2c3d4e5f6", issuedAt: "2026-01-01T00:00:00Z", expiresAt: "2027-01-01T00:00:00Z", claims: { access: "ICU" }, signature: "0xsig", status: "active" },
     ],
   },
   {
@@ -405,6 +439,13 @@ export const DEFAULT_FALLBACK_STAFF: LiveStaff[] = [
     specialty: "Trauma Care",
     did: "did:hosp:0x1b2c3d4e5f6a7b8c",
     employeeId: "EMP-1006",
+    email: "marcus.vance@embracehealth.org",
+    phone: "+91 98765 43215",
+    shift: "night",
+    joinedDate: "2023-06-01",
+    credentials: 2,
+    patientsToday: 9,
+    didDocument: null,
     currentLocation: "Emergency Bay 1",
     status: "Emergency Response",
     beaconStrength: "97%",
@@ -412,8 +453,8 @@ export const DEFAULT_FALLBACK_STAFF: LiveStaff[] = [
     onDuty: true,
     isOnChain: true,
     activeCredentials: [
-      { id: "vc_6_1", type: "ProfessionalVC" },
-      { id: "vc_6_2", type: "AccessVC" },
+      { id: "vc_6_1", type: "ProfessionalVC", issuer: "did:hosp:consortium:authority", subject: "did:hosp:0x1b2c3d4e5f6a7b8c", issuedAt: "2026-01-01T00:00:00Z", expiresAt: "2027-01-01T00:00:00Z", claims: { role: "Doctor" }, signature: "0xsig", status: "active" },
+      { id: "vc_6_2", type: "AccessVC", issuer: "did:hosp:consortium:authority", subject: "did:hosp:0x1b2c3d4e5f6a7b8c", issuedAt: "2026-01-01T00:00:00Z", expiresAt: "2027-01-01T00:00:00Z", claims: { access: "Trauma" }, signature: "0xsig", status: "active" },
     ],
   },
   {
@@ -424,6 +465,13 @@ export const DEFAULT_FALLBACK_STAFF: LiveStaff[] = [
     specialty: "Surgical Anesthesia",
     did: "did:hosp:0x3d4e5f6a7b8c9d0e",
     employeeId: "EMP-1007",
+    email: "elena.rostova@embracehealth.org",
+    phone: "+91 98765 43216",
+    shift: "morning",
+    joinedDate: "2022-09-18",
+    credentials: 2,
+    patientsToday: 7,
+    didDocument: null,
     currentLocation: "OT Suite 2",
     status: "In Surgery",
     beaconStrength: "89%",
@@ -431,8 +479,8 @@ export const DEFAULT_FALLBACK_STAFF: LiveStaff[] = [
     onDuty: true,
     isOnChain: true,
     activeCredentials: [
-      { id: "vc_7_1", type: "ProfessionalVC" },
-      { id: "vc_7_2", type: "AccessVC" },
+      { id: "vc_7_1", type: "ProfessionalVC", issuer: "did:hosp:consortium:authority", subject: "did:hosp:0x3d4e5f6a7b8c9d0e", issuedAt: "2026-01-01T00:00:00Z", expiresAt: "2027-01-01T00:00:00Z", claims: { role: "Doctor" }, signature: "0xsig", status: "active" },
+      { id: "vc_7_2", type: "AccessVC", issuer: "did:hosp:consortium:authority", subject: "did:hosp:0x3d4e5f6a7b8c9d0e", issuedAt: "2026-01-01T00:00:00Z", expiresAt: "2027-01-01T00:00:00Z", claims: { access: "OT" }, signature: "0xsig", status: "active" },
     ],
   },
 ];
@@ -449,6 +497,7 @@ async function fetchDIDsFromConvex(): Promise<Record<string, DIDDocument>> {
   // TODO: Implement Convex query to fetch DIDs
   try {
     const client = getConvexClient();
+    if (!client) return {};
     const dids = await client.query(api.records.getDIDs);
     const credentials = await client.query(api.records.getCredentials);
 
@@ -651,22 +700,24 @@ function handleStoreWebSocketMessage(event: string, data: any) {
 
             try {
               const client = getConvexClient();
-              await client.mutation(api.records.updatePatientVitals, {
-                patientDid: patient.did,
-                vitals: {
-                  heartRate: mappedVitals.heartRate,
-                  bloodPressure: {
-                    systolic: parseInt(mappedVitals.bp.split("/")[0]),
-                    diastolic: parseInt(mappedVitals.bp.split("/")[1]),
+              if (client) {
+                await client.mutation(api.records.updatePatientVitals, {
+                  patientDid: patient.did,
+                  vitals: {
+                    heartRate: mappedVitals.heartRate,
+                    bloodPressure: {
+                      systolic: parseInt(mappedVitals.bp.split("/")[0]),
+                      diastolic: parseInt(mappedVitals.bp.split("/")[1]),
+                    },
+                    temperature: mappedVitals.temp,
+                    respiratoryRate: mappedVitals.respRate,
+                    oxygenSaturation: mappedVitals.spo2,
                   },
-                  temperature: mappedVitals.temp,
-                  respiratoryRate: mappedVitals.respRate,
-                  oxygenSaturation: mappedVitals.spo2,
-                },
-                txId: `ws_${Date.now()}`,
-                version: "1.0",
-                recordedAt: new Date().toISOString(),
-              });
+                  txId: `ws_${Date.now()}`,
+                  version: "1.0",
+                  recordedAt: new Date().toISOString(),
+                });
+              }
             } catch (error) {
               console.error("[Store] Error syncing vitals to Convex:", error);
             }
@@ -708,13 +759,15 @@ function handleStoreWebSocketMessage(event: string, data: any) {
       try {
         if (staffMember?.did) {
           const client = getConvexClient();
-          await client.mutation(api.records.updateStaffLocation, {
-            did: staffMember.did,
-            location,
-            beaconStrength: "-68 dBm",
-            txId: `ws_${Date.now()}`,
-            version: "1.0",
-          });
+          if (client) {
+            await client.mutation(api.records.updateStaffLocation, {
+              did: staffMember.did,
+              location,
+              beaconStrength: "-68 dBm",
+              txId: `ws_${Date.now()}`,
+              version: "1.0",
+              });
+          }
         }
       } catch (error) {
         console.error("[Store] Error syncing staff location to Convex:", error);
@@ -987,6 +1040,7 @@ export async function refreshFromConvex(): Promise<void> {
 export async function getPatientFromConvex(did: string): Promise<LivePatient | null> {
   try {
     const client = getConvexClient();
+    if (!client) return null;
     const patient = await client.query(api.records.getPatientByDID, { did });
     if (!patient) return null;
 
@@ -1070,6 +1124,7 @@ export async function getPatientFromConvex(did: string): Promise<LivePatient | n
 export async function getStaffFromConvex(did: string): Promise<LiveStaff | null> {
   try {
     const client = getConvexClient();
+    if (!client) return null;
     const staff = await client.query(api.records.getStaffByDID, { did });
     if (!staff) return null;
 
