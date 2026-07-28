@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as PrescriptionsRouteImport } from './routes/prescriptions'
 import { Route as PoliciesRouteImport } from './routes/policies'
 import { Route as PeopleRouteImport } from './routes/people'
 import { Route as NfcCardsRouteImport } from './routes/nfc-cards'
@@ -29,6 +30,11 @@ import { Route as IndexRouteImport } from './routes/index'
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrescriptionsRoute = PrescriptionsRouteImport.update({
+  id: '/prescriptions',
+  path: '/prescriptions',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PoliciesRoute = PoliciesRouteImport.update({
@@ -123,6 +129,7 @@ export interface FileRoutesByFullPath {
   '/nfc-cards': typeof NfcCardsRoute
   '/people': typeof PeopleRoute
   '/policies': typeof PoliciesRoute
+  '/prescriptions': typeof PrescriptionsRoute
   '/profile': typeof ProfileRoute
 }
 export interface FileRoutesByTo {
@@ -141,6 +148,7 @@ export interface FileRoutesByTo {
   '/nfc-cards': typeof NfcCardsRoute
   '/people': typeof PeopleRoute
   '/policies': typeof PoliciesRoute
+  '/prescriptions': typeof PrescriptionsRoute
   '/profile': typeof ProfileRoute
 }
 export interface FileRoutesById {
@@ -160,6 +168,7 @@ export interface FileRoutesById {
   '/nfc-cards': typeof NfcCardsRoute
   '/people': typeof PeopleRoute
   '/policies': typeof PoliciesRoute
+  '/prescriptions': typeof PrescriptionsRoute
   '/profile': typeof ProfileRoute
 }
 export interface FileRouteTypes {
@@ -180,6 +189,7 @@ export interface FileRouteTypes {
     | '/nfc-cards'
     | '/people'
     | '/policies'
+    | '/prescriptions'
     | '/profile'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -198,6 +208,7 @@ export interface FileRouteTypes {
     | '/nfc-cards'
     | '/people'
     | '/policies'
+    | '/prescriptions'
     | '/profile'
   id:
     | '__root__'
@@ -216,6 +227,7 @@ export interface FileRouteTypes {
     | '/nfc-cards'
     | '/people'
     | '/policies'
+    | '/prescriptions'
     | '/profile'
   fileRoutesById: FileRoutesById
 }
@@ -235,6 +247,7 @@ export interface RootRouteChildren {
   NfcCardsRoute: typeof NfcCardsRoute
   PeopleRoute: typeof PeopleRoute
   PoliciesRoute: typeof PoliciesRoute
+  PrescriptionsRoute: typeof PrescriptionsRoute
   ProfileRoute: typeof ProfileRoute
 }
 
@@ -245,6 +258,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/prescriptions': {
+      id: '/prescriptions'
+      path: '/prescriptions'
+      fullPath: '/prescriptions'
+      preLoaderRoute: typeof PrescriptionsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/policies': {
@@ -371,6 +391,7 @@ const rootRouteChildren: RootRouteChildren = {
   NfcCardsRoute: NfcCardsRoute,
   PeopleRoute: PeopleRoute,
   PoliciesRoute: PoliciesRoute,
+  PrescriptionsRoute: PrescriptionsRoute,
   ProfileRoute: ProfileRoute,
 }
 export const routeTree = rootRouteImport
