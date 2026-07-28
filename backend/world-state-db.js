@@ -1,8 +1,8 @@
 /**
- * World State Database — File-Persisted Key-Value Store
+ * World State Database — SQLite Database Key-Value & Relational Storage
  *
- * Standard key-value database for data persistence.
- * Data is persisted to JSON files on disk, surviving server restarts.
+ * Direct database storage engine backed by SQLite (better-sqlite3).
+ * Data is persisted directly to SQLite database on disk (`backend/data/world-state.db`).
  *
  * Namespaces:
  *   - did-registry     → DID documents
@@ -17,10 +17,11 @@
  *   - lab-results      → Lab test results
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
+import { readFileSync, existsSync, mkdirSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
-import { randomUUID } from "crypto";
+import { randomUUID, createHmac } from "crypto";
+import Database from "better-sqlite3";
 import { ConvexHttpClient } from "convex/browser";
 import {
   encryptValue,
@@ -36,6 +37,90 @@ const DATA_DIR = join(__dirname, "data");
 if (!existsSync(DATA_DIR)) {
   mkdirSync(DATA_DIR, { recursive: true });
 }
+
+// Load .env BEFORE any encryption or DB init that depends on env vars
+function loadEnv() {
+  const envPaths = [
+    join(process.cwd(), ".env"),
+    join(process.cwd(), ".env.local"),
+    join(process.cwd(), "..", ".env"),
+    join(process.cwd(), "..", ".env.local"),
+  ];
+  envPaths.forEach((envPath) => {
+    if (existsSync(envPath)) {
+      try {
+        const content = readFileSync(envPath, "utf8");
+        content.split("\n").forEach((line) => {
+          if (line.trim().startsWith("#") || !line.includes("=")) return;
+          const parts = line.split("=");
+          if (parts.length >= 2) {
+            const key = parts[0].trim();
+            const val = parts
+              .slice(1)
+              .join("=")
+              .trim()
+              .replace(/^['"]|['"]$/g, "");
+            if (!process.env[key]) process.env[key] = val;
+          }
+        });
+      } catch (e) {
+        // Quiet fail
+      }
+    }
+  });
+}
+loadEnv();
+
+// ---------------------------------------------------------------------------
+// SQLite Database Initialization
+// ---------------------------------------------------------------------------
+const DB_PATH = join(DATA_DIR, "world-state.db");
+const db = new Database(DB_PATH);
+
+// Enable WAL mode for optimum concurrency and performance
+db.pragma("journal_mode = WAL");
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS world_state (
+    namespace TEXT NOT NULL,
+    key TEXT NOT NULL,
+    value TEXT NOT NULL,
+    version TEXT,
+    updated_at TEXT,
+    tx_id TEXT,
+    doc_type TEXT,
+    PRIMARY KEY (namespace, key)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_ws_namespace ON world_state(namespace);
+  CREATE INDEX IF NOT EXISTS idx_ws_updated ON world_state(namespace, updated_at);
+`);
+
+// Prepared statements for zero-overhead performance
+const stmtGetNamespace = db.prepare(`
+  SELECT key, value, version, updated_at, tx_id, doc_type
+  FROM world_state
+  WHERE namespace = ?
+`);
+
+const stmtUpsertState = db.prepare(`
+  INSERT INTO world_state (namespace, key, value, version, updated_at, tx_id, doc_type)
+  VALUES (?, ?, ?, ?, ?, ?, ?)
+  ON CONFLICT(namespace, key) DO UPDATE SET
+    value = excluded.value,
+    version = excluded.version,
+    updated_at = excluded.updated_at,
+    tx_id = excluded.tx_id,
+    doc_type = excluded.doc_type
+`);
+
+const stmtCountTotal = db.prepare(`
+  SELECT COUNT(*) as count FROM world_state
+`);
+
+const stmtGetAllRecords = db.prepare(`
+  SELECT namespace, key, value, version, updated_at, tx_id, doc_type FROM world_state
+`);
 
 // Validate encryption key on startup
 const hasExplicitKey = !!process.env.DATA_ENCRYPTION_KEY;
@@ -59,31 +144,6 @@ try {
   }
 }
 
-// Manual basic .env loader to read from workspace root
-function loadEnv() {
-  const envPath = join(process.cwd(), ".env");
-  if (existsSync(envPath)) {
-    try {
-      const content = readFileSync(envPath, "utf8");
-      content.split("\n").forEach((line) => {
-        const parts = line.split("=");
-        if (parts.length >= 2) {
-          const key = parts[0].trim();
-          const val = parts
-            .slice(1)
-            .join("=")
-            .trim()
-            .replace(/^['"]|['"]$/g, "");
-          process.env[key] = val;
-        }
-      });
-    } catch (e) {
-      // Quiet fail
-    }
-  }
-}
-loadEnv();
-
 // Initialize Convex Client for World State
 const convexUrl = process.env.VITE_CONVEX_URL || process.env.CONVEX_URL;
 let convexClient = null;
@@ -97,82 +157,52 @@ if (convexUrl && convexUrl !== "https://dummy-url.convex.cloud") {
 }
 
 // ---------------------------------------------------------------------------
-// Concurrent-Write Safety & Atomic File Storage Helpers
+// In-Memory Cache (Write-Through to SQLite)
 // ---------------------------------------------------------------------------
-import { unlinkSync, renameSync, openSync, fsyncSync, closeSync } from "fs";
+const _cache = new Map();
 
-/** Lock queues per namespace to serialize writes and avoid race conditions */
-const _namespaceLocks = new Map();
-
-function getNamespaceLock(namespace) {
-  if (!_namespaceLocks.has(namespace)) {
-    _namespaceLocks.set(namespace, Promise.resolve());
-  }
-  return _namespaceLocks.get(namespace);
-}
-
-function dbPath(namespace) {
-  return join(DATA_DIR, `${namespace.replace(/[^a-zA-Z0-9-_]/g, "_")}.json`);
-}
-
-function loadNamespace(namespace) {
-  const path = dbPath(namespace);
-  if (!existsSync(path)) return {};
-  try {
-    return JSON.parse(readFileSync(path, "utf8"));
-  } catch {
-    return {};
-  }
-}
-
-/**
- * Atomic File Write with fsync + atomic rename (Crash & Corruption Resistant)
- */
-function saveNamespaceAtomic(namespace, data) {
-  const path = dbPath(namespace);
-  const tempPath = `${path}.tmp.${randomUUID()}`;
-  try {
-    const serialized = JSON.stringify(data, null, 2);
-    // 1. Write to temporary file
-    const fd = openSync(tempPath, "w");
-    writeFileSync(fd, serialized, "utf8");
-    fsyncSync(fd);
-    closeSync(fd);
-
-    // 2. Atomic rename replaces target file cleanly
-    renameSync(tempPath, path);
-  } catch (err) {
-    if (existsSync(tempPath)) {
+function loadNamespaceFromDb(namespace) {
+  const rows = stmtGetNamespace.all(namespace);
+  const data = {};
+  for (const row of rows) {
+    let val = row.value;
+    if (typeof val === "string" && !val.startsWith("__phi_enc__:")) {
       try {
-        unlinkSync(tempPath);
+        val = JSON.parse(val);
       } catch {}
     }
-    throw new Error(`Failed atomic disk write for namespace [${namespace}]: ${err.message}`);
+    data[row.key] = {
+      key: row.key,
+      value: val,
+      namespace,
+      version: row.version,
+      updatedAt: row.updated_at,
+      txId: row.tx_id,
+      docType: row.doc_type || namespace,
+    };
   }
+  return data;
 }
-
-// In-memory cache (write-through)
-const _cache = new Map();
 
 function getNamespaceCache(namespace) {
   if (!_cache.has(namespace)) {
-    _cache.set(namespace, loadNamespace(namespace));
+    _cache.set(namespace, loadNamespaceFromDb(namespace));
   }
   return _cache.get(namespace);
 }
 
-function flushNamespace(namespace) {
-  const data = _cache.get(namespace);
-  if (data) {
-    // Chain onto namespace queue for serialized write-safety
-    const lock = getNamespaceLock(namespace);
-    const nextLock = lock
-      .then(() => saveNamespaceAtomic(namespace, data))
-      .catch((err) => {
-        console.error(`⚠️ Async write error on namespace [${namespace}]:`, err.message);
-      });
-    _namespaceLocks.set(namespace, nextLock);
-  }
+function saveEntryToDb(namespace, key, entry) {
+  const rawValue = entry.value;
+  const dbValue = typeof rawValue === "string" ? rawValue : JSON.stringify(rawValue);
+  stmtUpsertState.run(
+    namespace,
+    key,
+    dbValue,
+    entry.version || "1",
+    entry.updatedAt || new Date().toISOString(),
+    entry.txId || null,
+    entry.docType || namespace
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -198,7 +228,7 @@ export function beginTransaction() {
 }
 
 /**
- * Stage a putState inside a transaction without committing to disk/cache yet
+ * Stage a putState inside a transaction without committing yet
  */
 export function stagePutState(tx, namespace, key, value, version = "1") {
   if (!tx || tx.status !== "active") throw new Error("Transaction is not active");
@@ -219,11 +249,11 @@ export function stagePutState(tx, namespace, key, value, version = "1") {
     tx.stagedWrites.set(namespace, new Map());
   }
   tx.stagedWrites.get(namespace).set(key, entry);
-  tx.stagedDeletes.delete(`${namespace}:${key}`);
+  tx.stagedDeletes.delete(`${namespace}\0${key}`);
 }
 
 /**
- * Commit a transaction atomically across all affected namespaces
+ * Commit a transaction atomically across all affected namespaces inside SQLite transaction
  */
 export function commitTransaction(tx) {
   if (!tx || tx.status !== "active")
@@ -231,44 +261,59 @@ export function commitTransaction(tx) {
 
   const affectedNamespaces = new Set();
 
-  // Apply staged writes
-  for (const [namespace, stagedMap] of tx.stagedWrites) {
-    affectedNamespaces.add(namespace);
-    const nsCache = getNamespaceCache(namespace);
-    for (const [key, entry] of stagedMap) {
-      const { plainValue, ...dbEntry } = entry;
-      nsCache[key] = dbEntry;
+  const commitToDb = db.transaction(() => {
+    // Apply staged writes
+    for (const [namespace, stagedMap] of tx.stagedWrites) {
+      affectedNamespaces.add(namespace);
+      const nsCache = getNamespaceCache(namespace);
+      for (const [key, entry] of stagedMap) {
+        const { plainValue, ...dbEntry } = entry;
+        nsCache[key] = dbEntry;
+        saveEntryToDb(namespace, key, dbEntry);
 
-      if (convexClient) {
-        convexClient
-          .mutation("records:putGenericWorldState", {
-            namespace,
-            key,
-            value: plainValue,
-            txId: tx.txId,
-            version: dbEntry.version,
-            updatedAt: dbEntry.updatedAt,
-          })
-          .catch(() => {});
+        if (convexClient) {
+          convexClient
+            .mutation("records:putGenericWorldState", {
+              namespace,
+              key,
+              value: plainValue,
+              txId: tx.txId,
+              version: dbEntry.version,
+              updatedAt: dbEntry.updatedAt,
+            })
+            .catch(() => {});
+        }
       }
     }
-  }
 
-  // Apply staged deletes
-  for (const target of tx.stagedDeletes) {
-    const [namespace, key] = target.split(":");
-    affectedNamespaces.add(namespace);
-    const nsCache = getNamespaceCache(namespace);
-    if (nsCache[key]) {
-      nsCache[key].value._deleted = true;
-      nsCache[key].value._deletedAt = new Date().toISOString();
+    // Apply staged deletes
+    for (const target of tx.stagedDeletes) {
+      const sepIdx = target.indexOf("\0");
+      const namespace = target.slice(0, sepIdx);
+      const key = target.slice(sepIdx + 1);
+      affectedNamespaces.add(namespace);
+      const nsCache = getNamespaceCache(namespace);
+      if (nsCache[key]) {
+        let plainVal = nsCache[key].value;
+        if (isPHINamespace(namespace)) {
+          try {
+            plainVal = decryptValue(nsCache[key].value);
+          } catch {}
+        }
+        if (typeof plainVal === "object" && plainVal !== null) {
+          plainVal._deleted = true;
+          plainVal._deletedAt = new Date().toISOString();
+        } else {
+          plainVal = { _deleted: true, _deletedAt: new Date().toISOString() };
+        }
+        const storedValue = isPHINamespace(namespace) ? encryptValue(plainVal) : plainVal;
+        nsCache[key].value = storedValue;
+        saveEntryToDb(namespace, key, nsCache[key]);
+      }
     }
-  }
+  });
 
-  // Flush all affected namespaces atomically to disk
-  for (const ns of affectedNamespaces) {
-    flushNamespace(ns);
-  }
+  commitToDb();
 
   tx.status = "committed";
   _activeTransactions.delete(tx.txId);
@@ -294,6 +339,7 @@ export function rollbackTransaction(tx) {
 const ALL_NAMESPACES = [
   "did-registry",
   "consent-manager",
+  "consent-requests",
   "billing",
   "tracker",
   "appointments",
@@ -301,10 +347,10 @@ const ALL_NAMESPACES = [
   "financial",
   "medical-records",
   "medical-records-anchor",
-  "consent-requests",
   "nfc-cards",
   "ambulances",
   "insurance-claims",
+  "insurance-policies",
   "vaccines",
   "visitors",
   "attendance",
@@ -326,20 +372,35 @@ const ALL_NAMESPACES = [
   "pharmacy-orders",
   "rehab-sessions",
   "feedback",
+  "notifications",
+  "blockchain-tx",
+  "credentials",
+  "doctor-location-roots",
+  "doctor-locations",
+  "doctors",
+  "governance-policies",
+  "merkle-roots",
+  "patient-preferences",
+  "room-checkin",
+  "room-checkin-history",
+  "solana-anchors",
+  "staff-schedule",
+  "staff-requests",
+  "surgeries",
 ];
 
-// 🔄 Synchronously initialize/replicate from Convex database on boot
+// Synchronously initialize/replicate from Convex database on boot
 export async function bootstrapFromConvex() {
   if (!convexClient) return;
-  console.log("🔄 Replicating World State from Convex to local cache...");
+  console.log("🔄 Replicating World State from Convex to local SQLite database...");
   const namespaces = ALL_NAMESPACES;
   for (const ns of namespaces) {
     try {
       const list = await convexClient.query("records:getAllGenericWorldState", { namespace: ns });
       if (list && list.length > 0) {
         const cache = getNamespaceCache(ns);
-        list.forEach((res) => {
-          cache[res.key] = {
+        for (const res of list) {
+          const entry = {
             key: res.key,
             value: res.value,
             namespace: res.namespace,
@@ -348,8 +409,9 @@ export async function bootstrapFromConvex() {
             txId: res.txId,
             docType: res.namespace,
           };
-        });
-        flushNamespace(ns);
+          cache[res.key] = entry;
+          saveEntryToDb(ns, res.key, entry);
+        }
       }
     } catch (err) {
       console.warn(`⚠️ Replication failed for namespace [${ns}]:`, err.message);
@@ -364,7 +426,7 @@ export async function bootstrapFromConvex() {
 export function putState(namespace, key, value, txId, version = "1") {
   const ns = getNamespaceCache(namespace);
 
-  // Encrypt PHI before writing to disk
+  // Encrypt PHI before writing to DB
   const storedValue = isPHINamespace(namespace) ? encryptValue(value) : value;
 
   const entry = {
@@ -376,8 +438,9 @@ export function putState(namespace, key, value, txId, version = "1") {
     txId,
     docType: namespace,
   };
+
   ns[key] = entry;
-  flushNamespace(namespace);
+  saveEntryToDb(namespace, key, entry);
 
   if (convexClient) {
     // Send plaintext value to Convex (Convex has its own encryption at rest)
@@ -419,9 +482,21 @@ export function getState(namespace, key) {
 export function deleteState(namespace, key) {
   const ns = getNamespaceCache(namespace);
   if (ns[key]) {
-    ns[key].value._deleted = true;
-    ns[key].value._deletedAt = new Date().toISOString();
-    flushNamespace(namespace);
+    let plainVal = ns[key].value;
+    if (isPHINamespace(namespace)) {
+      try {
+        plainVal = decryptValue(ns[key].value);
+      } catch {}
+    }
+    if (typeof plainVal === "object" && plainVal !== null) {
+      plainVal._deleted = true;
+      plainVal._deletedAt = new Date().toISOString();
+    } else {
+      plainVal = { _deleted: true, _deletedAt: new Date().toISOString() };
+    }
+    const storedValue = isPHINamespace(namespace) ? encryptValue(plainVal) : plainVal;
+    ns[key].value = storedValue;
+    saveEntryToDb(namespace, key, ns[key]);
 
     if (convexClient) {
       convexClient.mutation("records:deleteGenericWorldState", { namespace, key }).catch((err) => {
@@ -444,11 +519,9 @@ export function getAllState(namespace) {
       if (!isPHINamespace(namespace)) return entry;
       try {
         const decrypted = decryptValue(entry.value);
-        // Support legacy plaintext entries (migration) — _deleted flag check
         if (decrypted && decrypted._deleted) return null;
         return { ...entry, value: decrypted };
       } catch {
-        // If decryption fails, skip the entry (corrupted or wrong key)
         return null;
       }
     })
@@ -456,7 +529,7 @@ export function getAllState(namespace) {
 }
 
 /**
- * Rich query across a namespace (CouchDB-style selector)
+ * Rich query across a namespace (predicate selector)
  */
 export function queryState(namespace, predicate) {
   const ns = getNamespaceCache(namespace);
@@ -492,11 +565,8 @@ export function getStateHistory(namespace, key) {
  * Count total keys across all namespaces
  */
 export function getWorldStateSize() {
-  let total = 0;
-  for (const [, ns] of _cache) {
-    total += Object.keys(ns).length;
-  }
-  return total;
+  const row = stmtCountTotal.get();
+  return row ? row.count : 0;
 }
 
 /**
@@ -504,29 +574,38 @@ export function getWorldStateSize() {
  */
 export function getAllWorldState() {
   const result = {};
-  const namespaces = ALL_NAMESPACES;
-  for (const ns of namespaces) {
-    const data = getNamespaceCache(ns);
-    for (const [key, entry] of Object.entries(data)) {
-      result[`${ns}:${key}`] = entry;
+  const rows = stmtGetAllRecords.all();
+  for (const row of rows) {
+    if (row.value && row.value.includes('"_deleted":true')) continue;
+    let val = row.value;
+    if (typeof val === "string" && !val.startsWith("__phi_enc__:")) {
+      try {
+        val = JSON.parse(val);
+      } catch {}
     }
+    result[`${row.namespace}:${row.key}`] = {
+      key: row.key,
+      value: val,
+      namespace: row.namespace,
+      version: row.version,
+      updatedAt: row.updated_at,
+      txId: row.tx_id,
+      docType: row.doc_type || row.namespace,
+    };
   }
   return result;
 }
 
 /**
- * Flush all namespaces to disk
+ * Flush all (no-op as writes are committed immediately to SQLite)
  */
 export function flushAll() {
-  for (const [namespace] of _cache) {
-    flushNamespace(namespace);
-  }
+  // SQLite writes are synchronous and immediate
 }
 
 // ---------------------------------------------------------------------------
 // Encrypted Backup & Verification Engine (§ 164.312(a)(2)(iv))
 // ---------------------------------------------------------------------------
-import { createHmac } from "crypto";
 
 const BACKUP_HMAC_SECRET =
   process.env.AUDIT_HMAC_KEY || process.env.JWT_SECRET || "embrace-health-backup-hmac-key";
@@ -543,7 +622,7 @@ export function createEncryptedBackup() {
   let totalRecords = 0;
 
   for (const ns of ALL_NAMESPACES) {
-    const nsData = loadNamespace(ns);
+    const nsData = loadNamespaceFromDb(ns);
     archiveData[ns] = nsData;
     totalRecords += Object.keys(nsData).length;
   }
