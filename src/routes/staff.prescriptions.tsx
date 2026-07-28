@@ -4,10 +4,10 @@ import { PageHeader } from "@/components/PageHeader";
 import { StaggerList, StaggerItem } from "@/components/Motion";
 import {
   Pill, Search, FileSignature, RefreshCw, Wifi, WifiOff,
-  CalendarDays, Hash, ChevronDown, ChevronUp,
+  CalendarDays, Hash, ChevronDown, ChevronUp, Shield, User,
 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
-import { getMyPrescriptions } from "@/lib/api";
+import { getAllPrescriptions } from "@/lib/api";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/staff/prescriptions")({
@@ -20,12 +20,14 @@ function PrescriptionsPage() {
   const [loading,       setLoading]       = useState(true);
   const [online,        setOnline]        = useState(false);
   const [searchQ,       setSearchQ]       = useState("");
+  const [doctorFilter,  setDoctorFilter]  = useState("All");
+  const [statusFilter,  setStatusFilter]  = useState("All");
   const [expandedId,    setExpandedId]    = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await getMyPrescriptions();
+      const res = await getAllPrescriptions();
       setPrescriptions(res.prescriptions ?? []);
       setOnline(true);
     } catch (err: any) {
@@ -59,21 +61,28 @@ function PrescriptionsPage() {
     return () => { ws?.close(); clearTimeout(retry); };
   }, [load]);
 
+  // Unique doctor names for filter dropdown
+  const doctors = ["All", ...Array.from(new Set(prescriptions.map((rx) => rx.doctorName || rx.signedBy).filter(Boolean)))];
+
   const filtered = prescriptions.filter((rx) => {
     const q = searchQ.toLowerCase();
-    return !q
+    const matchQ = !q
       || rx.patientName?.toLowerCase().includes(q)
       || rx.patientDid?.toLowerCase().includes(q)
+      || rx.doctorName?.toLowerCase().includes(q)
       || rx.diagnosis?.toLowerCase().includes(q)
       || rx.rxId?.toLowerCase().includes(q);
+    const matchD = doctorFilter === "All" || rx.doctorName === doctorFilter || rx.signedBy === doctorFilter;
+    const matchS = statusFilter === "All" || rx.status === statusFilter;
+    return matchQ && matchD && matchS;
   });
 
   return (
     <RouteGuard requiredRole="staff">
       <PageHeader
         eyebrow="Staff Portal"
-        title="My Prescriptions"
-        description="Prescriptions you signed — isolated to your patients only. Updates in real time."
+        title="All Prescriptions"
+        description="Read-only view of all prescriptions issued by doctors across the hospital. Updates in real time."
         actions={
           <div className="flex items-center gap-2 flex-wrap">
             <span className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold ${online ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"}`}>
@@ -85,19 +94,51 @@ function PrescriptionsPage() {
             </button>
             <Link to="/staff/sign"
               className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
-              <FileSignature className="h-4 w-4" /> Sign New Prescription
+              <FileSignature className="h-4 w-4" /> Sign Prescription
             </Link>
           </div>
         }
       />
 
       <div className="p-6 space-y-5">
-        {/* Search */}
-        <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 max-w-md">
-          <Search className="h-4 w-4 text-muted-foreground shrink-0" />
-          <input value={searchQ} onChange={(e) => setSearchQ(e.target.value)}
-            placeholder="Search patient, diagnosis, Rx ID…"
-            className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground" />
+        {/* Read-only banner */}
+        <div className="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-4 py-2.5 text-xs text-primary">
+          <Shield className="h-4 w-4 shrink-0" />
+          <span className="font-medium">Read-only view — Staff can view but cannot modify prescriptions issued by doctors.</span>
+        </div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-3 gap-3 text-center">
+          {[
+            { label: "Total Prescriptions", value: prescriptions.length, cls: "text-primary" },
+            { label: "Active", value: prescriptions.filter((r) => r.status === "active").length, cls: "text-success" },
+            { label: "Doctors", value: doctors.length - 1, cls: "text-foreground" },
+          ].map((s) => (
+            <div key={s.label} className="rounded-xl border border-border bg-card p-3 shadow-clinical">
+              <div className={`text-2xl font-black ${s.cls}`}>{s.value}</div>
+              <div className="text-xs text-muted-foreground mt-0.5">{s.label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Filters */}
+        <div className="flex flex-wrap gap-2">
+          <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 flex-1 min-w-[200px]">
+            <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+            <input value={searchQ} onChange={(e) => setSearchQ(e.target.value)}
+              placeholder="Search patient, doctor, diagnosis, Rx ID…"
+              className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground" />
+          </div>
+          <select value={doctorFilter} onChange={(e) => setDoctorFilter(e.target.value)}
+            className="rounded-xl border border-border bg-card px-3 py-2 text-xs font-semibold outline-none">
+            {doctors.map((d) => <option key={d} value={d}>Doctor: {d}</option>)}
+          </select>
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
+            className="rounded-xl border border-border bg-card px-3 py-2 text-xs font-semibold outline-none">
+            {["All", "active", "dispensed", "expired"].map((s) => (
+              <option key={s} value={s}>Status: {s === "All" ? "All" : s.charAt(0).toUpperCase() + s.slice(1)}</option>
+            ))}
+          </select>
         </div>
 
         {loading ? (
@@ -109,17 +150,16 @@ function PrescriptionsPage() {
             <Pill className="h-10 w-10 text-muted-foreground/30" />
             <div className="text-sm font-semibold text-foreground">No prescriptions found</div>
             <div className="text-xs text-muted-foreground">
-              {searchQ ? "No results match your search." : "Prescriptions you sign appear here instantly."}
+              {searchQ || doctorFilter !== "All" || statusFilter !== "All"
+                ? "No results match your filters." 
+                : "Prescriptions issued by doctors appear here instantly."}
             </div>
-            <Link to="/staff/sign"
-              className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
-              <FileSignature className="h-4 w-4" /> Sign First Prescription
-            </Link>
           </div>
         ) : (
           <StaggerList className="space-y-3">
             {filtered.map((rx) => {
               const isExp = expandedId === rx.rxId;
+              const statusCls = rx.status === "active" ? "bg-primary/10 text-primary" : rx.status === "dispensed" ? "bg-success/15 text-success" : "bg-muted text-muted-foreground";
               return (
                 <StaggerItem key={rx.rxId}>
                   <div className="rounded-xl border border-border bg-card shadow-clinical overflow-hidden">
@@ -133,12 +173,16 @@ function PrescriptionsPage() {
                           <div>
                             <div className="text-sm font-semibold text-foreground flex items-center gap-2 flex-wrap">
                               {rx.patientName || rx.patientDid}
-                              <span className="rounded-full bg-success/15 text-success px-2 py-0.5 text-[10px] font-bold">Signed</span>
+                              <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${statusCls}`}>{rx.status || "active"}</span>
                             </div>
                             <div className="text-xs text-muted-foreground truncate max-w-[340px]">
                               {rx.diagnosis}{rx.chiefComplaint ? ` · ${rx.chiefComplaint}` : ""}
                             </div>
-                            <div className="flex items-center gap-3 mt-0.5 text-[10px] text-muted-foreground">
+                            <div className="flex items-center gap-3 mt-0.5 text-[10px] text-muted-foreground flex-wrap">
+                              <span className="flex items-center gap-1">
+                                <User className="h-3 w-3" />
+                                {rx.doctorName || rx.signedBy || "Doctor"}
+                              </span>
                               <span className="flex items-center gap-1">
                                 <CalendarDays className="h-3 w-3" />
                                 {rx.signedAt ? new Date(rx.signedAt).toLocaleString("en-IN") : "—"}
@@ -159,12 +203,20 @@ function PrescriptionsPage() {
                     {/* Expanded detail */}
                     {isExp && (
                       <div className="border-t border-border px-4 pb-4 pt-3 space-y-3">
+                        {/* Read-only notice */}
+                        <div className="flex items-center gap-2 rounded-lg border border-warning/30 bg-warning/5 px-3 py-2 text-xs text-muted-foreground">
+                          <Shield className="h-3.5 w-3.5 shrink-0 text-warning-foreground" />
+                          Read-only — Staff cannot modify prescriptions issued by doctors.
+                        </div>
+
                         <div className="grid grid-cols-2 gap-2 text-xs">
                           {[
+                            ["Doctor",      rx.doctorName || rx.signedBy || "—"],
+                            ["Doctor DID",  rx.doctorDid  || "—"],
                             ["Patient DID", rx.patientDid ?? "—"],
-                            ["Appointment",  rx.apptId    ?? "—"],
-                            ["Follow-up",    rx.followUpDate ? new Date(rx.followUpDate).toLocaleDateString("en-IN") : "—"],
-                            ["Status",       rx.status    ?? "active"],
+                            ["Appointment", rx.apptId    ?? "—"],
+                            ["Follow-up",   rx.followUpDate ? new Date(rx.followUpDate).toLocaleDateString("en-IN") : "—"],
+                            ["Status",      rx.status    ?? "active"],
                           ].map(([k, v]) => (
                             <div key={k} className="rounded-lg bg-muted/50 px-3 py-2">
                               <div className="text-[9px] font-bold uppercase text-muted-foreground mb-0.5">{k}</div>
@@ -172,6 +224,24 @@ function PrescriptionsPage() {
                             </div>
                           ))}
                         </div>
+
+                        {/* Symptoms if present */}
+                        {(rx.chiefComplaint || rx.symptoms) && (
+                          <div className="grid gap-2 sm:grid-cols-2 text-xs">
+                            {rx.chiefComplaint && (
+                              <div className="rounded-lg bg-card border border-border px-3 py-2">
+                                <div className="text-[9px] font-bold uppercase text-muted-foreground mb-0.5">Chief Complaint</div>
+                                <div>{rx.chiefComplaint}</div>
+                              </div>
+                            )}
+                            {rx.symptoms && (
+                              <div className="rounded-lg bg-card border border-border px-3 py-2">
+                                <div className="text-[9px] font-bold uppercase text-muted-foreground mb-0.5">Symptoms</div>
+                                <div>{rx.symptoms}</div>
+                              </div>
+                            )}
+                          </div>
+                        )}
 
                         {(rx.drugs ?? []).length > 0 && (
                           <div className="space-y-1.5">
