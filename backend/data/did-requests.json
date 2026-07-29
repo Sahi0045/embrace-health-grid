@@ -1,0 +1,22 @@
+{
+  "DID-REQ-5cbcfb1d": {
+    "key": "DID-REQ-5cbcfb1d",
+    "value": {
+      "id": "DID-REQ-5cbcfb1d",
+      "ownerName": "Nurse E2E",
+      "ownerEmail": "e2e-nurse@example.com",
+      "ownerType": "staff",
+      "department": "ICU",
+      "status": "approved",
+      "requestedAt": "2026-07-28T19:56:39.933Z",
+      "issuedDid": "did:hosp:0x68c243b3",
+      "approvedAt": "2026-07-28T19:57:18.080Z",
+      "approvedBy": "admin@embracehealth.org"
+    },
+    "namespace": "did-requests",
+    "version": "dd5a7f0f-5f71-44dd-8626-ed31e50aa0fa:1",
+    "updatedAt": "2026-07-28T19:57:18.080Z",
+    "txId": "dd5a7f0f-5f71-44dd-8626-ed31e50aa0fa",
+    "docType": "did-requests"
+  }
+}

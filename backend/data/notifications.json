@@ -1,0 +1,20 @@
+{
+  "undefined::notif-4000d62c": {
+    "key": "undefined::notif-4000d62c",
+    "value": {
+      "id": "notif-4000d62c",
+      "type": "did_approved",
+      "title": "Official DID Issued!",
+      "message": "Your official W3C DID (did:hosp:0x68c243b3) has been issued by the administrator.",
+      "timestamp": "2026-07-28T19:57:18.080Z",
+      "read": false,
+      "severity": "info",
+      "link": "/staff/profile"
+    },
+    "namespace": "notifications",
+    "version": "ddf10a9c-da37-4b8e-83ba-679824c1ac01:1",
+    "updatedAt": "2026-07-28T19:57:18.080Z",
+    "txId": "ddf10a9c-da37-4b8e-83ba-679824c1ac01",
+    "docType": "notifications"
+  }
+}
