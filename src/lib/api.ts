@@ -223,11 +223,36 @@ export const logAuditEvent = (
 export const getMedicalRecords = (patientDid: string) =>
   apiFetch<{ records: any[]; total: number }>(`/medical-records/${encodeURIComponent(patientDid)}`);
 
+/** Staff/Admin: fetch ALL medical records across all patients */
+export const getAllMedicalRecords = () =>
+  apiFetch<{ records: any[]; total: number }>(`/medical-records`);
+
+/** Doctor: fetch only records they created */
+export const getMyMedicalRecords = () =>
+  apiFetch<{ records: any[]; total: number }>(`/medical-records/my`);
+
+/** Fetch the medical report linked to a specific prescription (by rxId) */
+export const getMedicalRecordByRx = (rxId: string) =>
+  apiFetch<{ record: any | null }>(`/medical-records/by-prescription/${encodeURIComponent(rxId)}`);
+
 export const createMedicalRecord = (
   patientDid: string,
-  data: { title: string; type: string; content: string; doctorDid?: string; doctorName?: string },
+  data: {
+    title: string;
+    type: string;
+    content: string;
+    doctorDid?: string;
+    doctorName?: string;
+    /** Link this report to a prescription */
+    rxId?: string;
+    apptId?: string;
+    consultationSummary?: string;
+    clinicalNotes?: string;
+    testResults?: string;
+    recommendedFollowUp?: string;
+  },
 ) =>
-  apiFetch<{ record: any; anchor: any }>(`/medical-records/${encodeURIComponent(patientDid)}`, {
+  apiFetch<{ record: any; txId: string }>(`/medical-records/${encodeURIComponent(patientDid)}`, {
     method: "POST",
     body: JSON.stringify(data),
   });
