@@ -1209,6 +1209,7 @@ export async function bookAppointment(
         doctorDid,
         doctorName,
         slot,
+        date: slot.split(" · ")[0] || new Date().toISOString().split("T")[0],
         mode,
         specialty,
       });

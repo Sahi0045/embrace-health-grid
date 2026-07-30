@@ -512,7 +512,7 @@ function SchedulePage() {
     opts?: { rejectionReason?: string; suggestedSlot?: string },
   ) => {
     try {
-      await updateAppointmentStatus(apptId, status, opts);
+      await updateAppointmentStatus(apptId, status, opts?.rejectionReason, opts?.suggestedSlot);
       const label = status === "confirmed" ? "Accepted" : status === "rejected" ? "Declined" : "New time suggested";
       toast.success(`Appointment ${label}`, {
         description: status === "confirmed" ? "Patient has been notified." : opts?.suggestedSlot ? `Suggested: ${opts.suggestedSlot}` : "Patient has been notified.",
