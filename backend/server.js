@@ -1900,13 +1900,71 @@ app.get(
   },
 );
 
+// GET all medical records (staff/admin overview)
+app.get(
+  "/api/medical-records",
+  requireAuth,
+  requireRole(["admin", "staff", "doctor"]),
+  hipaaAuditPHIAccess("MedicalRecord"),
+  (req, res) => {
+    const all    = getAllState("medical-records");
+    const sorted = [...all].sort((a, b) =>
+      (b.value.createdAt || "").localeCompare(a.value.createdAt || ""),
+    );
+    res.json({ records: sorted.map((e) => e.value), total: sorted.length });
+  },
+);
+
+// GET medical record linked to a specific prescription
+app.get(
+  "/api/medical-records/by-prescription/:rxId",
+  requireAuth,
+  hipaaAuditPHIAccess("MedicalRecord"),
+  (req, res) => {
+    const { rxId } = req.params;
+    const found = queryState("medical-records", (v) => v.rxId === rxId);
+    if (found.length === 0) return res.json({ record: null });
+    // Return the most recent if somehow duplicated
+    const sorted = [...found].sort((a, b) =>
+      (b.value.createdAt || "").localeCompare(a.value.createdAt || ""),
+    );
+    res.json({ record: sorted[0].value });
+  },
+);
+
+// GET my medical records (doctor's own records — all patients they treated)
+app.get(
+  "/api/medical-records/my",
+  requireAuth,
+  requireRole(["doctor", "staff"]),
+  hipaaAuditPHIAccess("MedicalRecord"),
+  (req, res) => {
+    const doctorDid  = req.user.did || `did:hosp:0x${simHash(req.user.email).slice(0, 8)}`;
+    const doctorName = req.user.name || "";
+    const all = queryState(
+      "medical-records",
+      (v) => v.doctorDid === doctorDid || (doctorName && v.doctorName === doctorName),
+    );
+    const sorted = [...all].sort((a, b) =>
+      (b.value.createdAt || "").localeCompare(a.value.createdAt || ""),
+    );
+    res.json({ records: sorted.map((e) => e.value), total: sorted.length });
+  },
+);
+
 app.post(
   "/api/medical-records/:patientDid",
   requireAuth,
   requireRole(["doctor", "staff"]),
   async (req, res) => {
     const { patientDid } = req.params;
-    const { title, type, content, doctorDid, doctorName } = req.body;
+    const {
+      title, type, content, doctorDid, doctorName,
+      // New fields: link to prescription and appointment
+      rxId, apptId,
+      consultationSummary, clinicalNotes, testResults,
+      recommendedFollowUp,
+    } = req.body;
 
     if (!title || !type || !content) {
       return res.status(400).json({ error: "title, type, and content are required" });
@@ -1922,8 +1980,15 @@ app.post(
       title,
       type,
       content,
-      doctorDid: doctorDid || req.user.did || "did:hosp:unknown",
-      doctorName: doctorName || req.user.name || "Doctor",
+      doctorDid:           doctorDid           || req.user.did  || "did:hosp:unknown",
+      doctorName:          doctorName          || req.user.name || "Doctor",
+      // Linkage fields
+      rxId:                rxId                || null,
+      apptId:              apptId              || null,
+      consultationSummary: consultationSummary || content,
+      clinicalNotes:       clinicalNotes       || "",
+      testResults:         testResults         || "",
+      recommendedFollowUp: recommendedFollowUp || "",
       createdAt: new Date().toISOString(),
       hash: `sha256:${hash}`,
     };
