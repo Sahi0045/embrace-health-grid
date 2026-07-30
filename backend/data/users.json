@@ -1249,5 +1249,14 @@
     "updatedAt": "2026-07-25T19:36:57.741Z",
     "txId": "07e59a1b-62da-4c58-a377-5320c9151288",
     "docType": "users"
+  },
+  "e2e-nurse@example.com": {
+    "key": "e2e-nurse@example.com",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"1SesYu6-QqHUdHFJ\",\"tag\":\"9VlFVcbun6NzkvPyOBRgaA\",\"ct\":\"iwdO5n-1NFGG6cmDuECDF15XqSc1YFq9S6-zONylAR_WqhwYec5WoTRr0BIDT26zGD9JHceUkb-RqDlZgsgNPMseHC88Rn6hLPwP57ZEjBdK8XS9YqGgBAN6PL66mQrDe64nTPx9RqUhFWJk6ZxT9DsNNEt_NVVZaWSxNC-kfkBC0JCBAyGQaVZPg1z5X8VBu1GTo0ZwOzOvwWwcdG7SFrDcTY2sXm1vqIjs12xFCAPAN70SDiTPAIvWfPZ_b1vFS_O58YZX-Kg73Kxhewu2G7E8U4bc_E_0ecSSLTYWxd0x4qxY8H9dkPSaYE9myuYSh91dek_cN5ScNR63RRdG3evw88idXCY7JX7Oatgo-uxhlf4--_TpQjKFhzofSaj5BIixT7S3Jcj2EXNS96DWSBf5gr1fow\"}",
+    "namespace": "users",
+    "version": "aff87531-63db-4e60-9b24-fc3b7530db32:1",
+    "updatedAt": "2026-07-28T19:57:18.080Z",
+    "txId": "aff87531-63db-4e60-9b24-fc3b7530db32",
+    "docType": "users"
   }
 }
