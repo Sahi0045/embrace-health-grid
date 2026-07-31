@@ -5,32 +5,23 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
-  Stethoscope,
-  Mail,
-  Phone,
-  Calendar,
-  Shield,
-  LogOut,
-  Edit,
-  Award,
-  Building2,
-  Wallet,
+  Stethoscope, Mail, Phone, Calendar, Shield, LogOut, Edit,
+  Award, Building2, Wallet, CheckCircle2, AlertTriangle, Loader2,
 } from "lucide-react";
 import { RouteGuard } from "@/components/RouteGuard";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { getCurrentUser, setSession } from "@/lib/auth";
-import { linkWalletAddress, updateProfile, API_BASE_URL, requestDID, getDIDRequests } from "@/lib/api";
+import {
+  updateProfile, API_BASE_URL, requestDID, getDIDRequests,
+  requestWalletChallenge, verifyAndLinkWallet, getMe,
+} from "@/lib/api";
 import { useLiveStaff } from "@/hooks/use-api";
 import { toast } from "sonner";
 import { useState, useEffect, useCallback } from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+  Dialog, DialogContent, DialogDescription,
+  DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -65,37 +56,93 @@ const staffData = {
 function StaffProfile() {
   const { staff } = useLiveStaff();
   const [currentUser, setCurrentUser] = useState(getCurrentUser());
-  const { publicKey, connected } = useWallet();
-  const [linking, setLinking] = useState(false);
-  const [adminDid, setAdminDid] = useState<string | null>(null);
+  const { publicKey, connected, signMessage } = useWallet();
+  const [verifying, setVerifying]   = useState(false);
+  const [adminDid,   setAdminDid]   = useState<string | null>(null);
   const [didLoading, setDidLoading] = useState(true);
 
-  const userEmail = currentUser?.email || "";
+  const userEmail       = currentUser?.email || "";
+  const walletVerified  = (currentUser as any)?.walletVerified === true;
 
   const [requestingDid, setRequestingDid] = useState(false);
-  const [pendingReq, setPendingReq] = useState<any>(null);
+  const [pendingReq,    setPendingReq]    = useState<any>(null);
+
+  // Refresh session from backend (picks up walletVerified)
+  const refreshSession = useCallback(async () => {
+    try {
+      const res = await getMe();
+      if (res.user) {
+        const token = localStorage.getItem("authToken") || "";
+        setSession(token, res.user);
+        setCurrentUser(getCurrentUser());
+      }
+    } catch { /* silent */ }
+  }, []);
 
   const checkPendingRequest = useCallback(async () => {
     if (!userEmail) return;
     try {
       const res = await getDIDRequests();
-      if (res && res.requests) {
+      if (res?.requests) {
         const match = res.requests.find(
           (r: any) => r.ownerEmail?.toLowerCase() === userEmail.toLowerCase() && r.status === "pending"
         );
         setPendingReq(match || null);
       }
-    } catch {
-      /* ignore */
-    }
+    } catch { /* ignore */ }
   }, [userEmail]);
 
+  // ── Full wallet verification flow: challenge → signMessage → verify ──────
+  const handleVerifyWallet = async () => {
+    if (!publicKey || !signMessage) {
+      toast.error("Please connect your Phantom wallet first");
+      return;
+    }
+    setVerifying(true);
+    try {
+      const address = publicKey.toBase58();
+
+      // Step 1: get challenge message from backend
+      const { message } = await requestWalletChallenge(address);
+
+      // Step 2: ask the wallet to sign it
+      toast.info("Please approve the signature request in your wallet…");
+      const msgBytes = new TextEncoder().encode(message);
+      const sigBytes = await signMessage(msgBytes);
+      const sigBase64 = Buffer.from(sigBytes).toString("base64");
+
+      // Step 3: send signature to backend — verifies ownership + links wallet
+      const res = await verifyAndLinkWallet(address, sigBase64);
+      if (res.success && res.verified && res.user) {
+        const token = localStorage.getItem("authToken") || "";
+        setSession(token, res.user);
+        setCurrentUser(getCurrentUser());
+        toast.success("Wallet verified and linked!", {
+          description: `${address.slice(0, 8)}…${address.slice(-6)} is now permanently associated with your account.`,
+        });
+      }
+    } catch (err: any) {
+      // "User rejected" from Phantom → friendly message
+      if (err.message?.includes("User rejected") || err.message?.includes("cancelled")) {
+        toast.error("Signature cancelled", { description: "You must approve the signing request in your wallet to verify ownership." });
+      } else {
+        toast.error(err.message || "Wallet verification failed");
+      }
+    } finally {
+      setVerifying(false);
+    }
+  };
+
   const handleRequestDIDClick = async () => {
+    if (!walletVerified) {
+      toast.error("Verify your Solana wallet first before requesting a DID.");
+      return;
+    }
     setRequestingDid(true);
     try {
       const res = await requestDID({
-        ownerName: currentUser?.name || staffData.name,
-        ownerType: currentUser?.role || "doctor",
+        ownerName:  currentUser?.name  || staffData.name,
+        ownerType:  currentUser?.role  || "doctor",
         department: currentUser?.department || staffData.department,
       });
       if (res.success) {
@@ -112,6 +159,7 @@ function StaffProfile() {
   };
 
   useEffect(() => {
+    refreshSession();
     async function fetchAdminDid() {
       try {
         const res = await fetch(`${API_BASE_URL}/api/did`, {
@@ -129,27 +177,27 @@ function StaffProfile() {
               (d.owner && currentUser?.name && d.owner.toLowerCase() === currentUser.name.toLowerCase()) ||
               (d.did && currentUser?.did && d.did === currentUser.did)
           );
-          if (match && match.did) {
+          if (match?.did) {
             setAdminDid(match.did);
-          } else if (currentUser?.did && currentUser.did.startsWith("did:hosp:")) {
+          } else if (currentUser?.did?.startsWith("did:hosp:")) {
             setAdminDid(currentUser.did);
           } else {
             setAdminDid(null);
           }
-        } else if (currentUser?.did && currentUser.did.startsWith("did:hosp:")) {
+        } else if (currentUser?.did?.startsWith("did:hosp:")) {
           setAdminDid(currentUser.did);
         } else {
           setAdminDid(null);
         }
       } catch {
-        setAdminDid(currentUser?.did && currentUser.did.startsWith("did:hosp:") ? currentUser.did : null);
+        setAdminDid(currentUser?.did?.startsWith("did:hosp:") ? currentUser.did : null);
       } finally {
         setDidLoading(false);
       }
     }
     fetchAdminDid();
     checkPendingRequest();
-  }, [userEmail, currentUser?.name, currentUser?.did, checkPendingRequest]);
+  }, [userEmail, currentUser?.name, currentUser?.did, checkPendingRequest, refreshSession]);
 
   const staffRecord = staff?.find((s: any) => s.email === userEmail) || {
     name: currentUser?.name || staffData.name,
@@ -203,28 +251,6 @@ function StaffProfile() {
       toast.error(err.message || "Failed to update profile");
     } finally {
       setUpdating(false);
-    }
-  };
-
-  const handleLinkWallet = async () => {
-    if (!publicKey) {
-      toast.error("Please connect your wallet first");
-      return;
-    }
-    setLinking(true);
-    try {
-      const address = publicKey.toBase58();
-      const res = await linkWalletAddress(address);
-      if (res.success && res.user) {
-        const token = localStorage.getItem("authToken") || "";
-        setSession(token, res.user);
-        setCurrentUser(getCurrentUser());
-        toast.success("Wallet linked successfully to your profile!");
-      }
-    } catch (err: any) {
-      toast.error(err.message || "Failed to link wallet");
-    } finally {
-      setLinking(false);
     }
   };
 
@@ -383,11 +409,18 @@ function StaffProfile() {
                     </div>
                     <Button
                       onClick={handleRequestDIDClick}
-                      disabled={requestingDid}
+                      disabled={requestingDid || !walletVerified}
                       className="bg-primary text-primary-foreground text-xs font-bold px-4 py-2"
+                      title={!walletVerified ? "Verify your Solana wallet first" : undefined}
                     >
                       {requestingDid ? "Submitting Request..." : "Request Official DID from Admin"}
                     </Button>
+                    {!walletVerified && (
+                      <div className="flex items-center gap-2 rounded-lg border border-warning/30 bg-warning/5 px-3 py-2 text-xs text-warning-foreground">
+                        <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                        You must verify your Solana wallet before requesting a DID.
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -401,63 +434,89 @@ function StaffProfile() {
 
           <Card>
             <CardHeader>
-              <div className="flex items-center gap-2">
-                <Wallet className="h-5 w-5 text-primary" />
-                <CardTitle>Solana Wallet Integration</CardTitle>
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Wallet className="h-5 w-5 text-primary" />
+                  <CardTitle>Solana Wallet</CardTitle>
+                </div>
+                {walletVerified ? (
+                  <Badge className="bg-success/15 text-success border border-success/30 text-[10px] font-bold flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3" /> Ownership Verified
+                  </Badge>
+                ) : currentUser?.walletAddress ? (
+                  <Badge variant="outline" className="bg-warning/10 text-warning-foreground border-warning/30 text-[10px]">
+                    Linked — Unverified
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-[10px]">Not Linked</Badge>
+                )}
               </div>
               <CardDescription>
-                Link a single Solana wallet address to sign prescriptions and write ledger audit
-                events.
+                Connect and verify one Solana wallet. Wallet verification is required before requesting a DID.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Workflow steps */}
+              <div className="grid grid-cols-3 gap-2 text-center text-[10px]">
+                {[
+                  { step: "1", label: "Connect Wallet",     done: connected },
+                  { step: "2", label: "Verify Ownership",   done: walletVerified },
+                  { step: "3", label: "Request DID",        done: !!adminDid },
+                ].map((s) => (
+                  <div key={s.step} className={`rounded-lg border px-2 py-2 space-y-1 ${s.done ? "border-success/30 bg-success/5" : "border-border bg-muted/30"}`}>
+                    <div className={`text-base font-black ${s.done ? "text-success" : "text-muted-foreground"}`}>
+                      {s.done ? "✓" : s.step}
+                    </div>
+                    <div className={s.done ? "text-success font-semibold" : "text-muted-foreground"}>{s.label}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Linked address display */}
               {currentUser?.walletAddress ? (
-                <div className="rounded-lg border border-success/25 bg-success/5 p-4 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-success uppercase tracking-wider">
-                      Linked Address
+                <div className={`rounded-lg border p-4 space-y-2 ${walletVerified ? "border-success/25 bg-success/5" : "border-warning/25 bg-warning/5"}`}>
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <span className={`text-xs font-semibold uppercase tracking-wider ${walletVerified ? "text-success" : "text-warning-foreground"}`}>
+                      {walletVerified ? "Verified Wallet Address" : "Wallet Address (Unverified)"}
                     </span>
-                    <Badge className="bg-success/15 text-success border border-success/35">
-                      Verified Profile Link
-                    </Badge>
                   </div>
                   <div className="font-mono text-xs text-foreground select-all break-all">
                     {currentUser.walletAddress}
                   </div>
                   {connected && publicKey?.toBase58() !== currentUser.walletAddress && (
-                    <div className="text-xs text-destructive font-medium mt-1">
-                      ⚠️ Mismatched Wallet: Currently connected to{" "}
-                      {publicKey!.toBase58().slice(0, 6)}...{publicKey!.toBase58().slice(-4)}.
-                      Please switch to your registered wallet.
+                    <div className="flex items-center gap-2 text-xs text-destructive font-medium mt-1">
+                      <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                      Connected wallet differs from linked address. Switch to your registered wallet.
                     </div>
                   )}
                 </div>
               ) : (
-                <div className="rounded-lg border border-warning/20 bg-warning/5 p-4">
-                  <div className="text-xs font-semibold text-warning uppercase tracking-wider mb-1">
-                    No Wallet Linked
-                  </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    You have not linked a Solana wallet to your profile yet. Connect your wallet and
-                    link it below to enable clinical ledger signatures.
-                  </p>
+                <div className="rounded-lg border border-warning/20 bg-warning/5 p-4 text-xs text-muted-foreground">
+                  No wallet linked. Connect your Phantom wallet and verify ownership to continue.
                 </div>
               )}
 
-              <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                <div className="wallet-adapter-button-trigger">
-                  <WalletMultiButton className="!bg-primary hover:!bg-primary/90 !rounded-lg !h-10 !text-sm !font-semibold !px-4" />
-                </div>
-                {connected && publicKey?.toBase58() !== currentUser?.walletAddress && (
-                  <Button
-                    onClick={handleLinkWallet}
-                    disabled={linking}
-                    className="h-10 text-sm font-semibold shadow-clinical cursor-pointer"
-                  >
-                    {linking ? "Linking..." : "Link Connected Wallet"}
+              {/* Action buttons */}
+              <div className="flex flex-col sm:flex-row gap-3 pt-1">
+                <WalletMultiButton className="!bg-primary hover:!bg-primary/90 !rounded-lg !h-10 !text-sm !font-semibold !px-4" />
+                {connected && !walletVerified && (
+                  <Button onClick={handleVerifyWallet} disabled={verifying}
+                    className="h-10 text-sm font-semibold gap-2">
+                    {verifying
+                      ? <><Loader2 className="h-4 w-4 animate-spin" /> Verifying…</>
+                      : <><Shield className="h-4 w-4" /> Verify & Link Wallet</>}
                   </Button>
                 )}
+                {walletVerified && (
+                  <div className="flex items-center gap-2 rounded-xl border border-success/30 bg-success/5 px-4 h-10 text-xs font-semibold text-success">
+                    <CheckCircle2 className="h-4 w-4" /> Wallet ownership confirmed
+                  </div>
+                )}
               </div>
+
+              <p className="text-[11px] text-muted-foreground">
+                Each account may link only one wallet, and each wallet may belong to only one account.
+              </p>
             </CardContent>
           </Card>
 
