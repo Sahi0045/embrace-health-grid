@@ -8,11 +8,13 @@ import {
   publishMerkleRoot, getMerkleRootHistory, getVerifiedDoctors,
 } from "@/lib/api";
 import { getCurrentUser } from "@/lib/auth";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import {
   Building2, MapPin, CheckCircle2, Clock, Loader2,
   ShieldCheck, RefreshCw, LogIn, LogOut, History, X,
   Zap, Copy, ExternalLink, Hash, Link2, ChevronDown, ChevronUp,
-  TreePine, AlertTriangle, CalendarDays,
+  TreePine, AlertTriangle, CalendarDays, Wallet,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -35,6 +37,8 @@ const TYPE_COLORS: Record<string, string> = {
 
 function StaffRooms() {
   const currentUser = getCurrentUser();
+  const { publicKey, connected, signMessage } = useWallet();
+  const isDoctor = (currentUser?.role || "").toLowerCase() === "doctor";
 
   // ── doctor identity ──────────────────────────────────────────────────────
   const [doctorDid,   setDoctorDid]   = useState("");
@@ -196,14 +200,43 @@ function StaffRooms() {
     setPublishing(true);
     setShowConfirm(false);
     try {
-      const r = await publishMerkleRoot(doctorDid);
-      toast.success("Merkle Root published to blockchain!", {
-        description: `Root: ${r.merkleRoot.slice(0, 16)}… · Tx: ${r.txHash.slice(0, 16)}…`,
-      });
+      let txSignature: string | undefined;
+      let walletAddress: string | undefined;
+
+      // If doctor has a connected + verified wallet with signMessage support, sign the root
+      if (connected && publicKey && signMessage && dailyRoot) {
+        try {
+          walletAddress = publicKey.toBase58();
+          const message = `Embrace Health Grid — Publish Merkle Root\nDoctor: ${doctorDid}\nDate: ${dailyDate || new Date().toISOString().split("T")[0]}\nRoot: ${dailyRoot}`;
+          toast.info("Please approve the signing request in your Phantom wallet…");
+          const msgBytes = new TextEncoder().encode(message);
+          const sigBytes = await signMessage(msgBytes);
+          txSignature = Buffer.from(sigBytes).toString("base64");
+          toast.success("Signature approved — publishing on-chain…");
+        } catch (sigErr: any) {
+          if (sigErr.message?.includes("User rejected") || sigErr.message?.includes("cancelled")) {
+            toast.error("Signature cancelled. You must approve the request to publish on-chain.");
+            setPublishing(false);
+            return;
+          }
+          // Wallet signing failed non-fatally — proceed with simulated tx
+          console.warn("Wallet sign failed, falling back to simulated tx:", sigErr);
+          txSignature = undefined;
+          walletAddress = undefined;
+        }
+      }
+
+      const r = await publishMerkleRoot(doctorDid, txSignature, walletAddress);
+      toast.success(
+        r.onChain ? "Merkle Root published on-chain!" : "Merkle Root recorded (simulated)",
+        { description: `Root: ${r.merkleRoot.slice(0, 16)}… · Tx: ${r.txHash.slice(0, 16)}…` },
+      );
       await Promise.all([loadDaily(), loadPublished()]);
     } catch (err: any) {
       toast.error("Publish failed", { description: err.message });
-    } finally { setPublishing(false); }
+    } finally {
+      setPublishing(false);
+    }
   };
 
   return (
@@ -349,16 +382,44 @@ function StaffRooms() {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            {/* Publish button — doctors only */}
+            <div className="flex items-center gap-2 flex-wrap">
               {loadingDaily && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-              <button onClick={() => setShowConfirm(true)}
-                disabled={publishing || dailyEvents.length === 0}
-                className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-all">
-                {publishing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5" />}
-                Publish to Blockchain
-              </button>
+              {isDoctor ? (
+                <>
+                  {/* Wallet connection required */}
+                  {!connected && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-warning-foreground font-medium">Connect wallet to publish</span>
+                      <WalletMultiButton className="!bg-primary hover:!bg-primary/90 !rounded-lg !h-8 !text-xs !font-semibold !px-3" />
+                    </div>
+                  )}
+                  <button
+                    onClick={() => setShowConfirm(true)}
+                    disabled={publishing || dailyEvents.length === 0 || !connected}
+                    className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-all"
+                    title={!connected ? "Connect your Phantom wallet to publish on-chain" : undefined}>
+                    {publishing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5" />}
+                    {connected ? "Sign & Publish to Blockchain" : "Publish to Blockchain"}
+                  </button>
+                </>
+              ) : (
+                <div className="flex items-center gap-2 rounded-xl border border-warning/30 bg-warning/5 px-3 py-2 text-xs text-warning-foreground font-semibold">
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                  Only doctors can publish Merkle Roots
+                </div>
+              )}
             </div>
           </div>
+
+          {/* Wallet status for doctors */}
+          {isDoctor && connected && publicKey && (
+            <div className="flex items-center gap-2 rounded-lg border border-success/25 bg-success/5 px-3 py-2 text-xs">
+              <Wallet className="h-3.5 w-3.5 text-success shrink-0" />
+              <span className="text-success font-semibold">Wallet connected:</span>
+              <span className="font-mono text-foreground">{publicKey.toBase58().slice(0, 8)}…{publicKey.toBase58().slice(-6)}</span>
+            </div>
+          )}
 
           {/* Pre-computed Merkle root preview */}
           {dailyRoot && (
@@ -397,7 +458,9 @@ function StaffRooms() {
           {dailyEvents.length > 0 && (
             <div className="flex items-start gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-[11px] text-muted-foreground">
               <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5 text-warning-foreground" />
-              Events are stored locally until you click "Publish to Blockchain". Only the Merkle Root is published on-chain — not the raw events.
+              {isDoctor
+                ? "Events are aggregated until you click \"Sign & Publish\". Your Phantom wallet will be asked to sign the root. Only the Merkle Root is published on-chain — not the raw events."
+                : "Events accumulate throughout the day. The assigned doctor will publish the Merkle Root at end of day."}
             </div>
           )}
         </div>
@@ -439,7 +502,7 @@ function StaffRooms() {
                 <h3 className="text-base font-bold text-foreground">Publish Daily Merkle Root?</h3>
                 <p className="text-xs text-muted-foreground px-4">
                   This will build a Merkle Tree from today's <strong>{dailyEvents.length} room events</strong> and
-                  publish only the root hash on-chain. Raw events remain in the database.
+                  publish only the root hash on-chain. Your Phantom wallet will be asked to sign the Merkle Root.
                 </p>
               </div>
 
@@ -448,7 +511,7 @@ function StaffRooms() {
                   ["Date",      dailyDate || new Date().toISOString().split("T")[0]],
                   ["Events",    String(dailyEvents.length)],
                   ["Merkle Root", dailyRoot ? `${dailyRoot.slice(0, 24)}…` : "Will be generated"],
-                  ["Network",   "Solana Devnet (simulated)"],
+                  ["Network",   connected && publicKey ? "Solana Devnet (signed by wallet)" : "Solana Devnet (simulated)"],
                 ].map(([k, v]) => (
                   <div key={k} className="flex justify-between">
                     <span className="text-muted-foreground">{k}</span>

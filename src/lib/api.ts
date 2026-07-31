@@ -653,12 +653,46 @@ export const linkWalletAddress = (walletAddress: string) =>
       role: string;
       did?: string | null;
       walletAddress: string;
+      walletVerified: boolean;
       mrn?: string | null;
       employeeId?: string | null;
     };
   }>(`/auth/link-wallet`, {
     method: "POST",
     body: JSON.stringify({ walletAddress }),
+  });
+
+/**
+ * Step 1 — request a sign-challenge for the given wallet address.
+ * Returns { nonce, message } — the user must sign `message` with their wallet.
+ */
+export const requestWalletChallenge = (walletAddress: string) =>
+  apiFetch<{ nonce: string; message: string }>(`/auth/wallet-challenge`, {
+    method: "POST",
+    body: JSON.stringify({ walletAddress }),
+  });
+
+/**
+ * Step 2 — submit the base64-encoded Ed25519 signature to verify ownership
+ * and permanently link the wallet to the authenticated account.
+ */
+export const verifyAndLinkWallet = (walletAddress: string, signature: string) =>
+  apiFetch<{
+    success: boolean;
+    verified: boolean;
+    user: {
+      name: string;
+      email: string;
+      role: string;
+      did?: string | null;
+      walletAddress: string;
+      walletVerified: boolean;
+      mrn?: string | null;
+      employeeId?: string | null;
+    };
+  }>(`/auth/wallet-verify`, {
+    method: "POST",
+    body: JSON.stringify({ walletAddress, signature }),
   });
 
 export const updateProfile = (data: {
@@ -865,11 +899,19 @@ export const getDailyRoomEvents = (doctorDid: string) =>
     `/merkle-root/daily/${encodeURIComponent(doctorDid)}`,
   );
 
-/** Publish today's Merkle root to blockchain (mock) */
-export const publishMerkleRoot = (doctorDid: string) =>
-  apiFetch<{ success: boolean; merkleRoot: string; txHash: string; rootId: string; eventCount: number; publishedAt: string }>(
+/** Publish today's Merkle root to blockchain — doctors only.
+ *  Pass txSignature (base58 Solana tx sig) and walletAddress when publishing on-chain. */
+export const publishMerkleRoot = (
+  doctorDid: string,
+  txSignature?: string,
+  walletAddress?: string,
+) =>
+  apiFetch<{
+    success: boolean; merkleRoot: string; txHash: string;
+    rootId: string; eventCount: number; publishedAt: string; onChain: boolean;
+  }>(
     `/merkle-root/publish`,
-    { method: "POST", body: JSON.stringify({ doctorDid }) },
+    { method: "POST", body: JSON.stringify({ doctorDid, txSignature, walletAddress }) },
   );
 
 /** Fetch history of all published Merkle roots for a doctor */

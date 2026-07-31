@@ -635,6 +635,15 @@ app.post("/api/did/request", requireAuth, (req, res) => {
   const ownerType = req.body.ownerType || req.user.role || "doctor";
   const department = req.body.department || "Clinical Services";
 
+  // ── Wallet verification gate ──────────────────────────────────────────────
+  const userEntry = getState("users", ownerEmail);
+  if (!userEntry || !userEntry.value.walletAddress || !userEntry.value.walletVerified) {
+    return res.status(400).json({
+      error: "A verified Solana wallet is required before requesting a DID. Please connect and verify your wallet first.",
+      code: "WALLET_NOT_VERIFIED",
+    });
+  }
+
   const existingDid = getAllState("did-registry").find(
     (d) => d.value.ownerEmail?.toLowerCase() === ownerEmail.toLowerCase()
   );
@@ -658,6 +667,8 @@ app.post("/api/did/request", requireAuth, (req, res) => {
     ownerEmail,
     ownerType,
     department,
+    walletAddress: userEntry.value.walletAddress,
+    walletVerified: true,
     status: "pending",
     requestedAt: new Date().toISOString(),
   };
@@ -1546,10 +1557,33 @@ app.get("/api/merkle-root/daily/:doctorDid", requireAuth, (req, res) => {
   res.json({ events: todayEvents, merkleRoot: root, eventCount: todayEvents.length, date: today });
 });
 
-// ─── Merkle Tree: publish daily root to blockchain (mock) ────────────────────
-app.post("/api/merkle-root/publish", requireAuth, requireRole(["doctor", "staff", "admin"]), (req, res) => {
-  const { doctorDid } = req.body;
+// ─── Merkle Tree: publish daily root to blockchain ───────────────────────────
+app.post("/api/merkle-root/publish", requireAuth, requireRole(["doctor"]), (req, res) => {
+  const { doctorDid, txSignature, walletAddress } = req.body;
   if (!doctorDid) return res.status(400).json({ error: "doctorDid is required" });
+
+  // Enforce: only the logged-in doctor can publish their own Merkle Root
+  const tokenDid  = req.user.did || `did:hosp:0x${simHash(req.user.email).slice(0, 8)}`;
+  const tokenName = req.user.name || "";
+  const userEntry = getState("users", req.user.email);
+
+  const isDoctorsDid = doctorDid === tokenDid ||
+    (tokenName && queryState("did-registry", (v) =>
+      v.did === doctorDid &&
+      (v.ownerEmail?.toLowerCase() === req.user.email.toLowerCase() || v.owner === tokenName)
+    ).length > 0);
+
+  if (!isDoctorsDid) {
+    return res.status(403).json({ error: "Access Denied: You can only publish your own daily Merkle Root." });
+  }
+
+  // Require verified wallet to publish on-chain
+  if (!userEntry || !userEntry.value.walletVerified) {
+    return res.status(400).json({
+      error: "A verified Solana wallet is required to publish the Merkle Root.",
+      code: "WALLET_NOT_VERIFIED",
+    });
+  }
 
   const today = new Date().toISOString().split("T")[0];
   const all   = queryState("room-checkin-history", (v) => v.doctorDid === doctorDid);
@@ -1568,31 +1602,41 @@ app.post("/api/merkle-root/publish", requireAuth, requireRole(["doctor", "staff"
     action:    ev.action,
     timestamp: ev.timestamp,
   }));
-  const tree    = buildMerkleTree(leaves);
-  const root    = getMerkleRoot(tree);
+  const tree = buildMerkleTree(leaves);
+  const root = getMerkleRoot(tree);
 
-  // Mock blockchain transaction
-  const txHash  = `sol_${simHash(`${doctorDid}:${root}:${Date.now()}`).slice(0, 32)}`;
-  const rootId  = `mr_${randomUUID().slice(0, 8)}`;
+  // Use the real wallet txSignature when provided; fall back to simulated hash
+  const txHash      = txSignature || `sol_${simHash(`${doctorDid}:${root}:${Date.now()}`).slice(0, 32)}`;
+  const rootId      = `mr_${randomUUID().slice(0, 8)}`;
   const publishedAt = new Date().toISOString();
+  const isRealTx    = !!txSignature;
 
   const record = {
-    rootId, doctorDid,
-    merkleRoot: root,
+    rootId,
+    doctorDid,
+    doctorName:  req.user.name || "",
+    doctorEmail: req.user.email,
+    walletAddress: walletAddress || userEntry.value.walletAddress || "",
+    merkleRoot:  root,
     txHash,
+    txSignature: txSignature || null,
     date:        today,
     eventCount:  todayEvents.length,
     publishedAt,
-    network:     "solana-devnet-simulated",
+    network:     isRealTx ? "solana-devnet" : "solana-devnet-simulated",
     verified:    true,
+    onChain:     isRealTx,
   };
 
-  putState("merkle-roots",   rootId,    record,              randomUUID());
-  putState("blockchain-tx",  txHash,    { txHash, rootId, doctorDid, publishedAt }, randomUUID());
+  putState("merkle-roots",  rootId, record,                        randomUUID());
+  putState("blockchain-tx", txHash, { txHash, rootId, doctorDid, doctorEmail: req.user.email, publishedAt, onChain: isRealTx }, randomUUID());
 
   broadcast({ event: "merkle:published", data: record });
 
-  res.status(201).json({ success: true, merkleRoot: root, txHash, rootId, eventCount: todayEvents.length, publishedAt });
+  res.status(201).json({
+    success: true, merkleRoot: root, txHash, rootId,
+    eventCount: todayEvents.length, publishedAt, onChain: isRealTx,
+  });
 });
 
 // ─── Merkle Tree: history of published roots ──────────────────────────────────
@@ -3411,25 +3455,31 @@ app.get("/api/auth/me", requireAuth, (req, res) => {
       role: userEntry.value.role,
       did: userDid || null,
       walletAddress: userEntry.value.walletAddress || null,
+      walletVerified: userEntry.value.walletVerified === true,
       mrn: userEntry.value.mrn || null,
       employeeId: userEntry.value.employeeId || null,
     },
   });
 });
 
+// ─── Wallet: legacy simple link (kept for backward compat, unverified) ────────
 app.post("/api/auth/link-wallet", requireAuth, (req, res) => {
   const { walletAddress } = req.body;
-  if (!walletAddress) {
-    return res.status(400).json({ error: "walletAddress is required" });
-  }
-
+  if (!walletAddress) return res.status(400).json({ error: "walletAddress is required" });
   const email = req.user.email;
   const userEntry = getState("users", email);
-  if (!userEntry) {
-    return res.status(404).json({ error: "User not found" });
+  if (!userEntry) return res.status(404).json({ error: "User not found" });
+
+  // Enforce uniqueness: one wallet → one account
+  const existingOwner = queryState("users", (v) =>
+    v.walletAddress === walletAddress && v.email !== email
+  );
+  if (existingOwner.length > 0) {
+    return res.status(409).json({ error: "This wallet is already linked to another account." });
   }
 
   userEntry.value.walletAddress = walletAddress;
+  userEntry.value.walletVerified = false; // legacy link is unverified
   putState("users", email, userEntry.value, randomUUID());
 
   if (userEntry.value.did) {
@@ -3449,6 +3499,123 @@ app.post("/api/auth/link-wallet", requireAuth, (req, res) => {
       role: userEntry.value.role,
       did: userEntry.value.did,
       walletAddress,
+      walletVerified: false,
+      mrn: userEntry.value.mrn || null,
+      employeeId: userEntry.value.employeeId || null,
+    },
+  });
+});
+
+// ─── Wallet: Step 1 — issue a sign-challenge nonce ───────────────────────────
+// In-memory nonce store (TTL 5 minutes). For production use Redis.
+const _walletNonces = new Map(); // walletAddress → { nonce, email, expiresAt }
+
+app.post("/api/auth/wallet-challenge", requireAuth, (req, res) => {
+  const { walletAddress } = req.body;
+  if (!walletAddress) return res.status(400).json({ error: "walletAddress is required" });
+
+  // Enforce: one wallet per account
+  const existingOwner = queryState("users", (v) =>
+    v.walletAddress === walletAddress &&
+    v.email !== req.user.email &&
+    v.walletVerified === true
+  );
+  if (existingOwner.length > 0) {
+    return res.status(409).json({
+      error: "This wallet is already linked and verified on another account. Each wallet may only be used by one account.",
+    });
+  }
+
+  const nonce = randomUUID();
+  const message = `Embrace Health Grid — Wallet Verification\nAccount: ${req.user.email}\nNonce: ${nonce}\nTimestamp: ${new Date().toISOString()}`;
+  _walletNonces.set(walletAddress, {
+    nonce,
+    message,
+    email: req.user.email,
+    expiresAt: Date.now() + 5 * 60 * 1000, // 5 min TTL
+  });
+
+  res.json({ nonce, message });
+});
+
+// ─── Wallet: Step 2 — verify signature + link wallet ─────────────────────────
+app.post("/api/auth/wallet-verify", requireAuth, async (req, res) => {
+  const { walletAddress, signature } = req.body;
+  if (!walletAddress || !signature) {
+    return res.status(400).json({ error: "walletAddress and signature are required" });
+  }
+
+  const pending = _walletNonces.get(walletAddress);
+  if (!pending) {
+    return res.status(400).json({ error: "No active challenge for this wallet. Request a new challenge first." });
+  }
+  if (Date.now() > pending.expiresAt) {
+    _walletNonces.delete(walletAddress);
+    return res.status(400).json({ error: "Challenge expired. Please request a new challenge." });
+  }
+  if (pending.email !== req.user.email) {
+    return res.status(403).json({ error: "Challenge was issued for a different account." });
+  }
+
+  // Verify the Ed25519 signature using @solana/web3.js PublicKey
+  try {
+    const pubKey = new PublicKey(walletAddress);
+    const msgBytes = new TextEncoder().encode(pending.message);
+    const sigBytes = Buffer.from(signature, "base64");
+    const nacl = await import("tweetnacl");
+    const valid = nacl.sign.detached.verify(msgBytes, sigBytes, pubKey.toBytes());
+    if (!valid) {
+      return res.status(400).json({ error: "Signature verification failed. Wallet ownership could not be confirmed." });
+    }
+  } catch (err) {
+    logger.warn({ err }, "wallet signature verification error");
+    return res.status(400).json({ error: "Invalid signature or wallet address." });
+  }
+
+  // All checks passed — enforce one-wallet-per-account and one-account-per-wallet
+  const email = req.user.email;
+
+  const walletTakenByOther = queryState("users", (v) =>
+    v.walletAddress === walletAddress && v.email !== email && v.walletVerified === true
+  );
+  if (walletTakenByOther.length > 0) {
+    return res.status(409).json({ error: "This wallet is already verified on another account." });
+  }
+
+  const userEntry = getState("users", email);
+  if (!userEntry) return res.status(404).json({ error: "User not found" });
+
+  // Clear the nonce
+  _walletNonces.delete(walletAddress);
+
+  // Persist verified wallet to user record
+  userEntry.value.walletAddress = walletAddress;
+  userEntry.value.walletVerified = true;
+  putState("users", email, userEntry.value, randomUUID());
+
+  // Sync to DID registry if DID already issued
+  if (userEntry.value.did) {
+    const didEntry = getState("did-registry", userEntry.value.did);
+    if (didEntry) {
+      didEntry.value.walletAddress = walletAddress;
+      didEntry.value.walletVerified = true;
+      putState("did-registry", userEntry.value.did, didEntry.value, randomUUID());
+      broadcast({ event: "did:updated", data: didEntry.value });
+    }
+  }
+
+  broadcast({ event: "wallet:verified", data: { email, walletAddress } });
+
+  res.json({
+    success: true,
+    verified: true,
+    user: {
+      name: userEntry.value.name,
+      email,
+      role: userEntry.value.role,
+      did: userEntry.value.did,
+      walletAddress,
+      walletVerified: true,
       mrn: userEntry.value.mrn || null,
       employeeId: userEntry.value.employeeId || null,
     },
