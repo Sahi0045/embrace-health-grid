@@ -161,6 +161,21 @@ export const getCredentials = () => apiFetch<{ credentials: any[]; total: number
 // ─── Consent ──────────────────────────────────────────────────────────────────
 export const getConsents = () => apiFetch<{ consents: any[]; total: number }>(`/consent`);
 
+/** Doctor/Staff: fetch all consent grants + sent requests for the authenticated doctor */
+export const getMyConsents = () =>
+  apiFetch<{
+    grants: any[];
+    requests: any[];
+    totalGrants: number;
+    totalRequests: number;
+    active: number;
+    pending: number;
+  }>(`/consent/my`);
+
+/** Doctor/Staff: fetch only consent requests sent by the authenticated doctor */
+export const getMyConsentRequests = () =>
+  apiFetch<{ requests: any[]; total: number }>(`/consent/requests/my`);
+
 export const grantConsent = (
   patientDid: string,
   doctorDid: string,

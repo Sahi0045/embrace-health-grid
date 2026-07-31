@@ -97,6 +97,7 @@ const staffNav: Item[] = [
   { title: "Schedule",         url: "/staff/schedule",     icon: Calendar        },
   { title: "Sign & Prescribe", url: "/staff/sign",         icon: FileSignature   },
   { title: "Prescriptions",    url: "/staff/prescriptions",icon: Pill            },
+  { title: "Consent",          url: "/staff/consent",      icon: ShieldCheck     },
   { title: "Labs",             url: "/staff/labs",         icon: FlaskConical    },
   { title: "Surgeries",        url: "/staff/surgeries",    icon: Scissors        },
   { title: "Emergency",        url: "/staff/emergency",    icon: ShieldAlert     },

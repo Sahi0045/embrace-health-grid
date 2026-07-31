@@ -29,6 +29,7 @@ import { Route as StaffPrescriptionsRouteImport } from './routes/staff.prescript
 import { Route as StaffPatientsRouteImport } from './routes/staff.patients'
 import { Route as StaffLabsRouteImport } from './routes/staff.labs'
 import { Route as StaffEmergencyRouteImport } from './routes/staff.emergency'
+import { Route as StaffConsentRouteImport } from './routes/staff.consent'
 import { Route as StaffCommandRouteImport } from './routes/staff.command'
 import { Route as StaffCheckinRouteImport } from './routes/staff.checkin'
 import { Route as StaffAttendanceRouteImport } from './routes/staff.attendance'
@@ -148,6 +149,11 @@ const StaffLabsRoute = StaffLabsRouteImport.update({
 const StaffEmergencyRoute = StaffEmergencyRouteImport.update({
   id: '/staff/emergency',
   path: '/staff/emergency',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StaffConsentRoute = StaffConsentRouteImport.update({
+  id: '/staff/consent',
+  path: '/staff/consent',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StaffCommandRoute = StaffCommandRouteImport.update({
@@ -277,6 +283,7 @@ export interface FileRoutesByFullPath {
   '/staff/attendance': typeof StaffAttendanceRoute
   '/staff/checkin': typeof StaffCheckinRoute
   '/staff/command': typeof StaffCommandRoute
+  '/staff/consent': typeof StaffConsentRoute
   '/staff/emergency': typeof StaffEmergencyRoute
   '/staff/labs': typeof StaffLabsRoute
   '/staff/patients': typeof StaffPatientsRoute
@@ -319,6 +326,7 @@ export interface FileRoutesByTo {
   '/staff/attendance': typeof StaffAttendanceRoute
   '/staff/checkin': typeof StaffCheckinRoute
   '/staff/command': typeof StaffCommandRoute
+  '/staff/consent': typeof StaffConsentRoute
   '/staff/emergency': typeof StaffEmergencyRoute
   '/staff/labs': typeof StaffLabsRoute
   '/staff/patients': typeof StaffPatientsRoute
@@ -362,6 +370,7 @@ export interface FileRoutesById {
   '/staff/attendance': typeof StaffAttendanceRoute
   '/staff/checkin': typeof StaffCheckinRoute
   '/staff/command': typeof StaffCommandRoute
+  '/staff/consent': typeof StaffConsentRoute
   '/staff/emergency': typeof StaffEmergencyRoute
   '/staff/labs': typeof StaffLabsRoute
   '/staff/patients': typeof StaffPatientsRoute
@@ -406,6 +415,7 @@ export interface FileRouteTypes {
     | '/staff/attendance'
     | '/staff/checkin'
     | '/staff/command'
+    | '/staff/consent'
     | '/staff/emergency'
     | '/staff/labs'
     | '/staff/patients'
@@ -448,6 +458,7 @@ export interface FileRouteTypes {
     | '/staff/attendance'
     | '/staff/checkin'
     | '/staff/command'
+    | '/staff/consent'
     | '/staff/emergency'
     | '/staff/labs'
     | '/staff/patients'
@@ -490,6 +501,7 @@ export interface FileRouteTypes {
     | '/staff/attendance'
     | '/staff/checkin'
     | '/staff/command'
+    | '/staff/consent'
     | '/staff/emergency'
     | '/staff/labs'
     | '/staff/patients'
@@ -533,6 +545,7 @@ export interface RootRouteChildren {
   StaffAttendanceRoute: typeof StaffAttendanceRoute
   StaffCheckinRoute: typeof StaffCheckinRoute
   StaffCommandRoute: typeof StaffCommandRoute
+  StaffConsentRoute: typeof StaffConsentRoute
   StaffEmergencyRoute: typeof StaffEmergencyRoute
   StaffLabsRoute: typeof StaffLabsRoute
   StaffPatientsRoute: typeof StaffPatientsRoute
@@ -690,6 +703,13 @@ declare module '@tanstack/react-router' {
       path: '/staff/emergency'
       fullPath: '/staff/emergency'
       preLoaderRoute: typeof StaffEmergencyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/staff/consent': {
+      id: '/staff/consent'
+      path: '/staff/consent'
+      fullPath: '/staff/consent'
+      preLoaderRoute: typeof StaffConsentRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/staff/command': {
@@ -861,6 +881,7 @@ const rootRouteChildren: RootRouteChildren = {
   StaffAttendanceRoute: StaffAttendanceRoute,
   StaffCheckinRoute: StaffCheckinRoute,
   StaffCommandRoute: StaffCommandRoute,
+  StaffConsentRoute: StaffConsentRoute,
   StaffEmergencyRoute: StaffEmergencyRoute,
   StaffLabsRoute: StaffLabsRoute,
   StaffPatientsRoute: StaffPatientsRoute,

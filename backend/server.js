@@ -847,14 +847,72 @@ app.get("/api/credentials", requireAuth, (_, res) => {
 app.get("/api/consent", requireAuth, hipaaAuditPHIAccess("ConsentGrant"), (req, res) => {
   const all = getAllState("consent-manager");
   let consents = all.map((e) => e.value);
-  if (req.user?.role === "patient") {
+  const role = (req.user?.role || "").toLowerCase();
+  if (role === "patient") {
     const userDid = req.user.did;
     consents = consents.filter(
       (c) => !userDid || c.patientDid === userDid || c.patientEmail === req.user.email,
     );
+  } else if (role === "doctor" || role === "staff") {
+    // Doctors see only consents granted TO them (where they are the doctorDid)
+    const doctorDid  = req.user.did || `did:hosp:0x${simHash(req.user.email).slice(0, 8)}`;
+    const doctorName = req.user.name || "";
+    consents = consents.filter(
+      (c) => c.doctorDid === doctorDid || (doctorName && c.doctorName === doctorName),
+    );
   }
   res.json({ consents, total: consents.length });
 });
+
+// GET /api/consent/my — Doctor/Staff: their active + revoked consents + their sent requests
+app.get(
+  "/api/consent/my",
+  requireAuth,
+  requireRole(["doctor", "staff"]),
+  hipaaAuditPHIAccess("ConsentGrant"),
+  (req, res) => {
+    const doctorDid  = req.user.did || `did:hosp:0x${simHash(req.user.email).slice(0, 8)}`;
+    const doctorName = req.user.name || "";
+
+    // Active + revoked consents where this doctor is the grantee
+    const grants = getAllState("consent-manager")
+      .map((e) => e.value)
+      .filter((c) => c.doctorDid === doctorDid || (doctorName && c.doctorName === doctorName))
+      .sort((a, b) => (b.grantedAt || "").localeCompare(a.grantedAt || ""));
+
+    // All consent requests this doctor has sent (any status)
+    const requests = getAllState("consent-requests")
+      .map((e) => e.value)
+      .filter((r) => r.doctorDid === doctorDid || (doctorName && r.doctorName === doctorName))
+      .sort((a, b) => (b.requestedAt || "").localeCompare(a.requestedAt || ""));
+
+    res.json({
+      grants,
+      requests,
+      totalGrants:   grants.length,
+      totalRequests: requests.length,
+      active:        grants.filter((c) => c.status === "active" && new Date(c.expiry) > new Date()).length,
+      pending:       requests.filter((r) => r.status === "pending").length,
+    });
+  },
+);
+
+// GET /api/consent/requests/my — Doctor/Staff: only their sent consent requests
+app.get(
+  "/api/consent/requests/my",
+  requireAuth,
+  requireRole(["doctor", "staff"]),
+  hipaaAuditPHIAccess("ConsentRequest"),
+  (req, res) => {
+    const doctorDid  = req.user.did || `did:hosp:0x${simHash(req.user.email).slice(0, 8)}`;
+    const doctorName = req.user.name || "";
+    const all = getAllState("consent-requests")
+      .map((e) => e.value)
+      .filter((r) => r.doctorDid === doctorDid || (doctorName && r.doctorName === doctorName))
+      .sort((a, b) => (b.requestedAt || "").localeCompare(a.requestedAt || ""));
+    res.json({ requests: all, total: all.length });
+  },
+);
 
 app.post("/api/consent/grant", requireAuth, requireRole(["patient"]), hipaaAuditPHIAccess("ConsentGrant"), (req, res) => {
   const { patientDid, doctorDid, resource, expiry } = req.body;
