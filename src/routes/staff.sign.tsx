@@ -8,12 +8,12 @@ import {
   Clock, User, ChevronDown, ChevronRight, Plus, Trash2,
   Eye, Shield, AlertTriangle, Stethoscope, RefreshCw,
   Wifi, CalendarDays, ClipboardList, X, Loader2,
-  FileText, FlaskConical, ChevronUp,
+  FileText, FlaskConical, ChevronUp, Link2, Hash, ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
   signPrescription, logAuditEvent, getMyPatients, getMyPrescriptions,
-  createMedicalRecord, getMyMedicalRecords,
+  createMedicalRecord, getMyMedicalRecords, getPatientOnChainHistory,
 } from "@/lib/api";
 import { getCurrentUser } from "@/lib/auth";
 
@@ -182,16 +182,56 @@ function SignPage() {
   // ── history expand ────────────────────────────────────────────────────────
   const [expandedRxId, setExpandedRxId] = useState<string | null>(null);
 
+  // ── on-chain prescription history ────────────────────────────────────────
+  const [onChainHistory,     setOnChainHistory]     = useState<any[]>([]);
+  const [loadingOnChain,     setLoadingOnChain]     = useState(false);
+  const [onChainLoaded,      setOnChainLoaded]      = useState(false);
+  const [onChainError,       setOnChainError]       = useState<string | null>(null);
+  const [onChainExpandedId,  setOnChainExpandedId]  = useState<string | null>(null);
+  const [showOnChainPanel,   setShowOnChainPanel]   = useState(false);
+
   const resetForm = () => {
     setDrugs([{ id: "d1", name: "", dosage: "", frequency: "Once daily", duration: "7 days", usage: "After food", instructions: "" }]);
     setChiefComplaint(""); setSymptoms(""); setDiagnosis(""); setNotes(""); setFollowUpDate("");
     setConsultationSummary(""); setClinicalNotes(""); setTestResults(""); setRecommendedFollowUp("");
     setSigned(false); setSignedBlock(null);
+    // clear on-chain panel
+    setOnChainHistory([]); setOnChainLoaded(false); setOnChainError(null);
+    setShowOnChainPanel(false); setOnChainExpandedId(null);
   };
 
   const addDrug    = () => setDrugs((p) => [...p, { id: `d${Date.now()}`, name: "", dosage: "", frequency: "Once daily", duration: "7 days", usage: "After food", instructions: "" }]);
   const removeDrug = (id: string) => setDrugs((p) => p.filter((d) => d.id !== id));
   const updateDrug = (id: string, u: Partial<Drug>) => setDrugs((p) => p.map((d) => d.id === id ? { ...d, ...u } : d));
+
+  // ── fetch on-chain history for selected patient ───────────────────────────
+  const handleFetchOnChainHistory = async () => {
+    if (!selectedPatient?.patientDid) return;
+    setLoadingOnChain(true);
+    setOnChainError(null);
+    setShowOnChainPanel(true);
+    try {
+      const res = await getPatientOnChainHistory(selectedPatient.patientDid);
+      setOnChainHistory(res.prescriptions ?? []);
+      setOnChainLoaded(true);
+      if ((res.prescriptions ?? []).length === 0) {
+        toast.info("No on-chain prescription history found for this patient.");
+      } else {
+        toast.success(`${res.prescriptions.length} on-chain prescription${res.prescriptions.length !== 1 ? "s" : ""} retrieved and verified.`);
+      }
+    } catch (err: any) {
+      const msg = err.message || "Failed to fetch on-chain history";
+      setOnChainError(msg);
+      setOnChainLoaded(true);
+      if (err.message?.includes("NO_CONFIRMED_APPOINTMENT") || err.message?.includes("confirmed appointment")) {
+        toast.error("Access Denied", { description: "A confirmed appointment is required to view this patient's on-chain prescription history." });
+      } else {
+        toast.error("Failed to load on-chain history", { description: msg });
+      }
+    } finally {
+      setLoadingOnChain(false);
+    }
+  };
 
   const handleSign = async () => {
     if (!selectedPatient)              { toast.error("Select a patient first"); return; }
@@ -239,6 +279,14 @@ function SignPage() {
       toast.error("Signing failed", { description: err.message });
     } finally { setSigning(false); }
   };
+
+  // ── does the selected patient have a confirmed appointment? ──────────────
+  const hasConfirmedAppt = useMemo(() => {
+    if (!selectedPatient) return false;
+    return (selectedPatient.appointments ?? []).some(
+      (a: any) => a.status === "confirmed" || a.status === "accepted",
+    );
+  }, [selectedPatient]);
 
   // ── join prescriptions with their linked reports ──────────────────────────
   const patientPrescriptions = useMemo(() =>
@@ -340,9 +388,21 @@ function SignPage() {
                     <div className="font-bold text-foreground">{selectedPatient.patientName}</div>
                     <div className="font-mono text-[10px] text-muted-foreground">{selectedPatient.patientDid}</div>
                   </div>
-                  <button onClick={() => { setSelectedPatient(null); resetForm(); }} className="rounded-lg p-1.5 hover:bg-muted text-muted-foreground">
-                    <X className="h-4 w-4" />
-                  </button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {/* On-chain history button — only for confirmed appointments */}
+                    <button
+                      onClick={handleFetchOnChainHistory}
+                      disabled={loadingOnChain || !hasConfirmedAppt}
+                      title={!hasConfirmedAppt ? "Requires a confirmed appointment" : "View patient's on-chain prescription history"}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-chart-2/40 bg-chart-2/10 px-3 py-1.5 text-xs font-semibold text-chart-2 hover:bg-chart-2/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+                      {loadingOnChain
+                        ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading…</>
+                        : <><Link2 className="h-3.5 w-3.5" /> On-Chain History</>}
+                    </button>
+                    <button onClick={() => { setSelectedPatient(null); resetForm(); }} className="rounded-lg p-1.5 hover:bg-muted text-muted-foreground">
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
                 {(selectedPatient.appointments?.length ?? 0) > 1 && (
                   <div>
@@ -509,6 +569,247 @@ function SignPage() {
             </div>
           )}
         </div>
+
+        {/* ── On-Chain Prescription History Panel ────────────────────── */}
+        {showOnChainPanel && selectedPatient && (
+          <div className="rounded-xl border-2 border-chart-2/30 bg-chart-2/5 p-5 space-y-4">
+            {/* Header */}
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <Link2 className="h-5 w-5 text-chart-2" />
+                <div>
+                  <div className="text-sm font-bold text-foreground">On-Chain Prescription History</div>
+                  <div className="text-xs text-muted-foreground">
+                    {selectedPatient.patientName} · {onChainHistory.length} record{onChainHistory.length !== 1 ? "s" : ""} · Read-only
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={handleFetchOnChainHistory} disabled={loadingOnChain}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-muted disabled:opacity-40">
+                  <RefreshCw className={`h-3 w-3 ${loadingOnChain ? "animate-spin" : ""}`} /> Refresh
+                </button>
+                <button onClick={() => setShowOnChainPanel(false)}
+                  className="rounded-lg p-1.5 hover:bg-muted text-muted-foreground">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Access gate notice */}
+            {!hasConfirmedAppt && (
+              <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+                <Shield className="h-3.5 w-3.5 shrink-0" />
+                A confirmed appointment is required to access this patient's on-chain prescription history.
+              </div>
+            )}
+
+            {/* Read-only notice */}
+            {hasConfirmedAppt && (
+              <div className="flex items-center gap-2 rounded-lg border border-warning/30 bg-warning/5 px-3 py-2 text-xs text-muted-foreground">
+                <Shield className="h-3.5 w-3.5 shrink-0 text-warning-foreground" />
+                Read-only — Historical records are retrieved from the blockchain ledger and cannot be modified.
+              </div>
+            )}
+
+            {/* Loading */}
+            {loadingOnChain && (
+              <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" /> Retrieving and verifying on-chain records…
+              </div>
+            )}
+
+            {/* Error */}
+            {!loadingOnChain && onChainError && (
+              <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-xs text-destructive">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                {onChainError}
+              </div>
+            )}
+
+            {/* Empty state */}
+            {!loadingOnChain && !onChainError && onChainLoaded && onChainHistory.length === 0 && (
+              <div className="rounded-xl border border-dashed border-chart-2/30 py-10 text-center space-y-2">
+                <Link2 className="h-8 w-8 mx-auto text-muted-foreground/30" />
+                <div className="text-sm font-semibold text-foreground">No on-chain prescription history found.</div>
+                <div className="text-xs text-muted-foreground">This patient has no prior prescriptions stored in the ledger.</div>
+              </div>
+            )}
+
+            {/* Prescription cards */}
+            {!loadingOnChain && onChainHistory.length > 0 && (
+              <div className="space-y-3">
+                {onChainHistory.map((rx) => {
+                  const isExp = onChainExpandedId === rx.rxId;
+                  const sigStatus = rx.verification?.signatureStatus ?? "no_signature";
+                  const sigCls = sigStatus === "verified"
+                    ? "bg-success/15 text-success border-success/30"
+                    : sigStatus === "hash_mismatch"
+                    ? "bg-destructive/10 text-destructive border-destructive/20"
+                    : "bg-muted text-muted-foreground border-border";
+                  const sigLabel = sigStatus === "verified" ? "Verified" : sigStatus === "hash_mismatch" ? "Hash Mismatch" : "Unanchored";
+                  const sigIcon = sigStatus === "verified"
+                    ? <ShieldCheck className="h-3 w-3" />
+                    : sigStatus === "hash_mismatch"
+                    ? <AlertTriangle className="h-3 w-3" />
+                    : <Shield className="h-3 w-3" />;
+
+                  return (
+                    <div key={rx.rxId} className="rounded-xl border border-border bg-card overflow-hidden">
+                      {/* Summary row */}
+                      <button className="w-full text-left p-4" onClick={() => setOnChainExpandedId(isExp ? null : rx.rxId)}>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-chart-2/10">
+                              <Pill className="h-5 w-5 text-chart-2" />
+                            </div>
+                            <div>
+                              <div className="text-sm font-semibold text-foreground flex items-center gap-2 flex-wrap">
+                                {rx.diagnosis || "Consultation"}
+                                <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold ${sigCls}`}>
+                                  {sigIcon} {sigLabel}
+                                </span>
+                              </div>
+                              <div className="text-xs text-muted-foreground truncate max-w-[380px]">
+                                {rx.chiefComplaint ? `CC: ${rx.chiefComplaint}` : ""}
+                                {rx.symptoms ? ` · ${rx.symptoms}` : ""}
+                              </div>
+                              <div className="flex items-center gap-3 mt-0.5 text-[10px] text-muted-foreground flex-wrap">
+                                <span className="flex items-center gap-1">
+                                  <User className="h-3 w-3" />
+                                  {rx.doctorName || rx.signedBy || "Doctor"}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <CalendarDays className="h-3 w-3" />
+                                  {rx.signedAt ? new Date(rx.signedAt).toLocaleString("en-IN") : "—"}
+                                </span>
+                                <span className="font-mono">{rx.rxId}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-xs text-muted-foreground">{(rx.drugs ?? []).length} drug{(rx.drugs ?? []).length !== 1 ? "s" : ""}</span>
+                            {isExp ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                          </div>
+                        </div>
+                      </button>
+
+                      {/* Expanded full detail */}
+                      {isExp && (
+                        <div className="border-t border-border px-4 pb-5 pt-3 space-y-4">
+
+                          {/* Identity grid */}
+                          <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">
+                            {[
+                              ["Doctor",      rx.doctorName || rx.signedBy || "—"],
+                              ["Doctor DID",  rx.doctorDid  || "—"],
+                              ["Patient DID", rx.patientDid || "—"],
+                              ["Appointment", rx.apptId     || "—"],
+                              ["Issued At",   rx.signedAt ? new Date(rx.signedAt).toLocaleString("en-IN") : "—"],
+                              ["Follow-up",   rx.followUpDate ? new Date(rx.followUpDate).toLocaleDateString("en-IN") : "—"],
+                            ].map(([k, v]) => (
+                              <div key={k} className="rounded-lg bg-muted/50 px-3 py-2">
+                                <div className="text-[9px] font-bold uppercase text-muted-foreground mb-0.5">{k}</div>
+                                <div className="font-medium text-foreground truncate">{v}</div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Chief complaint + symptoms */}
+                          {(rx.chiefComplaint || rx.symptoms) && (
+                            <div className="grid gap-2 sm:grid-cols-2 text-xs">
+                              {rx.chiefComplaint && (
+                                <div className="rounded-lg bg-card border border-border px-3 py-2">
+                                  <div className="text-[9px] font-bold uppercase text-muted-foreground mb-0.5 flex items-center gap-1"><Stethoscope className="h-3 w-3" /> Chief Complaint</div>
+                                  <div>{rx.chiefComplaint}</div>
+                                </div>
+                              )}
+                              {rx.symptoms && (
+                                <div className="rounded-lg bg-card border border-border px-3 py-2">
+                                  <div className="text-[9px] font-bold uppercase text-muted-foreground mb-0.5">Symptoms</div>
+                                  <div>{rx.symptoms}</div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Medicines */}
+                          {(rx.drugs ?? []).length > 0 && (
+                            <div className="space-y-1.5">
+                              <div className="text-[10px] font-bold uppercase text-muted-foreground">Medicines</div>
+                              {(rx.drugs ?? []).map((d: any, i: number) => (
+                                <div key={i} className="flex items-start gap-2 rounded-lg border border-border bg-background px-3 py-2 text-xs">
+                                  <Pill className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+                                  <div>
+                                    <span className="font-semibold text-foreground">{d.name}</span>
+                                    {d.dosage    && <span className="text-muted-foreground"> · {d.dosage}</span>}
+                                    {d.frequency && <span className="text-muted-foreground"> · {d.frequency}</span>}
+                                    {d.duration  && <span className="text-muted-foreground"> · {d.duration}</span>}
+                                    {d.usage     && <span className="text-primary"> ({d.usage})</span>}
+                                    {d.instructions && <div className="italic text-muted-foreground mt-0.5">{d.instructions}</div>}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Notes */}
+                          {rx.notes && (
+                            <div className="rounded-lg bg-muted/40 border border-border px-3 py-2 text-xs">
+                              <span className="font-semibold text-foreground">Additional Notes: </span>
+                              <span className="text-muted-foreground">{rx.notes}</span>
+                            </div>
+                          )}
+
+                          {/* Blockchain verification panel */}
+                          <div className="rounded-xl border border-chart-2/25 bg-chart-2/5 p-3 space-y-2">
+                            <div className="text-[10px] font-bold uppercase tracking-wider text-chart-2 flex items-center gap-1.5">
+                              <Link2 className="h-3.5 w-3.5" /> Blockchain Verification
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              <div className="rounded-lg bg-card border border-border px-3 py-2">
+                                <div className="text-[9px] font-bold uppercase text-muted-foreground mb-0.5">Signature Status</div>
+                                <div className={`font-semibold ${sigStatus === "verified" ? "text-success" : sigStatus === "hash_mismatch" ? "text-destructive" : "text-muted-foreground"}`}>
+                                  {sigStatus === "verified" ? "✓ Hash Verified" : sigStatus === "hash_mismatch" ? "⚠ Hash Mismatch" : "—"}
+                                </div>
+                              </div>
+                              <div className="rounded-lg bg-card border border-border px-3 py-2">
+                                <div className="text-[9px] font-bold uppercase text-muted-foreground mb-0.5">Network</div>
+                                <div className="font-medium text-foreground">
+                                  {rx.verification?.anchorRecord?.network || rx.blockchainMeta?.network || "solana-devnet"}
+                                </div>
+                              </div>
+                            </div>
+                            {/* Hash */}
+                            <div className="flex items-center gap-1.5 rounded-lg bg-muted px-2 py-1.5 font-mono text-[9px] text-primary overflow-x-auto">
+                              <Hash className="h-3 w-3 shrink-0" />
+                              {rx.hash || "—"}
+                            </div>
+                            {/* Anchor record */}
+                            {rx.verification?.anchorRecord && (
+                              <div className="text-[10px] text-muted-foreground space-y-0.5">
+                                <div><span className="font-semibold text-foreground">Anchor ID:</span> {rx.verification.anchorRecord.anchorId}</div>
+                                <div><span className="font-semibold text-foreground">Anchored At:</span> {new Date(rx.verification.anchorRecord.anchoredAt).toLocaleString("en-IN")}</div>
+                                <div className="font-mono text-[9px] truncate">
+                                  <span className="font-semibold text-foreground not-italic">Sig: </span>
+                                  {rx.verification.anchorRecord.signature}
+                                </div>
+                              </div>
+                            )}
+                            {/* Verified timestamp */}
+                            <div className="text-[10px] text-muted-foreground">
+                              Verified at: {rx.verification?.verifiedAt ? new Date(rx.verification.verifiedAt).toLocaleString("en-IN") : "—"}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* ── My Prescriptions + linked reports ───────────────────────── */}
         <div className="rounded-xl border border-border bg-card p-5">

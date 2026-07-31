@@ -466,6 +466,58 @@ export const signPrescription = (data: {
 export const getPrescriptions = (patientDid: string) =>
   apiFetch<{ prescriptions: any[] }>(`/prescriptions/${encodeURIComponent(patientDid)}`);
 
+/**
+ * On-Chain Prescription History — doctors only, requires a confirmed appointment.
+ * Returns prescriptions enriched with blockchain verification status.
+ */
+export const getPatientOnChainHistory = (patientDid: string) =>
+  apiFetch<{
+    prescriptions: Array<{
+      rxId: string;
+      patientDid: string;
+      patientName: string;
+      doctorDid: string;
+      doctorName: string;
+      apptId: string | null;
+      signedAt: string | null;
+      signedBy: string;
+      status: string;
+      diagnosis: string;
+      chiefComplaint: string;
+      symptoms: string;
+      drugs: any[];
+      notes: string;
+      followUpDate: string | null;
+      hash: string;
+      txId: string | null;
+      blockchainMeta: any | null;
+      verification: {
+        hashVerified: boolean;
+        hashAlgorithm: string;
+        anchorRecord: {
+          anchorId: string;
+          signature: string;
+          network: string;
+          anchoredAt: string;
+          slot: number;
+        } | null;
+        blockchainTx: {
+          txHash: string;
+          rootId: string;
+          publishedAt: string;
+          onChain: boolean;
+        } | null;
+        signatureStatus: "verified" | "hash_mismatch" | "no_signature";
+        verifiedAt: string;
+      };
+    }>;
+    total: number;
+    patientDid: string;
+    retrievedBy: string;
+    retrievedAt: string;
+    message?: string;
+  }>(`/prescriptions/${encodeURIComponent(patientDid)}/onchain`);
+
 export const getAllPrescriptions = () =>
   apiFetch<{ prescriptions: any[]; total: number }>(`/prescriptions`);
 

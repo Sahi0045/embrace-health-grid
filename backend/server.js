@@ -1117,6 +1117,124 @@ app.get(
   },
 );
 
+// ─── On-Chain Prescription History (doctor-only, confirmed-appointment gate) ─
+app.get(
+  "/api/prescriptions/:patientDid/onchain",
+  requireAuth,
+  requireRole(["doctor", "staff", "admin"]),
+  hipaaAuditPHIAccess("Prescription"),
+  (req, res) => {
+    const { patientDid } = req.params;
+    const role       = (req.user.role || "").toLowerCase();
+    const doctorDid  = req.user.did || `did:hosp:0x${simHash(req.user.email).slice(0, 8)}`;
+    const doctorName = req.user.name || "";
+
+    // ── RBAC: doctor must have a CONFIRMED appointment with this patient ──
+    if (role === "doctor" || role === "staff") {
+      const confirmedAppt = queryState(
+        "appointments",
+        (v) =>
+          v.patientDid === patientDid &&
+          (v.doctorDid === doctorDid || (doctorName && v.doctorName === doctorName)) &&
+          (v.status === "confirmed" || v.status === "accepted"),
+      );
+
+      if (confirmedAppt.length === 0) {
+        return res.status(403).json({
+          error: "Access Denied: You can only view on-chain prescription history for patients with a confirmed appointment.",
+          code: "NO_CONFIRMED_APPOINTMENT",
+        });
+      }
+    }
+
+    // ── Fetch all prescriptions for this patient from world-state ──────────
+    const all = queryState("prescriptions", (v) => v.patientDid === patientDid);
+    const sorted = [...all]
+      .sort((a, b) => (b.value.signedAt || "").localeCompare(a.value.signedAt || ""))
+      .map((e) => e.value);
+
+    if (sorted.length === 0) {
+      return res.json({
+        prescriptions: [],
+        total: 0,
+        patientDid,
+        retrievedAt: new Date().toISOString(),
+        message: "No on-chain prescription history found.",
+      });
+    }
+
+    // ── Enrich each prescription with blockchain verification status ────────
+    const enriched = sorted.map((rx) => {
+      // Re-derive the expected hash and compare to stored hash
+      const expectedHash = `sha256:${simHash(rx.rxId + rx.patientDid + rx.doctorDid)}`;
+      const storedHash   = rx.hash || "";
+      const hashMatch    = storedHash === expectedHash;
+
+      // Look up the solana-anchor record if one exists (keyed by txId or rxId)
+      const anchor = queryState(
+        "solana-anchors",
+        (v) => v.recordId === rx.rxId || v.recordId === rx.txId,
+      )[0]?.value || null;
+
+      // Look up any blockchain-tx record
+      const bcTx = rx.txId ? (getState("blockchain-tx", rx.txId)?.value || null) : null;
+
+      return {
+        // ── Core prescription fields ────────────────────────────────────────
+        rxId:           rx.rxId,
+        patientDid:     rx.patientDid,
+        patientName:    rx.patientName    || "Patient",
+        doctorDid:      rx.doctorDid      || "",
+        doctorName:     rx.doctorName     || rx.signedBy || "Doctor",
+        apptId:         rx.apptId         || null,
+        signedAt:       rx.signedAt       || null,
+        signedBy:       rx.signedBy       || rx.doctorName || "Doctor",
+        status:         rx.status         || "active",
+        diagnosis:      rx.diagnosis      || "",
+        chiefComplaint: rx.chiefComplaint || "",
+        symptoms:       rx.symptoms       || "",
+        drugs:          rx.drugs          || [],
+        notes:          rx.notes          || "",
+        followUpDate:   rx.followUpDate   || null,
+        // ── Blockchain / cryptographic fields ──────────────────────────────
+        hash:           storedHash,
+        txId:           rx.txId           || null,
+        blockchainMeta: rx.blockchainMeta || null,
+        // ── Verification result ────────────────────────────────────────────
+        verification: {
+          hashVerified:   hashMatch,
+          hashAlgorithm:  "sha256-simulated",
+          anchorRecord:   anchor ? {
+            anchorId:   anchor.anchorId,
+            signature:  anchor.signature,
+            network:    anchor.network || "solana-devnet-simulated",
+            anchoredAt: anchor.anchoredAt,
+            slot:       anchor.slot,
+          } : null,
+          blockchainTx:   bcTx ? {
+            txHash:     bcTx.txHash,
+            rootId:     bcTx.rootId,
+            publishedAt: bcTx.publishedAt,
+            onChain:    bcTx.onChain || false,
+          } : null,
+          signatureStatus: storedHash
+            ? (hashMatch ? "verified" : "hash_mismatch")
+            : "no_signature",
+          verifiedAt: new Date().toISOString(),
+        },
+      };
+    });
+
+    res.json({
+      prescriptions: enriched,
+      total:         enriched.length,
+      patientDid,
+      retrievedBy:   doctorDid,
+      retrievedAt:   new Date().toISOString(),
+    });
+  },
+);
+
 app.get(
   "/api/prescriptions/:patientDid",
   requireAuth,
