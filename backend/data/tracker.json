@@ -883,5 +883,21 @@
     "updatedAt": "2026-07-27T07:06:50.738Z",
     "txId": "0872c237-0655-42a4-a9dd-65311641dd0f",
     "docType": "tracker"
+  },
+  "pager_c3aa0792": {
+    "key": "pager_c3aa0792",
+    "value": {
+      "id": "pager_c3aa0792",
+      "staffDid": "did:hosp:0x45d97816",
+      "name": "Krishna Veni",
+      "location": "Room 101 - Outpatient Clinic",
+      "dispatchedAt": "2026-07-29T12:12:45.987Z",
+      "status": "delivered"
+    },
+    "namespace": "tracker",
+    "version": "c3aa0792-07b2-4ae0-9800-5f7f05486591:1",
+    "updatedAt": "2026-07-29T12:12:45.996Z",
+    "txId": "c3aa0792-07b2-4ae0-9800-5f7f05486591",
+    "docType": "tracker"
   }
 }

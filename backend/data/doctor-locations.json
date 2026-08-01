@@ -19,17 +19,17 @@
     "key": "LOC-INIT",
     "value": {
       "logId": "LOC-INIT",
-      "doctorDid": "did:hosp:0xadmin",
+      "doctorDid": "did:hosp:0x45d97816",
       "doctorName": "Dr. Staff",
       "roomNumber": "Room 101 - Outpatient Clinic",
       "action": "enter",
-      "timestamp": "2026-07-25T18:36:52.538Z",
-      "hash": "sha256:05a0e8daa1b2c3d4e5f67890a1b2c3d4"
+      "timestamp": "2026-07-29T11:12:52.682Z",
+      "hash": "sha256:494dabe1a1b2c3d4e5f67890a1b2c3d4"
     },
     "namespace": "doctor-locations",
-    "version": "8482bca4-53c6-4a75-ae4a-39cdee669ae5:1",
-    "updatedAt": "2026-07-25T19:36:52.538Z",
-    "txId": "8482bca4-53c6-4a75-ae4a-39cdee669ae5",
+    "version": "a3826eb9-953d-43ad-a55a-1e2c32edfe0b:1",
+    "updatedAt": "2026-07-29T12:12:52.683Z",
+    "txId": "a3826eb9-953d-43ad-a55a-1e2c32edfe0b",
     "docType": "doctor-locations"
   },
   "LOC-MRAXXQ8L": {
