@@ -96,9 +96,7 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 // ─── DIDs ─────────────────────────────────────────────────────────────────────
-export const getAllDIDs = () => apiFetch<{ dids: any[]; total: number }>(`/did`);
 
-export const resolveDID = (did: string) => apiFetch<any>(`/did/${encodeURIComponent(did)}`);
 
 export const createDID = (
   owner: string,
@@ -156,26 +154,10 @@ export const revokeCredential = (id: string) =>
     method: "PATCH",
   });
 
-export const getCredentials = () => apiFetch<{ credentials: any[]; total: number }>(`/credentials`);
 
 // ─── Consent ──────────────────────────────────────────────────────────────────
-export const getConsents = () => apiFetch<{ consents: any[]; total: number }>(`/consent`);
 
-export const grantConsent = (
-  patientDid: string,
-  doctorDid: string,
-  resource: string,
-  expiry?: string,
-) =>
-  apiFetch<any>(`/consent/grant`, {
-    method: "POST",
-    body: JSON.stringify({ patientDid, doctorDid, resource, expiry }),
-  });
 
-export const revokeConsent = (id: string) =>
-  apiFetch<{ success: boolean }>(`/consent/${encodeURIComponent(id)}/revoke`, {
-    method: "PATCH",
-  });
 
 export const requestConsent = (data: {
   doctorDid: string;
@@ -201,8 +183,6 @@ export const denyConsentRequest = (id: string) =>
   });
 
 // ─── Audit Events ─────────────────────────────────────────────────────────────
-export const getAuditEvents = (page = 0, size = 50) =>
-  apiFetch<{ events: any[]; total: number }>(`/audit?page=${page}&size=${size}`);
 
 export const logAuditEvent = (
   actor: string,
@@ -230,27 +210,6 @@ export const getMyMedicalRecords = () =>
 export const getMedicalRecordByRx = (rxId: string) =>
   apiFetch<{ record: any | null }>(`/medical-records/by-prescription/${encodeURIComponent(rxId)}`);
 
-export const createMedicalRecord = (
-  patientDid: string,
-  data: {
-    title: string;
-    type: string;
-    content: string;
-    doctorDid?: string;
-    doctorName?: string;
-    /** Link this report to a prescription */
-    rxId?: string;
-    apptId?: string;
-    consultationSummary?: string;
-    clinicalNotes?: string;
-    testResults?: string;
-    recommendedFollowUp?: string;
-  },
-) =>
-  apiFetch<{ record: any; txId: string }>(`/medical-records/${encodeURIComponent(patientDid)}`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
 
 export const updateMedicalRecord = (recordId: string, data: Record<string, any>) =>
   apiFetch<{ record: any }>(`/medical-records/${encodeURIComponent(recordId)}`, {
@@ -479,8 +438,6 @@ export const orderLab = (
 export const getAllLabs = () => apiFetch<{ labs: any[]; total: number }>(`/labs`);
 
 // ─── Appointments ─────────────────────────────────────────────────────────────
-export const getAppointments = () =>
-  apiFetch<{ appointments: any[]; total: number }>(`/appointments`);
 
 export const getAppointmentsByPatient = (patientDid: string) =>
   apiFetch<{ appointments: any[]; total: number }>(`/appointments?patientDid=${encodeURIComponent(patientDid)}`);
@@ -496,22 +453,6 @@ export const getDoctorAppointmentRequests = () =>
 export const getDoctorAppointments = () =>
   apiFetch<{ appointments: any[]; total: number }>(`/appointments/my`);
 
-export const bookAppointment = (data: {
-  patientDid: string;
-  patientName: string;
-  doctorDid: string;
-  doctorName: string;
-  slot: string;
-  date: string;
-  mode: string;
-  specialty: string;
-  reason?: string;
-  consentGranted?: boolean;
-}) =>
-  apiFetch<any>(`/appointments`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
 
 export const updateAppointmentStatus = (id: string, status: string, notes?: string, suggestedSlot?: string) =>
   apiFetch<any>(`/appointments/${encodeURIComponent(id)}/status`, {
@@ -574,10 +515,6 @@ export const seedVitals = (
     body: JSON.stringify({ patients }),
   });
 
-export const getVitals = (id: string) =>
-  apiFetch<{ heartRate: number; bp: string; spo2: number; temp: number; respRate: number }>(
-    `/vitals/${id}`,
-  );
 
 // ─── Tracker ──────────────────────────────────────────────────────────────────
 export const seedTracker = (staff: Array<{ id: string; location?: string }>) =>
@@ -866,26 +803,7 @@ export const getRoomCheckinHistory = (doctorDid: string) =>
 // ─── Merkle Tree: Room Check-In daily aggregation & publishing ────────────
 /** Fetch today's room events + pre-computed Merkle root for a doctor */
 
-/** Publish today's Merkle root to blockchain — doctors only.
- *  Pass txSignature (base58 Solana tx sig) and walletAddress when publishing on-chain. */
-export const publishMerkleRoot = (
-  doctorDid: string,
-  txSignature?: string,
-  walletAddress?: string,
-) =>
-  apiFetch<{
-    success: boolean; merkleRoot: string; txHash: string;
-    rootId: string; eventCount: number; publishedAt: string; onChain: boolean;
-  }>(
-    `/merkle-root/publish`,
-    { method: "POST", body: JSON.stringify({ doctorDid, txSignature, walletAddress }) },
-  );
 
-/** Fetch history of all published Merkle roots for a doctor */
-export const getMerkleRootHistory = (doctorDid: string) =>
-  apiFetch<{ roots: any[]; total: number }>(
-    `/merkle-root/${encodeURIComponent(doctorDid)}/history`,
-  );
 
 // ─── Inpatient ────────────────────────────────────────────────────────────
 export const getInpatientData = (patientDid: string) =>
@@ -1330,4 +1248,224 @@ export async function getHealthMetrics(_did?: string) {
       hba1c: m.hba1c,
     })),
   };
+}
+
+// ─── Clinical/identity domain shims (task 11a continued) ────────────────────
+// Point the remaining legacy names at the Supabase server functions that
+// already exist. Response shapes preserved; RLS decides scope.
+
+export async function getAllDIDs() {
+  const { getAllDIDs: fn } = await import("./clinical.server");
+  const res = await fn();
+  const dids: any[] = (res.dids ?? []).map((d: any) => ({
+    did: d.did,
+    owner: d.owner_name,
+    ownerType: d.owner_type,
+    publicKey: d.public_key,
+    controller: d.controller,
+    status: d.status,
+    createdAt: d.created_at,
+  }));
+  return { dids, total: dids.length };
+}
+
+export async function resolveDID(did: string) {
+  const { dids } = await getAllDIDs();
+  const match = dids.find((d) => d.did === did);
+  if (!match) throw new Error(`DID not found: ${did}`);
+  return { did: match.did, document: match, found: true as const };
+}
+
+export async function getCredentials(_holderDid?: string) {
+  const { getCredentials: fn } = await import("./clinical.server");
+  const res = await fn();
+  const credentials: any[] = (res.credentials ?? []).map((c: any) => ({
+    id: c.id,
+    type: c.credential_type,
+    issuer: c.issuer,
+    subject: c.subject_did,
+    claims: c.claims,
+    signature: c.signature,
+    status: c.status,
+    issuedAt: c.issued_at,
+    expiresAt: c.expires_at,
+  }));
+  return { credentials, total: credentials.length };
+}
+
+export async function getConsents(_did?: string) {
+  const { getConsents: fn } = await import("./clinical.server");
+  const res = await fn();
+  const consents: any[] = (res.consents ?? []).map((c: any) => ({
+    grantId: c.grant_id,
+    patientDid: c.patient_did,
+    doctorDid: c.doctor_did,
+    resource: c.resource,
+    status: c.status,
+    grantedAt: c.granted_at,
+    expiry: c.expires_at,
+  }));
+  return { consents, grants: consents, total: consents.length };
+}
+
+export async function grantConsent(
+  arg1:
+    | string
+    | { doctorDid?: string; grantee?: string; resource?: string; scope?: string[]; expiresAt?: string },
+  doctorDidArg?: string,
+  resourceArg?: string,
+  expiresAtArg?: string,
+) {
+  const { grantConsent: fn } = await import("./clinical.server");
+
+  // Legacy positional form is grantConsent(patientDid, doctorDid, resource, expiresAt).
+  // patientDid is ignored: the grant is always issued by the caller, enforced by RLS.
+  let doctorDid: string;
+  let resource: string;
+  let expiresAt: string | undefined;
+
+  if (typeof arg1 === "string") {
+    doctorDid = doctorDidArg ?? "";
+    resource = resourceArg ?? "Medical Records";
+    expiresAt = expiresAtArg;
+  } else {
+    doctorDid = arg1.doctorDid ?? arg1.grantee ?? "";
+    resource = arg1.resource ?? arg1.scope?.join(",") ?? "Medical Records";
+    expiresAt = arg1.expiresAt;
+  }
+
+  const res = await fn({ data: { doctorDid, resource, expiresAt } });
+  return { success: true as const, grantId: res.grantId };
+}
+
+export async function revokeConsent(grantId: string) {
+  const { revokeConsent: fn } = await import("./clinical.server");
+  await fn({ data: { grantId } });
+  return { success: true as const };
+}
+
+export async function getAppointments(_did?: string) {
+  const { getAppointments: fn } = await import("./clinical.server");
+  const res = await fn();
+  const appointments: any[] = (res.appointments ?? []).map((a: any) => ({
+    apptId: a.appt_id,
+    patientDid: a.patient_did,
+    doctorDid: a.doctor_did,
+    slot: a.slot,
+    mode: a.mode,
+    specialty: a.specialty,
+    status: a.status,
+    reason: a.reason,
+    bookedAt: a.booked_at,
+  }));
+  return { appointments, total: appointments.length };
+}
+
+export async function bookAppointment(payload: {
+  doctorDid: string;
+  slot: string;
+  specialty?: string;
+  mode?: string;
+  [key: string]: unknown;
+}) {
+  const { bookAppointment: fn } = await import("./clinical.server");
+  const res = await fn({ data: payload });
+  return { success: true as const, apptId: res.apptId };
+}
+
+export async function createMedicalRecord(
+  patientDid: string,
+  payload: {
+    title: string;
+    type?: string;
+    recordType?: string;
+    content?: string;
+    [key: string]: unknown;
+  },
+) {
+  const { createMedicalRecord: fn } = await import("./clinical.server");
+  const res = await fn({
+    data: {
+      patientDid,
+      title: payload.title,
+      recordType: payload.recordType ?? payload.type ?? "note",
+      content: payload.content,
+    },
+  });
+  return { success: true as const, recordId: res.recordId, hash: res.contentHash };
+}
+
+export async function getAuditEvents(_page?: number | { page?: number; size?: number }, _size?: number) {
+  const { getAuditEvents: fn } = await import("./clinical.server");
+  const res = await fn();
+  const events: any[] = (res.events ?? []).map((e: any) => ({
+    txId: e.tx_id,
+    actor: e.actor_did,
+    resource: e.resource,
+    action: e.action,
+    outcome: e.outcome,
+    severity: e.severity,
+    loggedAt: e.logged_at,
+  }));
+  return { events, total: events.length, page: 1, size: events.length };
+}
+
+export async function publishMerkleRoot(
+  arg1:
+    | string
+    | { subjectDid?: string; doctorDid?: string; periodDate?: string; date?: string; events?: unknown[] },
+  _txSignature?: string,
+  _walletAddress?: string,
+) {
+  const { publishMerkleRoot: fn, getDailyRoomEvents } = await import("./clinical.server").then(
+    async (m) => ({ ...m, getDailyRoomEvents: (await import("./operations.server")).getDailyRoomEvents }),
+  );
+
+  // Legacy positional form: publishMerkleRoot(doctorDid, txSignature, walletAddress).
+  // The tx signature is no longer passed in — anchoring is performed server-side
+  // by the anchor-record Edge Function, which holds the wallet key.
+  const subjectDid = typeof arg1 === "string" ? arg1 : (arg1.subjectDid ?? arg1.doctorDid ?? "");
+  const periodDate =
+    typeof arg1 === "string"
+      ? new Date().toISOString().slice(0, 10)
+      : (arg1.periodDate ?? arg1.date ?? new Date().toISOString().slice(0, 10));
+
+  let events = typeof arg1 === "string" ? [] : (arg1.events ?? []);
+  if (!events.length) {
+    // Gather the day's room events so the root commits to real leaves.
+    const day = await getDailyRoomEvents({ data: { doctorDid: subjectDid, date: periodDate } });
+    events = (day.events ?? []).map((e: any) => ({
+      id: e.event_id,
+      doctorDid: e.doctor_did,
+      roomId: e.room_id,
+      roomName: e.room_name,
+      action: e.action,
+      timestamp: e.occurred_at,
+    }));
+  }
+
+  return await fn({ data: { subjectDid, periodDate, events } });
+}
+
+export async function getMerkleRootHistory(_did?: string) {
+  const { getMerkleRoots: fn } = await import("./clinical.server");
+  const res = await fn();
+  const roots: any[] = (res.roots ?? []).map((r: any) => ({
+    publishId: r.publish_id,
+    doctorDid: r.subject_did,
+    merkleRoot: r.root_hash,
+    eventCount: r.event_count,
+    date: r.period_date,
+    publishedAt: r.published_at,
+    anchorId: r.anchor_id,
+  }));
+  return { roots, history: roots, total: roots.length };
+}
+
+export async function getVitals(_did?: string) {
+  const { getAnchors: _unused } = await import("./clinical.server");
+  void _unused;
+  // Vitals are delivered by Realtime subscription (useLiveVitals); this shim
+  // exists only so legacy call sites keep compiling until they are converted.
+  return { vitals: [] as any[] };
 }
