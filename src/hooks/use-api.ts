@@ -681,7 +681,7 @@ export function useEquipment() {
 export function useAttendance(staffEmail: string) {
   return useApiData(
     () => getAttendance(staffEmail),
-    () => ({ records: [] as any[], total: 0 }),
+    () => ({ attendance: [] as any[], records: [] as any[], total: 0 }),
     "attendance:clocked",
     [staffEmail],
   );

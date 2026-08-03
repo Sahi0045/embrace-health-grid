@@ -258,8 +258,6 @@ export const updateMedicalRecord = (recordId: string, data: Record<string, any>)
     body: JSON.stringify(data),
   });
 
-export const getHealthMetrics = (patientDid: string) =>
-  apiFetch<{ metrics: any[] }>(`/medical-records/${encodeURIComponent(patientDid)}/metrics`);
 
 export const getPharmacyOrders = (patientDid: string) =>
   apiFetch<{ orders: any[] }>(`/pharmacy-orders/${encodeURIComponent(patientDid)}`);
@@ -282,32 +280,7 @@ export const updateEmergencyProfile = (data: {
     body: JSON.stringify(data),
   });
 
-export const createInsuranceClaim = (data: {
-  patientDid?: string;
-  provider?: string;
-  policyNo?: string;
-  claimType: string;
-  amount: number;
-  diagnosis?: string;
-  description?: string;
-}) =>
-  apiFetch<{ claim: any; txId: string }>(`/insurance/claims`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
 
-export const updateInsurancePolicy = (data: {
-  insuranceProvider: string;
-  insurancePolicyNo: string;
-  sumInsured?: number;
-  policyType?: string;
-  validFrom?: string;
-  validTo?: string;
-}) =>
-  apiFetch<{ success: boolean; patient: any }>(`/patient/insurance-policy`, {
-    method: "PATCH",
-    body: JSON.stringify(data),
-  });
 // ─── NFC Cards ────────────────────────────────────────────────────────────────
 export const issueNFCCard = (data: {
   patientDid: string;
@@ -327,40 +300,15 @@ export const revokeNFCCard = (cardId: string) =>
     method: "PATCH",
   });
 
-export const verifyNFCCard = (data: { cardId?: string; payload?: string }) =>
-  apiFetch<{ verified: boolean; card: any }>(`/nfc/verify`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
 
 export const getNFCCardStatus = (patientDid: string) =>
   apiFetch<{ hasCard: boolean; card: any }>(`/nfc/status/${encodeURIComponent(patientDid)}`);
 
 // ─── Visitors ─────────────────────────────────────────────────────────────────
-export const getVisitors = (patientDid: string) =>
-  apiFetch<{ visitors: any[]; total: number }>(`/visitors/${encodeURIComponent(patientDid)}`);
 
-export const createVisitorRequest = (data: {
-  patientDid: string;
-  visitorName: string;
-  relation: string;
-  visitDate: string;
-  purpose: string;
-}) =>
-  apiFetch<{ request: any }>(`/visitors/request`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
 
-export const approveVisitorRequest = (id: string, approved: boolean) =>
-  apiFetch<{ visitor: any }>(`/visitors/${encodeURIComponent(id)}/approve`, {
-    method: "PATCH",
-    body: JSON.stringify({ approved }),
-  });
 
 // ─── Attendance ───────────────────────────────────────────────────────────────
-export const getAttendance = (staffEmail: string) =>
-  apiFetch<{ records: any[]; total: number }>(`/attendance/${encodeURIComponent(staffEmail)}`);
 
 export const getAdminAttendanceSummary = () =>
   apiFetch<{
@@ -376,15 +324,6 @@ export const getAdminAttendanceSummary = () =>
     allRecords: any[];
   }>(`/attendance/admin/summary`);
 
-export const clockAttendance = (data: {
-  action: "in" | "out";
-  nfcCardId?: string;
-  location?: string;
-}) =>
-  apiFetch<{ success: boolean; record: any }>(`/attendance/clock`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
 
 // ─── Staff Requests (Leave / Shift) ───────────────────────────────────────────
 export const getStaffRequests = (staffEmail: string) =>
@@ -581,7 +520,6 @@ export const updateAppointmentStatus = (id: string, status: string, notes?: stri
   });
 
 // ─── Beds ─────────────────────────────────────────────────────────────────────
-export const getBeds = () => apiFetch<{ beds: any[]; total: number }>(`/beds`);
 
 export const updateBed = (bedId: string, ward: string, status: string, patientDid?: string) =>
   apiFetch<any>(`/beds`, {
@@ -884,10 +822,6 @@ export const getEquipment = () =>
   apiFetch<{ equipment: any[]; total: number }>(`/infrastructure/equipment`);
 
 // ─── Insurance Claims ─────────────────────────────────────────────────────
-export const getInsuranceClaims = (patientDid?: string) =>
-  apiFetch<{ claims: any[]; total: number }>(
-    `/insurance/claims${patientDid ? `?patientDid=${encodeURIComponent(patientDid)}` : ""}`,
-  );
 
 export const submitInsuranceClaim = (data: {
   patientDid: string;
@@ -916,8 +850,6 @@ export const getVerifiedDoctors = () =>
   apiFetch<{ doctors: any[]; total: number }>(`/doctors/verified`);
 
 // ─── Rooms & Room Check-In ────────────────────────────────────────────────
-export const getRooms = () =>
-  apiFetch<{ rooms: any[]; total: number }>(`/rooms`);
 
 export const roomCheckInMulti = (roomIds: string[], action: "checkin" | "checkout") =>
   apiFetch<{ success: boolean; results: any[]; activeRooms: string[]; hasActiveRoom: boolean }>(
@@ -925,10 +857,6 @@ export const roomCheckInMulti = (roomIds: string[], action: "checkin" | "checkou
     { method: "POST", body: JSON.stringify({ roomIds, action }) },
   );
 
-export const getRoomCheckinStatus = (doctorDid: string) =>
-  apiFetch<{ checkedInRooms: any[]; total: number }>(
-    `/room-checkin/status/${encodeURIComponent(doctorDid)}`,
-  );
 
 export const getRoomCheckinHistory = (doctorDid: string) =>
   apiFetch<{ logs: any[]; total: number }>(
@@ -937,10 +865,6 @@ export const getRoomCheckinHistory = (doctorDid: string) =>
 
 // ─── Merkle Tree: Room Check-In daily aggregation & publishing ────────────
 /** Fetch today's room events + pre-computed Merkle root for a doctor */
-export const getDailyRoomEvents = (doctorDid: string) =>
-  apiFetch<{ events: any[]; merkleRoot: string | null; eventCount: number; date: string }>(
-    `/merkle-root/daily/${encodeURIComponent(doctorDid)}`,
-  );
 
 /** Publish today's Merkle root to blockchain — doctors only.
  *  Pass txSignature (base58 Solana tx sig) and walletAddress when publishing on-chain. */
@@ -990,8 +914,6 @@ export const updatePreferences = (patientDid: string, data: any) =>
     body: JSON.stringify(data),
   });
 
-export const getStaffSchedule = (staffEmail: string) =>
-  apiFetch<{ schedule: any[] }>(`/staff/schedule/${encodeURIComponent(staffEmail)}`);
 
 export const getPolicies = () => apiFetch<{ policies: any[]; total: number }>("/policies");
 
@@ -1124,6 +1046,288 @@ export async function getLabs(_did?: string) {
       referenceRange: l.reference_range,
       status: l.status,
       resultedAt: l.resulted_at,
+    })),
+  };
+}
+
+// ─── Supabase-backed operational reads (task 11a migration) ─────────────────
+// These replaced Express endpoints. Response shapes are preserved so existing
+// call sites keep working; scope comes from RLS and the caller's session, never
+// from an argument passed here.
+
+export async function getAttendance(_email?: string) {
+  const { getAttendance: fn } = await import("./operations.server");
+  const res = await fn();
+  const rows = (res.attendance ?? []).map((a: any) => ({
+      id: a.attendance_id,
+      staffId: a.staff_id,
+      action: a.action,
+      location: a.location,
+      timestamp: a.recorded_at,
+    }));
+  // `records` and `total` are legacy aliases some call sites still read.
+  return { attendance: rows, records: rows, total: rows.length };
+}
+
+export async function clockAttendance(payload: { action: "in" | "out"; location?: string }) {
+  const { clockAttendance: fn } = await import("./operations.server");
+  await fn({ data: payload });
+  const refreshed = await getAttendance();
+  return {
+    success: true as const,
+    record: refreshed.attendance[0] ?? null,
+    ...refreshed,
+  };
+}
+
+export async function getStaffSchedule(_email?: string) {
+  const { getStaffSchedule: fn } = await import("./operations.server");
+  const res = await fn();
+  return {
+    schedule: (res.schedule ?? []).map((s: any) => ({
+      id: s.shift_id,
+      date: s.shift_date,
+      // `day` is the short weekday label the schedule grid renders.
+      day: s.shift_date
+        ? new Date(s.shift_date).toLocaleDateString("en-US", { weekday: "short" })
+        : "",
+      role: s.role,
+      start: s.starts_at,
+      end: s.ends_at,
+      unit: s.unit,
+      patients: s.patient_count,
+      notes: s.notes,
+      confirmed: s.confirmed,
+    })),
+  };
+}
+
+export async function getBeds() {
+  const { getBeds: fn } = await import("./operations.server");
+  const res = await fn();
+  const rows = (res.beds ?? []).map((b: any) => ({
+      bedId: b.bed_id,
+      ward: b.ward,
+      status: b.status,
+      patientDid: b.patient_did,
+      updatedAt: b.updated_at,
+    }));
+  return { beds: rows, total: rows.length };
+}
+
+export async function getRooms() {
+  const { getRooms: fn } = await import("./operations.server");
+  const res = await fn();
+  return {
+    rooms: (res.rooms ?? []).map((r: any) => ({
+      roomId: r.room_id,
+      roomName: r.room_name,
+      category: r.category,
+      floor: r.floor,
+    })),
+  };
+}
+
+export async function getRoomCheckinStatus(_did?: string) {
+  const { getRoomCheckinStatus: fn } = await import("./operations.server");
+  const res = await fn();
+  const rows = (res.checkins ?? []).map((c: any) => ({
+      doctorDid: c.doctor_did,
+      doctorName: c.doctor_name,
+      status: c.status,
+      currentRoom: c.current_room,
+      roomId: c.room_id,
+      checkedInAt: c.checked_in_at,
+      checkedOutAt: c.checked_out_at,
+      lastAction: c.last_action,
+    }));
+  return {
+    checkins: rows,
+    // Legacy alias: the rooms board reads `checkedInRooms`.
+    checkedInRooms: rows.filter((c) => c.lastAction === "checkin"),
+  };
+}
+
+export async function getDailyRoomEvents(doctorDid?: string, date?: string) {
+  const { getDailyRoomEvents: fn } = await import("./operations.server");
+  const res = await fn({ data: { doctorDid, date } });
+  const events = (res.events ?? []).map((e: any) => ({
+    id: e.event_id,
+    doctorDid: e.doctor_did,
+    roomId: e.room_id,
+    roomName: e.room_name,
+    action: e.action,
+    timestamp: e.occurred_at,
+  }));
+
+  // Merkle root over the day's events, using the same canonical leaf ordering
+  // as backend/lib/merkle-tree.js so the value matches what gets published
+  // and anchored on-chain.
+  const sha = async (input: string) => {
+    const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
+    return Array.from(new Uint8Array(d)).map((b) => b.toString(16).padStart(2, "0")).join("");
+  };
+  let merkleRoot: string | null = null;
+  if (events.length) {
+    let level = await Promise.all(
+      events.map((e) =>
+        sha(
+          JSON.stringify({
+            doctorDid: e.doctorDid ?? null,
+            roomId: e.roomId ?? null,
+            roomName: e.roomName ?? null,
+            action: e.action ?? null,
+            timestamp: e.timestamp ?? null,
+          }),
+        ),
+      ),
+    );
+    while (level.length > 1) {
+      const next: string[] = [];
+      for (let i = 0; i < level.length; i += 2) {
+        next.push(await sha(level[i] + (level[i + 1] ?? level[i])));
+      }
+      level = next;
+    }
+    merkleRoot = level[0];
+  }
+
+  return { events, merkleRoot, date: date ?? new Date().toISOString().slice(0, 10) };
+}
+
+export async function getVisitors(_did?: string) {
+  const { getVisitors: fn } = await import("./operations.server");
+  const res = await fn();
+  return {
+    visitors: (res.visitors ?? []).map((v: any) => ({
+      id: v.visitor_id,
+      patientDid: v.patient_did,
+      visitorName: v.visitor_name,
+      relation: v.relation,
+      visitDate: v.visit_date,
+      purpose: v.purpose,
+      status: v.status,
+      requestedAt: v.requested_at,
+      resolvedAt: v.resolved_at,
+      requestedBy: v.requested_by ?? null,
+    })),
+  };
+}
+
+export async function createVisitorRequest(payload: {
+  patientDid?: string;
+  visitorName: string;
+  relation?: string;
+  visitDate?: string;
+  purpose?: string;
+  [key: string]: unknown;
+}) {
+  const { createVisitorRequest: fn } = await import("./operations.server");
+  const res = await fn({
+    data: {
+      patientDid: payload.patientDid,
+      visitorName: payload.visitorName,
+      relation: payload.relation,
+      visitDate: payload.visitDate,
+      purpose: payload.purpose,
+    },
+  });
+  return {
+    success: true as const,
+    request: { id: res.visitorId, visitorName: payload.visitorName, status: "pending" },
+  };
+}
+
+export async function approveVisitorRequest(visitorId: string, approve = true) {
+  const { resolveVisitorRequest: fn, getVisitors } = await import("./operations.server");
+  await fn({ data: { visitorId, approve } });
+  // Callers read back the resolved row, so return it.
+  const { visitors } = await getVisitors();
+  const row = (visitors ?? []).find((v: any) => v.visitor_id === visitorId);
+  return {
+    success: true as const,
+    visitor: row
+      ? { id: row.visitor_id, visitorName: row.visitor_name, status: row.status }
+      : null,
+  };
+}
+
+export async function denyVisitorRequest(visitorId: string) {
+  const { resolveVisitorRequest: fn } = await import("./operations.server");
+  return await fn({ data: { visitorId, approve: false } });
+}
+
+export async function verifyNFCCard(input: string | { payload?: unknown; cardId?: string }) {
+  const { verifyNfcCard: fn } = await import("./operations.server");
+
+  // Callers pass either a bare cardId or a signed payload envelope.
+  const cardId =
+    typeof input === "string"
+      ? input
+      : (input.cardId ??
+        (typeof input.payload === "object" && input.payload !== null
+          ? ((input.payload as { cardId?: string }).cardId ?? "")
+          : ""));
+
+  if (!cardId) return { valid: false as const, verified: false as const, reason: "No card id supplied" };
+
+  const res = await fn({ data: { cardId } });
+  // `verified` is the legacy alias for `valid`.
+  return { ...res, verified: res.valid };
+}
+
+export async function getInsuranceClaims(_did?: string) {
+  const { getInsuranceClaims: fn } = await import("./operations.server");
+  const res = await fn();
+  return {
+    claims: (res.claims ?? []).map((c: any) => ({
+      claimId: c.claim_id,
+      patientDid: c.patient_did,
+      amount: c.amount,
+      description: c.description,
+      status: c.status,
+      submittedAt: c.submitted_at,
+    })),
+  };
+}
+
+export async function createInsuranceClaim(payload: {
+  amount: number;
+  description?: string;
+  patientDid?: string;
+  [key: string]: unknown;
+}) {
+  const { createInsuranceClaim: fn } = await import("./operations.server");
+  // patientDid is accepted but ignored: the claim is always filed against the
+  // caller's own DID, enforced by RLS.
+  const res = await fn({ data: { amount: payload.amount, description: payload.description } });
+  return {
+    success: true as const,
+    claimId: res.claimId,
+    claim: { claimId: res.claimId, amount: payload.amount, description: payload.description, status: "submitted" },
+  };
+}
+
+export async function updateInsurancePolicy(payload: Record<string, unknown>) {
+  const { updateInsurancePolicy: fn, getInsurancePolicy } = await import("./operations.server");
+  await fn({ data: payload });
+  const { policy } = await getInsurancePolicy();
+  // `success`/`patient` keep the legacy response contract callers rely on.
+  return { success: true as const, patient: policy };
+}
+
+export async function getHealthMetrics(_did?: string) {
+  const { getHealthMetrics: fn } = await import("./operations.server");
+  const res = await fn();
+  return {
+    metrics: (res.metrics ?? []).map((m: any) => ({
+      date: m.measured_on,
+      weight: m.weight_kg,
+      bmi: m.bmi,
+      bloodSugar: { fasting: m.sugar_fasting, postMeal: m.sugar_post_meal },
+      bloodPressure: { systolic: m.bp_systolic, diastolic: m.bp_diastolic },
+      cholesterol: { total: m.cholesterol_total, hdl: m.cholesterol_hdl, ldl: m.cholesterol_ldl },
+      hba1c: m.hba1c,
     })),
   };
 }
