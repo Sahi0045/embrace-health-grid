@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently \"npm run dev --prefix backend\" \"vite dev\" \"npm run dev --prefix admin-portal\"",
-    "build": "vite build",
+    "build": "NODE_ENV=production vite build",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",

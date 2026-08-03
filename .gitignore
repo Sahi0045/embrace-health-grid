@@ -7,6 +7,11 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Env files (never commit secrets or NODE_ENV — it breaks Vercel SSR builds)
+.env
+.env.*
+!.env.example
+
 node_modules
 dist
 dist-ssr
