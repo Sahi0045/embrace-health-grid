@@ -76,7 +76,7 @@ export default defineSchema({
     slot: v.string(),
     mode: v.string(),
     specialty: v.string(),
-    status: v.string(),  // pending | confirmed | rejected | rescheduled | cancelled
+    status: v.string(), // pending | confirmed | rejected | rescheduled | cancelled
     reason: v.optional(v.string()),
     suggestedSlot: v.optional(v.string()),
     rejectionReason: v.optional(v.string()),

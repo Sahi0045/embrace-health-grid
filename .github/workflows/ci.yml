@@ -162,6 +162,12 @@ jobs:
         run: npm ci
 
       - name: Run Merkle Tree unit tests
+        env:
+          DATA_ENCRYPTION_KEY: "0000000000000000000000000000000000000000000000000000000000000000"
+          AUDIT_HMAC_KEY: "1111111111111111111111111111111111111111111111111111111111111111"
+          JWT_SECRET: ci-test-jwt-secret-minimum-32-characters-long
+          CLIENT_KEY: ci-test-client-key
+          NODE_ENV: test
         run: npm test
 
       - name: Upload test results
@@ -208,7 +214,7 @@ jobs:
 
       - name: Start backend server
         run: |
-          node server.js &
+          node server.js > /tmp/backend-ci.log 2>&1 &
           echo "BACKEND_PID=$!" >> $GITHUB_ENV
           for i in $(seq 1 30); do
             if curl -sf http://localhost:3001/health > /dev/null 2>&1; then
@@ -217,6 +223,8 @@ jobs:
             fi
             if [ "$i" = "30" ]; then
               echo "❌ Backend failed to start within 30s"
+              echo "---- server log ----"
+              cat /tmp/backend-ci.log || true
               exit 1
             fi
             echo "Waiting... ($i/30)"
