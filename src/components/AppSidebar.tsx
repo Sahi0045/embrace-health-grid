@@ -85,21 +85,21 @@ const patientNav: Item[] = [
 ];
 
 const staffNav: Item[] = [
-  { title: "Dashboard",        url: "/staff",              icon: LayoutDashboard },
-  { title: "Command Center",   url: "/staff/command",      icon: Command         },
-  { title: "Appointments",     url: "/staff/appointments", icon: CalendarDays    },
-  { title: "Doctor Locator",   url: "/staff/tracker",      icon: MapPin          },
-  { title: "Room Check-In",    url: "/staff/rooms",        icon: Building2       },
-  { title: "My Profile",       url: "/staff/profile",      icon: User            },
-  { title: "My Attendance",    url: "/staff/attendance",   icon: Clock           },
-  { title: "Verify Patient",   url: "/staff/verify",       icon: ScanLine        },
-  { title: "Patients",         url: "/staff/patients",     icon: Users           },
-  { title: "Schedule",         url: "/staff/schedule",     icon: Calendar        },
-  { title: "Sign & Prescribe", url: "/staff/sign",         icon: FileSignature   },
-  { title: "Prescriptions",    url: "/staff/prescriptions",icon: Pill            },
-  { title: "Labs",             url: "/staff/labs",         icon: FlaskConical    },
-  { title: "Surgeries",        url: "/staff/surgeries",    icon: Scissors        },
-  { title: "Emergency",        url: "/staff/emergency",    icon: ShieldAlert     },
+  { title: "Dashboard", url: "/staff", icon: LayoutDashboard },
+  { title: "Command Center", url: "/staff/command", icon: Command },
+  { title: "Appointments", url: "/staff/appointments", icon: CalendarDays },
+  { title: "Doctor Locator", url: "/staff/tracker", icon: MapPin },
+  { title: "Room Check-In", url: "/staff/rooms", icon: Building2 },
+  { title: "My Profile", url: "/staff/profile", icon: User },
+  { title: "My Attendance", url: "/staff/attendance", icon: Clock },
+  { title: "Verify Patient", url: "/staff/verify", icon: ScanLine },
+  { title: "Patients", url: "/staff/patients", icon: Users },
+  { title: "Schedule", url: "/staff/schedule", icon: Calendar },
+  { title: "Sign & Prescribe", url: "/staff/sign", icon: FileSignature },
+  { title: "Prescriptions", url: "/staff/prescriptions", icon: Pill },
+  { title: "Labs", url: "/staff/labs", icon: FlaskConical },
+  { title: "Surgeries", url: "/staff/surgeries", icon: Scissors },
+  { title: "Emergency", url: "/staff/emergency", icon: ShieldAlert },
 ];
 
 const adminNav: Item[] = [
@@ -160,7 +160,10 @@ export function AppSidebar() {
     ? "patient"
     : pathname.startsWith("/staff")
       ? "staff"
-      : pathname.startsWith("/admin") || pathname === "/did-explorer" || pathname === "/credential-explorer" || pathname === "/audit-timeline"
+      : pathname.startsWith("/admin") ||
+          pathname === "/did-explorer" ||
+          pathname === "/credential-explorer" ||
+          pathname === "/audit-timeline"
         ? "admin"
         : (user?.role as any) || "patient";
 
@@ -192,9 +195,15 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        {(currentPortal === "patient" || isPatientUser) && <NavGroup label="Patient Portal" items={patientNav} />}
-        {(currentPortal === "staff" || isStaffUser || isAdminUser) && <NavGroup label="Doctor & Staff Portal" items={staffNav} />}
-        {(currentPortal === "admin" || isAdminUser) && <NavGroup label="Admin Portal" items={adminNav} />}
+        {(currentPortal === "patient" || isPatientUser) && (
+          <NavGroup label="Patient Portal" items={patientNav} />
+        )}
+        {(currentPortal === "staff" || isStaffUser || isAdminUser) && (
+          <NavGroup label="Doctor & Staff Portal" items={staffNav} />
+        )}
+        {(currentPortal === "admin" || isAdminUser) && (
+          <NavGroup label="Admin Portal" items={adminNav} />
+        )}
 
         <NavGroup label="Network" items={globalNav} />
 

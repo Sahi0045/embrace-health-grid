@@ -116,7 +116,7 @@ function AdminDashboardPage() {
     setApprovingId(key);
     try {
       const pendingReq = didRequests.find(
-        (r) => r.ownerEmail?.toLowerCase() === user.email?.toLowerCase() && r.status === "pending"
+        (r) => r.ownerEmail?.toLowerCase() === user.email?.toLowerCase() && r.status === "pending",
       );
       if (pendingReq) {
         const res = await approveDIDRequest(pendingReq.id);
@@ -130,7 +130,7 @@ function AdminDashboardPage() {
           user.name || user.email.split("@")[0],
           user.role || "doctor",
           undefined,
-          user.email
+          user.email,
         );
         if (res && res.did) {
           toast.success(`Official DID Issued!`, {
@@ -330,12 +330,16 @@ function AdminDashboardPage() {
                     Clinician & Staff DID Approval & Issuance Roster
                   </CardTitle>
                 </div>
-                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30 text-[10px] font-bold uppercase">
+                <Badge
+                  variant="outline"
+                  className="bg-primary/10 text-primary border-primary/30 text-[10px] font-bold uppercase"
+                >
                   Admin Authority
                 </Badge>
               </div>
               <CardDescription>
-                Review all registered doctors and staff members. Click &quot;Approve & Issue DID&quot; to issue an official W3C Decentralized Identifier for any clinician.
+                Review all registered doctors and staff members. Click &quot;Approve & Issue
+                DID&quot; to issue an official W3C Decentralized Identifier for any clinician.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -344,12 +348,17 @@ function AdminDashboardPage() {
                   // Find active DID in registeredDIDs
                   const activeDidEntry = registeredDIDs.find(
                     (d: any) =>
-                      (d.ownerEmail && d.ownerEmail.toLowerCase() === clinician.email.toLowerCase()) ||
-                      (d.did && clinician.did && d.did === clinician.did)
+                      (d.ownerEmail &&
+                        d.ownerEmail.toLowerCase() === clinician.email.toLowerCase()) ||
+                      (d.did && clinician.did && d.did === clinician.did),
                   );
-                  const activeDid = activeDidEntry?.did || (clinician.did && clinician.did.startsWith("did:hosp:") ? clinician.did : null);
+                  const activeDid =
+                    activeDidEntry?.did ||
+                    (clinician.did && clinician.did.startsWith("did:hosp:") ? clinician.did : null);
                   const pendingReq = didRequests.find(
-                    (r) => r.ownerEmail?.toLowerCase() === clinician.email.toLowerCase() && r.status === "pending"
+                    (r) =>
+                      r.ownerEmail?.toLowerCase() === clinician.email.toLowerCase() &&
+                      r.status === "pending",
                   );
                   const key = clinician.email;
 
@@ -360,14 +369,22 @@ function AdminDashboardPage() {
                     >
                       <div className="space-y-1.5">
                         <div className="flex items-center justify-between">
-                          <span className="font-bold text-foreground text-sm">{clinician.name}</span>
-                          <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-[10px] uppercase font-bold">
+                          <span className="font-bold text-foreground text-sm">
+                            {clinician.name}
+                          </span>
+                          <Badge
+                            variant="outline"
+                            className="bg-primary/10 text-primary border-primary/20 text-[10px] uppercase font-bold"
+                          >
                             {clinician.role}
                           </Badge>
                         </div>
                         <p className="text-xs text-muted-foreground font-mono">{clinician.email}</p>
                         <p className="text-xs text-muted-foreground">
-                          Department: <span className="font-semibold text-foreground">{clinician.department}</span>
+                          Department:{" "}
+                          <span className="font-semibold text-foreground">
+                            {clinician.department}
+                          </span>
                         </p>
                         <div className="mt-2 pt-2 border-t border-border">
                           {activeDid ? (
@@ -382,7 +399,8 @@ function AdminDashboardPage() {
                           ) : pendingReq ? (
                             <div className="space-y-0.5">
                               <span className="text-[10px] font-bold text-amber-500 uppercase flex items-center gap-1">
-                                🟡 Request Pending (Submitted {new Date(pendingReq.requestedAt).toLocaleDateString()})
+                                🟡 Request Pending (Submitted{" "}
+                                {new Date(pendingReq.requestedAt).toLocaleDateString()})
                               </span>
                             </div>
                           ) : (
@@ -427,12 +445,17 @@ function AdminDashboardPage() {
                     Staff Attendance Real-Time Roster (DID Verified)
                   </CardTitle>
                 </div>
-                <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 text-[10px] font-bold uppercase flex items-center gap-1">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live WS Sync
+                <Badge
+                  variant="outline"
+                  className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 text-[10px] font-bold uppercase flex items-center gap-1"
+                >
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live WS
+                  Sync
                 </Badge>
               </div>
               <CardDescription>
-                Track real-time attendance for all staff members who have been issued an official W3C DID by Admin.
+                Track real-time attendance for all staff members who have been issued an official
+                W3C DID by Admin.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -440,29 +463,45 @@ function AdminDashboardPage() {
               <div className="grid gap-3 sm:grid-cols-4">
                 <div className="p-3 rounded-xl bg-card border border-border flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] font-semibold text-muted-foreground uppercase">Eligible Staff</span>
-                    <p className="text-xl font-extrabold text-foreground">{adminAttendance?.summary?.totalEligibleStaff || 0}</p>
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase">
+                      Eligible Staff
+                    </span>
+                    <p className="text-xl font-extrabold text-foreground">
+                      {adminAttendance?.summary?.totalEligibleStaff || 0}
+                    </p>
                   </div>
                   <UserCheck className="h-5 w-5 text-primary opacity-80" />
                 </div>
                 <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] font-semibold text-emerald-600 uppercase">Checked In</span>
-                    <p className="text-xl font-extrabold text-emerald-600">{adminAttendance?.summary?.checkedInCount || 0}</p>
+                    <span className="text-[10px] font-semibold text-emerald-600 uppercase">
+                      Checked In
+                    </span>
+                    <p className="text-xl font-extrabold text-emerald-600">
+                      {adminAttendance?.summary?.checkedInCount || 0}
+                    </p>
                   </div>
                   <LogIn className="h-5 w-5 text-emerald-600 opacity-80" />
                 </div>
                 <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] font-semibold text-blue-600 uppercase">Checked Out</span>
-                    <p className="text-xl font-extrabold text-blue-600">{adminAttendance?.summary?.checkedOutCount || 0}</p>
+                    <span className="text-[10px] font-semibold text-blue-600 uppercase">
+                      Checked Out
+                    </span>
+                    <p className="text-xl font-extrabold text-blue-600">
+                      {adminAttendance?.summary?.checkedOutCount || 0}
+                    </p>
                   </div>
                   <LogOut className="h-5 w-5 text-blue-600 opacity-80" />
                 </div>
                 <div className="p-3 rounded-xl bg-muted/60 border border-border flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] font-semibold text-muted-foreground uppercase">Absent / Unmarked</span>
-                    <p className="text-xl font-extrabold text-muted-foreground">{adminAttendance?.summary?.absentToday || 0}</p>
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase">
+                      Absent / Unmarked
+                    </span>
+                    <p className="text-xl font-extrabold text-muted-foreground">
+                      {adminAttendance?.summary?.absentToday || 0}
+                    </p>
                   </div>
                   <Clock className="h-5 w-5 text-muted-foreground opacity-80" />
                 </div>
@@ -471,20 +510,28 @@ function AdminDashboardPage() {
               {/* Roster Table / List */}
               <div className="space-y-3">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Today&apos;s Staff Attendance Status ({adminAttendance?.summary?.date || new Date().toISOString().split("T")[0]})
+                  Today&apos;s Staff Attendance Status (
+                  {adminAttendance?.summary?.date || new Date().toISOString().split("T")[0]})
                 </h4>
-                {(!adminAttendance?.roster || adminAttendance.roster.length === 0) ? (
+                {!adminAttendance?.roster || adminAttendance.roster.length === 0 ? (
                   <div className="p-6 text-center text-xs text-muted-foreground bg-muted/20 rounded-xl border border-dashed">
-                    No staff members with active DIDs registered yet. Issue DIDs above to enable staff attendance tracking.
+                    No staff members with active DIDs registered yet. Issue DIDs above to enable
+                    staff attendance tracking.
                   </div>
                 ) : (
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     {adminAttendance.roster.map((record: any) => {
                       const inTimeStr = record.checkInTime
-                        ? new Date(record.checkInTime).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })
+                        ? new Date(record.checkInTime).toLocaleTimeString("en-IN", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
                         : "–";
                       const outTimeStr = record.checkOutTime
-                        ? new Date(record.checkOutTime).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })
+                        ? new Date(record.checkOutTime).toLocaleTimeString("en-IN", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
                         : "–";
 
                       return (
@@ -494,24 +541,40 @@ function AdminDashboardPage() {
                         >
                           <div className="space-y-1.5">
                             <div className="flex items-center justify-between">
-                              <span className="font-bold text-foreground text-sm">{record.staffName}</span>
+                              <span className="font-bold text-foreground text-sm">
+                                {record.staffName}
+                              </span>
                               <Badge
                                 variant="outline"
                                 className={`text-[10px] uppercase font-bold ${
                                   record.status === "checked-in"
                                     ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/30"
                                     : record.status === "checked-out"
-                                    ? "bg-blue-500/10 text-blue-600 border-blue-500/30"
-                                    : "bg-muted text-muted-foreground border-border"
+                                      ? "bg-blue-500/10 text-blue-600 border-blue-500/30"
+                                      : "bg-muted text-muted-foreground border-border"
                                 }`}
                               >
-                                {record.status === "checked-in" ? "🟢 Checked In" : record.status === "checked-out" ? "🔵 Checked Out" : "⚪ Absent"}
+                                {record.status === "checked-in"
+                                  ? "🟢 Checked In"
+                                  : record.status === "checked-out"
+                                    ? "🔵 Checked Out"
+                                    : "⚪ Absent"}
                               </Badge>
                             </div>
-                            <p className="text-xs text-muted-foreground font-mono">{record.staffEmail}</p>
+                            <p className="text-xs text-muted-foreground font-mono">
+                              {record.staffEmail}
+                            </p>
                             <div className="flex items-center justify-between text-xs pt-1">
-                              <span className="text-muted-foreground">Staff ID: <strong className="text-foreground font-mono">{record.staffId}</strong></span>
-                              <span className="text-muted-foreground">Dept: <strong className="text-foreground">{record.department}</strong></span>
+                              <span className="text-muted-foreground">
+                                Staff ID:{" "}
+                                <strong className="text-foreground font-mono">
+                                  {record.staffId}
+                                </strong>
+                              </span>
+                              <span className="text-muted-foreground">
+                                Dept:{" "}
+                                <strong className="text-foreground">{record.department}</strong>
+                              </span>
                             </div>
                             <div className="mt-2 pt-2 border-t border-border space-y-1 text-xs">
                               <div className="flex justify-between">

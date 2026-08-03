@@ -21,7 +21,18 @@ import { readFileSync, existsSync, mkdirSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { randomUUID, createHmac } from "crypto";
-import Database from "better-sqlite3";
+// better-sqlite3 is a native module — it requires compilation for the current
+// platform. In CI environments where native builds are unavailable (e.g. no
+// build tools, wrong arch) we fall back to a lightweight in-memory store so
+// the server can start and smoke tests can run. Set SQLITE_REQUIRED=true in
+// production to hard-fail instead of falling back.
+let Database;
+try {
+  Database = (await import("better-sqlite3")).default;
+} catch (_nativeErr) {
+  Database = null;
+  console.warn("⚠️  better-sqlite3 unavailable — falling back to in-memory store.");
+}
 import { ConvexHttpClient } from "convex/browser";
 import {
   encryptValue,
@@ -73,54 +84,68 @@ loadEnv();
 
 // ---------------------------------------------------------------------------
 // SQLite Database Initialization
+// Falls back to pure in-memory mode when better-sqlite3 is unavailable
+// (e.g. CI environments without native build tools).
+// Set SQLITE_REQUIRED=true to hard-fail instead of falling back.
 // ---------------------------------------------------------------------------
 const DB_PATH = join(DATA_DIR, "world-state.db");
-const db = new Database(DB_PATH);
+let db = null;
+let stmtGetNamespace = null;
+let stmtUpsertState = null;
+let stmtCountTotal = null;
+let stmtGetAllRecords = null;
 
-// Enable WAL mode for optimum concurrency and performance
-db.pragma("journal_mode = WAL");
-
-db.exec(`
-  CREATE TABLE IF NOT EXISTS world_state (
-    namespace TEXT NOT NULL,
-    key TEXT NOT NULL,
-    value TEXT NOT NULL,
-    version TEXT,
-    updated_at TEXT,
-    tx_id TEXT,
-    doc_type TEXT,
-    PRIMARY KEY (namespace, key)
-  );
-
-  CREATE INDEX IF NOT EXISTS idx_ws_namespace ON world_state(namespace);
-  CREATE INDEX IF NOT EXISTS idx_ws_updated ON world_state(namespace, updated_at);
-`);
-
-// Prepared statements for zero-overhead performance
-const stmtGetNamespace = db.prepare(`
-  SELECT key, value, version, updated_at, tx_id, doc_type
-  FROM world_state
-  WHERE namespace = ?
-`);
-
-const stmtUpsertState = db.prepare(`
-  INSERT INTO world_state (namespace, key, value, version, updated_at, tx_id, doc_type)
-  VALUES (?, ?, ?, ?, ?, ?, ?)
-  ON CONFLICT(namespace, key) DO UPDATE SET
-    value = excluded.value,
-    version = excluded.version,
-    updated_at = excluded.updated_at,
-    tx_id = excluded.tx_id,
-    doc_type = excluded.doc_type
-`);
-
-const stmtCountTotal = db.prepare(`
-  SELECT COUNT(*) as count FROM world_state
-`);
-
-const stmtGetAllRecords = db.prepare(`
-  SELECT namespace, key, value, version, updated_at, tx_id, doc_type FROM world_state
-`);
+if (Database) {
+  try {
+    db = new Database(DB_PATH);
+    db.pragma("journal_mode = WAL");
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS world_state (
+        namespace TEXT NOT NULL,
+        key TEXT NOT NULL,
+        value TEXT NOT NULL,
+        version TEXT,
+        updated_at TEXT,
+        tx_id TEXT,
+        doc_type TEXT,
+        PRIMARY KEY (namespace, key)
+      );
+      CREATE INDEX IF NOT EXISTS idx_ws_namespace ON world_state(namespace);
+      CREATE INDEX IF NOT EXISTS idx_ws_updated ON world_state(namespace, updated_at);
+    `);
+    stmtGetNamespace = db.prepare(`
+      SELECT key, value, version, updated_at, tx_id, doc_type
+      FROM world_state WHERE namespace = ?
+    `);
+    stmtUpsertState = db.prepare(`
+      INSERT INTO world_state (namespace, key, value, version, updated_at, tx_id, doc_type)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(namespace, key) DO UPDATE SET
+        value = excluded.value,
+        version = excluded.version,
+        updated_at = excluded.updated_at,
+        tx_id = excluded.tx_id,
+        doc_type = excluded.doc_type
+    `);
+    stmtCountTotal = db.prepare(`SELECT COUNT(*) as count FROM world_state`);
+    stmtGetAllRecords = db.prepare(`
+      SELECT namespace, key, value, version, updated_at, tx_id, doc_type FROM world_state
+    `);
+  } catch (sqliteErr) {
+    if (process.env.SQLITE_REQUIRED === "true") {
+      console.error("FATAL: SQLite unavailable and SQLITE_REQUIRED=true.", sqliteErr.message);
+      process.exit(1);
+    }
+    console.warn("⚠️  SQLite init failed — running in-memory only:", sqliteErr.message);
+    db = null;
+  }
+} else {
+  if (process.env.SQLITE_REQUIRED === "true") {
+    console.error("FATAL: better-sqlite3 not available and SQLITE_REQUIRED=true.");
+    process.exit(1);
+  }
+  console.warn("ℹ️  Running in-memory only (SQLite not available).");
+}
 
 // Validate encryption key on startup
 const hasExplicitKey = !!process.env.DATA_ENCRYPTION_KEY;
@@ -162,6 +187,7 @@ if (convexUrl && convexUrl !== "https://dummy-url.convex.cloud") {
 const _cache = new Map();
 
 function loadNamespaceFromDb(namespace) {
+  if (!db || !stmtGetNamespace) return {};
   const rows = stmtGetNamespace.all(namespace);
   const data = {};
   for (const row of rows) {
@@ -192,6 +218,7 @@ function getNamespaceCache(namespace) {
 }
 
 function saveEntryToDb(namespace, key, entry) {
+  if (!db || !stmtUpsertState) return; // in-memory only mode
   const rawValue = entry.value;
   const dbValue = typeof rawValue === "string" ? rawValue : JSON.stringify(rawValue);
   stmtUpsertState.run(
@@ -253,6 +280,52 @@ export function stagePutState(tx, namespace, key, value, version = "1") {
 }
 
 /**
+ * Internal helper — apply staged writes + deletes to in-memory cache and SQLite.
+ * Extracted so it can run inside or outside a db.transaction() wrapper.
+ */
+function _applyTransactionWrites(tx, affectedNamespaces) {
+  for (const [namespace, stagedMap] of tx.stagedWrites) {
+    affectedNamespaces.add(namespace);
+    const nsCache = getNamespaceCache(namespace);
+    for (const [key, entry] of stagedMap) {
+      const { plainValue, ...dbEntry } = entry;
+      nsCache[key] = dbEntry;
+      saveEntryToDb(namespace, key, dbEntry);
+      if (convexClient) {
+        convexClient
+          .mutation("records:putGenericWorldState", {
+            namespace, key, value: plainValue,
+            txId: tx.txId, version: dbEntry.version, updatedAt: dbEntry.updatedAt,
+          })
+          .catch(() => {});
+      }
+    }
+  }
+  for (const target of tx.stagedDeletes) {
+    const sepIdx = target.indexOf("\0");
+    const namespace = target.slice(0, sepIdx);
+    const key = target.slice(sepIdx + 1);
+    affectedNamespaces.add(namespace);
+    const nsCache = getNamespaceCache(namespace);
+    if (nsCache[key]) {
+      let plainVal = nsCache[key].value;
+      if (isPHINamespace(namespace)) {
+        try { plainVal = decryptValue(nsCache[key].value); } catch {}
+      }
+      if (typeof plainVal === "object" && plainVal !== null) {
+        plainVal._deleted = true;
+        plainVal._deletedAt = new Date().toISOString();
+      } else {
+        plainVal = { _deleted: true, _deletedAt: new Date().toISOString() };
+      }
+      const storedValue = isPHINamespace(namespace) ? encryptValue(plainVal) : plainVal;
+      nsCache[key].value = storedValue;
+      saveEntryToDb(namespace, key, nsCache[key]);
+    }
+  }
+}
+
+/**
  * Commit a transaction atomically across all affected namespaces inside SQLite transaction
  */
 export function commitTransaction(tx) {
@@ -261,57 +334,11 @@ export function commitTransaction(tx) {
 
   const affectedNamespaces = new Set();
 
-  const commitToDb = db.transaction(() => {
-    // Apply staged writes
-    for (const [namespace, stagedMap] of tx.stagedWrites) {
-      affectedNamespaces.add(namespace);
-      const nsCache = getNamespaceCache(namespace);
-      for (const [key, entry] of stagedMap) {
-        const { plainValue, ...dbEntry } = entry;
-        nsCache[key] = dbEntry;
-        saveEntryToDb(namespace, key, dbEntry);
-
-        if (convexClient) {
-          convexClient
-            .mutation("records:putGenericWorldState", {
-              namespace,
-              key,
-              value: plainValue,
-              txId: tx.txId,
-              version: dbEntry.version,
-              updatedAt: dbEntry.updatedAt,
-            })
-            .catch(() => {});
-        }
-      }
-    }
-
-    // Apply staged deletes
-    for (const target of tx.stagedDeletes) {
-      const sepIdx = target.indexOf("\0");
-      const namespace = target.slice(0, sepIdx);
-      const key = target.slice(sepIdx + 1);
-      affectedNamespaces.add(namespace);
-      const nsCache = getNamespaceCache(namespace);
-      if (nsCache[key]) {
-        let plainVal = nsCache[key].value;
-        if (isPHINamespace(namespace)) {
-          try {
-            plainVal = decryptValue(nsCache[key].value);
-          } catch {}
-        }
-        if (typeof plainVal === "object" && plainVal !== null) {
-          plainVal._deleted = true;
-          plainVal._deletedAt = new Date().toISOString();
-        } else {
-          plainVal = { _deleted: true, _deletedAt: new Date().toISOString() };
-        }
-        const storedValue = isPHINamespace(namespace) ? encryptValue(plainVal) : plainVal;
-        nsCache[key].value = storedValue;
-        saveEntryToDb(namespace, key, nsCache[key]);
-      }
-    }
-  });
+  const commitToDb = db
+    ? db.transaction(() => {
+        _applyTransactionWrites(tx, affectedNamespaces);
+      })
+    : () => _applyTransactionWrites(tx, affectedNamespaces);
 
   commitToDb();
 
@@ -565,6 +592,12 @@ export function getStateHistory(namespace, key) {
  * Count total keys across all namespaces
  */
 export function getWorldStateSize() {
+  if (!db || !stmtCountTotal) {
+    // In-memory fallback: sum up all cached entries
+    let count = 0;
+    for (const ns of _cache.values()) count += Object.keys(ns).length;
+    return count;
+  }
   const row = stmtCountTotal.get();
   return row ? row.count : 0;
 }
@@ -574,6 +607,22 @@ export function getWorldStateSize() {
  */
 export function getAllWorldState() {
   const result = {};
+
+  if (!db || !stmtGetAllRecords) {
+    // In-memory fallback: flatten all cached namespaces
+    for (const [namespace, nsMap] of _cache.entries()) {
+      for (const [key, entry] of Object.entries(nsMap)) {
+        if (entry.value && entry.value._deleted) continue;
+        result[`${namespace}:${key}`] = {
+          key, namespace,
+          value: isPHINamespace(namespace) ? (() => { try { return decryptValue(entry.value); } catch { return entry.value; } })() : entry.value,
+          version: entry.version, updatedAt: entry.updatedAt, txId: entry.txId, docType: namespace,
+        };
+      }
+    }
+    return result;
+  }
+
   const rows = stmtGetAllRecords.all();
   for (const row of rows) {
     if (row.value && row.value.includes('"_deleted":true')) continue;

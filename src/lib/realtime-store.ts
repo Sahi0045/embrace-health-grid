@@ -323,8 +323,28 @@ export const DEFAULT_FALLBACK_STAFF: LiveStaff[] = [
     onDuty: true,
     isOnChain: true,
     activeCredentials: [
-      { id: "vc_1_1", type: "ProfessionalVC", issuer: "did:hosp:consortium:authority", subject: "did:hosp:0x7a3f91b2c4e5d6a7", issuedAt: "2026-01-01T00:00:00Z", expiresAt: "2027-01-01T00:00:00Z", claims: { role: "Doctor" }, signature: "0xsig", status: "active" },
-      { id: "vc_1_2", type: "AccessVC", issuer: "did:hosp:consortium:authority", subject: "did:hosp:0x7a3f91b2c4e5d6a7", issuedAt: "2026-01-01T00:00:00Z", expiresAt: "2027-01-01T00:00:00Z", claims: { access: "OPD" }, signature: "0xsig", status: "active" },
+      {
+        id: "vc_1_1",
+        type: "ProfessionalVC",
+        issuer: "did:hosp:consortium:authority",
+        subject: "did:hosp:0x7a3f91b2c4e5d6a7",
+        issuedAt: "2026-01-01T00:00:00Z",
+        expiresAt: "2027-01-01T00:00:00Z",
+        claims: { role: "Doctor" },
+        signature: "0xsig",
+        status: "active",
+      },
+      {
+        id: "vc_1_2",
+        type: "AccessVC",
+        issuer: "did:hosp:consortium:authority",
+        subject: "did:hosp:0x7a3f91b2c4e5d6a7",
+        issuedAt: "2026-01-01T00:00:00Z",
+        expiresAt: "2027-01-01T00:00:00Z",
+        claims: { access: "OPD" },
+        signature: "0xsig",
+        status: "active",
+      },
     ],
   },
   {
@@ -349,8 +369,28 @@ export const DEFAULT_FALLBACK_STAFF: LiveStaff[] = [
     onDuty: true,
     isOnChain: true,
     activeCredentials: [
-      { id: "vc_2_1", type: "ProfessionalVC", issuer: "did:hosp:consortium:authority", subject: "did:hosp:0x8b2e41a3f5c6d7e8", issuedAt: "2026-01-01T00:00:00Z", expiresAt: "2027-01-01T00:00:00Z", claims: { role: "Doctor" }, signature: "0xsig", status: "active" },
-      { id: "vc_2_2", type: "AccessVC", issuer: "did:hosp:consortium:authority", subject: "did:hosp:0x8b2e41a3f5c6d7e8", issuedAt: "2026-01-01T00:00:00Z", expiresAt: "2027-01-01T00:00:00Z", claims: { access: "Cardiology" }, signature: "0xsig", status: "active" },
+      {
+        id: "vc_2_1",
+        type: "ProfessionalVC",
+        issuer: "did:hosp:consortium:authority",
+        subject: "did:hosp:0x8b2e41a3f5c6d7e8",
+        issuedAt: "2026-01-01T00:00:00Z",
+        expiresAt: "2027-01-01T00:00:00Z",
+        claims: { role: "Doctor" },
+        signature: "0xsig",
+        status: "active",
+      },
+      {
+        id: "vc_2_2",
+        type: "AccessVC",
+        issuer: "did:hosp:consortium:authority",
+        subject: "did:hosp:0x8b2e41a3f5c6d7e8",
+        issuedAt: "2026-01-01T00:00:00Z",
+        expiresAt: "2027-01-01T00:00:00Z",
+        claims: { access: "Cardiology" },
+        signature: "0xsig",
+        status: "active",
+      },
     ],
   },
   {
@@ -375,8 +415,28 @@ export const DEFAULT_FALLBACK_STAFF: LiveStaff[] = [
     onDuty: true,
     isOnChain: true,
     activeCredentials: [
-      { id: "vc_3_1", type: "ProfessionalVC", issuer: "did:hosp:consortium:authority", subject: "did:hosp:0x9c1d52b4e6f7a8b9", issuedAt: "2026-01-01T00:00:00Z", expiresAt: "2027-01-01T00:00:00Z", claims: { role: "Doctor" }, signature: "0xsig", status: "active" },
-      { id: "vc_3_2", type: "AccessVC", issuer: "did:hosp:consortium:authority", subject: "did:hosp:0x9c1d52b4e6f7a8b9", issuedAt: "2026-01-01T00:00:00Z", expiresAt: "2027-01-01T00:00:00Z", claims: { access: "OT" }, signature: "0xsig", status: "active" },
+      {
+        id: "vc_3_1",
+        type: "ProfessionalVC",
+        issuer: "did:hosp:consortium:authority",
+        subject: "did:hosp:0x9c1d52b4e6f7a8b9",
+        issuedAt: "2026-01-01T00:00:00Z",
+        expiresAt: "2027-01-01T00:00:00Z",
+        claims: { role: "Doctor" },
+        signature: "0xsig",
+        status: "active",
+      },
+      {
+        id: "vc_3_2",
+        type: "AccessVC",
+        issuer: "did:hosp:consortium:authority",
+        subject: "did:hosp:0x9c1d52b4e6f7a8b9",
+        issuedAt: "2026-01-01T00:00:00Z",
+        expiresAt: "2027-01-01T00:00:00Z",
+        claims: { access: "OT" },
+        signature: "0xsig",
+        status: "active",
+      },
     ],
   },
   {
@@ -401,8 +461,28 @@ export const DEFAULT_FALLBACK_STAFF: LiveStaff[] = [
     onDuty: true,
     isOnChain: true,
     activeCredentials: [
-      { id: "vc_4_1", type: "ProfessionalVC", issuer: "did:hosp:consortium:authority", subject: "did:hosp:0x4d5e63c7f8a9b0c1", issuedAt: "2026-01-01T00:00:00Z", expiresAt: "2027-01-01T00:00:00Z", claims: { role: "Doctor" }, signature: "0xsig", status: "active" },
-      { id: "vc_4_2", type: "AccessVC", issuer: "did:hosp:consortium:authority", subject: "did:hosp:0x4d5e63c7f8a9b0c1", issuedAt: "2026-01-01T00:00:00Z", expiresAt: "2027-01-01T00:00:00Z", claims: { access: "ER" }, signature: "0xsig", status: "active" },
+      {
+        id: "vc_4_1",
+        type: "ProfessionalVC",
+        issuer: "did:hosp:consortium:authority",
+        subject: "did:hosp:0x4d5e63c7f8a9b0c1",
+        issuedAt: "2026-01-01T00:00:00Z",
+        expiresAt: "2027-01-01T00:00:00Z",
+        claims: { role: "Doctor" },
+        signature: "0xsig",
+        status: "active",
+      },
+      {
+        id: "vc_4_2",
+        type: "AccessVC",
+        issuer: "did:hosp:consortium:authority",
+        subject: "did:hosp:0x4d5e63c7f8a9b0c1",
+        issuedAt: "2026-01-01T00:00:00Z",
+        expiresAt: "2027-01-01T00:00:00Z",
+        claims: { access: "ER" },
+        signature: "0xsig",
+        status: "active",
+      },
     ],
   },
   {
@@ -427,8 +507,28 @@ export const DEFAULT_FALLBACK_STAFF: LiveStaff[] = [
     onDuty: true,
     isOnChain: true,
     activeCredentials: [
-      { id: "vc_5_1", type: "ProfessionalVC", issuer: "did:hosp:consortium:authority", subject: "did:hosp:0x6f7a81b2c3d4e5f6", issuedAt: "2026-01-01T00:00:00Z", expiresAt: "2027-01-01T00:00:00Z", claims: { role: "Doctor" }, signature: "0xsig", status: "active" },
-      { id: "vc_5_2", type: "AccessVC", issuer: "did:hosp:consortium:authority", subject: "did:hosp:0x6f7a81b2c3d4e5f6", issuedAt: "2026-01-01T00:00:00Z", expiresAt: "2027-01-01T00:00:00Z", claims: { access: "ICU" }, signature: "0xsig", status: "active" },
+      {
+        id: "vc_5_1",
+        type: "ProfessionalVC",
+        issuer: "did:hosp:consortium:authority",
+        subject: "did:hosp:0x6f7a81b2c3d4e5f6",
+        issuedAt: "2026-01-01T00:00:00Z",
+        expiresAt: "2027-01-01T00:00:00Z",
+        claims: { role: "Doctor" },
+        signature: "0xsig",
+        status: "active",
+      },
+      {
+        id: "vc_5_2",
+        type: "AccessVC",
+        issuer: "did:hosp:consortium:authority",
+        subject: "did:hosp:0x6f7a81b2c3d4e5f6",
+        issuedAt: "2026-01-01T00:00:00Z",
+        expiresAt: "2027-01-01T00:00:00Z",
+        claims: { access: "ICU" },
+        signature: "0xsig",
+        status: "active",
+      },
     ],
   },
   {
@@ -453,8 +553,28 @@ export const DEFAULT_FALLBACK_STAFF: LiveStaff[] = [
     onDuty: true,
     isOnChain: true,
     activeCredentials: [
-      { id: "vc_6_1", type: "ProfessionalVC", issuer: "did:hosp:consortium:authority", subject: "did:hosp:0x1b2c3d4e5f6a7b8c", issuedAt: "2026-01-01T00:00:00Z", expiresAt: "2027-01-01T00:00:00Z", claims: { role: "Doctor" }, signature: "0xsig", status: "active" },
-      { id: "vc_6_2", type: "AccessVC", issuer: "did:hosp:consortium:authority", subject: "did:hosp:0x1b2c3d4e5f6a7b8c", issuedAt: "2026-01-01T00:00:00Z", expiresAt: "2027-01-01T00:00:00Z", claims: { access: "Trauma" }, signature: "0xsig", status: "active" },
+      {
+        id: "vc_6_1",
+        type: "ProfessionalVC",
+        issuer: "did:hosp:consortium:authority",
+        subject: "did:hosp:0x1b2c3d4e5f6a7b8c",
+        issuedAt: "2026-01-01T00:00:00Z",
+        expiresAt: "2027-01-01T00:00:00Z",
+        claims: { role: "Doctor" },
+        signature: "0xsig",
+        status: "active",
+      },
+      {
+        id: "vc_6_2",
+        type: "AccessVC",
+        issuer: "did:hosp:consortium:authority",
+        subject: "did:hosp:0x1b2c3d4e5f6a7b8c",
+        issuedAt: "2026-01-01T00:00:00Z",
+        expiresAt: "2027-01-01T00:00:00Z",
+        claims: { access: "Trauma" },
+        signature: "0xsig",
+        status: "active",
+      },
     ],
   },
   {
@@ -479,8 +599,28 @@ export const DEFAULT_FALLBACK_STAFF: LiveStaff[] = [
     onDuty: true,
     isOnChain: true,
     activeCredentials: [
-      { id: "vc_7_1", type: "ProfessionalVC", issuer: "did:hosp:consortium:authority", subject: "did:hosp:0x3d4e5f6a7b8c9d0e", issuedAt: "2026-01-01T00:00:00Z", expiresAt: "2027-01-01T00:00:00Z", claims: { role: "Doctor" }, signature: "0xsig", status: "active" },
-      { id: "vc_7_2", type: "AccessVC", issuer: "did:hosp:consortium:authority", subject: "did:hosp:0x3d4e5f6a7b8c9d0e", issuedAt: "2026-01-01T00:00:00Z", expiresAt: "2027-01-01T00:00:00Z", claims: { access: "OT" }, signature: "0xsig", status: "active" },
+      {
+        id: "vc_7_1",
+        type: "ProfessionalVC",
+        issuer: "did:hosp:consortium:authority",
+        subject: "did:hosp:0x3d4e5f6a7b8c9d0e",
+        issuedAt: "2026-01-01T00:00:00Z",
+        expiresAt: "2027-01-01T00:00:00Z",
+        claims: { role: "Doctor" },
+        signature: "0xsig",
+        status: "active",
+      },
+      {
+        id: "vc_7_2",
+        type: "AccessVC",
+        issuer: "did:hosp:consortium:authority",
+        subject: "did:hosp:0x3d4e5f6a7b8c9d0e",
+        issuedAt: "2026-01-01T00:00:00Z",
+        expiresAt: "2027-01-01T00:00:00Z",
+        claims: { access: "OT" },
+        signature: "0xsig",
+        status: "active",
+      },
     ],
   },
 ];
@@ -730,7 +870,10 @@ function handleStoreWebSocketMessage(event: string, data: any) {
     const { id, did, location, lastSignal } = data;
     const targetDid = did || id;
     let staffMember = _liveStaff.find(
-      (s) => s.did === targetDid || s.id === targetDid || s.did?.toLowerCase() === targetDid?.toLowerCase()
+      (s) =>
+        s.did === targetDid ||
+        s.id === targetDid ||
+        s.did?.toLowerCase() === targetDid?.toLowerCase(),
     );
 
     const memberId = staffMember?.id || targetDid;
@@ -766,7 +909,7 @@ function handleStoreWebSocketMessage(event: string, data: any) {
               beaconStrength: "-68 dBm",
               txId: `ws_${Date.now()}`,
               version: "1.0",
-              });
+            });
           }
         }
       } catch (error) {
@@ -955,7 +1098,7 @@ export function getLiveStaff(): LiveStaff[] {
 
 export function updateStaffLocation(idOrDid: string, location: string, status?: string) {
   const staffMember = _liveStaff.find(
-    (s) => s.did === idOrDid || s.id === idOrDid || s.email === idOrDid || s.name === idOrDid
+    (s) => s.did === idOrDid || s.id === idOrDid || s.email === idOrDid || s.name === idOrDid,
   );
   const targetId = staffMember ? staffMember.id : idOrDid;
   const locLower = location.toLowerCase();

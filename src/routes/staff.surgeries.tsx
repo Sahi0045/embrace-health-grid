@@ -13,7 +13,6 @@ export const Route = createFileRoute("/staff/surgeries")({
   component: SurgeriesPage,
 });
 
-
 const statusConfig = {
   scheduled: { label: "Scheduled", badge: "bg-primary/10 text-primary", dot: "bg-primary" },
   "in-progress": { label: "In Progress", badge: "bg-success/10 text-success", dot: "bg-success" },

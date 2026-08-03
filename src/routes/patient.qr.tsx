@@ -39,14 +39,27 @@ function simHash(str: string): string {
 function PatientQr() {
   const { patients: patientsList } = useLivePatients();
   const currentUser = getCurrentUser();
-  const userEmail = currentUser?.email || (typeof window !== "undefined" ? localStorage.getItem("userEmail") || "" : "");
-  const userDid = currentUser?.did || (typeof window !== "undefined" ? localStorage.getItem("userDID") || localStorage.getItem("userDid") || "" : "");
-  const userMrn = currentUser?.mrn || (typeof window !== "undefined" ? localStorage.getItem("userMRN") || "" : "");
-  const userName = currentUser?.name || (typeof window !== "undefined" ? localStorage.getItem("userName") || "" : "");
+  const userEmail =
+    currentUser?.email ||
+    (typeof window !== "undefined" ? localStorage.getItem("userEmail") || "" : "");
+  const userDid =
+    currentUser?.did ||
+    (typeof window !== "undefined"
+      ? localStorage.getItem("userDID") || localStorage.getItem("userDid") || ""
+      : "");
+  const userMrn =
+    currentUser?.mrn ||
+    (typeof window !== "undefined" ? localStorage.getItem("userMRN") || "" : "");
+  const userName =
+    currentUser?.name ||
+    (typeof window !== "undefined" ? localStorage.getItem("userName") || "" : "");
 
-  const matchedPatient = patientsList?.find((p: any) => p.email?.toLowerCase() === userEmail.toLowerCase()) || patientsList?.[0];
+  const matchedPatient =
+    patientsList?.find((p: any) => p.email?.toLowerCase() === userEmail.toLowerCase()) ||
+    patientsList?.[0];
 
-  const activeDid = matchedPatient?.did || userDid || `did:hosp:0x${simHash(userEmail || "patient").slice(0, 8)}`;
+  const activeDid =
+    matchedPatient?.did || userDid || `did:hosp:0x${simHash(userEmail || "patient").slice(0, 8)}`;
   const activeName = matchedPatient?.name || userName || "Patient";
   const activeMrn = matchedPatient?.mrn || userMrn || "MRN-100234";
 

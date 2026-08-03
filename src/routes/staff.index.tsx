@@ -296,7 +296,13 @@ function StaffDashboard() {
                       {evt.action ?? "Event"} — {evt.resource ?? "System"}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {evt.actor ?? "System"} · {evt.loggedAt ? new Date(evt.loggedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"}
+                      {evt.actor ?? "System"} ·{" "}
+                      {evt.loggedAt
+                        ? new Date(evt.loggedAt).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
+                        : "—"}
                     </div>
                   </li>
                 ))}

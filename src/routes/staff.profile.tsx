@@ -5,23 +5,43 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
-  Stethoscope, Mail, Phone, Calendar, Shield, LogOut, Edit,
-  Award, Building2, Wallet, CheckCircle2, AlertTriangle, Loader2,
+  Stethoscope,
+  Mail,
+  Phone,
+  Calendar,
+  Shield,
+  LogOut,
+  Edit,
+  Award,
+  Building2,
+  Wallet,
+  CheckCircle2,
+  AlertTriangle,
+  Loader2,
 } from "lucide-react";
 import { RouteGuard } from "@/components/RouteGuard";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { getCurrentUser, setSession } from "@/lib/auth";
 import {
-  updateProfile, API_BASE_URL, requestDID, getDIDRequests,
-  requestWalletChallenge, verifyAndLinkWallet, getMe,
+  updateProfile,
+  API_BASE_URL,
+  requestDID,
+  getDIDRequests,
+  requestWalletChallenge,
+  verifyAndLinkWallet,
+  getMe,
 } from "@/lib/api";
 import { useLiveStaff } from "@/hooks/use-api";
 import { toast } from "sonner";
 import { useState, useEffect, useCallback } from "react";
 import {
-  Dialog, DialogContent, DialogDescription,
-  DialogFooter, DialogHeader, DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -57,15 +77,15 @@ function StaffProfile() {
   const { staff } = useLiveStaff();
   const [currentUser, setCurrentUser] = useState(getCurrentUser());
   const { publicKey, connected, signMessage } = useWallet();
-  const [verifying, setVerifying]   = useState(false);
-  const [adminDid,   setAdminDid]   = useState<string | null>(null);
+  const [verifying, setVerifying] = useState(false);
+  const [adminDid, setAdminDid] = useState<string | null>(null);
   const [didLoading, setDidLoading] = useState(true);
 
-  const userEmail       = currentUser?.email || "";
-  const walletVerified  = (currentUser as any)?.walletVerified === true;
+  const userEmail = currentUser?.email || "";
+  const walletVerified = (currentUser as any)?.walletVerified === true;
 
   const [requestingDid, setRequestingDid] = useState(false);
-  const [pendingReq,    setPendingReq]    = useState<any>(null);
+  const [pendingReq, setPendingReq] = useState<any>(null);
 
   // Refresh session from backend (picks up walletVerified)
   const refreshSession = useCallback(async () => {
@@ -76,7 +96,9 @@ function StaffProfile() {
         setSession(token, res.user);
         setCurrentUser(getCurrentUser());
       }
-    } catch { /* silent */ }
+    } catch {
+      /* silent */
+    }
   }, []);
 
   const checkPendingRequest = useCallback(async () => {
@@ -85,11 +107,14 @@ function StaffProfile() {
       const res = await getDIDRequests();
       if (res?.requests) {
         const match = res.requests.find(
-          (r: any) => r.ownerEmail?.toLowerCase() === userEmail.toLowerCase() && r.status === "pending"
+          (r: any) =>
+            r.ownerEmail?.toLowerCase() === userEmail.toLowerCase() && r.status === "pending",
         );
         setPendingReq(match || null);
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }, [userEmail]);
 
   // ── Full wallet verification flow: challenge → signMessage → verify ──────
@@ -124,7 +149,9 @@ function StaffProfile() {
     } catch (err: any) {
       // "User rejected" from Phantom → friendly message
       if (err.message?.includes("User rejected") || err.message?.includes("cancelled")) {
-        toast.error("Signature cancelled", { description: "You must approve the signing request in your wallet to verify ownership." });
+        toast.error("Signature cancelled", {
+          description: "You must approve the signing request in your wallet to verify ownership.",
+        });
       } else {
         toast.error(err.message || "Wallet verification failed");
       }
@@ -141,8 +168,8 @@ function StaffProfile() {
     setRequestingDid(true);
     try {
       const res = await requestDID({
-        ownerName:  currentUser?.name  || staffData.name,
-        ownerType:  currentUser?.role  || "doctor",
+        ownerName: currentUser?.name || staffData.name,
+        ownerType: currentUser?.role || "doctor",
         department: currentUser?.department || staffData.department,
       });
       if (res.success) {
@@ -174,8 +201,10 @@ function StaffProfile() {
           const match = dids.find(
             (d: any) =>
               (d.ownerEmail && d.ownerEmail.toLowerCase() === userEmail.toLowerCase()) ||
-              (d.owner && currentUser?.name && d.owner.toLowerCase() === currentUser.name.toLowerCase()) ||
-              (d.did && currentUser?.did && d.did === currentUser.did)
+              (d.owner &&
+                currentUser?.name &&
+                d.owner.toLowerCase() === currentUser.name.toLowerCase()) ||
+              (d.did && currentUser?.did && d.did === currentUser.did),
           );
           if (match?.did) {
             setAdminDid(match.did);
@@ -364,15 +393,24 @@ function StaffProfile() {
                   <CardTitle>Professional Identity (DID)</CardTitle>
                 </div>
                 {adminDid ? (
-                  <Badge variant="outline" className="bg-success/15 text-success border-success/30 text-[10px] font-bold">
+                  <Badge
+                    variant="outline"
+                    className="bg-success/15 text-success border-success/30 text-[10px] font-bold"
+                  >
                     🟢 Admin-Issued DID
                   </Badge>
                 ) : pendingReq ? (
-                  <Badge variant="outline" className="bg-amber-500/15 text-amber-500 border-amber-500/30 text-[10px] font-bold">
+                  <Badge
+                    variant="outline"
+                    className="bg-amber-500/15 text-amber-500 border-amber-500/30 text-[10px] font-bold"
+                  >
                     🟡 Request Pending Admin Review
                   </Badge>
                 ) : (
-                  <Badge variant="outline" className="bg-destructive/15 text-destructive border-destructive/30 text-[10px] font-bold">
+                  <Badge
+                    variant="outline"
+                    className="bg-destructive/15 text-destructive border-destructive/30 text-[10px] font-bold"
+                  >
                     ⚠️ Not Issued
                   </Badge>
                 )}
@@ -384,7 +422,9 @@ function StaffProfile() {
             <CardContent>
               <div className="rounded-lg bg-muted p-4 font-mono text-sm font-medium">
                 {didLoading ? (
-                  <span className="text-muted-foreground text-xs font-sans">Checking DID Registry...</span>
+                  <span className="text-muted-foreground text-xs font-sans">
+                    Checking DID Registry...
+                  </span>
                 ) : adminDid ? (
                   <div>
                     <div className="text-xs text-muted-foreground font-sans">Official W3C DID</div>
@@ -396,15 +436,23 @@ function StaffProfile() {
                       🟡 DID Request Pending Admin Approval
                     </div>
                     <p className="text-xs text-muted-foreground font-normal">
-                      Your request to issue an official W3C DID was submitted on <span className="font-semibold text-foreground">{new Date(pendingReq.requestedAt).toLocaleDateString()}</span>. Hospital admin will review and issue your DID shortly.
+                      Your request to issue an official W3C DID was submitted on{" "}
+                      <span className="font-semibold text-foreground">
+                        {new Date(pendingReq.requestedAt).toLocaleDateString()}
+                      </span>
+                      . Hospital admin will review and issue your DID shortly.
                     </p>
                   </div>
                 ) : (
                   <div className="space-y-3 font-sans">
                     <div>
-                      <div className="text-destructive font-semibold text-sm">No Official DID Issued</div>
+                      <div className="text-destructive font-semibold text-sm">
+                        No Official DID Issued
+                      </div>
                       <p className="text-xs text-muted-foreground font-normal mt-0.5">
-                        An official W3C DID has not been issued for your staff account yet. Click below to submit a request to the hospital administrator to issue your official DID.
+                        An official W3C DID has not been issued for your staff account yet. Click
+                        below to submit a request to the hospital administrator to issue your
+                        official DID.
                       </p>
                     </div>
                     <Button
@@ -426,7 +474,8 @@ function StaffProfile() {
               </div>
               {adminDid && (
                 <div className="mt-4 text-xs text-muted-foreground">
-                  This DID verifies your clinician credentials and authorizes room check-ins & patient data access.
+                  This DID verifies your clinician credentials and authorizes room check-ins &
+                  patient data access.
                 </div>
               )}
             </CardContent>
@@ -444,39 +493,58 @@ function StaffProfile() {
                     <CheckCircle2 className="h-3 w-3" /> Ownership Verified
                   </Badge>
                 ) : currentUser?.walletAddress ? (
-                  <Badge variant="outline" className="bg-warning/10 text-warning-foreground border-warning/30 text-[10px]">
+                  <Badge
+                    variant="outline"
+                    className="bg-warning/10 text-warning-foreground border-warning/30 text-[10px]"
+                  >
                     Linked — Unverified
                   </Badge>
                 ) : (
-                  <Badge variant="outline" className="text-[10px]">Not Linked</Badge>
+                  <Badge variant="outline" className="text-[10px]">
+                    Not Linked
+                  </Badge>
                 )}
               </div>
               <CardDescription>
-                Connect and verify one Solana wallet. Wallet verification is required before requesting a DID.
+                Connect and verify one Solana wallet. Wallet verification is required before
+                requesting a DID.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Workflow steps */}
               <div className="grid grid-cols-3 gap-2 text-center text-[10px]">
                 {[
-                  { step: "1", label: "Connect Wallet",     done: connected },
-                  { step: "2", label: "Verify Ownership",   done: walletVerified },
-                  { step: "3", label: "Request DID",        done: !!adminDid },
+                  { step: "1", label: "Connect Wallet", done: connected },
+                  { step: "2", label: "Verify Ownership", done: walletVerified },
+                  { step: "3", label: "Request DID", done: !!adminDid },
                 ].map((s) => (
-                  <div key={s.step} className={`rounded-lg border px-2 py-2 space-y-1 ${s.done ? "border-success/30 bg-success/5" : "border-border bg-muted/30"}`}>
-                    <div className={`text-base font-black ${s.done ? "text-success" : "text-muted-foreground"}`}>
+                  <div
+                    key={s.step}
+                    className={`rounded-lg border px-2 py-2 space-y-1 ${s.done ? "border-success/30 bg-success/5" : "border-border bg-muted/30"}`}
+                  >
+                    <div
+                      className={`text-base font-black ${s.done ? "text-success" : "text-muted-foreground"}`}
+                    >
                       {s.done ? "✓" : s.step}
                     </div>
-                    <div className={s.done ? "text-success font-semibold" : "text-muted-foreground"}>{s.label}</div>
+                    <div
+                      className={s.done ? "text-success font-semibold" : "text-muted-foreground"}
+                    >
+                      {s.label}
+                    </div>
                   </div>
                 ))}
               </div>
 
               {/* Linked address display */}
               {currentUser?.walletAddress ? (
-                <div className={`rounded-lg border p-4 space-y-2 ${walletVerified ? "border-success/25 bg-success/5" : "border-warning/25 bg-warning/5"}`}>
+                <div
+                  className={`rounded-lg border p-4 space-y-2 ${walletVerified ? "border-success/25 bg-success/5" : "border-warning/25 bg-warning/5"}`}
+                >
                   <div className="flex items-center justify-between flex-wrap gap-2">
-                    <span className={`text-xs font-semibold uppercase tracking-wider ${walletVerified ? "text-success" : "text-warning-foreground"}`}>
+                    <span
+                      className={`text-xs font-semibold uppercase tracking-wider ${walletVerified ? "text-success" : "text-warning-foreground"}`}
+                    >
                       {walletVerified ? "Verified Wallet Address" : "Wallet Address (Unverified)"}
                     </span>
                   </div>
@@ -486,7 +554,8 @@ function StaffProfile() {
                   {connected && publicKey?.toBase58() !== currentUser.walletAddress && (
                     <div className="flex items-center gap-2 text-xs text-destructive font-medium mt-1">
                       <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-                      Connected wallet differs from linked address. Switch to your registered wallet.
+                      Connected wallet differs from linked address. Switch to your registered
+                      wallet.
                     </div>
                   )}
                 </div>
@@ -500,11 +569,20 @@ function StaffProfile() {
               <div className="flex flex-col sm:flex-row gap-3 pt-1">
                 <WalletMultiButton className="!bg-primary hover:!bg-primary/90 !rounded-lg !h-10 !text-sm !font-semibold !px-4" />
                 {connected && !walletVerified && (
-                  <Button onClick={handleVerifyWallet} disabled={verifying}
-                    className="h-10 text-sm font-semibold gap-2">
-                    {verifying
-                      ? <><Loader2 className="h-4 w-4 animate-spin" /> Verifying…</>
-                      : <><Shield className="h-4 w-4" /> Verify & Link Wallet</>}
+                  <Button
+                    onClick={handleVerifyWallet}
+                    disabled={verifying}
+                    className="h-10 text-sm font-semibold gap-2"
+                  >
+                    {verifying ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" /> Verifying…
+                      </>
+                    ) : (
+                      <>
+                        <Shield className="h-4 w-4" /> Verify & Link Wallet
+                      </>
+                    )}
                   </Button>
                 )}
                 {walletVerified && (
@@ -515,7 +593,8 @@ function StaffProfile() {
               </div>
 
               <p className="text-[11px] text-muted-foreground">
-                Each account may link only one wallet, and each wallet may belong to only one account.
+                Each account may link only one wallet, and each wallet may belong to only one
+                account.
               </p>
             </CardContent>
           </Card>

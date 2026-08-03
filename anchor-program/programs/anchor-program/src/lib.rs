@@ -17,8 +17,11 @@ pub mod anchor_program {
         root_account.last_updated = Clock::get()?.unix_timestamp;
         root_account.authority = ctx.accounts.authority.key();
         root_account.bump = ctx.bumps.patient_root;
-        
-        msg!("Registered Merkle Root for patient: {}", root_account.patient_did);
+
+        msg!(
+            "Registered Merkle Root for patient: {}",
+            root_account.patient_did
+        );
         Ok(())
     }
 
@@ -32,7 +35,10 @@ pub mod anchor_program {
         root_account.last_updated = Clock::get()?.unix_timestamp;
         root_account.authority = ctx.accounts.authority.key();
 
-        msg!("Updated Merkle Root for patient: {}", root_account.patient_did);
+        msg!(
+            "Updated Merkle Root for patient: {}",
+            root_account.patient_did
+        );
         Ok(())
     }
 
@@ -51,11 +57,19 @@ pub mod anchor_program {
         record.granted_at = Clock::get()?.unix_timestamp;
         record.bump = ctx.bumps.consent_record;
 
-        msg!("Granted consent for doctor {} to access {}", doctor, record.resource);
+        msg!(
+            "Granted consent for doctor {} to access {}",
+            doctor,
+            record.resource
+        );
         Ok(())
     }
 
-    pub fn revoke_consent(_ctx: Context<RevokeConsent>, _patient_did: String, _doctor: Pubkey) -> Result<()> {
+    pub fn revoke_consent(
+        _ctx: Context<RevokeConsent>,
+        _patient_did: String,
+        _doctor: Pubkey,
+    ) -> Result<()> {
         msg!("Revoked consent and closed account. Rent reclaimed by patient.");
         Ok(())
     }
@@ -72,7 +86,10 @@ pub mod anchor_program {
         location_account.authority = ctx.accounts.authority.key();
         location_account.bump = ctx.bumps.doctor_location;
 
-        msg!("Registered Location Merkle Root for doctor: {}", location_account.doctor_did);
+        msg!(
+            "Registered Location Merkle Root for doctor: {}",
+            location_account.doctor_did
+        );
         Ok(())
     }
 
@@ -86,7 +103,10 @@ pub mod anchor_program {
         location_account.last_updated = Clock::get()?.unix_timestamp;
         location_account.authority = ctx.accounts.authority.key();
 
-        msg!("Updated Location Merkle Root for doctor: {}", location_account.doctor_did);
+        msg!(
+            "Updated Location Merkle Root for doctor: {}",
+            location_account.doctor_did
+        );
         Ok(())
     }
 }
@@ -102,7 +122,7 @@ pub struct RegisterPatientRoot<'info> {
         bump
     )]
     pub patient_root: Account<'info, PatientMedicalRoot>,
-    
+
     #[account(mut)]
     pub authority: Signer<'info>,
     pub system_program: Program<'info, System>,
@@ -118,7 +138,7 @@ pub struct UpdatePatientRoot<'info> {
         constraint = patient_root.authority == authority.key() || authority.key() == patient_root.key()
     )]
     pub patient_root: Account<'info, PatientMedicalRoot>,
-    
+
     pub authority: Signer<'info>,
 }
 

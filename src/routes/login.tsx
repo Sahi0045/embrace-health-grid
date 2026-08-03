@@ -232,13 +232,20 @@ function LoginPage() {
                   <div className="rounded-lg bg-muted/50 p-3 text-xs space-y-1.5 border">
                     <div className="font-semibold text-foreground flex items-center justify-between">
                       <span>Demo Credentials</span>
-                      <span className="text-[10px] text-muted-foreground font-normal">Click to auto-fill</span>
+                      <span className="text-[10px] text-muted-foreground font-normal">
+                        Click to auto-fill
+                      </span>
                     </div>
                     {selectedRole === "staff" && (
                       <>
                         <div className="flex justify-between text-muted-foreground">
-                          <span>Email: <strong className="text-foreground">doctor@embracehealth.org</strong></span>
-                          <span>Pass: <strong className="text-foreground">Doctor123!</strong></span>
+                          <span>
+                            Email:{" "}
+                            <strong className="text-foreground">doctor@embracehealth.org</strong>
+                          </span>
+                          <span>
+                            Pass: <strong className="text-foreground">Doctor123!</strong>
+                          </span>
                         </div>
                         <Button
                           type="button"
@@ -257,8 +264,12 @@ function LoginPage() {
                     {selectedRole === "patient" && (
                       <>
                         <div className="flex justify-between text-muted-foreground">
-                          <span>Email: <strong className="text-foreground">patient@example.com</strong></span>
-                          <span>Pass: <strong className="text-foreground">Patient123!</strong></span>
+                          <span>
+                            Email: <strong className="text-foreground">patient@example.com</strong>
+                          </span>
+                          <span>
+                            Pass: <strong className="text-foreground">Patient123!</strong>
+                          </span>
                         </div>
                         <Button
                           type="button"
@@ -277,8 +288,13 @@ function LoginPage() {
                     {selectedRole === "admin" && (
                       <>
                         <div className="flex justify-between text-muted-foreground">
-                          <span>Email: <strong className="text-foreground">admin@embracehealth.org</strong></span>
-                          <span>Pass: <strong className="text-foreground">Admin123!456</strong></span>
+                          <span>
+                            Email:{" "}
+                            <strong className="text-foreground">admin@embracehealth.org</strong>
+                          </span>
+                          <span>
+                            Pass: <strong className="text-foreground">Admin123!456</strong>
+                          </span>
                         </div>
                         <Button
                           type="button"

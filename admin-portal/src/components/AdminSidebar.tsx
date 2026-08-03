@@ -43,19 +43,19 @@ import { logout, getCurrentUser, type AuthUser } from "@/lib/auth";
 type Item = { title: string; url: string; icon: React.ComponentType<{ className?: string }> };
 
 const adminNav: Item[] = [
-  { title: "Overview",        url: "/",              icon: LayoutDashboard },
-  { title: "Command Center",  url: "/command",       icon: Command         },
-  { title: "Digital Twin",    url: "/digital-twin",  icon: Network         },
-  { title: "Financials",      url: "/financial",     icon: Receipt         },
-  { title: "My Profile",      url: "/profile",       icon: User            },
-  { title: "People",          url: "/people",        icon: Users           },
-  { title: "DID Management",  url: "/dids",          icon: KeyRound        },
-  { title: "Credentials",     url: "/credentials",   icon: Award           },
-  { title: "Prescriptions",   url: "/prescriptions", icon: Pill            },
-  { title: "Policies",        url: "/policies",      icon: BookLock        },
-  { title: "Audit Logs",      url: "/audit",         icon: Activity        },
-  { title: "Fraud Detection", url: "/fraud",         icon: AlertTriangle   },
-  { title: "NFC Cards",       url: "/nfc-cards",     icon: Fingerprint     },
+  { title: "Overview", url: "/", icon: LayoutDashboard },
+  { title: "Command Center", url: "/command", icon: Command },
+  { title: "Digital Twin", url: "/digital-twin", icon: Network },
+  { title: "Financials", url: "/financial", icon: Receipt },
+  { title: "My Profile", url: "/profile", icon: User },
+  { title: "People", url: "/people", icon: Users },
+  { title: "DID Management", url: "/dids", icon: KeyRound },
+  { title: "Credentials", url: "/credentials", icon: Award },
+  { title: "Prescriptions", url: "/prescriptions", icon: Pill },
+  { title: "Policies", url: "/policies", icon: BookLock },
+  { title: "Audit Logs", url: "/audit", icon: Activity },
+  { title: "Fraud Detection", url: "/fraud", icon: AlertTriangle },
+  { title: "NFC Cards", url: "/nfc-cards", icon: Fingerprint },
 ];
 
 const globalNav: Item[] = [

@@ -111,11 +111,7 @@ function Patients() {
     if (!doctorDid && !doctorName) return new Set<string>();
     return new Set(
       (allAppointments as any[])
-        .filter(
-          (a) =>
-            a.doctorDid === doctorDid ||
-            (doctorName && a.doctorName === doctorName),
-        )
+        .filter((a) => a.doctorDid === doctorDid || (doctorName && a.doctorName === doctorName))
         .map((a) => a.patientDid)
         .filter(Boolean),
     );
@@ -163,9 +159,10 @@ function Patients() {
   }, [patients, scope, myPatientDids, statusFilter, q]);
 
   const statusCounts = useMemo(() => {
-    const base = scope === "mine" && myPatientDids.size > 0
-      ? patients.filter((p: any) => myPatientDids.has(p.did))
-      : patients;
+    const base =
+      scope === "mine" && myPatientDids.size > 0
+        ? patients.filter((p: any) => myPatientDids.has(p.did))
+        : patients;
     return {
       all: base.length,
       inpatient: base.filter((p: any) => p.status === "inpatient").length,
@@ -193,7 +190,11 @@ function Patients() {
                       : "bg-card text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  {s === "mine" ? <UserCheck className="h-3.5 w-3.5" /> : <Users className="h-3.5 w-3.5" />}
+                  {s === "mine" ? (
+                    <UserCheck className="h-3.5 w-3.5" />
+                  ) : (
+                    <Users className="h-3.5 w-3.5" />
+                  )}
                   {s === "mine" ? "My Patients" : "All Patients"}
                 </button>
               ))}
@@ -213,7 +214,10 @@ function Patients() {
               className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
             />
             {q && (
-              <button onClick={() => setQ("")} className="text-muted-foreground hover:text-foreground">
+              <button
+                onClick={() => setQ("")}
+                className="text-muted-foreground hover:text-foreground"
+              >
                 <X className="h-3.5 w-3.5" />
               </button>
             )}
@@ -264,7 +268,9 @@ function Patients() {
                     </td>
                     <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{p.mrn}</td>
                     <td className="px-4 py-3 hidden lg:table-cell">
-                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold capitalize ${sCfg.bg} ${sCfg.text}`}>
+                      <span
+                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold capitalize ${sCfg.bg} ${sCfg.text}`}
+                      >
                         {p.status}
                       </span>
                     </td>
@@ -272,12 +278,17 @@ function Patients() {
                       {(p.conditions || []).length > 0 ? (
                         <div className="flex flex-wrap gap-1">
                           {(p.conditions as string[]).slice(0, 2).map((c: string) => (
-                            <span key={c} className="rounded-md bg-muted px-2 py-0.5 text-[10px] font-medium text-foreground">
+                            <span
+                              key={c}
+                              className="rounded-md bg-muted px-2 py-0.5 text-[10px] font-medium text-foreground"
+                            >
                               {c}
                             </span>
                           ))}
                           {(p.conditions as string[]).length > 2 && (
-                            <span className="text-[10px] text-muted-foreground">+{p.conditions.length - 2}</span>
+                            <span className="text-[10px] text-muted-foreground">
+                              +{p.conditions.length - 2}
+                            </span>
                           )}
                         </div>
                       ) : (
@@ -288,7 +299,9 @@ function Patients() {
                       {apptInfo ? (
                         <div>
                           <div className="text-xs text-foreground">{apptInfo.lastDate}</div>
-                          <div className="text-[10px] text-muted-foreground">{apptInfo.count} visit{apptInfo.count > 1 ? "s" : ""}</div>
+                          <div className="text-[10px] text-muted-foreground">
+                            {apptInfo.count} visit{apptInfo.count > 1 ? "s" : ""}
+                          </div>
                         </div>
                       ) : (
                         <span className="text-xs text-muted-foreground">—</span>
@@ -309,7 +322,7 @@ function Patients() {
                 <tr>
                   <td colSpan={6} className="px-4 py-10 text-center text-sm text-muted-foreground">
                     {scope === "mine" && myPatientDids.size === 0
-                      ? "No appointments found for your account. Switch to \"All Patients\" to view the full registry."
+                      ? 'No appointments found for your account. Switch to "All Patients" to view the full registry.'
                       : `No patients match "${q}"`}
                   </td>
                 </tr>

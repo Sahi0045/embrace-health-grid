@@ -41,7 +41,11 @@ function StaffAttendance() {
   const [isClocking, setIsClocking] = useState(false);
   const now = new Date();
 
-  const { data: attendanceData, loading: loadingAttendance, refetch: refetchAttendance } = useAttendance(userEmail);
+  const {
+    data: attendanceData,
+    loading: loadingAttendance,
+    refetch: refetchAttendance,
+  } = useAttendance(userEmail);
   const {
     data: requestsData,
     loading: loadingRequests,
@@ -89,7 +93,9 @@ function StaffAttendance() {
       if (res.success || res.record) {
         setClockedIn(true);
         setCheckInTime(timeStr);
-        toast.success("Clocked in successfully!", { description: `${timeStr} — Linked to DID: ${userDid}` });
+        toast.success("Clocked in successfully!", {
+          description: `${timeStr} — Linked to DID: ${userDid}`,
+        });
         refetchAttendance();
       }
     } catch (err: any) {
@@ -112,7 +118,9 @@ function StaffAttendance() {
       const res = await clockAttendance({ action: "out", location: "Cardiology OPD" });
       if (res.success || res.record) {
         setClockedIn(false);
-        toast.success("Clocked out successfully!", { description: `${timeStr} — Recorded on blockchain ledger.` });
+        toast.success("Clocked out successfully!", {
+          description: `${timeStr} — Recorded on blockchain ledger.`,
+        });
         refetchAttendance();
       }
     } catch (err: any) {
@@ -254,13 +262,19 @@ function StaffAttendance() {
                     <ShieldAlert className="h-5 w-5" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-destructive">W3C DID Required for Attendance</h4>
+                    <h4 className="text-sm font-bold text-destructive">
+                      W3C DID Required for Attendance
+                    </h4>
                     <p className="text-xs text-muted-foreground">
-                      You have not been issued an official W3C DID by Admin. You are currently ineligible to mark attendance.
+                      You have not been issued an official W3C DID by Admin. You are currently
+                      ineligible to mark attendance.
                     </p>
                   </div>
                 </div>
-                <Badge variant="outline" className="border-destructive/30 text-destructive text-[10px] uppercase font-bold shrink-0">
+                <Badge
+                  variant="outline"
+                  className="border-destructive/30 text-destructive text-[10px] uppercase font-bold shrink-0"
+                >
                   Ineligible
                 </Badge>
               </CardContent>
@@ -270,10 +284,15 @@ function StaffAttendance() {
               <div className="flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4 text-primary" />
                 <span>
-                  Verified Staff Member: <strong className="font-semibold">{currentUser?.name}</strong> ({employeeId || "EMP-1002"})
+                  Verified Staff Member:{" "}
+                  <strong className="font-semibold">{currentUser?.name}</strong> (
+                  {employeeId || "EMP-1002"})
                 </span>
               </div>
-              <Badge variant="outline" className="font-mono text-[10px] bg-background text-primary border-primary/30">
+              <Badge
+                variant="outline"
+                className="font-mono text-[10px] bg-background text-primary border-primary/30"
+              >
                 {userDid}
               </Badge>
             </div>
@@ -315,7 +334,12 @@ function StaffAttendance() {
                       Clock In
                     </Button>
                   ) : (
-                    <Button size="lg" variant="destructive" onClick={handleClockOut} disabled={!hasDid || isClocking}>
+                    <Button
+                      size="lg"
+                      variant="destructive"
+                      onClick={handleClockOut}
+                      disabled={!hasDid || isClocking}
+                    >
                       {isClocking ? (
                         <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                       ) : (

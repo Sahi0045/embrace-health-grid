@@ -126,18 +126,23 @@ export const requestDID = (data: { ownerName?: string; ownerType?: string; depar
     body: JSON.stringify(data),
   });
 
-export const getDIDRequests = () =>
-  apiFetch<{ requests: any[]; total: number }>(`/did/requests`);
+export const getDIDRequests = () => apiFetch<{ requests: any[]; total: number }>(`/did/requests`);
 
 export const approveDIDRequest = (requestId: string) =>
-  apiFetch<{ success: boolean; did: string; doc: any }>(`/did/requests/${encodeURIComponent(requestId)}/approve`, {
-    method: "POST",
-  });
+  apiFetch<{ success: boolean; did: string; doc: any }>(
+    `/did/requests/${encodeURIComponent(requestId)}/approve`,
+    {
+      method: "POST",
+    },
+  );
 
 export const rejectDIDRequest = (requestId: string) =>
-  apiFetch<{ success: boolean; request: any }>(`/did/requests/${encodeURIComponent(requestId)}/reject`, {
-    method: "POST",
-  });
+  apiFetch<{ success: boolean; request: any }>(
+    `/did/requests/${encodeURIComponent(requestId)}/reject`,
+    {
+      method: "POST",
+    },
+  );
 
 // ─── Credentials ──────────────────────────────────────────────────────────────
 export const issueCredential = (
@@ -553,10 +558,14 @@ export const getAppointments = () =>
   apiFetch<{ appointments: any[]; total: number }>(`/appointments`);
 
 export const getAppointmentsByPatient = (patientDid: string) =>
-  apiFetch<{ appointments: any[]; total: number }>(`/appointments?patientDid=${encodeURIComponent(patientDid)}`);
+  apiFetch<{ appointments: any[]; total: number }>(
+    `/appointments?patientDid=${encodeURIComponent(patientDid)}`,
+  );
 
 export const getAppointmentsByDoctor = (doctorDid: string) =>
-  apiFetch<{ appointments: any[]; total: number }>(`/appointments?doctorDid=${encodeURIComponent(doctorDid)}`);
+  apiFetch<{ appointments: any[]; total: number }>(
+    `/appointments?doctorDid=${encodeURIComponent(doctorDid)}`,
+  );
 
 /** Pending appointment requests waiting for the authenticated doctor to accept/reject */
 export const getDoctorAppointmentRequests = () =>
@@ -583,7 +592,12 @@ export const bookAppointment = (data: {
     body: JSON.stringify(data),
   });
 
-export const updateAppointmentStatus = (id: string, status: string, notes?: string, suggestedSlot?: string) =>
+export const updateAppointmentStatus = (
+  id: string,
+  status: string,
+  notes?: string,
+  suggestedSlot?: string,
+) =>
   apiFetch<any>(`/appointments/${encodeURIComponent(id)}/status`, {
     method: "PATCH",
     body: JSON.stringify({ status, notes, suggestedSlot }),
@@ -678,7 +692,11 @@ export const signup = (data: { name: string; email: string; role: string; passwo
     body: JSON.stringify(data),
   });
 
-export const login = (data: { email: string; password?: string; portal?: "patient" | "staff" | "admin" }) =>
+export const login = (data: {
+  email: string;
+  password?: string;
+  portal?: "patient" | "staff" | "admin";
+}) =>
   apiFetch<{
     success: boolean;
     token: string;
@@ -925,8 +943,7 @@ export const getVerifiedDoctors = () =>
   apiFetch<{ doctors: any[]; total: number }>(`/doctors/verified`);
 
 // ─── Rooms & Room Check-In ────────────────────────────────────────────────
-export const getRooms = () =>
-  apiFetch<{ rooms: any[]; total: number }>(`/rooms`);
+export const getRooms = () => apiFetch<{ rooms: any[]; total: number }>(`/rooms`);
 
 export const roomCheckInMulti = (roomIds: string[], action: "checkin" | "checkout") =>
   apiFetch<{ success: boolean; results: any[]; activeRooms: string[]; hasActiveRoom: boolean }>(
@@ -959,12 +976,17 @@ export const publishMerkleRoot = (
   walletAddress?: string,
 ) =>
   apiFetch<{
-    success: boolean; merkleRoot: string; txHash: string;
-    rootId: string; eventCount: number; publishedAt: string; onChain: boolean;
-  }>(
-    `/merkle-root/publish`,
-    { method: "POST", body: JSON.stringify({ doctorDid, txSignature, walletAddress }) },
-  );
+    success: boolean;
+    merkleRoot: string;
+    txHash: string;
+    rootId: string;
+    eventCount: number;
+    publishedAt: string;
+    onChain: boolean;
+  }>(`/merkle-root/publish`, {
+    method: "POST",
+    body: JSON.stringify({ doctorDid, txSignature, walletAddress }),
+  });
 
 /** Fetch history of all published Merkle roots for a doctor */
 export const getMerkleRootHistory = (doctorDid: string) =>
