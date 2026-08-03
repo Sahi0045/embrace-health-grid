@@ -72,7 +72,15 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-          cache-dependency-path: admin-portal/package-lock.json
+          # Admin portal typechecks shared ../src via @/* paths, so root deps are required too
+          cache-dependency-path: |
+            package-lock.json
+            admin-portal/package-lock.json
+
+      # Root install first: admin-portal resolves @/* → ../src and needs root node_modules
+      - name: Install root dependencies
+        working-directory: ${{ github.workspace }}
+        run: npm ci
 
       - name: Install admin-portal dependencies
         run: npm ci
