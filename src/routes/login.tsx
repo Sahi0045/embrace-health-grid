@@ -86,8 +86,21 @@ function LoginPage() {
           navigate({ to: `/${signupRes.user.role}` });
         }
       } else {
-        const res = await login({ email, password });
+        const res = await login({ email, password, portal: selectedRole });
         if (res.success && res.user) {
+          // Defense-in-depth: verify the returned role matches the selected portal
+          // (backend already enforces this, but we double-check on the client too)
+          const PORTAL_ALLOWED_ROLES: Record<string, string[]> = {
+            patient: ["patient"],
+            staff: ["staff", "doctor"],
+            admin: ["admin"],
+          };
+          const allowedRoles = PORTAL_ALLOWED_ROLES[selectedRole] ?? [];
+          if (!allowedRoles.includes(res.user.role)) {
+            toast.error("Invalid credentials.");
+            setIsLoading(false);
+            return;
+          }
           setSession(res.token, res.user);
           toast.success(`Welcome back, ${res.user.name}!`);
           navigate({ to: `/${res.user.role}` });

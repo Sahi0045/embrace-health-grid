@@ -135,5 +135,32 @@
     "updatedAt": "2026-07-25T18:50:59.084Z",
     "txId": "1cc02d20-c75a-4f09-bbc3-f2e4fd79a6c8",
     "docType": "consent-manager"
+  },
+  "consent_55ad5104": {
+    "key": "consent_55ad5104",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"cqSq7f_lid0mDRhD\",\"tag\":\"xM6myMbfbr-96zPwVo1WNw\",\"ct\":\"CNISAtUlGYe6KUE7PYfdkSuyLku9jO3-fG_A-UHKUjAFZCnvVJ9OSmmBwYKY4tvCnUG4b8iORtjfhvMoCfS5IT6KZXS3b_VJr3R6NjfSdWEl_OPfaecQq5Fbyt5J8nz7dHsVOXxCmzRtWY8lxSGrkSkekjdASl-oCtl9qn6p9GyPslNl_3s1q3slSpXYXGNpI6BRoYWD9C4bHdZkgN7oQAWY86jasLSx15VJk1tJutAUxred3JnSHfx3Ksc-KyyQqRF2s1PCfFGs1Vx6RmGuKpdPcM4k0BysfrxnNHfxcwDY\"}",
+    "namespace": "consent-manager",
+    "version": "145bf823-744f-4010-861c-9acc2ba2233f:1",
+    "updatedAt": "2026-07-30T12:59:39.237Z",
+    "txId": "145bf823-744f-4010-861c-9acc2ba2233f",
+    "docType": "consent-manager"
+  },
+  "consent_46fe5997": {
+    "key": "consent_46fe5997",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"cQLNLr62BJsoj-4g\",\"tag\":\"bQzEtmEZLzfC5LQQ7r16aQ\",\"ct\":\"0RD-GmGgG2dtKyQk-qbAyY_UJsHnNNRbzOBudKGEr4WQQMDa8HAQYOF8ZfACmmvvxuxZTWG_e9_qOT66A3ikdZ6Cj8tM7uhRY7RgZt7HS_0-j5L6TWy9W7fmF0024Ux2Z1pCe8ILhVUOkMZVveSJNZZX4uxLcesbiYdmWpmJmQY-eVsNFvVga7TANxuFzZze1D7Bqtt1ONvKK-qioofxJvFEfXkR-I6vg7Sn7hI2PcXsy4iGCIu4IA9052djpJyRSQHCMY_k3Tjqx6p7veItnsGjwY6vzO6B4G_KeEJvwtuU\"}",
+    "namespace": "consent-manager",
+    "version": "444c4052-97eb-4f63-bf46-a9a8c5336339:1",
+    "updatedAt": "2026-07-30T13:06:11.655Z",
+    "txId": "444c4052-97eb-4f63-bf46-a9a8c5336339",
+    "docType": "consent-manager"
+  },
+  "consent_60c6620a": {
+    "key": "consent_60c6620a",
+    "value": "__phi_enc__:{\"v\":1,\"iv\":\"9icI2WbarNdBMbLO\",\"tag\":\"j5zDxTAOqgkG5jL84Dsnpg\",\"ct\":\"JWF__uLYPZT-xrjFRdW9vXBdKdaqHpgI2VDD_gkDOgvINJuG7FtlVFt9tRsTiNH7gPZF-IoiPec1L-mINOayvYxzC8v4mboKxB4yfCl7PAczdxUt3Jnfz51K0P4aXvzo2KOos28TmlHN-C6AZGJsegTB_sAS-uRQuTR_hfaB8EPBNnXLVvuS6B91xZCqy5FPfVhfWoYVFjaJa4lSrYIc1lLquMpuVI0wkQioXNaoptwXrboLZd0L9YhMFNMWF8jTMxwGAVRdLY1b9Khc1um2TUKVdVB3FRcEGdDgh_hGh_Wm\"}",
+    "namespace": "consent-manager",
+    "version": "80735742-5d8a-4699-bbcc-3b63e198c8ee:1",
+    "updatedAt": "2026-08-01T15:43:47.134Z",
+    "txId": "80735742-5d8a-4699-bbcc-3b63e198c8ee",
+    "docType": "consent-manager"
   }
 }

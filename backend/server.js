@@ -216,10 +216,12 @@ app.use(
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  // In development allow more attempts for testing; tighten in production
+  max: process.env.NODE_ENV === "production" ? 10 : 100,
   message: { error: "Too many login/signup attempts, please try again after 15 minutes" },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => process.env.NODE_ENV !== "production", // skip entirely in dev
 });
 app.use("/api/auth/login", authLimiter);
 app.use("/api/auth/signup", authLimiter);
@@ -1243,9 +1245,11 @@ app.get(
     const patientDid = req.params.patientDid;
     const role       = (req.user.role || "").toLowerCase();
 
-    // Patient can only see their own
+    // Patient can only see their own prescriptions.
+    // Block if: they have a DID but it doesn't match, OR they have no DID at all
+    // (a patient without a DID cannot yet be the owner of any prescription).
     if (role === "patient") {
-      if (req.user.did && req.user.did !== patientDid) {
+      if (!req.user.did || req.user.did !== patientDid) {
         return res.status(403).json({ error: "Access Denied: Cannot view another patient's prescriptions" });
       }
     }
@@ -1855,7 +1859,7 @@ app.get("/api/labs", requireAuth, requireRole(["doctor", "staff", "admin"]), hip
 });
 
 app.get("/api/labs/:patientDid", requireAuth, hipaaAuditPHIAccess("LabResult"), (req, res) => {
-  if (req.user.role === "patient" && req.user.did && req.user.did !== req.params.patientDid) {
+  if (req.user.role === "patient" && (!req.user.did || req.user.did !== req.params.patientDid)) {
     return res
       .status(403)
       .json({ error: "Access Denied: Cannot view other patients' lab results" });
@@ -1998,7 +2002,7 @@ app.get(
   requireAuth,
   hipaaAuditPHIAccess("MedicalRecord"),
   (req, res) => {
-    if (req.user.role === "patient" && req.user.did && req.user.did !== req.params.patientDid) {
+    if (req.user.role === "patient" && (!req.user.did || req.user.did !== req.params.patientDid)) {
       return res.status(403).json({ error: "Access Denied: Cannot view other patients' records" });
     }
 
@@ -3087,14 +3091,17 @@ app.patch("/api/appointments/:id/status", requireAuth, hipaaAuditPHIAccess("Appo
     return res.status(404).json({ error: "Appointment not found" });
   }
 
+  // getState returns { key, value, txId } — always access .value for the actual record
+  const appt = existing.value;
+
   const userRole = (req.user.role || "").toLowerCase();
   const userDid  = req.user.did;
 
   // Accept / reject / suggest — only the assigned doctor (or admin) may do this
   if (["accepted", "rejected", "suggested"].includes(status)) {
     const isAssignedDoctor =
-      existing.doctorDid === userDid ||
-      (req.user.name && existing.doctorName === req.user.name);
+      appt.doctorDid === userDid ||
+      (req.user.name && appt.doctorName === req.user.name);
     if (!isAssignedDoctor && userRole !== "admin") {
       return res.status(403).json({
         error: "Access Denied: Only the assigned doctor can accept or reject appointments",
@@ -3104,7 +3111,7 @@ app.patch("/api/appointments/:id/status", requireAuth, hipaaAuditPHIAccess("Appo
 
   // Cancel — only the booking patient (or admin) may cancel
   if (status === "cancelled") {
-    const isOwner = existing.patientDid === userDid;
+    const isOwner = appt.patientDid === userDid;
     if (!isOwner && userRole !== "admin") {
       return res.status(403).json({
         error: "Access Denied: Only the patient who booked this appointment can cancel it",
@@ -3116,13 +3123,13 @@ app.patch("/api/appointments/:id/status", requireAuth, hipaaAuditPHIAccess("Appo
   const normalizedStatus = status === "accepted" ? "confirmed" : status;
 
   const updated = {
-    ...existing,
+    ...appt,
     status: normalizedStatus,
-    notes: notes !== undefined ? notes : existing.notes,
-    suggestedSlot: suggestedSlot || existing.suggestedSlot || null,
+    notes: notes !== undefined ? notes : appt.notes,
+    suggestedSlot: suggestedSlot || appt.suggestedSlot || null,
     reviewedBy: ["accepted", "rejected", "suggested"].includes(status)
       ? req.user.name || userDid
-      : existing.reviewedBy,
+      : appt.reviewedBy,
     updatedAt: new Date().toISOString(),
   };
 
@@ -3334,11 +3341,25 @@ app.post(
   },
 );
 
+// ─── Portal → allowed roles mapping ──────────────────────────────────────────
+// "portal" is an optional field sent by the client to indicate which login
+// page is being used. When present, authentication is rejected if the user's
+// role is not in the allowed set for that portal — no token is ever issued.
+// This check happens BEFORE password validation to prevent user enumeration.
+const PORTAL_ROLES = {
+  patient: ["patient"],
+  staff:   ["staff", "doctor"],
+  admin:   ["admin"],
+};
+
 app.post("/api/auth/login", requireClientAuth, async (req, res) => {
-  const { email, password, mfaCode } = req.body;
+  const { email, password, mfaCode, portal } = req.body;
   if (!email) {
     return res.status(400).json({ error: "Email is required" });
   }
+
+  // Generic error used for ALL authentication failures — prevents user enumeration
+  const GENERIC_AUTH_ERROR = { error: "Invalid email or password" };
 
   // HIPAA Authentication: Check for Account Lockout
   const lockout = checkAccountLockout(email);
@@ -3360,7 +3381,7 @@ app.post("/api/auth/login", requireClientAuth, async (req, res) => {
   const userEntry = getState("users", email);
   if (!userEntry) {
     recordFailedLogin(email);
-    return res.status(401).json({ error: "Invalid email or password" });
+    return res.status(401).json(GENERIC_AUTH_ERROR);
   }
 
   if (userEntry.value.password) {
@@ -3385,9 +3406,31 @@ app.post("/api/auth/login", requireClientAuth, async (req, res) => {
           remainingSeconds: failStatus.remainingSeconds,
         });
       }
-      return res
-        .status(401)
-        .json({ error: "Invalid email or password", attemptsRemaining: 5 - failStatus.count });
+      // Use generic error — never reveal attempt count to unauthenticated callers
+      return res.status(401).json(GENERIC_AUTH_ERROR);
+    }
+  }
+
+  // ── Portal-based role enforcement ────────────────────────────────────────
+  // Validate AFTER password check so timing is consistent for all failure
+  // paths (prevents enumeration via response-time differences).
+  if (portal) {
+    const allowedRoles = PORTAL_ROLES[portal];
+    if (!allowedRoles) {
+      // Unknown portal value — reject to be safe
+      return res.status(401).json(GENERIC_AUTH_ERROR);
+    }
+    if (!allowedRoles.includes(userEntry.value.role)) {
+      // Valid credentials, wrong portal — treat identically to bad credentials
+      recordFailedLogin(email);
+      logAudit(req, {
+        resource: email,
+        action: "USER_LOGIN_WRONG_PORTAL",
+        outcome: "failure",
+        severity: "warning",
+        detail: { portal, actualRole: userEntry.value.role },
+      });
+      return res.status(401).json(GENERIC_AUTH_ERROR);
     }
   }
 

@@ -678,7 +678,7 @@ export const signup = (data: { name: string; email: string; role: string; passwo
     body: JSON.stringify(data),
   });
 
-export const login = (data: { email: string; password?: string }) =>
+export const login = (data: { email: string; password?: string; portal?: "patient" | "staff" | "admin" }) =>
   apiFetch<{
     success: boolean;
     token: string;

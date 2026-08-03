@@ -24,19 +24,16 @@ function LoginPage() {
     setIsLoading(true);
 
     try {
-      const res = await login({ email, password });
+      const res = await login({ email, password, portal: "admin" });
       if (res.success && res.user) {
-        if (res.user.role !== "admin") {
-          toast.error("Access Denied: Administrative permissions required");
-          setIsLoading(false);
-          return;
-        }
         setSession(res.token, res.user);
         toast.success(`Welcome back, Admin ${res.user.name}!`);
         navigate({ to: "/" });
       }
     } catch (err: any) {
-      toast.error(err.message || "Authentication failed");
+      // Always show a generic message — never reveal whether credentials
+      // were valid but belong to a non-admin role
+      toast.error("Invalid email or password.");
     } finally {
       setIsLoading(false);
     }
