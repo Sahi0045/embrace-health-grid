@@ -28,7 +28,7 @@ import {
   Lock,
   ShieldAlert,
 } from "lucide-react";
-import { getCurrentUser } from "@/lib/auth";
+import { useCurrentUser } from "@/lib/auth-context";
 import {
   getDIDRequests,
   approveDIDRequest,
@@ -52,7 +52,7 @@ export const Route = createFileRoute("/admin/")({
 });
 
 function AdminDashboardPage() {
-  const currentUser = getCurrentUser();
+  const { user: currentUser } = useCurrentUser();
   const { data: didsData, refetch: refetchDIDs } = useDIDs();
   const { patients } = useLivePatients();
   const { staff } = useLiveStaff();

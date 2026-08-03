@@ -26,8 +26,9 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { getCurrentUser } from "@/lib/auth";
-import { issueNFCCard, revokeNFCCard, getPrescriptions, API_BASE_URL } from "@/lib/api";
+import { useCurrentUser } from "@/lib/auth-context";
+import { issueNFCCard, revokeNFCCard, getPrescriptions } from "@/lib/api";
+import { createMedicalRecord } from "@/lib/clinical.server";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/staff/patients")({
@@ -64,26 +65,16 @@ function Patients() {
     }
     setAddingRecord(true);
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/medical-records/${encodeURIComponent(patientDid)}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-          },
-          body: JSON.stringify({
-            title: recordTitle,
-            type: recordType,
-            content: recordSummary,
-          }),
+      // RLS enforces that the caller is a clinician WITH an active consent for
+      // this patient; the insert is rejected otherwise.
+      await createMedicalRecord({
+        data: {
+          patientDid,
+          title: recordTitle,
+          recordType,
+          content: recordSummary,
         },
-      );
-
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || "Failed to add record");
-      }
+      });
 
       toast.success("Medical record added successfully!");
       setRecordTitle("");
@@ -97,7 +88,7 @@ function Patients() {
   const { patients: patientsList } = useLivePatients();
   const patients = patientsList ?? [];
 
-  const currentUser = getCurrentUser();
+  const { user: currentUser } = useCurrentUser();
   const isAdmin = currentUser?.role === "admin";
   const { data: nfcCardsData, refetch: refetchNFCCards } = useNFCCards();
   const nfcCards = nfcCardsData || [];

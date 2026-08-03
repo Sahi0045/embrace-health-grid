@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "supabase-health-grid": {
+      "url": "https://mcp.supabase.com/mcp?project_ref=etazymekhfnijbmcvzwl",
+      "disabled": false
+    }
+  }
+}

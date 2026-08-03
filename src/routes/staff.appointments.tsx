@@ -6,7 +6,7 @@ import { RouteGuard } from "@/components/RouteGuard";
 import { EmptyState } from "@/components/EmptyState";
 import { updateAppointmentStatus } from "@/lib/api";
 import { getDoctorAppointmentRequests, getDoctorAppointments } from "@/lib/api";
-import { getCurrentUser } from "@/lib/auth";
+import { useCurrentUser } from "@/lib/auth-context";
 import {
   CalendarDays, Clock, User, Check, X, MessageSquare,
   RefreshCw, ChevronDown, ChevronUp, MapPin, Video,
@@ -353,7 +353,7 @@ function AppointmentCard({
 
 // ─── main page ────────────────────────────────────────────────────────────────
 function StaffAppointmentsPage() {
-  const currentUser = getCurrentUser();
+  const { user: currentUser } = useCurrentUser();
 
   const [requests,     setRequests]     = useState<Appointment[]>([]);
   const [allAppts,     setAllAppts]     = useState<Appointment[]>([]);

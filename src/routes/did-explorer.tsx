@@ -19,7 +19,7 @@ import {
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDIDs, useAudit, useNFCCards } from "@/hooks/use-api";
-import { getCurrentUser } from "@/lib/auth";
+import { useCurrentUser } from "@/lib/auth-context";
 import { issueNFCCard, revokeNFCCard, getDIDRequests, approveDIDRequest, rejectDIDRequest } from "@/lib/api";
 import { toast } from "sonner";
 
@@ -58,7 +58,7 @@ function DIDExplorerPage() {
   const [viewMode, setViewMode] = useState<"dids" | "nfc">("dids");
   const [cardToRevoke, setCardToRevoke] = useState<string | null>(null);
 
-  const currentUser = getCurrentUser();
+  const { user: currentUser } = useCurrentUser();
   const isAdmin = currentUser?.role === "admin";
 
   const [didRequests, setDidRequests] = useState<any[]>([]);

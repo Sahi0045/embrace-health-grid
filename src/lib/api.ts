@@ -193,10 +193,7 @@ export const requestConsent = (data: {
     },
   );
 
-export const getConsentRequests = (patientDid: string) =>
-  apiFetch<{ requests: any[]; total: number }>(
-    `/consent/requests/${encodeURIComponent(patientDid)}`,
-  );
+
 
 export const denyConsentRequest = (id: string) =>
   apiFetch<{ success: boolean }>(`/consent/requests/${encodeURIComponent(id)}/deny`, {
@@ -220,8 +217,6 @@ export const logAuditEvent = (
   });
 
 // ─── Medical Records ──────────────────────────────────────────────────────────
-export const getMedicalRecords = (patientDid: string) =>
-  apiFetch<{ records: any[]; total: number }>(`/medical-records/${encodeURIComponent(patientDid)}`);
 
 /** Staff/Admin: fetch ALL medical records across all patients */
 export const getAllMedicalRecords = () =>
@@ -463,8 +458,6 @@ export const signPrescription = (data: {
   });
 };
 
-export const getPrescriptions = (patientDid: string) =>
-  apiFetch<{ prescriptions: any[] }>(`/prescriptions/${encodeURIComponent(patientDid)}`);
 
 /**
  * On-Chain Prescription History — doctors only, requires a confirmed appointment.
@@ -543,8 +536,6 @@ export const orderLab = (
     body: JSON.stringify({ patientDid, orderedBy, tests, priority }),
   });
 
-export const getLabs = (patientDid: string) =>
-  apiFetch<{ labs: any[] }>(`/labs/${encodeURIComponent(patientDid)}`);
 
 export const getAllLabs = () => apiFetch<{ labs: any[]; total: number }>(`/labs`);
 
@@ -1033,3 +1024,106 @@ export const payBill = (data: {
     method: "POST",
     body: JSON.stringify(data),
   });
+
+// ─── Supabase-backed clinical reads (task 9 migration) ──────────────────────
+// These four used to hit the Express backend. They now delegate to server
+// functions that query Postgres with RLS applied, so a patient receives only
+// their own rows and a clinician only what an active consent permits.
+//
+// The signatures are unchanged so existing call sites keep working; the
+// `did` argument is accepted but ignored, because RLS — not a client-supplied
+// identifier — decides scope. Trusting a client-passed DID for filtering was
+// precisely the weakness of the old endpoints.
+
+export async function getMedicalRecords(_did?: string) {
+  const { getMedicalRecords: fn } = await import("./clinical.server");
+  const res = await fn();
+  // Map snake_case columns onto the camelCase shape components expect.
+  return {
+    records: (res.records ?? []).map((r: any) => ({
+      recordId: r.record_id,
+      patientDid: r.patient_did,
+      title: r.title,
+      type: r.record_type,
+      content: r.content,
+      doctorName: r.author_name,
+      hash: r.content_hash,
+      createdAt: r.created_at,
+    })),
+  };
+}
+
+export async function getPrescriptions(_did?: string) {
+  const { getPrescriptions: fn } = await import("./clinical.server");
+  const res = await fn();
+  return {
+    prescriptions: (res.prescriptions ?? []).map((p: any) => ({
+      rxId: p.rx_id,
+      patientDid: p.patient_did,
+      doctorDid: p.doctor_did,
+      drugs: p.drugs,
+      diagnosis: p.diagnosis,
+      notes: p.notes,
+      status: p.status,
+      signed: p.signed,
+      signedAt: p.signed_at,
+      hash: p.content_hash,
+      createdAt: p.created_at,
+    })),
+  };
+}
+
+export async function getLabResults(_did?: string) {
+  const { getLabResults: fn } = await import("./clinical.server");
+  const res = await fn();
+  return {
+    labResults: (res.labResults ?? []).map((l: any) => ({
+      labId: l.lab_id,
+      patientDid: l.patient_did,
+      testName: l.test_name,
+      resultValue: l.result_value,
+      unit: l.unit,
+      referenceRange: l.reference_range,
+      status: l.status,
+      resultedAt: l.resulted_at,
+    })),
+  };
+}
+
+export async function getConsentRequests(_did?: string) {
+  const { getConsents: fn } = await import("./clinical.server");
+  const res = await fn();
+  return {
+    requests: (res.consents ?? []).map((c: any) => ({
+      grantId: c.grant_id,
+      patientDid: c.patient_did,
+      doctorDid: c.doctor_did,
+      resource: c.resource,
+      status: c.status,
+      grantedAt: c.granted_at,
+      expiry: c.expires_at,
+      revokedAt: c.revoked_at,
+    })),
+  };
+}
+
+/**
+ * Lab results, Supabase-backed. Returns `labs` (not `labResults`) to match the
+ * shape the existing components consume.
+ */
+export async function getLabs(_did?: string) {
+  const { getLabResults: fn } = await import("./clinical.server");
+  const res = await fn();
+  return {
+    labs: (res.labResults ?? []).map((l: any) => ({
+      labId: l.lab_id,
+      patientDid: l.patient_did,
+      testName: l.test_name,
+      resultValue: l.result_value,
+      unit: l.unit,
+      referenceRange: l.reference_range,
+      status: l.status,
+      resultedAt: l.resulted_at,
+    })),
+  };
+}

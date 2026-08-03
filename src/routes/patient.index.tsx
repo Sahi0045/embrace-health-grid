@@ -22,8 +22,7 @@ import { RouteGuard } from "@/components/RouteGuard";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
-import { getCurrentUser, setSession } from "@/lib/auth";
-import { getMe } from "@/lib/api";
+import { useCurrentUser } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/patient/")({
   head: () => ({ meta: [{ title: "Patient · Home — Embrace Health Grid" }] }),
@@ -53,19 +52,7 @@ function PatientHome() {
   const { patients } = useLivePatients();
   const { data: consentsData } = useConsents();
   const { data: apptsData } = useAppointments();
-  const [currentUser, setCurrentUser] = useState(getCurrentUser());
-
-  useEffect(() => {
-    getMe()
-      .then((res: { user: any }) => {
-        if (res.user) {
-          const token = sessionStorage.getItem("authToken") || "";
-          setSession(token, res.user);
-          setCurrentUser(getCurrentUser());
-        }
-      })
-      .catch((err: Error) => console.warn("Could not fetch user profile:", err.message));
-  }, []);
+  const { user: currentUser } = useCurrentUser();
 
   const userEmail = currentUser?.email || "";
   const userName = currentUser?.name || "";
@@ -163,7 +150,7 @@ function PatientHome() {
 
         <StaggerList className="mt-6 space-y-5">
           {/* Solana Wallet Prompt Banner */}
-          {!getCurrentUser()?.walletAddress && (
+          {!currentUser?.walletAddress && (
             <StaggerItem>
               <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-5 shadow-clinical">
                 <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

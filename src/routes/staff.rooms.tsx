@@ -7,7 +7,7 @@ import {
   getRoomCheckinHistory, getDailyRoomEvents,
   publishMerkleRoot, getMerkleRootHistory, getVerifiedDoctors,
 } from "@/lib/api";
-import { getCurrentUser } from "@/lib/auth";
+import { useCurrentUser } from "@/lib/auth-context";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import {
@@ -36,7 +36,7 @@ const TYPE_COLORS: Record<string, string> = {
 };
 
 function StaffRooms() {
-  const currentUser = getCurrentUser();
+  const { user: currentUser } = useCurrentUser();
   const { publicKey, connected, signMessage } = useWallet();
   const isDoctor = (currentUser?.role || "").toLowerCase() === "doctor";
 

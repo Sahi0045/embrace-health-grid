@@ -11,7 +11,7 @@ import {
   getLabs,
   updateAppointmentStatus,
 } from "@/lib/api";
-import { getCurrentUser } from "@/lib/auth";
+import { useCurrentUser } from "@/lib/auth-context";
 import {
   CalendarDays, Video, MapPin, Plus, Check, X, Search,
   AlertTriangle, Phone, Mail, MessageSquare, Pill, ClipboardList,
@@ -58,7 +58,7 @@ const STATUS_CONFIG: Record<string, { label: string; cls: string; icon: React.El
 };
 
 function AppointmentsPage() {
-  const currentUser = getCurrentUser();
+  const { user: currentUser } = useCurrentUser();
   const patientDid  = currentUser?.did ?? "";
 
   // ── server data ──────────────────────────────────────────────────────────

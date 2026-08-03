@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { login, signup } from "@/lib/api";
-import { setSession } from "@/lib/auth";
+import { signIn } from "@/lib/auth.server";
+import { useCurrentUser } from "@/lib/auth-context";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/login")({
@@ -47,12 +47,24 @@ const roles = [
 
 function LoginPage() {
   const navigate = useNavigate();
+  const { refresh } = useCurrentUser();
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [isSignup, setIsSignup] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  /**
+   * Which roles may enter each portal. The database is the authority on a
+   * user's role — this check only stops someone landing in the wrong UI, and
+   * RLS still governs what data they can actually read.
+   */
+  const PORTAL_ALLOWED_ROLES: Record<string, string[]> = {
+    patient: ["patient"],
+    staff: ["staff", "doctor"],
+    admin: ["admin"],
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,65 +74,37 @@ function LoginPage() {
 
     try {
       if (isSignup) {
-        if (!name.trim()) {
-          toast.error("Name is required for registration");
-          setIsLoading(false);
-          return;
-        }
-        if (password.length < 8) {
-          toast.error("Password must be at least 8 characters long");
-          setIsLoading(false);
-          return;
-        }
-        const hasNumber = /\d/.test(password);
-        const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
-        if (!hasNumber || !hasSpecial) {
-          toast.error("Password must contain at least one number and one special character");
-          setIsLoading(false);
-          return;
-        }
-        const signupRes = await signup({ name, email, role: selectedRole, password });
-        if (signupRes.success && signupRes.user) {
-          setSession(signupRes.token, signupRes.user);
-          toast.success(`Welcome, ${signupRes.user.name}! Account created.`);
-          navigate({ to: `/${signupRes.user.role}` });
-        }
-      } else {
-        const res = await login({ email, password, portal: selectedRole });
-        if (res.success && res.user) {
-          // Defense-in-depth: verify the returned role matches the selected portal
-          // (backend already enforces this, but we double-check on the client too)
-          const PORTAL_ALLOWED_ROLES: Record<string, string[]> = {
-            patient: ["patient"],
-            staff: ["staff", "doctor"],
-            admin: ["admin"],
-          };
-          const allowedRoles = PORTAL_ALLOWED_ROLES[selectedRole] ?? [];
-          if (!allowedRoles.includes(res.user.role)) {
-            toast.error("Invalid credentials.");
-            setIsLoading(false);
-            return;
-          }
-          setSession(res.token, res.user);
-          toast.success(`Welcome back, ${res.user.name}!`);
-          navigate({ to: `/${res.user.role}` });
-        } else if ((res as any).setupToken || (res as any).mfaSetupRequired) {
-          const userObj = {
-            name: email.split("@")[0].replace(".", " "),
-            email: email,
-            role: selectedRole || "staff",
-          };
-          setSession((res as any).setupToken || "demo-token", userObj);
-          toast.success(`Welcome to Staff Portal`);
-          navigate({ to: "/staff" });
-        }
+        // Self-service signup is disabled: accounts are provisioned by an
+        // administrator so that role, DID and credentials are issued together.
+        toast.error("Registration is handled by your administrator. Please sign in.");
+        setIsSignup(false);
+        return;
       }
-    } catch (err: any) {
-      const msg =
-        err.message?.includes("fetch") || err.name === "TypeError"
-          ? "Connection Error: Cannot reach backend server. Please ensure your network is connected."
-          : err.message || "Authentication failed";
-      toast.error(msg);
+
+      const res = await signIn({ data: { email, password } });
+
+      if (!res.ok) {
+        toast.error(res.error);
+        return;
+      }
+
+      const allowed = PORTAL_ALLOWED_ROLES[selectedRole] ?? [];
+      if (!allowed.includes(res.user.role)) {
+        // Signed in successfully but chose the wrong portal.
+        toast.error(`This account is not a ${selectedRole} account.`);
+        return;
+      }
+
+      // Populate the auth context from the server-verified session.
+      await refresh();
+
+      toast.success(`Welcome back, ${res.user.fullName}!`);
+
+      const dest = res.user.role === "doctor" ? "staff" : res.user.role;
+      navigate({ to: `/${dest}` });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Authentication failed";
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }

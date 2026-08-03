@@ -6,7 +6,7 @@ import {
   getStaffSchedule, createStaffRequest, getAppointmentsByDoctor,
   updateAppointmentStatus,
 } from "@/lib/api";
-import { getCurrentUser } from "@/lib/auth";
+import { useCurrentUser } from "@/lib/auth-context";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { stagger, fadeUp } from "@/components/Motion";
@@ -385,7 +385,7 @@ function SchedulePage() {
   const [weekShifts, setWeekShifts] = useState<Shift[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const currentUser = getCurrentUser();
+  const { user: currentUser } = useCurrentUser();
   const staffEmail = currentUser?.email || "";
 
   const [isLeaveOpen, setIsLeaveOpen] = useState(false);

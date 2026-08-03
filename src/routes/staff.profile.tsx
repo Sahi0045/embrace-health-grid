@@ -11,12 +11,13 @@ import {
 import { RouteGuard } from "@/components/RouteGuard";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
-import { getCurrentUser, setSession } from "@/lib/auth";
+import { useCurrentUser } from "@/lib/auth-context";
 import {
   updateProfile, API_BASE_URL, requestDID, getDIDRequests,
   requestWalletChallenge, verifyAndLinkWallet, getMe,
 } from "@/lib/api";
 import { useLiveStaff } from "@/hooks/use-api";
+import { getAllDIDs } from "@/lib/clinical.server";
 import { toast } from "sonner";
 import { useState, useEffect, useCallback } from "react";
 import {
@@ -55,7 +56,7 @@ const staffData = {
 
 function StaffProfile() {
   const { staff } = useLiveStaff();
-  const [currentUser, setCurrentUser] = useState(getCurrentUser());
+  const { user: currentUser, refresh: refreshUser } = useCurrentUser();
   const { publicKey, connected, signMessage } = useWallet();
   const [verifying, setVerifying]   = useState(false);
   const [adminDid,   setAdminDid]   = useState<string | null>(null);
@@ -72,9 +73,7 @@ function StaffProfile() {
     try {
       const res = await getMe();
       if (res.user) {
-        const token = localStorage.getItem("authToken") || "";
-        setSession(token, res.user);
-        setCurrentUser(getCurrentUser());
+        await refreshUser();
       }
     } catch { /* silent */ }
   }, []);
@@ -114,9 +113,7 @@ function StaffProfile() {
       // Step 3: send signature to backend — verifies ownership + links wallet
       const res = await verifyAndLinkWallet(address, sigBase64);
       if (res.success && res.verified && res.user) {
-        const token = localStorage.getItem("authToken") || "";
-        setSession(token, res.user);
-        setCurrentUser(getCurrentUser());
+        await refreshUser();
         toast.success("Wallet verified and linked!", {
           description: `${address.slice(0, 8)}…${address.slice(-6)} is now permanently associated with your account.`,
         });
@@ -162,28 +159,20 @@ function StaffProfile() {
     refreshSession();
     async function fetchAdminDid() {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/did`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-            "x-client-key": "apollo-consortium-client-secret-2026",
-          },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          const dids = data.dids || [];
-          const match = dids.find(
-            (d: any) =>
-              (d.ownerEmail && d.ownerEmail.toLowerCase() === userEmail.toLowerCase()) ||
-              (d.owner && currentUser?.name && d.owner.toLowerCase() === currentUser.name.toLowerCase()) ||
-              (d.did && currentUser?.did && d.did === currentUser.did)
-          );
-          if (match?.did) {
-            setAdminDid(match.did);
-          } else if (currentUser?.did?.startsWith("did:hosp:")) {
-            setAdminDid(currentUser.did);
-          } else {
-            setAdminDid(null);
-          }
+        // Server function carries the httpOnly session automatically. The old
+        // code read localStorage.getItem("authToken") and sent a hardcoded
+        // client key, neither of which exists any more.
+        const didRes = await getAllDIDs();
+        const dids = didRes.dids || [];
+        const match = dids.find(
+          (d: { did?: string; owner_name?: string }) =>
+            (d.owner_name &&
+              currentUser?.name &&
+              d.owner_name.toLowerCase() === currentUser.name.toLowerCase()) ||
+            (d.did && currentUser?.did && d.did === currentUser.did),
+        );
+        if (match?.did) {
+          setAdminDid(match.did);
         } else if (currentUser?.did?.startsWith("did:hosp:")) {
           setAdminDid(currentUser.did);
         } else {
@@ -241,9 +230,7 @@ function StaffProfile() {
         specializations: editSpecializations,
       });
       if (res.success && res.user) {
-        const token = localStorage.getItem("authToken") || "";
-        setSession(token, res.user);
-        setCurrentUser(getCurrentUser());
+        await refreshUser();
         toast.success("Profile updated successfully!");
         setIsEditOpen(false);
       }

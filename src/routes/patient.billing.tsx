@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { getBilling, payBill } from "@/lib/api";
-import { getCurrentUser } from "@/lib/auth";
+import { useCurrentUser } from "@/lib/auth-context";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/patient/billing")({
@@ -37,7 +37,7 @@ function PatientBilling() {
   const [loading, setLoading] = useState(true);
 
   const patientDid = typeof window !== "undefined" ? localStorage.getItem("userDID") || "" : "";
-  const currentUser = getCurrentUser();
+  const { user: currentUser } = useCurrentUser();
 
   const fetchBilling = () => {
     if (!patientDid) return;

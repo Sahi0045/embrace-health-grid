@@ -1,7 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { User, Stethoscope, ShieldCheck, Lock } from "lucide-react";
-import { getCurrentUser, type AuthUser } from "@/lib/auth";
+import { useCurrentUser } from "@/lib/auth-context";
 
 const roles = [
   { id: "patient", label: "Patient", icon: User, to: "/patient" as const },
@@ -12,9 +12,8 @@ const roles = [
 export function RoleSwitcher() {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
 
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const { user: user } = useCurrentUser();
   useEffect(() => {
-    setUser(getCurrentUser());
   }, [pathname]);
 
   return (

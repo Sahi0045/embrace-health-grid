@@ -15,7 +15,7 @@ import {
   signPrescription, logAuditEvent, getMyPatients, getMyPrescriptions,
   createMedicalRecord, getMyMedicalRecords, getPatientOnChainHistory,
 } from "@/lib/api";
-import { getCurrentUser } from "@/lib/auth";
+import { useCurrentUser } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/staff/sign")({
   head: () => ({ meta: [{ title: "Staff · Sign & Prescribe — Embrace Health Grid" }] }),
@@ -117,9 +117,10 @@ function DrugRow({ drug, onRemove, onUpdate }: { drug: Drug; onRemove: () => voi
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 function SignPage() {
-  const currentUser  = getCurrentUser();
-  const doctorDid    = currentUser?.did  ?? (typeof window !== "undefined" ? localStorage.getItem("userDID")   ?? "" : "");
-  const doctorName   = currentUser?.name ?? (typeof window !== "undefined" ? localStorage.getItem("userName")  ?? "Doctor" : "Doctor");
+  const { user: currentUser } = useCurrentUser();
+  // Identity comes from the server-verified session, not localStorage.
+  const doctorDid = currentUser?.did ?? "";
+  const doctorName = currentUser?.name ?? "Doctor";
 
   // ── data ──────────────────────────────────────────────────────────────────
   const [patients,        setPatients]        = useState<any[]>([]);

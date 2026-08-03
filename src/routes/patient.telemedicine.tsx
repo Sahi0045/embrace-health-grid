@@ -20,7 +20,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useAppointments, useLivePatients } from "@/hooks/use-api";
-import { getCurrentUser } from "@/lib/auth";
+import { useCurrentUser } from "@/lib/auth-context";
 import { getPrescriptions } from "@/lib/api";
 import { toast } from "sonner";
 
@@ -35,7 +35,7 @@ function TelemedicinePage() {
 
   const { data: appointmentsData, loading: loadingAppts } = useAppointments();
   const { patients } = useLivePatients();
-  const currentUser = getCurrentUser();
+  const { user: currentUser } = useCurrentUser();
   const patient = patients?.find((p: any) => p.email === currentUser?.email);
   const patientDid = patient?.did || "";
 

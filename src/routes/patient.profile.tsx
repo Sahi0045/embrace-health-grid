@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import { useLivePatients, useCredentials } from "@/hooks/use-api";
 import { RouteGuard } from "@/components/RouteGuard";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
-import { getCurrentUser, setSession, logout } from "@/lib/auth";
+import { useCurrentUser } from "@/lib/auth-context";
 import { requestWalletChallenge, verifyAndLinkWallet, updateProfile, getMe } from "@/lib/api";
 import { toast } from "sonner";
 import { useState, useEffect, useCallback } from "react";
@@ -39,7 +39,8 @@ export const Route = createFileRoute("/patient/profile")({
 
 function PatientProfile() {
   const { patients } = useLivePatients();
-  const [currentUser, setCurrentUser] = useState(getCurrentUser());
+  const { user: currentUser, refresh: refreshUser, signOut: signOutUser } = useCurrentUser();
+  const navigate = useNavigate();
   const { publicKey, connected, signMessage } = useWallet();
   const [verifying, setVerifying] = useState(false);
 
@@ -49,9 +50,7 @@ function PatientProfile() {
     try {
       const res = await getMe();
       if (res.user) {
-        const token = localStorage.getItem("authToken") || "";
-        setSession(token, res.user);
-        setCurrentUser(getCurrentUser());
+        await refreshUser();
       }
     } catch { /* silent */ }
   }, []);
@@ -76,9 +75,7 @@ function PatientProfile() {
       const sigBase64 = Buffer.from(sigBytes).toString("base64");
       const res = await verifyAndLinkWallet(address, sigBase64);
       if (res.success && res.verified && res.user) {
-        const token = localStorage.getItem("authToken") || "";
-        setSession(token, res.user);
-        setCurrentUser(getCurrentUser());
+        await refreshUser();
         toast.success("Wallet verified and linked!", {
           description: `${address.slice(0, 8)}…${address.slice(-6)} is now tied to your account.`,
         });
@@ -136,9 +133,7 @@ function PatientProfile() {
         allergies: editAllergies,
       });
       if (res.success && res.user) {
-        const token = localStorage.getItem("authToken") || "";
-        setSession(token, res.user);
-        setCurrentUser(getCurrentUser());
+        await refreshUser();
         toast.success("Profile updated successfully!");
         setIsEditOpen(false);
       }
@@ -169,8 +164,10 @@ function PatientProfile() {
           { id: "c3", type: "Vaccination Record", issuer: "Govt. of India" },
         ];
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    // Clears the httpOnly session cookie server-side.
+    await signOutUser();
+    navigate({ to: "/login" });
   };
 
   return (

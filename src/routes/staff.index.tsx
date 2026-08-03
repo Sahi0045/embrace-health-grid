@@ -23,7 +23,7 @@ import {
 import { RouteGuard } from "@/components/RouteGuard";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { getCurrentUser } from "@/lib/auth";
+import { useCurrentUser } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/staff/")({
   head: () => ({ meta: [{ title: "Staff · Dashboard — Embrace Health Grid" }] }),
@@ -76,6 +76,7 @@ const quickLinks = [
 ];
 
 function StaffDashboard() {
+  const { user: currentUser } = useCurrentUser();
   const { patients: patientsList } = useLivePatients();
   const { staff: staffList } = useLiveStaff();
   const { data: consentsData } = useConsents();
@@ -154,7 +155,7 @@ function StaffDashboard() {
 
         <div className="space-y-6 p-6">
           {/* Solana Wallet Prompt Banner */}
-          {!getCurrentUser()?.walletAddress && (
+          {!currentUser?.walletAddress && (
             <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-5 shadow-clinical">
               <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div className="flex items-start gap-3">

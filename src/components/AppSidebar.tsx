@@ -61,7 +61,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { RoleSwitcher } from "./RoleSwitcher";
-import { getCurrentUser, type AuthUser } from "@/lib/auth";
+import { useCurrentUser } from "@/lib/auth-context";
 
 type Item = { title: string; url: string; icon: React.ComponentType<{ className?: string }> };
 
@@ -151,9 +151,8 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
 
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const { user: user } = useCurrentUser();
   useEffect(() => {
-    setUser(getCurrentUser());
   }, [pathname]);
 
   const currentPortal: "patient" | "staff" | "admin" = pathname.startsWith("/patient")

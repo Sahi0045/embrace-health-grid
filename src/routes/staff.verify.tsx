@@ -45,6 +45,10 @@ import { Badge } from "@/components/ui/badge";
 // @zxing/browser is ESM-only; safe to import at module level —
 // actual camera usage is gated by `typeof window !== "undefined"` at call sites.
 import { BrowserQRCodeReader, type IScannerControls } from "@zxing/browser";
+import {
+  getMedicalRecordsForPatient,
+  getPrescriptionsForPatient,
+} from "@/lib/clinical.server";
 
 export const Route = createFileRoute("/staff/verify")({
   head: () => ({ meta: [{ title: "Staff · Verify Patient — Embrace Health Grid" }] }),
@@ -100,21 +104,15 @@ function VerifyPatient() {
     const verifyOnChain = async () => {
       setSolanaVerifying(true);
       try {
-        const [recordsResponse, prescriptionsResponse] = await Promise.all([
-          fetch(`${API_BASE_URL}/api/medical-records/${encodeURIComponent(scanResult.did)}`, {
-            headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
-          }),
-          fetch(`${API_BASE_URL}/api/prescriptions/${encodeURIComponent(scanResult.did)}`, {
-            headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
-          }),
+        // Server functions carry the httpOnly session automatically. The old
+        // code read localStorage.getItem("authToken"), which no longer exists —
+        // the session is now an httpOnly cookie that JS cannot read.
+        // RLS decides what comes back: no consent means an empty set.
+        const [recordsData, prescriptionsData] = await Promise.all([
+          getMedicalRecordsForPatient({ data: { patientDid: scanResult.did } }),
+          getPrescriptionsForPatient({ data: { patientDid: scanResult.did } }),
         ]);
 
-        if (!recordsResponse.ok || !prescriptionsResponse.ok) {
-          throw new Error("Failed to fetch patient data");
-        }
-
-        const recordsData = await recordsResponse.json();
-        const prescriptionsData = await prescriptionsResponse.json();
         const records = recordsData.records || [];
         const prescriptions = prescriptionsData.prescriptions || [];
 
@@ -124,8 +122,8 @@ function VerifyPatient() {
           return;
         }
 
-        const recordHashes = records.map((r: any) => r.hash || `sha256:${r.recordId}`);
-        const rxHashes = prescriptions.map((p: any) => p.hash || `sha256:${p.rxId}`);
+        const recordHashes = records.map((r: any) => r.content_hash || `sha256:${r.record_id}`);
+        const rxHashes = prescriptions.map((p: any) => p.content_hash || `sha256:${p.rx_id}`);
         const hashes = [...recordHashes, ...rxHashes];
 
         const tree = new MerkleTree(hashes);

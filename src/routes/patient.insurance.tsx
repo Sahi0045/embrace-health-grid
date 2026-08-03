@@ -5,7 +5,7 @@ import { StaggerList, StaggerItem } from "@/components/Motion";
 import { InsuranceCard } from "@/components/insurance/InsuranceCard";
 import { ClaimsCard } from "@/components/insurance/ClaimsCard";
 import { useInsuranceClaims, useLivePatients } from "@/hooks/use-api";
-import { getCurrentUser, setSession } from "@/lib/auth";
+import { useCurrentUser } from "@/lib/auth-context";
 import { updateInsurancePolicy, createInsuranceClaim } from "@/lib/api";
 import {
   ShieldCheck,
@@ -35,7 +35,7 @@ function InsurancePage() {
   const [tab, setTab] = useState<Tab>("Overview");
   const { data: claimsData, refetch: refetchClaims } = useInsuranceClaims();
   const { patients, loading, refetch: refetchPatients } = useLivePatients();
-  const currentUser = getCurrentUser();
+  const { user: currentUser, refresh: refreshUser } = useCurrentUser();
   const patient: any = patients?.find((p: any) => p.email === currentUser?.email) || {
     insuranceProvider: currentUser?.insuranceProvider || "Star Health & Allied Insurance",
     insurancePolicyNo: currentUser?.insurancePolicyNo || "POL-2026-STAR-9942",
@@ -89,7 +89,6 @@ function InsurancePage() {
       });
 
       if (res.success && res.patient) {
-        const token = localStorage.getItem("authToken") || "";
         const updatedUser = {
           ...currentUser,
           insuranceProvider: provider,
@@ -99,7 +98,7 @@ function InsurancePage() {
           validFrom,
           validTo,
         };
-        setSession(token, updatedUser as any);
+        await refreshUser();
 
         toast.success("Insurance Policy Updated On-Chain!", {
           description: `${provider} (${policyNo}) linked to your health identity.`,

@@ -16,7 +16,8 @@ import { AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey, Transaction, Connection } from "@solana/web3.js";
-import { API_BASE_URL } from "@/lib/api";
+import { buildPatientAnchorTx } from "@/lib/clinical.server";
+import { useTableRefresh } from "@/hooks/use-realtime";
 import { useState, useEffect, useCallback } from "react";
 import {
   getPrescriptions, getMedicalRecords, getHealthMetrics,
@@ -97,27 +98,11 @@ function MedicalRecords() {
     }
     setAnchoring(true);
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/medical-records/${encodeURIComponent(patientDid)}/anchor`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-          },
-          body: JSON.stringify({
-            authorityPubkey: publicKey.toBase58(),
-            isUpdate: !!onChainRoot,
-          }),
-        },
-      );
-
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || "Failed to generate anchoring transaction");
-      }
-
-      const res = await response.json();
+      // Server builds the UNSIGNED transaction; the patient signs with their
+      // own Phantom wallet, so the platform never holds their key.
+      const res = await buildPatientAnchorTx({
+        data: { authorityPubkey: publicKey.toBase58() },
+      });
       const tx = Transaction.from(Buffer.from(res.transactionPayload, "base64"));
 
       toast.info("Requesting signature from Phantom wallet...");
@@ -181,37 +166,25 @@ function MedicalRecords() {
     };
   }, [patientDid]);
 
-  // Real-time sync: refresh when doctor signs prescription or creates a linked report
-  useEffect(() => {
+  // Real-time sync via Supabase Realtime (replaces the ws://localhost:3001
+  // socket). RLS applies to the subscription, so only changes to rows this
+  // patient is permitted to see are delivered at all.
+  const refreshClinical = useCallback(async () => {
     if (!patientDid) return;
-    const wsUrl = (API_BASE_URL || "http://localhost:3001").replace(/^http/, "ws");
-    let ws: WebSocket | null = null;
-    let retry: ReturnType<typeof setTimeout>;
-    const refresh = async () => {
-      try {
-        const [rxRes, recRes] = await Promise.all([
-          getPrescriptions(patientDid),
-          getMedicalRecords(patientDid),
-        ]);
-        setApiPrescriptions(rxRes.prescriptions || []);
-        setApiRecords(recRes.records || []);
-      } catch { /* silent */ }
-    };
-    const connect = () => {
-      try {
-        ws = new WebSocket(wsUrl);
-        ws.onmessage = (e) => {
-          try {
-            const msg = JSON.parse(e.data);
-            if (msg.event === "prescription:signed" || msg.event === "record:created") refresh();
-          } catch { /* ignore */ }
-        };
-        ws.onclose = () => { retry = setTimeout(connect, 5000); };
-      } catch { /* no WS */ }
-    };
-    connect();
-    return () => { ws?.close(); clearTimeout(retry); };
+    try {
+      const [rxRes, recRes] = await Promise.all([
+        getPrescriptions(patientDid),
+        getMedicalRecords(patientDid),
+      ]);
+      setApiPrescriptions(rxRes.prescriptions || []);
+      setApiRecords(recRes.records || []);
+    } catch {
+      /* leave the previous data in place on a transient failure */
+    }
   }, [patientDid]);
+
+  useTableRefresh("prescriptions", refreshClinical);
+  useTableRefresh("medical_records", refreshClinical);
 
   const pharmacyOrders  = apiPharmacyOrders;
   const healthMetrics   = apiHealthMetrics;

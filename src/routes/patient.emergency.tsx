@@ -7,7 +7,7 @@ import {
   type EmergencyAccessEvent,
 } from "@/components/emergency/EmergencyAccessCard";
 import { useLivePatients, useLiveStaff, useAudit } from "@/hooks/use-api";
-import { getCurrentUser, setSession } from "@/lib/auth";
+import { useCurrentUser } from "@/lib/auth-context";
 import { updateEmergencyProfile } from "@/lib/api";
 import {
   Heart,
@@ -57,7 +57,7 @@ function EmergencyPage() {
   const { patients: patientsList, refetch: refetchPatients } = useLivePatients();
   const { staff } = useLiveStaff();
   const { data: auditData } = useAudit();
-  const currentUser = getCurrentUser();
+  const { user: currentUser, refresh: refreshUser } = useCurrentUser();
   const userEmail = currentUser?.email || "";
   const patient =
     patientsList?.find((p: any) => p.email === userEmail) ||
@@ -151,8 +151,6 @@ function EmergencyPage() {
       });
 
       if (res.success && res.patient) {
-        // Sync local session user
-        const token = localStorage.getItem("authToken") || "";
         const updatedUser = {
           ...currentUser,
           ...res.patient,
@@ -162,7 +160,7 @@ function EmergencyPage() {
           allergies,
           conditions,
         };
-        setSession(token, updatedUser);
+        await refreshUser();
 
         toast.success("Emergency Profile Updated On-Chain!", {
           description: "Responders and hospital nodes now have your updated emergency records.",

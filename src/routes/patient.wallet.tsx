@@ -6,7 +6,7 @@ import { CredentialCard } from "@/components/credentials/CredentialCard";
 import { CredentialPreview } from "@/components/credentials/CredentialPreview";
 import { CredentialTimeline } from "@/components/credentials/CredentialTimeline";
 import { useCredentials, useLivePatients } from "@/hooks/use-api";
-import { getCurrentUser } from "@/lib/auth";
+import { useCurrentUser } from "@/lib/auth-context";
 import { RouteGuard } from "@/components/RouteGuard";
 import { Wallet as WalletIcon, ShieldCheck, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -19,7 +19,7 @@ export const Route = createFileRoute("/patient/wallet")({
 function Wallet() {
   const { data: credentialsData, loading } = useCredentials();
   const { patients } = useLivePatients();
-  const currentUser = getCurrentUser();
+  const { user: currentUser } = useCurrentUser();
   const patient = patients?.find((p: any) => p.email === currentUser?.email);
   const holderName = patient ? patient.name : "Anika Sharma";
 

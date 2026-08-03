@@ -1,30 +1,39 @@
-import { useState, useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { getCurrentUser, hasAccess, type AuthUser } from "@/lib/auth";
+import { useEffect } from "react";
+import { useCurrentUser, hasAccess } from "@/lib/auth-context";
 import { AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+/**
+ * Route-level UI gate.
+ *
+ * The role comes from the database via the server-verified session, replacing
+ * the previous implementation which read `localStorage["userRole"]` — a value
+ * any user could edit in devtools to reveal another role's screens.
+ *
+ * This is still only a UI gate. Actual data protection is enforced by RLS in
+ * Postgres: bypassing this component reveals empty pages, not other patients'
+ * records. The RLS test suite asserts that directly.
+ */
 interface RouteGuardProps {
-  requiredRole: "patient" | "staff" | "admin";
+  requiredRole: "patient" | "doctor" | "staff" | "admin";
   children: React.ReactNode;
 }
 
 export function RouteGuard({ requiredRole, children }: RouteGuardProps) {
   const navigate = useNavigate();
-  const [user, setUser] = useState<AuthUser | null | undefined>(undefined); // undefined = not yet checked
+  const { user, loading, signOut } = useCurrentUser();
 
   useEffect(() => {
-    const currentUser = getCurrentUser();
-    setUser(currentUser);
-    if (currentUser === null) {
+    if (!loading && user === null) {
       navigate({ to: "/login" });
     }
-  }, [navigate]);
+  }, [loading, user, navigate]);
 
-  // Still loading on client or redirecting — render nothing
-  if (user === undefined || user === null) return null;
+  // Render nothing while the session is being verified, so a protected page
+  // never flashes before the check completes.
+  if (loading || user === null) return null;
 
-  // Logged in but wrong role
   if (!hasAccess(user.role, requiredRole)) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center px-4">
@@ -40,19 +49,20 @@ export function RouteGuard({ requiredRole, children }: RouteGuardProps) {
           <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
             <Button
               onClick={() => {
-                if (user.role === "patient") navigate({ to: "/patient" as any });
-                else if (user.role === "staff") navigate({ to: "/staff" as any });
-                else if (user.role === "admin") navigate({ to: "/" as any });
-                else navigate({ to: "/" as any });
+                if (user.role === "patient") navigate({ to: "/patient" as never });
+                else if (user.role === "doctor" || user.role === "staff")
+                  navigate({ to: "/staff" as never });
+                else navigate({ to: "/" as never });
               }}
             >
               Go to My Dashboard
             </Button>
             <Button
               variant="outline"
-              onClick={() => {
-                localStorage.removeItem("userRole");
-                localStorage.removeItem("userEmail");
+              onClick={async () => {
+                // Clears the httpOnly cookie server-side; there is no local
+                // state to purge.
+                await signOut();
                 navigate({ to: "/login" });
               }}
             >

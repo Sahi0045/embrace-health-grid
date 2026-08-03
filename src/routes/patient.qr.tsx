@@ -5,7 +5,7 @@ import { QrCode } from "@/components/QrCode";
 import { PageHeader } from "@/components/PageHeader";
 import { RouteGuard } from "@/components/RouteGuard";
 import { useLivePatients } from "@/hooks/use-api";
-import { getCurrentUser } from "@/lib/auth";
+import { useCurrentUser } from "@/lib/auth-context";
 import {
   RefreshCw,
   ShieldCheck,
@@ -38,7 +38,7 @@ function simHash(str: string): string {
 
 function PatientQr() {
   const { patients: patientsList } = useLivePatients();
-  const currentUser = getCurrentUser();
+  const { user: currentUser } = useCurrentUser();
   const userEmail = currentUser?.email || (typeof window !== "undefined" ? localStorage.getItem("userEmail") || "" : "");
   const userDid = currentUser?.did || (typeof window !== "undefined" ? localStorage.getItem("userDID") || localStorage.getItem("userDid") || "" : "");
   const userMrn = currentUser?.mrn || (typeof window !== "undefined" ? localStorage.getItem("userMRN") || "" : "");

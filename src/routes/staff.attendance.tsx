@@ -17,7 +17,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
-import { getCurrentUser } from "@/lib/auth";
+import { useCurrentUser } from "@/lib/auth-context";
 import { ShieldAlert, ShieldCheck, UserCheck } from "lucide-react";
 import { clockAttendance, createStaffRequest } from "@/lib/api";
 import { useAttendance, useStaffRequests } from "@/hooks/use-api";
@@ -30,7 +30,7 @@ export const Route = createFileRoute("/staff/attendance")({
 });
 
 function StaffAttendance() {
-  const currentUser = getCurrentUser();
+  const { user: currentUser } = useCurrentUser();
   const userEmail = currentUser?.email || "";
   const userDid = currentUser?.did || null;
   const employeeId = currentUser?.employeeId || null;
