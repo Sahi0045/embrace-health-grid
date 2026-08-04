@@ -74,7 +74,9 @@ export const getStaffSchedule = createServerFn({ method: "GET" }).handler(async 
 
   const { data, error } = await supabase
     .from("staff_schedule")
-    .select("shift_id, staff_id, shift_date, role, starts_at, ends_at, unit, patient_count, notes, confirmed")
+    .select(
+      "shift_id, staff_id, shift_date, role, starts_at, ends_at, unit, patient_count, notes, confirmed",
+    )
     .order("shift_date", { ascending: true });
 
   if (error) throw new Error(error.message);
@@ -137,7 +139,9 @@ export const getRoomCheckinStatus = createServerFn({ method: "GET" }).handler(as
 
   const { data, error } = await supabase
     .from("room_checkins")
-    .select("doctor_did, doctor_name, status, current_room, room_id, checked_in_at, checked_out_at, last_action, updated_at");
+    .select(
+      "doctor_did, doctor_name, status, current_room, room_id, checked_in_at, checked_out_at, last_action, updated_at",
+    );
 
   if (error) throw new Error(error.message);
   return { checkins: data ?? [] };
@@ -208,7 +212,9 @@ export const getDailyRoomEvents = createServerFn({ method: "GET" })
 
     if (data.doctorDid) query = query.eq("doctor_did", data.doctorDid);
     if (data.date) {
-      query = query.gte("occurred_at", `${data.date}T00:00:00Z`).lte("occurred_at", `${data.date}T23:59:59Z`);
+      query = query
+        .gte("occurred_at", `${data.date}T00:00:00Z`)
+        .lte("occurred_at", `${data.date}T23:59:59Z`);
     }
 
     const { data: events, error } = await query;
@@ -224,7 +230,9 @@ export const getVisitors = createServerFn({ method: "GET" }).handler(async () =>
 
   const { data, error } = await supabase
     .from("visitors")
-    .select("visitor_id, patient_did, visitor_name, relation, visit_date, purpose, status, requested_at, resolved_at")
+    .select(
+      "visitor_id, patient_did, visitor_name, relation, visit_date, purpose, status, requested_at, resolved_at",
+    )
     .order("requested_at", { ascending: false });
 
   if (error) throw new Error(error.message);
@@ -232,16 +240,18 @@ export const getVisitors = createServerFn({ method: "GET" }).handler(async () =>
 });
 
 export const createVisitorRequest = createServerFn({ method: "POST" })
-  .validator((data: {
-    patientDid?: string;
-    visitorName: string;
-    relation?: string;
-    visitDate?: string;
-    purpose?: string;
-  }) => {
-    if (!data?.visitorName) throw new Error("visitorName is required");
-    return data;
-  })
+  .validator(
+    (data: {
+      patientDid?: string;
+      visitorName: string;
+      relation?: string;
+      visitDate?: string;
+      purpose?: string;
+    }) => {
+      if (!data?.visitorName) throw new Error("visitorName is required");
+      return data;
+    },
+  )
   .handler(async ({ data }) => {
     const user = await requireSession();
     const supabase = getSupabaseServerClient();
@@ -327,7 +337,8 @@ export const verifyNfcCard = createServerFn({ method: "POST" })
 
     if (error) throw new Error(error.message);
     if (!card) return { valid: false as const, reason: "Card not found" };
-    if (card.status !== "active") return { valid: false as const, reason: `Card is ${card.status}` };
+    if (card.status !== "active")
+      return { valid: false as const, reason: `Card is ${card.status}` };
 
     return { valid: true as const, patientDid: card.patient_did, cardType: card.card_type };
   });
@@ -338,10 +349,7 @@ export const getInsurancePolicy = createServerFn({ method: "GET" }).handler(asyn
   await requireSession();
   const supabase = getSupabaseServerClient();
 
-  const { data, error } = await supabase
-    .from("insurance_policies")
-    .select("*")
-    .maybeSingle();
+  const { data, error } = await supabase.from("insurance_policies").select("*").maybeSingle();
 
   if (error) throw new Error(error.message);
   return { policy: data ?? null };

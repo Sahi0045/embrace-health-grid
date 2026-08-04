@@ -97,7 +97,6 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 
 // ─── DIDs ─────────────────────────────────────────────────────────────────────
 
-
 export const createDID = (
   owner: string,
   ownerType: string,
@@ -124,18 +123,23 @@ export const requestDID = (data: { ownerName?: string; ownerType?: string; depar
     body: JSON.stringify(data),
   });
 
-export const getDIDRequests = () =>
-  apiFetch<{ requests: any[]; total: number }>(`/did/requests`);
+export const getDIDRequests = () => apiFetch<{ requests: any[]; total: number }>(`/did/requests`);
 
 export const approveDIDRequest = (requestId: string) =>
-  apiFetch<{ success: boolean; did: string; doc: any }>(`/did/requests/${encodeURIComponent(requestId)}/approve`, {
-    method: "POST",
-  });
+  apiFetch<{ success: boolean; did: string; doc: any }>(
+    `/did/requests/${encodeURIComponent(requestId)}/approve`,
+    {
+      method: "POST",
+    },
+  );
 
 export const rejectDIDRequest = (requestId: string) =>
-  apiFetch<{ success: boolean; request: any }>(`/did/requests/${encodeURIComponent(requestId)}/reject`, {
-    method: "POST",
-  });
+  apiFetch<{ success: boolean; request: any }>(
+    `/did/requests/${encodeURIComponent(requestId)}/reject`,
+    {
+      method: "POST",
+    },
+  );
 
 // ─── Credentials ──────────────────────────────────────────────────────────────
 export const issueCredential = (
@@ -154,10 +158,7 @@ export const revokeCredential = (id: string) =>
     method: "PATCH",
   });
 
-
 // ─── Consent ──────────────────────────────────────────────────────────────────
-
-
 
 export const requestConsent = (data: {
   doctorDid: string;
@@ -174,8 +175,6 @@ export const requestConsent = (data: {
       body: JSON.stringify(data),
     },
   );
-
-
 
 export const denyConsentRequest = (id: string) =>
   apiFetch<{ success: boolean }>(`/consent/requests/${encodeURIComponent(id)}/deny`, {
@@ -210,13 +209,11 @@ export const getMyMedicalRecords = () =>
 export const getMedicalRecordByRx = (rxId: string) =>
   apiFetch<{ record: any | null }>(`/medical-records/by-prescription/${encodeURIComponent(rxId)}`);
 
-
 export const updateMedicalRecord = (recordId: string, data: Record<string, any>) =>
   apiFetch<{ record: any }>(`/medical-records/${encodeURIComponent(recordId)}`, {
     method: "PATCH",
     body: JSON.stringify(data),
   });
-
 
 export const getPharmacyOrders = (patientDid: string) =>
   apiFetch<{ orders: any[] }>(`/pharmacy-orders/${encodeURIComponent(patientDid)}`);
@@ -239,7 +236,6 @@ export const updateEmergencyProfile = (data: {
     body: JSON.stringify(data),
   });
 
-
 // ─── NFC Cards ────────────────────────────────────────────────────────────────
 export const issueNFCCard = (data: {
   patientDid: string;
@@ -259,13 +255,10 @@ export const revokeNFCCard = (cardId: string) =>
     method: "PATCH",
   });
 
-
 export const getNFCCardStatus = (patientDid: string) =>
   apiFetch<{ hasCard: boolean; card: any }>(`/nfc/status/${encodeURIComponent(patientDid)}`);
 
 // ─── Visitors ─────────────────────────────────────────────────────────────────
-
-
 
 // ─── Attendance ───────────────────────────────────────────────────────────────
 
@@ -282,7 +275,6 @@ export const getAdminAttendanceSummary = () =>
     roster: any[];
     allRecords: any[];
   }>(`/attendance/admin/summary`);
-
 
 // ─── Staff Requests (Leave / Shift) ───────────────────────────────────────────
 export const getStaffRequests = (staffEmail: string) =>
@@ -355,7 +347,6 @@ export const signPrescription = (data: {
     body: JSON.stringify(data),
   });
 };
-
 
 /**
  * On-Chain Prescription History — doctors only, requires a confirmed appointment.
@@ -434,16 +425,19 @@ export const orderLab = (
     body: JSON.stringify({ patientDid, orderedBy, tests, priority }),
   });
 
-
 export const getAllLabs = () => apiFetch<{ labs: any[]; total: number }>(`/labs`);
 
 // ─── Appointments ─────────────────────────────────────────────────────────────
 
 export const getAppointmentsByPatient = (patientDid: string) =>
-  apiFetch<{ appointments: any[]; total: number }>(`/appointments?patientDid=${encodeURIComponent(patientDid)}`);
+  apiFetch<{ appointments: any[]; total: number }>(
+    `/appointments?patientDid=${encodeURIComponent(patientDid)}`,
+  );
 
 export const getAppointmentsByDoctor = (doctorDid: string) =>
-  apiFetch<{ appointments: any[]; total: number }>(`/appointments?doctorDid=${encodeURIComponent(doctorDid)}`);
+  apiFetch<{ appointments: any[]; total: number }>(
+    `/appointments?doctorDid=${encodeURIComponent(doctorDid)}`,
+  );
 
 /** Pending appointment requests waiting for the authenticated doctor to accept/reject */
 export const getDoctorAppointmentRequests = () =>
@@ -453,8 +447,12 @@ export const getDoctorAppointmentRequests = () =>
 export const getDoctorAppointments = () =>
   apiFetch<{ appointments: any[]; total: number }>(`/appointments/my`);
 
-
-export const updateAppointmentStatus = (id: string, status: string, notes?: string, suggestedSlot?: string) =>
+export const updateAppointmentStatus = (
+  id: string,
+  status: string,
+  notes?: string,
+  suggestedSlot?: string,
+) =>
   apiFetch<any>(`/appointments/${encodeURIComponent(id)}/status`, {
     method: "PATCH",
     body: JSON.stringify({ status, notes, suggestedSlot }),
@@ -515,7 +513,6 @@ export const seedVitals = (
     body: JSON.stringify({ patients }),
   });
 
-
 // ─── Tracker ──────────────────────────────────────────────────────────────────
 export const seedTracker = (staff: Array<{ id: string; location?: string }>) =>
   apiFetch<{ seeded: number }>(`/tracker/seed`, {
@@ -544,7 +541,11 @@ export const signup = (data: { name: string; email: string; role: string; passwo
     body: JSON.stringify(data),
   });
 
-export const login = (data: { email: string; password?: string; portal?: "patient" | "staff" | "admin" }) =>
+export const login = (data: {
+  email: string;
+  password?: string;
+  portal?: "patient" | "staff" | "admin";
+}) =>
   apiFetch<{
     success: boolean;
     token: string;
@@ -794,7 +795,6 @@ export const roomCheckInMulti = (roomIds: string[], action: "checkin" | "checkou
     { method: "POST", body: JSON.stringify({ roomIds, action }) },
   );
 
-
 export const getRoomCheckinHistory = (doctorDid: string) =>
   apiFetch<{ logs: any[]; total: number }>(
     `/room-checkin/history/${encodeURIComponent(doctorDid)}`,
@@ -802,8 +802,6 @@ export const getRoomCheckinHistory = (doctorDid: string) =>
 
 // ─── Merkle Tree: Room Check-In daily aggregation & publishing ────────────
 /** Fetch today's room events + pre-computed Merkle root for a doctor */
-
-
 
 // ─── Inpatient ────────────────────────────────────────────────────────────
 export const getInpatientData = (patientDid: string) =>
@@ -831,7 +829,6 @@ export const updatePreferences = (patientDid: string, data: any) =>
     method: "POST",
     body: JSON.stringify(data),
   });
-
 
 export const getPolicies = () => apiFetch<{ policies: any[]; total: number }>("/policies");
 
@@ -977,12 +974,12 @@ export async function getAttendance(_email?: string) {
   const { getAttendance: fn } = await import("./operations.server");
   const res = await fn();
   const rows = (res.attendance ?? []).map((a: any) => ({
-      id: a.attendance_id,
-      staffId: a.staff_id,
-      action: a.action,
-      location: a.location,
-      timestamp: a.recorded_at,
-    }));
+    id: a.attendance_id,
+    staffId: a.staff_id,
+    action: a.action,
+    location: a.location,
+    timestamp: a.recorded_at,
+  }));
   // `records` and `total` are legacy aliases some call sites still read.
   return { attendance: rows, records: rows, total: rows.length };
 }
@@ -1024,12 +1021,12 @@ export async function getBeds() {
   const { getBeds: fn } = await import("./operations.server");
   const res = await fn();
   const rows = (res.beds ?? []).map((b: any) => ({
-      bedId: b.bed_id,
-      ward: b.ward,
-      status: b.status,
-      patientDid: b.patient_did,
-      updatedAt: b.updated_at,
-    }));
+    bedId: b.bed_id,
+    ward: b.ward,
+    status: b.status,
+    patientDid: b.patient_did,
+    updatedAt: b.updated_at,
+  }));
   return { beds: rows, total: rows.length };
 }
 
@@ -1050,15 +1047,15 @@ export async function getRoomCheckinStatus(_did?: string) {
   const { getRoomCheckinStatus: fn } = await import("./operations.server");
   const res = await fn();
   const rows = (res.checkins ?? []).map((c: any) => ({
-      doctorDid: c.doctor_did,
-      doctorName: c.doctor_name,
-      status: c.status,
-      currentRoom: c.current_room,
-      roomId: c.room_id,
-      checkedInAt: c.checked_in_at,
-      checkedOutAt: c.checked_out_at,
-      lastAction: c.last_action,
-    }));
+    doctorDid: c.doctor_did,
+    doctorName: c.doctor_name,
+    status: c.status,
+    currentRoom: c.current_room,
+    roomId: c.room_id,
+    checkedInAt: c.checked_in_at,
+    checkedOutAt: c.checked_out_at,
+    lastAction: c.last_action,
+  }));
   return {
     checkins: rows,
     // Legacy alias: the rooms board reads `checkedInRooms`.
@@ -1083,7 +1080,9 @@ export async function getDailyRoomEvents(doctorDid?: string, date?: string) {
   // and anchored on-chain.
   const sha = async (input: string) => {
     const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
-    return Array.from(new Uint8Array(d)).map((b) => b.toString(16).padStart(2, "0")).join("");
+    return Array.from(new Uint8Array(d))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
   };
   let merkleRoot: string | null = null;
   if (events.length) {
@@ -1164,9 +1163,7 @@ export async function approveVisitorRequest(visitorId: string, approve = true) {
   const row = (visitors ?? []).find((v: any) => v.visitor_id === visitorId);
   return {
     success: true as const,
-    visitor: row
-      ? { id: row.visitor_id, visitorName: row.visitor_name, status: row.status }
-      : null,
+    visitor: row ? { id: row.visitor_id, visitorName: row.visitor_name, status: row.status } : null,
   };
 }
 
@@ -1187,7 +1184,8 @@ export async function verifyNFCCard(input: string | { payload?: unknown; cardId?
           ? ((input.payload as { cardId?: string }).cardId ?? "")
           : ""));
 
-  if (!cardId) return { valid: false as const, verified: false as const, reason: "No card id supplied" };
+  if (!cardId)
+    return { valid: false as const, verified: false as const, reason: "No card id supplied" };
 
   const res = await fn({ data: { cardId } });
   // `verified` is the legacy alias for `valid`.
@@ -1222,7 +1220,12 @@ export async function createInsuranceClaim(payload: {
   return {
     success: true as const,
     claimId: res.claimId,
-    claim: { claimId: res.claimId, amount: payload.amount, description: payload.description, status: "submitted" },
+    claim: {
+      claimId: res.claimId,
+      amount: payload.amount,
+      description: payload.description,
+      status: "submitted",
+    },
   };
 }
 
@@ -1311,7 +1314,13 @@ export async function getConsents(_did?: string) {
 export async function grantConsent(
   arg1:
     | string
-    | { doctorDid?: string; grantee?: string; resource?: string; scope?: string[]; expiresAt?: string },
+    | {
+        doctorDid?: string;
+        grantee?: string;
+        resource?: string;
+        scope?: string[];
+        expiresAt?: string;
+      },
   doctorDidArg?: string,
   resourceArg?: string,
   expiresAtArg?: string,
@@ -1395,7 +1404,10 @@ export async function createMedicalRecord(
   return { success: true as const, recordId: res.recordId, hash: res.contentHash };
 }
 
-export async function getAuditEvents(_page?: number | { page?: number; size?: number }, _size?: number) {
+export async function getAuditEvents(
+  _page?: number | { page?: number; size?: number },
+  _size?: number,
+) {
   const { getAuditEvents: fn } = await import("./clinical.server");
   const res = await fn();
   const events: any[] = (res.events ?? []).map((e: any) => ({
@@ -1413,12 +1425,21 @@ export async function getAuditEvents(_page?: number | { page?: number; size?: nu
 export async function publishMerkleRoot(
   arg1:
     | string
-    | { subjectDid?: string; doctorDid?: string; periodDate?: string; date?: string; events?: unknown[] },
+    | {
+        subjectDid?: string;
+        doctorDid?: string;
+        periodDate?: string;
+        date?: string;
+        events?: unknown[];
+      },
   _txSignature?: string,
   _walletAddress?: string,
 ) {
   const { publishMerkleRoot: fn, getDailyRoomEvents } = await import("./clinical.server").then(
-    async (m) => ({ ...m, getDailyRoomEvents: (await import("./operations.server")).getDailyRoomEvents }),
+    async (m) => ({
+      ...m,
+      getDailyRoomEvents: (await import("./operations.server")).getDailyRoomEvents,
+    }),
   );
 
   // Legacy positional form: publishMerkleRoot(doctorDid, txSignature, walletAddress).

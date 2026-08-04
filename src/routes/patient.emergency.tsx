@@ -59,8 +59,7 @@ function EmergencyPage() {
   const { data: auditData } = useAudit();
   const { user: currentUser, refresh: refreshUser } = useCurrentUser();
   const userEmail = currentUser?.email || "";
-  const patient =
-    patientsList?.find((p: any) => p.email === userEmail) ||
+  const patient = patientsList?.find((p: any) => p.email === userEmail) ||
     patientsList?.[0] || {
       name: currentUser?.name || "Patient User",
       mrn: currentUser?.mrn || "MRN-2026-001",
@@ -187,7 +186,7 @@ function EmergencyPage() {
   }
   if (patient.primaryDoctor) {
     const doc = staff?.find(
-      (s: any) => s.name === patient.primaryDoctor || s.did === patient.primaryDoctor
+      (s: any) => s.name === patient.primaryDoctor || s.did === patient.primaryDoctor,
     );
     emergencyContactsList.push({
       name: doc ? doc.name : patient.primaryDoctor,
@@ -216,7 +215,7 @@ function EmergencyPage() {
       (e: any) =>
         e.severity === "critical" ||
         e.action.toLowerCase().includes("break_glass") ||
-        e.action.toLowerCase().includes("emergency")
+        e.action.toLowerCase().includes("emergency"),
     )
     .map((e: any) => ({
       id: e.txId || e._id,
@@ -278,7 +277,8 @@ function EmergencyPage() {
                   </div>
                   <div className="text-lg font-bold">{patient.name}</div>
                   <div className="text-sm opacity-80">
-                    {patient.mrn} · Age {patient.age || 28} · {patient.gender === "F" ? "Female" : "Male"}
+                    {patient.mrn} · Age {patient.age || 28} ·{" "}
+                    {patient.gender === "F" ? "Female" : "Male"}
                   </div>
                 </div>
                 <div>
@@ -406,7 +406,9 @@ function EmergencyPage() {
                       </div>
                       <div className="text-right">
                         <div className="text-xs font-medium text-foreground">{ec.phone}</div>
-                        {ec.primary && <span className="text-[10px] text-success font-bold">Primary</span>}
+                        {ec.primary && (
+                          <span className="text-[10px] text-success font-bold">Primary</span>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -486,7 +488,9 @@ function EmergencyPage() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-muted-foreground">Relationship</label>
+                    <label className="text-xs font-semibold text-muted-foreground">
+                      Relationship
+                    </label>
                     <select
                       value={contactRelation}
                       onChange={(e) => setContactRelation(e.target.value)}
@@ -502,7 +506,9 @@ function EmergencyPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-muted-foreground">Phone Number</label>
+                  <label className="text-xs font-semibold text-muted-foreground">
+                    Phone Number
+                  </label>
                   <input
                     type="text"
                     required
@@ -642,7 +648,9 @@ function EmergencyPage() {
                     </span>
                   ))}
                   {conditions.length === 0 && (
-                    <span className="text-xs text-muted-foreground italic">No conditions added</span>
+                    <span className="text-xs text-muted-foreground italic">
+                      No conditions added
+                    </span>
                   )}
                 </div>
               </div>

@@ -62,7 +62,9 @@ function InsurancePage() {
   const [claimType, setClaimType] = useState("OPD Consultation & Diagnostic Reimbursement");
   const [claimAmount, setClaimAmount] = useState(12500);
   const [claimDiagnosis, setClaimDiagnosis] = useState("OPD Evaluation & Blood Investigation");
-  const [claimDesc, setClaimDesc] = useState("Filed reimbursement for consultation and diagnostic tests.");
+  const [claimDesc, setClaimDesc] = useState(
+    "Filed reimbursement for consultation and diagnostic tests.",
+  );
   const [isFilingClaim, setIsFilingClaim] = useState(false);
 
   const handleOpenPolicyModal = () => {
@@ -172,7 +174,7 @@ function InsurancePage() {
 
   const patientClaims = (claimsData?.claims ?? []).slice(0, 10);
   const activeClaims = patientClaims.filter(
-    (c: any) => c.status === "pending" || c.status === "under-review"
+    (c: any) => c.status === "pending" || c.status === "under-review",
   );
   const totalClaimed = patientClaims.reduce((s: number, c: any) => s + (c.amount || 0), 0);
   const totalApproved = patientClaims
@@ -388,13 +390,17 @@ function InsurancePage() {
 
             <form onSubmit={handleSavePolicy} className="space-y-3">
               <div>
-                <label className="text-xs font-semibold text-muted-foreground">Insurance Provider</label>
+                <label className="text-xs font-semibold text-muted-foreground">
+                  Insurance Provider
+                </label>
                 <select
                   value={provider}
                   onChange={(e) => setProvider(e.target.value)}
                   className="mt-1 w-full rounded-lg border border-border bg-card px-3 py-2 text-xs font-medium text-foreground outline-none focus:ring-2 focus:ring-primary"
                 >
-                  <option value="Star Health & Allied Insurance">Star Health & Allied Insurance</option>
+                  <option value="Star Health & Allied Insurance">
+                    Star Health & Allied Insurance
+                  </option>
                   <option value="HDFC ERGO Health Insurance">HDFC ERGO Health Insurance</option>
                   <option value="ICICI Lombard Health Shield">ICICI Lombard Health Shield</option>
                   <option value="Niva Bupa Health Insurance">Niva Bupa Health Insurance</option>
@@ -418,7 +424,9 @@ function InsurancePage() {
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <label className="text-xs font-semibold text-muted-foreground">Sum Insured (₹)</label>
+                  <label className="text-xs font-semibold text-muted-foreground">
+                    Sum Insured (₹)
+                  </label>
                   <input
                     type="number"
                     required
@@ -430,7 +438,9 @@ function InsurancePage() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-muted-foreground">Policy Plan Type</label>
+                  <label className="text-xs font-semibold text-muted-foreground">
+                    Policy Plan Type
+                  </label>
                   <select
                     value={policyType}
                     onChange={(e) => setPolicyType(e.target.value)}
@@ -512,7 +522,9 @@ function InsurancePage() {
 
             <form onSubmit={handleFileClaim} className="space-y-3">
               <div>
-                <label className="text-xs font-semibold text-muted-foreground">Claim Category</label>
+                <label className="text-xs font-semibold text-muted-foreground">
+                  Claim Category
+                </label>
                 <select
                   value={claimType}
                   onChange={(e) => setClaimType(e.target.value)}
@@ -534,7 +546,9 @@ function InsurancePage() {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-muted-foreground">Claim Amount (₹)</label>
+                <label className="text-xs font-semibold text-muted-foreground">
+                  Claim Amount (₹)
+                </label>
                 <input
                   type="number"
                   required
@@ -546,7 +560,9 @@ function InsurancePage() {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-muted-foreground">Diagnosis / Clinical Reason</label>
+                <label className="text-xs font-semibold text-muted-foreground">
+                  Diagnosis / Clinical Reason
+                </label>
                 <input
                   type="text"
                   required
@@ -558,7 +574,9 @@ function InsurancePage() {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-muted-foreground">Additional Notes & Summary</label>
+                <label className="text-xs font-semibold text-muted-foreground">
+                  Additional Notes & Summary
+                </label>
                 <textarea
                   rows={2}
                   value={claimDesc}

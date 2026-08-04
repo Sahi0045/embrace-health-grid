@@ -6,11 +6,29 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  FileText, Download, Pill, TrendingDown, Activity,
-  FlaskConical, ImageIcon, ClipboardList, Star, Dumbbell,
-  MessageSquare, ShoppingBag, CheckCircle2, Loader2,
-  Lock, Share2, X, ChevronDown, ChevronUp, RefreshCw,
-  Stethoscope, CalendarDays, User,
+  FileText,
+  Download,
+  Pill,
+  TrendingDown,
+  Activity,
+  FlaskConical,
+  ImageIcon,
+  ClipboardList,
+  Star,
+  Dumbbell,
+  MessageSquare,
+  ShoppingBag,
+  CheckCircle2,
+  Loader2,
+  Lock,
+  Share2,
+  X,
+  ChevronDown,
+  ChevronUp,
+  RefreshCw,
+  Stethoscope,
+  CalendarDays,
+  User,
 } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -20,8 +38,12 @@ import { buildPatientAnchorTx } from "@/lib/clinical.server";
 import { useTableRefresh } from "@/hooks/use-realtime";
 import { useState, useEffect, useCallback } from "react";
 import {
-  getPrescriptions, getMedicalRecords, getHealthMetrics,
-  getPharmacyOrders, getRehabSessions, getFeedbackList,
+  getPrescriptions,
+  getMedicalRecords,
+  getHealthMetrics,
+  getPharmacyOrders,
+  getRehabSessions,
+  getFeedbackList,
 } from "@/lib/api";
 
 export const Route = createFileRoute("/patient/records")({
@@ -186,28 +208,28 @@ function MedicalRecords() {
   useTableRefresh("prescriptions", refreshClinical);
   useTableRefresh("medical_records", refreshClinical);
 
-  const pharmacyOrders  = apiPharmacyOrders;
-  const healthMetrics   = apiHealthMetrics;
-  const rehabSessions   = apiRehabSessions;
-  const feedbackList    = apiFeedbackList;
+  const pharmacyOrders = apiPharmacyOrders;
+  const healthMetrics = apiHealthMetrics;
+  const rehabSessions = apiRehabSessions;
+  const feedbackList = apiFeedbackList;
 
   // Join each prescription with its linked medical report (matched by rxId)
   const consultations = apiPrescriptions
     .sort((a: any, b: any) => (b.signedAt || "").localeCompare(a.signedAt || ""))
     .map((rx: any) => ({
       // prescription fields
-      rxId:           rx.rxId,
-      diagnosis:      rx.diagnosis      || "—",
+      rxId: rx.rxId,
+      diagnosis: rx.diagnosis || "—",
       chiefComplaint: rx.chiefComplaint || "",
-      symptoms:       rx.symptoms       || "",
-      doctor:         rx.doctorName     || rx.signedBy || "Doctor",
-      doctorDid:      rx.doctorDid      || "",
-      apptId:         rx.apptId         || "",
-      date:           rx.signedAt       || new Date().toISOString(),
-      status:         rx.status         || "active",
-      medicines:      rx.drugs          || [],
-      notes:          rx.notes          || "",
-      followUpDate:   rx.followUpDate   || "",
+      symptoms: rx.symptoms || "",
+      doctor: rx.doctorName || rx.signedBy || "Doctor",
+      doctorDid: rx.doctorDid || "",
+      apptId: rx.apptId || "",
+      date: rx.signedAt || new Date().toISOString(),
+      status: rx.status || "active",
+      medicines: rx.drugs || [],
+      notes: rx.notes || "",
+      followUpDate: rx.followUpDate || "",
       // linked medical report — matched by rxId
       report: apiRecords.find((r: any) => r.rxId === rx.rxId) ?? null,
     }));
@@ -216,14 +238,14 @@ function MedicalRecords() {
   const displayDocuments = apiRecords
     .filter((rec: any) => !rec.rxId)
     .map((rec: any) => ({
-      id:       rec.recordId,
-      title:    rec.title,
-      type:     rec.type,
-      date:     rec.createdAt || new Date().toISOString(),
+      id: rec.recordId,
+      title: rec.title,
+      type: rec.type,
+      date: rec.createdAt || new Date().toISOString(),
       issuedBy: rec.doctorName || "Doctor",
       fileSize: "N/A",
-      summary:  rec.content,
-      isNew:    true,
+      summary: rec.content,
+      isNew: true,
     }));
 
   return (
@@ -342,11 +364,12 @@ function MedicalRecords() {
               )}
               {consultations.map((cx) => {
                 const isExp = expandedRxId === cx.rxId;
-                const statusCls = cx.status === "active"
-                  ? "bg-primary/10 text-primary"
-                  : cx.status === "dispensed"
-                  ? "bg-success/15 text-success"
-                  : "bg-muted text-muted-foreground";
+                const statusCls =
+                  cx.status === "active"
+                    ? "bg-primary/10 text-primary"
+                    : cx.status === "dispensed"
+                      ? "bg-success/15 text-success"
+                      : "bg-muted text-muted-foreground";
                 return (
                   <Card key={cx.rxId} className="overflow-hidden">
                     {/* ── Consultation header (always visible) ── */}
@@ -360,20 +383,32 @@ function MedicalRecords() {
                               <span className="font-medium text-foreground">{cx.doctor}</span>
                             </span>
                             {cx.doctorDid && (
-                              <span className="font-mono text-[10px] text-primary">{cx.doctorDid.slice(0, 22)}…</span>
+                              <span className="font-mono text-[10px] text-primary">
+                                {cx.doctorDid.slice(0, 22)}…
+                              </span>
                             )}
                             <span>·</span>
                             <span className="flex items-center gap-1">
                               <CalendarDays className="h-3 w-3" />
-                              {new Date(cx.date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                              {new Date(cx.date).toLocaleDateString("en-IN", {
+                                day: "numeric",
+                                month: "short",
+                                year: "numeric",
+                              })}
                             </span>
                             {cx.apptId && (
-                              <><span>·</span><span className="font-mono text-[10px]">Appt: {cx.apptId}</span></>
+                              <>
+                                <span>·</span>
+                                <span className="font-mono text-[10px]">Appt: {cx.apptId}</span>
+                              </>
                             )}
                           </CardDescription>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
-                          <Badge variant={cx.status === "active" ? "default" : "secondary"} className={`capitalize text-[10px] ${statusCls}`}>
+                          <Badge
+                            variant={cx.status === "active" ? "default" : "secondary"}
+                            className={`capitalize text-[10px] ${statusCls}`}
+                          >
                             {cx.status}
                           </Badge>
                           {cx.report && (
@@ -381,10 +416,24 @@ function MedicalRecords() {
                               <FileText className="h-2.5 w-2.5" /> Report
                             </span>
                           )}
-                          <Button variant="ghost" size="sm" onClick={() => setExpandedRxId(isExp ? null : cx.rxId)} className="h-7 px-2">
-                            {isExp ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setExpandedRxId(isExp ? null : cx.rxId)}
+                            className="h-7 px-2"
+                          >
+                            {isExp ? (
+                              <ChevronUp className="h-4 w-4" />
+                            ) : (
+                              <ChevronDown className="h-4 w-4" />
+                            )}
                           </Button>
-                          <Button variant="outline" size="sm" className="h-7" onClick={() => setSelectedRxJson(cx)}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7"
+                            onClick={() => setSelectedRxJson(cx)}
+                          >
                             <FileText className="mr-1 h-3 w-3" /> JSON
                           </Button>
                         </div>
@@ -403,7 +452,9 @@ function MedicalRecords() {
                           )}
                           {cx.symptoms && (
                             <div className="rounded-lg bg-card border border-border px-3 py-2">
-                              <div className="text-[10px] font-semibold uppercase text-muted-foreground mb-0.5">Symptoms</div>
+                              <div className="text-[10px] font-semibold uppercase text-muted-foreground mb-0.5">
+                                Symptoms
+                              </div>
                               <div className="text-foreground">{cx.symptoms}</div>
                             </div>
                           )}
@@ -419,15 +470,27 @@ function MedicalRecords() {
                             <div className="flex items-center gap-2">
                               <Pill className="h-4 w-4 text-primary shrink-0" />
                               <div className="font-semibold text-sm text-foreground">
-                                {med.name}{med.dosage && <span className="font-normal text-muted-foreground"> · {med.dosage}</span>}
+                                {med.name}
+                                {med.dosage && (
+                                  <span className="font-normal text-muted-foreground">
+                                    {" "}
+                                    · {med.dosage}
+                                  </span>
+                                )}
                               </div>
                             </div>
                             <div className="text-xs text-muted-foreground pl-6 flex flex-wrap gap-x-3 gap-y-0.5">
                               {med.frequency && <span>{med.frequency}</span>}
-                              {med.duration  && <span>· {med.duration}</span>}
-                              {med.usage     && <span className="text-primary font-medium">· {med.usage}</span>}
+                              {med.duration && <span>· {med.duration}</span>}
+                              {med.usage && (
+                                <span className="text-primary font-medium">· {med.usage}</span>
+                              )}
                             </div>
-                            {med.instructions && <div className="text-xs text-muted-foreground pl-6 italic">{med.instructions}</div>}
+                            {med.instructions && (
+                              <div className="text-xs text-muted-foreground pl-6 italic">
+                                {med.instructions}
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -436,7 +499,9 @@ function MedicalRecords() {
                       <div className="flex flex-wrap gap-3 text-xs">
                         {cx.notes && (
                           <div className="flex-1 min-w-[160px] rounded-lg bg-muted/50 border border-border px-3 py-2">
-                            <div className="text-[10px] font-semibold uppercase text-muted-foreground mb-0.5">Additional Notes</div>
+                            <div className="text-[10px] font-semibold uppercase text-muted-foreground mb-0.5">
+                              Additional Notes
+                            </div>
                             <div className="text-foreground">{cx.notes}</div>
                           </div>
                         )}
@@ -444,8 +509,16 @@ function MedicalRecords() {
                           <div className="rounded-lg bg-primary/5 border border-primary/20 px-3 py-2 flex items-center gap-2">
                             <Activity className="h-4 w-4 text-primary shrink-0" />
                             <div>
-                              <div className="text-[10px] font-semibold uppercase text-muted-foreground">Follow-up</div>
-                              <div className="font-medium text-foreground">{new Date(cx.followUpDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</div>
+                              <div className="text-[10px] font-semibold uppercase text-muted-foreground">
+                                Follow-up
+                              </div>
+                              <div className="font-medium text-foreground">
+                                {new Date(cx.followUpDate).toLocaleDateString("en-IN", {
+                                  day: "numeric",
+                                  month: "short",
+                                  year: "numeric",
+                                })}
+                              </div>
                             </div>
                           </div>
                         )}
@@ -458,18 +531,25 @@ function MedicalRecords() {
                             <FileText className="h-4 w-4" /> Medical Report — {cx.report.title}
                           </div>
                           <div className="text-[10px] text-muted-foreground">
-                            {new Date(cx.report.createdAt).toLocaleString("en-IN")} · {cx.report.recordId}
+                            {new Date(cx.report.createdAt).toLocaleString("en-IN")} ·{" "}
+                            {cx.report.recordId}
                           </div>
                           <div className="grid gap-3 sm:grid-cols-2 text-xs">
                             {cx.report.consultationSummary && (
                               <div className="sm:col-span-2 rounded-lg bg-card border px-3 py-2">
-                                <div className="text-[10px] font-semibold uppercase text-muted-foreground mb-0.5">Consultation Summary</div>
-                                <div className="text-foreground">{cx.report.consultationSummary}</div>
+                                <div className="text-[10px] font-semibold uppercase text-muted-foreground mb-0.5">
+                                  Consultation Summary
+                                </div>
+                                <div className="text-foreground">
+                                  {cx.report.consultationSummary}
+                                </div>
                               </div>
                             )}
                             {cx.report.clinicalNotes && (
                               <div className="rounded-lg bg-card border px-3 py-2">
-                                <div className="text-[10px] font-semibold uppercase text-muted-foreground mb-0.5">Clinical Notes</div>
+                                <div className="text-[10px] font-semibold uppercase text-muted-foreground mb-0.5">
+                                  Clinical Notes
+                                </div>
                                 <div className="text-foreground">{cx.report.clinicalNotes}</div>
                               </div>
                             )}
@@ -483,13 +563,19 @@ function MedicalRecords() {
                             )}
                             {cx.report.recommendedFollowUp && (
                               <div className="rounded-lg bg-card border px-3 py-2">
-                                <div className="text-[10px] font-semibold uppercase text-muted-foreground mb-0.5">Recommended Follow-up</div>
-                                <div className="text-foreground">{cx.report.recommendedFollowUp}</div>
+                                <div className="text-[10px] font-semibold uppercase text-muted-foreground mb-0.5">
+                                  Recommended Follow-up
+                                </div>
+                                <div className="text-foreground">
+                                  {cx.report.recommendedFollowUp}
+                                </div>
                               </div>
                             )}
                             {cx.report.content && !cx.report.consultationSummary && (
                               <div className="sm:col-span-2 rounded-lg bg-card border px-3 py-2">
-                                <div className="text-[10px] font-semibold uppercase text-muted-foreground mb-0.5">Report Content</div>
+                                <div className="text-[10px] font-semibold uppercase text-muted-foreground mb-0.5">
+                                  Report Content
+                                </div>
                                 <div className="text-foreground">{cx.report.content}</div>
                               </div>
                             )}
@@ -497,9 +583,17 @@ function MedicalRecords() {
                           {/* Treating Doctor Info */}
                           <div className="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2 text-xs">
                             <div>
-                              <div className="text-[10px] text-muted-foreground uppercase font-semibold">Treating Doctor</div>
-                              <div className="font-medium text-foreground">{cx.report.doctorName || cx.doctor}</div>
-                              {cx.report.doctorDid && <div className="font-mono text-[10px] text-primary">{cx.report.doctorDid}</div>}
+                              <div className="text-[10px] text-muted-foreground uppercase font-semibold">
+                                Treating Doctor
+                              </div>
+                              <div className="font-medium text-foreground">
+                                {cx.report.doctorName || cx.doctor}
+                              </div>
+                              {cx.report.doctorDid && (
+                                <div className="font-mono text-[10px] text-primary">
+                                  {cx.report.doctorDid}
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -507,8 +601,10 @@ function MedicalRecords() {
 
                       {/* Expand hint when report exists but not expanded */}
                       {!isExp && cx.report && (
-                        <button onClick={() => setExpandedRxId(cx.rxId)}
-                          className="w-full text-xs text-chart-2 font-medium flex items-center justify-center gap-1 hover:underline py-1">
+                        <button
+                          onClick={() => setExpandedRxId(cx.rxId)}
+                          className="w-full text-xs text-chart-2 font-medium flex items-center justify-center gap-1 hover:underline py-1"
+                        >
                           <FileText className="h-3 w-3" /> Show linked medical report
                           <ChevronDown className="h-3 w-3" />
                         </button>
@@ -519,7 +615,10 @@ function MedicalRecords() {
                         <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
                         <div>
                           <span className="font-semibold text-success">Digitally Signed</span>
-                          <span className="text-muted-foreground"> · DID + Ed25519 · {new Date(cx.date).toLocaleString("en-IN")}</span>
+                          <span className="text-muted-foreground">
+                            {" "}
+                            · DID + Ed25519 · {new Date(cx.date).toLocaleString("en-IN")}
+                          </span>
                         </div>
                       </div>
                     </CardContent>
@@ -896,29 +995,33 @@ function MedicalRecords() {
                 <pre className="text-xs font-mono text-foreground leading-relaxed select-all">
                   {JSON.stringify(
                     {
-                      rxId:           selectedRxJson.rxId,
+                      rxId: selectedRxJson.rxId,
                       patientDid,
-                      diagnosis:      selectedRxJson.diagnosis,
+                      diagnosis: selectedRxJson.diagnosis,
                       chiefComplaint: selectedRxJson.chiefComplaint || undefined,
-                      symptoms:       selectedRxJson.symptoms       || undefined,
-                      signedBy:       selectedRxJson.doctor,
-                      doctorDid:      selectedRxJson.doctorDid      || undefined,
-                      apptId:         selectedRxJson.apptId         || undefined,
-                      signedAt:       selectedRxJson.date,
-                      status:         selectedRxJson.status,
-                      followUpDate:   selectedRxJson.followUpDate   || undefined,
-                      drugs:          selectedRxJson.medicines,
-                      notes:          selectedRxJson.notes          || undefined,
-                      linkedReport:   selectedRxJson.report ? {
-                        recordId:            selectedRxJson.report.recordId,
-                        title:               selectedRxJson.report.title,
-                        consultationSummary: selectedRxJson.report.consultationSummary || undefined,
-                        clinicalNotes:       selectedRxJson.report.clinicalNotes       || undefined,
-                        testResults:         selectedRxJson.report.testResults         || undefined,
-                        recommendedFollowUp: selectedRxJson.report.recommendedFollowUp || undefined,
-                        createdAt:           selectedRxJson.report.createdAt,
-                      } : undefined,
-                      hash:           `sha256:d8c0b56${selectedRxJson.rxId?.slice(-8)}`,
+                      symptoms: selectedRxJson.symptoms || undefined,
+                      signedBy: selectedRxJson.doctor,
+                      doctorDid: selectedRxJson.doctorDid || undefined,
+                      apptId: selectedRxJson.apptId || undefined,
+                      signedAt: selectedRxJson.date,
+                      status: selectedRxJson.status,
+                      followUpDate: selectedRxJson.followUpDate || undefined,
+                      drugs: selectedRxJson.medicines,
+                      notes: selectedRxJson.notes || undefined,
+                      linkedReport: selectedRxJson.report
+                        ? {
+                            recordId: selectedRxJson.report.recordId,
+                            title: selectedRxJson.report.title,
+                            consultationSummary:
+                              selectedRxJson.report.consultationSummary || undefined,
+                            clinicalNotes: selectedRxJson.report.clinicalNotes || undefined,
+                            testResults: selectedRxJson.report.testResults || undefined,
+                            recommendedFollowUp:
+                              selectedRxJson.report.recommendedFollowUp || undefined,
+                            createdAt: selectedRxJson.report.createdAt,
+                          }
+                        : undefined,
+                      hash: `sha256:d8c0b56${selectedRxJson.rxId?.slice(-8)}`,
                       blockchainMeta: { network: "solana-devnet", verified: true },
                     },
                     null,

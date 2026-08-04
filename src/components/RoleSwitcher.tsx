@@ -13,8 +13,7 @@ export function RoleSwitcher() {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
 
   const { user: user } = useCurrentUser();
-  useEffect(() => {
-  }, [pathname]);
+  useEffect(() => {}, [pathname]);
 
   return (
     <div className="grid grid-cols-3 gap-1 rounded-xl border border-border bg-muted/40 p-1">

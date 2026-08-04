@@ -5,8 +5,19 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
-  User, Mail, Phone, Calendar, Droplet, AlertCircle,
-  Shield, LogOut, Edit, Wallet, CheckCircle2, AlertTriangle, Loader2,
+  User,
+  Mail,
+  Phone,
+  Calendar,
+  Droplet,
+  AlertCircle,
+  Shield,
+  LogOut,
+  Edit,
+  Wallet,
+  CheckCircle2,
+  AlertTriangle,
+  Loader2,
 } from "lucide-react";
 import { useLivePatients, useCredentials } from "@/hooks/use-api";
 import { RouteGuard } from "@/components/RouteGuard";
@@ -17,14 +28,21 @@ import { requestWalletChallenge, verifyAndLinkWallet, updateProfile, getMe } fro
 import { toast } from "sonner";
 import { useState, useEffect, useCallback } from "react";
 import {
-  Dialog, DialogContent, DialogDescription,
-  DialogFooter, DialogHeader, DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Select, SelectContent, SelectItem,
-  SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 
 export const Route = createFileRoute("/patient/profile")({
@@ -52,7 +70,9 @@ function PatientProfile() {
       if (res.user) {
         await refreshUser();
       }
-    } catch { /* silent */ }
+    } catch {
+      /* silent */
+    }
   }, []);
 
   useEffect(() => {
@@ -82,7 +102,9 @@ function PatientProfile() {
       }
     } catch (err: any) {
       if (err.message?.includes("User rejected") || err.message?.includes("cancelled")) {
-        toast.error("Signature cancelled", { description: "You must approve the signing request in your wallet." });
+        toast.error("Signature cancelled", {
+          description: "You must approve the signing request in your wallet.",
+        });
       } else {
         toast.error(err.message || "Wallet verification failed");
       }
@@ -269,7 +291,9 @@ function PatientProfile() {
             <CardContent>
               <div className="rounded-lg bg-muted p-4">
                 <div className="text-sm text-muted-foreground">DID</div>
-                <div className="mt-1 font-mono text-sm font-medium">{currentUser?.did || patientRecord?.did || "Pending Admin Issuance"}</div>
+                <div className="mt-1 font-mono text-sm font-medium">
+                  {currentUser?.did || patientRecord?.did || "Pending Admin Issuance"}
+                </div>
               </div>
               <div className="mt-4 text-xs text-muted-foreground">
                 This DID is cryptographically secured and gives you control over your health data.
@@ -289,37 +313,60 @@ function PatientProfile() {
                     <CheckCircle2 className="h-3 w-3" /> Ownership Verified
                   </Badge>
                 ) : currentUser?.walletAddress ? (
-                  <Badge variant="outline" className="bg-warning/10 text-warning-foreground border-warning/30 text-[10px]">
+                  <Badge
+                    variant="outline"
+                    className="bg-warning/10 text-warning-foreground border-warning/30 text-[10px]"
+                  >
                     Linked — Unverified
                   </Badge>
                 ) : (
-                  <Badge variant="outline" className="text-[10px]">Not Linked</Badge>
+                  <Badge variant="outline" className="text-[10px]">
+                    Not Linked
+                  </Badge>
                 )}
               </div>
               <CardDescription>
-                Connect and cryptographically verify one Solana wallet to enable blockchain features.
+                Connect and cryptographically verify one Solana wallet to enable blockchain
+                features.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Step indicators */}
               <div className="grid grid-cols-2 gap-2 text-center text-[10px]">
                 {[
-                  { step: "1", label: "Connect Wallet",   done: connected },
+                  { step: "1", label: "Connect Wallet", done: connected },
                   { step: "2", label: "Verify Ownership", done: walletVerified },
                 ].map((s) => (
-                  <div key={s.step} className={`rounded-lg border px-2 py-2 space-y-1 ${s.done ? "border-success/30 bg-success/5" : "border-border bg-muted/30"}`}>
-                    <div className={`text-base font-black ${s.done ? "text-success" : "text-muted-foreground"}`}>{s.done ? "✓" : s.step}</div>
-                    <div className={s.done ? "text-success font-semibold" : "text-muted-foreground"}>{s.label}</div>
+                  <div
+                    key={s.step}
+                    className={`rounded-lg border px-2 py-2 space-y-1 ${s.done ? "border-success/30 bg-success/5" : "border-border bg-muted/30"}`}
+                  >
+                    <div
+                      className={`text-base font-black ${s.done ? "text-success" : "text-muted-foreground"}`}
+                    >
+                      {s.done ? "✓" : s.step}
+                    </div>
+                    <div
+                      className={s.done ? "text-success font-semibold" : "text-muted-foreground"}
+                    >
+                      {s.label}
+                    </div>
                   </div>
                 ))}
               </div>
 
               {currentUser?.walletAddress ? (
-                <div className={`rounded-lg border p-4 space-y-2 ${walletVerified ? "border-success/25 bg-success/5" : "border-warning/25 bg-warning/5"}`}>
-                  <span className={`text-xs font-semibold uppercase tracking-wider ${walletVerified ? "text-success" : "text-warning-foreground"}`}>
+                <div
+                  className={`rounded-lg border p-4 space-y-2 ${walletVerified ? "border-success/25 bg-success/5" : "border-warning/25 bg-warning/5"}`}
+                >
+                  <span
+                    className={`text-xs font-semibold uppercase tracking-wider ${walletVerified ? "text-success" : "text-warning-foreground"}`}
+                  >
                     {walletVerified ? "Verified Address" : "Address (Unverified)"}
                   </span>
-                  <div className="font-mono text-xs text-foreground select-all break-all">{currentUser.walletAddress}</div>
+                  <div className="font-mono text-xs text-foreground select-all break-all">
+                    {currentUser.walletAddress}
+                  </div>
                   {connected && publicKey?.toBase58() !== currentUser.walletAddress && (
                     <div className="flex items-center gap-2 text-xs text-destructive font-medium">
                       <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
@@ -336,10 +383,20 @@ function PatientProfile() {
               <div className="flex flex-col sm:flex-row gap-3 pt-1">
                 <WalletMultiButton className="!bg-primary hover:!bg-primary/90 !rounded-lg !h-10 !text-sm !font-semibold !px-4" />
                 {connected && !walletVerified && (
-                  <Button onClick={handleVerifyWallet} disabled={verifying} className="h-10 text-sm font-semibold gap-2">
-                    {verifying
-                      ? <><Loader2 className="h-4 w-4 animate-spin" /> Verifying…</>
-                      : <><Shield className="h-4 w-4" /> Verify & Link Wallet</>}
+                  <Button
+                    onClick={handleVerifyWallet}
+                    disabled={verifying}
+                    className="h-10 text-sm font-semibold gap-2"
+                  >
+                    {verifying ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" /> Verifying…
+                      </>
+                    ) : (
+                      <>
+                        <Shield className="h-4 w-4" /> Verify & Link Wallet
+                      </>
+                    )}
                   </Button>
                 )}
                 {walletVerified && (

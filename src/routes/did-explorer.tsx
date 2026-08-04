@@ -20,7 +20,13 @@ import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDIDs, useAudit, useNFCCards } from "@/hooks/use-api";
 import { useCurrentUser } from "@/lib/auth-context";
-import { issueNFCCard, revokeNFCCard, getDIDRequests, approveDIDRequest, rejectDIDRequest } from "@/lib/api";
+import {
+  issueNFCCard,
+  revokeNFCCard,
+  getDIDRequests,
+  approveDIDRequest,
+  rejectDIDRequest,
+} from "@/lib/api";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/did-explorer")({
@@ -251,8 +257,15 @@ function DIDExplorerPage() {
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground font-mono">{req.ownerEmail}</p>
-                    <p className="text-xs text-muted-foreground">Department: <span className="font-semibold text-foreground">{req.department || "Clinical Services"}</span></p>
-                    <p className="text-[10px] text-muted-foreground">Requested: {new Date(req.requestedAt).toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Department:{" "}
+                      <span className="font-semibold text-foreground">
+                        {req.department || "Clinical Services"}
+                      </span>
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      Requested: {new Date(req.requestedAt).toLocaleString()}
+                    </p>
                   </div>
                   <div className="flex gap-2 pt-2 border-t border-border">
                     <button

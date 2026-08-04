@@ -27,8 +27,6 @@ export const Route = createFileRoute("/staff/command")({
   component: StaffCommandCenter,
 });
 
-
-
 function UrgencyDot({ urgency }: { urgency: string }) {
   const cls =
     urgency === "high"
@@ -47,8 +45,9 @@ function StaffCommandCenter() {
   const allAmbulances = ambulancesData?.ambulances ?? [];
   const { data: fraudData } = useFraudAlerts();
 
-  const liveAlerts: { id: string; msg: string; severity: string; time: string }[] =
-    (fraudData?.alerts ?? []).map((a: any) => ({
+  const liveAlerts: { id: string; msg: string; severity: string; time: string }[] = (
+    fraudData?.alerts ?? []
+  ).map((a: any) => ({
     id: a.alertId ?? a.id ?? String(Math.random()),
     msg: a.message ?? `${a.type ?? "Alert"} — ${a.affectedResource ?? "System"}`,
     severity: a.riskScore >= 80 ? "critical" : "warning",

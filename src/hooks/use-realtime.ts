@@ -124,7 +124,12 @@ export function useLiveVitals(patientDid: string | null | undefined): LiveVitals
  * the row transitions pending -> confirmed (or failed) and the event arrives.
  */
 export function useAnchorStatus(): {
-  lastAnchor: { anchorId: string; status: string; signature: string | null; slot: number | null } | null;
+  lastAnchor: {
+    anchorId: string;
+    status: string;
+    signature: string | null;
+    slot: number | null;
+  } | null;
 } {
   const { ready } = useRealtimeAuth();
   const [lastAnchor, setLastAnchor] = useState<{

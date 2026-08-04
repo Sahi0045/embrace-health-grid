@@ -45,10 +45,7 @@ import { Badge } from "@/components/ui/badge";
 // @zxing/browser is ESM-only; safe to import at module level —
 // actual camera usage is gated by `typeof window !== "undefined"` at call sites.
 import { BrowserQRCodeReader, type IScannerControls } from "@zxing/browser";
-import {
-  getMedicalRecordsForPatient,
-  getPrescriptionsForPatient,
-} from "@/lib/clinical.server";
+import { getMedicalRecordsForPatient, getPrescriptionsForPatient } from "@/lib/clinical.server";
 
 export const Route = createFileRoute("/staff/verify")({
   head: () => ({ meta: [{ title: "Staff · Verify Patient — Embrace Health Grid" }] }),

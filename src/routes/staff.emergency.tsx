@@ -46,7 +46,8 @@ function StaffEmergencyPage() {
 
   const traumaQueue = useMemo(() => {
     const emergencyBeds = allBeds.filter(
-      (b: any) => b.ward?.toLowerCase().includes("er") || b.ward?.toLowerCase().includes("emergency"),
+      (b: any) =>
+        b.ward?.toLowerCase().includes("er") || b.ward?.toLowerCase().includes("emergency"),
     );
     const emergencyPatients = livePatients.filter((p) => {
       const isInpatient = p.status === "inpatient";
@@ -88,9 +89,7 @@ function StaffEmergencyPage() {
         actor: e.actor ?? e.email ?? "Unknown",
         actorRole: e.role ?? "Clinical Staff",
         reason: e.reason ?? e.details ?? "Emergency access",
-        at: e.loggedAt
-          ? new Date(e.loggedAt).toLocaleString()
-          : "—",
+        at: e.loggedAt ? new Date(e.loggedAt).toLocaleString() : "—",
         autoAudited: true,
       }));
   }, [auditData]);
@@ -214,7 +213,9 @@ function StaffEmergencyPage() {
           ) : (
             <div className="space-y-2">
               {traumaQueue.map((p) => {
-                const cfg = severityConfig[p.severity as keyof typeof severityConfig] ?? severityConfig.urgent;
+                const cfg =
+                  severityConfig[p.severity as keyof typeof severityConfig] ??
+                  severityConfig.urgent;
                 return (
                   <div
                     key={p.id}

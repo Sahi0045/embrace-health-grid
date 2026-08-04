@@ -38,7 +38,9 @@ export const getMedicalRecords = createServerFn({ method: "GET" }).handler(async
   // redundant at best and a bug magnet at worst.
   const { data, error } = await supabase
     .from("medical_records")
-    .select("record_id, patient_did, title, record_type, content, author_name, content_hash, created_at")
+    .select(
+      "record_id, patient_did, title, record_type, content, author_name, content_hash, created_at",
+    )
     .order("created_at", { ascending: false });
 
   if (error) throw new Error(error.message);
@@ -58,7 +60,9 @@ export const getMedicalRecordsForPatient = createServerFn({ method: "GET" })
     // an empty set rather than an error — absence of rows IS the denial.
     const { data: records, error } = await supabase
       .from("medical_records")
-      .select("record_id, patient_did, title, record_type, content, author_name, content_hash, created_at")
+      .select(
+        "record_id, patient_did, title, record_type, content, author_name, content_hash, created_at",
+      )
       .eq("patient_did", data.patientDid)
       .order("created_at", { ascending: false });
 
@@ -74,7 +78,9 @@ export const getPrescriptions = createServerFn({ method: "GET" }).handler(async 
 
   const { data, error } = await supabase
     .from("prescriptions")
-    .select("rx_id, patient_did, doctor_did, drugs, diagnosis, notes, status, signed, signed_at, content_hash, created_at")
+    .select(
+      "rx_id, patient_did, doctor_did, drugs, diagnosis, notes, status, signed, signed_at, content_hash, created_at",
+    )
     .order("created_at", { ascending: false });
 
   if (error) throw new Error(error.message);
@@ -92,7 +98,9 @@ export const getPrescriptionsForPatient = createServerFn({ method: "GET" })
 
     const { data: rows, error } = await supabase
       .from("prescriptions")
-      .select("rx_id, patient_did, doctor_did, drugs, diagnosis, notes, status, signed, signed_at, content_hash, created_at")
+      .select(
+        "rx_id, patient_did, doctor_did, drugs, diagnosis, notes, status, signed, signed_at, content_hash, created_at",
+      )
       .eq("patient_did", data.patientDid)
       .order("created_at", { ascending: false });
 
@@ -108,7 +116,9 @@ export const getLabResults = createServerFn({ method: "GET" }).handler(async () 
 
   const { data, error } = await supabase
     .from("lab_results")
-    .select("lab_id, patient_did, test_name, result_value, unit, reference_range, status, resulted_at, created_at")
+    .select(
+      "lab_id, patient_did, test_name, result_value, unit, reference_range, status, resulted_at, created_at",
+    )
     .order("created_at", { ascending: false });
 
   if (error) throw new Error(error.message);
@@ -141,10 +151,7 @@ export const bookAppointment = createServerFn({ method: "POST" })
 
     // The caller's own DID, so a patient cannot book on someone else's behalf.
     // appointments_insert_patient enforces this in RLS regardless.
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("primary_did")
-      .single();
+    const { data: profile } = await supabase.from("profiles").select("primary_did").single();
 
     if (!profile?.primary_did) throw new Error("No DID associated with this account");
 
@@ -171,7 +178,9 @@ export const getConsents = createServerFn({ method: "GET" }).handler(async () =>
 
   const { data, error } = await supabase
     .from("consents")
-    .select("grant_id, patient_did, doctor_did, resource, status, granted_at, expires_at, revoked_at")
+    .select(
+      "grant_id, patient_did, doctor_did, resource, status, granted_at, expires_at, revoked_at",
+    )
     .order("granted_at", { ascending: false });
 
   if (error) throw new Error(error.message);
@@ -247,7 +256,9 @@ export const getCredentials = createServerFn({ method: "GET" }).handler(async ()
 
   const { data, error } = await supabase
     .from("credentials")
-    .select("id, credential_type, issuer, subject_did, claims, signature, status, issued_at, expires_at")
+    .select(
+      "id, credential_type, issuer, subject_did, claims, signature, status, issued_at, expires_at",
+    )
     .order("issued_at", { ascending: false });
 
   if (error) throw new Error(error.message);
@@ -267,7 +278,9 @@ export const getAnchors = createServerFn({ method: "GET" }).handler(async () => 
 
   const { data, error } = await supabase
     .from("solana_anchors")
-    .select("anchor_id, record_hash, record_type, record_id, status, signature, slot, network, anchored_at, confirmed_at")
+    .select(
+      "anchor_id, record_hash, record_type, record_id, status, signature, slot, network, anchored_at, confirmed_at",
+    )
     .order("anchored_at", { ascending: false })
     .limit(100);
 
@@ -281,7 +294,9 @@ export const getMerkleRoots = createServerFn({ method: "GET" }).handler(async ()
 
   const { data, error } = await supabase
     .from("merkle_roots")
-    .select("publish_id, subject_did, root_hash, event_count, event_ids, period_date, anchor_id, published_at")
+    .select(
+      "publish_id, subject_did, root_hash, event_count, event_ids, period_date, anchor_id, published_at",
+    )
     .order("published_at", { ascending: false })
     .limit(100);
 
@@ -371,12 +386,14 @@ async function invokeEdgeFunction(name: string, payload: unknown) {
  * Real on-chain transaction — the wallet key lives only in the Edge Function.
  */
 export const anchorRecord = createServerFn({ method: "POST" })
-  .validator((data: { subjectDid: string; recordHash: string; recordType: string; recordId?: string }) => {
-    if (!data?.subjectDid || !data?.recordHash || !data?.recordType) {
-      throw new Error("subjectDid, recordHash and recordType are required");
-    }
-    return data;
-  })
+  .validator(
+    (data: { subjectDid: string; recordHash: string; recordType: string; recordId?: string }) => {
+      if (!data?.subjectDid || !data?.recordHash || !data?.recordType) {
+        throw new Error("subjectDid, recordHash and recordType are required");
+      }
+      return data;
+    },
+  )
   .handler(async ({ data }) => {
     await requireSession();
     return await invokeEdgeFunction("anchor-record", data);
@@ -397,12 +414,14 @@ export const publishMerkleRoot = createServerFn({ method: "POST" })
 
 /** Issue a signed Verifiable Credential (issuer key stays server-side). */
 export const signCredential = createServerFn({ method: "POST" })
-  .validator((data: { subjectDid: string; credentialType: string; claims?: Record<string, unknown> }) => {
-    if (!data?.subjectDid || !data?.credentialType) {
-      throw new Error("subjectDid and credentialType are required");
-    }
-    return data;
-  })
+  .validator(
+    (data: { subjectDid: string; credentialType: string; claims?: Record<string, unknown> }) => {
+      if (!data?.subjectDid || !data?.credentialType) {
+        throw new Error("subjectDid and credentialType are required");
+      }
+      return data;
+    },
+  )
   .handler(async ({ data }) => {
     await requireSession();
     return await invokeEdgeFunction("sign-credential", data);
@@ -450,9 +469,7 @@ export const buildPatientAnchorTx = createServerFn({ method: "POST" })
         .join("");
     };
 
-    let level = await Promise.all(
-      records.map((r) => sha256Hex(r.content_hash ?? r.record_id)),
-    );
+    let level = await Promise.all(records.map((r) => sha256Hex(r.content_hash ?? r.record_id)));
     while (level.length > 1) {
       const next: string[] = [];
       for (let i = 0; i < level.length; i += 2) {
@@ -466,9 +483,8 @@ export const buildPatientAnchorTx = createServerFn({ method: "POST" })
     // not pulled into unrelated server bundles.
     const { Connection, PublicKey, SystemProgram, Transaction, TransactionInstruction } =
       await import("@solana/web3.js");
-    const { encodeRegisterPatientRoot, encodeUpdatePatientRoot } = await import(
-      "./anchor-encoding"
-    );
+    const { encodeRegisterPatientRoot, encodeUpdatePatientRoot } =
+      await import("./anchor-encoding");
 
     const programId = process.env.VITE_SOLANA_PROGRAM_ID ?? process.env.SOLANA_PROGRAM_ID ?? "";
     if (!programId) throw new Error("SOLANA_PROGRAM_ID is not configured");
@@ -500,7 +516,11 @@ export const buildPatientAnchorTx = createServerFn({ method: "POST" })
         ];
 
     const tx = new Transaction().add(
-      new TransactionInstruction({ keys, programId: new PublicKey(programId), data: Buffer.from(ixData) }),
+      new TransactionInstruction({
+        keys,
+        programId: new PublicKey(programId),
+        data: Buffer.from(ixData),
+      }),
     );
     tx.feePayer = authority;
     const { blockhash } = await connection.getLatestBlockhash("confirmed");
@@ -526,29 +546,34 @@ export const buildPatientAnchorTx = createServerFn({ method: "POST" })
  * insert otherwise, so no server-side role check is duplicated here.
  */
 export const createMedicalRecord = createServerFn({ method: "POST" })
-  .validator((data: {
-    patientDid: string;
-    title: string;
-    recordType: string;
-    content?: string;
-  }) => {
-    if (!data?.patientDid || !data?.title || !data?.recordType) {
-      throw new Error("patientDid, title and recordType are required");
-    }
-    return data;
-  })
+  .validator(
+    (data: { patientDid: string; title: string; recordType: string; content?: string }) => {
+      if (!data?.patientDid || !data?.title || !data?.recordType) {
+        throw new Error("patientDid, title and recordType are required");
+      }
+      return data;
+    },
+  )
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();
 
-    const { data: profile } = await supabase.from("profiles").select("primary_did, full_name").single();
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("primary_did, full_name")
+      .single();
 
     const recordId = `REC-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
 
     // Hash the clinical content so it can be anchored on-chain without
     // exposing PHI. Only the digest ever leaves Postgres.
     const encoded = new TextEncoder().encode(
-      JSON.stringify({ recordId, patientDid: data.patientDid, title: data.title, content: data.content ?? "" }),
+      JSON.stringify({
+        recordId,
+        patientDid: data.patientDid,
+        title: data.title,
+        content: data.content ?? "",
+      }),
     );
     const digest = await crypto.subtle.digest("SHA-256", encoded);
     const contentHash = Array.from(new Uint8Array(digest))

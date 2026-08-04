@@ -69,7 +69,9 @@ function StaffVisitors() {
         setVisitors(list);
       } else {
         const { getVisitors } = await import("@/lib/api");
-        const results = await Promise.all(allDids.map((did) => getVisitors(did).catch(() => ({ visitors: [] }))));
+        const results = await Promise.all(
+          allDids.map((did) => getVisitors(did).catch(() => ({ visitors: [] }))),
+        );
         const list = results.flatMap((r) => (r.visitors ?? []) as Visitor[]);
         setVisitors(list);
       }

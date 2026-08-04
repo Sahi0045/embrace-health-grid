@@ -20,8 +20,7 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { getCookies, setCookie, getRequest } from "@tanstack/react-start/server";
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL ?? process.env.SUPABASE_URL ?? "";
-const SUPABASE_ANON_KEY =
-  process.env.VITE_SUPABASE_ANON_KEY ?? process.env.SUPABASE_ANON_KEY ?? "";
+const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY ?? process.env.SUPABASE_ANON_KEY ?? "";
 
 /** Baseline cookie attributes applied to every auth cookie we set. */
 function baseCookieOptions(): CookieOptions {

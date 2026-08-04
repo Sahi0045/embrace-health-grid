@@ -195,16 +195,12 @@ export function subscribeToAnchorStatus(
 }
 
 /** Appointment changes for either party. Replaces `appointment:booked`. */
-export function subscribeToAppointments(
-  onChange: (payload: ChangePayload) => void,
-): () => void {
+export function subscribeToAppointments(onChange: (payload: ChangePayload) => void): () => void {
   return subscribeToTable("appointments", onChange);
 }
 
 /** New clinical records as they are authored. */
-export function subscribeToMedicalRecords(
-  onChange: (payload: ChangePayload) => void,
-): () => void {
+export function subscribeToMedicalRecords(onChange: (payload: ChangePayload) => void): () => void {
   return subscribeToTable("medical_records", onChange);
 }
 
