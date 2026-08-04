@@ -109,6 +109,78 @@ pub mod anchor_program {
         );
         Ok(())
     }
+
+    /// Register a hospital on chain.
+    ///
+    /// The platform (super admin) is the only signer, so the chain records which
+    /// authority admitted each hospital to the consortium. A hospital DID that is
+    /// not here was never issued by the platform, which is what makes the
+    /// registry verifiable independently of Postgres.
+    pub fn register_hospital(
+        ctx: Context<RegisterHospital>,
+        hospital_did: String,
+        name_hash: [u8; 32],
+        credential_hash: [u8; 32],
+    ) -> Result<()> {
+        let hospital = &mut ctx.accounts.hospital;
+        hospital.hospital_did = hospital_did;
+        hospital.name_hash = name_hash;
+        hospital.credential_hash = credential_hash;
+        hospital.registered_at = Clock::get()?.unix_timestamp;
+        hospital.last_updated = hospital.registered_at;
+        hospital.platform_authority = ctx.accounts.platform_authority.key();
+        hospital.active = true;
+        hospital.staff_count = 0;
+        hospital.bump = ctx.bumps.hospital;
+
+        msg!("Registered hospital: {}", hospital.hospital_did);
+        Ok(())
+    }
+
+    /// Suspend or reinstate a hospital.
+    ///
+    /// Suspension is recorded rather than deleted: an auditor needs to see that a
+    /// hospital was admitted and later suspended, not find an absence.
+    pub fn set_hospital_status(
+        ctx: Context<SetHospitalStatus>,
+        _hospital_did: String,
+        active: bool,
+    ) -> Result<()> {
+        let hospital = &mut ctx.accounts.hospital;
+        hospital.active = active;
+        hospital.last_updated = Clock::get()?.unix_timestamp;
+
+        msg!(
+            "Hospital {} active = {}",
+            hospital.hospital_did,
+            hospital.active
+        );
+        Ok(())
+    }
+
+    /// Anchor a hospital's staff roster.
+    ///
+    /// Stores a merkle root over the hospital's issued clinician DIDs, so the
+    /// hospital can prove which staff it had vouched for at a point in time
+    /// without publishing the roster itself.
+    pub fn update_hospital_roster(
+        ctx: Context<UpdateHospitalRoster>,
+        _hospital_did: String,
+        roster_root: [u8; 32],
+        staff_count: u32,
+    ) -> Result<()> {
+        let hospital = &mut ctx.accounts.hospital;
+        hospital.roster_root = roster_root;
+        hospital.staff_count = staff_count;
+        hospital.last_updated = Clock::get()?.unix_timestamp;
+
+        msg!(
+            "Hospital {} roster updated, {} staff",
+            hospital.hospital_did,
+            staff_count
+        );
+        Ok(())
+    }
 }
 
 #[derive(Accounts)]
@@ -230,5 +302,72 @@ pub struct DoctorLocationRoot {
     pub location_merkle_root: [u8; 32],
     pub last_updated: i64,
     pub authority: Pubkey,
+    pub bump: u8,
+}
+
+#[derive(Accounts)]
+#[instruction(hospital_did: String, name_hash: [u8; 32], credential_hash: [u8; 32])]
+pub struct RegisterHospital<'info> {
+    #[account(
+        init,
+        payer = platform_authority,
+        // 8 discriminator + 4+96 did + 32 name + 32 credential + 32 roster
+        // + 8 registered + 8 updated + 32 authority + 1 active + 4 staff + 1 bump
+        space = 8 + 100 + 32 + 32 + 32 + 8 + 8 + 32 + 1 + 4 + 1,
+        seeds = [b"hospital", hospital_did.as_bytes()],
+        bump
+    )]
+    pub hospital: Account<'info, HospitalRegistration>,
+
+    #[account(mut)]
+    pub platform_authority: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+#[instruction(hospital_did: String, active: bool)]
+pub struct SetHospitalStatus<'info> {
+    #[account(
+        mut,
+        seeds = [b"hospital", hospital_did.as_bytes()],
+        bump = hospital.bump,
+        // Only the authority that admitted the hospital may change its status.
+        constraint = hospital.platform_authority == platform_authority.key()
+    )]
+    pub hospital: Account<'info, HospitalRegistration>,
+
+    pub platform_authority: Signer<'info>,
+}
+
+#[derive(Accounts)]
+#[instruction(hospital_did: String, roster_root: [u8; 32], staff_count: u32)]
+pub struct UpdateHospitalRoster<'info> {
+    #[account(
+        mut,
+        seeds = [b"hospital", hospital_did.as_bytes()],
+        bump = hospital.bump,
+        constraint = hospital.platform_authority == platform_authority.key()
+    )]
+    pub hospital: Account<'info, HospitalRegistration>,
+
+    pub platform_authority: Signer<'info>,
+}
+
+/// On-chain record that the platform admitted a hospital to the consortium.
+///
+/// Only hashes are stored: the chain proves a hospital was registered and that
+/// its credential has not changed, without publishing hospital details or the
+/// roster itself.
+#[account]
+pub struct HospitalRegistration {
+    pub hospital_did: String,
+    pub name_hash: [u8; 32],
+    pub credential_hash: [u8; 32],
+    pub roster_root: [u8; 32],
+    pub registered_at: i64,
+    pub last_updated: i64,
+    pub platform_authority: Pubkey,
+    pub active: bool,
+    pub staff_count: u32,
     pub bump: u8,
 }

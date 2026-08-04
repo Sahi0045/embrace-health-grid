@@ -20,7 +20,13 @@ export function RoleSwitcher() {
       {roles.map((r) => {
         const active = pathname.startsWith(r.to);
         const Icon = r.icon;
-        const isAvailable = user?.role === "admin" || user?.role === r.id;
+        // Mirror hasAccess(): an admin may enter staff areas but NOT the patient
+        // portal, which belongs to a patient's own records. Offering it here
+        // showed an unlocked tab that the guard then refused.
+        const isAvailable =
+          user?.role === r.id ||
+          (user?.role === "admin" && r.id !== "patient") ||
+          (user?.role === "doctor" && r.id === "staff");
 
         if (!isAvailable) {
           return (

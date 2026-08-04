@@ -188,10 +188,6 @@ export function AppSidebar() {
         ? "admin"
         : (user?.role as any) || "patient";
 
-  const isPatientUser = user?.role === "patient";
-  const isStaffUser = user?.role === "staff";
-  const isAdminUser = user?.role === "admin";
-
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border/50">
@@ -216,15 +212,18 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        {(currentPortal === "patient" || isPatientUser) && (
-          <NavGroup label="Patient Portal" items={patientNav} />
-        )}
-        {(currentPortal === "staff" || isStaffUser || isAdminUser) && (
-          <NavGroup label="Doctor & Staff Portal" items={staffNav} />
-        )}
-        {(currentPortal === "admin" || isAdminUser) && (
-          <NavGroup label="Admin Portal" items={adminNav} />
-        )}
+        {/*
+          Show the nav for the portal actually being viewed, not every portal the
+          role could reach. Keying these off isAdminUser meant an admin saw
+          "Doctor & Staff Portal" and "Admin Portal" stacked together, which reads
+          as one account holding two roles.
+
+          currentPortal is derived from the path and falls back to the user's own
+          role, so a clinician still lands on the staff nav.
+        */}
+        {currentPortal === "patient" && <NavGroup label="Patient Portal" items={patientNav} />}
+        {currentPortal === "staff" && <NavGroup label="Doctor & Staff Portal" items={staffNav} />}
+        {currentPortal === "admin" && <NavGroup label="Admin Portal" items={adminNav} />}
 
         <NavGroup label="Network" items={globalNav} />
 
