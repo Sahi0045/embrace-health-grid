@@ -44,7 +44,11 @@ function heading(text) {
 
 function record(name, ok, detail = "", skipped = false) {
   results.push({ name, ok, detail, skipped });
-  const mark = skipped ? `${c.yellow}SKIP${c.reset}` : ok ? `${c.green}PASS${c.reset}` : `${c.red}FAIL${c.reset}`;
+  const mark = skipped
+    ? `${c.yellow}SKIP${c.reset}`
+    : ok
+      ? `${c.green}PASS${c.reset}`
+      : `${c.red}FAIL${c.reset}`;
   console.log(`  ${mark}  ${name}${detail ? `  ${c.dim}${detail}${c.reset}` : ""}`);
 }
 
@@ -199,12 +203,16 @@ if (!havePuppeteer) {
       ["login reaches the right portal per role", "scripts/verify-auth-e2e.mjs"],
       ["demo credentials actually sign in", "scripts/verify-demo-login.mjs"],
       ["clinical pages load, no cross-patient leak", "scripts/verify-clinical-migration.mjs"],
+      ["admin console: 13 pages load, patients refused", "scripts/verify-admin-console.mjs"],
     ];
 
     for (const [label, script] of browserChecks) {
       step(label, "node", [script], {
         timeout: 600_000,
-        env: { E2E_BASE: `http://localhost:${DEV_PORT}`, AUTHCHECK_BASE: `http://localhost:${DEV_PORT}` },
+        env: {
+          E2E_BASE: `http://localhost:${DEV_PORT}`,
+          AUTHCHECK_BASE: `http://localhost:${DEV_PORT}`,
+        },
         extract: (out) => {
           const n = (out.match(/PASS/g) ?? []).length;
           return n ? `${n} checks` : "";
@@ -236,7 +244,8 @@ console.log(`  ${c.green}${passed.length} passed${c.reset}`);
 if (skipped.length) console.log(`  ${c.yellow}${skipped.length} skipped${c.reset}`);
 if (failed.length) {
   console.log(`  ${c.red}${failed.length} failed${c.reset}`);
-  for (const f of failed) console.log(`    ${c.red}·${c.reset} ${f.name}  ${c.dim}${f.detail}${c.reset}`);
+  for (const f of failed)
+    console.log(`    ${c.red}·${c.reset} ${f.name}  ${c.dim}${f.detail}${c.reset}`);
 }
 
 if (failed.length) {

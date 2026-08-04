@@ -104,10 +104,24 @@ const staffNav: Item[] = [
 
 const adminNav: Item[] = [
   { title: "Admin Portal Hub", url: "/admin", icon: LayoutDashboard },
+  // Admin console pages, previously only in the standalone portal on :3002.
+  // Every one is wrapped in RouteGuard requiredRole="admin"; hiding a link is
+  // not access control, so the guard and RLS do the real work.
+  { title: "DID Management", url: "/admin/dids", icon: Fingerprint },
+  { title: "Credentials", url: "/admin/credentials", icon: Award },
+  { title: "People", url: "/admin/people", icon: Users },
+  { title: "Prescriptions", url: "/admin/prescriptions", icon: Pill },
+  { title: "NFC Cards", url: "/admin/nfc-cards", icon: CreditCard },
+  { title: "Policies", url: "/admin/policies", icon: FileText },
+  { title: "Fraud Detection", url: "/admin/fraud", icon: ShieldAlert },
+  { title: "Audit Logs", url: "/admin/audit", icon: GitBranch },
+  { title: "Financials", url: "/admin/financial", icon: Wallet },
+  { title: "Digital Twin", url: "/admin/digital-twin", icon: Activity },
+  { title: "Command Center", url: "/admin/command", icon: Command },
+  { title: "My Profile", url: "/admin/profile", icon: KeyRound },
   { title: "DID Registry", url: "/did-explorer", icon: Search },
   { title: "Verifiable Credentials", url: "/credential-explorer", icon: Award },
   { title: "Security & Audit Trail", url: "/audit-timeline", icon: GitBranch },
-  { title: "Hospital Command Center", url: "/staff/command", icon: Command },
 ];
 
 const globalNav: Item[] = [

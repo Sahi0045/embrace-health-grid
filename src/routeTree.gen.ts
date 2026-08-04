@@ -49,6 +49,18 @@ import { Route as PatientEmergencyRouteImport } from './routes/patient.emergency
 import { Route as PatientConsentRouteImport } from './routes/patient.consent'
 import { Route as PatientBillingRouteImport } from './routes/patient.billing'
 import { Route as PatientAppointmentsRouteImport } from './routes/patient.appointments'
+import { Route as AdminProfileRouteImport } from './routes/admin.profile'
+import { Route as AdminPrescriptionsRouteImport } from './routes/admin.prescriptions'
+import { Route as AdminPoliciesRouteImport } from './routes/admin.policies'
+import { Route as AdminPeopleRouteImport } from './routes/admin.people'
+import { Route as AdminNfcCardsRouteImport } from './routes/admin.nfc-cards'
+import { Route as AdminFraudRouteImport } from './routes/admin.fraud'
+import { Route as AdminFinancialRouteImport } from './routes/admin.financial'
+import { Route as AdminDigitalTwinRouteImport } from './routes/admin.digital-twin'
+import { Route as AdminDidsRouteImport } from './routes/admin.dids'
+import { Route as AdminCredentialsRouteImport } from './routes/admin.credentials'
+import { Route as AdminCommandRouteImport } from './routes/admin.command'
+import { Route as AdminAuditRouteImport } from './routes/admin.audit'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -250,6 +262,66 @@ const PatientAppointmentsRoute = PatientAppointmentsRouteImport.update({
   path: '/patient/appointments',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminProfileRoute = AdminProfileRouteImport.update({
+  id: '/admin/profile',
+  path: '/admin/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminPrescriptionsRoute = AdminPrescriptionsRouteImport.update({
+  id: '/admin/prescriptions',
+  path: '/admin/prescriptions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminPoliciesRoute = AdminPoliciesRouteImport.update({
+  id: '/admin/policies',
+  path: '/admin/policies',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminPeopleRoute = AdminPeopleRouteImport.update({
+  id: '/admin/people',
+  path: '/admin/people',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminNfcCardsRoute = AdminNfcCardsRouteImport.update({
+  id: '/admin/nfc-cards',
+  path: '/admin/nfc-cards',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminFraudRoute = AdminFraudRouteImport.update({
+  id: '/admin/fraud',
+  path: '/admin/fraud',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminFinancialRoute = AdminFinancialRouteImport.update({
+  id: '/admin/financial',
+  path: '/admin/financial',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminDigitalTwinRoute = AdminDigitalTwinRouteImport.update({
+  id: '/admin/digital-twin',
+  path: '/admin/digital-twin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminDidsRoute = AdminDidsRouteImport.update({
+  id: '/admin/dids',
+  path: '/admin/dids',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminCredentialsRoute = AdminCredentialsRouteImport.update({
+  id: '/admin/credentials',
+  path: '/admin/credentials',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminCommandRoute = AdminCommandRouteImport.update({
+  id: '/admin/command',
+  path: '/admin/command',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminAuditRoute = AdminAuditRouteImport.update({
+  id: '/admin/audit',
+  path: '/admin/audit',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -257,6 +329,18 @@ export interface FileRoutesByFullPath {
   '/credential-explorer': typeof CredentialExplorerRoute
   '/did-explorer': typeof DidExplorerRoute
   '/login': typeof LoginRoute
+  '/admin/audit': typeof AdminAuditRoute
+  '/admin/command': typeof AdminCommandRoute
+  '/admin/credentials': typeof AdminCredentialsRoute
+  '/admin/dids': typeof AdminDidsRoute
+  '/admin/digital-twin': typeof AdminDigitalTwinRoute
+  '/admin/financial': typeof AdminFinancialRoute
+  '/admin/fraud': typeof AdminFraudRoute
+  '/admin/nfc-cards': typeof AdminNfcCardsRoute
+  '/admin/people': typeof AdminPeopleRoute
+  '/admin/policies': typeof AdminPoliciesRoute
+  '/admin/prescriptions': typeof AdminPrescriptionsRoute
+  '/admin/profile': typeof AdminProfileRoute
   '/patient/appointments': typeof PatientAppointmentsRoute
   '/patient/billing': typeof PatientBillingRoute
   '/patient/consent': typeof PatientConsentRoute
@@ -299,6 +383,18 @@ export interface FileRoutesByTo {
   '/credential-explorer': typeof CredentialExplorerRoute
   '/did-explorer': typeof DidExplorerRoute
   '/login': typeof LoginRoute
+  '/admin/audit': typeof AdminAuditRoute
+  '/admin/command': typeof AdminCommandRoute
+  '/admin/credentials': typeof AdminCredentialsRoute
+  '/admin/dids': typeof AdminDidsRoute
+  '/admin/digital-twin': typeof AdminDigitalTwinRoute
+  '/admin/financial': typeof AdminFinancialRoute
+  '/admin/fraud': typeof AdminFraudRoute
+  '/admin/nfc-cards': typeof AdminNfcCardsRoute
+  '/admin/people': typeof AdminPeopleRoute
+  '/admin/policies': typeof AdminPoliciesRoute
+  '/admin/prescriptions': typeof AdminPrescriptionsRoute
+  '/admin/profile': typeof AdminProfileRoute
   '/patient/appointments': typeof PatientAppointmentsRoute
   '/patient/billing': typeof PatientBillingRoute
   '/patient/consent': typeof PatientConsentRoute
@@ -342,6 +438,18 @@ export interface FileRoutesById {
   '/credential-explorer': typeof CredentialExplorerRoute
   '/did-explorer': typeof DidExplorerRoute
   '/login': typeof LoginRoute
+  '/admin/audit': typeof AdminAuditRoute
+  '/admin/command': typeof AdminCommandRoute
+  '/admin/credentials': typeof AdminCredentialsRoute
+  '/admin/dids': typeof AdminDidsRoute
+  '/admin/digital-twin': typeof AdminDigitalTwinRoute
+  '/admin/financial': typeof AdminFinancialRoute
+  '/admin/fraud': typeof AdminFraudRoute
+  '/admin/nfc-cards': typeof AdminNfcCardsRoute
+  '/admin/people': typeof AdminPeopleRoute
+  '/admin/policies': typeof AdminPoliciesRoute
+  '/admin/prescriptions': typeof AdminPrescriptionsRoute
+  '/admin/profile': typeof AdminProfileRoute
   '/patient/appointments': typeof PatientAppointmentsRoute
   '/patient/billing': typeof PatientBillingRoute
   '/patient/consent': typeof PatientConsentRoute
@@ -386,6 +494,18 @@ export interface FileRouteTypes {
     | '/credential-explorer'
     | '/did-explorer'
     | '/login'
+    | '/admin/audit'
+    | '/admin/command'
+    | '/admin/credentials'
+    | '/admin/dids'
+    | '/admin/digital-twin'
+    | '/admin/financial'
+    | '/admin/fraud'
+    | '/admin/nfc-cards'
+    | '/admin/people'
+    | '/admin/policies'
+    | '/admin/prescriptions'
+    | '/admin/profile'
     | '/patient/appointments'
     | '/patient/billing'
     | '/patient/consent'
@@ -428,6 +548,18 @@ export interface FileRouteTypes {
     | '/credential-explorer'
     | '/did-explorer'
     | '/login'
+    | '/admin/audit'
+    | '/admin/command'
+    | '/admin/credentials'
+    | '/admin/dids'
+    | '/admin/digital-twin'
+    | '/admin/financial'
+    | '/admin/fraud'
+    | '/admin/nfc-cards'
+    | '/admin/people'
+    | '/admin/policies'
+    | '/admin/prescriptions'
+    | '/admin/profile'
     | '/patient/appointments'
     | '/patient/billing'
     | '/patient/consent'
@@ -470,6 +602,18 @@ export interface FileRouteTypes {
     | '/credential-explorer'
     | '/did-explorer'
     | '/login'
+    | '/admin/audit'
+    | '/admin/command'
+    | '/admin/credentials'
+    | '/admin/dids'
+    | '/admin/digital-twin'
+    | '/admin/financial'
+    | '/admin/fraud'
+    | '/admin/nfc-cards'
+    | '/admin/people'
+    | '/admin/policies'
+    | '/admin/prescriptions'
+    | '/admin/profile'
     | '/patient/appointments'
     | '/patient/billing'
     | '/patient/consent'
@@ -513,6 +657,18 @@ export interface RootRouteChildren {
   CredentialExplorerRoute: typeof CredentialExplorerRoute
   DidExplorerRoute: typeof DidExplorerRoute
   LoginRoute: typeof LoginRoute
+  AdminAuditRoute: typeof AdminAuditRoute
+  AdminCommandRoute: typeof AdminCommandRoute
+  AdminCredentialsRoute: typeof AdminCredentialsRoute
+  AdminDidsRoute: typeof AdminDidsRoute
+  AdminDigitalTwinRoute: typeof AdminDigitalTwinRoute
+  AdminFinancialRoute: typeof AdminFinancialRoute
+  AdminFraudRoute: typeof AdminFraudRoute
+  AdminNfcCardsRoute: typeof AdminNfcCardsRoute
+  AdminPeopleRoute: typeof AdminPeopleRoute
+  AdminPoliciesRoute: typeof AdminPoliciesRoute
+  AdminPrescriptionsRoute: typeof AdminPrescriptionsRoute
+  AdminProfileRoute: typeof AdminProfileRoute
   PatientAppointmentsRoute: typeof PatientAppointmentsRoute
   PatientBillingRoute: typeof PatientBillingRoute
   PatientConsentRoute: typeof PatientConsentRoute
@@ -832,6 +988,90 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PatientAppointmentsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/profile': {
+      id: '/admin/profile'
+      path: '/admin/profile'
+      fullPath: '/admin/profile'
+      preLoaderRoute: typeof AdminProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/prescriptions': {
+      id: '/admin/prescriptions'
+      path: '/admin/prescriptions'
+      fullPath: '/admin/prescriptions'
+      preLoaderRoute: typeof AdminPrescriptionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/policies': {
+      id: '/admin/policies'
+      path: '/admin/policies'
+      fullPath: '/admin/policies'
+      preLoaderRoute: typeof AdminPoliciesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/people': {
+      id: '/admin/people'
+      path: '/admin/people'
+      fullPath: '/admin/people'
+      preLoaderRoute: typeof AdminPeopleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/nfc-cards': {
+      id: '/admin/nfc-cards'
+      path: '/admin/nfc-cards'
+      fullPath: '/admin/nfc-cards'
+      preLoaderRoute: typeof AdminNfcCardsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/fraud': {
+      id: '/admin/fraud'
+      path: '/admin/fraud'
+      fullPath: '/admin/fraud'
+      preLoaderRoute: typeof AdminFraudRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/financial': {
+      id: '/admin/financial'
+      path: '/admin/financial'
+      fullPath: '/admin/financial'
+      preLoaderRoute: typeof AdminFinancialRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/digital-twin': {
+      id: '/admin/digital-twin'
+      path: '/admin/digital-twin'
+      fullPath: '/admin/digital-twin'
+      preLoaderRoute: typeof AdminDigitalTwinRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/dids': {
+      id: '/admin/dids'
+      path: '/admin/dids'
+      fullPath: '/admin/dids'
+      preLoaderRoute: typeof AdminDidsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/credentials': {
+      id: '/admin/credentials'
+      path: '/admin/credentials'
+      fullPath: '/admin/credentials'
+      preLoaderRoute: typeof AdminCredentialsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/command': {
+      id: '/admin/command'
+      path: '/admin/command'
+      fullPath: '/admin/command'
+      preLoaderRoute: typeof AdminCommandRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/audit': {
+      id: '/admin/audit'
+      path: '/admin/audit'
+      fullPath: '/admin/audit'
+      preLoaderRoute: typeof AdminAuditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -841,6 +1081,18 @@ const rootRouteChildren: RootRouteChildren = {
   CredentialExplorerRoute: CredentialExplorerRoute,
   DidExplorerRoute: DidExplorerRoute,
   LoginRoute: LoginRoute,
+  AdminAuditRoute: AdminAuditRoute,
+  AdminCommandRoute: AdminCommandRoute,
+  AdminCredentialsRoute: AdminCredentialsRoute,
+  AdminDidsRoute: AdminDidsRoute,
+  AdminDigitalTwinRoute: AdminDigitalTwinRoute,
+  AdminFinancialRoute: AdminFinancialRoute,
+  AdminFraudRoute: AdminFraudRoute,
+  AdminNfcCardsRoute: AdminNfcCardsRoute,
+  AdminPeopleRoute: AdminPeopleRoute,
+  AdminPoliciesRoute: AdminPoliciesRoute,
+  AdminPrescriptionsRoute: AdminPrescriptionsRoute,
+  AdminProfileRoute: AdminProfileRoute,
   PatientAppointmentsRoute: PatientAppointmentsRoute,
   PatientBillingRoute: PatientBillingRoute,
   PatientConsentRoute: PatientConsentRoute,

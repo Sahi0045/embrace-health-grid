@@ -1740,3 +1740,42 @@ export async function raiseFraudAlert(
     reason: "Recorded in the audit trail; alert creation is performed by server-side detection",
   };
 }
+
+// ─── View-model types for admin screens ─────────────────────────────────────
+
+/** Patient roster entry. Clinical fields are optional: admins have no blanket
+ *  PHI read, so these come from the DID registry and render blank if absent. */
+export interface LivePatient {
+  did: string;
+  name: string;
+  id?: string;
+  status?: string;
+  mrn?: string;
+  age?: number;
+  gender?: string;
+  phone?: string;
+  email?: string;
+  ward?: string;
+  bed?: string;
+  outstandingBills?: number;
+  outstanding?: number;
+  insuranceProvider?: string;
+  insurancePolicyNo?: string;
+  isOnChain?: boolean;
+  bloodGroup?: string;
+  admitDate?: string;
+  activeCredentials?: Array<{ id: string; type?: string }>;
+}
+
+export interface LiveTransaction {
+  id: string;
+  patientDid: string;
+  amount: number;
+  status: string;
+  category: string;
+  reference?: string;
+  method?: string;
+  date?: string;
+  patientName?: string;
+  blockTxId?: string;
+}

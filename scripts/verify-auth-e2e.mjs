@@ -92,12 +92,16 @@ console.log("\nPatient -> patient portal");
     !/auth-token/.test(state.cookieVisibleToJs),
     state.cookieVisibleToJs.slice(0, 120),
   );
-  check("localStorage holds no auth keys",
+  check(
+    "localStorage holds no auth keys",
     !state.local.some((k) => /token|userRole|userEmail|userDID/i.test(k)),
-    JSON.stringify(state.local));
-  check("sessionStorage holds no auth keys",
+    JSON.stringify(state.local),
+  );
+  check(
+    "sessionStorage holds no auth keys",
     !state.session.some((k) => /token|userRole|userEmail|userDID/i.test(k)),
-    JSON.stringify(state.session));
+    JSON.stringify(state.session),
+  );
 }
 
 // ─── Doctor signs into the staff portal ─────────────────────────────────────

@@ -68,14 +68,19 @@ async function login(portalLabel, email) {
 
 console.log("\nSigning in as a patient");
 await login("Patient", "alice.patient@seed.test");
-check("reached the patient portal", (await page.evaluate(() => location.pathname)).startsWith("/patient"));
+check(
+  "reached the patient portal",
+  (await page.evaluate(() => location.pathname)).startsWith("/patient"),
+);
 
 // ─── Clinical pages load from Supabase ──────────────────────────────────────
 const pages = ["/patient/records", "/patient/consent", "/patient/appointments"];
 
 for (const path of pages) {
   console.log(`\nLoading ${path}`);
-  const resp = await page.goto(`${BASE}${path}`, { waitUntil: "networkidle0", timeout: 60000 }).catch(() => null);
+  const resp = await page
+    .goto(`${BASE}${path}`, { waitUntil: "networkidle0", timeout: 60000 })
+    .catch(() => null);
   await new Promise((r) => setTimeout(r, 3500));
 
   const status = resp?.status() ?? 0;

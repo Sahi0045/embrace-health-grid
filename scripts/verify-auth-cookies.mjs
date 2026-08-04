@@ -90,7 +90,11 @@ check(
 const cookies = await page.cookies();
 const authCookies = cookies.filter((ck) => /auth-token/.test(ck.name));
 
-check("an auth cookie was set", authCookies.length > 0, JSON.stringify(cookies.map((ck) => ck.name)));
+check(
+  "an auth cookie was set",
+  authCookies.length > 0,
+  JSON.stringify(cookies.map((ck) => ck.name)),
+);
 
 check(
   "every auth cookie is HttpOnly",
@@ -125,7 +129,11 @@ await new Promise((r) => setTimeout(r, 3000));
 if (clickedLogout) {
   const after = await page.cookies();
   const remaining = after.filter((ck) => /auth-token/.test(ck.name) && ck.value.length > 5);
-  check("auth cookie cleared on sign-out", remaining.length === 0, JSON.stringify(remaining.map((ck) => ck.name)));
+  check(
+    "auth cookie cleared on sign-out",
+    remaining.length === 0,
+    JSON.stringify(remaining.map((ck) => ck.name)),
+  );
 } else {
   // Not a failure: not every page renders a logout control.
   console.log("  SKIP  auth cookie cleared on sign-out  (no logout control on this page)");
