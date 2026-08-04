@@ -19,8 +19,41 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { getCookies, setCookie, getRequest } from "@tanstack/react-start/server";
 
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL ?? process.env.SUPABASE_URL ?? "";
-const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY ?? process.env.SUPABASE_ANON_KEY ?? "";
+/**
+ * Read Supabase config per request, never at module scope.
+ *
+ * Env binds at REQUEST time in serverless runtimes, so `const X = process.env.X`
+ * at module top level evaluates during bundle initialisation and resolves to
+ * undefined. That produced "Missing Supabase env vars on the server" at runtime
+ * even with the values correctly configured. The same warning is documented in
+ * config.server.ts.
+ *
+ * import.meta.env is also consulted because Vite statically replaces VITE_*
+ * there, covering SSR during dev.
+ */
+function supabaseConfig(): { url: string; anonKey: string } {
+  const fromMeta = (key: string): string | undefined => {
+    try {
+      return (import.meta as unknown as { env?: Record<string, string> }).env?.[key];
+    } catch {
+      return undefined;
+    }
+  };
+
+  const url =
+    process.env.VITE_SUPABASE_URL ??
+    process.env.SUPABASE_URL ??
+    fromMeta("VITE_SUPABASE_URL") ??
+    "";
+
+  const anonKey =
+    process.env.VITE_SUPABASE_ANON_KEY ??
+    process.env.SUPABASE_ANON_KEY ??
+    fromMeta("VITE_SUPABASE_ANON_KEY") ??
+    "";
+
+  return { url, anonKey };
+}
 
 /** Baseline cookie attributes applied to every auth cookie we set. */
 function baseCookieOptions(): CookieOptions {
@@ -38,13 +71,15 @@ function baseCookieOptions(): CookieOptions {
  * Session reads and refreshes flow through httpOnly cookies transparently.
  */
 export function getSupabaseServerClient() {
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  const { url, anonKey } = supabaseConfig();
+
+  if (!url || !anonKey) {
     throw new Error(
       "Missing Supabase env vars on the server. Expected VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.",
     );
   }
 
-  return createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  return createServerClient(url, anonKey, {
     cookies: {
       getAll() {
         const cookies = getCookies();
