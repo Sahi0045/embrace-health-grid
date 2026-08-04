@@ -178,15 +178,6 @@ export const updateMedicalRecord = (recordId: string, data: Record<string, any>)
     body: JSON.stringify(data),
   });
 
-export const getPharmacyOrders = (patientDid: string) =>
-  apiFetch<{ orders: any[] }>(`/pharmacy-orders/${encodeURIComponent(patientDid)}`);
-
-export const getRehabSessions = (patientDid: string) =>
-  apiFetch<{ sessions: any[] }>(`/rehab-sessions/${encodeURIComponent(patientDid)}`);
-
-export const getFeedbackList = (patientDid: string) =>
-  apiFetch<{ feedback: any[] }>(`/feedback/${encodeURIComponent(patientDid)}`);
-
 // ─── NFC Cards ────────────────────────────────────────────────────────────────
 export const issueNFCCard = (data: {
   patientDid: string;
@@ -277,8 +268,6 @@ export const signPrescription = (data: {
 
 /** Patients who have appointments with the authenticated doctor */
 
-export const getSurgeries = () => apiFetch<{ surgeries: any[]; total: number }>(`/surgeries`);
-
 // ─── Labs ─────────────────────────────────────────────────────────────────────
 
 // ─── Appointments ─────────────────────────────────────────────────────────────
@@ -308,11 +297,7 @@ export const recordPayment = (data: {
     body: JSON.stringify(data),
   });
 
-export const getBilling = (patientDid: string) =>
-  apiFetch<any>(`/billing/${encodeURIComponent(patientDid)}`);
-
 // ─── Fraud ────────────────────────────────────────────────────────────────────
-export const getFraudAlerts = () => apiFetch<{ alerts: any[]; total: number }>(`/fraud/alerts`);
 
 export const raiseFraudAlert = (
   actor: string,
@@ -542,12 +527,6 @@ export const verifyIdentityPayload = (payload: any) =>
 export const getInfrastructure = () =>
   apiFetch<{ beds: any[]; equipment: any[]; ambulances: any[] }>(`/infrastructure`);
 
-export const getAmbulances = () =>
-  apiFetch<{ ambulances: any[]; total: number }>(`/infrastructure/ambulances`);
-
-export const getEquipment = () =>
-  apiFetch<{ equipment: any[]; total: number }>(`/infrastructure/equipment`);
-
 // ─── Insurance Claims ─────────────────────────────────────────────────────
 
 export const submitInsuranceClaim = (data: {
@@ -566,15 +545,10 @@ export const submitInsuranceClaim = (data: {
   });
 
 // ─── Vaccines ─────────────────────────────────────────────────────────────
-export const getVaccines = (patientDid: string) =>
-  apiFetch<{ vaccines: any[]; total: number }>(`/vaccines/${encodeURIComponent(patientDid)}`);
 
 // ─── Doctors ──────────────────────────────────────────────────────────────
-export const getDoctors = () => apiFetch<{ doctors: any[]; total: number }>(`/doctors`);
-export const getDIDVerifiedDoctors = () => apiFetch<{ doctors: any[]; total: number }>(`/doctors`);
+
 /** Only doctors who have an active DID issued by admin */
-export const getVerifiedDoctors = () =>
-  apiFetch<{ doctors: any[]; total: number }>(`/doctors/verified`);
 
 // ─── Rooms & Room Check-In ────────────────────────────────────────────────
 
@@ -582,31 +556,12 @@ export const getVerifiedDoctors = () =>
 /** Fetch today's room events + pre-computed Merkle root for a doctor */
 
 // ─── Inpatient ────────────────────────────────────────────────────────────
-export const getInpatientData = (patientDid: string) =>
-  apiFetch<{
-    admission: any | null;
-    medications: any[];
-    nursingNotes: any[];
-    checkups: any[];
-    procedures: any[];
-    dietOrder: any | null;
-    vitalSigns: any[];
-  }>(`/inpatient/${encodeURIComponent(patientDid)}`);
 
 // ─── Extended API clients for live sync ─────────────────────────────────────
 export const getInsurancePolicies = (patientDid: string) =>
   apiFetch<{ policies: any[]; total: number }>(
     `/insurance/policies/${encodeURIComponent(patientDid)}`,
   );
-
-export const getPreferences = (patientDid: string) =>
-  apiFetch<{ preferences: any }>(`/preferences/${encodeURIComponent(patientDid)}`);
-
-export const updatePreferences = (patientDid: string, data: any) =>
-  apiFetch<{ preferences: any }>(`/preferences/${encodeURIComponent(patientDid)}`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
 
 export const getPolicies = () => apiFetch<{ policies: any[]; total: number }>("/policies");
 
@@ -626,18 +581,6 @@ export const updateFraudAlertStatus = (id: string, status: string) =>
   apiFetch<{ alert: any }>(`/fraud/alerts/${encodeURIComponent(id)}`, {
     method: "PATCH",
     body: JSON.stringify({ status }),
-  });
-
-export const payBill = (data: {
-  patientDid: string;
-  patientName: string;
-  amount: number;
-  category: string;
-  reference?: string;
-}) =>
-  apiFetch<any>("/billing/payment", {
-    method: "POST",
-    body: JSON.stringify(data),
   });
 
 // ─── Supabase-backed clinical reads (task 9 migration) ──────────────────────
@@ -1649,4 +1592,236 @@ export async function getMyPatients() {
     .filter((c: any) => c.status === "active")
     .map((c: any) => ({ did: c.patient_did, patientDid: c.patient_did, resource: c.resource }));
   return { patients, total: patients.length };
+}
+
+// ─── Inpatient / facility / billing (task 4 migration) ──────────────────────
+// The last group of Express reads. All now resolve against Postgres with RLS
+// deciding scope.
+
+export async function getSurgeries() {
+  const { getSurgeries: fn } = await import("./inpatient.server");
+  const res = await fn();
+  const surgeries = (res.surgeries ?? []).map((s: any) => ({
+    id: s.surgery_id,
+    patientDid: s.patient_did,
+    procedure: s.procedure_name,
+    room: s.operating_room,
+    date: s.scheduled_for ? String(s.scheduled_for).slice(0, 10) : null,
+    time: s.scheduled_for ? String(s.scheduled_for).slice(11, 16) : null,
+    surgeon: s.surgeon,
+    anesthesiologist: s.anesthesiologist,
+    status: s.status,
+    estDuration: s.est_duration_min ? `${s.est_duration_min} min` : null,
+  }));
+  return { surgeries, total: surgeries.length };
+}
+
+export async function getRehabSessions(_did?: string) {
+  const { getRehabSessions: fn } = await import("./inpatient.server");
+  const res = await fn();
+  const sessions = (res.sessions ?? []).map((r: any) => ({
+    id: r.session_id,
+    patientDid: r.patient_did,
+    sessionType: r.session_type,
+    date: r.session_date,
+    therapist: r.therapist,
+    status: r.status,
+    notes: r.notes,
+  }));
+  return { sessions, rehabSessions: sessions, total: sessions.length };
+}
+
+export async function getPharmacyOrders(_did?: string) {
+  const { getPharmacyOrders: fn } = await import("./inpatient.server");
+  const res = await fn();
+  const orders = (res.orders ?? []).map((o: any) => ({
+    id: o.order_id,
+    patientDid: o.patient_did,
+    orderedOn: o.ordered_on,
+    status: o.status,
+    medicines: o.medicines ?? [],
+  }));
+  return { orders, pharmacyOrders: orders, total: orders.length };
+}
+
+export async function getVaccines(_did?: string) {
+  const { getVaccines: fn } = await import("./inpatient.server");
+  const res = await fn();
+  const vaccines = (res.vaccines ?? []).map((v: any) => ({
+    id: v.vaccine_id,
+    patientDid: v.patient_did,
+    name: v.vaccine_name,
+    doseNumber: v.dose_number,
+    administeredOn: v.administered_on,
+    administeredBy: v.administered_by,
+    batchNumber: v.batch_number,
+    nextDueOn: v.next_due_on,
+  }));
+  return { vaccines, total: vaccines.length };
+}
+
+export async function getInpatientData(_did?: string) {
+  const { getInpatientData: fn } = await import("./inpatient.server");
+  const d = await fn();
+  return {
+    admission: d.admission,
+    procedures: d.procedures ?? [],
+    medications: d.medications ?? [],
+    nursingNotes: d.nursingNotes ?? [],
+    dailyCheckups: d.dailyCheckups ?? [],
+    dietOrders: d.dietOrders ?? [],
+    rehabSessions: d.rehabSessions ?? [],
+  };
+}
+
+export async function getFeedbackList(_did?: string) {
+  const { getFeedback } = await import("./inpatient.server");
+  const res = await getFeedback();
+  const feedback = (res.feedback ?? []).map((f: any) => ({
+    id: f.feedback_id,
+    patientDid: f.patient_did,
+    date: f.created_at ? String(f.created_at).slice(0, 10) : null,
+    doctor: f.doctor,
+    rating: f.rating,
+    comments: f.comments,
+  }));
+  return { feedback, list: feedback, total: feedback.length };
+}
+
+export async function getAmbulances() {
+  const { getAmbulances: fn } = await import("./inpatient.server");
+  const res = await fn();
+  const ambulances = (res.ambulances ?? []).map((a: any) => ({
+    id: a.ambulance_id,
+    registration: a.registration,
+    type: a.vehicle_type,
+    status: a.status,
+    location: a.current_location,
+    driver: a.driver_name,
+  }));
+  return { ambulances, total: ambulances.length };
+}
+
+export async function getEquipment() {
+  const { getEquipment: fn } = await import("./inpatient.server");
+  const res = await fn();
+  const equipment = (res.equipment ?? []).map((e: any) => ({
+    id: e.equipment_id,
+    name: e.name,
+    category: e.category,
+    status: e.status,
+    location: e.location,
+    lastServicedOn: e.last_serviced_on,
+  }));
+  return { equipment, total: equipment.length };
+}
+
+export async function getFraudAlerts() {
+  const { getFraudAlerts: fn } = await import("./inpatient.server");
+  const res = await fn();
+  const alerts = (res.alerts ?? []).map((a: any) => ({
+    alertId: a.alert_id,
+    severity: a.severity,
+    status: a.status,
+    type: a.alert_type,
+    message: a.message,
+    actor: a.actor,
+    riskScore: a.risk_score,
+    detectedAt: a.detected_at,
+    details: a.details,
+  }));
+  return { alerts, total: alerts.length };
+}
+
+export async function getBilling(_did?: string) {
+  const { getBilling: fn } = await import("./inpatient.server");
+  const res = await fn();
+  const acct: any = res.account ?? {};
+  return {
+    outstanding: Number(acct.outstanding ?? 0),
+    totalBilled: Number(acct.total_billed ?? 0),
+    totalPaid: Number(acct.total_paid ?? 0),
+    bills: (res.payments ?? []).map((p: any) => ({
+      id: p.payment_id,
+      amount: Number(p.amount),
+      method: p.method,
+      status: p.status,
+      reference: p.reference,
+      date: p.created_at,
+    })),
+    payments: res.payments ?? [],
+    // Legacy alias consumed by the inpatient dashboard.
+    billSummary: {
+      outstanding: Number(acct.outstanding ?? 0),
+      totalBilled: Number(acct.total_billed ?? 0),
+      totalPaid: Number(acct.total_paid ?? 0),
+    },
+  };
+}
+
+/**
+ * Record a payment. Always lands as 'pending' — RLS forbids a client marking a
+ * payment 'paid', which must follow a real settlement.
+ */
+export async function payBill(payload: {
+  amount: number;
+  method?: string;
+  reference?: string;
+  patientDid?: string;
+  [key: string]: unknown;
+}) {
+  const { recordPayment } = await import("./inpatient.server");
+  // patientDid is accepted but ignored: the payment is always recorded against
+  // the caller's own DID, enforced by RLS.
+  const res = await recordPayment({
+    data: { amount: payload.amount, method: payload.method, reference: payload.reference },
+  });
+  return { success: true as const, paymentId: res.paymentId, status: res.status };
+}
+
+export async function getPreferences(_did?: string) {
+  const { getPatientPreferences } = await import("./inpatient.server");
+  const res = await getPatientPreferences();
+  const p: any = res.preferences ?? {};
+  return {
+    preferences: {
+      emergencyAccess: p.emergency_access ?? true,
+      insuranceVerification: p.insurance_verification ?? true,
+      researchSharing: p.research_sharing ?? false,
+      crossHospital: p.cross_hospital ?? false,
+    },
+  };
+}
+
+export async function updatePreferences(
+  arg1: string | Record<string, unknown>,
+  prefs?: Record<string, unknown>,
+) {
+  const { updatePatientPreferences } = await import("./inpatient.server");
+  // Legacy positional form is updatePreferences(patientDid, prefs); the DID is
+  // ignored because RLS scopes the upsert to the caller.
+  const payload = typeof arg1 === "string" ? (prefs ?? {}) : arg1;
+  await updatePatientPreferences({ data: payload });
+  return { success: true as const };
+}
+
+/** Clinician directory, derived from dids rather than a duplicate table. */
+export async function getDoctors() {
+  const { getDoctors: fn } = await import("./inpatient.server");
+  const res = await fn();
+  const doctors = (res.doctors ?? []).map((d: any) => ({
+    did: d.did,
+    name: d.owner_name,
+    role: d.owner_type,
+    status: d.status,
+  }));
+  return { doctors, total: doctors.length };
+}
+
+export async function getVerifiedDoctors() {
+  return await getDoctors();
+}
+
+export async function getDIDVerifiedDoctors() {
+  return await getDoctors();
 }

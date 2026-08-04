@@ -1,0 +1,280 @@
+/**
+ * Inpatient, facility and billing server functions — Embrace Health Grid
+ *
+ * Final batch replacing Express reads. Same contract as clinical.server.ts and
+ * operations.server.ts: server-side because the browser client holds no
+ * session, and using the ANON key so RLS decides what each caller sees.
+ *
+ * No caller-supplied patient identifier filters these queries. RLS derives
+ * scope from the session, so a patient receives only their own rows and a
+ * clinician only rows for patients who granted consent.
+ */
+
+import { createServerFn } from "@tanstack/react-start";
+import { getSupabaseServerClient, getVerifiedUser } from "./supabase.server";
+
+async function requireSession() {
+  const user = await getVerifiedUser();
+  if (!user) throw new Error("Not authenticated");
+  return user;
+}
+
+async function callerDid(): Promise<string> {
+  const supabase = getSupabaseServerClient();
+  const { data } = await supabase.from("profiles").select("primary_did").single();
+  if (!data?.primary_did) throw new Error("No DID associated with this account");
+  return data.primary_did;
+}
+
+/**
+ * Shared reader for the patient-scoped clinical tables.
+ *
+ * Every one of these applies the identical RLS gate, so a single helper avoids
+ * fifteen near-identical handlers. The table name is a closed set chosen by the
+ * caller in this module — never a client-supplied string.
+ */
+async function selectAll(table: string, orderColumn: string, ascending = false) {
+  await requireSession();
+  const supabase = getSupabaseServerClient();
+
+  const { data, error } = await supabase
+    .from(table)
+    .select("*")
+    .order(orderColumn, { ascending })
+    .limit(300);
+
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
+// ─── Inpatient care ─────────────────────────────────────────────────────────
+
+export const getAdmissions = createServerFn({ method: "GET" }).handler(async () => ({
+  admissions: await selectAll("admissions", "admitted_at"),
+}));
+
+export const getProcedures = createServerFn({ method: "GET" }).handler(async () => ({
+  procedures: await selectAll("procedures", "created_at"),
+}));
+
+export const getSurgeries = createServerFn({ method: "GET" }).handler(async () => ({
+  surgeries: await selectAll("surgeries", "scheduled_for"),
+}));
+
+export const getRehabSessions = createServerFn({ method: "GET" }).handler(async () => ({
+  sessions: await selectAll("rehab_sessions", "session_date"),
+}));
+
+export const getMedications = createServerFn({ method: "GET" }).handler(async () => ({
+  medications: await selectAll("medications", "started_on"),
+}));
+
+export const getPharmacyOrders = createServerFn({ method: "GET" }).handler(async () => ({
+  orders: await selectAll("pharmacy_orders", "ordered_on"),
+}));
+
+export const getNursingNotes = createServerFn({ method: "GET" }).handler(async () => ({
+  notes: await selectAll("nursing_notes", "recorded_at"),
+}));
+
+export const getDailyCheckups = createServerFn({ method: "GET" }).handler(async () => ({
+  checkups: await selectAll("daily_checkups", "checkup_at"),
+}));
+
+export const getDietOrders = createServerFn({ method: "GET" }).handler(async () => ({
+  dietOrders: await selectAll("diet_orders", "started_on"),
+}));
+
+export const getVaccines = createServerFn({ method: "GET" }).handler(async () => ({
+  vaccines: await selectAll("vaccines", "administered_on"),
+}));
+
+/**
+ * Everything the inpatient dashboard needs, in one round trip.
+ *
+ * Each query is independently RLS-filtered, so a patient with no admission
+ * simply receives empty arrays rather than an error.
+ */
+export const getInpatientData = createServerFn({ method: "GET" }).handler(async () => {
+  await requireSession();
+
+  const [admissions, procedures, medications, nursingNotes, checkups, dietOrders, rehab] =
+    await Promise.all([
+      selectAll("admissions", "admitted_at"),
+      selectAll("procedures", "created_at"),
+      selectAll("medications", "started_on"),
+      selectAll("nursing_notes", "recorded_at"),
+      selectAll("daily_checkups", "checkup_at"),
+      selectAll("diet_orders", "started_on"),
+      selectAll("rehab_sessions", "session_date"),
+    ]);
+
+  return {
+    admission: admissions[0] ?? null,
+    admissions,
+    procedures,
+    medications,
+    nursingNotes,
+    dailyCheckups: checkups,
+    dietOrders,
+    rehabSessions: rehab,
+  };
+});
+
+// ─── Patient preferences ────────────────────────────────────────────────────
+
+export const getPatientPreferences = createServerFn({ method: "GET" }).handler(async () => {
+  await requireSession();
+  const supabase = getSupabaseServerClient();
+
+  const { data, error } = await supabase.from("patient_preferences").select("*").maybeSingle();
+  if (error) throw new Error(error.message);
+
+  // Defaults matter: absent preferences must not read as "all sharing enabled".
+  return {
+    preferences: data ?? {
+      emergency_access: true,
+      insurance_verification: true,
+      research_sharing: false,
+      cross_hospital: false,
+    },
+  };
+});
+
+export const updatePatientPreferences = createServerFn({ method: "POST" })
+  .validator((data: Record<string, unknown>) => data ?? {})
+  .handler(async ({ data }) => {
+    await requireSession();
+    const supabase = getSupabaseServerClient();
+    const did = await callerDid();
+
+    const { error } = await supabase.from("patient_preferences").upsert(
+      {
+        patient_did: did,
+        emergency_access: (data.emergencyAccess as boolean) ?? true,
+        insurance_verification: (data.insuranceVerification as boolean) ?? true,
+        research_sharing: (data.researchSharing as boolean) ?? false,
+        cross_hospital: (data.crossHospital as boolean) ?? false,
+      },
+      { onConflict: "patient_did" },
+    );
+
+    if (error) throw new Error(error.message);
+    return { ok: true as const };
+  });
+
+// ─── Feedback ───────────────────────────────────────────────────────────────
+
+export const getFeedback = createServerFn({ method: "GET" }).handler(async () => ({
+  feedback: await selectAll("feedback", "created_at"),
+}));
+
+export const submitFeedback = createServerFn({ method: "POST" })
+  .validator((data: { rating: number; doctor?: string; comments?: string }) => {
+    if (!data?.rating || data.rating < 1 || data.rating > 5) {
+      throw new Error("A rating between 1 and 5 is required");
+    }
+    return data;
+  })
+  .handler(async ({ data }) => {
+    await requireSession();
+    const supabase = getSupabaseServerClient();
+    const did = await callerDid();
+
+    const feedbackId = `FB-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+    const { error } = await supabase.from("feedback").insert({
+      feedback_id: feedbackId,
+      patient_did: did,
+      doctor: data.doctor ?? null,
+      rating: data.rating,
+      comments: data.comments ?? null,
+    });
+
+    if (error) throw new Error(error.message);
+    return { ok: true as const, feedbackId };
+  });
+
+// ─── Facility assets ────────────────────────────────────────────────────────
+
+export const getAmbulances = createServerFn({ method: "GET" }).handler(async () => ({
+  ambulances: await selectAll("ambulances", "updated_at"),
+}));
+
+export const getEquipment = createServerFn({ method: "GET" }).handler(async () => ({
+  equipment: await selectAll("equipment", "updated_at"),
+}));
+
+// ─── Fraud alerts (admin only by RLS) ───────────────────────────────────────
+
+export const getFraudAlerts = createServerFn({ method: "GET" }).handler(async () => ({
+  alerts: await selectAll("fraud_alerts", "detected_at"),
+}));
+
+// ─── Billing and payments ───────────────────────────────────────────────────
+
+export const getBilling = createServerFn({ method: "GET" }).handler(async () => {
+  await requireSession();
+  const supabase = getSupabaseServerClient();
+
+  const [{ data: account }, { data: payments }] = await Promise.all([
+    supabase.from("billing_accounts").select("*").maybeSingle(),
+    supabase.from("payments").select("*").order("created_at", { ascending: false }).limit(100),
+  ]);
+
+  return {
+    account: account ?? { outstanding: 0, total_billed: 0, total_paid: 0 },
+    payments: payments ?? [],
+  };
+});
+
+/**
+ * Record a payment intent.
+ *
+ * Deliberately inserts with status 'pending' — the RLS policy enforces that, so
+ * a client cannot mark a payment 'paid' without a real settlement. Confirmation
+ * is a service_role operation once a provider webhook lands.
+ */
+export const recordPayment = createServerFn({ method: "POST" })
+  .validator((data: { amount: number; method?: string; reference?: string }) => {
+    if (!data?.amount || data.amount <= 0) throw new Error("A positive amount is required");
+    return data;
+  })
+  .handler(async ({ data }) => {
+    await requireSession();
+    const supabase = getSupabaseServerClient();
+    const did = await callerDid();
+
+    const paymentId = `PAY-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+    const { error } = await supabase.from("payments").insert({
+      payment_id: paymentId,
+      patient_did: did,
+      amount: data.amount,
+      method: data.method ?? "card",
+      reference: data.reference ?? null,
+      status: "pending",
+    });
+
+    if (error) throw new Error(error.message);
+    return { ok: true as const, paymentId, status: "pending" as const };
+  });
+
+// ─── Doctor directory ───────────────────────────────────────────────────────
+
+/**
+ * Clinician directory, derived from profiles + dids rather than a separate
+ * table. A duplicated doctors table would drift out of step with the identity
+ * records that actually govern access.
+ */
+export const getDoctors = createServerFn({ method: "GET" }).handler(async () => {
+  await requireSession();
+  const supabase = getSupabaseServerClient();
+
+  const { data, error } = await supabase
+    .from("dids")
+    .select("did, owner_name, owner_type, status")
+    .in("owner_type", ["doctor", "staff"])
+    .eq("status", "active");
+
+  if (error) throw new Error(error.message);
+  return { doctors: data ?? [] };
+});
