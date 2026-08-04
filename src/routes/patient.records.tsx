@@ -810,7 +810,7 @@ function MedicalRecords() {
                     <div className="mt-3 flex items-center justify-between rounded-lg bg-muted p-3 text-sm">
                       <span className="text-muted-foreground">Total Cost</span>
                       <span className="font-semibold">
-                        ₹{order.totalCost.toLocaleString("en-IN")}
+                        ₹{Number(order.totalCost ?? 0).toLocaleString("en-IN")}
                       </span>
                     </div>
                     {order.status === "dispensed" && (

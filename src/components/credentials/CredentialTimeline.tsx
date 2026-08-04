@@ -26,7 +26,8 @@ export function CredentialTimeline({ events }: CredentialTimelineProps) {
     <div className="relative space-y-4 pl-6">
       <div className="absolute left-[11px] top-2 bottom-2 w-px bg-border" />
       {events.map((ev, i) => {
-        const cfg = actionConfig[ev.action];
+        // Unknown actions must render, not crash the timeline.
+        const cfg = actionConfig[ev.action] ?? actionConfig.issued;
         const Icon = cfg.icon;
         return (
           <motion.div

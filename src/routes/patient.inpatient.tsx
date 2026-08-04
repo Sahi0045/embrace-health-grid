@@ -52,7 +52,8 @@ function InpatientCare() {
     getBilling(patientDid)
       .then((res) => {
         if (res?.billSummary) {
-          setBillSummary(res.billSummary);
+          // Merge: a response missing a field must not blank one already shown.
+          setBillSummary((prev: any) => ({ ...prev, ...res.billSummary }));
         }
       })
       .catch((err) => {
@@ -233,14 +234,14 @@ function InpatientCare() {
                         <div>
                           <div className="text-xs text-muted-foreground">Current Bill</div>
                           <div className="text-lg font-semibold">
-                            ₹{billSummary.totalCharges.toLocaleString("en-IN")}
+                            ₹{Number(billSummary?.totalCharges ?? 0).toLocaleString("en-IN")}
                           </div>
                         </div>
                       </div>
                       <div className="text-right">
                         <div className="text-xs text-muted-foreground">Balance Due</div>
                         <div className="text-sm font-semibold text-destructive">
-                          ₹{billSummary.balanceDue.toLocaleString("en-IN")}
+                          ₹{Number(billSummary?.balanceDue ?? 0).toLocaleString("en-IN")}
                         </div>
                       </div>
                     </div>
@@ -348,7 +349,7 @@ function InpatientCare() {
                       <CardContent>
                         <div className="font-medium">{dietOrder.type}</div>
                         <div className="mt-2 space-y-1">
-                          {dietOrder.restrictions.map((r: any, idx: number) => (
+                          {(dietOrder.restrictions ?? []).map((r: any, idx: number) => (
                             <div
                               key={idx}
                               className="text-sm text-muted-foreground flex items-center gap-1"

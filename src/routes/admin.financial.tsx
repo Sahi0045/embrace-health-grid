@@ -91,7 +91,7 @@ function AdminFinancialPage() {
         const catStr = t.category.toUpperCase().padEnd(12);
         const refStr = (t.reference || "N/A").padEnd(16);
         const statusStr = (t.status || "UNPAID").toUpperCase().padEnd(11);
-        const amtStr = `$${t.amount.toFixed(2)}`;
+        const amtStr = `$${Number(t.amount ?? 0).toFixed(2)}`;
         return `${dateStr} | ${catStr} | ${refStr} | ${statusStr} | ${amtStr}`;
       }),
       "--------------------------------------------------------------------------",

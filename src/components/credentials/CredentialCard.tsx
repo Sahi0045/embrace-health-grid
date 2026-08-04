@@ -38,7 +38,9 @@ export function CredentialCard({
   status,
   onClick,
 }: CredentialCardProps) {
-  const cfg = statusConfig[status];
+  // Fall back rather than crash: status originates in Postgres, which has
+  // labels ("valid") that this view does not model.
+  const cfg = statusConfig[status] ?? statusConfig.active;
   const Icon = cfg.icon;
 
   return (

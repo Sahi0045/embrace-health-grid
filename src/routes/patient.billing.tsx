@@ -193,7 +193,10 @@ Thank you for choosing Embrace Health.
   };
   const paymentRecords = billingData?.paymentRecords || [];
 
-  const fmt = (amount: number) => `₹${amount.toLocaleString("en-IN")}`;
+  // Coerce here: these amounts come from nullable numeric columns, and a missing
+  // charge should render as ₹0 rather than crash the statement.
+  const fmt = (amount: number | null | undefined) =>
+    `₹${Number(amount ?? 0).toLocaleString("en-IN")}`;
 
   const statusColor = (status: string) => {
     switch (status) {
@@ -369,7 +372,7 @@ Thank you for choosing Embrace Health.
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      {billSummary.categoryTotals.map((cat: any) => {
+                      {(billSummary.categoryTotals ?? []).map((cat: any) => {
                         const items = billItems.filter((i: any) => i.category === cat.category);
                         return (
                           <div key={cat.category} className="space-y-2">

@@ -1321,11 +1321,16 @@ export async function getBilling(_did?: string) {
       date: p.created_at,
     })),
     payments: res.payments ?? [],
-    // Legacy alias consumed by the inpatient dashboard.
+    // Legacy alias consumed by the inpatient dashboard, which reads
+    // totalCharges/balanceDue. Emitting only outstanding/totalBilled overwrote
+    // its initial state with undefined and crashed the page on
+    // billSummary.totalCharges.toLocaleString().
     billSummary: {
       outstanding: Number(acct.outstanding ?? 0),
       totalBilled: Number(acct.total_billed ?? 0),
       totalPaid: Number(acct.total_paid ?? 0),
+      totalCharges: Number(acct.total_billed ?? 0),
+      balanceDue: Number(acct.outstanding ?? 0),
     },
   };
 }

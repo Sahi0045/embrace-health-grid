@@ -124,7 +124,7 @@ export function useAdminBilling() {
     totalPaid: 0,
     bills: [] as any[],
     payments: [] as any[],
-    billSummary: { outstanding: 0, totalBilled: 0, totalPaid: 0 },
+    billSummary: { outstanding: 0, totalBilled: 0, totalPaid: 0, totalCharges: 0, balanceDue: 0 },
   });
 }
 

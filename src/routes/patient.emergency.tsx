@@ -197,8 +197,9 @@ function EmergencyPage() {
   }
 
   // Live Critical Conditions
+  // Filter first: the column is nullable, so a null entry threw on toLowerCase.
   const criticalConditionsList = patient.conditions
-    ? patient.conditions.map((cond: string) => ({
+    ? patient.conditions.filter(Boolean).map((cond: string) => ({
         label: cond,
         severity:
           cond.toLowerCase().includes("allergy") || cond.toLowerCase().includes("diabet")
@@ -214,13 +215,22 @@ function EmergencyPage() {
     .filter(
       (e: any) =>
         e.severity === "critical" ||
-        e.action.toLowerCase().includes("break_glass") ||
-        e.action.toLowerCase().includes("emergency"),
+        // action and actor are nullable on audit rows, so normalise before
+        // calling string methods on them.
+        String(e.action ?? "")
+          .toLowerCase()
+          .includes("break_glass") ||
+        String(e.action ?? "")
+          .toLowerCase()
+          .includes("emergency"),
     )
     .map((e: any) => ({
       id: e.txId || e._id,
       actor: e.actor || "Emergency Responder",
-      actorRole: e.actor.includes("doc") || e.actor.includes("Dr") ? "Physician" : "Staff",
+      actorRole:
+        String(e.actor ?? "").includes("doc") || String(e.actor ?? "").includes("Dr")
+          ? "Physician"
+          : "Staff",
       reason: e.resource || "Emergency medical records access",
       at: e.loggedAt ? new Date(e.loggedAt).toLocaleString("en-IN") : "N/A",
       autoAudited: true,
