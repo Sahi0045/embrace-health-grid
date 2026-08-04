@@ -224,11 +224,10 @@ function LoginPage() {
                       <>
                         <div className="flex justify-between text-muted-foreground">
                           <span>
-                            Email:{" "}
-                            <strong className="text-foreground">doctor@embracehealth.org</strong>
+                            Email: <strong className="text-foreground">dr.smith@seed.test</strong>
                           </span>
                           <span>
-                            Pass: <strong className="text-foreground">Doctor123!</strong>
+                            Pass: <strong className="text-foreground">SeedPassw0rd!dev</strong>
                           </span>
                         </div>
                         <Button
@@ -237,8 +236,8 @@ function LoginPage() {
                           size="sm"
                           className="h-7 w-full text-xs mt-1 bg-background"
                           onClick={() => {
-                            setEmail("doctor@embracehealth.org");
-                            setPassword("Doctor123!");
+                            setEmail("dr.smith@seed.test");
+                            setPassword("SeedPassw0rd!dev");
                           }}
                         >
                           Auto-fill Doctor Credentials
@@ -249,10 +248,11 @@ function LoginPage() {
                       <>
                         <div className="flex justify-between text-muted-foreground">
                           <span>
-                            Email: <strong className="text-foreground">patient@example.com</strong>
+                            Email:{" "}
+                            <strong className="text-foreground">alice.patient@seed.test</strong>
                           </span>
                           <span>
-                            Pass: <strong className="text-foreground">Patient123!</strong>
+                            Pass: <strong className="text-foreground">SeedPassw0rd!dev</strong>
                           </span>
                         </div>
                         <Button
@@ -261,8 +261,8 @@ function LoginPage() {
                           size="sm"
                           className="h-7 w-full text-xs mt-1 bg-background"
                           onClick={() => {
-                            setEmail("patient@example.com");
-                            setPassword("Patient123!");
+                            setEmail("alice.patient@seed.test");
+                            setPassword("SeedPassw0rd!dev");
                           }}
                         >
                           Auto-fill Patient Credentials
@@ -273,11 +273,10 @@ function LoginPage() {
                       <>
                         <div className="flex justify-between text-muted-foreground">
                           <span>
-                            Email:{" "}
-                            <strong className="text-foreground">admin@embracehealth.org</strong>
+                            Email: <strong className="text-foreground">admin@seed.test</strong>
                           </span>
                           <span>
-                            Pass: <strong className="text-foreground">Admin123!456</strong>
+                            Pass: <strong className="text-foreground">SeedPassw0rd!dev</strong>
                           </span>
                         </div>
                         <Button
@@ -286,8 +285,8 @@ function LoginPage() {
                           size="sm"
                           className="h-7 w-full text-xs mt-1 bg-background"
                           onClick={() => {
-                            setEmail("admin@embracehealth.org");
-                            setPassword("Admin123!456");
+                            setEmail("admin@seed.test");
+                            setPassword("SeedPassw0rd!dev");
                           }}
                         >
                           Auto-fill Admin Credentials
@@ -325,15 +324,11 @@ function LoginPage() {
                       </button>
                     </p>
                   ) : (
+                    // Self-service registration is intentionally unavailable:
+                    // an account needs a role, a DID and issued credentials
+                    // provisioned together, so an administrator creates it.
                     <p className="text-muted-foreground">
-                      Don't have an account?{" "}
-                      <button
-                        type="button"
-                        onClick={() => setIsSignup(true)}
-                        className="text-primary hover:underline font-medium"
-                      >
-                        Sign up
-                      </button>
+                      Need an account? Contact your administrator.
                     </p>
                   )}
                 </div>
