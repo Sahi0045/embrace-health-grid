@@ -418,6 +418,127 @@ export const createInsuranceClaim = createServerFn({ method: "POST" })
     return { ok: true as const, claimId };
   });
 
+// ─── Staff requests ─────────────────────────────────────────────────────────
+
+export const getStaffRequests = createServerFn({ method: "GET" }).handler(async () => {
+  await requireSession();
+  const supabase = getSupabaseServerClient();
+
+  // RLS: own requests, or all of them for an admin.
+  const { data, error } = await supabase
+    .from("staff_requests")
+    .select("request_id, staff_id, request_type, subject, details, status, created_at, resolved_at")
+    .order("created_at", { ascending: false });
+
+  if (error) throw new Error(error.message);
+  return { requests: data ?? [] };
+});
+
+export const createStaffRequest = createServerFn({ method: "POST" })
+  .validator((data: { requestType: string; subject: string; details?: string }) => {
+    if (!data?.requestType || !data?.subject) {
+      throw new Error("requestType and subject are required");
+    }
+    return data;
+  })
+  .handler(async ({ data }) => {
+    const user = await requireSession();
+    const supabase = getSupabaseServerClient();
+
+    const requestId = `REQ-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+    const { error } = await supabase.from("staff_requests").insert({
+      request_id: requestId,
+      staff_id: user.id,
+      request_type: data.requestType,
+      subject: data.subject,
+      details: data.details ?? null,
+      status: "pending",
+    });
+
+    if (error) throw new Error(error.message);
+    return { ok: true as const, requestId };
+  });
+
+/** Resolve a request. RLS restricts this to admins, so a requester cannot
+ *  approve their own. */
+export const resolveStaffRequest = createServerFn({ method: "POST" })
+  .validator((data: { requestId: string; status: "approved" | "rejected" | "completed" }) => {
+    if (!data?.requestId || !data?.status) throw new Error("requestId and status are required");
+    return data;
+  })
+  .handler(async ({ data }) => {
+    const user = await requireSession();
+    const supabase = getSupabaseServerClient();
+
+    const { data: updated, error } = await supabase
+      .from("staff_requests")
+      .update({
+        status: data.status,
+        resolved_at: new Date().toISOString(),
+        resolved_by: user.id,
+      })
+      .eq("request_id", data.requestId)
+      .select("request_id");
+
+    if (error) throw new Error(error.message);
+    if (!updated?.length) throw new Error("Request not found, or you cannot resolve it");
+    return { ok: true as const };
+  });
+
+/** Attendance rollup for admins. RLS returns only own rows to non-admins. */
+export const getAttendanceSummary = createServerFn({ method: "GET" }).handler(async () => {
+  await requireSession();
+  const supabase = getSupabaseServerClient();
+
+  const { data, error } = await supabase
+    .from("attendance")
+    .select("staff_id, action, location, recorded_at")
+    .order("recorded_at", { ascending: false })
+    .limit(500);
+
+  if (error) throw new Error(error.message);
+
+  // Collapse the event log into per-staff totals for the dashboard.
+  const byStaff = new Map<
+    string,
+    { staffId: string; clockIns: number; clockOuts: number; lastSeen: string }
+  >();
+  for (const row of data ?? []) {
+    const entry = byStaff.get(row.staff_id) ?? {
+      staffId: row.staff_id,
+      clockIns: 0,
+      clockOuts: 0,
+      lastSeen: row.recorded_at,
+    };
+    if (row.action === "in") entry.clockIns += 1;
+    else entry.clockOuts += 1;
+    if (row.recorded_at > entry.lastSeen) entry.lastSeen = row.recorded_at;
+    byStaff.set(row.staff_id, entry);
+  }
+
+  return { summary: [...byStaff.values()], events: data ?? [] };
+});
+
+/** Room check-in history for one clinician — the merkle leaf source. */
+export const getRoomCheckinHistory = createServerFn({ method: "GET" })
+  .validator((data: { doctorDid?: string }) => data ?? {})
+  .handler(async ({ data }) => {
+    await requireSession();
+    const supabase = getSupabaseServerClient();
+
+    let query = supabase
+      .from("room_checkin_events")
+      .select("event_id, doctor_did, room_id, room_name, action, occurred_at")
+      .order("occurred_at", { ascending: false })
+      .limit(200);
+
+    if (data.doctorDid) query = query.eq("doctor_did", data.doctorDid);
+
+    const { data: events, error } = await query;
+    if (error) throw new Error(error.message);
+    return { events: events ?? [] };
+  });
+
 // ─── Health metrics ─────────────────────────────────────────────────────────
 
 export const getHealthMetrics = createServerFn({ method: "GET" }).handler(async () => {

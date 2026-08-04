@@ -433,6 +433,144 @@ export const getProfiles = createServerFn({ method: "GET" }).handler(async () =>
   return { profiles: data ?? [] };
 });
 
+// ─── Writes on existing clinical tables (task 3) ────────────────────────────
+
+/**
+ * Update the caller's own profile.
+ *
+ * profiles_update_own restricts this to the caller's row, and its WITH CHECK
+ * clause forbids changing `role`, so this cannot be used for privilege
+ * escalation.
+ */
+export const updateOwnProfile = createServerFn({ method: "POST" })
+  .validator((data: { fullName?: string }) => data ?? {})
+  .handler(async ({ data }) => {
+    const user = await requireSession();
+    const supabase = getSupabaseServerClient();
+
+    const patch: Record<string, unknown> = {};
+    if (data.fullName) patch.full_name = data.fullName;
+    if (!Object.keys(patch).length) return { ok: true as const, changed: false };
+
+    const { error } = await supabase.from("profiles").update(patch).eq("id", user.id);
+    if (error) throw new Error(error.message);
+    return { ok: true as const, changed: true };
+  });
+
+/** Confirm, reschedule or cancel an appointment. RLS limits it to both parties. */
+export const updateAppointmentStatus = createServerFn({ method: "POST" })
+  .validator((data: { apptId: string; status: string; reason?: string }) => {
+    if (!data?.apptId || !data?.status) throw new Error("apptId and status are required");
+    return data;
+  })
+  .handler(async ({ data }) => {
+    await requireSession();
+    const supabase = getSupabaseServerClient();
+
+    const { data: updated, error } = await supabase
+      .from("appointments")
+      .update({ status: data.status, reason: data.reason ?? null })
+      .eq("appt_id", data.apptId)
+      .select("appt_id");
+
+    if (error) throw new Error(error.message);
+    if (!updated?.length) throw new Error("Appointment not found, or you are not a party to it");
+    return { ok: true as const };
+  });
+
+/** Deny a consent request — only the patient who would grant it may do so. */
+export const denyConsent = createServerFn({ method: "POST" })
+  .validator((data: { grantId: string }) => {
+    if (!data?.grantId) throw new Error("grantId is required");
+    return data;
+  })
+  .handler(async ({ data }) => {
+    await requireSession();
+    const supabase = getSupabaseServerClient();
+
+    const { data: updated, error } = await supabase
+      .from("consents")
+      .update({ status: "revoked", revoked_at: new Date().toISOString() })
+      .eq("grant_id", data.grantId)
+      .select("grant_id");
+
+    if (error) throw new Error(error.message);
+    if (!updated?.length) throw new Error("Consent request not found, or you are not the grantor");
+    return { ok: true as const };
+  });
+
+/**
+ * Order a lab test.
+ *
+ * Written by service_role in the Express version. Here the ordering clinician
+ * must hold an active consent, which is checked explicitly because lab_results
+ * has no client INSERT policy — results arrive from the lab, not the browser.
+ */
+export const orderLabTest = createServerFn({ method: "POST" })
+  .validator((data: { patientDid: string; testName: string }) => {
+    if (!data?.patientDid || !data?.testName) {
+      throw new Error("patientDid and testName are required");
+    }
+    return data;
+  })
+  .handler(async ({ data }) => {
+    await requireSession();
+    const supabase = getSupabaseServerClient();
+
+    // Confirm the caller can see this patient at all. If RLS returns nothing,
+    // there is no consent and the order must not be created.
+    const { data: visible } = await supabase
+      .from("medical_records")
+      .select("patient_did")
+      .eq("patient_did", data.patientDid)
+      .limit(1);
+
+    const { data: ownDid } = await supabase.from("profiles").select("primary_did").single();
+    const isOwnPatient = ownDid?.primary_did === data.patientDid;
+
+    if (!visible?.length && !isOwnPatient) {
+      throw new Error("Cannot order a lab for this patient: no active consent");
+    }
+
+    const labId = `LAB-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+    const { error } = await supabase.from("lab_results").insert({
+      lab_id: labId,
+      patient_did: data.patientDid,
+      ordered_by: ownDid?.primary_did ?? null,
+      test_name: data.testName,
+      status: "ordered",
+    });
+
+    if (error) {
+      if (/row-level security/i.test(error.message)) {
+        throw new Error("Lab orders are placed by the laboratory system");
+      }
+      throw new Error(error.message);
+    }
+    return { ok: true as const, labId };
+  });
+
+/** On-chain anchor history for one patient — hashes only, never PHI. */
+export const getPatientAnchorHistory = createServerFn({ method: "GET" })
+  .validator((data: { patientDid?: string }) => data ?? {})
+  .handler(async ({ data }) => {
+    await requireSession();
+    const supabase = getSupabaseServerClient();
+
+    let query = supabase
+      .from("solana_anchors")
+      .select(
+        "anchor_id, record_hash, record_type, record_id, status, signature, slot, anchored_at",
+      )
+      .order("anchored_at", { ascending: false });
+
+    if (data.patientDid) query = query.eq("actor_did", data.patientDid);
+
+    const { data: anchors, error } = await query;
+    if (error) throw new Error(error.message);
+    return { anchors: anchors ?? [] };
+  });
+
 // ─── Writes that must go through Edge Functions ─────────────────────────────
 
 /**

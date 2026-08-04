@@ -123,7 +123,11 @@ function NavGroup({ label, items }: { label: string; items: Item[] }) {
 
   return (
     <SidebarGroup>
-      {!collapsed && <SidebarGroupLabel>{label}</SidebarGroupLabel>}
+      {!collapsed && (
+        <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/50">
+          {label}
+        </SidebarGroupLabel>
+      )}
       <SidebarGroupContent>
         <SidebarMenu>
           {items.map((item) => {
@@ -133,6 +137,9 @@ function NavGroup({ label, items }: { label: string; items: Item[] }) {
               <SidebarMenuItem key={item.url}>
                 <SidebarMenuButton asChild isActive={active}>
                   <Link to={item.url} className="flex items-center gap-2">
+                    {active && (
+                      <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-primary" />
+                    )}
                     <item.icon className="h-4 w-4 shrink-0" />
                     {!collapsed && <span>{item.title}</span>}
                   </Link>
@@ -171,15 +178,15 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader className="border-b border-sidebar-border">
-        <div className="flex items-center gap-2 px-2 py-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
+      <SidebarHeader className="border-b border-sidebar-border/50">
+        <div className="flex items-center gap-2.5 px-2 py-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-clinical-sm">
             <Hospital className="h-4 w-4" />
           </div>
           {!collapsed && (
             <div className="leading-tight">
-              <div className="text-sm font-semibold">Embrace Health Grid</div>
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              <div className="text-sm font-semibold tracking-tight">Embrace Health Grid</div>
+              <div className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground/60">
                 Infrastructure
               </div>
             </div>
@@ -206,7 +213,11 @@ export function AppSidebar() {
         <NavGroup label="Network" items={globalNav} />
 
         <SidebarGroup>
-          {!collapsed && <SidebarGroupLabel>System</SidebarGroupLabel>}
+          {!collapsed && (
+            <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/50">
+              System
+            </SidebarGroupLabel>
+          )}
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>

@@ -12,15 +12,19 @@ export function PageHeader({
   actions?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-3 border-b border-border bg-card px-8 py-6 sm:flex-row sm:items-end sm:justify-between">
+    <div className="flex flex-col gap-3 border-b border-border/50 px-8 py-8 sm:flex-row sm:items-end sm:justify-between">
       <div>
         {eyebrow && (
-          <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+          <div className="border-l-2 border-primary/30 pl-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
             {eyebrow}
           </div>
         )}
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-foreground">{title}</h1>
-        {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
+        <h1 className="mt-2 font-display text-2xl font-semibold tracking-tight text-foreground">
+          {title}
+        </h1>
+        {description && (
+          <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{description}</p>
+        )}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
@@ -41,14 +45,14 @@ export function StatCard({
   tone?: "default" | "success" | "warning" | "destructive";
 }) {
   const toneClass = {
-    default: "text-primary bg-primary/10",
-    success: "text-success bg-success/15",
-    warning: "text-warning-foreground bg-warning/20",
-    destructive: "text-destructive bg-destructive/10",
+    default: "text-primary bg-gradient-to-br from-primary/15 to-primary/5",
+    success: "text-success bg-gradient-to-br from-success/15 to-success/5",
+    warning: "text-warning-foreground bg-gradient-to-br from-warning/20 to-warning/5",
+    destructive: "text-destructive bg-gradient-to-br from-destructive/15 to-destructive/5",
   }[tone];
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5 shadow-clinical">
+    <div className="rounded-xl border border-border bg-card p-5 shadow-clinical transition-all duration-300 hover:-translate-y-0.5 hover:shadow-clinical-md">
       <div className="flex items-center justify-between">
         <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
           {label}
@@ -59,8 +63,20 @@ export function StatCard({
           </div>
         )}
       </div>
-      <div className="mt-3 text-2xl font-semibold text-foreground">{value}</div>
-      {delta && <div className="mt-1 text-xs text-muted-foreground">{delta}</div>}
+      <div className="mt-3 text-2xl font-bold tracking-tight text-foreground">{value}</div>
+      {delta && (
+        <div
+          className={`mt-1 text-xs font-medium ${
+            delta.startsWith("+") || delta.startsWith("↑")
+              ? "text-success"
+              : delta.startsWith("-") || delta.startsWith("↓")
+                ? "text-destructive"
+                : "text-muted-foreground"
+          }`}
+        >
+          {delta}
+        </div>
+      )}
     </div>
   );
 }

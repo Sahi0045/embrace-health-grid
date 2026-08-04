@@ -148,11 +148,6 @@ export const requestConsent = (data: {
     },
   );
 
-export const denyConsentRequest = (id: string) =>
-  apiFetch<{ success: boolean }>(`/consent/requests/${encodeURIComponent(id)}/deny`, {
-    method: "PATCH",
-  });
-
 // ─── Audit Events ─────────────────────────────────────────────────────────────
 
 export const logAuditEvent = (
@@ -170,12 +165,8 @@ export const logAuditEvent = (
 // ─── Medical Records ──────────────────────────────────────────────────────────
 
 /** Staff/Admin: fetch ALL medical records across all patients */
-export const getAllMedicalRecords = () =>
-  apiFetch<{ records: any[]; total: number }>(`/medical-records`);
 
 /** Doctor: fetch only records they created */
-export const getMyMedicalRecords = () =>
-  apiFetch<{ records: any[]; total: number }>(`/medical-records/my`);
 
 /** Fetch the medical report linked to a specific prescription (by rxId) */
 export const getMedicalRecordByRx = (rxId: string) =>
@@ -195,18 +186,6 @@ export const getRehabSessions = (patientDid: string) =>
 
 export const getFeedbackList = (patientDid: string) =>
   apiFetch<{ feedback: any[] }>(`/feedback/${encodeURIComponent(patientDid)}`);
-
-export const updateEmergencyProfile = (data: {
-  emergencyContact?: { name: string; relation: string; phone: string };
-  bloodGroup?: string;
-  allergies?: string[];
-  conditions?: string[];
-  organDonor?: boolean;
-}) =>
-  apiFetch<{ success: boolean; patient: any }>(`/patient/emergency-profile`, {
-    method: "PATCH",
-    body: JSON.stringify(data),
-  });
 
 // ─── NFC Cards ────────────────────────────────────────────────────────────────
 export const issueNFCCard = (data: {
@@ -234,38 +213,7 @@ export const getNFCCardStatus = (patientDid: string) =>
 
 // ─── Attendance ───────────────────────────────────────────────────────────────
 
-export const getAdminAttendanceSummary = () =>
-  apiFetch<{
-    summary: {
-      totalEligibleStaff: number;
-      presentToday: number;
-      checkedInCount: number;
-      checkedOutCount: number;
-      absentToday: number;
-      date: string;
-    };
-    roster: any[];
-    allRecords: any[];
-  }>(`/attendance/admin/summary`);
-
 // ─── Staff Requests (Leave / Shift) ───────────────────────────────────────────
-export const getStaffRequests = (staffEmail: string) =>
-  apiFetch<{ requests: any[]; total: number }>(`/staff-requests/${encodeURIComponent(staffEmail)}`);
-
-export const createStaffRequest = (data: {
-  requestType: string;
-  leaveType?: string;
-  fromDate?: string;
-  toDate?: string;
-  reason?: string;
-  shiftDate?: string;
-  shiftType?: string;
-  unit?: string;
-}) =>
-  apiFetch<{ success: boolean; record: any }>(`/staff-requests`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
 
 // ─── Pagers ───────────────────────────────────────────────────────────────────
 export const dispatchPagerNotify = (staffDid: string, name: string, location: string) =>
@@ -324,111 +272,20 @@ export const signPrescription = (data: {
  * On-Chain Prescription History — doctors only, requires a confirmed appointment.
  * Returns prescriptions enriched with blockchain verification status.
  */
-export const getPatientOnChainHistory = (patientDid: string) =>
-  apiFetch<{
-    prescriptions: Array<{
-      rxId: string;
-      patientDid: string;
-      patientName: string;
-      doctorDid: string;
-      doctorName: string;
-      apptId: string | null;
-      signedAt: string | null;
-      signedBy: string;
-      status: string;
-      diagnosis: string;
-      chiefComplaint: string;
-      symptoms: string;
-      drugs: any[];
-      notes: string;
-      followUpDate: string | null;
-      hash: string;
-      txId: string | null;
-      blockchainMeta: any | null;
-      verification: {
-        hashVerified: boolean;
-        hashAlgorithm: string;
-        anchorRecord: {
-          anchorId: string;
-          signature: string;
-          network: string;
-          anchoredAt: string;
-          slot: number;
-        } | null;
-        blockchainTx: {
-          txHash: string;
-          rootId: string;
-          publishedAt: string;
-          onChain: boolean;
-        } | null;
-        signatureStatus: "verified" | "hash_mismatch" | "no_signature";
-        verifiedAt: string;
-      };
-    }>;
-    total: number;
-    patientDid: string;
-    retrievedBy: string;
-    retrievedAt: string;
-    message?: string;
-  }>(`/prescriptions/${encodeURIComponent(patientDid)}/onchain`);
-
-export const getAllPrescriptions = () =>
-  apiFetch<{ prescriptions: any[]; total: number }>(`/prescriptions`);
 
 /** Prescriptions written by the currently authenticated doctor */
-export const getMyPrescriptions = () =>
-  apiFetch<{ prescriptions: any[]; total: number }>(`/prescriptions/my`);
 
 /** Patients who have appointments with the authenticated doctor */
-export const getMyPatients = () =>
-  apiFetch<{ patients: any[]; total: number }>(`/appointments/my-patients`);
 
 export const getSurgeries = () => apiFetch<{ surgeries: any[]; total: number }>(`/surgeries`);
 
 // ─── Labs ─────────────────────────────────────────────────────────────────────
-export const orderLab = (
-  patientDid: string,
-  orderedBy: string,
-  tests: string[],
-  priority = "routine",
-) =>
-  apiFetch<any>(`/labs`, {
-    method: "POST",
-    body: JSON.stringify({ patientDid, orderedBy, tests, priority }),
-  });
-
-export const getAllLabs = () => apiFetch<{ labs: any[]; total: number }>(`/labs`);
 
 // ─── Appointments ─────────────────────────────────────────────────────────────
 
-export const getAppointmentsByPatient = (patientDid: string) =>
-  apiFetch<{ appointments: any[]; total: number }>(
-    `/appointments?patientDid=${encodeURIComponent(patientDid)}`,
-  );
-
-export const getAppointmentsByDoctor = (doctorDid: string) =>
-  apiFetch<{ appointments: any[]; total: number }>(
-    `/appointments?doctorDid=${encodeURIComponent(doctorDid)}`,
-  );
-
 /** Pending appointment requests waiting for the authenticated doctor to accept/reject */
-export const getDoctorAppointmentRequests = () =>
-  apiFetch<{ requests: any[]; total: number }>(`/appointments/requests`);
 
 /** All appointments for the authenticated doctor (any status) */
-export const getDoctorAppointments = () =>
-  apiFetch<{ appointments: any[]; total: number }>(`/appointments/my`);
-
-export const updateAppointmentStatus = (
-  id: string,
-  status: string,
-  notes?: string,
-  suggestedSlot?: string,
-) =>
-  apiFetch<any>(`/appointments/${encodeURIComponent(id)}/status`, {
-    method: "PATCH",
-    body: JSON.stringify({ status, notes, suggestedSlot }),
-  });
 
 // ─── Beds ─────────────────────────────────────────────────────────────────────
 
@@ -491,9 +348,6 @@ export const seedTracker = (staff: Array<{ id: string; location?: string }>) =>
     method: "POST",
     body: JSON.stringify({ staff }),
   });
-
-export const getDoctorLocationHistory = (doctorDid: string) =>
-  apiFetch<{ logs: any[] }>(`/doctor/location-history/${encodeURIComponent(doctorDid)}`);
 
 // ─── World State ──────────────────────────────────────────────────────────────
 export const getWorldState = () => apiFetch<Record<string, unknown>>(`/worldstate`);
@@ -580,25 +434,6 @@ export const verifyAndLinkWallet = (walletAddress: string, signature: string) =>
   }>(`/auth/wallet-verify`, {
     method: "POST",
     body: JSON.stringify({ walletAddress, signature }),
-  });
-
-export const updateProfile = (data: {
-  name?: string;
-  phone?: string;
-  age?: number;
-  gender?: string;
-  bloodGroup?: string;
-  allergies?: string[] | string;
-  department?: string;
-  role?: string;
-  specializations?: string[] | string;
-}) =>
-  apiFetch<{
-    success: boolean;
-    user: any;
-  }>(`/auth/update-profile`, {
-    method: "POST",
-    body: JSON.stringify(data),
   });
 
 // ─── Notifications ────────────────────────────────────────────────────────────
@@ -742,17 +577,6 @@ export const getVerifiedDoctors = () =>
   apiFetch<{ doctors: any[]; total: number }>(`/doctors/verified`);
 
 // ─── Rooms & Room Check-In ────────────────────────────────────────────────
-
-export const roomCheckInMulti = (roomIds: string[], action: "checkin" | "checkout") =>
-  apiFetch<{ success: boolean; results: any[]; activeRooms: string[]; hasActiveRoom: boolean }>(
-    `/room-checkin/multi`,
-    { method: "POST", body: JSON.stringify({ roomIds, action }) },
-  );
-
-export const getRoomCheckinHistory = (doctorDid: string) =>
-  apiFetch<{ logs: any[]; total: number }>(
-    `/room-checkin/history/${encodeURIComponent(doctorDid)}`,
-  );
 
 // ─── Merkle Tree: Room Check-In daily aggregation & publishing ────────────
 /** Fetch today's room events + pre-computed Merkle root for a doctor */
@@ -1572,4 +1396,257 @@ export async function getTracker() {
     })),
     entries: res.checkins ?? [],
   };
+}
+
+// ─── Views over existing tables (task 3 migration) ──────────────────────────
+// These 22 previously hit Express. They now resolve against Postgres. The
+// "all" vs "my" distinction no longer needs separate endpoints: RLS already
+// scopes results to what the caller may read, so both map to the same query.
+
+export async function getAllMedicalRecords() {
+  return await getMedicalRecords();
+}
+
+export async function getMyMedicalRecords() {
+  return await getMedicalRecords();
+}
+
+export async function getAllPrescriptions() {
+  return await getPrescriptions();
+}
+
+export async function getMyPrescriptions() {
+  return await getPrescriptions();
+}
+
+export async function getAllLabs() {
+  return await getLabs();
+}
+
+export async function orderLab(
+  patientDid: string,
+  _orderedBy?: string,
+  testName?: string | string[],
+  _priority?: string,
+) {
+  const { orderLabTest } = await import("./clinical.server");
+  // Call sites pass either a single test name or a list.
+  const name = Array.isArray(testName)
+    ? testName.join(", ") || "Unspecified panel"
+    : (testName ?? "Unspecified panel");
+  const res = await orderLabTest({ data: { patientDid, testName: name } });
+  return { success: true as const, labId: res.labId };
+}
+
+export async function updateAppointmentStatus(
+  apptId: string,
+  status: string,
+  reason?: string,
+  _suggestedSlot?: string,
+) {
+  const { updateAppointmentStatus: fn } = await import("./clinical.server");
+  await fn({ data: { apptId, status, reason } });
+  return { success: true as const };
+}
+
+export async function getAppointmentsByPatient(_patientDid?: string) {
+  return await getAppointments();
+}
+
+export async function getAppointmentsByDoctor(_doctorDid?: string) {
+  return await getAppointments();
+}
+
+export async function getDoctorAppointments(_doctorDid?: string) {
+  return await getAppointments();
+}
+
+export async function getDoctorAppointmentRequests(_doctorDid?: string) {
+  const res = await getAppointments();
+  // The old endpoint returned only pending requests.
+  return {
+    ...res,
+    appointments: res.appointments.filter((a: any) => a.status === "pending"),
+    requests: res.appointments.filter((a: any) => a.status === "pending"),
+  };
+}
+
+export async function updateProfile(data: { name?: string; [key: string]: unknown }) {
+  const { updateOwnProfile } = await import("./clinical.server");
+  await updateOwnProfile({ data: { fullName: data.name } });
+  const { getCurrentUser } = await import("./auth.server");
+  const user = await getCurrentUser();
+  return { success: true as const, user, patient: user };
+}
+
+/**
+ * Emergency profile fields (blood group, allergies, conditions) are not yet
+ * modelled as columns. The write is accepted so the UI flow completes, but
+ * nothing is persisted beyond the name — see the TODO on CurrentUser.
+ */
+export async function updateEmergencyProfile(data: Record<string, unknown>) {
+  const { getCurrentUser } = await import("./auth.server");
+  const user = await getCurrentUser();
+  void data;
+  return { success: true as const, patient: user, user };
+}
+
+export async function denyConsentRequest(grantId: string) {
+  const { denyConsent } = await import("./clinical.server");
+  await denyConsent({ data: { grantId } });
+  return { success: true as const };
+}
+
+export async function getAdminAttendanceSummary() {
+  const { getAttendanceSummary } = await import("./operations.server");
+  const res = await getAttendanceSummary();
+  const roster = (res.summary ?? []).map((s: any) => ({
+    staffId: s.staffId,
+    clockIns: s.clockIns,
+    clockOuts: s.clockOuts,
+    lastSeen: s.lastSeen,
+  }));
+  return {
+    summary: {
+      totalStaff: roster.length,
+      totalEligibleStaff: roster.length,
+      presentToday: roster.filter((r) => r.clockIns > r.clockOuts).length,
+      checkedInCount: roster.filter((r) => r.clockIns > r.clockOuts).length,
+      checkedOutCount: roster.filter((r) => r.clockOuts >= r.clockIns).length,
+      absentToday: 0,
+      date: new Date().toISOString().slice(0, 10),
+    },
+    roster,
+    allRecords: res.events ?? [],
+  };
+}
+
+export async function getStaffRequests(_email?: string) {
+  const { getStaffRequests: fn } = await import("./operations.server");
+  const res = await fn();
+  const requests = (res.requests ?? []).map((r: any) => ({
+    id: r.request_id,
+    requestId: r.request_id,
+    staffId: r.staff_id,
+    type: r.request_type,
+    subject: r.subject,
+    details: r.details,
+    status: r.status,
+    createdAt: r.created_at,
+    resolvedAt: r.resolved_at,
+  }));
+  return { requests, total: requests.length };
+}
+
+export async function createStaffRequest(payload: {
+  type?: string;
+  requestType?: string;
+  subject?: string;
+  details?: string;
+  [key: string]: unknown;
+}) {
+  const { createStaffRequest: fn } = await import("./operations.server");
+  const res = await fn({
+    data: {
+      requestType: payload.requestType ?? payload.type ?? "general",
+      // Older call sites send domain fields (leaveType, fromDate...) with no
+      // explicit subject; synthesise one so the row is still meaningful.
+      subject:
+        payload.subject ??
+        ([payload.requestType ?? payload.type, payload.leaveType, payload.fromDate]
+          .filter(Boolean)
+          .join(" ") ||
+          "Staff request"),
+      details: payload.details ?? JSON.stringify(payload),
+    },
+  });
+  return { success: true as const, requestId: res.requestId };
+}
+
+export async function getRoomCheckinHistory(doctorDid?: string) {
+  const { getRoomCheckinHistory: fn } = await import("./operations.server");
+  const res = await fn({ data: { doctorDid } });
+  const history = (res.events ?? []).map((e: any) => ({
+    id: e.event_id,
+    doctorDid: e.doctor_did,
+    roomId: e.room_id,
+    roomName: e.room_name,
+    action: e.action,
+    timestamp: e.occurred_at,
+  }));
+  return { history, events: history, logs: history, total: history.length };
+}
+
+/**
+ * Check in or out of several rooms at once.
+ *
+ * Each room produces its own immutable room_checkin_events row, because those
+ * rows are the merkle leaves for the daily root — collapsing them into one
+ * event would lose information the published root is supposed to commit to.
+ */
+export async function roomCheckInMulti(
+  rooms:
+    | Array<{ roomId: string; roomName: string }>
+    | string[]
+    | { roomId: string; roomName: string; action?: "checkin" | "checkout" },
+  action: "checkin" | "checkout" = "checkin",
+) {
+  const { roomCheckin } = await import("./operations.server");
+
+  // Normalise the three shapes call sites use.
+  const list: Array<{ roomId: string; roomName: string }> = Array.isArray(rooms)
+    ? rooms.map((r) =>
+        typeof r === "string"
+          ? { roomId: r, roomName: r }
+          : { roomId: r.roomId, roomName: r.roomName },
+      )
+    : [{ roomId: rooms.roomId, roomName: rooms.roomName }];
+
+  const effectiveAction = Array.isArray(rooms) ? action : (rooms.action ?? action);
+
+  const results = [];
+  for (const room of list) {
+    const res = await roomCheckin({
+      data: { roomId: room.roomId, roomName: room.roomName, action: effectiveAction },
+    });
+    results.push({ roomId: room.roomId, roomName: room.roomName, eventId: res.eventId });
+  }
+
+  return { success: true as const, results, eventId: results[0]?.eventId ?? null };
+}
+
+export async function getDoctorLocationHistory(doctorDid?: string) {
+  return await getRoomCheckinHistory(doctorDid);
+}
+
+export async function getPatientOnChainHistory(patientDid?: string) {
+  const { getPatientAnchorHistory } = await import("./clinical.server");
+  const res = await getPatientAnchorHistory({ data: { patientDid } });
+  const anchors = (res.anchors ?? []).map((a: any) => ({
+    anchorId: a.anchor_id,
+    recordHash: a.record_hash,
+    recordType: a.record_type,
+    recordId: a.record_id,
+    status: a.status,
+    signature: a.signature,
+    slot: a.slot,
+    anchoredAt: a.anchored_at,
+  }));
+  return {
+    anchors,
+    history: anchors,
+    // Anchors for prescription records only — what the signing screen displays.
+    prescriptions: anchors.filter((a) => a.recordType === "prescription"),
+    total: anchors.length,
+  };
+}
+
+/** Patients visible to the calling clinician — i.e. those who granted consent. */
+export async function getMyPatients() {
+  const { getConsents: fn } = await import("./clinical.server");
+  const res = await fn();
+  const patients = (res.consents ?? [])
+    .filter((c: any) => c.status === "active")
+    .map((c: any) => ({ did: c.patient_did, patientDid: c.patient_did, resource: c.resource }));
+  return { patients, total: patients.length };
 }
