@@ -67,7 +67,8 @@ function PatientHome() {
           name: userName || "Patient",
           did: userDID,
           email: userEmail,
-          mrn: currentUser?.mrn || "MRN-ACTIVE",
+          // No fabricated MRN: an invented record number is worse than none.
+          mrn: currentUser?.mrn ?? "",
           age: currentUser?.age || 30,
           gender: currentUser?.gender || "M",
           bloodGroup: currentUser?.bloodGroup || "O+",
@@ -262,7 +263,7 @@ function PatientHome() {
                   <div>
                     <div className="text-muted-foreground">Allergies</div>
                     <div className="font-semibold text-foreground">
-                      {patientRecord.allergies.join(", ") || "None"}
+                      {patientRecord.allergies?.join(", ") || "None"}
                     </div>
                   </div>
                 </div>

@@ -346,7 +346,7 @@ function VerifyPatient() {
 
         const payload: ScannedPayload = {
           did: target.did,
-          mrn: target.mrn,
+          mrn: target.mrn ?? "",
           name: target.name,
           exp: Date.now() + 31536000000, // 1 year validity for cards
           channel: "embrace-health-channel",
@@ -442,14 +442,16 @@ function VerifyPatient() {
       return;
     }
 
+    // MRN is PHI and absent from the directory for most callers, so match only
+    // where it is actually present.
     const matched = patientsList?.find(
-      (p) => p.mrn.toLowerCase() === manualMrn.trim().toLowerCase(),
+      (p) => p.mrn?.toLowerCase() === manualMrn.trim().toLowerCase(),
     );
 
     if (matched) {
       const payload: ScannedPayload = {
         did: matched.did,
-        mrn: matched.mrn,
+        mrn: matched.mrn ?? "",
         name: matched.name,
         exp: Date.now() + 60_000,
         channel: "embrace-health-channel",

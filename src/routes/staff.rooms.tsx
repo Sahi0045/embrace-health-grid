@@ -66,7 +66,7 @@ function StaffRooms() {
 
   // ── doctor identity ──────────────────────────────────────────────────────
   const [doctorDid, setDoctorDid] = useState("");
-  const [doctorName, setDoctorName] = useState("Dr. Staff");
+  const [doctorName, setDoctorName] = useState("");
   const [didVerified, setDidVerified] = useState(false);
 
   // ── room data ────────────────────────────────────────────────────────────
@@ -98,7 +98,7 @@ function StaffRooms() {
   // ── resolve doctor identity ──────────────────────────────────────────────
   useEffect(() => {
     const email = currentUser?.email ?? "";
-    const name = currentUser?.name ?? "Dr. Staff";
+    const name = currentUser?.name ?? currentUser?.email ?? "";
     const did = currentUser?.did ?? "";
     setDoctorName(name);
     if (did) {

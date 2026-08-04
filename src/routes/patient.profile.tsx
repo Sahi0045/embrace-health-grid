@@ -114,10 +114,12 @@ function PatientProfile() {
   };
 
   const userEmail = currentUser?.email || "";
-  const patientRecord = patients?.find((p: any) => p.email === userEmail || p.id === "pat_001") || {
-    name: "",
+  // Matching p.id === "pat_001" pulled in a seeded demo patient for whoever was
+  // signed in, so one user could be shown another's name, MRN and allergies.
+  const patientRecord = patients?.find((p: any) => p.email === userEmail) || {
+    name: currentUser?.fullName ?? "",
     mrn: "",
-    did: "",
+    did: currentUser?.primaryDid ?? "",
     bloodGroup: "",
     age: 0,
     gender: "M" as const,

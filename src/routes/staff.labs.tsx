@@ -84,8 +84,8 @@ function LabsPage() {
 
   const filteredPatients = (patientsList || []).filter(
     (p) =>
-      p.name.toLowerCase().includes(patientSearch.toLowerCase()) ||
-      p.mrn.toLowerCase().includes(patientSearch.toLowerCase()),
+      p.name?.toLowerCase().includes(patientSearch.toLowerCase()) ||
+      p.mrn?.toLowerCase().includes(patientSearch.toLowerCase()),
   );
 
   const selectedPatient = (patientsList || []).find((p) => p.did === selectedPatientDid);
@@ -101,8 +101,14 @@ function LabsPage() {
     }
 
     setOrdering(true);
-    const orderedBy =
-      typeof window !== "undefined" ? (currentUser?.email ?? "") : "clinician@apollo.in";
+    // A lab order is attributable, so it must carry the real clinician, never a
+    // demo address.
+    const orderedBy = currentUser?.email ?? "";
+    if (!orderedBy) {
+      toast.error("Could not identify you — sign in again before ordering labs");
+      setOrdering(false);
+      return;
+    }
 
     try {
       await orderLab(selectedPatientDid, orderedBy, selectedTests, priority);

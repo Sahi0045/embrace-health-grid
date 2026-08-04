@@ -1389,6 +1389,18 @@ export async function getDoctors() {
   return { doctors, total: doctors.length };
 }
 
+export async function getPatientDirectory() {
+  const { getPatientDirectory: fn } = await import("./inpatient.server");
+  const res = await fn();
+  const patients = (res.patients ?? []).map((p: any) => ({
+    did: p.did,
+    name: p.owner_name,
+    email: p.email ?? undefined,
+    status: p.status,
+  }));
+  return { patients, total: patients.length };
+}
+
 export async function getVerifiedDoctors() {
   return await getDoctors();
 }

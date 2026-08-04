@@ -51,7 +51,39 @@ export function emitStoreEvent(event: string, detail?: unknown) {
   storeEvents.dispatchEvent(new CustomEvent(event, { detail }));
 }
 
+export interface LivePatient {
+  id: string;
+  did: string;
+  name: string;
+  email?: string;
+  status: string;
+  /**
+   * Directory details. Optional because the roster comes from the DID registry
+   * rather than patient PHI — they render blank rather than crashing.
+   */
+  mrn?: string;
+  age?: number;
+  gender?: string;
+  bloodGroup?: string;
+  allergies?: string[];
+  phone?: string;
+
+  /**
+   * Clinical and admission detail some views render. Not part of the directory —
+   * it lives in PHI tables behind consent — so these are optional and undefined
+   * here. Pages show blanks rather than crashing, and fetch real values through
+   * the clinical loaders when the caller is entitled to them.
+   */
+  vitals?: Record<string, unknown>;
+  conditions?: string[];
+  admitDate?: string;
+  primaryDoctor?: string;
+  organDonor?: boolean;
+  emergencyContact?: { name?: string; phone?: string; relation?: string };
+}
+
 let _staff: LiveStaff[] = [];
+let _patients: LivePatient[] = [];
 let _initialised = false;
 
 /** Current staff roster. Synchronous by design: callers render from cache. */
@@ -94,10 +126,46 @@ export async function initializeStore(): Promise<void> {
   if (_initialised) return;
   _initialised = true;
 
+  // Settled, not all: a failure loading one roster must not blank the other.
+  const results = await Promise.allSettled([loadStaff(), loadPatients()]);
+  if (results[0].status === "rejected") _staff = [];
+  if (results[1].status === "rejected") _patients = [];
+}
+
+/** Current patient directory. Synchronous by design: callers render from cache. */
+export function getLivePatients(): LivePatient[] {
+  return _patients;
+}
+
+/**
+ * Load the patient directory from Postgres.
+ *
+ * Name and DID come from the DID registry, so this is a directory rather than a
+ * PHI read; RLS still scopes what the caller sees.
+ */
+async function loadPatients(): Promise<void> {
+  const { getPatientDirectory } = await import("./api");
+  const res = await getPatientDirectory();
+
+  _patients = (res.patients ?? []).map(
+    (p: { did: string; name: string; email?: string | null; status: string }) => ({
+      id: p.did,
+      did: p.did,
+      name: p.name,
+      email: p.email ?? undefined,
+      status: p.status,
+    }),
+  );
+
+  emitStoreEvent("patients:updated", _patients);
+}
+
+/** Force a patient directory refresh. */
+export async function refreshLivePatients(): Promise<void> {
   try {
-    await loadStaff();
+    await loadPatients();
   } catch {
-    _staff = [];
+    /* keep the previous list rather than blanking the UI */
   }
 }
 

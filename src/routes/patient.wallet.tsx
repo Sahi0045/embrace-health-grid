@@ -21,7 +21,10 @@ function Wallet() {
   const { patients } = useLivePatients();
   const { user: currentUser } = useCurrentUser();
   const patient = patients?.find((p: any) => p.email === currentUser?.email);
-  const holderName = patient ? patient.name : "Anika Sharma";
+  // The holder is whoever is signed in. This used to fall back to a hardcoded
+  // demo name ("Anika Sharma") when the roster lookup missed, which put another
+  // person's name on a verifiable credential — worse than showing nothing.
+  const holderName = patient?.name ?? currentUser?.fullName ?? currentUser?.email ?? "—";
 
   const rawCredentials = credentialsData?.credentials ?? [];
 

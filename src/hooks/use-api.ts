@@ -41,12 +41,11 @@ import {
   getStaffRequests,
 } from "@/lib/api";
 
-import { getLiveStaff, storeEvents, initializeStore } from "@/lib/live-store";
+import { getLiveStaff, getLivePatients, storeEvents, initializeStore } from "@/lib/live-store";
 
-// The old store cached patients/appointments locally from a WebSocket feed.
-// Those now come from Supabase via the primary loaders, so the local caches are
-// empty and these exist only to satisfy fallback signatures.
-const getLivePatients = (): any[] => [];
+// getLivePatients now reads the real Supabase-backed directory in live-store.
+// It used to be a stub returning [], so every lookup through useLivePatients()
+// missed and pages fell back to hardcoded demo identities.
 const getLiveAppointments = (): any[] => [];
 const getWorkerConnected = (): boolean => false;
 
@@ -504,8 +503,10 @@ export function usePatientVitals(patientId: string) {
 
     const fetchVitals = async () => {
       const p = getLivePatients().find((pt) => pt.id === patientId);
-      if (p && mounted) {
-        setVitals(p.vitals);
+      // The directory carries no vitals — those arrive over Realtime from the
+      // vitals table. Only set them if a cached reading actually exists.
+      if (p?.vitals && mounted) {
+        setVitals(p.vitals as any);
         setSource("local");
       }
     };
@@ -521,7 +522,7 @@ export function usePatientVitals(patientId: string) {
     const onLocal = () => {
       if (!mounted) return;
       const p = getLivePatients().find((pt) => pt.id === patientId);
-      if (p) setVitals(p.vitals);
+      if (p?.vitals) setVitals(p.vitals as any);
     };
     storeEvents.addEventListener("vitals:update", onLocal);
 

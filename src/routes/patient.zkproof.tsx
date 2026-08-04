@@ -61,8 +61,10 @@ function PatientZkProofPage() {
   const { user: currentUser } = useCurrentUser();
   const { patients } = useLivePatients();
   const userEmail = currentUser?.email ?? "";
-  const patientRecord =
-    patients?.find((p: { email: string }) => p.email === userEmail) ?? patients?.[0];
+  // No patients?.[0] fallback: a zero-knowledge proof asserts facts about a
+  // specific person, so defaulting to whoever happens to be first would build a
+  // proof about someone else.
+  const patientRecord = patients?.find((p) => p.email === userEmail);
 
   const [claims, setClaims] = useState<ZKProofClaim[]>([]);
   const [proof, setProof] = useState<ZKProof | null>(null);

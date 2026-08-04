@@ -382,3 +382,49 @@ export const getDoctors = createServerFn({ method: "GET" }).handler(async () => 
   if (error) throw new Error(error.message);
   return { doctors: data ?? [] };
 });
+
+/**
+ * Patient directory.
+ *
+ * Reads the DID registry, not a PHI table — name and DID only, which is what a
+ * roster needs. Patient clinical data still requires consent or ownership.
+ *
+ * This exists because useLivePatients() was wired to a stub that always returned
+ * [], a leftover from the Express decommission. Twenty-two routes look people up
+ * in that list, so every lookup missed and pages fell back to hardcoded demo
+ * names.
+ */
+export const getPatientDirectory = createServerFn({ method: "GET" }).handler(async () => {
+  await requireSession();
+  const supabase = getSupabaseServerClient();
+
+  const { data, error } = await supabase
+    .from("dids")
+    .select("did, owner_name, owner_type, status")
+    .eq("owner_type", "patient")
+    .eq("status", "active");
+
+  if (error) throw new Error(error.message);
+
+  // Attach email where a profile is visible, so lookups keyed by email resolve.
+  // profiles_select_staff scopes this: a patient sees only their own row, so the
+  // list stays name-only for them.
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("primary_did, email, full_name");
+
+  const byDid = new Map((profiles ?? []).map((p) => [p.primary_did, p]));
+
+  const patients = (data ?? []).map((d) => {
+    const profile = byDid.get(d.did);
+    return {
+      did: d.did,
+      owner_name: d.owner_name,
+      owner_type: d.owner_type,
+      status: d.status,
+      email: profile?.email ?? null,
+    };
+  });
+
+  return { patients };
+});

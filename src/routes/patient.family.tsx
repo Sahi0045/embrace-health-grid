@@ -55,10 +55,14 @@ function FamilyPage() {
 
   const emergencyMember = patient?.emergencyContact?.name
     ? (() => {
+        // emergencyContact is PHI and absent from the directory, so guard it
+        // rather than dereferencing through undefined.
+        const contactName = patient.emergencyContact?.name?.toLowerCase();
+        const contactPhone = patient.emergencyContact?.phone;
         const foundFamilyPatient = patients?.find(
           (p: any) =>
-            p.name.toLowerCase() === patient.emergencyContact.name.toLowerCase() ||
-            p.phone === patient.emergencyContact.phone,
+            (contactName && p.name?.toLowerCase() === contactName) ||
+            (contactPhone && p.phone === contactPhone),
         );
         return [
           {
