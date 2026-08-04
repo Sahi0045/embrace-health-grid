@@ -45,6 +45,7 @@ import {
   getRehabSessions,
   getFeedbackList,
 } from "@/lib/api";
+import { useCurrentUser } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/patient/records")({
   head: () => ({
@@ -67,6 +68,7 @@ const docTypeIcon: Record<string, React.ComponentType<{ className?: string }>> =
 };
 
 function MedicalRecords() {
+  const { user: currentUser } = useCurrentUser();
   const [feedbackRating, setFeedbackRating] = useState(0);
   const [apiPrescriptions, setApiPrescriptions] = useState<any[]>([]);
   const [apiRecords, setApiRecords] = useState<any[]>([]);
@@ -79,7 +81,7 @@ function MedicalRecords() {
   // expanded consultation card
   const [expandedRxId, setExpandedRxId] = useState<string | null>(null);
 
-  const patientDid = typeof window !== "undefined" ? localStorage.getItem("userDID") || "" : "";
+  const patientDid = currentUser?.primaryDid ?? "";
 
   const { publicKey, signTransaction, connected } = useWallet();
   const [anchoring, setAnchoring] = useState(false);

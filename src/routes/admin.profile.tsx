@@ -17,6 +17,7 @@ import {
   Lock,
 } from "lucide-react";
 import { RouteGuard } from "@/components/RouteGuard";
+import { signOut } from "@/lib/auth.server";
 
 export const Route = createFileRoute("/admin/profile")({
   head: () => ({
@@ -67,9 +68,11 @@ const adminData = {
 
 function AdminProfile() {
   const handleLogout = () => {
-    localStorage.removeItem("userRole");
-    localStorage.removeItem("userEmail");
-    window.location.href = "/login";
+    // The session is an httpOnly cookie, so only the server can end it.
+    // Clearing localStorage left the user signed in.
+    void signOut().finally(() => {
+      window.location.href = "/login";
+    });
   };
 
   return (

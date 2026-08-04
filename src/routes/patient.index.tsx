@@ -23,6 +23,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { useCurrentUser } from "@/lib/auth-context";
+import { signOut } from "@/lib/auth.server";
 
 export const Route = createFileRoute("/patient/")({
   head: () => ({ meta: [{ title: "Patient · Home — Embrace Health Grid" }] }),
@@ -97,10 +98,10 @@ function PatientHome() {
               <Button
                 variant="outline"
                 onClick={() => {
-                  localStorage.removeItem("userRole");
-                  localStorage.removeItem("userEmail");
-                  localStorage.removeItem("userName");
-                  window.location.href = "/login";
+                  // Only the server can clear an httpOnly session cookie.
+                  void signOut().finally(() => {
+                    window.location.href = "/login";
+                  });
                 }}
               >
                 Logout / Switch Account

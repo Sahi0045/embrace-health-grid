@@ -25,6 +25,7 @@ import { useState, useEffect } from "react";
 import { usePatientVitals, useInpatientData } from "@/hooks/use-api";
 import { getBilling, getLabs } from "@/lib/api";
 import { toast } from "sonner";
+import { useCurrentUser } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/patient/inpatient")({
   head: () => ({
@@ -37,8 +38,10 @@ export const Route = createFileRoute("/patient/inpatient")({
 });
 
 function InpatientCare() {
-  const patientDid =
-    typeof window !== "undefined" ? localStorage.getItem("userDID") || "pat_001" : "pat_001";
+  const { user: currentUser } = useCurrentUser();
+  // No "pat_001" fallback: guessing an identifier would query another
+  // patient's data. An absent DID must resolve to nothing.
+  const patientDid = currentUser?.primaryDid ?? "";
   const { vitals: liveVitals } = usePatientVitals(patientDid);
   const { data: inpatientData } = useInpatientData(patientDid);
 

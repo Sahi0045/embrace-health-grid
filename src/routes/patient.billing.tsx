@@ -36,8 +36,8 @@ function PatientBilling() {
   const [billingData, setBillingData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  const patientDid = typeof window !== "undefined" ? localStorage.getItem("userDID") || "" : "";
   const { user: currentUser } = useCurrentUser();
+  const patientDid = currentUser?.primaryDid ?? "";
 
   const fetchBilling = () => {
     if (!patientDid) return;

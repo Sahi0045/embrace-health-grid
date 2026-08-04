@@ -18,36 +18,13 @@ import {
   Stethoscope,
 } from "lucide-react";
 import { toast } from "sonner";
+import { getPrescriptions, getMedicalRecords } from "@/lib/clinical.server";
+import { useTableRefresh } from "@/hooks/use-realtime";
 
 export const Route = createFileRoute("/admin/prescriptions")({
   head: () => ({ meta: [{ title: "Admin · Prescriptions — Embrace Health Grid" }] }),
   component: AdminPrescriptionsPageGuarded,
 });
-
-const API =
-  typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE_URL
-    ? `${import.meta.env.VITE_API_BASE_URL}/api`
-    : "http://localhost:3001/api";
-
-async function apiFetch<T>(path: string): Promise<T> {
-  const token = sessionStorage.getItem("authToken") || localStorage.getItem("authToken");
-  const clientKey =
-    (typeof import.meta !== "undefined" && import.meta.env?.VITE_CLIENT_KEY) ||
-    "apollo-consortium-client-secret-2026";
-  const r = await fetch(`${API}${path}`, {
-    headers: {
-      "Content-Type": "application/json",
-      "x-client-key": clientKey,
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    signal: AbortSignal.timeout(8000),
-  });
-  if (!r.ok) {
-    const e = await r.json().catch(() => ({ error: r.statusText }));
-    throw new Error(e.error ?? r.statusText);
-  }
-  return r.json();
-}
 
 const STATUS_CLS: Record<string, string> = {
   active: "bg-primary/10 text-primary",
@@ -68,15 +45,17 @@ function AdminPrescriptionsPage() {
     setLoading(true);
     try {
       // Fetch prescriptions and all medical records in parallel
+      // Server functions, so RLS applies and no bearer token touches the client.
       const [rxRes, recRes] = await Promise.all([
-        apiFetch<{ prescriptions: any[] }>("/prescriptions"),
-        apiFetch<{ records: any[] }>("/medical-records").catch(() => ({ records: [] })),
+        getPrescriptions(),
+        getMedicalRecords().catch(() => []),
       ]);
-      const sorted = (rxRes.prescriptions ?? []).sort((a: any, b: any) =>
-        (b.signedAt || "").localeCompare(a.signedAt || ""),
+      const rows = (Array.isArray(rxRes) ? rxRes : []) as any[];
+      const sorted = rows.sort((a: any, b: any) =>
+        (b.signedAt ?? b.signed_at ?? "").localeCompare(a.signedAt ?? a.signed_at ?? ""),
       );
       setPrescriptions(sorted);
-      setAllRecords(recRes.records ?? []);
+      setAllRecords((Array.isArray(recRes) ? recRes : []) as any[]);
     } catch (err: any) {
       toast.error("Could not load prescriptions", { description: err.message });
     } finally {
@@ -88,38 +67,9 @@ function AdminPrescriptionsPage() {
     load();
   }, [load]);
 
-  // Real-time WebSocket — refresh on prescription:signed OR record:created
-  useEffect(() => {
-    const wsUrl = (
-      (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE_URL) ||
-      "http://localhost:3001"
-    ).replace(/^http/, "ws");
-    let ws: WebSocket | null = null;
-    let retry: ReturnType<typeof setTimeout>;
-    const connect = () => {
-      try {
-        ws = new WebSocket(wsUrl);
-        ws.onmessage = (e) => {
-          try {
-            const msg = JSON.parse(e.data);
-            if (msg.event === "prescription:signed" || msg.event === "record:created") load();
-          } catch {
-            /* ignore */
-          }
-        };
-        ws.onclose = () => {
-          retry = setTimeout(connect, 5000);
-        };
-      } catch {
-        /* no WS */
-      }
-    };
-    connect();
-    return () => {
-      ws?.close();
-      clearTimeout(retry);
-    };
-  }, [load]);
+  // Supabase Realtime, not a socket to the retired Express server.
+  useTableRefresh("prescriptions", load);
+  useTableRefresh("medical_records", load);
 
   // Unique doctor names for filter
   const doctors = [

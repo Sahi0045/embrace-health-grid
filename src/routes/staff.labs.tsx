@@ -18,6 +18,7 @@ import { useState } from "react";
 import { useLabs, useLivePatients } from "@/hooks/use-api";
 import { orderLab } from "@/lib/api";
 import { toast } from "sonner";
+import { useCurrentUser } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/staff/labs")({
   head: () => ({ meta: [{ title: "Labs — Staff Portal" }] }),
@@ -67,6 +68,7 @@ const urgencyConfig = {
 // Lab orders sourced entirely from backend API — no local fallback
 
 function LabsPage() {
+  const { user: currentUser } = useCurrentUser();
   const [tab, setTab] = useState<"orders" | "builder">("orders");
   const [selectedTests, setSelectedTests] = useState<string[]>([]);
   const [testSearch, setTestSearch] = useState("");
@@ -100,9 +102,7 @@ function LabsPage() {
 
     setOrdering(true);
     const orderedBy =
-      typeof window !== "undefined"
-        ? localStorage.getItem("userEmail") || "clinician@apollo.in"
-        : "clinician@apollo.in";
+      typeof window !== "undefined" ? (currentUser?.email ?? "") : "clinician@apollo.in";
 
     try {
       await orderLab(selectedPatientDid, orderedBy, selectedTests, priority);

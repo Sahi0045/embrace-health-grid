@@ -106,18 +106,6 @@ export const API_BASE_URL = getApiBaseUrl();
 // ─── ZKP ──────────────────────────────────────────────────────────────────────
 
 // ─── Auth (JWT) ───────────────────────────────────────────────────────────────
-const getStoredUser = () => {
-  if (typeof window === "undefined") return null;
-  const role = localStorage.getItem("userRole");
-  const email = localStorage.getItem("userEmail");
-  const name = localStorage.getItem("userName") ?? undefined;
-  const did = localStorage.getItem("userDID") ?? undefined;
-  // Gate on sessionStorage token existing (logged-out after tab close)
-  if (!sessionStorage.getItem("authToken")) return null;
-  if (!role || !email) return null;
-  return { name: name ?? "Guest", email, role, did };
-};
-
 /** Rotate the refresh token — pass the opaque refresh token in the body. */
 
 /** Admin-only: create a staff/doctor/admin account. */

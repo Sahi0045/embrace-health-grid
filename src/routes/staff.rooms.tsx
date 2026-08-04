@@ -97,17 +97,9 @@ function StaffRooms() {
 
   // ── resolve doctor identity ──────────────────────────────────────────────
   useEffect(() => {
-    const email =
-      currentUser?.email ??
-      (typeof window !== "undefined" ? (localStorage.getItem("userEmail") ?? "") : "");
-    const name =
-      currentUser?.name ??
-      (typeof window !== "undefined"
-        ? (localStorage.getItem("userName") ?? "Dr. Staff")
-        : "Dr. Staff");
-    const did =
-      currentUser?.did ??
-      (typeof window !== "undefined" ? (localStorage.getItem("userDID") ?? "") : "");
+    const email = currentUser?.email ?? "";
+    const name = currentUser?.name ?? "Dr. Staff";
+    const did = currentUser?.did ?? "";
     setDoctorName(name);
     if (did) {
       setDoctorDid(did);

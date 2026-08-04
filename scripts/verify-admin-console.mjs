@@ -39,10 +39,32 @@ function check(label, ok, detail = "") {
   if (!ok) failures.push(label);
 }
 
-const browser = await puppeteer.launch({
-  headless: true,
-  args: ["--no-sandbox", "--disable-setuid-sandbox"],
-});
+const { existsSync } = await import("node:fs");
+
+/**
+ * Puppeteer's bundled Chrome is not always present (the cache can be pruned, and
+ * CI images vary), so fall back to a system install rather than failing the run.
+ */
+function chromeLaunchOptions(extra = {}) {
+  const candidates = [
+    process.env.PUPPETEER_EXECUTABLE_PATH,
+    process.env.CHROME_PATH,
+    "/usr/bin/google-chrome",
+    "/usr/bin/chromium",
+    "/usr/bin/chromium-browser",
+  ].filter(Boolean);
+
+  const executablePath = candidates.find((p) => existsSync(p));
+
+  return {
+    headless: true,
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    ...(executablePath ? { executablePath } : {}),
+    ...extra,
+  };
+}
+
+const browser = await puppeteer.launch(chromeLaunchOptions());
 
 /** Sign in through the real login form and return the page. */
 async function signIn(portalLabel, email) {

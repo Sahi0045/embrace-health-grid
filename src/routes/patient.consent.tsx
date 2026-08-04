@@ -31,6 +31,7 @@ import {
   RefreshCw,
   FileText,
 } from "lucide-react";
+import { useCurrentUser } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/patient/consent")({
   head: () => ({ meta: [{ title: "Patient · Consent — Embrace Health Grid" }] }),
@@ -52,14 +53,12 @@ interface ConsentRequest {
 type Tab = "active" | "requests" | "history" | "preferences";
 
 function Consent() {
+  const { user: currentUser } = useCurrentUser();
   const [tab, setTab] = useState<Tab>("active");
   const { data: consentsData, refetch } = useConsents();
 
-  // Resolve the logged-in patient's DID
-  const patientDid =
-    typeof window !== "undefined"
-      ? (localStorage.getItem("userDID") ?? "did:hosp:patient:current")
-      : "did:hosp:patient:current";
+  // The DID comes from the session, which is read from Postgres per request.
+  const patientDid = currentUser?.primaryDid ?? "";
 
   const [preferences, setPreferences] = useState<any>({
     emergencyAccess: true,

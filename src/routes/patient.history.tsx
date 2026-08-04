@@ -27,6 +27,7 @@ import {
 import { useAudit } from "@/hooks/use-api";
 import { logAuditEvent } from "@/lib/api";
 import { toast } from "sonner";
+import { useCurrentUser } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/patient/history")({
   head: () => ({ meta: [{ title: "Patient · Access History — Embrace Health Grid" }] }),
@@ -57,6 +58,7 @@ const iconBg: Record<AccessAction, string> = {
 };
 
 function History() {
+  const { user: currentUser } = useCurrentUser();
   const [query, setQuery] = useState("");
   const [actionFilter, setActionFilter] = useState<AccessAction | "all">("all");
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -64,9 +66,8 @@ function History() {
   const { data: auditData, online, loading: auditLoading, refetch } = useAudit(0);
 
   // Resolve the logged-in patient's identifiers for filtering
-  const patientDid = typeof window !== "undefined" ? (localStorage.getItem("userDID") ?? "") : "";
-  const patientEmail =
-    typeof window !== "undefined" ? (localStorage.getItem("userEmail") ?? "") : "";
+  const patientDid = currentUser?.primaryDid ?? "";
+  const patientEmail = currentUser?.email ?? "";
 
   // Map backend audit events → local format
   const auditEntries = (

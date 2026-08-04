@@ -46,6 +46,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { signOut } from "@/lib/auth.server";
 
 export const Route = createFileRoute("/staff/profile")({
   head: () => ({
@@ -269,9 +270,11 @@ function StaffProfile() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("userRole");
-    localStorage.removeItem("userEmail");
-    window.location.href = "/login";
+    // The session is an httpOnly cookie, so only the server can end it.
+    // Clearing localStorage left the user signed in.
+    void signOut().finally(() => {
+      window.location.href = "/login";
+    });
   };
 
   return (

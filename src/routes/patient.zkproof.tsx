@@ -30,6 +30,7 @@ import {
   AlertTriangle,
   ChevronRight,
 } from "lucide-react";
+import { useCurrentUser } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/patient/zkproof")({
   head: () => ({ meta: [{ title: "ZK Proof — Embrace Health Grid" }] }),
@@ -57,8 +58,9 @@ function maskValue(value: string): string {
 }
 
 function PatientZkProofPage() {
+  const { user: currentUser } = useCurrentUser();
   const { patients } = useLivePatients();
-  const userEmail = typeof window !== "undefined" ? localStorage.getItem("userEmail") : "";
+  const userEmail = currentUser?.email ?? "";
   const patientRecord =
     patients?.find((p: { email: string }) => p.email === userEmail) ?? patients?.[0];
 

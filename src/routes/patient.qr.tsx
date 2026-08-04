@@ -39,20 +39,10 @@ function simHash(str: string): string {
 function PatientQr() {
   const { patients: patientsList } = useLivePatients();
   const { user: currentUser } = useCurrentUser();
-  const userEmail =
-    currentUser?.email ||
-    (typeof window !== "undefined" ? localStorage.getItem("userEmail") || "" : "");
-  const userDid =
-    currentUser?.did ||
-    (typeof window !== "undefined"
-      ? localStorage.getItem("userDID") || localStorage.getItem("userDid") || ""
-      : "");
-  const userMrn =
-    currentUser?.mrn ||
-    (typeof window !== "undefined" ? localStorage.getItem("userMRN") || "" : "");
-  const userName =
-    currentUser?.name ||
-    (typeof window !== "undefined" ? localStorage.getItem("userName") || "" : "");
+  const userEmail = currentUser?.email ?? "";
+  const userDid = currentUser?.did ?? "";
+  const userMrn = currentUser?.mrn ?? "";
+  const userName = currentUser?.name ?? "";
 
   const matchedPatient =
     patientsList?.find((p: any) => p.email?.toLowerCase() === userEmail.toLowerCase()) ||
