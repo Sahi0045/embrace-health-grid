@@ -6,7 +6,7 @@ import { CredentialIssuerBadge } from "@/components/credentials/CredentialIssuer
 import { ShieldCheck, ShieldX, Search, TrendingUp, Eye, Award, AlertTriangle } from "lucide-react";
 import { useState } from "react";
 import type { CredentialFull, CredentialType } from "@/lib/types";
-import { useCredentials } from "@/hooks/use-api";
+import { useCredentials } from "~/lib/admin-hooks";
 
 // Type for raw credential data from the API
 interface ApiCredential {

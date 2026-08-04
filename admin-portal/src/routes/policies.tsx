@@ -7,7 +7,11 @@ import { BookLock, Search, Plus, Pencil, Archive } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { useEffect } from "react";
-import { getPolicies, createPolicy, updatePolicy } from "@/lib/api";
+import {
+  adminGetPolicies as getPolicies,
+  adminCreatePolicy as createPolicy,
+  adminUpdatePolicy as updatePolicy,
+} from "~/lib/admin-api";
 import {
   Dialog,
   DialogContent,
@@ -85,7 +89,7 @@ function PoliciesPage() {
       await updatePolicy(id, { status: newStatus });
       toast.success(`Policy updated to ${newStatus}`);
       fetchPolicies();
-      import("@/lib/api").then(({ logAuditEvent }) => {
+      import("~/lib/admin-api").then(({ adminLogAudit: logAuditEvent }) => {
         logAuditEvent(
           "admin",
           `policy:${id}`,
@@ -133,10 +137,10 @@ function PoliciesPage() {
       toast.success("Policy created in Draft status");
       setIsCreateOpen(false);
       fetchPolicies();
-      import("@/lib/api").then(({ logAuditEvent }) => {
+      import("~/lib/admin-api").then(({ adminLogAudit: logAuditEvent }) => {
         logAuditEvent(
           "admin",
-          `policy:${res.policy?.id || "new"}`,
+          `policy:${res.policyId || "new"}`,
           "create_policy",
           "success",
           "info",
@@ -166,7 +170,7 @@ function PoliciesPage() {
       toast.success("Policy description updated");
       setIsEditOpen(false);
       fetchPolicies();
-      import("@/lib/api").then(({ logAuditEvent }) => {
+      import("~/lib/admin-api").then(({ adminLogAudit: logAuditEvent }) => {
         logAuditEvent(
           "admin",
           `policy:${editingPolicy.id}`,

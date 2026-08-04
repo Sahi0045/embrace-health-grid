@@ -38,7 +38,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { logout, getCurrentUser, type AuthUser } from "@/lib/auth";
+import { adminCurrentUser, adminSignOut } from "~/lib/supabase";
 
 type Item = { title: string; url: string; icon: React.ComponentType<{ className?: string }> };
 
@@ -98,19 +98,30 @@ export function AdminSidebar() {
   const router = useRouter();
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, setUser] = useState<{
+    id: string;
+    email: string;
+    name: string;
+    role: string;
+    did: string | null;
+  } | null>(null);
 
   useEffect(() => {
-    const currentUser = getCurrentUser();
-    setUser(currentUser);
-    // If not logged in or not admin, redirect to login page (we can check route auth in route levels later)
-    if (!currentUser || currentUser.role !== "admin") {
-      router.navigate({ to: "/login" });
-    }
-  }, []);
+    // The role is read from Postgres, not from client state, so editing local
+    // storage cannot grant access. RLS enforces the boundary regardless.
+    let cancelled = false;
+    void adminCurrentUser().then((currentUser) => {
+      if (cancelled) return;
+      setUser(currentUser);
+      if (!currentUser) router.navigate({ to: "/login" });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await adminSignOut();
     router.navigate({ to: "/login" });
   };
 

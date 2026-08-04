@@ -258,6 +258,110 @@ export const recordPayment = createServerFn({ method: "POST" })
     return { ok: true as const, paymentId, status: "pending" as const };
   });
 
+// ─── Governance policies ────────────────────────────────────────────────────
+
+export const getPolicies = createServerFn({ method: "GET" }).handler(async () => {
+  await requireSession();
+  const supabase = getSupabaseServerClient();
+
+  const { data, error } = await supabase
+    .from("governance_policies")
+    .select("policy_id, name, category, status, description, updated_at")
+    .order("updated_at", { ascending: false });
+
+  if (error) throw new Error(error.message);
+  return { policies: data ?? [] };
+});
+
+/** Author a policy. RLS restricts this to admins. */
+export const createPolicy = createServerFn({ method: "POST" })
+  .validator((data: { name: string; category?: string; description?: string; status?: string }) => {
+    if (!data?.name) throw new Error("name is required");
+    return data;
+  })
+  .handler(async ({ data }) => {
+    const user = await requireSession();
+    const supabase = getSupabaseServerClient();
+
+    const policyId = `POL-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+    const { error } = await supabase.from("governance_policies").insert({
+      policy_id: policyId,
+      name: data.name,
+      category: data.category ?? null,
+      description: data.description ?? null,
+      status: (data.status as "active" | "draft" | "retired") ?? "draft",
+      updated_by: user.id,
+    });
+
+    if (error) {
+      if (/row-level security/i.test(error.message)) {
+        throw new Error("Only administrators may create a policy");
+      }
+      throw new Error(error.message);
+    }
+    return { ok: true as const, policyId };
+  });
+
+/** Amend a policy. RLS restricts this to admins. */
+export const updatePolicy = createServerFn({ method: "POST" })
+  .validator((data: { policyId: string; [key: string]: unknown }) => {
+    if (!data?.policyId) throw new Error("policyId is required");
+    return data;
+  })
+  .handler(async ({ data }) => {
+    const user = await requireSession();
+    const supabase = getSupabaseServerClient();
+
+    const patch: Record<string, unknown> = { updated_by: user.id };
+    if (data.name) patch.name = data.name;
+    if (data.category) patch.category = data.category;
+    if (data.description) patch.description = data.description;
+    if (data.status) patch.status = data.status;
+
+    const { data: updated, error } = await supabase
+      .from("governance_policies")
+      .update(patch)
+      .eq("policy_id", data.policyId)
+      .select("policy_id");
+
+    if (error) throw new Error(error.message);
+    if (!updated?.length) {
+      throw new Error("Policy not found, or you are not permitted to amend it");
+    }
+    return { ok: true as const };
+  });
+
+// ─── Fraud alerts (admin) ───────────────────────────────────────────────────
+
+/**
+ * Update an alert's investigation status. RLS restricts this to admins, since
+ * fraud alerts name a suspected actor.
+ */
+export const updateFraudAlertStatus = createServerFn({ method: "POST" })
+  .validator((data: { alertId: string; status: string }) => {
+    if (!data?.alertId || !data?.status) throw new Error("alertId and status are required");
+    return data;
+  })
+  .handler(async ({ data }) => {
+    await requireSession();
+    const supabase = getSupabaseServerClient();
+
+    const patch: Record<string, unknown> = { status: data.status };
+    if (data.status === "resolved" || data.status === "dismissed") {
+      patch.resolved_at = new Date().toISOString();
+    }
+
+    const { data: updated, error } = await supabase
+      .from("fraud_alerts")
+      .update(patch)
+      .eq("alert_id", data.alertId)
+      .select("alert_id");
+
+    if (error) throw new Error(error.message);
+    if (!updated?.length) throw new Error("Alert not found, or administrators only");
+    return { ok: true as const };
+  });
+
 // ─── Doctor directory ───────────────────────────────────────────────────────
 
 /**

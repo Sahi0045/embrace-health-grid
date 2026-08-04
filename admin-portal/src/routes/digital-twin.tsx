@@ -24,8 +24,8 @@ import {
   WifiOff,
   RefreshCw,
 } from "lucide-react";
-import { useBeds, useLivePatients, useAmbulances } from "@/hooks/use-api";
-import { getEquipment } from "@/lib/api";
+import { useBeds, useLivePatients, useAmbulances } from "~/lib/admin-hooks";
+import { adminGetEquipment as getEquipment } from "~/lib/admin-api";
 
 export const Route = createFileRoute("/digital-twin")({
   head: () => ({ meta: [{ title: "Digital Twin — Admin Console" }] }),

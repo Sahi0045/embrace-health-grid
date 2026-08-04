@@ -23,9 +23,9 @@ import {
   Wifi,
   WifiOff,
 } from "lucide-react";
-import { useAudit } from "@/hooks/use-api";
+import { useAudit } from "~/lib/admin-hooks";
 import { toast } from "sonner";
-import { logAuditEvent } from "@/lib/api";
+import { adminLogAudit as logAuditEvent } from "~/lib/admin-api";
 
 export const Route = createFileRoute("/audit")({
   head: () => ({ meta: [{ title: "Admin · Audit Logs — Embrace Health Grid" }] }),

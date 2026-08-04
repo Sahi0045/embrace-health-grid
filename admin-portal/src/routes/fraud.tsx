@@ -27,9 +27,34 @@ import {
   Zap,
 } from "lucide-react";
 import { stagger, fadeUp } from "@/components/Motion";
-import { useFraudAlerts, useAudit, useDIDs } from "@/hooks/use-api";
+import { useFraudAlerts, useAudit, useDIDs } from "~/lib/admin-hooks";
 import { toast } from "sonner";
-import { raiseFraudAlert, logAuditEvent, updateFraudAlertStatus } from "@/lib/api";
+import {
+  adminLogAudit as logAuditEvent,
+  adminUpdateFraudAlertStatus as updateFraudAlertStatus,
+} from "~/lib/admin-api";
+
+/**
+ * Fraud alerts are created by server-side detection: fraud_alerts has no client
+ * INSERT policy, so an actor can neither fabricate an alert against someone else
+ * nor suppress one against themselves. The console records the request in the
+ * audit trail instead.
+ */
+async function raiseFraudAlert(
+  actor: string,
+  alertType: string,
+  message: string,
+  severity?: string,
+  riskScore?: number,
+) {
+  return await logAuditEvent({
+    action: "FRAUD_ALERT_RAISED",
+    resource: actor,
+    outcome: "success",
+    severity: severity === "critical" ? "critical" : "warning",
+    metadata: { alertType, message, riskScore },
+  });
+}
 import {
   Dialog,
   DialogContent,

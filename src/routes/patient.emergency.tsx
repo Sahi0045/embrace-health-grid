@@ -352,18 +352,20 @@ function EmergencyPage() {
                   </button>
                 </div>
                 <div className="space-y-2">
-                  {criticalConditionsList.map((c) => (
-                    <div
-                      key={c.label}
-                      className="flex items-center justify-between rounded-lg bg-muted px-3 py-2"
-                    >
-                      <div>
-                        <div className="text-sm font-medium text-foreground">{c.label}</div>
-                        <div className="text-[11px] text-muted-foreground">{c.since}</div>
+                  {criticalConditionsList.map(
+                    (c: { label: string; severity: string; since?: string }) => (
+                      <div
+                        key={c.label}
+                        className="flex items-center justify-between rounded-lg bg-muted px-3 py-2"
+                      >
+                        <div>
+                          <div className="text-sm font-medium text-foreground">{c.label}</div>
+                          <div className="text-[11px] text-muted-foreground">{c.since}</div>
+                        </div>
+                        <SeverityBadge severity={c.severity} />
                       </div>
-                      <SeverityBadge severity={c.severity} />
-                    </div>
-                  ))}
+                    ),
+                  )}
                   {criticalConditionsList.length === 0 && (
                     <div className="py-6 text-center text-sm text-muted-foreground">
                       No documented critical conditions
@@ -395,7 +397,7 @@ function EmergencyPage() {
                         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold shrink-0">
                           {ec.name
                             .split(" ")
-                            .map((w) => w[0])
+                            .map((w: string) => w[0])
                             .slice(0, 2)
                             .join("")}
                         </div>

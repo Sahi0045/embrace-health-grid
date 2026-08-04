@@ -9,8 +9,6 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { convexClient, isConvexConfigured } from "@/lib/convex-client";
-import { api } from "../../convex/_generated/api";
 import {
   getStats,
   getAuditEvents,
@@ -43,14 +41,14 @@ import {
   getStaffRequests,
 } from "@/lib/api";
 
-import {
-  getLivePatients,
-  getLiveStaff,
-  getLiveAppointments,
-  storeEvents,
-  initializeStore,
-  getWorkerConnected,
-} from "@/lib/realtime-store";
+import { getLiveStaff, storeEvents, initializeStore } from "@/lib/live-store";
+
+// The old store cached patients/appointments locally from a WebSocket feed.
+// Those now come from Supabase via the primary loaders, so the local caches are
+// empty and these exist only to satisfy fallback signatures.
+const getLivePatients = (): any[] => [];
+const getLiveAppointments = (): any[] => [];
+const getWorkerConnected = (): boolean => false;
 
 // ─── WebSocket singleton ──────────────────────────────────────────────────────
 const _wsListeners: Map<string, Set<(data: unknown) => void>> = new Map();
@@ -97,7 +95,11 @@ function useApiData<T>(
   fallbackFn: () => T,
   wsEvent?: string,
   deps: unknown[] = [],
-  convexQueryInfo?: { query: any; args?: any; mapFn?: (data: any) => T },
+  /**
+   * Retained so the ~16 existing call sites still compile. Convex has been
+   * removed; the primary loader now queries Supabase, so this is ignored.
+   */
+  _legacyConvexQuery?: { query?: unknown; args?: unknown; mapFn?: (data: unknown) => T },
 ): ApiResult<T> {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
@@ -109,26 +111,12 @@ function useApiData<T>(
     setLoading(true);
     setError(null);
     try {
-      const serverOnline = await isOnline();
-      if (serverOnline) {
-        let res;
-        if (isConvexConfigured() && convexQueryInfo) {
-          try {
-            const raw = await convexClient.query(convexQueryInfo.query, convexQueryInfo.args || {});
-            res = convexQueryInfo.mapFn ? convexQueryInfo.mapFn(raw) : (raw as unknown as T);
-          } catch (convexErr) {
-            console.warn("[useApi] Convex query failed, falling back to REST:", convexErr);
-            res = await fetchFn();
-          }
-        } else {
-          res = await fetchFn();
-        }
-        if (mountedRef.current) {
-          setData(res);
-          setOnline(true);
-        }
-      } else {
-        throw new Error("Server offline");
+      // Supabase is the only backend now: no reachability pre-check, and no
+      // Convex fallback. A query either succeeds or the fallback data renders.
+      const res = await fetchFn();
+      if (mountedRef.current) {
+        setData(res);
+        setOnline(true);
       }
     } catch (err) {
       if (mountedRef.current) {
@@ -210,7 +198,6 @@ export function useLedger(page = 0) {
 // ─── DID Registry ─────────────────────────────────────────────────────────────
 export function useDIDs() {
   return useApiData(getAllDIDs, () => ({ dids: [] as any[], total: 0 }), "did:created", [], {
-    query: api.records.getDIDs,
     mapFn: (raw: any) => ({ dids: raw, total: raw.length }),
   });
 }
@@ -221,10 +208,6 @@ export function useNFCCards() {
     () => ({ entries: [] as any[] }),
     "nfc:updated",
     [],
-    {
-      query: api.records.getAllGenericWorldState,
-      args: { namespace: "nfc-cards" },
-    },
   );
 }
 
@@ -235,10 +218,6 @@ export function useCredentials() {
     () => ({ credentials: [] as any[], total: 0 }),
     "credential:issued",
     [],
-    {
-      query: api.records.getCredentials,
-      mapFn: (raw: any) => ({ credentials: raw, total: raw.length }),
-    },
   );
 }
 
@@ -249,10 +228,6 @@ export function useConsents() {
     () => ({ consents: [] as any[], total: 0 }),
     "consent:granted",
     [],
-    {
-      query: api.records.getConsents,
-      mapFn: (raw: any) => ({ consents: raw, total: raw.length }),
-    },
   );
 }
 
@@ -263,10 +238,6 @@ export function useAudit(page = 0) {
     () => ({ events: [] as any[], total: 0 }),
     "audit:logged",
     [page],
-    {
-      query: api.records.getAuditEvents,
-      mapFn: (raw: any) => ({ events: raw, total: raw.length }),
-    },
   );
 }
 
@@ -343,7 +314,6 @@ export function useDoctorAppointments() {
 // ─── Beds ─────────────────────────────────────────────────────────────────────
 export function useBeds() {
   return useApiData(getBeds, () => ({ beds: [] as any[], total: 0 }), "bed:updated", [], {
-    query: api.records.getBeds,
     mapFn: (raw: any) => ({ beds: raw, total: raw.length }),
   });
 }
@@ -368,20 +338,6 @@ export function useTracker() {
     },
     "staff:location",
     [],
-    {
-      query: api.records.getStaff,
-      mapFn: (raw: any) => ({
-        tracker: [] as any[],
-        entries: [] as any[],
-        staff: raw.map((s: any) => ({
-          staffId: s.staffId,
-          name: s.name,
-          location: s.currentLocation || "unknown",
-          lastPing: s.lastSignal || new Date().toISOString(),
-          beacon: s.beaconStrength || "unknown",
-        })),
-      }),
-    },
   );
 }
 
@@ -392,11 +348,6 @@ export function useFraudAlerts() {
     () => ({ alerts: [] as any[], total: 0 }),
     "fraud:detected",
     [],
-    {
-      query: api.records.getAllGenericWorldState,
-      args: { namespace: "fraud-alerts" },
-      mapFn: (raw: any) => ({ alerts: raw.map((e: any) => e.value), total: raw.length }),
-    },
   );
 }
 
@@ -407,17 +358,12 @@ export function usePrescriptions() {
     () => ({ prescriptions: [] as any[], total: 0 }),
     "prescription:signed",
     [],
-    {
-      query: api.records.getPrescriptions,
-      mapFn: (raw: any) => ({ prescriptions: raw, total: raw.length }),
-    },
   );
 }
 
 // ─── Labs (staff overview) ──────────────────────────────────────────────────────
 export function useLabs() {
   return useApiData(getAllLabs, () => ({ labs: [] as any[], total: 0 }), "lab:ordered", [], {
-    query: api.records.getAllGenericWorldState,
     args: { namespace: "labs" },
     mapFn: (raw: any) => ({ labs: raw.map((e: any) => e.value), total: raw.length }),
   });
@@ -596,16 +542,6 @@ export function useInsuranceClaims(patientDid?: string) {
     () => ({ claims: [] as any[], total: 0 }),
     "insurance:claimed",
     [patientDid],
-    {
-      query: api.records.getAllGenericWorldState,
-      args: { namespace: "insurance-claims" },
-      mapFn: (raw: any) => {
-        const filtered = raw
-          .map((d: any) => d.value)
-          .filter((c: any) => !patientDid || c.patientDid === patientDid);
-        return { claims: filtered, total: filtered.length };
-      },
-    },
   );
 }
 
@@ -616,23 +552,12 @@ export function useVaccineRecords(patientDid: string) {
     () => ({ vaccines: [] as any[], total: 0 }),
     "vaccine:recorded",
     [patientDid],
-    {
-      query: api.records.getAllGenericWorldState,
-      args: { namespace: "vaccines" },
-      mapFn: (raw: any) => {
-        const filtered = raw
-          .map((d: any) => d.value)
-          .filter((v: any) => v.patientDid === patientDid);
-        return { vaccines: filtered, total: filtered.length };
-      },
-    },
   );
 }
 
 // ─── Doctors ──────────────────────────────────────────────────────────────
 export function useDoctors() {
   return useApiData(getDoctors, () => ({ doctors: [] as any[], total: 0 }), "did:created", [], {
-    query: api.records.getStaff,
     mapFn: (raw: any) => {
       const docs = raw.filter((s: any) => s.role === "doctor" || s.role === "staff");
       return { doctors: docs, total: docs.length };
@@ -646,26 +571,18 @@ export function useInpatientData(patientDid: string) {
     () => fetchInpatientData(patientDid),
     () => ({
       admission: null,
+      procedures: [] as any[],
       medications: [] as any[],
       nursingNotes: [] as any[],
+      dailyCheckups: [] as any[],
+      dietOrders: [] as any[],
+      rehabSessions: [] as any[],
       checkups: [] as any[],
-      procedures: [] as any[],
       dietOrder: null,
       vitalSigns: [] as any[],
     }),
     undefined,
     [patientDid],
-    {
-      query: api.records.getAllGenericWorldState,
-      args: { namespace: "admissions" }, // we will query generic namespaces
-      mapFn: (raw: any) => {
-        // Fallback or dynamic fetch directly inside query mapping is harder since we need multiple namespaces.
-        // We will fetch from REST for the composite inpatient profile, but we can sync the sub-collections if needed.
-        // For simplicity and correctness, the inpatient dashboard can keep its REST fallback.
-        // However, we can map the single admission object if needed.
-        return fetchInpatientData(patientDid) as any;
-      },
-    },
   );
 }
 
@@ -676,18 +593,12 @@ export function useAmbulances() {
     () => ({ ambulances: [] as any[], total: 0 }),
     "ambulance:updated",
     [],
-    {
-      query: api.records.getAllGenericWorldState,
-      args: { namespace: "ambulances" },
-      mapFn: (raw: any) => ({ ambulances: raw.map((e: any) => e.value), total: raw.length }),
-    },
   );
 }
 
 // ─── Equipment ────────────────────────────────────────────────────────────
 export function useEquipment() {
   return useApiData(getEquipment, () => ({ equipment: [] as any[], total: 0 }), undefined, [], {
-    query: api.records.getAllGenericWorldState,
     args: { namespace: "equipment" },
     mapFn: (raw: any) => ({ equipment: raw.map((e: any) => e.value), total: raw.length }),
   });

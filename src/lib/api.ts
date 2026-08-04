@@ -870,6 +870,13 @@ export async function getNamespace(namespace: string) {
         })),
       };
     }
+    case "billing": {
+      const res = await getBilling();
+      return {
+        entries: (res.payments ?? []).map((p: any) => ({ key: p.payment_id, value: p })),
+        payments: res.payments ?? [],
+      };
+    }
     case "visitors": {
       const res = await getVisitors();
       return {
@@ -1233,6 +1240,11 @@ export async function getInpatientData(_did?: string) {
     dailyCheckups: d.dailyCheckups ?? [],
     dietOrders: d.dietOrders ?? [],
     rehabSessions: d.rehabSessions ?? [],
+    // Legacy aliases the inpatient screens still read.
+    checkups: d.dailyCheckups ?? [],
+    dietOrder: (d.dietOrders ?? [])[0] ?? null,
+    // Vitals arrive via Realtime (useLiveVitals), not this snapshot.
+    vitalSigns: [] as any[],
   };
 }
 
@@ -1476,6 +1488,7 @@ export async function createDID(
   ownerTypeArg?: string,
   _publicKey?: string,
   _email?: string,
+  _extraFields?: unknown,
 ) {
   // Legacy positional form: createDID(ownerName, ownerType).
   const ownerName = typeof arg1 === "string" ? arg1 : String(arg1.ownerName ?? arg1.owner ?? "");
@@ -1652,4 +1665,78 @@ export async function recordPayment(payload: {
   [key: string]: unknown;
 }) {
   return await payBill(payload);
+}
+
+// ─── Governance policies + fraud alert writes (admin surface) ───────────────
+
+export async function getPolicies() {
+  const { getPolicies: fn } = await import("./inpatient.server");
+  const res = await fn();
+  const policies = (res.policies ?? []).map((p: any) => ({
+    id: p.policy_id,
+    policyId: p.policy_id,
+    name: p.name,
+    category: p.category,
+    status: p.status,
+    description: p.description,
+    updatedAt: p.updated_at,
+  }));
+  return { policies, total: policies.length };
+}
+
+export async function createPolicy(data: {
+  name: string;
+  category?: string;
+  description?: string;
+  status?: string;
+  [key: string]: unknown;
+}) {
+  const { createPolicy: fn } = await import("./inpatient.server");
+  const res = await fn({ data });
+  return { success: true as const, policyId: res.policyId, policy: { ...data, id: res.policyId } };
+}
+
+export async function updatePolicy(
+  arg1: string | { policyId: string; [key: string]: unknown },
+  patch?: Record<string, unknown>,
+) {
+  const { updatePolicy: fn } = await import("./inpatient.server");
+  const payload = typeof arg1 === "string" ? { policyId: arg1, ...(patch ?? {}) } : arg1;
+  await fn({ data: payload as { policyId: string } });
+  return { success: true as const, policy: payload };
+}
+
+export async function updateFraudAlertStatus(alertId: string, status: string) {
+  const { updateFraudAlertStatus: fn } = await import("./inpatient.server");
+  await fn({ data: { alertId, status } });
+  return { success: true as const, alert: { alertId, status } };
+}
+
+/**
+ * Raise a fraud alert.
+ *
+ * Detection is a server-side concern: fraud_alerts has no client INSERT policy,
+ * so an actor cannot fabricate an alert against someone else — nor suppress one
+ * against themselves. Recorded in the audit trail instead, where an admin can
+ * review it.
+ */
+export async function raiseFraudAlert(
+  actor: string,
+  alertType: string,
+  message: string,
+  severity?: string,
+  _riskScore?: number,
+) {
+  await logAuditEvent({
+    action: "FRAUD_ALERT_RAISED",
+    resource: actor,
+    outcome: "success",
+    severity: severity === "critical" ? "critical" : "warning",
+    metadata: { alertType, message, reportedActor: actor },
+  });
+  return {
+    success: true as const,
+    recorded: true,
+    reason: "Recorded in the audit trail; alert creation is performed by server-side detection",
+  };
 }

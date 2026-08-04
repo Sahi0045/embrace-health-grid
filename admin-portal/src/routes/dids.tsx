@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
-import { useDIDs } from "@/hooks/use-api";
-import { createDID } from "@/lib/api";
+import { useDIDs } from "~/lib/admin-hooks";
+import { adminCreateDID as createDID } from "~/lib/admin-api";
 import { Plus, Upload, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import {

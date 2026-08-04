@@ -5,7 +5,16 @@
  */
 
 import { useState, useEffect } from "react";
-import { API_BASE_URL } from "@/lib/api";
+/**
+ * Read the base URL from env rather than importing it from @/lib/api.
+ *
+ * api.ts now delegates to TanStack Start server functions. The admin portal is a
+ * Vite SPA that also consumes this hook, and importing that chain pulls
+ * @tanstack/start-server-core into a browser bundle, breaking the build.
+ */
+const API_BASE_URL =
+  (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE_URL) ||
+  "http://localhost:3001";
 import {
   addNotification,
   getNotifications,
@@ -72,7 +81,7 @@ function handleNotifWsEvent(event: string) {
   }
 }
 
-import { storeEvents } from "@/lib/realtime-store";
+import { storeEvents } from "@/lib/live-store";
 
 function initNotifWebSocket() {
   if (typeof window === "undefined" || _wsInitialized) return;

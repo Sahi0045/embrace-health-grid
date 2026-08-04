@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { initializeStore } from "@/lib/realtime-store";
+import { initializeStore } from "@/lib/live-store";
 
 export function AppInitializer({ children }: { children: ReactNode }) {
   const [isReady, setIsReady] = useState(false);

@@ -27,9 +27,9 @@ import {
 import { DIDBadge } from "@/components/did/DIDBadge";
 import { DIDStatusChip } from "@/components/did/DIDStatusChip";
 import { useState, useEffect } from "react";
-import { getUsers, createDID } from "@/lib/api";
+import { adminGetProfiles as getUsers, adminCreateDID as createDID } from "~/lib/admin-api";
 import { toast } from "sonner";
-import { useLivePatients, useLiveStaff } from "@/hooks/use-api";
+import { useLivePatients, useLiveStaff } from "~/lib/admin-hooks";
 import {
   Dialog,
   DialogContent,
@@ -359,7 +359,7 @@ function PeopleManagement() {
                           Allergies
                         </div>
                         <div className="flex flex-wrap gap-1">
-                          {patient.allergies.map((allergy, idx) => (
+                          {(patient.allergies ?? []).map((allergy: string, idx: number) => (
                             <Badge key={idx} variant="destructive" className="text-xs">
                               {allergy}
                             </Badge>
@@ -372,7 +372,7 @@ function PeopleManagement() {
                       <div className="mt-3">
                         <div className="mb-1 text-sm font-medium">Chronic Conditions</div>
                         <div className="flex flex-wrap gap-1">
-                          {patient.conditions.map((condition, idx) => (
+                          {(patient.conditions ?? []).map((condition: string, idx: number) => (
                             <Badge key={idx} variant="secondary" className="text-xs">
                               {condition}
                             </Badge>

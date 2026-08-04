@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useCallback } from "react";
 import { RouteGuard } from "@/components/RouteGuard";
 import { PageHeader } from "@/components/PageHeader";
-import { getLiveStaff, storeEvents } from "@/lib/realtime-store";
+import { getLiveStaff, storeEvents } from "@/lib/live-store";
 import { dispatchPagerNotify, getAllDIDs, getDoctors, getDoctorLocationHistory } from "@/lib/api";
 import { MapPin, Search, Send, Activity, Building2, X, History } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
