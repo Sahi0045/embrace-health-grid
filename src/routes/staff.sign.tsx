@@ -519,9 +519,7 @@ function SignPage() {
   // ── does the selected patient have a confirmed appointment? ──────────────
   const hasConfirmedAppt = useMemo(() => {
     if (!selectedPatient) return false;
-    return (selectedPatient.appointments ?? []).some(
-      (a: any) => a.status === "confirmed" || a.status === "accepted",
-    );
+    return (selectedPatient.appointments ?? []).some((a: any) => a.status === "confirmed");
   }, [selectedPatient]);
 
   // ── join prescriptions with their linked reports ──────────────────────────

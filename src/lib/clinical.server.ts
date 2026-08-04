@@ -133,7 +133,9 @@ export const getAppointments = createServerFn({ method: "GET" }).handler(async (
 
   const { data, error } = await supabase
     .from("appointments")
-    .select("appt_id, patient_did, doctor_did, slot, mode, specialty, status, reason, booked_at")
+    .select(
+      "appt_id, patient_did, doctor_did, slot, mode, specialty, status, reason, booked_at, suggested_slot",
+    )
     .order("booked_at", { ascending: false });
 
   if (error) throw new Error(error.message);
@@ -458,18 +460,73 @@ export const updateOwnProfile = createServerFn({ method: "POST" })
   });
 
 /** Confirm, reschedule or cancel an appointment. RLS limits it to both parties. */
+/**
+ * status is a Postgres enum, so a label it does not contain fails the write
+ * outright. The UI speaks in verbs ("accept"), the database in states
+ * ("confirmed"); translate here rather than letting either side leak into the
+ * other. Confirming an appointment used to fail with
+ * `invalid input value for enum appt_status: "accepted"`.
+ */
+const APPT_STATUS_ALIASES: Record<string, string> = {
+  accept: "confirmed",
+  accepted: "confirmed",
+  reject: "rejected",
+  decline: "rejected",
+  declined: "rejected",
+  suggest: "suggested",
+  reschedule: "suggested",
+  cancel: "cancelled",
+  canceled: "cancelled",
+  complete: "completed",
+};
+
+/** Every label the appt_status enum actually accepts. */
+const APPT_STATUSES = new Set([
+  "pending",
+  "confirmed",
+  "rejected",
+  "rescheduled",
+  "cancelled",
+  "completed",
+  "suggested",
+]);
+
 export const updateAppointmentStatus = createServerFn({ method: "POST" })
-  .validator((data: { apptId: string; status: string; reason?: string }) => {
-    if (!data?.apptId || !data?.status) throw new Error("apptId and status are required");
-    return data;
-  })
+  .validator(
+    (data: { apptId: string; status: string; reason?: string; suggestedSlot?: string }) => {
+      if (!data?.apptId || !data?.status) throw new Error("apptId and status are required");
+      return data;
+    },
+  )
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();
 
+    const raw = String(data.status).toLowerCase();
+    const status = APPT_STATUS_ALIASES[raw] ?? raw;
+
+    if (!APPT_STATUSES.has(status)) {
+      throw new Error(`Unknown appointment status: ${data.status}`);
+    }
+
+    const patch: Record<string, unknown> = {
+      status,
+      reason: data.reason ?? null,
+      updated_at: new Date().toISOString(),
+    };
+
+    // A proposed time is kept separate from the agreed one: until the patient
+    // accepts, the slot they originally requested is still the booked time.
+    if (status === "suggested") {
+      if (!data.suggestedSlot) {
+        throw new Error("A suggested time is required when proposing a reschedule");
+      }
+      patch.suggested_slot = data.suggestedSlot;
+    }
+
     const { data: updated, error } = await supabase
       .from("appointments")
-      .update({ status: data.status, reason: data.reason ?? null })
+      .update(patch)
       .eq("appt_id", data.apptId)
       .select("appt_id");
 

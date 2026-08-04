@@ -46,7 +46,14 @@ interface Appointment {
   mode: "in-person" | "tele";
   specialty: string;
   reason: string;
-  status: "pending" | "confirmed" | "rejected" | "cancelled" | "suggested";
+  status:
+    | "pending"
+    | "confirmed"
+    | "rejected"
+    | "cancelled"
+    | "suggested"
+    | "rescheduled"
+    | "completed";
   notes?: string;
   suggestedSlot?: string;
   bookedAt: string;
@@ -84,7 +91,9 @@ function ActionModal({
     }
     setBusy(true);
     try {
-      const statusMap = { accept: "accepted", reject: "rejected", suggest: "suggested" } as const;
+      // Verbs, not enum labels — the server maps these to appt_status. Sending
+      // "accepted" failed: the enum has "confirmed".
+      const statusMap = { accept: "accept", reject: "reject", suggest: "suggest" } as const;
       await updateAppointmentStatus(
         appt.apptId,
         statusMap[action],

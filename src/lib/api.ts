@@ -942,10 +942,12 @@ export async function updateAppointmentStatus(
   apptId: string,
   status: string,
   reason?: string,
-  _suggestedSlot?: string,
+  suggestedSlot?: string,
 ) {
   const { updateAppointmentStatus: fn } = await import("./clinical.server");
-  await fn({ data: { apptId, status, reason } });
+  // suggestedSlot was accepted and then dropped, so a proposed time never
+  // reached the database and the patient saw nothing.
+  await fn({ data: { apptId, status, reason, suggestedSlot } });
   return { success: true as const };
 }
 
