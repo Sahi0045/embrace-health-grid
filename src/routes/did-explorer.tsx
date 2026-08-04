@@ -119,7 +119,8 @@ function DIDExplorerPage() {
   const { data: didsData } = useDIDs();
   const { data: auditData } = useAudit();
   const { data: nfcCardsData, refetch: refetchNFCCards } = useNFCCards();
-  const nfcCards = nfcCardsData || [];
+  // useNFCCards now returns { entries: [...] } from Postgres.
+  const nfcCards = nfcCardsData?.entries ?? [];
 
   const patientCardEntry = selected
     ? nfcCards.find((c: any) => c.value?.patientDid === selected.did)

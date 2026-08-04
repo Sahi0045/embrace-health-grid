@@ -170,12 +170,24 @@ export function useStats() {
   return useApiData(
     getStats,
     () => ({
+      didCount: 0,
+      credentialCount: 0,
+      anchorCount: 0,
+      merkleRootCount: 0,
+      recordCount: 0,
+      auditCount: 0,
+      latestSlot: null as number | null,
+      lastAnchoredAt: null as string | null,
       blockHeight: 0,
       txCount: 0,
       peerCount: 0,
+      nodesCountUp: 0,
+      nodesCountTotal: 0,
       worldStateSize: 0,
       throughputTps: 0,
       lastBlockTime: new Date().toISOString(),
+      latencyMs: 0,
+      complianceScore: 0,
     }),
     "*",
   );
@@ -206,7 +218,7 @@ export function useDIDs() {
 export function useNFCCards() {
   return useApiData(
     () => getNamespace("nfc-cards"),
-    () => [] as any[],
+    () => ({ entries: [] as any[] }),
     "nfc:updated",
     [],
     {
@@ -343,6 +355,8 @@ export function useTracker() {
     () => {
       const staff = getLiveStaff();
       return {
+        tracker: [] as any[],
+        entries: [] as any[],
         staff: staff.map((s) => ({
           staffId: s.id,
           name: s.name,
@@ -357,6 +371,8 @@ export function useTracker() {
     {
       query: api.records.getStaff,
       mapFn: (raw: any) => ({
+        tracker: [] as any[],
+        entries: [] as any[],
         staff: raw.map((s: any) => ({
           staffId: s.staffId,
           name: s.name,

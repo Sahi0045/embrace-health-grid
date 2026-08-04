@@ -65,7 +65,7 @@ function StaffVisitors() {
       const allDids = (patientsList || []).map((p) => p.did).filter(Boolean);
       if (allDids.length === 0) {
         const data = await getNamespace("visitors");
-        const list = (data || []).map((entry: any) => entry.value) as Visitor[];
+        const list = (data.entries ?? []).map((entry: any) => entry.value) as Visitor[];
         setVisitors(list);
       } else {
         const { getVisitors } = await import("@/lib/api");

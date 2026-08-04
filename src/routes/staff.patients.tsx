@@ -91,7 +91,8 @@ function Patients() {
   const { user: currentUser } = useCurrentUser();
   const isAdmin = currentUser?.role === "admin";
   const { data: nfcCardsData, refetch: refetchNFCCards } = useNFCCards();
-  const nfcCards = nfcCardsData || [];
+  // useNFCCards now returns { entries: [...] } from Postgres.
+  const nfcCards = nfcCardsData?.entries ?? [];
   const { data: appointmentsData } = useAppointments();
   const allAppointments = appointmentsData?.appointments ?? [];
 

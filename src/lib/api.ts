@@ -26,40 +26,12 @@ const getApiBaseUrl = (): string => {
 export const API_BASE_URL = getApiBaseUrl();
 const API = `${API_BASE_URL}/api`;
 
+// Legacy online-check state, retained only so historical references compile.
+// The real check is isBackendOnline() below, which queries Postgres.
 let _serverOnline: boolean | null = null;
 let _lastCheck = 0;
-
-export async function isBackendOnline(): Promise<boolean> {
-  const now = Date.now();
-  if (_serverOnline !== null && now - _lastCheck < 10000) return _serverOnline;
-  try {
-    const r = await fetch(`${API_BASE_URL}/health`, { signal: AbortSignal.timeout(1000) });
-    _serverOnline = r.ok;
-  } catch {
-    _serverOnline = false;
-  }
-  _lastCheck = now;
-  return _serverOnline;
-}
-
-export function resetBackendCache() {
-  _serverOnline = null;
-  _lastCheck = 0;
-}
-
-export const getStats = () =>
-  apiFetch<{
-    blockHeight: number;
-    txCount: number;
-    peerCount: number;
-    nodesCountUp: number;
-    nodesCountTotal: number;
-    worldStateSize: number;
-    throughputTps: number;
-    lastBlockTime: string;
-    latencyMs: number;
-    complianceScore: number;
-  }>("/stats");
+void _serverOnline;
+void _lastCheck;
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   // Import token from auth module — reads sessionStorage (not raw localStorage)
@@ -520,15 +492,11 @@ export const seedTracker = (staff: Array<{ id: string; location?: string }>) =>
     body: JSON.stringify({ staff }),
   });
 
-export const getTracker = () => apiFetch<{ staff: any[] }>(`/tracker`);
-
 export const getDoctorLocationHistory = (doctorDid: string) =>
   apiFetch<{ logs: any[] }>(`/doctor/location-history/${encodeURIComponent(doctorDid)}`);
 
 // ─── World State ──────────────────────────────────────────────────────────────
 export const getWorldState = () => apiFetch<Record<string, unknown>>(`/worldstate`);
-
-export const getNamespace = (namespace: string) => apiFetch<any[]>(`/worldstate/${namespace}`);
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 export const signup = (data: { name: string; email: string; role: string; password?: string }) =>
@@ -633,17 +601,6 @@ export const updateProfile = (data: {
     body: JSON.stringify(data),
   });
 
-export const getUsers = () =>
-  apiFetch<{
-    users: Array<{
-      name: string;
-      email: string;
-      role: string;
-      did?: string | null;
-      createdAt: string;
-    }>;
-  }>(`/auth/users`);
-
 // ─── Notifications ────────────────────────────────────────────────────────────
 export const getNotifications = () =>
   apiFetch<{ notifications: any[]; unreadCount: number }>(`/notifications`);
@@ -687,9 +644,6 @@ const getStoredUser = () => {
   if (!role || !email) return null;
   return { name: name ?? "Guest", email, role, did };
 };
-
-export const getMe = () =>
-  apiFetch<{ user: { name: string; email: string; role: string; did?: string } }>(`/auth/me`);
 
 /** Rotate the refresh token — pass the opaque refresh token in the body. */
 export const refreshToken = (rt: string) =>
@@ -1489,4 +1443,133 @@ export async function getVitals(_did?: string) {
   // Vitals are delivered by Realtime subscription (useLiveVitals); this shim
   // exists only so legacy call sites keep compiling until they are converted.
   return { vitals: [] as any[] };
+}
+
+// ─── Platform / infrastructure (task 2 migration) ───────────────────────────
+// These previously talked to Express on :3001, which does not exist in
+// production. They now resolve against Postgres.
+
+/**
+ * Backend reachability. The old version pinged Express /health; this does a
+ * trivial Postgres round trip instead.
+ */
+export async function isBackendOnline(): Promise<boolean> {
+  try {
+    const { getPlatformHealth } = await import("./clinical.server");
+    const res = await getPlatformHealth();
+    return res.online;
+  } catch {
+    return false;
+  }
+}
+
+/** No-op retained for call-site compatibility; there is no cache to reset. */
+export function resetBackendCache() {
+  /* intentionally empty */
+}
+
+/**
+ * Dashboard counters.
+ *
+ * The Express getStats() returned hardcoded mock data — the README listed that
+ * as a known issue. These are real counts, RLS-scoped to the caller.
+ * blockHeight/txCount/peerCount are mapped from chain anchoring data so the
+ * existing widgets keep rendering.
+ */
+export async function getStats() {
+  const { getPlatformStats } = await import("./clinical.server");
+  const s = await getPlatformStats();
+  return {
+    blockHeight: s.latestSlot ?? 0,
+    txCount: s.anchorCount,
+    peerCount: s.didCount,
+    nodesCountUp: s.merkleRootCount,
+    nodesCountTotal: s.merkleRootCount,
+    worldStateSize: s.recordCount,
+    throughputTps: 0,
+    lastBlockTime: s.lastAnchoredAt ?? "",
+    latencyMs: 0,
+    complianceScore: s.auditCount > 0 ? 100 : 0,
+    ...s,
+  };
+}
+
+/** Profile directory. RLS scopes it: a patient sees only their own row. */
+export async function getUsers() {
+  const { getProfiles } = await import("./clinical.server");
+  const res = await getProfiles();
+  const users = (res.profiles ?? []).map((p: any) => ({
+    id: p.id,
+    email: p.email,
+    name: p.full_name,
+    role: p.role,
+    did: p.primary_did,
+    createdAt: p.created_at,
+  }));
+  return { users, total: users.length };
+}
+
+/** The signed-in user's profile, read from Postgres. */
+export async function getMe() {
+  const { getCurrentUser } = await import("./auth.server");
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Not authenticated");
+  return { user, success: true as const };
+}
+
+/**
+ * Generic namespace reader retained for two call sites (nfc-cards, visitors).
+ * Maps the legacy namespace name onto its Postgres table rather than exposing
+ * an arbitrary table parameter, so a caller cannot read any table it likes.
+ */
+export async function getNamespace(namespace: string) {
+  switch (namespace) {
+    case "nfc-cards": {
+      const { getNfcCards } = await import("./operations.server");
+      const res = await getNfcCards();
+      return {
+        entries: (res.cards ?? []).map((c: any) => ({
+          key: c.card_id,
+          value: {
+            cardId: c.card_id,
+            patientDid: c.patient_did,
+            cardType: c.card_type,
+            status: c.status,
+            issuedAt: c.issued_at,
+            revokedAt: c.revoked_at,
+          },
+        })),
+      };
+    }
+    case "visitors": {
+      const res = await getVisitors();
+      return {
+        entries: (res.visitors ?? []).map((v: any) => ({ key: v.id, value: v })),
+        visitors: res.visitors,
+      };
+    }
+    default:
+      throw new Error(`Namespace "${namespace}" is not available after the Supabase migration`);
+  }
+}
+
+/**
+ * Staff location tracker.
+ *
+ * Replaces the Express in-memory tracker with the room check-in state that is
+ * now persisted in Postgres.
+ */
+export async function getTracker() {
+  const res = await getRoomCheckinStatus();
+  return {
+    tracker: (res.checkins ?? []).map((c: any) => ({
+      did: c.doctorDid,
+      name: c.doctorName,
+      status: c.status,
+      location: c.currentRoom,
+      roomId: c.roomId,
+      lastSignal: c.checkedInAt,
+    })),
+    entries: res.checkins ?? [],
+  };
 }

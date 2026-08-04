@@ -345,6 +345,94 @@ export const getRealtimeToken = createServerFn({ method: "GET" }).handler(async 
   return { token: data.session?.access_token ?? null };
 });
 
+// ─── Platform / infrastructure ──────────────────────────────────────────────
+
+/**
+ * Platform health.
+ *
+ * The Express version pinged GET /health on localhost:3001. There is no such
+ * server in production, so this now checks reachability of the actual backend:
+ * a trivial Postgres round trip through RLS.
+ */
+export const getPlatformHealth = createServerFn({ method: "GET" }).handler(async () => {
+  const supabase = getSupabaseServerClient();
+  const startedAt = Date.now();
+
+  // `head: true` fetches no rows — we only care that the round trip succeeds.
+  const { error } = await supabase.from("dids").select("did", { count: "exact", head: true });
+
+  return {
+    online: !error,
+    latencyMs: Date.now() - startedAt,
+    error: error?.message ?? null,
+  };
+});
+
+/**
+ * Dashboard counters.
+ *
+ * Replaces getStats(), which returned hardcoded mock data from Express — the
+ * README listed that as a known issue. These are real counts.
+ *
+ * Note the numbers are RLS-scoped: a patient sees counts over rows they may
+ * read, an admin sees more. That is intentional; a count is still data.
+ */
+export const getPlatformStats = createServerFn({ method: "GET" }).handler(async () => {
+  await requireSession();
+  const supabase = getSupabaseServerClient();
+
+  const counted = async (table: string) => {
+    const { count, error } = await supabase.from(table).select("*", { count: "exact", head: true });
+    return error ? 0 : (count ?? 0);
+  };
+
+  const [dids, credentials, anchors, roots, records, audits] = await Promise.all([
+    counted("dids"),
+    counted("credentials"),
+    counted("solana_anchors"),
+    counted("merkle_roots"),
+    counted("medical_records"),
+    counted("audit_events"),
+  ]);
+
+  // Latest confirmed anchor stands in for "chain tip" in the old UI.
+  const { data: latestAnchor } = await supabase
+    .from("solana_anchors")
+    .select("slot, confirmed_at")
+    .eq("status", "confirmed")
+    .order("confirmed_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return {
+    didCount: dids,
+    credentialCount: credentials,
+    anchorCount: anchors,
+    merkleRootCount: roots,
+    recordCount: records,
+    auditCount: audits,
+    latestSlot: latestAnchor?.slot ?? null,
+    lastAnchoredAt: latestAnchor?.confirmed_at ?? null,
+  };
+});
+
+/**
+ * Directory of user profiles. Admin-scoped by RLS (profiles_select_staff), so a
+ * patient calling this receives only their own row.
+ */
+export const getProfiles = createServerFn({ method: "GET" }).handler(async () => {
+  await requireSession();
+  const supabase = getSupabaseServerClient();
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, email, full_name, role, primary_did, created_at")
+    .order("created_at", { ascending: false });
+
+  if (error) throw new Error(error.message);
+  return { profiles: data ?? [] };
+});
+
 // ─── Writes that must go through Edge Functions ─────────────────────────────
 
 /**

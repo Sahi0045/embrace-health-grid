@@ -249,7 +249,8 @@ function PatientQr() {
 
 function NfcCardStatus({ patientDid }: { patientDid: string }) {
   const { data: nfcData } = useNFCCards();
-  const cards = nfcData || [];
+  // useNFCCards now returns { entries: [...] } from Postgres.
+  const cards = nfcData?.entries ?? [];
   const cardEntry = cards.find((c: any) => c.value?.patientDid === patientDid);
   const card = cardEntry?.value;
 
