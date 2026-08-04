@@ -139,7 +139,36 @@ export const getAppointments = createServerFn({ method: "GET" }).handler(async (
     .order("booked_at", { ascending: false });
 
   if (error) throw new Error(error.message);
-  return { appointments: data ?? [] };
+
+  const rows = data ?? [];
+
+  // The appointments table stores DIDs only, so a caller that renders a name had
+  // to resolve it itself — and none did, which is why confirming an appointment
+  // reported "Appointment with undefined confirmed."
+  //
+  // Resolve here, once, from the DID registry: dids is readable by any
+  // authenticated user and already carries owner_name, so this needs no extra
+  // privilege and no PHI is involved.
+  const dids = [
+    ...new Set(rows.flatMap((r) => [r.patient_did, r.doctor_did]).filter(Boolean)),
+  ] as string[];
+
+  const names = new Map<string, string>();
+  if (dids.length) {
+    const { data: didRows } = await supabase.from("dids").select("did, owner_name").in("did", dids);
+
+    for (const d of didRows ?? []) {
+      if (d.did && d.owner_name) names.set(d.did, d.owner_name);
+    }
+  }
+
+  const appointments = rows.map((r) => ({
+    ...r,
+    patient_name: names.get(r.patient_did) ?? null,
+    doctor_name: names.get(r.doctor_did) ?? null,
+  }));
+
+  return { appointments };
 });
 
 export const bookAppointment = createServerFn({ method: "POST" })

@@ -631,12 +631,19 @@ export async function getAppointments(_did?: string) {
     apptId: a.appt_id,
     patientDid: a.patient_did,
     doctorDid: a.doctor_did,
+    // Resolved from the DID registry server-side. Falling back to the DID keeps
+    // the row identifiable rather than rendering "undefined".
+    patientName: a.patient_name ?? a.patient_did,
+    doctorName: a.doctor_name ?? a.doctor_did,
     slot: a.slot,
+    suggestedSlot: a.suggested_slot ?? undefined,
     mode: a.mode,
     specialty: a.specialty,
     status: a.status,
     reason: a.reason,
     bookedAt: a.booked_at,
+    // Several views show a date separately from the slot label.
+    date: a.slot,
   }));
   return { appointments, total: appointments.length };
 }
