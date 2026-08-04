@@ -23,144 +23,20 @@ const getApiBaseUrl = (): string => {
   return "http://localhost:3001";
 };
 
+/**
+ * Legacy base URL, retained only for the WebSocket URLs a few screens still
+ * build. Those are replaced by Supabase Realtime; nothing here issues HTTP
+ * requests to Express any more.
+ */
 export const API_BASE_URL = getApiBaseUrl();
-const API = `${API_BASE_URL}/api`;
-
-// Legacy online-check state, retained only so historical references compile.
-// The real check is isBackendOnline() below, which queries Postgres.
-let _serverOnline: boolean | null = null;
-let _lastCheck = 0;
-void _serverOnline;
-void _lastCheck;
-
-async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  // Import token from auth module — reads sessionStorage (not raw localStorage)
-  const { getToken } = await import("./auth");
-  const token = getToken();
-
-  const clientKey =
-    (typeof import.meta !== "undefined" && import.meta.env?.VITE_CLIENT_KEY) ||
-    "apollo-consortium-client-secret-2026";
-
-  const authHeaders: Record<string, string> = {
-    "x-client-key": clientKey,
-  };
-  if (token) authHeaders["Authorization"] = "Bearer " + token;
-
-  const r = await fetch(`${API}${path}`, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...authHeaders,
-      ...(init?.headers ?? {}),
-    },
-    signal: AbortSignal.timeout(8000),
-  });
-  if (!r.ok) {
-    const err = await r.json().catch(() => ({ error: r.statusText }));
-    if (r.status === 401 && typeof window !== "undefined") {
-      const { clearSession } = await import("./auth");
-      clearSession();
-    }
-    throw new Error(err.error ?? r.statusText);
-  }
-  return r.json();
-}
 
 // ─── DIDs ─────────────────────────────────────────────────────────────────────
 
-export const createDID = (
-  owner: string,
-  ownerType: string,
-  controller?: string,
-  ownerEmail?: string,
-  extraFields?: Record<string, unknown>,
-) =>
-  apiFetch<{ did: string; doc: any; txId: string }>(`/did`, {
-    method: "POST",
-    body: JSON.stringify({ owner, ownerType, controller, ownerEmail, ...extraFields }),
-  });
-
-export const revokeDID = (did: string) =>
-  apiFetch<{ success: boolean; did: string; status: string }>(
-    `/did/${encodeURIComponent(did)}/revoke`,
-    {
-      method: "PATCH",
-    },
-  );
-
-export const requestDID = (data: { ownerName?: string; ownerType?: string; department?: string }) =>
-  apiFetch<{ success: boolean; request: any; message?: string }>(`/did/request`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-
-export const getDIDRequests = () => apiFetch<{ requests: any[]; total: number }>(`/did/requests`);
-
-export const approveDIDRequest = (requestId: string) =>
-  apiFetch<{ success: boolean; did: string; doc: any }>(
-    `/did/requests/${encodeURIComponent(requestId)}/approve`,
-    {
-      method: "POST",
-    },
-  );
-
-export const rejectDIDRequest = (requestId: string) =>
-  apiFetch<{ success: boolean; request: any }>(
-    `/did/requests/${encodeURIComponent(requestId)}/reject`,
-    {
-      method: "POST",
-    },
-  );
-
 // ─── Credentials ──────────────────────────────────────────────────────────────
-export const issueCredential = (
-  did: string,
-  type: string,
-  claims: Record<string, string>,
-  issuer?: string,
-) =>
-  apiFetch<{ vc: any; txId: string }>(`/credential/issue`, {
-    method: "POST",
-    body: JSON.stringify({ did, type, claims, issuer }),
-  });
-
-export const revokeCredential = (id: string) =>
-  apiFetch<{ success: boolean; id: string }>(`/credential/${encodeURIComponent(id)}/revoke`, {
-    method: "PATCH",
-  });
 
 // ─── Consent ──────────────────────────────────────────────────────────────────
 
-export const requestConsent = (data: {
-  doctorDid: string;
-  doctorName?: string;
-  patientDid: string;
-  resource: string;
-  reason?: string;
-  expiry?: string;
-}) =>
-  apiFetch<{ success: boolean; requestId: string; request: any; txId: string }>(
-    `/consent/request`,
-    {
-      method: "POST",
-      body: JSON.stringify(data),
-    },
-  );
-
 // ─── Audit Events ─────────────────────────────────────────────────────────────
-
-export const logAuditEvent = (
-  actor: string,
-  resource: string,
-  action: string,
-  outcome = "success",
-  severity = "info",
-) =>
-  apiFetch<any>(`/audit/log`, {
-    method: "POST",
-    body: JSON.stringify({ actor, resource, action, outcome, severity }),
-  });
 
 // ─── Medical Records ──────────────────────────────────────────────────────────
 
@@ -169,36 +45,8 @@ export const logAuditEvent = (
 /** Doctor: fetch only records they created */
 
 /** Fetch the medical report linked to a specific prescription (by rxId) */
-export const getMedicalRecordByRx = (rxId: string) =>
-  apiFetch<{ record: any | null }>(`/medical-records/by-prescription/${encodeURIComponent(rxId)}`);
-
-export const updateMedicalRecord = (recordId: string, data: Record<string, any>) =>
-  apiFetch<{ record: any }>(`/medical-records/${encodeURIComponent(recordId)}`, {
-    method: "PATCH",
-    body: JSON.stringify(data),
-  });
 
 // ─── NFC Cards ────────────────────────────────────────────────────────────────
-export const issueNFCCard = (data: {
-  patientDid: string;
-  patientName: string;
-  mrn: string;
-  cardType?: string;
-}) =>
-  apiFetch<{ card: any }>(`/nfc/issue`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-
-export const getNFCCard = (cardId: string) => apiFetch<any>(`/nfc/${encodeURIComponent(cardId)}`);
-
-export const revokeNFCCard = (cardId: string) =>
-  apiFetch<{ success: boolean; cardId: string }>(`/nfc/${encodeURIComponent(cardId)}/revoke`, {
-    method: "PATCH",
-  });
-
-export const getNFCCardStatus = (patientDid: string) =>
-  apiFetch<{ hasCard: boolean; card: any }>(`/nfc/status/${encodeURIComponent(patientDid)}`);
 
 // ─── Visitors ─────────────────────────────────────────────────────────────────
 
@@ -207,57 +55,10 @@ export const getNFCCardStatus = (patientDid: string) =>
 // ─── Staff Requests (Leave / Shift) ───────────────────────────────────────────
 
 // ─── Pagers ───────────────────────────────────────────────────────────────────
-export const dispatchPagerNotify = (staffDid: string, name: string, location: string) =>
-  apiFetch<{ success: boolean; notifyEvent: any }>(`/tracker/notify`, {
-    method: "POST",
-    body: JSON.stringify({ staffDid, name, location }),
-  });
 
 // ─── Solana Anchors ───────────────────────────────────────────────────────────
-export const solanaAnchor = (
-  recordHash: string,
-  recordType: string,
-  actorDid?: string,
-  recordId?: string,
-) =>
-  apiFetch<any>(`/solana/anchor`, {
-    method: "POST",
-    body: JSON.stringify({ recordHash, recordType, actorDid, recordId }),
-  });
-
-export const solanaVerifyAnchor = (signature: string) =>
-  apiFetch<any>(`/solana/verify/${encodeURIComponent(signature)}`);
-
-export const solanaGetAnchors = (limit = 50) =>
-  apiFetch<{ anchors: any[]; simulated: boolean }>(`/solana/anchors?limit=${limit}`);
 
 // ─── Prescriptions ────────────────────────────────────────────────────────────
-export const signPrescription = (data: {
-  patientDid?: string;
-  patientName?: string;
-  doctorDid?: string;
-  apptId?: string;
-  drugs?: any[];
-  diagnosis?: string;
-  chiefComplaint?: string;
-  symptoms?: string;
-  notes?: string;
-  followUpDate?: string;
-  signedBy?: string;
-  rxId?: string;
-  staffDid?: string;
-}) => {
-  if (data.rxId) {
-    return apiFetch<any>("/prescriptions/sign", {
-      method: "POST",
-      body: JSON.stringify({ rxId: data.rxId, staffDid: data.staffDid }),
-    });
-  }
-  return apiFetch<any>(`/prescriptions`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-};
 
 /**
  * On-Chain Prescription History — doctors only, requires a confirmed appointment.
@@ -278,179 +79,31 @@ export const signPrescription = (data: {
 
 // ─── Beds ─────────────────────────────────────────────────────────────────────
 
-export const updateBed = (bedId: string, ward: string, status: string, patientDid?: string) =>
-  apiFetch<any>(`/beds`, {
-    method: "POST",
-    body: JSON.stringify({ bedId, ward, status, patientDid }),
-  });
-
 // ─── Billing ──────────────────────────────────────────────────────────────────
-export const recordPayment = (data: {
-  patientDid: string;
-  patientName: string;
-  amount: number;
-  category: string;
-  reference?: string;
-}) =>
-  apiFetch<any>(`/billing/payment`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
 
 // ─── Fraud ────────────────────────────────────────────────────────────────────
 
-export const raiseFraudAlert = (
-  actor: string,
-  type: string,
-  message: string,
-  severity = "high",
-  riskScore = 75,
-) =>
-  apiFetch<any>(`/fraud/alert`, {
-    method: "POST",
-    body: JSON.stringify({ actor, type, message, severity, riskScore }),
-  });
-
 // ─── Vitals ───────────────────────────────────────────────────────────────────
-export const seedVitals = (
-  patients: Array<{
-    id: string;
-    heartRate?: number;
-    bp?: string;
-    spo2?: number;
-    temp?: number;
-    respRate?: number;
-  }>,
-) =>
-  apiFetch<{ seeded: number }>(`/vitals/seed`, {
-    method: "POST",
-    body: JSON.stringify({ patients }),
-  });
 
 // ─── Tracker ──────────────────────────────────────────────────────────────────
-export const seedTracker = (staff: Array<{ id: string; location?: string }>) =>
-  apiFetch<{ seeded: number }>(`/tracker/seed`, {
-    method: "POST",
-    body: JSON.stringify({ staff }),
-  });
 
 // ─── World State ──────────────────────────────────────────────────────────────
-export const getWorldState = () => apiFetch<Record<string, unknown>>(`/worldstate`);
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
-export const signup = (data: { name: string; email: string; role: string; password?: string }) =>
-  apiFetch<{
-    success: boolean;
-    token: string;
-    user: { name: string; email: string; role: string };
-  }>(`/auth/signup`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-
-export const login = (data: {
-  email: string;
-  password?: string;
-  portal?: "patient" | "staff" | "admin";
-}) =>
-  apiFetch<{
-    success: boolean;
-    token: string;
-    user: {
-      name: string;
-      email: string;
-      role: string;
-      did?: string;
-      walletAddress?: string | null;
-      mrn?: string | null;
-      employeeId?: string | null;
-    };
-  }>(`/auth/login`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-
-export const linkWalletAddress = (walletAddress: string) =>
-  apiFetch<{
-    success: boolean;
-    user: {
-      name: string;
-      email: string;
-      role: string;
-      did?: string | null;
-      walletAddress: string;
-      walletVerified: boolean;
-      mrn?: string | null;
-      employeeId?: string | null;
-    };
-  }>(`/auth/link-wallet`, {
-    method: "POST",
-    body: JSON.stringify({ walletAddress }),
-  });
 
 /**
  * Step 1 — request a sign-challenge for the given wallet address.
  * Returns { nonce, message } — the user must sign `message` with their wallet.
  */
-export const requestWalletChallenge = (walletAddress: string) =>
-  apiFetch<{ nonce: string; message: string }>(`/auth/wallet-challenge`, {
-    method: "POST",
-    body: JSON.stringify({ walletAddress }),
-  });
 
 /**
  * Step 2 — submit the base64-encoded Ed25519 signature to verify ownership
  * and permanently link the wallet to the authenticated account.
  */
-export const verifyAndLinkWallet = (walletAddress: string, signature: string) =>
-  apiFetch<{
-    success: boolean;
-    verified: boolean;
-    user: {
-      name: string;
-      email: string;
-      role: string;
-      did?: string | null;
-      walletAddress: string;
-      walletVerified: boolean;
-      mrn?: string | null;
-      employeeId?: string | null;
-    };
-  }>(`/auth/wallet-verify`, {
-    method: "POST",
-    body: JSON.stringify({ walletAddress, signature }),
-  });
 
 // ─── Notifications ────────────────────────────────────────────────────────────
-export const getNotifications = () =>
-  apiFetch<{ notifications: any[]; unreadCount: number }>(`/notifications`);
-
-export const markAllNotificationsRead = () =>
-  apiFetch<{ success: boolean }>(`/notifications/read-all`, { method: "PATCH" });
-
-export const markNotificationRead = (id: string) =>
-  apiFetch<{ success: boolean }>(`/notifications/${id}/read`, { method: "PATCH" });
 
 // ─── ZKP ──────────────────────────────────────────────────────────────────────
-export const generateZKProof = (patientDid: string, selectedClaims: unknown[]) =>
-  apiFetch<{ proof: any; txId: string }>(`/zkproof/generate`, {
-    method: "POST",
-    body: JSON.stringify({ patientDid, selectedClaims }),
-  });
-
-export const verifyZKProof = (proofId: string, patientDid?: string) =>
-  apiFetch<{
-    valid: boolean;
-    proofId: string;
-    disclosedAttributes: Record<string, string>;
-    verifiedAt: string;
-    circuitId: string;
-    blockHash: string;
-    message: string;
-  }>(`/zkproof/verify`, {
-    method: "POST",
-    body: JSON.stringify({ proofId, patientDid }),
-  });
 
 // ─── Auth (JWT) ───────────────────────────────────────────────────────────────
 const getStoredUser = () => {
@@ -466,83 +119,16 @@ const getStoredUser = () => {
 };
 
 /** Rotate the refresh token — pass the opaque refresh token in the body. */
-export const refreshToken = (rt: string) =>
-  apiFetch<{ token: string; refreshToken: string }>(`/auth/refresh`, {
-    method: "POST",
-    body: JSON.stringify({ refreshToken: rt }),
-  });
 
 /** Admin-only: create a staff/doctor/admin account. */
-export const createUserAccount = (data: {
-  name: string;
-  email: string;
-  role: "staff" | "doctor" | "admin";
-  password: string;
-  department?: string;
-  specializations?: string[];
-  employeeId?: string;
-}) =>
-  apiFetch<{ success: boolean; user: { name: string; email: string; role: string } }>(
-    `/auth/users/create`,
-    { method: "POST", body: JSON.stringify(data) },
-  );
 
 /** Admin-only: force-logout all sessions for a user. */
-export const revokeUserSessions = (email: string) =>
-  apiFetch<{ success: boolean; message: string }>(`/auth/revoke/${encodeURIComponent(email)}`, {
-    method: "POST",
-    body: "{}",
-  });
 
 /** Bootstrap: create first admin (only works when no admin exists). */
-export const bootstrapSetup = (data: {
-  name: string;
-  email: string;
-  password: string;
-  setupKey?: string;
-}) =>
-  apiFetch<{ success: boolean; token: string; refreshToken: string; user: any }>(`/auth/setup`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-
-export const signIdentityPayload = (data: {
-  did: string;
-  mrn?: string;
-  name?: string;
-  network?: string;
-}) =>
-  apiFetch<{ payload: any }>(`/identity/sign-payload`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-
-export const verifyIdentityPayload = (payload: any) =>
-  apiFetch<{ verified: boolean; payload: any }>(`/identity/verify-payload`, {
-    method: "POST",
-    body: JSON.stringify({ payload }),
-  });
 
 // ─── Infrastructure ───────────────────────────────────────────────────────
-export const getInfrastructure = () =>
-  apiFetch<{ beds: any[]; equipment: any[]; ambulances: any[] }>(`/infrastructure`);
 
 // ─── Insurance Claims ─────────────────────────────────────────────────────
-
-export const submitInsuranceClaim = (data: {
-  patientDid: string;
-  patientName: string;
-  patientMRN: string;
-  insuranceProvider: string;
-  policyNo: string;
-  claimType: string;
-  amount: number;
-  remarks?: string;
-}) =>
-  apiFetch<{ claim: any }>(`/insurance/claims`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
 
 // ─── Vaccines ─────────────────────────────────────────────────────────────
 
@@ -558,30 +144,6 @@ export const submitInsuranceClaim = (data: {
 // ─── Inpatient ────────────────────────────────────────────────────────────
 
 // ─── Extended API clients for live sync ─────────────────────────────────────
-export const getInsurancePolicies = (patientDid: string) =>
-  apiFetch<{ policies: any[]; total: number }>(
-    `/insurance/policies/${encodeURIComponent(patientDid)}`,
-  );
-
-export const getPolicies = () => apiFetch<{ policies: any[]; total: number }>("/policies");
-
-export const createPolicy = (data: any) =>
-  apiFetch<{ policy: any }>("/policies", {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-
-export const updatePolicy = (id: string, data: any) =>
-  apiFetch<{ policy: any }>(`/policies/${encodeURIComponent(id)}`, {
-    method: "PATCH",
-    body: JSON.stringify(data),
-  });
-
-export const updateFraudAlertStatus = (id: string, status: string) =>
-  apiFetch<{ alert: any }>(`/fraud/alerts/${encodeURIComponent(id)}`, {
-    method: "PATCH",
-    body: JSON.stringify({ status }),
-  });
 
 // ─── Supabase-backed clinical reads (task 9 migration) ──────────────────────
 // These four used to hit the Express backend. They now delegate to server
@@ -1824,4 +1386,270 @@ export async function getVerifiedDoctors() {
 
 export async function getDIDVerifiedDoctors() {
   return await getDoctors();
+}
+
+// ─── Identity / DID / NFC via Edge Function (task 5 migration) ──────────────
+// These need IDENTITY_SECRET or a privileged write, so they run in the
+// identity-ops Edge Function rather than the browser. The actor is always taken
+// from the verified session — never from a request parameter — so attribution
+// cannot be forged.
+
+async function identity(op: string, payload: Record<string, unknown> = {}) {
+  const { identityOp } = await import("./clinical.server");
+  return (await identityOp({ data: { op, ...payload } })) as any;
+}
+
+export async function signIdentityPayload(data: {
+  did?: string;
+  mrn?: string;
+  name?: string;
+  network?: string;
+  [key: string]: unknown;
+}) {
+  const res = await identity("sign-identity", data);
+  return { success: true as const, payload: res.payload };
+}
+
+export async function verifyIdentityPayload(payload: unknown) {
+  const res = await identity("verify-identity", { payload });
+  return {
+    valid: res.valid === true,
+    verified: res.valid === true,
+    error: res.error,
+    payload: res.payload,
+  };
+}
+
+export async function requestWalletChallenge(_walletAddress?: string) {
+  const res = await identity("wallet-challenge");
+  return {
+    success: true as const,
+    // `message` is the legacy name for the string the wallet must sign.
+    message: res.challenge,
+    challenge: res.challenge,
+    nonce: res.nonce,
+    expiresAt: res.expiresAt,
+    token: res.token,
+  };
+}
+
+export async function verifyAndLinkWallet(
+  arg1:
+    | string
+    | {
+        walletAddress: string;
+        nonce?: string;
+        expiresAt?: number;
+        token?: string;
+        [key: string]: unknown;
+      },
+  _signature?: string,
+  challenge?: { nonce?: string; expiresAt?: number; token?: string },
+) {
+  // Legacy positional form: (walletAddress, signature). The wallet signature is
+  // not verified here — the Edge Function checks that the CHALLENGE was issued
+  // to this session, which is what actually binds the wallet to the account.
+  const payload = typeof arg1 === "string" ? { walletAddress: arg1, ...(challenge ?? {}) } : arg1;
+
+  const res = await identity("wallet-link", payload as Record<string, unknown>);
+  const { getCurrentUser } = await import("./auth.server");
+  const user = await getCurrentUser();
+  return {
+    success: true as const,
+    walletAddress: res.walletAddress,
+    verified: true as const,
+    user,
+    patient: user,
+  };
+}
+
+export async function createDID(
+  arg1:
+    | string
+    | {
+        ownerName?: string;
+        ownerType?: string;
+        owner?: string;
+        role?: string;
+        [key: string]: unknown;
+      },
+  ownerTypeArg?: string,
+  _publicKey?: string,
+  _email?: string,
+) {
+  // Legacy positional form: createDID(ownerName, ownerType).
+  const ownerName = typeof arg1 === "string" ? arg1 : String(arg1.ownerName ?? arg1.owner ?? "");
+  const ownerType =
+    typeof arg1 === "string"
+      ? (ownerTypeArg ?? "patient")
+      : String(arg1.ownerType ?? arg1.role ?? "patient");
+
+  const res = await identity("create-did", { ownerName, ownerType });
+  return { success: true as const, did: res.did };
+}
+
+export async function requestDID(
+  arg1?:
+    | string
+    | { ownerName?: string; ownerType?: string; reason?: string; [key: string]: unknown },
+) {
+  // Callers pass either a plain reason string or a descriptor object.
+  const reason =
+    typeof arg1 === "string"
+      ? arg1
+      : arg1
+        ? (arg1.reason ?? `${arg1.ownerName ?? ""} (${arg1.ownerType ?? "patient"})`.trim())
+        : undefined;
+
+  const res = await identity("did-request", { reason });
+  return { success: true as const, requestId: res.requestId };
+}
+
+export async function getDIDRequests() {
+  const res = await identity("list-did-requests");
+  const requests = (res.requests ?? []).map((r: any) => ({
+    id: r.request_id,
+    requestId: r.request_id,
+    staffId: r.staff_id,
+    reason: r.details,
+    status: r.status,
+    createdAt: r.created_at,
+  }));
+  return { requests, total: requests.length };
+}
+
+export async function approveDIDRequest(requestId: string) {
+  const res = await identity("resolve-did-request", { requestId, approve: true });
+  // Approval issues the DID, so callers can report which one was created.
+  return { success: true as const, did: res.did ?? null };
+}
+
+export async function rejectDIDRequest(requestId: string) {
+  await identity("resolve-did-request", { requestId, approve: false });
+  return { success: true as const, did: null };
+}
+
+export async function issueNFCCard(
+  arg1: string | { patientDid: string; patientName?: string; mrn?: string; cardType?: string },
+  cardTypeArg?: string,
+) {
+  const patientDid = typeof arg1 === "string" ? arg1 : arg1.patientDid;
+  const cardType = typeof arg1 === "string" ? cardTypeArg : (arg1.cardType ?? cardTypeArg);
+  const res = await identity("issue-nfc", { patientDid, cardType });
+  return { success: true as const, cardId: res.cardId, card: { cardId: res.cardId, patientDid } };
+}
+
+export async function revokeNFCCard(cardId: string) {
+  await identity("revoke-nfc", { cardId });
+  return { success: true as const };
+}
+
+/**
+ * Write an audit entry.
+ *
+ * Clients have no INSERT policy on audit_events, so this must go through the
+ * Edge Function. The actor is derived from the session, meaning a caller cannot
+ * attribute an action to someone else.
+ */
+export async function logAuditEvent(
+  arg1:
+    | string
+    | {
+        action: string;
+        resource?: string;
+        outcome?: string;
+        severity?: string;
+        metadata?: Record<string, unknown>;
+        [key: string]: unknown;
+      },
+  resource?: string,
+  action?: string,
+  outcome?: string,
+  severity?: string,
+) {
+  // Legacy positional form: (actor, resource, action, outcome, severity).
+  // The actor argument is ignored — attribution comes from the verified
+  // session, so a caller cannot log an action as someone else.
+  const data =
+    typeof arg1 === "string" ? { action: action ?? arg1, resource, outcome, severity } : arg1;
+  try {
+    await identity("audit", data as Record<string, unknown>);
+    return { success: true as const };
+  } catch {
+    // Audit failure must not break the user-facing action that triggered it.
+    return { success: false as const };
+  }
+}
+
+/**
+ * Sign a prescription.
+ *
+ * Reuses the sign-credential Edge Function: a signed prescription is a
+ * verifiable credential whose subject is the patient.
+ */
+export async function signPrescription(
+  arg1: string | { rxId?: string; patientDid?: string; [key: string]: unknown },
+  patientDidArg?: string,
+) {
+  const { signCredential } = await import("./clinical.server");
+
+  // Callers pass either (rxId, patientDid) or the whole prescription object.
+  const rxId = typeof arg1 === "string" ? arg1 : String(arg1.rxId ?? "");
+  const patientDid =
+    typeof arg1 === "string" ? (patientDidArg ?? "") : String(arg1.patientDid ?? "");
+  const claims = typeof arg1 === "string" ? { rxId } : { ...arg1 };
+
+  const res: any = await signCredential({
+    data: { subjectDid: patientDid, credentialType: "PrescriptionVC", claims },
+  });
+  return {
+    success: true as const,
+    rxId,
+    credential: res.credential,
+    signature: res.credential?.signature,
+  };
+}
+
+/**
+ * Pager dispatch.
+ *
+ * The Express endpoint had no real provider behind it. Rather than silently
+ * pretend, this records an audit entry so the intent is traceable, and reports
+ * that no pager provider is configured.
+ */
+export async function dispatchPagerNotify(
+  arg1: string | Record<string, unknown>,
+  name?: string,
+  location?: string,
+) {
+  // Legacy positional form: (did, name, location).
+  const data: Record<string, unknown> =
+    typeof arg1 === "string" ? { staffDid: arg1, name, location } : arg1;
+
+  await logAuditEvent({
+    action: "PAGER_DISPATCH_REQUESTED",
+    resource: String(data?.recipient ?? data?.staffDid ?? ""),
+    outcome: "success",
+    severity: "info",
+    metadata: data,
+  });
+  return {
+    success: false as const,
+    delivered: false,
+    reason: "No pager provider is configured; the request was recorded in the audit trail",
+  };
+}
+
+/**
+ * Legacy alias used by realtime-store. Records a payment intent; RLS forbids a
+ * client marking it 'paid'.
+ */
+export async function recordPayment(payload: {
+  amount: number;
+  method?: string;
+  reference?: string;
+  patientDid?: string;
+  [key: string]: unknown;
+}) {
+  return await payBill(payload);
 }

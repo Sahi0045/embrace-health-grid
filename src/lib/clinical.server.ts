@@ -654,6 +654,23 @@ export const signCredential = createServerFn({ method: "POST" })
   });
 
 /**
+ * Identity, wallet, DID and NFC operations.
+ *
+ * All dispatch to the identity-ops Edge Function, which holds IDENTITY_SECRET
+ * and performs the privileged writes: dids and nfc_cards have no client INSERT
+ * policy, and audit_events has no client write policy at all.
+ */
+export const identityOp = createServerFn({ method: "POST" })
+  .validator((data: { op: string; [key: string]: unknown }) => {
+    if (!data?.op) throw new Error("op is required");
+    return data;
+  })
+  .handler(async ({ data }) => {
+    await requireSession();
+    return await invokeEdgeFunction("identity-ops", data);
+  });
+
+/**
  * Build an UNSIGNED anchoring transaction for the patient to sign themselves.
  *
  * Distinct from the anchor-record Edge Function, which signs with the platform

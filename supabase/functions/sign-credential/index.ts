@@ -18,7 +18,14 @@
  * Authorization: only doctors, staff and admins may issue credentials.
  */
 
-import { requireCaller, serviceClient, audit, json, errorResponse, HttpError } from "../_shared/deps.ts";
+import {
+  requireCaller,
+  serviceClient,
+  audit,
+  json,
+  errorResponse,
+  HttpError,
+} from "../_shared/deps.ts";
 
 /** Load the issuer signing key from the environment (PKCS#8 PEM). */
 async function getIssuerKey(): Promise<{ key: CryptoKey; fingerprint: string }> {
@@ -130,7 +137,12 @@ Deno.serve(async (req) => {
 
     return json({
       ok: true,
-      credential: { ...vcPayload, signature, proofType: "Ed25519Signature2020", keyFingerprint: fingerprint },
+      credential: {
+        ...vcPayload,
+        signature,
+        proofType: "Ed25519Signature2020",
+        keyFingerprint: fingerprint,
+      },
     });
   } catch (err) {
     if (caller) {

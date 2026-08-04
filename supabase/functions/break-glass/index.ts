@@ -18,7 +18,14 @@
  * happens, but that it is recorded and reviewable.
  */
 
-import { requireCaller, serviceClient, audit, json, errorResponse, HttpError } from "../_shared/deps.ts";
+import {
+  requireCaller,
+  serviceClient,
+  audit,
+  json,
+  errorResponse,
+  HttpError,
+} from "../_shared/deps.ts";
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);

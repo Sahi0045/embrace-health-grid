@@ -15,10 +15,7 @@
 
 /** Anchor discriminator for an instruction name. */
 export async function discriminator(name: string): Promise<Uint8Array> {
-  const digest = await crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(`global:${name}`),
-  );
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`global:${name}`));
   return new Uint8Array(digest).slice(0, 8);
 }
 

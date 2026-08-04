@@ -25,7 +25,14 @@ import {
   Transaction,
   TransactionInstruction,
 } from "npm:@solana/web3.js@1.98.4";
-import { requireCaller, serviceClient, audit, json, errorResponse, HttpError } from "../_shared/deps.ts";
+import {
+  requireCaller,
+  serviceClient,
+  audit,
+  json,
+  errorResponse,
+  HttpError,
+} from "../_shared/deps.ts";
 import { encodeRegisterPatientRoot, encodeUpdatePatientRoot } from "../_shared/anchor-encoding.ts";
 
 const PROGRAM_ID = Deno.env.get("SOLANA_PROGRAM_ID") ?? "";
@@ -148,7 +155,8 @@ Deno.serve(async (req) => {
         confirmed_at: new Date().toISOString(),
       })
       .eq("anchor_id", anchorId);
-    if (upErr) throw new HttpError(500, `Anchored on-chain but could not update row: ${upErr.message}`);
+    if (upErr)
+      throw new HttpError(500, `Anchored on-chain but could not update row: ${upErr.message}`);
 
     await audit(db, {
       actor_id: caller.userId,
@@ -179,7 +187,10 @@ Deno.serve(async (req) => {
         error: err instanceof Error ? err.message : String(err),
       })
       .eq("anchor_id", anchorId)
-      .then(() => {}, () => {});
+      .then(
+        () => {},
+        () => {},
+      );
 
     if (caller) {
       await audit(db, {

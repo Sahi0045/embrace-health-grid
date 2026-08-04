@@ -13,7 +13,14 @@
  * client-side proof verification stays compatible.
  */
 
-import { requireCaller, serviceClient, audit, json, errorResponse, HttpError } from "../_shared/deps.ts";
+import {
+  requireCaller,
+  serviceClient,
+  audit,
+  json,
+  errorResponse,
+  HttpError,
+} from "../_shared/deps.ts";
 
 /** SHA-256 hex digest of a string. */
 async function sha256Hex(input: string): Promise<string> {
