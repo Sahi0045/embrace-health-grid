@@ -538,7 +538,7 @@ function StaffAppointmentsPage() {
           <span>
             When you <strong>Accept</strong>, the patient's portal instantly shows{" "}
             <strong>Confirmed</strong>. When you <strong>Reject</strong>, it shows{" "}
-            <strong>Rejected</strong>. All changes sync via WebSocket in real time.
+            <strong>Rejected</strong>. All changes sync in real time.
           </span>
         </div>
 

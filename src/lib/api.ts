@@ -1009,11 +1009,21 @@ export async function denyConsentRequest(grantId: string) {
 export async function getAdminAttendanceSummary() {
   const { getAttendanceSummary } = await import("./operations.server");
   const res = await getAttendanceSummary();
+  // Pass the resolved identity through: the admin roster renders staffName,
+  // staffEmail, department, did and check-in times, and dropping them here left
+  // the card showing a bare UUID with blank fields.
   const roster = (res.summary ?? []).map((s: any) => ({
     staffId: s.staffId,
+    staffName: s.staffName,
+    staffEmail: s.staffEmail,
+    did: s.did,
+    department: s.department,
+    status: s.status,
     clockIns: s.clockIns,
     clockOuts: s.clockOuts,
     lastSeen: s.lastSeen,
+    checkInTime: s.checkInTime,
+    checkOutTime: s.checkOutTime,
   }));
   return {
     summary: {

@@ -501,7 +501,14 @@ export const getAttendanceSummary = createServerFn({ method: "GET" }).handler(as
   // Collapse the event log into per-staff totals for the dashboard.
   const byStaff = new Map<
     string,
-    { staffId: string; clockIns: number; clockOuts: number; lastSeen: string }
+    {
+      staffId: string;
+      clockIns: number;
+      clockOuts: number;
+      lastSeen: string;
+      checkInTime: string | null;
+      checkOutTime: string | null;
+    }
   >();
   for (const row of data ?? []) {
     const entry = byStaff.get(row.staff_id) ?? {
@@ -509,14 +516,57 @@ export const getAttendanceSummary = createServerFn({ method: "GET" }).handler(as
       clockIns: 0,
       clockOuts: 0,
       lastSeen: row.recorded_at,
+      checkInTime: null as string | null,
+      checkOutTime: null as string | null,
     };
-    if (row.action === "in") entry.clockIns += 1;
-    else entry.clockOuts += 1;
+    if (row.action === "in") {
+      entry.clockIns += 1;
+      // Rows arrive newest-first, so the first one seen is the latest.
+      entry.checkInTime ??= row.recorded_at;
+    } else {
+      entry.clockOuts += 1;
+      entry.checkOutTime ??= row.recorded_at;
+    }
     if (row.recorded_at > entry.lastSeen) entry.lastSeen = row.recorded_at;
     byStaff.set(row.staff_id, entry);
   }
 
-  return { summary: [...byStaff.values()], events: data ?? [] };
+  // Resolve who each staff_id actually is. Without this the roster rendered a
+  // bare UUID with an empty name, department and DID, because the attendance
+  // table stores only the id.
+  const staffIds = [...byStaff.keys()];
+  const people = new Map<string, { name: string; email: string; did: string | null }>();
+
+  if (staffIds.length) {
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, full_name, email, primary_did")
+      .in("id", staffIds);
+
+    for (const p of profiles ?? []) {
+      people.set(p.id, {
+        name: p.full_name ?? p.email ?? "",
+        email: p.email ?? "",
+        did: p.primary_did ?? null,
+      });
+    }
+  }
+
+  const summary = [...byStaff.values()].map((entry) => {
+    const person = people.get(entry.staffId);
+    return {
+      ...entry,
+      staffName: person?.name ?? "Unknown staff member",
+      staffEmail: person?.email ?? "",
+      did: person?.did ?? null,
+      // Department is not modelled on profiles yet; render a neutral value
+      // rather than an empty cell.
+      department: "—",
+      status: entry.clockIns > entry.clockOuts ? "present" : "checked-out",
+    };
+  });
+
+  return { summary, events: data ?? [] };
 });
 
 /** Room check-in history for one clinician — the merkle leaf source. */

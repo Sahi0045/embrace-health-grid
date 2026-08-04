@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect, useCallback } from "react";
 import { RouteGuard } from "@/components/RouteGuard";
+import { useTableRefresh } from "@/hooks/use-realtime";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -57,6 +58,11 @@ function AdminDashboardPage() {
   const { patients } = useLivePatients();
   const { staff } = useLiveStaff();
   const { data: adminAttendance, refetch: refetchAdminAttendance } = useAdminAttendance();
+
+  // The roster carried a "Live WS Sync" badge but had no subscription at all, so
+  // it only updated on a manual refresh. Supabase Realtime replaces the Express
+  // socket the badge referred to.
+  useTableRefresh("attendance", refetchAdminAttendance);
 
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const [didRequests, setDidRequests] = useState<any[]>([]);
@@ -216,16 +222,10 @@ function AdminDashboardPage() {
         }
       }
     });
-    // Add default seeded doctor if missing
-    if (!map.has("ravi.menon@apollohospitals.com")) {
-      map.set("ravi.menon@apollohospitals.com", {
-        name: "Dr. Ravi Menon",
-        email: "ravi.menon@apollohospitals.com",
-        role: "doctor",
-        department: "Cardiology",
-        did: null,
-      });
-    }
+    // No injected placeholder clinician. This used to add "Dr. Ravi Menon"
+    // whenever that address was absent, which it always is — no such profile
+    // exists — so the roster showed a person who is not in the system, and
+    // "Approve & Issue W3C DID" pointed at nobody.
     return Array.from(map.values());
   })();
 
@@ -449,7 +449,7 @@ function AdminDashboardPage() {
                   variant="outline"
                   className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 text-[10px] font-bold uppercase flex items-center gap-1"
                 >
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live WS
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live
                   Sync
                 </Badge>
               </div>
