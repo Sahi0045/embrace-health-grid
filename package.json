@@ -15,7 +15,8 @@
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"admin-portal/src/**/*.{ts,tsx}\"",
     "test:backend": "npm --prefix backend test",
     "test": "npm run test:backend",
-    "test:supabase": "npm --prefix backend run test:all"
+    "test:supabase": "npm --prefix backend run test:all",
+    "verify": "node scripts/verify-all.mjs"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
