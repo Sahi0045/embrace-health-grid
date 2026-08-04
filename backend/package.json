@@ -10,9 +10,10 @@
     "test:rls": "node --env-file=.env --test test/rls.test.js",
     "test:functions": "node --env-file=.env --test test/functions.test.js",
     "test:realtime": "node --env-file=.env --test test/realtime.test.js",
-    "test:all": "npm run test && npm run test:rls && npm run test:functions && npm run test:realtime",
+    "test:all": "npm run test && npm run test:rls && npm run test:functions && npm run test:realtime && npm run test:onboard",
     "gen:dek": "node -e \"console.log('DATA_ENCRYPTION_KEY=' + require('crypto').randomBytes(32).toString('hex'))\"",
-    "supabase:check": "node --env-file=.env scripts/supabase-check.js"
+    "supabase:check": "node --env-file=.env scripts/supabase-check.js",
+    "test:onboard": "node --env-file=.env --test test/onboard.test.js"
   },
   "dependencies": {
     "@solana/web3.js": "^1.98.4",

@@ -53,6 +53,7 @@ import { Route as AdminProfileRouteImport } from './routes/admin.profile'
 import { Route as AdminPrescriptionsRouteImport } from './routes/admin.prescriptions'
 import { Route as AdminPoliciesRouteImport } from './routes/admin.policies'
 import { Route as AdminPeopleRouteImport } from './routes/admin.people'
+import { Route as AdminOnboardRouteImport } from './routes/admin.onboard'
 import { Route as AdminNfcCardsRouteImport } from './routes/admin.nfc-cards'
 import { Route as AdminFraudRouteImport } from './routes/admin.fraud'
 import { Route as AdminFinancialRouteImport } from './routes/admin.financial'
@@ -282,6 +283,11 @@ const AdminPeopleRoute = AdminPeopleRouteImport.update({
   path: '/admin/people',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminOnboardRoute = AdminOnboardRouteImport.update({
+  id: '/admin/onboard',
+  path: '/admin/onboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminNfcCardsRoute = AdminNfcCardsRouteImport.update({
   id: '/admin/nfc-cards',
   path: '/admin/nfc-cards',
@@ -337,6 +343,7 @@ export interface FileRoutesByFullPath {
   '/admin/financial': typeof AdminFinancialRoute
   '/admin/fraud': typeof AdminFraudRoute
   '/admin/nfc-cards': typeof AdminNfcCardsRoute
+  '/admin/onboard': typeof AdminOnboardRoute
   '/admin/people': typeof AdminPeopleRoute
   '/admin/policies': typeof AdminPoliciesRoute
   '/admin/prescriptions': typeof AdminPrescriptionsRoute
@@ -391,6 +398,7 @@ export interface FileRoutesByTo {
   '/admin/financial': typeof AdminFinancialRoute
   '/admin/fraud': typeof AdminFraudRoute
   '/admin/nfc-cards': typeof AdminNfcCardsRoute
+  '/admin/onboard': typeof AdminOnboardRoute
   '/admin/people': typeof AdminPeopleRoute
   '/admin/policies': typeof AdminPoliciesRoute
   '/admin/prescriptions': typeof AdminPrescriptionsRoute
@@ -446,6 +454,7 @@ export interface FileRoutesById {
   '/admin/financial': typeof AdminFinancialRoute
   '/admin/fraud': typeof AdminFraudRoute
   '/admin/nfc-cards': typeof AdminNfcCardsRoute
+  '/admin/onboard': typeof AdminOnboardRoute
   '/admin/people': typeof AdminPeopleRoute
   '/admin/policies': typeof AdminPoliciesRoute
   '/admin/prescriptions': typeof AdminPrescriptionsRoute
@@ -502,6 +511,7 @@ export interface FileRouteTypes {
     | '/admin/financial'
     | '/admin/fraud'
     | '/admin/nfc-cards'
+    | '/admin/onboard'
     | '/admin/people'
     | '/admin/policies'
     | '/admin/prescriptions'
@@ -556,6 +566,7 @@ export interface FileRouteTypes {
     | '/admin/financial'
     | '/admin/fraud'
     | '/admin/nfc-cards'
+    | '/admin/onboard'
     | '/admin/people'
     | '/admin/policies'
     | '/admin/prescriptions'
@@ -610,6 +621,7 @@ export interface FileRouteTypes {
     | '/admin/financial'
     | '/admin/fraud'
     | '/admin/nfc-cards'
+    | '/admin/onboard'
     | '/admin/people'
     | '/admin/policies'
     | '/admin/prescriptions'
@@ -665,6 +677,7 @@ export interface RootRouteChildren {
   AdminFinancialRoute: typeof AdminFinancialRoute
   AdminFraudRoute: typeof AdminFraudRoute
   AdminNfcCardsRoute: typeof AdminNfcCardsRoute
+  AdminOnboardRoute: typeof AdminOnboardRoute
   AdminPeopleRoute: typeof AdminPeopleRoute
   AdminPoliciesRoute: typeof AdminPoliciesRoute
   AdminPrescriptionsRoute: typeof AdminPrescriptionsRoute
@@ -1016,6 +1029,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPeopleRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/onboard': {
+      id: '/admin/onboard'
+      path: '/admin/onboard'
+      fullPath: '/admin/onboard'
+      preLoaderRoute: typeof AdminOnboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/nfc-cards': {
       id: '/admin/nfc-cards'
       path: '/admin/nfc-cards'
@@ -1089,6 +1109,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminFinancialRoute: AdminFinancialRoute,
   AdminFraudRoute: AdminFraudRoute,
   AdminNfcCardsRoute: AdminNfcCardsRoute,
+  AdminOnboardRoute: AdminOnboardRoute,
   AdminPeopleRoute: AdminPeopleRoute,
   AdminPoliciesRoute: AdminPoliciesRoute,
   AdminPrescriptionsRoute: AdminPrescriptionsRoute,

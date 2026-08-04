@@ -151,6 +151,7 @@ const suites = [
   ["RLS isolation (cross-patient denial)", "test:rls", "backend"],
   ["Edge Function authorisation", "test:functions", "backend"],
   ["Realtime respects RLS", "test:realtime", "backend"],
+  ["onboarding: account + DID + credential", "test:onboard", "backend"],
 ];
 
 for (const [label, script, dir] of suites) {

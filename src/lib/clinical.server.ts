@@ -654,6 +654,41 @@ export const signCredential = createServerFn({ method: "POST" })
   });
 
 /**
+ * Onboard a person: account, DID, signed identity credential, optional NFC card.
+ *
+ * A single Edge Function call because every one of those tables has no client
+ * INSERT policy, and because partial failure must roll back — an account that
+ * can sign in but has no DID is worse than no account.
+ *
+ * Admins may onboard any role; staff and doctors may onboard patients only.
+ */
+export const onboardUser = createServerFn({ method: "POST" })
+  .validator(
+    (data: {
+      email: string;
+      password: string;
+      fullName: string;
+      role: "patient" | "doctor" | "staff" | "admin";
+      issueNfcCard?: boolean;
+      mrn?: string;
+      department?: string;
+      specialty?: string;
+    }) => {
+      if (!data?.email || !data?.password || !data?.fullName || !data?.role) {
+        throw new Error("email, password, fullName and role are required");
+      }
+      if (data.password.length < 8) {
+        throw new Error("Password must be at least 8 characters");
+      }
+      return data;
+    },
+  )
+  .handler(async ({ data }) => {
+    await requireSession();
+    return await invokeEdgeFunction("onboard-user", data);
+  });
+
+/**
  * Identity, wallet, DID and NFC operations.
  *
  * All dispatch to the identity-ops Edge Function, which holds IDENTITY_SECRET

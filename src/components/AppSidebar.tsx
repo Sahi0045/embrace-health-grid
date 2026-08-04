@@ -46,6 +46,7 @@ import {
   MapPin,
   Layers,
   Fingerprint,
+  UserPlus,
   Code2,
 } from "lucide-react";
 import {
@@ -107,6 +108,7 @@ const adminNav: Item[] = [
   // Admin console pages, previously only in the standalone portal on :3002.
   // Every one is wrapped in RouteGuard requiredRole="admin"; hiding a link is
   // not access control, so the guard and RLS do the real work.
+  { title: "Onboard User", url: "/admin/onboard", icon: UserPlus },
   { title: "DID Management", url: "/admin/dids", icon: Fingerprint },
   { title: "Credentials", url: "/admin/credentials", icon: Award },
   { title: "People", url: "/admin/people", icon: Users },
