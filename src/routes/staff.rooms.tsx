@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useTableRefresh } from "@/hooks/use-realtime";
 import { useState, useEffect, useCallback } from "react";
 import { RouteGuard } from "@/components/RouteGuard";
 import { PageHeader } from "@/components/PageHeader";
@@ -197,50 +198,17 @@ function StaffRooms() {
     loadPublished();
   }, [doctorDid, loadStatus, loadHistory, loadDaily, loadPublished]);
 
-  // ── WebSocket ─────────────────────────────────────────────────────────────
-  useEffect(() => {
-    const wsUrl = (
-      (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE_URL) ||
-      "http://localhost:3001"
-    ).replace(/^http/, "ws");
-    let ws: WebSocket | null = null;
-    let retry: ReturnType<typeof setTimeout>;
-    const connect = () => {
-      try {
-        ws = new WebSocket(wsUrl);
-        ws.onmessage = (e) => {
-          try {
-            const msg = JSON.parse(e.data);
-            if (["room:checkin", "staff:location"].includes(msg.event)) {
-              loadStatus();
-              loadHistory();
-              loadDaily();
-            }
-            if (msg.event === "merkle:published") {
-              loadPublished();
-            }
-          } catch {
-            /* ignore */
-          }
-        };
-        ws.onclose = () => {
-          retry = setTimeout(connect, 5000);
-        };
-      } catch {
-        /* no WS */
-      }
-    };
-    connect();
-    const poll = setInterval(() => {
-      loadStatus();
-      loadDaily();
-    }, 12_000);
-    return () => {
-      ws?.close();
-      clearTimeout(retry);
-      clearInterval(poll);
-    };
-  }, [loadStatus, loadHistory, loadDaily, loadPublished]);
+  // ── Real-time refresh via Supabase Realtime ───────────────────────────────
+  // Replaces a WebSocket to Express. room_checkins covers check-in and location
+  // changes; merkle_roots covers publications.
+  const refreshRoomState = useCallback(() => {
+    loadStatus();
+    loadHistory();
+    loadDaily();
+  }, [loadStatus, loadHistory, loadDaily]);
+
+  useTableRefresh("room_checkins", refreshRoomState);
+  useTableRefresh("merkle_roots", loadPublished);
 
   // ── helpers ───────────────────────────────────────────────────────────────
   const toggleRoom = (id: string) =>

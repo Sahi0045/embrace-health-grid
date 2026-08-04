@@ -4,7 +4,7 @@
   "sideEffects": false,
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"npm run dev --prefix backend\" \"vite dev\" \"npm run dev --prefix admin-portal\"",
+    "dev": "concurrently \"vite dev\" \"npm run dev --prefix admin-portal\"",
     "build": "NODE_ENV=production vite build",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
@@ -14,8 +14,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"admin-portal/src/**/*.{ts,tsx}\"",
     "test:backend": "npm --prefix backend test",
-    "test:backend:api": "npm --prefix backend run test:api",
-    "test": "npm run test:backend"
+    "test": "npm run test:backend",
+    "test:supabase": "npm --prefix backend run test:all"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

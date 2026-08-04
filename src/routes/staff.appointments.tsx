@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useTableRefresh } from "@/hooks/use-realtime";
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHeader } from "@/components/PageHeader";
@@ -454,51 +455,11 @@ function StaffAppointmentsPage() {
     load();
   }, [load]);
 
-  // ── WebSocket real-time refresh ────────────────────────────────────────────
-  useEffect(() => {
-    const WS_URL = (
-      typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE_URL
-        ? import.meta.env.VITE_API_BASE_URL
-        : "http://localhost:3001"
-    ).replace(/^http/, "ws");
-
-    let ws: WebSocket | null = null;
-    let reconnectTimer: ReturnType<typeof setTimeout>;
-
-    const connect = () => {
-      try {
-        ws = new WebSocket(WS_URL);
-        ws.onmessage = (e) => {
-          try {
-            const msg = JSON.parse(e.data);
-            if (
-              [
-                "appointment:booked",
-                "appointment:updated",
-                "appointment:accepted",
-                "appointment:rejected",
-              ].includes(msg.event)
-            ) {
-              load();
-            }
-          } catch {}
-        };
-        ws.onclose = () => {
-          reconnectTimer = setTimeout(connect, 5000);
-        };
-      } catch {}
-    };
-
-    connect();
-    // Also poll every 15 s as a fallback
-    const poll = setInterval(load, 15_000);
-
-    return () => {
-      ws?.close();
-      clearTimeout(reconnectTimer);
-      clearInterval(poll);
-    };
-  }, [load]);
+  // ── Real-time refresh via Supabase Realtime ────────────────────────────────
+  // Replaces a WebSocket to the Express server plus a 15s polling fallback.
+  // Realtime filters events per subscriber through RLS, so only changes to
+  // appointments this user is a party to arrive at all.
+  useTableRefresh("appointments", load);
 
   // ── handlers ───────────────────────────────────────────────────────────────
   const handleActionDone = () => {

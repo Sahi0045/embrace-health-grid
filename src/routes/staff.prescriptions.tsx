@@ -23,7 +23,7 @@ import {
 import { useState, useEffect, useCallback } from "react";
 import { getAllPrescriptions, getAllMedicalRecords } from "@/lib/api";
 import { toast } from "sonner";
-import { API_BASE_URL } from "@/lib/api";
+import { useTableRefresh } from "@/hooks/use-realtime";
 
 export const Route = createFileRoute("/staff/prescriptions")({
   head: () => ({ meta: [{ title: "Prescriptions — Staff Portal" }] }),
@@ -59,35 +59,11 @@ function PrescriptionsPage() {
     load();
   }, [load]);
 
-  // Real-time WebSocket: refresh on prescription:signed OR record:created
-  useEffect(() => {
-    const wsUrl = (API_BASE_URL || "http://localhost:3001").replace(/^http/, "ws");
-    let ws: WebSocket | null = null;
-    let retry: ReturnType<typeof setTimeout>;
-    const connect = () => {
-      try {
-        ws = new WebSocket(wsUrl);
-        ws.onmessage = (e) => {
-          try {
-            const msg = JSON.parse(e.data);
-            if (msg.event === "prescription:signed" || msg.event === "record:created") load();
-          } catch {
-            /* ignore */
-          }
-        };
-        ws.onclose = () => {
-          retry = setTimeout(connect, 5000);
-        };
-      } catch {
-        /* no WS */
-      }
-    };
-    connect();
-    return () => {
-      ws?.close();
-      clearTimeout(retry);
-    };
-  }, [load]);
+  // Real-time refresh via Supabase Realtime, replacing a WebSocket to Express.
+  // RLS scopes the subscription, so only prescriptions and records this
+  // clinician may read trigger a reload.
+  useTableRefresh("prescriptions", load);
+  useTableRefresh("medical_records", load);
 
   // Unique doctor names for filter dropdown
   const doctors = [
