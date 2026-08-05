@@ -20,9 +20,15 @@
  * created rather than leaving an account that can sign in but has no usable
  * identity — which is worse than no account at all.
  *
- * Authorisation: admins may onboard anyone. Staff may onboard patients only,
- * because letting a receptionist mint a doctor account would be privilege
- * escalation.
+ * Authorisation: a hospital admin may onboard anyone into THEIR OWN hospital.
+ * Staff and doctors may onboard patients only, because letting a receptionist
+ * mint a doctor account would be privilege escalation. A super_admin may target
+ * any hospital.
+ *
+ * The hospital is read from the caller's profile, not the request body, so a
+ * hospital admin cannot create staff inside a hospital they do not belong to.
+ * The credential is issued under that hospital's DID, so it proves which
+ * hospital vouched for the person.
  */
 
 import {
@@ -92,9 +98,13 @@ Deno.serve(async (req) => {
       throw new HttpError(400, "Password must be at least 8 characters");
     }
 
-    // Staff may onboard patients only; anything else is escalation.
-    if (caller.role === "admin") {
-      // allowed to create any role
+    // ── Authorisation ───────────────────────────────────────────────────────
+    // A hospital admin may create any role, but only inside their own hospital.
+    // Staff and doctors may create patients only, so a clinician cannot mint
+    // colleagues or an admin. A super_admin may target any hospital, which is
+    // why it is the only role permitted to pass hospitalId.
+    if (caller.role === "super_admin" || caller.role === "admin") {
+      // may create any role
     } else if (caller.role === "staff" || caller.role === "doctor") {
       if (role !== "patient") {
         throw new HttpError(
@@ -104,6 +114,45 @@ Deno.serve(async (req) => {
       }
     } else {
       throw new HttpError(403, "You are not permitted to onboard users");
+    }
+
+    // ── Which hospital does this person belong to? ───────────────────────────
+    // Taken from the caller's own profile, never from the request body, so a
+    // hospital admin cannot create staff inside another hospital by passing a
+    // different id. Only a super_admin may nominate one.
+    let targetHospitalId: string | null;
+
+    if (caller.role === "super_admin") {
+      targetHospitalId = body?.hospitalId ?? null;
+      if (role !== "patient" && !targetHospitalId) {
+        throw new HttpError(
+          400,
+          "hospitalId is required when a super administrator creates a staff account",
+        );
+      }
+    } else {
+      targetHospitalId = caller.hospitalId;
+      if (!targetHospitalId) {
+        throw new HttpError(403, "Your account is not associated with a hospital");
+      }
+    }
+
+    // Resolve the hospital's DID: it becomes the issuing authority for this
+    // person's credential, replacing the single hardcoded consortium DID. That is
+    // what lets a credential prove WHICH hospital vouched for a clinician.
+    let issuerDid = "did:hosp:consortium:authority";
+    if (targetHospitalId) {
+      const { data: hospital, error: hErr } = await db
+        .from("hospitals")
+        .select("hospital_did, status")
+        .eq("hospital_id", targetHospitalId)
+        .maybeSingle();
+
+      if (hErr || !hospital) throw new HttpError(400, "Unknown hospital");
+      if (hospital.status !== "active") {
+        throw new HttpError(403, "That hospital is suspended and cannot onboard users");
+      }
+      issuerDid = hospital.hospital_did;
     }
 
     // ── 1. auth user ────────────────────────────────────────────────────────
@@ -132,6 +181,7 @@ Deno.serve(async (req) => {
       email,
       full_name: fullName,
       role: role as Role,
+      hospital_id: targetHospitalId,
     });
     if (profErr) throw new HttpError(500, `Profile creation failed: ${profErr.message}`);
 
@@ -143,8 +193,10 @@ Deno.serve(async (req) => {
       owner_name: fullName,
       owner_type: role as Role,
       public_key: `pk_${crypto.randomUUID().replace(/-/g, "").slice(0, 24)}`,
-      controller: "did:hosp:consortium:authority",
+      // Controlled by the hospital that issued it, not the platform.
+      controller: issuerDid,
       status: "active",
+      hospital_id: targetHospitalId,
     });
     if (didErr) throw new HttpError(500, `DID issuance failed: ${didErr.message}`);
     createdDid = did;
@@ -169,7 +221,7 @@ Deno.serve(async (req) => {
     const vcPayload = {
       id: credentialId,
       type: role === "patient" ? "IdentityVC" : "ProfessionalVC",
-      issuer: "did:hosp:consortium:authority",
+      issuer: issuerDid,
       subject: did,
       claims,
       issuedAt,
@@ -218,7 +270,16 @@ Deno.serve(async (req) => {
       resource: did,
       action: "USER_ONBOARDED",
       outcome: "success",
-      metadata: { email, role, did, credentialId, cardId, keyFingerprint: fingerprint },
+      metadata: {
+        email,
+        role,
+        did,
+        credentialId,
+        cardId,
+        keyFingerprint: fingerprint,
+        hospitalId: targetHospitalId,
+        issuerDid,
+      },
     });
 
     return json({
@@ -230,6 +291,8 @@ Deno.serve(async (req) => {
       credentialId,
       cardId,
       signature,
+      hospitalId: targetHospitalId,
+      issuerDid,
     });
   } catch (err) {
     // ── Roll back partial state ─────────────────────────────────────────────
