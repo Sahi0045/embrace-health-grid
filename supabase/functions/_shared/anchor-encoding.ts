@@ -75,3 +75,62 @@ export async function encodeRegisterPatientRoot(
     borshFixed32(rootHashHex),
   ]);
 }
+
+/**
+ * register_hospital(hospital_did: String, name_hash: [u8; 32], credential_hash: [u8; 32])
+ *
+ * Records that the platform admitted a hospital to the consortium. Only hashes
+ * go on chain: enough to prove a hospital was registered and that its
+ * credential has not changed, without publishing hospital details.
+ */
+export async function encodeRegisterHospital(
+  hospitalDid: string,
+  nameHashHex: string,
+  credentialHashHex: string,
+): Promise<Uint8Array> {
+  return concat([
+    await discriminator("register_hospital"),
+    borshString(hospitalDid),
+    borshFixed32(nameHashHex),
+    borshFixed32(credentialHashHex),
+  ]);
+}
+
+/** set_hospital_status(hospital_did: String, active: bool) */
+export async function encodeSetHospitalStatus(
+  hospitalDid: string,
+  active: boolean,
+): Promise<Uint8Array> {
+  return concat([
+    await discriminator("set_hospital_status"),
+    borshString(hospitalDid),
+    // Borsh bool is a single byte.
+    new Uint8Array([active ? 1 : 0]),
+  ]);
+}
+
+/**
+ * update_hospital_roster(hospital_did: String, roster_root: [u8; 32], staff_count: u32)
+ *
+ * Anchors a merkle root over the clinician DIDs a hospital has issued, so it can
+ * prove which staff it vouched for at a point in time without publishing the
+ * roster.
+ */
+export async function encodeUpdateHospitalRoster(
+  hospitalDid: string,
+  rosterRootHex: string,
+  staffCount: number,
+): Promise<Uint8Array> {
+  const count = new Uint8Array(4);
+  new DataView(count.buffer).setUint32(0, staffCount, true);
+
+  return concat([
+    await discriminator("update_hospital_roster"),
+    borshString(hospitalDid),
+    borshFixed32(rosterRootHex),
+    count,
+  ]);
+}
+
+/** PDA seed prefix for a hospital account: seeds = [b"hospital", hospital_did]. */
+export const HOSPITAL_SEED = "hospital";

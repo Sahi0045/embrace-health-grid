@@ -33,7 +33,12 @@ import {
   errorResponse,
   HttpError,
 } from "../_shared/deps.ts";
-import { encodeRegisterPatientRoot, encodeUpdatePatientRoot } from "../_shared/anchor-encoding.ts";
+import {
+  encodeRegisterPatientRoot,
+  encodeUpdatePatientRoot,
+  encodeRegisterHospital,
+  HOSPITAL_SEED,
+} from "../_shared/anchor-encoding.ts";
 
 const PROGRAM_ID = Deno.env.get("SOLANA_PROGRAM_ID") ?? "";
 const RPC_URL = Deno.env.get("SOLANA_RPC_URL") ?? "https://api.devnet.solana.com";
@@ -57,6 +62,14 @@ function patientRootPda(subjectDid: string): [PublicKey, number] {
   );
 }
 
+/** PDA for a hospital registration — seeds must match the on-chain program. */
+function hospitalPda(hospitalDid: string): [PublicKey, number] {
+  return PublicKey.findProgramAddressSync(
+    [new TextEncoder().encode(HOSPITAL_SEED), new TextEncoder().encode(hospitalDid)],
+    new PublicKey(PROGRAM_ID),
+  );
+}
+
 Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
@@ -67,12 +80,132 @@ Deno.serve(async (req) => {
   try {
     caller = await requireCaller(req);
 
-    if (!["doctor", "staff", "admin"].includes(caller.role)) {
+    // super_admin is included for the hospital-registration branch below; the
+    // patient path still checks DID ownership separately.
+    if (!["doctor", "staff", "admin", "super_admin"].includes(caller.role)) {
       throw new HttpError(403, "Only clinical staff may anchor records");
     }
     if (!PROGRAM_ID) throw new HttpError(500, "SOLANA_PROGRAM_ID is not configured");
 
     const body = await req.json();
+
+    // ── Hospital registration ───────────────────────────────────────────────
+    // A separate instruction with its own PDA, so it is handled before the
+    // patient-root path rather than bent to fit it.
+    if (body?.kind === "hospital") {
+      if (caller.role !== "super_admin") {
+        throw new HttpError(403, "Only a super administrator may register a hospital on chain");
+      }
+      if (!PROGRAM_ID) throw new HttpError(500, "SOLANA_PROGRAM_ID is not configured");
+
+      const { hospitalDid, nameHash, credentialHash } = body;
+      if (!hospitalDid || !nameHash || !credentialHash) {
+        throw new HttpError(400, "hospitalDid, nameHash and credentialHash are required");
+      }
+      for (const [label, value] of [
+        ["nameHash", nameHash],
+        ["credentialHash", credentialHash],
+      ] as const) {
+        if (!/^[0-9a-f]{64}$/i.test(String(value).replace(/^0x/, ""))) {
+          throw new HttpError(400, `${label} must be a 64-character SHA-256 hex digest`);
+        }
+      }
+
+      const { error: pendErr } = await db.from("solana_anchors").insert({
+        anchor_id: anchorId,
+        record_hash: credentialHash,
+        record_type: "hospital_registration",
+        record_id: hospitalDid,
+        actor_did: hospitalDid,
+        status: "pending",
+        signature: null,
+        network: "devnet",
+      });
+      if (pendErr) throw new HttpError(500, `Could not record anchor attempt: ${pendErr.message}`);
+
+      const wallet = loadWallet();
+      const connection = new Connection(RPC_URL, "confirmed");
+      const [pda] = hospitalPda(hospitalDid);
+
+      // register_hospital uses `init`, so a repeat registration would fail. Treat
+      // an existing account as already registered rather than an error.
+      const existing = await connection.getAccountInfo(pda);
+      if (existing) {
+        await db
+          .from("solana_anchors")
+          .update({ status: "confirmed", signature: null, confirmed_at: new Date().toISOString() })
+          .eq("anchor_id", anchorId);
+        return json({
+          ok: true,
+          anchorId,
+          alreadyRegistered: true,
+          pda: pda.toBase58(),
+          instruction: "register_hospital",
+        });
+      }
+
+      const data = await encodeRegisterHospital(hospitalDid, nameHash, credentialHash);
+      const tx = new Transaction().add(
+        new TransactionInstruction({
+          keys: [
+            { pubkey: pda, isSigner: false, isWritable: true },
+            { pubkey: wallet.publicKey, isSigner: true, isWritable: true },
+            { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+          ],
+          programId: new PublicKey(PROGRAM_ID),
+          data,
+        }),
+      );
+      tx.feePayer = wallet.publicKey;
+      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("confirmed");
+      tx.recentBlockhash = blockhash;
+      tx.sign(wallet);
+
+      const signature = await connection.sendRawTransaction(tx.serialize());
+      const confirmation = await connection.confirmTransaction(
+        { signature, blockhash, lastValidBlockHeight },
+        "confirmed",
+      );
+      if (confirmation.value.err) {
+        throw new Error(`On-chain failure: ${JSON.stringify(confirmation.value.err)}`);
+      }
+
+      const txInfo = await connection.getTransaction(signature, {
+        commitment: "confirmed",
+        maxSupportedTransactionVersion: 0,
+      });
+
+      await db
+        .from("solana_anchors")
+        .update({
+          status: "confirmed",
+          signature,
+          slot: txInfo?.slot ?? null,
+          confirmed_at: new Date().toISOString(),
+        })
+        .eq("anchor_id", anchorId);
+
+      await audit(db, {
+        actor_id: caller.userId,
+        actor_did: hospitalDid,
+        resource: anchorId,
+        action: "HOSPITAL_REGISTERED_ONCHAIN",
+        outcome: "success",
+        metadata: { signature, slot: txInfo?.slot ?? null, pda: pda.toBase58() },
+      });
+
+      return json({
+        ok: true,
+        anchorId,
+        signature,
+        slot: txInfo?.slot ?? null,
+        pda: pda.toBase58(),
+        instruction: "register_hospital",
+        explorer: `https://explorer.solana.com/tx/${signature}?cluster=devnet`,
+      });
+    }
+
+    // ── Patient record anchoring ────────────────────────────────────────────
     const { subjectDid, recordHash, recordType, recordId } = body ?? {};
 
     if (!subjectDid || !recordHash || !recordType) {

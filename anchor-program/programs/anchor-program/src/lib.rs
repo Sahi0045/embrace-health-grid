@@ -112,6 +112,11 @@ pub mod anchor_program {
 
     /// Register a hospital on chain.
     ///
+    /// NOTE: the PDA is seeded on `hospital_did`, and a Solana seed is capped at
+    /// 32 bytes. With the "did:hosp:org:" prefix that leaves 19 bytes for the
+    /// slug, which the caller enforces — a longer DID fails with
+    /// "Max seed length exceeded".
+    ///
     /// The platform (super admin) is the only signer, so the chain records which
     /// authority admitted each hospital to the consortium. A hospital DID that is
     /// not here was never issued by the platform, which is what makes the

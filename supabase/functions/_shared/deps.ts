@@ -30,6 +30,13 @@ export async function requireCaller(req: Request): Promise<{
   userId: string;
   role: string;
   dids: string[];
+  /**
+   * The caller's hospital, or null for a super_admin (who belongs to the
+   * platform) and for a patient with no affiliation. Functions that write
+   * tenant-scoped rows must stamp this rather than trusting a client-supplied
+   * hospital id.
+   */
+  hospitalId: string | null;
 }> {
   const authHeader = req.headers.get("Authorization") ?? "";
   const token = authHeader.replace(/^Bearer\s+/i, "");
@@ -50,7 +57,7 @@ export async function requireCaller(req: Request): Promise<{
   const db = serviceClient();
   const { data: profile, error: pErr } = await db
     .from("profiles")
-    .select("id, role")
+    .select("id, role, hospital_id")
     .eq("id", userData.user.id)
     .single();
   if (pErr || !profile) throw new HttpError(403, "No profile for this account");
@@ -61,6 +68,7 @@ export async function requireCaller(req: Request): Promise<{
     userId: profile.id,
     role: profile.role,
     dids: (dids ?? []).map((d: { did: string }) => d.did),
+    hospitalId: profile.hospital_id ?? null,
   };
 }
 
