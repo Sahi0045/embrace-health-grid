@@ -108,8 +108,12 @@ function OnboardPage() {
       </div>
       <PageHeader
         eyebrow="Identity"
-        title="Onboard user"
-        description="Creates the account, issues a DID, signs an identity credential, and optionally issues an NFC card — in one step."
+        title={isAdmin ? "Onboard user" : "Register patient"}
+        description={
+          isAdmin
+            ? "Creates the account, issues a DID, signs an identity credential, and optionally issues an NFC card — in one step."
+            : "Registers a patient: creates their account, issues a DID and signs an identity credential. Only an administrator can create staff accounts."
+        }
       />
 
       {result ? (

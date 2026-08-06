@@ -110,12 +110,7 @@ const staffNav: Item[] = [
  * see these at all: admitting or suspending a tenant is not a hospital's
  * business. RouteGuard and RLS enforce it; this only avoids offering the link.
  */
-const superNav: Item[] = [
-  { title: "Hospitals", url: "/super/hospitals", icon: Hospital },
-  { title: "DID Registry", url: "/did-explorer", icon: Search },
-  { title: "Verifiable Credentials", url: "/credential-explorer", icon: Award },
-  { title: "Security & Audit Trail", url: "/audit-timeline", icon: GitBranch },
-];
+const superNav: Item[] = [{ title: "Hospitals", url: "/super/hospitals", icon: Hospital }];
 
 const adminNav: Item[] = [
   { title: "Admin Portal Hub", url: "/admin", icon: LayoutDashboard },
@@ -140,7 +135,17 @@ const adminNav: Item[] = [
   { title: "Security & Audit Trail", url: "/audit-timeline", icon: GitBranch },
 ];
 
-const globalNav: Item[] = [
+/**
+ * Registry and oversight tools.
+ *
+ * NOT shown to patients. These list DIDs, credentials and audit activity across
+ * the hospital, which is a staff concern — a patient's own equivalents are
+ * Credentials, Consent and Access History in the patient portal.
+ *
+ * Previously rendered unconditionally, so every patient was offered all three.
+ * They also duplicate entries already present in adminNav and superNav.
+ */
+const networkNav: Item[] = [
   { title: "DID Explorer", url: "/did-explorer", icon: Search },
   { title: "Credential Explorer", url: "/credential-explorer", icon: Award },
   { title: "Audit Timeline", url: "/audit-timeline", icon: GitBranch },
@@ -246,7 +251,8 @@ export function AppSidebar() {
         {currentPortal === "admin" && <NavGroup label="Admin Portal" items={adminNav} />}
         {currentPortal === "super" && <NavGroup label="Platform" items={superNav} />}
 
-        <NavGroup label="Network" items={globalNav} />
+        {/* Staff and above only — see networkNav. */}
+        {currentPortal !== "patient" && <NavGroup label="Network" items={networkNav} />}
 
         <SidebarGroup>
           {!collapsed && (

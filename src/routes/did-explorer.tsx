@@ -28,10 +28,11 @@ import {
   rejectDIDRequest,
 } from "@/lib/api";
 import { toast } from "sonner";
+import { RouteGuard } from "@/components/RouteGuard";
 
 export const Route = createFileRoute("/did-explorer")({
   head: () => ({ meta: [{ title: "DID Explorer — Embrace Health Grid" }] }),
-  component: DIDExplorerPage,
+  component: DIDExplorerPageGuarded,
 });
 
 type DIDSearchType = "patient" | "doctor" | "nurse" | "admin" | "resource";
@@ -667,5 +668,20 @@ function DIDExplorerPage() {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+/**
+ * Registry and oversight view, so staff and above.
+ *
+ * RLS already scopes what each role can read; this stops a patient landing on a
+ * page designed for hospital-wide oversight. Their own equivalents are in the
+ * patient portal: Credentials, Consent and Access History.
+ */
+function DIDExplorerPageGuarded() {
+  return (
+    <RouteGuard requiredRole="staff">
+      <DIDExplorerPage />
+    </RouteGuard>
   );
 }

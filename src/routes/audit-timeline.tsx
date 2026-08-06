@@ -4,10 +4,11 @@ import { AuditEventCard } from "@/components/audit/AuditEventCard";
 import { Search, Filter, Activity, ShieldX, AlertTriangle, Info } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useAudit } from "@/hooks/use-api";
+import { RouteGuard } from "@/components/RouteGuard";
 
 export const Route = createFileRoute("/audit-timeline")({
   head: () => ({ meta: [{ title: "Audit Timeline — Embrace Health Grid" }] }),
-  component: AuditTimelinePage,
+  component: AuditTimelinePageGuarded,
 });
 
 const CATEGORIES = [
@@ -250,5 +251,20 @@ function AuditTimelinePage() {
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * Registry and oversight view, so staff and above.
+ *
+ * RLS already scopes what each role can read; this stops a patient landing on a
+ * page designed for hospital-wide oversight. Their own equivalents are in the
+ * patient portal: Credentials, Consent and Access History.
+ */
+function AuditTimelinePageGuarded() {
+  return (
+    <RouteGuard requiredRole="staff">
+      <AuditTimelinePage />
+    </RouteGuard>
   );
 }
