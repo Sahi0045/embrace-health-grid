@@ -18,6 +18,8 @@
 
 import { getServiceClient } from "../lib/supabase.js";
 
+import { seedOperations, cleanupOperations } from "./seed-operations.js";
+
 const db = getServiceClient();
 
 // Shared password for seeded accounts — development only.
@@ -306,6 +308,9 @@ async function cleanup() {
       if (error) console.warn(`  warn: could not delete ${u.email}: ${error.message}`);
     }
   }
+  // Operational and clinical fixtures (beds, rota, vaccines, insurance, ...).
+  await cleanupOperations(db);
+
   // Belt and braces in case a DID was orphaned.
   await db.from("dids").delete().like("did", "did:hosp:0xSEED%");
 }
@@ -529,6 +534,13 @@ async function seed() {
     anchor_id: "SEED-ANCHOR-CONFIRMED",
   });
   if (mErr) throw new Error(`merkle_roots insert: ${mErr.message}`);
+
+  // Populate the operational and clinical screens. Written with service_role
+  // because several of these tables gate INSERT on active patient consent, which
+  // a seed script has no business satisfying.
+  console.log("Inserting operational and clinical fixtures...");
+  const didByKey = Object.fromEntries(ALL.map((u) => [u.key, u.did]));
+  await seedOperations(db, { hospitalIds, ids, dids: didByKey });
 
   return ids;
 }
