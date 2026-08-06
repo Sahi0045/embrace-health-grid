@@ -20,8 +20,19 @@ async function requireSession() {
 }
 
 async function callerDid(): Promise<string> {
+  const user = await getVerifiedUser();
+  if (!user) throw new Error("Not authenticated");
+
   const supabase = getSupabaseServerClient();
-  const { data } = await supabase.from("profiles").select("primary_did").single();
+  // Filtered by id. An unfiltered .single() on profiles throws "Cannot coerce the
+  // result to a single JSON object" for any caller whose RLS view spans more than
+  // their own row — which is every clinician and admin.
+  const { data } = await supabase
+    .from("profiles")
+    .select("primary_did")
+    .eq("id", user.id)
+    .maybeSingle();
+
   if (!data?.primary_did) throw new Error("No DID associated with this account");
   return data.primary_did;
 }

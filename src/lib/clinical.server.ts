@@ -940,13 +940,16 @@ export const createMedicalRecord = createServerFn({ method: "POST" })
     },
   )
   .handler(async ({ data }) => {
-    await requireSession();
+    const user = await requireSession();
     const supabase = getSupabaseServerClient();
 
+    // Filtered by id: a clinician's RLS view spans their hospital, so an
+    // unfiltered .single() throws once a colleague exists.
     const { data: profile } = await supabase
       .from("profiles")
       .select("primary_did, full_name")
-      .single();
+      .eq("id", user.id)
+      .maybeSingle();
 
     const recordId = `REC-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
 

@@ -68,7 +68,10 @@ const browser = await puppeteer.launch(chromeLaunchOptions());
 
 /** Sign in through the real login form and return the page. */
 async function signIn(portalLabel, email) {
-  const page = await browser.newPage();
+  // Own cookie jar per sign-in: /login now redirects an already-authenticated
+  // visitor to their portal, so a shared session would never reach the form.
+  const context = await browser.createBrowserContext();
+  const page = await context.newPage();
   await page.goto(`${BASE}/login`, { waitUntil: "networkidle0", timeout: 60000 });
 
   for (const el of await page.$$("button")) {

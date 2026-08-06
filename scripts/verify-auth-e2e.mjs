@@ -64,7 +64,10 @@ async function clickText(page, text) {
 
 /** Run the login form for one portal and return observed state. */
 async function login(portalLabel, email) {
-  const page = await browser.newPage();
+  // Own cookie jar per sign-in: /login now redirects an already-authenticated
+  // visitor to their portal, so a shared session would never reach the form.
+  const context = await browser.createBrowserContext();
+  const page = await context.newPage();
   await page.goto(`${BASE}/login`, { waitUntil: "networkidle0", timeout: 60000 });
 
   // Portal cards render as buttons; pick the requested one.
