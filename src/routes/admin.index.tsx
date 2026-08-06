@@ -41,6 +41,7 @@ import {
 } from "@/lib/api";
 import { toast } from "sonner";
 import { useDIDs, useLivePatients, useLiveStaff, useAdminAttendance } from "@/hooks/use-api";
+import { HospitalContext } from "@/components/HospitalContext";
 
 export const Route = createFileRoute("/admin/")({
   head: () => ({
@@ -232,6 +233,9 @@ function AdminDashboardPage() {
   return (
     <RouteGuard requiredRole="admin">
       <div className="min-h-screen pb-12">
+        <div className="mb-4">
+          <HospitalContext />
+        </div>
         <PageHeader
           eyebrow="Consortium Governance"
           title="Admin Control Center"

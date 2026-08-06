@@ -27,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { HospitalContext } from "@/components/HospitalContext";
 
 export const Route = createFileRoute("/admin/policies")({
   head: () => ({ meta: [{ title: "Admin · Policies — Embrace Health Grid" }] }),
@@ -183,6 +184,9 @@ function PoliciesPage() {
 
   return (
     <>
+      <div className="mb-4">
+        <HospitalContext />
+      </div>
       <PageHeader
         eyebrow="Governance"
         title="Policy management"

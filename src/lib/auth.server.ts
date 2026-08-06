@@ -22,7 +22,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { getSupabaseServerClient, getVerifiedUser } from "./supabase.server";
 
 /** Roles as stored in the database `user_role` enum. */
-export type UserRole = "patient" | "doctor" | "staff" | "admin";
+export type UserRole = "patient" | "doctor" | "staff" | "admin" | "super_admin";
 
 /**
  * Profile shape returned to the client for rendering.
@@ -179,6 +179,12 @@ export const signOut = createServerFn({ method: "POST" }).handler(async () => {
 export function hasAccess(userRole: UserRole | null, required: UserRole): boolean {
   if (!userRole) return false;
   if (userRole === required) return true;
+
+  // The platform operator administers hospitals, so it reaches the admin console
+  // too. Still excluded from the patient portal: those are a person's own
+  // records, and a super_admin has no more business browsing them than a
+  // hospital admin does.
+  if (userRole === "super_admin") return required !== "patient";
 
   // Admins may view staff areas; doctors may view staff areas.
   if (userRole === "admin") return required !== "patient";

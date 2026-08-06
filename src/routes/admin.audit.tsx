@@ -27,6 +27,7 @@ import {
 import { useAdminAudit as useAudit } from "@/hooks/use-admin";
 import { toast } from "sonner";
 import { logAuditEvent } from "@/lib/api";
+import { HospitalContext } from "@/components/HospitalContext";
 
 export const Route = createFileRoute("/admin/audit")({
   head: () => ({ meta: [{ title: "Admin · Audit Logs — Embrace Health Grid" }] }),
@@ -205,6 +206,9 @@ function AuditLogs() {
 
   return (
     <>
+      <div className="mb-4">
+        <HospitalContext />
+      </div>
       <PageHeader
         eyebrow="Compliance"
         title="Audit Logs"

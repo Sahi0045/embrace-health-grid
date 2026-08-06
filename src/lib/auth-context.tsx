@@ -85,6 +85,7 @@ export function useCurrentUser() {
 export function hasAccess(userRole: UserRole | null, required: UserRole): boolean {
   if (!userRole) return false;
   if (userRole === required) return true;
+  if (userRole === "super_admin") return required !== "patient";
   if (userRole === "admin") return required !== "patient";
   if (userRole === "doctor") return required === "staff";
   return false;

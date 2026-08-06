@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
  * records. The RLS test suite asserts that directly.
  */
 interface RouteGuardProps {
-  requiredRole: "patient" | "doctor" | "staff" | "admin";
+  requiredRole: "patient" | "doctor" | "staff" | "admin" | "super_admin";
   children: React.ReactNode;
 }
 

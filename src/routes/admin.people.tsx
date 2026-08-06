@@ -38,6 +38,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { HospitalContext } from "@/components/HospitalContext";
 
 export const Route = createFileRoute("/admin/people")({
   head: () => ({
@@ -190,6 +191,9 @@ function PeopleManagement() {
   return (
     <RouteGuard requiredRole="admin">
       <>
+        <div className="mb-4">
+          <HospitalContext />
+        </div>
         <PageHeader
           eyebrow="Admin console"
           title="People Management"

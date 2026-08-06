@@ -15,6 +15,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { HospitalContext } from "@/components/HospitalContext";
 
 // Type definition for DID records
 type DIDRecord = {
@@ -132,6 +133,9 @@ function DIDManagement() {
 
   return (
     <>
+      <div className="mb-4">
+        <HospitalContext />
+      </div>
       <PageHeader
         eyebrow="Identity"
         title="DID management"

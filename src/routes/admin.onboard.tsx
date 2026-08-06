@@ -11,6 +11,7 @@ import { UserPlus, Fingerprint, Award, CreditCard, Copy, Check } from "lucide-re
 import { toast } from "sonner";
 import { useCurrentUser } from "@/lib/auth-context";
 import { onboardUser } from "@/lib/clinical.server";
+import { HospitalContext } from "@/components/HospitalContext";
 
 export const Route = createFileRoute("/admin/onboard")({
   head: () => ({ meta: [{ title: "Admin · Onboard User — Embrace Health Grid" }] }),
@@ -102,6 +103,9 @@ function OnboardPage() {
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-6">
+      <div className="mb-4">
+        <HospitalContext />
+      </div>
       <PageHeader
         eyebrow="Identity"
         title="Onboard user"

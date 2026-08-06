@@ -15,6 +15,7 @@ import {
   RefreshCw,
   Loader2,
 } from "lucide-react";
+import { HospitalContext } from "@/components/HospitalContext";
 
 export const Route = createFileRoute("/admin/nfc-cards")({
   head: () => ({
@@ -95,6 +96,9 @@ function NfcCards() {
 
   return (
     <RouteGuard requiredRole="admin">
+      <div className="mb-4">
+        <HospitalContext />
+      </div>
       <PageHeader
         eyebrow="Identity Infrastructure"
         title="NFC Card Management"

@@ -98,21 +98,11 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const {
-      name,
-      city,
-      country,
-      contactEmail,
-      adminEmail,
-      adminPassword,
-      adminFullName,
-    } = body ?? {};
+    const { name, city, country, contactEmail, adminEmail, adminPassword, adminFullName } =
+      body ?? {};
 
     if (!name || !adminEmail || !adminPassword || !adminFullName) {
-      throw new HttpError(
-        400,
-        "name, adminEmail, adminPassword and adminFullName are required",
-      );
+      throw new HttpError(400, "name, adminEmail, adminPassword and adminFullName are required");
     }
     if (String(adminPassword).length < 8) {
       throw new HttpError(400, "The admin password must be at least 8 characters");
@@ -330,28 +320,44 @@ Deno.serve(async (req) => {
       );
     }
     if (createdCredentialId) {
-      await db.from("credentials").delete().eq("id", createdCredentialId).then(
-        () => {},
-        () => {},
-      );
+      await db
+        .from("credentials")
+        .delete()
+        .eq("id", createdCredentialId)
+        .then(
+          () => {},
+          () => {},
+        );
     }
     if (createdDid) {
-      await db.from("dids").delete().eq("did", createdDid).then(
-        () => {},
-        () => {},
-      );
+      await db
+        .from("dids")
+        .delete()
+        .eq("did", createdDid)
+        .then(
+          () => {},
+          () => {},
+        );
     }
     if (createdHospitalId) {
       // Remove any DID that referenced this hospital before the hospital itself,
       // or the foreign key blocks the delete.
-      await db.from("dids").delete().eq("hospital_id", createdHospitalId).then(
-        () => {},
-        () => {},
-      );
-      await db.from("hospitals").delete().eq("hospital_id", createdHospitalId).then(
-        () => {},
-        () => {},
-      );
+      await db
+        .from("dids")
+        .delete()
+        .eq("hospital_id", createdHospitalId)
+        .then(
+          () => {},
+          () => {},
+        );
+      await db
+        .from("hospitals")
+        .delete()
+        .eq("hospital_id", createdHospitalId)
+        .then(
+          () => {},
+          () => {},
+        );
     }
 
     if (caller) {

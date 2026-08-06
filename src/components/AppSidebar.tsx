@@ -103,6 +103,18 @@ const staffNav: Item[] = [
   { title: "Emergency", url: "/staff/emergency", icon: ShieldAlert },
 ];
 
+/**
+ * Platform operations. Separate from adminNav because a hospital admin must not
+ * see these at all: admitting or suspending a tenant is not a hospital's
+ * business. RouteGuard and RLS enforce it; this only avoids offering the link.
+ */
+const superNav: Item[] = [
+  { title: "Hospitals", url: "/super/hospitals", icon: Hospital },
+  { title: "DID Registry", url: "/did-explorer", icon: Search },
+  { title: "Verifiable Credentials", url: "/credential-explorer", icon: Award },
+  { title: "Security & Audit Trail", url: "/audit-timeline", icon: GitBranch },
+];
+
 const adminNav: Item[] = [
   { title: "Admin Portal Hub", url: "/admin", icon: LayoutDashboard },
   // Admin console pages, previously only in the standalone portal on :3002.
@@ -177,16 +189,22 @@ export function AppSidebar() {
   const { user: user } = useCurrentUser();
   useEffect(() => {}, [pathname]);
 
-  const currentPortal: "patient" | "staff" | "admin" = pathname.startsWith("/patient")
-    ? "patient"
-    : pathname.startsWith("/staff")
-      ? "staff"
-      : pathname.startsWith("/admin") ||
-          pathname === "/did-explorer" ||
-          pathname === "/credential-explorer" ||
-          pathname === "/audit-timeline"
-        ? "admin"
-        : (user?.role as any) || "patient";
+  const currentPortal: "patient" | "staff" | "admin" | "super" = pathname.startsWith("/super")
+    ? "super"
+    : pathname.startsWith("/patient")
+      ? "patient"
+      : pathname.startsWith("/staff")
+        ? "staff"
+        : pathname.startsWith("/admin") ||
+            pathname === "/did-explorer" ||
+            pathname === "/credential-explorer" ||
+            pathname === "/audit-timeline"
+          ? "admin"
+          : // A super_admin has no portal of its own to fall back to, so send it to
+            // the platform view rather than the patient one.
+            user?.role === "super_admin"
+            ? "super"
+            : (user?.role as any) || "patient";
 
   return (
     <Sidebar collapsible="icon">
@@ -224,6 +242,7 @@ export function AppSidebar() {
         {currentPortal === "patient" && <NavGroup label="Patient Portal" items={patientNav} />}
         {currentPortal === "staff" && <NavGroup label="Doctor & Staff Portal" items={staffNav} />}
         {currentPortal === "admin" && <NavGroup label="Admin Portal" items={adminNav} />}
+        {currentPortal === "super" && <NavGroup label="Platform" items={superNav} />}
 
         <NavGroup label="Network" items={globalNav} />
 

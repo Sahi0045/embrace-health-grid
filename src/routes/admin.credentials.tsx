@@ -7,6 +7,7 @@ import { ShieldCheck, ShieldX, Search, TrendingUp, Eye, Award, AlertTriangle } f
 import { useState } from "react";
 import type { CredentialFull, CredentialType } from "@/lib/types";
 import { useAdminCredentials as useCredentials } from "@/hooks/use-admin";
+import { HospitalContext } from "@/components/HospitalContext";
 
 // Type for raw credential data from the API
 interface ApiCredential {
@@ -127,6 +128,9 @@ function CredentialsPage() {
 
   return (
     <RouteGuard requiredRole="admin">
+      <div className="mb-4">
+        <HospitalContext />
+      </div>
       <PageHeader
         eyebrow="Admin Console"
         title="Credential Management"

@@ -66,6 +66,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { HospitalContext } from "@/components/HospitalContext";
 
 export const Route = createFileRoute("/admin/fraud")({
   head: () => ({ meta: [{ title: "Admin · Fraud Detection — Embrace Health Grid" }] }),
@@ -501,6 +502,9 @@ function FraudPage() {
 
   return (
     <>
+      <div className="mb-4">
+        <HospitalContext />
+      </div>
       <PageHeader
         eyebrow="Security Operations"
         title="Fraud Detection"
