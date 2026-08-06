@@ -17,6 +17,7 @@ import {
   AlertTriangle,
   BarChart3,
   Settings,
+  LogOut,
   Hospital,
   BookLock,
   User,
@@ -63,6 +64,7 @@ import {
 } from "@/components/ui/sidebar";
 import { RoleSwitcher } from "./RoleSwitcher";
 import { useCurrentUser } from "@/lib/auth-context";
+import { signOut } from "@/lib/auth.server";
 
 type Item = { title: string; url: string; icon: React.ComponentType<{ className?: string }> };
 
@@ -262,6 +264,32 @@ export function AppSidebar() {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+
+              {/*
+                Sign out lives here so it exists on every page for every role.
+                It previously appeared only on a few profile and dashboard pages,
+                so the platform console and most admin pages had no way to end a
+                session at all — the only recourse was clearing cookies.
+
+                The session is an httpOnly cookie, so only the server can clear
+                it: signOut() must be awaited before navigating, or the cookie
+                survives and returning to a portal resumes the session.
+              */}
+              {user && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    onClick={() => {
+                      void signOut().finally(() => {
+                        window.location.href = "/login";
+                      });
+                    }}
+                    className="flex w-full items-center gap-2 text-destructive hover:text-destructive"
+                  >
+                    <LogOut className="h-4 w-4 shrink-0" />
+                    {!collapsed && <span>Sign out</span>}
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
