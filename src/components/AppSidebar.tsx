@@ -68,23 +68,46 @@ import { signOut } from "@/lib/auth.server";
 
 type Item = { title: string; url: string; icon: React.ComponentType<{ className?: string }> };
 
-const patientNav: Item[] = [
+/**
+ * Patient portal, grouped by what the patient is trying to do.
+ *
+ * Was a flat list of 16 items in no discernible order — Billing above Medical
+ * Records, ZK Proof next to Telemedicine — which made the important things
+ * (records, consent, who accessed my data) hard to find.
+ *
+ * Four groups, ordered by how often they are needed:
+ *   My Health   the clinical record
+ *   Care        appointments and treatment
+ *   Identity    DID, credentials, proofs — the part that makes this platform
+ *               different, so it is grouped rather than scattered
+ *   Account     admin and money
+ */
+const patientHealthNav: Item[] = [
   { title: "Home", url: "/patient", icon: Home },
-  { title: "My Profile", url: "/patient/profile", icon: User },
-  { title: "Inpatient Care", url: "/patient/inpatient", icon: Activity },
-  { title: "Billing", url: "/patient/billing", icon: Receipt },
   { title: "Medical Records", url: "/patient/records", icon: ClipboardList },
-  { title: "My QR Code", url: "/patient/qr", icon: QrCode },
+  { title: "Vaccines", url: "/patient/vaccines", icon: Syringe },
+  { title: "Emergency Info", url: "/patient/emergency", icon: Heart },
+];
+
+const patientCareNav: Item[] = [
   { title: "Appointments", url: "/patient/appointments", icon: CalendarDays },
-  { title: "Credentials", url: "/patient/wallet", icon: Wallet },
+  { title: "Telemedicine", url: "/patient/telemedicine", icon: Video },
+  { title: "Inpatient Care", url: "/patient/inpatient", icon: Activity },
+];
+
+const patientIdentityNav: Item[] = [
+  { title: "My Credentials", url: "/patient/wallet", icon: Wallet },
   { title: "Consent", url: "/patient/consent", icon: ShieldCheck },
   { title: "Access History", url: "/patient/history", icon: History },
-  { title: "Emergency", url: "/patient/emergency", icon: Heart },
-  { title: "Vaccines", url: "/patient/vaccines", icon: Syringe },
+  { title: "My QR Code", url: "/patient/qr", icon: QrCode },
+  { title: "Private Proofs", url: "/patient/zkproof", icon: Fingerprint },
+];
+
+const patientAccountNav: Item[] = [
+  { title: "My Profile", url: "/patient/profile", icon: User },
+  { title: "Billing", url: "/patient/billing", icon: Receipt },
   { title: "Insurance", url: "/patient/insurance", icon: CreditCard },
-  { title: "Family", url: "/patient/family", icon: Users2 },
-  { title: "Telemedicine", url: "/patient/telemedicine", icon: Video },
-  { title: "ZK Proof", url: "/patient/zkproof", icon: Fingerprint },
+  { title: "Family Access", url: "/patient/family", icon: Users2 },
 ];
 
 const staffNav: Item[] = [
@@ -193,7 +216,7 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
 
-  const { user: user } = useCurrentUser();
+  const { user, loading } = useCurrentUser();
   useEffect(() => {}, [pathname]);
 
   const currentPortal: "patient" | "staff" | "admin" | "super" = pathname.startsWith("/super")
@@ -212,6 +235,15 @@ export function AppSidebar() {
             user?.role === "super_admin"
             ? "super"
             : (user?.role as any) || "patient";
+
+  // Render nothing until the session is known, and nothing at all when there is
+  // no user. currentPortal falls back to "patient" for an absent role, which is
+  // why the login page showed a complete patient sidebar to a visitor who had not
+  // signed in — every patient route linked, and the role switcher offered.
+  //
+  // The links were dead ends (RouteGuard redirects), but advertising the whole
+  // application surface to an anonymous visitor is not something to leave.
+  if (loading || !user) return null;
 
   return (
     <Sidebar collapsible="icon">
@@ -246,7 +278,14 @@ export function AppSidebar() {
           currentPortal is derived from the path and falls back to the user's own
           role, so a clinician still lands on the staff nav.
         */}
-        {currentPortal === "patient" && <NavGroup label="Patient Portal" items={patientNav} />}
+        {currentPortal === "patient" && (
+          <>
+            <NavGroup label="My Health" items={patientHealthNav} />
+            <NavGroup label="Care" items={patientCareNav} />
+            <NavGroup label="Identity & Privacy" items={patientIdentityNav} />
+            <NavGroup label="Account" items={patientAccountNav} />
+          </>
+        )}
         {currentPortal === "staff" && <NavGroup label="Doctor & Staff Portal" items={staffNav} />}
         {currentPortal === "admin" && <NavGroup label="Admin Portal" items={adminNav} />}
         {currentPortal === "super" && <NavGroup label="Platform" items={superNav} />}
