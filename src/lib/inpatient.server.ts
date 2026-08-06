@@ -377,6 +377,10 @@ export const getDoctors = createServerFn({ method: "GET" }).handler(async () => 
     .from("dids")
     .select("did, owner_name, owner_type, status")
     .in("owner_type", ["doctor", "staff"])
+    // A hospital's own DID is stored with owner_type 'staff' because user_role has
+    // no organisation member, so without this the admin roster listed hospitals
+    // as clinicians with an "Approve & Issue DID" button beside them.
+    .eq("is_organisation", false)
     .eq("status", "active");
 
   if (error) throw new Error(error.message);
@@ -402,6 +406,7 @@ export const getPatientDirectory = createServerFn({ method: "GET" }).handler(asy
     .from("dids")
     .select("did, owner_name, owner_type, status")
     .eq("owner_type", "patient")
+    .eq("is_organisation", false)
     .eq("status", "active");
 
   if (error) throw new Error(error.message);

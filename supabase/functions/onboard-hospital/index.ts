@@ -143,7 +143,11 @@ Deno.serve(async (req) => {
       did: hospitalDid,
       owner_id: null,
       owner_name: name,
-      owner_type: "staff", // owner_type has no 'hospital' member; recorded via hospital_id
+      // user_role has no organisation member, so owner_type stays 'staff' and the
+      // distinction is carried by is_organisation. Person-level queries filter on
+      // that flag; without it a hospital appeared in the clinician roster.
+      owner_type: "staff",
+      is_organisation: true,
       public_key: `pk_${crypto.randomUUID().replace(/-/g, "").slice(0, 24)}`,
       controller: "did:hosp:consortium:authority",
       status: "active",
@@ -224,7 +228,10 @@ Deno.serve(async (req) => {
       did: adminDid,
       owner_id: createdUserId,
       owner_name: adminFullName,
-      owner_type: "staff",
+      // Must match the profile role. Hardcoding 'staff' meant the hospital admin
+      // appeared twice in the roster — once as ADMIN from their profile and once
+      // as STAFF from their DID.
+      owner_type: "admin",
       public_key: `pk_${crypto.randomUUID().replace(/-/g, "").slice(0, 24)}`,
       // Issued by the hospital, not the platform: this is the whole point of
       // giving each hospital its own DID.

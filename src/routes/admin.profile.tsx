@@ -18,6 +18,9 @@ import {
 } from "lucide-react";
 import { RouteGuard } from "@/components/RouteGuard";
 import { signOut } from "@/lib/auth.server";
+import { useCurrentUser } from "@/lib/auth-context";
+import { getMyHospital } from "@/lib/hospitals.server";
+import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/admin/profile")({
   head: () => ({
@@ -29,44 +32,60 @@ export const Route = createFileRoute("/admin/profile")({
   component: AdminProfileGuarded,
 });
 
-const adminData = {
-  name: "Priya Krishnan",
-  did: "did:hosp:0xa7f2…8d91",
-  employeeId: "ADM-1042",
-  email: "priya.krishnan@apollohospitals.com",
-  phone: "+91 98765 12345",
-  department: "IT & Security",
-  role: "System Administrator",
-  joinDate: "2020-06-01",
-  accessLevel: "Super Admin",
-  permissions: [
-    "User Management",
-    "DID Issuance & Revocation",
-    "Policy Configuration",
-    "Audit Log Access",
-    "System Configuration",
-    "Compliance Reporting",
-  ],
-  recentActivity: [
-    {
-      action: "Issued DID",
-      target: "Karthik Rao (MRN-205288)",
-      timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toLocaleString().replace(/\//g, "-"),
-    },
-    {
-      action: "Updated Policy",
-      target: "Default consent expiry",
-      timestamp: new Date(Date.now() - 48 * 60 * 60 * 1000).toLocaleString().replace(/\//g, "-"),
-    },
-    {
-      action: "Reviewed Audit",
-      target: "Fraud Alert #F1",
-      timestamp: new Date(Date.now() - 72 * 60 * 60 * 1000).toLocaleString().replace(/\//g, "-"),
-    },
-  ],
-};
+/**
+ * Static parts of an administrator profile.
+ *
+ * Name, email, DID, hospital and role now come from the session — this page
+ * previously rendered a hardcoded fixture ("Priya Krishnan",
+ * priya.krishnan@apollohospitals.com, ADM-1042), so every administrator of every
+ * hospital saw the same fictional person as their own profile.
+ *
+ * What remains here is genuinely static: the permission set attached to the admin
+ * role. Employee id, phone and join date are not modelled on profiles, so they
+ * are omitted rather than invented.
+ */
+const ADMIN_PERMISSIONS = [
+  "User Management",
+  "DID Issuance & Revocation",
+  "Policy Configuration",
+  "Audit Log Access",
+  "System Configuration",
+  "Compliance Reporting",
+];
 
 function AdminProfile() {
+  const { user } = useCurrentUser();
+  const [hospital, setHospital] = useState<{ name: string; city: string | null } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = (await getMyHospital()) as unknown as {
+          hospital: { name: string; city: string | null } | null;
+        };
+        if (!cancelled) setHospital(res.hospital);
+      } catch {
+        // The profile should render even if the hospital lookup fails.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // A super_admin operates the platform and has no hospital, so label it as such
+  // rather than showing an empty field.
+  const roleLabel =
+    user?.role === "super_admin" ? "Platform Administrator" : "Hospital Administrator";
+
+  /**
+   * Recent activity is not yet read from audit_events for this view, so show
+   * nothing rather than the fabricated entries this page used to display
+   * ("Issued DID to Karthik Rao (MRN-205288)" — a person who does not exist).
+   */
+  const recentActivity: { action: string; target: string; timestamp: string }[] = [];
+
   const handleLogout = () => {
     // The session is an httpOnly cookie, so only the server can end it.
     // Clearing localStorage left the user signed in.
@@ -89,9 +108,11 @@ function AdminProfile() {
                     <ShieldCheck className="h-8 w-8" />
                   </div>
                   <div>
-                    <CardTitle className="text-2xl">{adminData.name}</CardTitle>
+                    <CardTitle className="text-2xl">
+                      {user?.fullName ?? user?.email ?? "—"}
+                    </CardTitle>
                     <CardDescription className="mt-1">
-                      {adminData.role} • {adminData.employeeId}
+                      {roleLabel} {hospital?.name ? `• ${hospital.name}` : ""}
                     </CardDescription>
                   </div>
                 </div>
@@ -108,8 +129,8 @@ function AdminProfile() {
                     <Building2 className="h-5 w-5 text-muted-foreground" />
                   </div>
                   <div>
-                    <div className="text-sm text-muted-foreground">Department</div>
-                    <div className="font-medium">{adminData.department}</div>
+                    <div className="text-sm text-muted-foreground">Hospital</div>
+                    <div className="font-medium">{hospital?.name ?? "—"}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -118,7 +139,7 @@ function AdminProfile() {
                   </div>
                   <div>
                     <div className="text-sm text-muted-foreground">Access Level</div>
-                    <div className="font-medium">{adminData.accessLevel}</div>
+                    <div className="font-medium">{roleLabel}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -127,7 +148,7 @@ function AdminProfile() {
                   </div>
                   <div>
                     <div className="text-sm text-muted-foreground">Email</div>
-                    <div className="font-medium text-sm">{adminData.email}</div>
+                    <div className="font-medium text-sm">{user?.email ?? "—"}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -135,8 +156,8 @@ function AdminProfile() {
                     <Phone className="h-5 w-5 text-muted-foreground" />
                   </div>
                   <div>
-                    <div className="text-sm text-muted-foreground">Phone</div>
-                    <div className="font-medium">{adminData.phone}</div>
+                    <div className="text-sm text-muted-foreground">Location</div>
+                    <div className="font-medium">{hospital?.city ?? "—"}</div>
                   </div>
                 </div>
               </div>
@@ -149,7 +170,7 @@ function AdminProfile() {
                   System Permissions
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {adminData.permissions.map((perm) => (
+                  {ADMIN_PERMISSIONS.map((perm) => (
                     <Badge key={perm} variant="secondary">
                       {perm}
                     </Badge>
@@ -172,7 +193,9 @@ function AdminProfile() {
             <CardContent>
               <div className="rounded-lg bg-muted p-4">
                 <div className="text-sm text-muted-foreground">DID</div>
-                <div className="mt-1 font-mono text-sm font-medium">{adminData.did}</div>
+                <div className="mt-1 font-mono text-sm font-medium">
+                  {user?.primaryDid ?? "not issued"}
+                </div>
               </div>
               <div className="mt-4 flex items-start gap-2 rounded-lg bg-destructive/10 p-3 text-xs text-destructive">
                 <ShieldCheck className="mt-0.5 h-4 w-4 flex-shrink-0" />
@@ -191,7 +214,7 @@ function AdminProfile() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {adminData.recentActivity.map((activity, idx) => (
+                {recentActivity.map((activity, idx) => (
                   <div
                     key={idx}
                     className="flex items-start justify-between rounded-lg border border-border p-3"
