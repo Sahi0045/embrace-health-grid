@@ -42,8 +42,15 @@ function DoctorLocatorPage() {
 
       try {
         const didRes = await getAllDIDs();
+        // The trailing `|| d.did` made this filter a no-op: every DID has one, so
+        // patients and hospitals were listed as doctors in the locator. The
+        // ledger tracks CLINICIAN room presence, so it must be people with a
+        // clinical role and never an organisation DID.
         didDocs = (didRes.dids || []).filter(
-          (d: any) => d.ownerType === "doctor" || d.ownerType === "staff" || d.did,
+          (d: any) =>
+            d.did &&
+            !d.isOrganisation &&
+            (d.ownerType === "doctor" || d.ownerType === "staff" || d.ownerType === "admin"),
         );
       } catch (e) {
         // Fallback

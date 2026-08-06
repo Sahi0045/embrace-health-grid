@@ -295,7 +295,9 @@ export const getAllDIDs = createServerFn({ method: "GET" }).handler(async () => 
 
   const { data, error } = await supabase
     .from("dids")
-    .select("did, owner_name, owner_type, public_key, controller, status, created_at")
+    .select(
+      "did, owner_name, owner_type, public_key, controller, status, created_at, is_organisation",
+    )
     .order("created_at", { ascending: false });
 
   if (error) throw new Error(error.message);

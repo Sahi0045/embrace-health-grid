@@ -539,6 +539,8 @@ export async function getAllDIDs() {
     controller: d.controller,
     status: d.status,
     createdAt: d.created_at,
+    // True for a hospital's own DID. Callers listing PEOPLE must exclude these.
+    isOrganisation: d.is_organisation === true,
   }));
   return { dids, total: dids.length };
 }
