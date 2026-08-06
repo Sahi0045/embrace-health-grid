@@ -140,9 +140,8 @@ export async function anchorPatientRoot({
   patientDid,
   rootHashHex,
 }) {
-  const { PublicKey, Transaction, TransactionInstruction, SystemProgram } = await import(
-    "@solana/web3.js"
-  );
+  const { PublicKey, Transaction, TransactionInstruction, SystemProgram } =
+    await import("@solana/web3.js");
 
   const [pda] = await patientRootPda(programId, patientDid);
   const existing = await connection.getAccountInfo(pda);

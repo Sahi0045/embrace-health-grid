@@ -257,8 +257,20 @@ describe("publish-merkle-root", () => {
       subjectDid: DIDS.drsmith,
       periodDate: uniqueDate,
       events: [
-        { id: "EV1", doctorDid: DIDS.drsmith, roomId: "R1", action: "check-in", timestamp: `${uniqueDate}T09:00:00Z` },
-        { id: "EV2", doctorDid: DIDS.drsmith, roomId: "R1", action: "check-out", timestamp: `${uniqueDate}T17:00:00Z` },
+        {
+          id: "EV1",
+          doctorDid: DIDS.drsmith,
+          roomId: "R1",
+          action: "check-in",
+          timestamp: `${uniqueDate}T09:00:00Z`,
+        },
+        {
+          id: "EV2",
+          doctorDid: DIDS.drsmith,
+          roomId: "R1",
+          action: "check-out",
+          timestamp: `${uniqueDate}T17:00:00Z`,
+        },
       ],
     });
 

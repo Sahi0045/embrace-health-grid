@@ -90,7 +90,11 @@ describe("Patient record isolation", () => {
 
     assert.equal(error, null);
     const others = data.filter((r) => r.patient_did !== DIDS.alice);
-    assert.equal(others.length, 0, `LEAK: unfiltered select returned ${others.length} foreign rows`);
+    assert.equal(
+      others.length,
+      0,
+      `LEAK: unfiltered select returned ${others.length} foreign rows`,
+    );
   });
 
   it("Bob CANNOT read Alice's records", async () => {
@@ -180,7 +184,11 @@ describe("Write protection", () => {
   });
 
   it("A patient CANNOT escalate their own role to admin", async () => {
-    const { data } = await alice.from("profiles").update({ role: "admin" }).eq("role", "patient").select();
+    const { data } = await alice
+      .from("profiles")
+      .update({ role: "admin" })
+      .eq("role", "patient")
+      .select();
 
     // Either rejected outright, or the WITH CHECK clause filters it to no-op.
     assert.equal(data?.length ?? 0, 0, "PRIVILEGE ESCALATION: role change succeeded");
@@ -258,7 +266,9 @@ describe("Admin has no implicit PHI access", () => {
 
 describe("Blockchain anchors are read-only to clients", () => {
   it("A patient CAN read anchors (needed for client-side verification)", async () => {
-    const { data, error } = await alice.from("solana_anchors").select("anchor_id, record_hash, status");
+    const { data, error } = await alice
+      .from("solana_anchors")
+      .select("anchor_id, record_hash, status");
 
     assert.equal(error, null);
     assert.ok(data.length >= 3, `expected seeded anchors, got ${data.length}`);

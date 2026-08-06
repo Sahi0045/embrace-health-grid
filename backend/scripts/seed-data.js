@@ -27,17 +27,110 @@ const SEED_PASSWORD = "SeedPassw0rd!dev";
  * Fixture definition. Kept declarative so the RLS test file can import the
  * same shape and assert against known relationships.
  */
+/**
+ * Two hospitals, so tenancy is exercised rather than assumed. Slugs are capped at
+ * 19 characters because the on-chain PDA is seeded on the full DID and a Solana
+ * seed cannot exceed 32 bytes.
+ */
+export const HOSPITALS = [
+  {
+    key: "apollo",
+    slug: "apollo-general",
+    name: "Apollo General",
+    hospital_did: "did:hosp:org:apollo-general",
+    city: "Bengaluru",
+    country: "IN",
+  },
+  {
+    key: "citycare",
+    slug: "city-care",
+    name: "City Care Hospital",
+    hospital_did: "did:hosp:org:city-care",
+    city: "Pune",
+    country: "IN",
+  },
+];
+
+/**
+ * Fixture definition. Kept declarative so the RLS test file can import the same
+ * shape and assert against known relationships.
+ *
+ * Split across two hospitals on purpose:
+ *   Apollo   — alice, bob, drsmith, admin
+ *   City Care — carol, drjones, admin2
+ *
+ * That gives the tenancy tests a real cross-hospital pair: drjones must not see
+ * Apollo's patients, and drsmith must not see City Care's.
+ */
 export const FIXTURES = {
   patients: [
-    { key: "alice", email: "alice.patient@seed.test", name: "Alice Tan", did: "did:hosp:0xSEEDA01" },
-    { key: "bob", email: "bob.patient@seed.test", name: "Bob Iyer", did: "did:hosp:0xSEEDB02" },
-    { key: "carol", email: "carol.patient@seed.test", name: "Carol Nair", did: "did:hosp:0xSEEDC03" },
+    {
+      key: "alice",
+      email: "alice.patient@seed.test",
+      name: "Alice Tan",
+      did: "did:hosp:0xSEEDA01",
+      hospital: "apollo",
+    },
+    {
+      key: "bob",
+      email: "bob.patient@seed.test",
+      name: "Bob Iyer",
+      did: "did:hosp:0xSEEDB02",
+      hospital: "apollo",
+    },
+    {
+      key: "carol",
+      email: "carol.patient@seed.test",
+      name: "Carol Nair",
+      did: "did:hosp:0xSEEDC03",
+      hospital: "citycare",
+    },
   ],
   doctors: [
-    { key: "drsmith", email: "dr.smith@seed.test", name: "Dr Sara Smith", did: "did:hosp:0xSEEDD01" },
-    { key: "drjones", email: "dr.jones@seed.test", name: "Dr Raj Jones", did: "did:hosp:0xSEEDD02" },
+    {
+      key: "drsmith",
+      email: "dr.smith@seed.test",
+      name: "Dr Sara Smith",
+      did: "did:hosp:0xSEEDD01",
+      hospital: "apollo",
+    },
+    {
+      key: "drjones",
+      email: "dr.jones@seed.test",
+      name: "Dr Raj Jones",
+      did: "did:hosp:0xSEEDD02",
+      hospital: "citycare",
+    },
   ],
-  admins: [{ key: "admin", email: "admin@seed.test", name: "Ops Admin", did: "did:hosp:0xSEEDX01" }],
+  admins: [
+    {
+      key: "admin",
+      email: "admin@seed.test",
+      name: "Ops Admin",
+      did: "did:hosp:0xSEEDX01",
+      hospital: "apollo",
+    },
+    {
+      key: "admin2",
+      email: "admin2@seed.test",
+      name: "City Care Admin",
+      did: "did:hosp:0xSEEDX02",
+      hospital: "citycare",
+    },
+  ],
+  /**
+   * The platform operator. No hospital: a trigger rejects a super_admin with
+   * one, because it belongs to the platform rather than a tenant.
+   */
+  superAdmins: [
+    {
+      key: "super",
+      email: "super@seed.test",
+      name: "Platform Super Admin",
+      did: "did:hosp:0xSEEDS01",
+      hospital: null,
+    },
+  ],
 };
 
 /**
@@ -102,8 +195,20 @@ const PRESCRIPTIONS = [
 ];
 
 const APPOINTMENTS = [
-  { appt_id: "SEED-APPT-A1", patient: "alice", doctor: "drsmith", slot: "Mon, 10:00 AM", status: "confirmed" },
-  { appt_id: "SEED-APPT-C1", patient: "carol", doctor: "drjones", slot: "Tue, 02:00 PM", status: "pending" },
+  {
+    appt_id: "SEED-APPT-A1",
+    patient: "alice",
+    doctor: "drsmith",
+    slot: "Mon, 10:00 AM",
+    status: "confirmed",
+  },
+  {
+    appt_id: "SEED-APPT-C1",
+    patient: "carol",
+    doctor: "drjones",
+    slot: "Tue, 02:00 PM",
+    status: "pending",
+  },
 ];
 
 const LAB_RESULTS = [
@@ -164,7 +269,11 @@ const ALL = [
   ...FIXTURES.patients.map((p) => ({ ...p, role: "patient" })),
   ...FIXTURES.doctors.map((d) => ({ ...d, role: "doctor" })),
   ...FIXTURES.admins.map((a) => ({ ...a, role: "admin" })),
+  ...FIXTURES.superAdmins.map((a) => ({ ...a, role: "super_admin" })),
 ];
+
+/** Populated by seedHospitals(); fixture hospital key -> hospital_id. */
+const hospitalIds = {};
 
 /** Look up a seeded auth user by email, since createUser fails if one exists. */
 async function findAuthUserByEmail(email) {
@@ -200,7 +309,38 @@ async function cleanup() {
   await db.from("dids").delete().like("did", "did:hosp:0xSEED%");
 }
 
+/**
+ * Upsert the hospitals first: profiles and dids reference them, and the Stage 2
+ * trigger rejects a staff profile with no hospital.
+ */
+async function seedHospitals() {
+  console.log("Seeding hospitals...");
+  for (const h of HOSPITALS) {
+    const { data, error } = await db
+      .from("hospitals")
+      .upsert(
+        {
+          hospital_did: h.hospital_did,
+          name: h.name,
+          slug: h.slug,
+          city: h.city,
+          country: h.country,
+          status: "active",
+        },
+        { onConflict: "slug" },
+      )
+      .select("hospital_id")
+      .single();
+
+    if (error) throw new Error(`hospital ${h.slug}: ${error.message}`);
+    hospitalIds[h.key] = data.hospital_id;
+    console.log(`  hospital   ${h.name}  ${h.hospital_did}`);
+  }
+}
+
 async function seed() {
+  await seedHospitals();
+
   console.log("Seeding users via Auth admin API...");
 
   const ids = {}; // fixture key -> auth user id
@@ -225,6 +365,8 @@ async function seed() {
       email: u.email,
       full_name: u.name,
       role: u.role,
+      // null for the super_admin, which the trigger requires.
+      hospital_id: u.hospital ? hospitalIds[u.hospital] : null,
     })),
   );
   if (pErr) throw new Error(`profiles insert: ${pErr.message}`);
@@ -237,8 +379,14 @@ async function seed() {
       owner_name: u.name,
       owner_type: u.role,
       public_key: `pk_seed_${u.key}`,
-      controller: "did:hosp:consortium:authority",
+      // Controlled by the hospital that issued it, so a credential proves which
+      // hospital vouched for the holder. The platform operator's own DID has no
+      // hospital, so it falls back to the consortium authority.
+      controller: u.hospital
+        ? HOSPITALS.find((h) => h.key === u.hospital).hospital_did
+        : "did:hosp:consortium:authority",
       status: "active",
+      hospital_id: u.hospital ? hospitalIds[u.hospital] : null,
     })),
   );
   if (dErr) throw new Error(`dids insert: ${dErr.message}`);
