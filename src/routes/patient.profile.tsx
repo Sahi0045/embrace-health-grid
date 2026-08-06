@@ -88,12 +88,21 @@ function PatientProfile() {
     setVerifying(true);
     try {
       const address = publicKey.toBase58();
-      const { message } = await requestWalletChallenge(address);
+      // Keep the whole challenge: the Edge Function verifies that the nonce and
+      // token were issued to THIS session, which is what binds the wallet to the
+      // account. Destructuring only `message` dropped them and every link attempt
+      // failed with "walletAddress, nonce and token are required".
+      const challenge = await requestWalletChallenge(address);
+      const message = challenge.message;
       toast.info("Please approve the signature request in your wallet…");
       const msgBytes = new TextEncoder().encode(message);
       const sigBytes = await signMessage(msgBytes);
       const sigBase64 = Buffer.from(sigBytes).toString("base64");
-      const res = await verifyAndLinkWallet(address, sigBase64);
+      const res = await verifyAndLinkWallet(address, sigBase64, {
+        nonce: challenge.nonce,
+        expiresAt: challenge.expiresAt,
+        token: challenge.token,
+      });
       if (res.success && res.verified && res.user) {
         await refreshUser();
         toast.success("Wallet verified and linked!", {

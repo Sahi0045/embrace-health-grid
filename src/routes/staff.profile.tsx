@@ -128,7 +128,12 @@ function StaffProfile() {
       const address = publicKey.toBase58();
 
       // Step 1: get challenge message from backend
-      const { message } = await requestWalletChallenge(address);
+      // Keep the whole challenge: the Edge Function verifies that the nonce and
+      // token were issued to THIS session, which is what binds the wallet to the
+      // account. Destructuring only `message` dropped them and every link attempt
+      // failed with "walletAddress, nonce and token are required".
+      const challenge = await requestWalletChallenge(address);
+      const message = challenge.message;
 
       // Step 2: ask the wallet to sign it
       toast.info("Please approve the signature request in your wallet…");
@@ -137,7 +142,11 @@ function StaffProfile() {
       const sigBase64 = Buffer.from(sigBytes).toString("base64");
 
       // Step 3: send signature to backend — verifies ownership + links wallet
-      const res = await verifyAndLinkWallet(address, sigBase64);
+      const res = await verifyAndLinkWallet(address, sigBase64, {
+        nonce: challenge.nonce,
+        expiresAt: challenge.expiresAt,
+        token: challenge.token,
+      });
       if (res.success && res.verified && res.user) {
         await refreshUser();
         toast.success("Wallet verified and linked!", {
