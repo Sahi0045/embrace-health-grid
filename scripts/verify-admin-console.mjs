@@ -1,4 +1,3 @@
-
 /**
  * Verifies the merged admin console.
  *
