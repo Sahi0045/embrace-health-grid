@@ -9,6 +9,17 @@ import { signIn } from "@/lib/auth.server";
 import { useCurrentUser } from "@/lib/auth-context";
 import { toast } from "sonner";
 
+/**
+ * Whether to show the seeded demo logins on the sign-in form.
+ *
+ * These are real, working credentials for a live deployment, so they must be
+ * switched off before the app holds real PHI. Defaults to VISIBLE so the demo
+ * keeps working, and is disabled by setting VITE_HIDE_DEMO_CREDENTIALS=true —
+ * an opt-out rather than gating on import.meta.env.DEV, which would silently
+ * break the deployed demo.
+ */
+const SHOW_DEMO_CREDENTIALS = import.meta.env.VITE_HIDE_DEMO_CREDENTIALS !== "true";
+
 export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
@@ -258,7 +269,7 @@ function LoginPage() {
                     required
                   />
                 </div>
-                {!isSignup && (
+                {!isSignup && SHOW_DEMO_CREDENTIALS && (
                   <div className="rounded-lg bg-muted/50 p-3 text-xs space-y-1.5 border">
                     <div className="font-semibold text-foreground flex items-center justify-between">
                       <span>Demo Credentials</span>
