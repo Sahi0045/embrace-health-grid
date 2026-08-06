@@ -57,6 +57,8 @@ export interface CurrentUser {
   mrn?: string;
   employeeId?: string;
   walletAddress?: string;
+  /** The caller's hospital, for views that show which tenant they administer. */
+  hospitalId?: string;
   department?: string;
   age?: number;
   gender?: string;
@@ -80,6 +82,8 @@ function toCurrentUser(profile: {
   full_name: string;
   role: string;
   primary_did: string | null;
+  wallet_address?: string | null;
+  hospital_id?: string | null;
 }): CurrentUser {
   return {
     id: profile.id,
@@ -87,6 +91,11 @@ function toCurrentUser(profile: {
     fullName: profile.full_name,
     role: profile.role as UserRole,
     primaryDid: profile.primary_did,
+    // The linked Solana wallet. This was declared on CurrentUser but never
+    // populated, so the profile page showed "Not Linked" even straight after a
+    // successful link — the address was in Postgres and simply never read back.
+    walletAddress: profile.wallet_address ?? undefined,
+    hospitalId: profile.hospital_id ?? undefined,
     // Aliases for legacy call sites.
     name: profile.full_name,
     did: profile.primary_did,
@@ -120,7 +129,7 @@ export const signIn = createServerFn({ method: "POST" })
     // Load the profile from the database — never trust client-supplied role.
     const { data: profile, error: pErr } = await supabase
       .from("profiles")
-      .select("id, email, full_name, role, primary_did")
+      .select("id, email, full_name, role, primary_did, wallet_address, hospital_id")
       .eq("id", result.user.id)
       .single();
 
@@ -152,7 +161,7 @@ export const getCurrentUser = createServerFn({ method: "GET" }).handler(
     const supabase = getSupabaseServerClient();
     const { data: profile, error } = await supabase
       .from("profiles")
-      .select("id, email, full_name, role, primary_did")
+      .select("id, email, full_name, role, primary_did, wallet_address, hospital_id")
       .eq("id", user.id)
       .single();
 
