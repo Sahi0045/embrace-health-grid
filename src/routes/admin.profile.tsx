@@ -20,7 +20,35 @@ import { RouteGuard } from "@/components/RouteGuard";
 import { signOut } from "@/lib/auth.server";
 import { useCurrentUser } from "@/lib/auth-context";
 import { getMyHospital } from "@/lib/hospitals.server";
+import { getAuditEvents } from "@/lib/api";
 import { useEffect, useState } from "react";
+
+/**
+ * audit_events.action holds machine values like "did.issue" or "record_create".
+ * Render them as prose rather than leaking the enum into the UI.
+ */
+function formatAuditAction(action?: string): string {
+  if (!action) return "Action";
+  return action
+    .replace(/[._-]+/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+    .trim();
+}
+
+/** Relative time for recent events, absolute date once they are older than a week. */
+function formatAuditTime(iso?: string): string {
+  if (!iso) return "";
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "";
+  const mins = Math.floor((Date.now() - then) / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(iso).toLocaleDateString();
+}
 
 export const Route = createFileRoute("/admin/profile")({
   head: () => ({
@@ -74,17 +102,45 @@ function AdminProfile() {
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await getAuditEvents();
+        const mine = (res.events ?? [])
+          .filter((e: { actor?: string }) => !user?.did || e.actor === user.did)
+          .slice(0, 8)
+          .map((e: { action?: string; resource?: string; loggedAt?: string }) => ({
+            action: formatAuditAction(e.action),
+            target: e.resource ?? "—",
+            timestamp: formatAuditTime(e.loggedAt),
+          }));
+        if (!cancelled) setRecentActivity(mine);
+      } catch {
+        // The profile should still render if the audit read fails.
+      } finally {
+        if (!cancelled) setActivityLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.did]);
+
   // A super_admin operates the platform and has no hospital, so label it as such
   // rather than showing an empty field.
   const roleLabel =
     user?.role === "super_admin" ? "Platform Administrator" : "Hospital Administrator";
 
-  /**
-   * Recent activity is not yet read from audit_events for this view, so show
-   * nothing rather than the fabricated entries this page used to display
-   * ("Issued DID to Karthik Rao (MRN-205288)" — a person who does not exist).
-   */
-  const recentActivity: { action: string; target: string; timestamp: string }[] = [];
+  // Real administrative actions from audit_events. This used to be a fabricated
+  // list ("Issued DID to Karthik Rao (MRN-205288)" — a person who does not
+  // exist), then an empty array. Scoped to this admin's own DID: an admin's RLS
+  // view spans their whole hospital, so an unfiltered read would show colleagues'
+  // actions on a page titled "Your recent administrative actions".
+  const [recentActivity, setRecentActivity] = useState<
+    { action: string; target: string; timestamp: string }[]
+  >([]);
+  const [activityLoading, setActivityLoading] = useState(true);
 
   const handleLogout = () => {
     // The session is an httpOnly cookie, so only the server can end it.
@@ -214,6 +270,13 @@ function AdminProfile() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
+                {activityLoading ? (
+                  <p className="text-sm text-muted-foreground">Loading your activity…</p>
+                ) : recentActivity.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No administrative actions recorded yet.
+                  </p>
+                ) : null}
                 {recentActivity.map((activity, idx) => (
                   <div
                     key={idx}
