@@ -57,11 +57,35 @@ async function callFn(name, token, body) {
 
 let aliceTok, drsmithTok, adminTok;
 
+/** Credential types created by this suite, deleted in after(). */
+const TEST_CREDENTIAL_TYPES = ["StabilityCheckA", "StabilityCheckB", "GhostVC"];
+
 before(async () => {
   assert.ok(URL && ANON, "SUPABASE_URL and SUPABASE_ANON_KEY must be set");
   aliceTok = await tokenFor("alice.patient@seed.test");
   drsmithTok = await tokenFor("dr.smith@seed.test");
   adminTok = await tokenFor("admin@seed.test");
+});
+
+/**
+ * Remove credentials these tests issued.
+ *
+ * This suite signs real credentials against the real project, so without cleanup
+ * every run left rows behind — six "StabilityCheck" credentials had accumulated
+ * in Alice's wallet, where a patient sees them alongside their genuine ones. A
+ * test fixture must not be visible in the product.
+ *
+ * Keyed on the credential type, which is unique to this file, so it cannot touch
+ * a credential issued by the application.
+ */
+after(async () => {
+  const service = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!service) return;
+
+  const admin = createClient(URL, service, { auth: { persistSession: false } });
+  for (const type of TEST_CREDENTIAL_TYPES) {
+    await admin.from("credentials").delete().eq("credential_type", type);
+  }
 });
 
 // ─── Authentication is enforced ─────────────────────────────────────────────
@@ -114,12 +138,12 @@ describe("sign-credential authorization", () => {
     // credentials. The fingerprint must not change between invocations.
     const a = await callFn("sign-credential", drsmithTok, {
       subjectDid: DIDS.alice,
-      credentialType: "StabilityCheckA",
+      credentialType: TEST_CREDENTIAL_TYPES[0],
       claims: {},
     });
     const b = await callFn("sign-credential", drsmithTok, {
       subjectDid: DIDS.alice,
-      credentialType: "StabilityCheckB",
+      credentialType: TEST_CREDENTIAL_TYPES[1],
       claims: {},
     });
 
@@ -135,7 +159,7 @@ describe("sign-credential authorization", () => {
   it("refuses an unknown subject DID", async () => {
     const { status } = await callFn("sign-credential", drsmithTok, {
       subjectDid: "did:hosp:0xDOESNOTEXIST",
-      credentialType: "GhostVC",
+      credentialType: TEST_CREDENTIAL_TYPES[2],
       claims: {},
     });
     assert.equal(status, 404);

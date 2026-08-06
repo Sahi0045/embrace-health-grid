@@ -296,6 +296,7 @@ async function cleanup() {
   await db.from("medical_records").delete().like("record_id", "SEED-%");
   await db.from("consents").delete().like("grant_id", "seed_%");
   await db.from("credentials").delete().like("id", "seed_%");
+  await db.from("credentials").delete().like("id", "seed_vc_%");
 
   for (const u of ALL) {
     const existing = await findAuthUserByEmail(u.email);
@@ -411,6 +412,29 @@ async function seed() {
     })),
   );
   if (cErr) throw new Error(`consents insert: ${cErr.message}`);
+
+  console.log("Inserting credentials...");
+  // Every person gets an identity credential issued by THEIR hospital, so a
+  // patient wallet shows something meaningful and the issuer is verifiable.
+  // Signatures here are placeholders: real ones come from the sign-credential
+  // Edge Function, which holds the platform key. Seeded rows exist so the UI has
+  // data, not to be cryptographically verified.
+  const credentialRows = ALL.filter((u) => u.hospital).map((u) => ({
+    id: `seed_vc_${u.key}`,
+    credential_type: u.role === "patient" ? "IdentityVC" : "ProfessionalVC",
+    issuer: HOSPITALS.find((h) => h.key === u.hospital).hospital_did,
+    subject_did: u.did,
+    claims:
+      u.role === "patient"
+        ? { name: u.name, role: u.role, mrn: `MRN-${u.key.toUpperCase()}` }
+        : { name: u.name, role: u.role, department: "General Medicine" },
+    signature: `seed_sig_${u.key}`,
+    status: "valid",
+    issued_at: new Date().toISOString(),
+  }));
+
+  const { error: vcErr } = await db.from("credentials").insert(credentialRows);
+  if (vcErr) throw new Error(`credentials insert: ${vcErr.message}`);
 
   console.log("Inserting medical records...");
   const { error: rErr } = await db.from("medical_records").insert(
