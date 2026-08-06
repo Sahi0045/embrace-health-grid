@@ -180,14 +180,16 @@ export function hasAccess(userRole: UserRole | null, required: UserRole): boolea
   if (!userRole) return false;
   if (userRole === required) return true;
 
-  // The platform operator administers hospitals, so it reaches the admin console
-  // too. Still excluded from the patient portal: those are a person's own
-  // records, and a super_admin has no more business browsing them than a
-  // hospital admin does.
+  // super_admin administers the platform, so it reaches staff and admin areas.
+  // Still excluded from the patient portal: those are a person's own records.
   if (userRole === "super_admin") return required !== "patient";
 
-  // Admins may view staff areas; doctors may view staff areas.
-  if (userRole === "admin") return required !== "patient";
+  // A hospital admin reaches staff areas but NOT super_admin areas. Writing this
+  // as `required !== "patient"` was wrong once super_admin existed — it let a
+  // hospital admin satisfy requiredRole="super_admin" and open the platform
+  // console, where they could have admitted or suspended tenants.
+  if (userRole === "admin") return required === "staff" || required === "doctor";
+
   if (userRole === "doctor") return required === "staff";
 
   return false;

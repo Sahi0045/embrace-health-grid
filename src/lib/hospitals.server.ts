@@ -114,10 +114,17 @@ export const getHospitals = createServerFn({ method: "GET" }).handler(async () =
 
 /** The caller's own hospital, for showing which tenant is being administered. */
 export const getMyHospital = createServerFn({ method: "GET" }).handler(async () => {
-  await requireSession();
+  const user = await requireSession();
   const supabase = getSupabaseServerClient();
 
-  const { data: profile } = await supabase.from("profiles").select("hospital_id, role").single();
+  // Filter by id: a staff member's RLS view spans their whole hospital, so
+  // .single() over an unfiltered select errors on multiple rows and the badge
+  // silently rendered nothing.
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("hospital_id, role")
+    .eq("id", user.id)
+    .maybeSingle();
 
   // A super_admin has no hospital by design — it belongs to the platform.
   if (!profile?.hospital_id) {

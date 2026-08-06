@@ -63,7 +63,10 @@ function LoginPage() {
   const PORTAL_ALLOWED_ROLES: Record<string, string[]> = {
     patient: ["patient"],
     staff: ["staff", "doctor"],
-    admin: ["admin"],
+    // super_admin signs in through the admin portal: there is no separate
+    // platform login, and omitting it here authenticated the account and then
+    // rejected it with "This account is not a admin account."
+    admin: ["admin", "super_admin"],
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -100,8 +103,17 @@ function LoginPage() {
 
       toast.success(`Welcome back, ${res.user.fullName}!`);
 
-      const dest = res.user.role === "doctor" ? "staff" : res.user.role;
-      navigate({ to: `/${dest}` });
+      // Map the role to its landing route. A super_admin has no /super_admin
+      // page — the platform console lives at /super/hospitals — so without this
+      // it navigated to a route that does not exist and stayed on /login.
+      const LANDING: Record<string, string> = {
+        patient: "/patient",
+        doctor: "/staff",
+        staff: "/staff",
+        admin: "/admin",
+        super_admin: "/super/hospitals",
+      };
+      navigate({ to: LANDING[res.user.role] ?? "/patient" });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Authentication failed";
       toast.error(message);

@@ -102,6 +102,18 @@ Deno.serve(async (req) => {
       if (!hospitalDid || !nameHash || !credentialHash) {
         throw new HttpError(400, "hospitalDid, nameHash and credentialHash are required");
       }
+
+      // A Solana PDA seed cannot exceed 32 bytes. Reject it here with a readable
+      // reason rather than letting findProgramAddressSync throw "Max seed length
+      // exceeded" and surface as a generic 500. Hospitals onboarded after the
+      // slug cap was introduced always fit; older ones may not.
+      if (new TextEncoder().encode(hospitalDid).length > 32) {
+        throw new HttpError(
+          400,
+          `hospitalDid is ${hospitalDid.length} bytes; the on-chain PDA seed limit is 32. ` +
+            "This hospital predates the slug length cap and cannot be anchored under its current DID.",
+        );
+      }
       for (const [label, value] of [
         ["nameHash", nameHash],
         ["credentialHash", credentialHash],
