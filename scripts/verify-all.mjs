@@ -206,6 +206,7 @@ if (!havePuppeteer) {
       ["demo credentials actually sign in", "scripts/verify-demo-login.mjs"],
       ["clinical pages load, no cross-patient leak", "scripts/verify-clinical-migration.mjs"],
       ["admin console: 13 pages load, patients refused", "scripts/verify-admin-console.mjs"],
+      ["Realtime connects in a browser", "scripts/verify-realtime-browser.mjs"],
     ];
 
     for (const [label, script] of browserChecks) {

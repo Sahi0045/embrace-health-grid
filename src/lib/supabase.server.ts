@@ -40,17 +40,22 @@ function supabaseConfig(): { url: string; anonKey: string } {
     }
   };
 
-  const url =
+  // Trimmed: a trailing newline pasted into a deployment env var broke every
+  // Realtime WebSocket, because the key travels as a query parameter where the
+  // newline becomes "%0A". REST tolerated it, so the failure was silent.
+  const url = (
     process.env.VITE_SUPABASE_URL ??
     process.env.SUPABASE_URL ??
     fromMeta("VITE_SUPABASE_URL") ??
-    "";
+    ""
+  ).trim();
 
-  const anonKey =
+  const anonKey = (
     process.env.VITE_SUPABASE_ANON_KEY ??
     process.env.SUPABASE_ANON_KEY ??
     fromMeta("VITE_SUPABASE_ANON_KEY") ??
-    "";
+    ""
+  ).trim();
 
   return { url, anonKey };
 }

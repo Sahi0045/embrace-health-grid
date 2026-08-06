@@ -27,8 +27,20 @@
 
 import { createBrowserClient } from "@supabase/ssr";
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+/**
+ * Trimmed deliberately.
+ *
+ * A trailing newline in the deployment's environment variable made every
+ * Realtime WebSocket fail: the key is sent as a query parameter, the newline
+ * became "%0A", and the server rejected the connection before the handshake.
+ * REST calls tolerated it because the header was trimmed in transit, so the app
+ * looked healthy while live updates silently never arrived.
+ *
+ * Trimming here rather than only fixing the dashboard value: an invisible
+ * character in a config field should not be able to break a subsystem.
+ */
+const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL as string)?.trim();
+const SUPABASE_ANON_KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY as string)?.trim();
 
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   throw new Error(
