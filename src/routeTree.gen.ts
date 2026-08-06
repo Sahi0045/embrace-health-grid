@@ -14,6 +14,7 @@ import { Route as DidExplorerRouteImport } from './routes/did-explorer'
 import { Route as CredentialExplorerRouteImport } from './routes/credential-explorer'
 import { Route as AuditTimelineRouteImport } from './routes/audit-timeline'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SuperIndexRouteImport } from './routes/super.index'
 import { Route as StaffIndexRouteImport } from './routes/staff.index'
 import { Route as PatientIndexRouteImport } from './routes/patient.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
@@ -87,6 +88,11 @@ const AuditTimelineRoute = AuditTimelineRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SuperIndexRoute = SuperIndexRouteImport.update({
+  id: '/super/',
+  path: '/super/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StaffIndexRoute = StaffIndexRouteImport.update({
@@ -390,6 +396,7 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminIndexRoute
   '/patient/': typeof PatientIndexRoute
   '/staff/': typeof StaffIndexRoute
+  '/super/': typeof SuperIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -446,6 +453,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/patient': typeof PatientIndexRoute
   '/staff': typeof StaffIndexRoute
+  '/super': typeof SuperIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -503,6 +511,7 @@ export interface FileRoutesById {
   '/admin/': typeof AdminIndexRoute
   '/patient/': typeof PatientIndexRoute
   '/staff/': typeof StaffIndexRoute
+  '/super/': typeof SuperIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -561,6 +570,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/patient/'
     | '/staff/'
+    | '/super/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -617,6 +627,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/patient'
     | '/staff'
+    | '/super'
   id:
     | '__root__'
     | '/'
@@ -673,6 +684,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/patient/'
     | '/staff/'
+    | '/super/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -730,6 +742,7 @@ export interface RootRouteChildren {
   AdminIndexRoute: typeof AdminIndexRoute
   PatientIndexRoute: typeof PatientIndexRoute
   StaffIndexRoute: typeof StaffIndexRoute
+  SuperIndexRoute: typeof SuperIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -767,6 +780,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/super/': {
+      id: '/super/'
+      path: '/super'
+      fullPath: '/super/'
+      preLoaderRoute: typeof SuperIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/staff/': {
@@ -1170,6 +1190,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminIndexRoute: AdminIndexRoute,
   PatientIndexRoute: PatientIndexRoute,
   StaffIndexRoute: StaffIndexRoute,
+  SuperIndexRoute: SuperIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
