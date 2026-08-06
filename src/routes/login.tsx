@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { User, Stethoscope, ShieldCheck, ArrowRight, Hospital } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,7 +47,7 @@ const roles = [
 
 function LoginPage() {
   const navigate = useNavigate();
-  const { refresh } = useCurrentUser();
+  const { user, loading, refresh } = useCurrentUser();
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
@@ -68,6 +68,25 @@ function LoginPage() {
     // rejected it with "This account is not a admin account."
     admin: ["admin", "super_admin"],
   };
+
+  /**
+   * Send an already-authenticated visitor to their portal.
+   *
+   * /login previously rendered the form regardless of session, so anyone with a
+   * valid cookie who navigated or refreshed here saw a sign-in prompt while
+   * already signed in — and had to pick a portal tile again to get anywhere.
+   */
+  useEffect(() => {
+    if (loading || !user) return;
+    const LANDING: Record<string, string> = {
+      patient: "/patient",
+      doctor: "/staff",
+      staff: "/staff",
+      admin: "/admin",
+      super_admin: "/super",
+    };
+    navigate({ to: LANDING[user.role] ?? "/patient" });
+  }, [loading, user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,29 +110,44 @@ function LoginPage() {
         return;
       }
 
-      const allowed = PORTAL_ALLOWED_ROLES[selectedRole] ?? [];
-      if (!allowed.includes(res.user.role)) {
-        // Signed in successfully but chose the wrong portal.
-        toast.error(`This account is not a ${selectedRole} account.`);
-        return;
-      }
-
-      // Populate the auth context from the server-verified session.
-      await refresh();
-
-      toast.success(`Welcome back, ${res.user.fullName}!`);
-
-      // Map the role to its landing route. A super_admin has no /super_admin
-      // page — the platform console lives at /super/hospitals — so without this
-      // it navigated to a route that does not exist and stayed on /login.
+      // Where each role belongs. A super_admin has no /super_admin page — the
+      // platform console is /super — so this must be a map rather than `/${role}`.
       const LANDING: Record<string, string> = {
         patient: "/patient",
         doctor: "/staff",
         staff: "/staff",
         admin: "/admin",
-        super_admin: "/super/hospitals",
+        super_admin: "/super",
       };
-      navigate({ to: LANDING[res.user.role] ?? "/patient" });
+
+      const destination = LANDING[res.user.role] ?? "/patient";
+
+      // The credentials were valid but the wrong portal tile was chosen.
+      //
+      // Do NOT bail here. signIn() has already set the session cookie, so
+      // returning early left the user authenticated while showing an error —
+      // which is why refreshing the page appeared to "fix" it and dropped them
+      // into a portal they had not chosen.
+      //
+      // Since we know who they are and where they belong, send them there and say
+      // so. Rejecting a correct password because of a mis-clicked tile is a
+      // pointless obstacle: the tile is a convenience, and RouteGuard plus RLS
+      // are what actually enforce access.
+      const allowed = PORTAL_ALLOWED_ROLES[selectedRole] ?? [];
+      const wrongPortal = !allowed.includes(res.user.role);
+
+      // Populate the auth context from the server-verified session.
+      await refresh();
+
+      if (wrongPortal) {
+        toast.success(`Welcome back, ${res.user.fullName}`, {
+          description: `Signed in as ${res.user.role.replace("_", " ")} — taking you to your portal.`,
+        });
+      } else {
+        toast.success(`Welcome back, ${res.user.fullName}!`);
+      }
+
+      navigate({ to: destination });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Authentication failed";
       toast.error(message);

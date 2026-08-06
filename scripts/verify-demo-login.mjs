@@ -60,7 +60,10 @@ async function clickContaining(page, fragment) {
  * Select a portal, press its auto-fill button, submit, and report where we land.
  */
 async function tryPortal(portalLabel, autofillLabel, expectedPath) {
-  const page = await browser.newPage();
+  // Isolated cookie jar per portal. /login redirects an already-authenticated
+  // visitor to their own portal, so a shared session would skip the form.
+  const context = await browser.createBrowserContext();
+  const page = await context.newPage();
   await page.goto(`${BASE}/login`, { waitUntil: "networkidle0", timeout: 60000 });
 
   await clickContaining(page, portalLabel);
@@ -68,7 +71,7 @@ async function tryPortal(portalLabel, autofillLabel, expectedPath) {
 
   const filled = await clickContaining(page, autofillLabel);
   if (!filled) {
-    await page.close();
+    await context.close();
     return { ok: false, reason: `auto-fill button "${autofillLabel}" not found` };
   }
   await new Promise((r) => setTimeout(r, 400));
@@ -84,7 +87,7 @@ async function tryPortal(portalLabel, autofillLabel, expectedPath) {
 
   const path = await page.evaluate(() => location.pathname);
   const bodyText = await page.evaluate(() => document.body.innerText.slice(0, 300));
-  await page.close();
+  await context.close();
 
   return {
     ok: path.startsWith(expectedPath),
@@ -118,9 +121,45 @@ console.log("\nAdmin portal auto-fill");
   check("sign-in left the login page", r.path !== "/login", `path=${r.path}`);
 }
 
+console.log("\nPortal mismatch and session handling");
+{
+  // An admin signing in through the Doctor tile. This used to show "This account
+  // is not a staff account" and stop — but signIn() had already set the session
+  // cookie, so the user was authenticated while being told they were not, and a
+  // refresh dropped them into a portal they had not chosen.
+  // Isolated context: the checks above leave a session, and /login now redirects
+  // an already-authenticated visitor, so a shared jar would never show the form.
+  const context = await browser.createBrowserContext();
+  const page = await context.newPage();
+  await page.goto(`${BASE}/login`, { waitUntil: "networkidle0", timeout: 60000 });
+  await clickContaining(page, "Staff");
+  await new Promise((r) => setTimeout(r, 1200));
+  await page.type('input[type="email"]', "admin@seed.test");
+  await page.type('input[type="password"]', "SeedPassw0rd!dev");
+  await page.keyboard.press("Enter");
+  await new Promise((r) => setTimeout(r, 8000));
+
+  const path = await page.evaluate(() => location.pathname);
+  const body = await page.evaluate(() => document.body.innerText);
+
+  check("an admin using the doctor tile reaches /admin", path === "/admin", `path=${path}`);
+  check("no 'not a staff account' error is shown", !/not a staff account/i.test(body));
+
+  // And revisiting /login with a live session must not show the form again.
+  await page.goto(`${BASE}/login`, { waitUntil: "networkidle0", timeout: 60000 });
+  await new Promise((r) => setTimeout(r, 3500));
+  const revisit = await page.evaluate(() => location.pathname);
+  check("revisiting /login while signed in redirects", revisit !== "/login", `path=${revisit}`);
+
+  await context.close();
+}
+
 console.log("\nSignup is disabled");
 {
-  const page = await browser.newPage();
+  // Clean session: /login redirects an authenticated visitor, so this must not
+  // inherit a cookie from the checks above.
+  const context = await browser.createBrowserContext();
+  const page = await context.newPage();
   await page.goto(`${BASE}/login`, { waitUntil: "networkidle0", timeout: 60000 });
   await clickContaining(page, "Patient");
   await new Promise((r) => setTimeout(r, 1200));
@@ -131,7 +170,7 @@ console.log("\nSignup is disabled");
     "a Sign up affordance is still present",
   );
   check("directs the user to an administrator", /administrator/i.test(text));
-  await page.close();
+  await context.close();
 }
 
 await browser.close();
