@@ -21,6 +21,27 @@ import { createServerFn } from "@tanstack/react-start";
 import { getSupabaseServerClient, getVerifiedUser } from "./supabase.server";
 
 /** Reject unauthenticated callers before touching the database. */
+/**
+ * The caller's own primary DID.
+ *
+ * Filtered by id: a clinician's RLS view spans their hospital, so an unfiltered
+ * .single() on profiles throws "Cannot coerce the result to a single JSON object"
+ * as soon as a colleague exists.
+ */
+async function callerPrimaryDid(): Promise<string | null> {
+  const user = await getVerifiedUser();
+  if (!user) return null;
+
+  const supabase = getSupabaseServerClient();
+  const { data } = await supabase
+    .from("profiles")
+    .select("primary_did")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  return data?.primary_did ?? null;
+}
+
 async function requireSession() {
   const user = await getVerifiedUser();
   if (!user) throw new Error("Not authenticated");
@@ -182,7 +203,7 @@ export const bookAppointment = createServerFn({ method: "POST" })
 
     // The caller's own DID, so a patient cannot book on someone else's behalf.
     // appointments_insert_patient enforces this in RLS regardless.
-    const { data: profile } = await supabase.from("profiles").select("primary_did").single();
+    const profile = { primary_did: await callerPrimaryDid() };
 
     if (!profile?.primary_did) throw new Error("No DID associated with this account");
 
@@ -227,7 +248,7 @@ export const grantConsent = createServerFn({ method: "POST" })
     await requireSession();
     const supabase = getSupabaseServerClient();
 
-    const { data: profile } = await supabase.from("profiles").select("primary_did").single();
+    const profile = { primary_did: await callerPrimaryDid() };
     if (!profile?.primary_did) throw new Error("No DID associated with this account");
 
     const grantId = `consent_${crypto.randomUUID().slice(0, 8)}`;
@@ -611,7 +632,7 @@ export const orderLabTest = createServerFn({ method: "POST" })
       .eq("patient_did", data.patientDid)
       .limit(1);
 
-    const { data: ownDid } = await supabase.from("profiles").select("primary_did").single();
+    const ownDid = { primary_did: await callerPrimaryDid() };
     const isOwnPatient = ownDid?.primary_did === data.patientDid;
 
     if (!visible?.length && !isOwnPatient) {
@@ -810,7 +831,7 @@ export const buildPatientAnchorTx = createServerFn({ method: "POST" })
     await requireSession();
     const supabase = getSupabaseServerClient();
 
-    const { data: profile } = await supabase.from("profiles").select("primary_did").single();
+    const profile = { primary_did: await callerPrimaryDid() };
     if (!profile?.primary_did) throw new Error("No DID associated with this account");
     const patientDid = profile.primary_did;
 

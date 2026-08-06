@@ -283,9 +283,19 @@ export const createPolicy = createServerFn({ method: "POST" })
     const user = await requireSession();
     const supabase = getSupabaseServerClient();
 
+    // A policy belongs to the hospital that authored it. Omitting hospital_id
+    // fails governance_policies_update_admin later, since that check is
+    // tenant-scoped.
+    const { data: prof } = await supabase
+      .from("profiles")
+      .select("hospital_id")
+      .eq("id", user.id)
+      .maybeSingle();
+
     const policyId = `POL-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
     const { error } = await supabase.from("governance_policies").insert({
       policy_id: policyId,
+      hospital_id: prof?.hospital_id ?? null,
       name: data.name,
       category: data.category ?? null,
       description: data.description ?? null,

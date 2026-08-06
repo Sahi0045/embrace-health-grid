@@ -19,12 +19,55 @@ async function requireSession() {
   return user;
 }
 
+/**
+ * The caller's own profile row.
+ *
+ * Filtered by id: a clinician's RLS view spans their whole hospital, so an
+ * unfiltered .single() throws "Cannot coerce the result to a single JSON object"
+ * as soon as a second person exists. That broke room check-in entirely.
+ */
+async function callerProfile(): Promise<{
+  primaryDid: string | null;
+  fullName: string | null;
+  hospitalId: string | null;
+}> {
+  const user = await getVerifiedUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const supabase = getSupabaseServerClient();
+  const { data } = await supabase
+    .from("profiles")
+    .select("primary_did, full_name, hospital_id")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  return {
+    primaryDid: data?.primary_did ?? null,
+    fullName: data?.full_name ?? null,
+    hospitalId: data?.hospital_id ?? null,
+  };
+}
+
 /** Resolve the caller's primary DID for writes that must be self-scoped. */
 async function callerDid(): Promise<string> {
-  const supabase = getSupabaseServerClient();
-  const { data } = await supabase.from("profiles").select("primary_did").single();
-  if (!data?.primary_did) throw new Error("No DID associated with this account");
-  return data.primary_did;
+  const { primaryDid } = await callerProfile();
+  if (!primaryDid) throw new Error("No DID associated with this account");
+  return primaryDid;
+}
+
+/**
+ * The caller's hospital, required on every tenant-scoped write.
+ *
+ * The Stage 3 migration added hospital_id to the operational tables and scoped
+ * their policies with can_access_hospital(hospital_id). Any insert that omits it
+ * evaluates that check against null and is refused — which is why check-in,
+ * attendance and visitor requests all failed with "new row violates row-level
+ * security policy".
+ */
+async function callerHospitalId(): Promise<string> {
+  const { hospitalId } = await callerProfile();
+  if (!hospitalId) throw new Error("Your account is not associated with a hospital");
+  return hospitalId;
 }
 
 // ─── Attendance ─────────────────────────────────────────────────────────────
@@ -60,6 +103,9 @@ export const clockAttendance = createServerFn({ method: "POST" })
       staff_id: user.id,
       action: data.action,
       location: data.location ?? null,
+      // Required: attendance is tenant-scoped, so an omitted hospital_id fails
+      // can_access_hospital and the insert is refused.
+      hospital_id: await callerHospitalId(),
     });
 
     if (error) throw new Error(error.message);
@@ -164,15 +210,21 @@ export const roomCheckin = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();
-    const did = await callerDid();
 
-    const { data: profile } = await supabase.from("profiles").select("full_name").single();
+    // One profile read for the DID, display name and hospital. The previous
+    // unfiltered .single() threw as soon as the caller could see a colleague.
+    const profile = await callerProfile();
+    const did = profile.primaryDid;
+    if (!did) throw new Error("No DID associated with this account");
+    if (!profile.hospitalId) throw new Error("Your account is not associated with a hospital");
+
     const now = new Date().toISOString();
 
     const { error: upsertErr } = await supabase.from("room_checkins").upsert(
       {
         doctor_did: did,
-        doctor_name: profile?.full_name ?? null,
+        doctor_name: profile.fullName,
+        hospital_id: profile.hospitalId,
         status: data.action === "checkin" ? "in-room" : "available",
         current_room: data.action === "checkin" ? data.roomName : null,
         room_id: data.action === "checkin" ? data.roomId : null,
@@ -192,6 +244,7 @@ export const roomCheckin = createServerFn({ method: "POST" })
       room_name: data.roomName,
       action: data.action,
       occurred_at: now,
+      hospital_id: profile.hospitalId,
     });
     if (evErr) throw new Error(evErr.message);
 
@@ -446,7 +499,9 @@ export const createStaffRequest = createServerFn({ method: "POST" })
     const supabase = getSupabaseServerClient();
 
     const requestId = `REQ-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+    const hospitalId = await callerHospitalId();
     const { error } = await supabase.from("staff_requests").insert({
+      hospital_id: hospitalId,
       request_id: requestId,
       staff_id: user.id,
       request_type: data.requestType,
