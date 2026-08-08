@@ -2,17 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useCallback } from "react";
 import { RouteGuard } from "@/components/RouteGuard";
 import { PageHeader } from "@/components/PageHeader";
-import { getLiveStaff, storeEvents } from "@/lib/realtime-store";
+import { getLiveStaff, storeEvents } from "@/lib/live-store";
 import { dispatchPagerNotify, getAllDIDs, getDoctors, getDoctorLocationHistory } from "@/lib/api";
-import {
-  MapPin,
-  Search,
-  Send,
-  Activity,
-  Building2,
-  X,
-  History,
-} from "lucide-react";
+import { MapPin, Search, Send, Activity, Building2, X, History } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
@@ -31,7 +23,9 @@ function DoctorLocatorPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [specialtyFilter, setSpecialtyFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
-  const [liveEventsLog, setLiveEventsLog] = useState<{ id: string; time: string; event: string }[]>([]);
+  const [liveEventsLog, setLiveEventsLog] = useState<{ id: string; time: string; event: string }[]>(
+    [],
+  );
   const [lastSyncTime, setLastSyncTime] = useState(new Date().toLocaleTimeString());
 
   const refreshDoctorLocations = useCallback(async () => {
@@ -48,7 +42,16 @@ function DoctorLocatorPage() {
 
       try {
         const didRes = await getAllDIDs();
-        didDocs = (didRes.dids || []).filter((d: any) => d.ownerType === "doctor" || d.ownerType === "staff" || d.did);
+        // The trailing `|| d.did` made this filter a no-op: every DID has one, so
+        // patients and hospitals were listed as doctors in the locator. The
+        // ledger tracks CLINICIAN room presence, so it must be people with a
+        // clinical role and never an organisation DID.
+        didDocs = (didRes.dids || []).filter(
+          (d: any) =>
+            d.did &&
+            !d.isOrganisation &&
+            (d.ownerType === "doctor" || d.ownerType === "staff" || d.ownerType === "admin"),
+        );
       } catch (e) {
         // Fallback
       }
@@ -59,7 +62,9 @@ function DoctorLocatorPage() {
       didDocs.forEach((d: any) => {
         if (!d.did) return;
         const apiMatch = apiDocs.find(
-          (a: any) => a.did === d.did || (a.email && d.ownerEmail && a.email.toLowerCase() === d.ownerEmail.toLowerCase())
+          (a: any) =>
+            a.did === d.did ||
+            (a.email && d.ownerEmail && a.email.toLowerCase() === d.ownerEmail.toLowerCase()),
         );
 
         const liveLocation =
@@ -71,7 +76,8 @@ function DoctorLocatorPage() {
           id: d.did,
           did: d.did, // Strictly the Admin-issued W3C DID
           name: d.owner || apiMatch?.name || "Dr. Clinician",
-          employeeId: d.employeeId || apiMatch?.employeeId || `EMP-${d.did.slice(-4).toUpperCase()}`,
+          employeeId:
+            d.employeeId || apiMatch?.employeeId || `EMP-${d.did.slice(-4).toUpperCase()}`,
           role: d.ownerType === "staff" ? "Staff Nurse" : "Doctor",
           department: apiMatch?.department || d.extraFields?.department || "Cardiology OPD",
           specialty: apiMatch?.specialty || d.extraFields?.specialty || "General Medicine",
@@ -83,7 +89,9 @@ function DoctorLocatorPage() {
             : new Date().toLocaleTimeString(),
           onDuty: true,
           isOnChain: true,
-          activeCredentials: d.credentials || [{ id: `vc-${d.did.slice(-6)}`, type: "DID Verified Physician" }],
+          activeCredentials: d.credentials || [
+            { id: `vc-${d.did.slice(-6)}`, type: "DID Verified Physician" },
+          ],
         });
       });
 
@@ -91,7 +99,8 @@ function DoctorLocatorPage() {
       apiDocs.forEach((a: any) => {
         if (!a.did) return;
         if (!mergedMap.has(a.did)) {
-          const liveLocation = a.activeRoom && a.activeRoom !== "None" ? a.activeRoom : "Room 101 - Outpatient Clinic";
+          const liveLocation =
+            a.activeRoom && a.activeRoom !== "None" ? a.activeRoom : "Room 101 - Outpatient Clinic";
           mergedMap.set(a.did, {
             id: a.did,
             did: a.did, // Strictly the Admin-issued W3C DID
@@ -163,8 +172,8 @@ function DoctorLocatorPage() {
                   roomStatus: detail.location !== "Off Duty" ? "enter" : "exit",
                   lastSignal: new Date().toLocaleTimeString(),
                 }
-              : doc
-          )
+              : doc,
+          ),
         );
       }
 
@@ -259,7 +268,11 @@ function DoctorLocatorPage() {
 
   const totalDoctors = staffList.length;
   const inRoomCount = staffList.filter((s) => s.currentLocation !== "Off Duty" && s.onDuty).length;
-  const erCount = staffList.filter((s) => s.currentLocation.toLowerCase().includes("emergency") || s.currentLocation.toLowerCase().includes("er")).length;
+  const erCount = staffList.filter(
+    (s) =>
+      s.currentLocation.toLowerCase().includes("emergency") ||
+      s.currentLocation.toLowerCase().includes("er"),
+  ).length;
 
   return (
     <RouteGuard requiredRole="staff">
@@ -451,7 +464,10 @@ function DoctorLocatorPage() {
                   <div className="space-y-2 pt-1">
                     {[
                       ["Current Room", selected.currentLocation],
-                      ["Room Status", selected.currentLocation !== "Off Duty" ? "Checked In" : "Checked Out"],
+                      [
+                        "Room Status",
+                        selected.currentLocation !== "Off Duty" ? "Checked In" : "Checked Out",
+                      ],
                       ["Department", selected.department],
                       ["Employee ID", selected.employeeId],
                       ["Last Check-in", selected.lastSignal],
@@ -491,7 +507,10 @@ function DoctorLocatorPage() {
                   </div>
                 )}
                 {liveEventsLog.map((log) => (
-                  <div key={log.id} className="flex gap-2 text-[10px] bg-muted/40 p-2 rounded-lg border border-border/50">
+                  <div
+                    key={log.id}
+                    className="flex gap-2 text-[10px] bg-muted/40 p-2 rounded-lg border border-border/50"
+                  >
                     <span className="text-muted-foreground font-mono shrink-0">{log.time}</span>
                     <span className="text-foreground font-medium">{log.event}</span>
                   </div>
@@ -534,7 +553,10 @@ function DoctorLocatorPage() {
                 </div>
               ) : doctorLogs.length > 0 ? (
                 doctorLogs.map((log, i) => (
-                  <div key={log.logId || i} className="rounded-xl border border-border bg-muted/40 p-3 space-y-1">
+                  <div
+                    key={log.logId || i}
+                    className="rounded-xl border border-border bg-muted/40 p-3 space-y-1"
+                  >
                     <div className="flex items-center justify-between text-xs font-bold text-foreground">
                       <span className="flex items-center gap-1.5">
                         <MapPin className="h-3.5 w-3.5 text-primary" /> {log.roomNumber}

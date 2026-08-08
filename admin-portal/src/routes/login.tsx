@@ -5,8 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { login } from "@/lib/api";
-import { setSession } from "@/lib/auth";
+import { adminSignIn } from "~/lib/supabase";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/login")({
@@ -24,19 +23,20 @@ function LoginPage() {
     setIsLoading(true);
 
     try {
-      const res = await login({ email, password });
-      if (res.success && res.user) {
-        if (res.user.role !== "admin") {
-          toast.error("Access Denied: Administrative permissions required");
-          setIsLoading(false);
-          return;
-        }
-        setSession(res.token, res.user);
+      // Supabase Auth. The admin role is verified against `profiles` in
+      // Postgres, never a client-held value, and RLS governs every query the
+      // portal makes afterwards.
+      const res = await adminSignIn(email, password);
+      if (res.success) {
         toast.success(`Welcome back, Admin ${res.user.name}!`);
         navigate({ to: "/" });
+      } else {
+        // Generic message: never reveal whether the credentials were valid but
+        // belonged to a non-admin role.
+        toast.error(res.error);
       }
-    } catch (err: any) {
-      toast.error(err.message || "Authentication failed");
+    } catch {
+      toast.error("Invalid email or password.");
     } finally {
       setIsLoading(false);
     }

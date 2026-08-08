@@ -21,13 +21,12 @@ import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { getAllPrescriptions, getSurgeries, signPrescription } from "@/lib/api";
 import { toast } from "sonner";
+import { useCurrentUser } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/staff/command")({
   head: () => ({ meta: [{ title: "Command Center — Staff Portal" }] }),
   component: StaffCommandCenter,
 });
-
-
 
 function UrgencyDot({ urgency }: { urgency: string }) {
   const cls =
@@ -40,6 +39,7 @@ function UrgencyDot({ urgency }: { urgency: string }) {
 }
 
 function StaffCommandCenter() {
+  const { user: currentUser } = useCurrentUser();
   const { patients: livePatients = [] } = useLivePatients();
   const { data: bedsData } = useBeds();
   const { data: ambulancesData } = useAmbulances();
@@ -47,8 +47,9 @@ function StaffCommandCenter() {
   const allAmbulances = ambulancesData?.ambulances ?? [];
   const { data: fraudData } = useFraudAlerts();
 
-  const liveAlerts: { id: string; msg: string; severity: string; time: string }[] =
-    (fraudData?.alerts ?? []).map((a: any) => ({
+  const liveAlerts: { id: string; msg: string; severity: string; time: string }[] = (
+    fraudData?.alerts ?? []
+  ).map((a: any) => ({
     id: a.alertId ?? a.id ?? String(Math.random()),
     msg: a.message ?? `${a.type ?? "Alert"} — ${a.affectedResource ?? "System"}`,
     severity: a.riskScore >= 80 ? "critical" : "warning",
@@ -74,9 +75,7 @@ function StaffCommandCenter() {
   const [loadingData, setLoadingData] = useState(true);
 
   const staffDid =
-    typeof window !== "undefined"
-      ? localStorage.getItem("userDID") || "did:hosp:staff:current"
-      : "did:hosp:staff:current";
+    typeof window !== "undefined" ? (currentUser?.primaryDid ?? "") : "did:hosp:staff:current";
 
   const fetchData = () => {
     setLoadingData(true);

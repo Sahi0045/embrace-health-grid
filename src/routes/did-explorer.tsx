@@ -19,13 +19,20 @@ import {
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDIDs, useAudit, useNFCCards } from "@/hooks/use-api";
-import { getCurrentUser } from "@/lib/auth";
-import { issueNFCCard, revokeNFCCard, getDIDRequests, approveDIDRequest, rejectDIDRequest } from "@/lib/api";
+import { useCurrentUser } from "@/lib/auth-context";
+import {
+  issueNFCCard,
+  revokeNFCCard,
+  getDIDRequests,
+  approveDIDRequest,
+  rejectDIDRequest,
+} from "@/lib/api";
 import { toast } from "sonner";
+import { RouteGuard } from "@/components/RouteGuard";
 
 export const Route = createFileRoute("/did-explorer")({
   head: () => ({ meta: [{ title: "DID Explorer — Embrace Health Grid" }] }),
-  component: DIDExplorerPage,
+  component: DIDExplorerPageGuarded,
 });
 
 type DIDSearchType = "patient" | "doctor" | "nurse" | "admin" | "resource";
@@ -58,7 +65,7 @@ function DIDExplorerPage() {
   const [viewMode, setViewMode] = useState<"dids" | "nfc">("dids");
   const [cardToRevoke, setCardToRevoke] = useState<string | null>(null);
 
-  const currentUser = getCurrentUser();
+  const { user: currentUser } = useCurrentUser();
   const isAdmin = currentUser?.role === "admin";
 
   const [didRequests, setDidRequests] = useState<any[]>([]);
@@ -113,7 +120,8 @@ function DIDExplorerPage() {
   const { data: didsData } = useDIDs();
   const { data: auditData } = useAudit();
   const { data: nfcCardsData, refetch: refetchNFCCards } = useNFCCards();
-  const nfcCards = nfcCardsData || [];
+  // useNFCCards now returns { entries: [...] } from Postgres.
+  const nfcCards = nfcCardsData?.entries ?? [];
 
   const patientCardEntry = selected
     ? nfcCards.find((c: any) => c.value?.patientDid === selected.did)
@@ -251,8 +259,15 @@ function DIDExplorerPage() {
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground font-mono">{req.ownerEmail}</p>
-                    <p className="text-xs text-muted-foreground">Department: <span className="font-semibold text-foreground">{req.department || "Clinical Services"}</span></p>
-                    <p className="text-[10px] text-muted-foreground">Requested: {new Date(req.requestedAt).toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Department:{" "}
+                      <span className="font-semibold text-foreground">
+                        {req.department || "Clinical Services"}
+                      </span>
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      Requested: {new Date(req.requestedAt).toLocaleString()}
+                    </p>
                   </div>
                   <div className="flex gap-2 pt-2 border-t border-border">
                     <button
@@ -653,5 +668,20 @@ function DIDExplorerPage() {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+/**
+ * Registry and oversight view, so staff and above.
+ *
+ * RLS already scopes what each role can read; this stops a patient landing on a
+ * page designed for hospital-wide oversight. Their own equivalents are in the
+ * patient portal: Credentials, Consent and Access History.
+ */
+function DIDExplorerPageGuarded() {
+  return (
+    <RouteGuard requiredRole="staff">
+      <DIDExplorerPage />
+    </RouteGuard>
   );
 }

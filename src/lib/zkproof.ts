@@ -244,7 +244,7 @@ export function getDefaultClaims(
     {
       attribute: "fullName",
       label: "Full Name",
-      value: p.name ?? "Anika Sharma",
+      value: p.name ?? "",
       disclosed: false,
       category: "identity",
     },

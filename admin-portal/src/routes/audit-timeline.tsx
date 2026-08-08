@@ -3,7 +3,7 @@ import { PageHeader, StatCard } from "@/components/PageHeader";
 import { AuditEventCard } from "@/components/audit/AuditEventCard";
 import { Search, Filter, Activity, ShieldX, AlertTriangle, Info } from "lucide-react";
 import { useState, useMemo } from "react";
-import { useAudit } from "@/hooks/use-api";
+import { useAudit } from "~/lib/admin-hooks";
 
 export const Route = createFileRoute("/audit-timeline")({
   head: () => ({ meta: [{ title: "Audit Timeline — DID Hospital" }] }),

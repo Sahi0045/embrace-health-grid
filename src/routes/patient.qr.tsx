@@ -5,7 +5,7 @@ import { QrCode } from "@/components/QrCode";
 import { PageHeader } from "@/components/PageHeader";
 import { RouteGuard } from "@/components/RouteGuard";
 import { useLivePatients } from "@/hooks/use-api";
-import { getCurrentUser } from "@/lib/auth";
+import { useCurrentUser } from "@/lib/auth-context";
 import {
   RefreshCw,
   ShieldCheck,
@@ -38,15 +38,18 @@ function simHash(str: string): string {
 
 function PatientQr() {
   const { patients: patientsList } = useLivePatients();
-  const currentUser = getCurrentUser();
-  const userEmail = currentUser?.email || (typeof window !== "undefined" ? localStorage.getItem("userEmail") || "" : "");
-  const userDid = currentUser?.did || (typeof window !== "undefined" ? localStorage.getItem("userDID") || localStorage.getItem("userDid") || "" : "");
-  const userMrn = currentUser?.mrn || (typeof window !== "undefined" ? localStorage.getItem("userMRN") || "" : "");
-  const userName = currentUser?.name || (typeof window !== "undefined" ? localStorage.getItem("userName") || "" : "");
+  const { user: currentUser } = useCurrentUser();
+  const userEmail = currentUser?.email ?? "";
+  const userDid = currentUser?.did ?? "";
+  const userMrn = currentUser?.mrn ?? "";
+  const userName = currentUser?.name ?? "";
 
-  const matchedPatient = patientsList?.find((p: any) => p.email?.toLowerCase() === userEmail.toLowerCase()) || patientsList?.[0];
+  const matchedPatient =
+    patientsList?.find((p: any) => p.email?.toLowerCase() === userEmail.toLowerCase()) ||
+    patientsList?.[0];
 
-  const activeDid = matchedPatient?.did || userDid || `did:hosp:0x${simHash(userEmail || "patient").slice(0, 8)}`;
+  const activeDid =
+    matchedPatient?.did || userDid || `did:hosp:0x${simHash(userEmail || "patient").slice(0, 8)}`;
   const activeName = matchedPatient?.name || userName || "Patient";
   const activeMrn = matchedPatient?.mrn || userMrn || "MRN-100234";
 
@@ -236,7 +239,8 @@ function PatientQr() {
 
 function NfcCardStatus({ patientDid }: { patientDid: string }) {
   const { data: nfcData } = useNFCCards();
-  const cards = nfcData || [];
+  // useNFCCards now returns { entries: [...] } from Postgres.
+  const cards = nfcData?.entries ?? [];
   const cardEntry = cards.find((c: any) => c.value?.patientDid === patientDid);
   const card = cardEntry?.value;
 

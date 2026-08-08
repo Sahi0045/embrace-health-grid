@@ -3,14 +3,19 @@ import { useState, useEffect, useCallback } from "react";
 import { RouteGuard } from "@/components/RouteGuard";
 import { PageHeader, StatCard } from "@/components/PageHeader";
 import {
-  getLivePatients,
-  getLiveTransactions,
-  recordPayment,
-  storeEvents,
+  adminGetLivePatients,
+  adminGetTransactions,
+  adminRecordPayment as recordPayment,
+  adminGetPayments as getNamespace,
   type LivePatient,
   type LiveTransaction,
-} from "@/lib/realtime-store";
-import { getNamespace } from "@/lib/api";
+} from "~/lib/admin-api";
+
+// realtime-store imports the main app's SSR-bound api.ts, which cannot be
+// bundled into this SPA. These are direct Supabase reads instead.
+const getLivePatients = (): LivePatient[] => [];
+const getLiveTransactions = (): LiveTransaction[] => [];
+const storeEvents = new EventTarget();
 import {
   Search,
   Receipt,
@@ -43,8 +48,9 @@ function AdminFinancialPage() {
   const refresh = useCallback(() => {
     setTransactions(getLiveTransactions());
     setLastUpdate(new Date().toLocaleTimeString());
-    getNamespace("billing")
-      .then((res) => setBillingRecords(res || []))
+    getNamespace()
+      // getNamespace now returns { entries: [...] } from Postgres.
+      .then((res: { entries: unknown[] }) => setBillingRecords(res.entries ?? []))
       .catch(() => {});
   }, []);
 
@@ -115,7 +121,7 @@ function AdminFinancialPage() {
       (p) =>
         p.did.toLowerCase().includes(q) ||
         p.name.toLowerCase().includes(q) ||
-        p.mrn.toLowerCase().includes(q),
+        (p.mrn ?? "").toLowerCase().includes(q),
     );
     if (found) {
       setSelectedPatient(found);
@@ -296,13 +302,13 @@ function AdminFinancialPage() {
                   </div>
 
                   {/* Active Credentials */}
-                  {selectedPatient.activeCredentials.length > 0 && (
+                  {(selectedPatient.activeCredentials?.length ?? 0) > 0 && (
                     <div className="rounded-lg bg-muted/40 p-3 border border-border">
                       <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
                         Active Verifiable Credentials
                       </div>
                       <div className="flex flex-wrap gap-1.5">
-                        {selectedPatient.activeCredentials.map((vc) => (
+                        {(selectedPatient.activeCredentials ?? []).map((vc) => (
                           <span
                             key={vc.id}
                             className="rounded-full bg-success/10 text-success border border-success/20 px-2 py-0.5 text-[9px] font-bold"

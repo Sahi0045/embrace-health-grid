@@ -7,7 +7,7 @@ import { CredentialTimeline } from "@/components/credentials/CredentialTimeline"
 import { CredentialIssuerBadge } from "@/components/credentials/CredentialIssuerBadge";
 import { useVaccineRecords } from "@/hooks/use-api";
 import { useLivePatients } from "@/hooks/use-api";
-import { getCurrentUser } from "@/lib/auth";
+import { useCurrentUser } from "@/lib/auth-context";
 import { ShieldCheck, Syringe, Calendar, TrendingUp, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState } from "react";
@@ -25,7 +25,7 @@ const statusBadge: Record<string, string> = {
 };
 
 function VaccinesPage() {
-  const currentUser = getCurrentUser();
+  const { user: currentUser } = useCurrentUser();
   const { patients } = useLivePatients();
   const patientRecord = patients?.find((p: any) => p.email === currentUser?.email) || patients?.[0];
   const patientDid = patientRecord?.did || currentUser?.did || "";

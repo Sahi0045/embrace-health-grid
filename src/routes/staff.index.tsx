@@ -23,7 +23,8 @@ import {
 import { RouteGuard } from "@/components/RouteGuard";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { getCurrentUser } from "@/lib/auth";
+import { useCurrentUser } from "@/lib/auth-context";
+import { signOut } from "@/lib/auth.server";
 
 export const Route = createFileRoute("/staff/")({
   head: () => ({ meta: [{ title: "Staff · Dashboard — Embrace Health Grid" }] }),
@@ -76,17 +77,27 @@ const quickLinks = [
 ];
 
 function StaffDashboard() {
+  const { user: currentUser } = useCurrentUser();
   const { patients: patientsList } = useLivePatients();
   const { staff: staffList } = useLiveStaff();
   const { data: consentsData } = useConsents();
   const { data: auditData } = useAudit();
   const { data: bedsData } = useBeds();
 
-  const userEmail = typeof window !== "undefined" ? localStorage.getItem("userEmail") : "";
-  const userName = typeof window !== "undefined" ? localStorage.getItem("userName") : "";
+  // Identity comes from the session (Postgres), not browser storage. The old
+  // code matched a roster row by an email held in localStorage; nothing writes
+  // that key any more, so the lookup always failed and every staff member was
+  // shown "Awaiting DID Provisioning" regardless of whether they had a DID.
+  const userEmail = currentUser?.email ?? "";
+  const userName = currentUser?.fullName ?? currentUser?.email ?? "";
   const staffRecord = staffList?.find((s: any) => s.email === userEmail);
 
-  if (!staffRecord) {
+  // The gate is about identity, so ask the identity: a clinician is provisioned
+  // once they hold a DID. Presence in the live roster is a display concern and a
+  // roster that has not loaded yet must not read as "unprovisioned".
+  const hasDid = Boolean(currentUser?.primaryDid);
+
+  if (!hasDid) {
     return (
       <RouteGuard requiredRole="staff">
         <div className="flex min-h-[80vh] items-center justify-center px-4">
@@ -108,10 +119,11 @@ function StaffDashboard() {
               <Button
                 variant="outline"
                 onClick={() => {
-                  localStorage.removeItem("userRole");
-                  localStorage.removeItem("userEmail");
-                  localStorage.removeItem("userName");
-                  window.location.href = "/login";
+                  // The session is an httpOnly cookie, so only the server can
+                  // clear it. Removing localStorage keys here did nothing.
+                  void signOut().finally(() => {
+                    window.location.href = "/login";
+                  });
                 }}
               >
                 Logout / Switch Account
@@ -140,8 +152,8 @@ function StaffDashboard() {
       <>
         <PageHeader
           eyebrow="Staff portal"
-          title={`Good morning, ${staffRecord.name}`}
-          description={`${staffRecord.specialty || "Medical Specialist"} · Embrace Health Grid · Shift 08:00 – 16:00`}
+          title={`Good morning, ${staffRecord?.name ?? userName}`}
+          description={`${staffRecord?.specialty || "Medical Specialist"} · Embrace Health Grid · Shift 08:00 – 16:00`}
           actions={
             <Link
               to="/staff/verify"
@@ -154,7 +166,7 @@ function StaffDashboard() {
 
         <div className="space-y-6 p-6">
           {/* Solana Wallet Prompt Banner */}
-          {!getCurrentUser()?.walletAddress && (
+          {!currentUser?.walletAddress && (
             <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-5 shadow-clinical">
               <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div className="flex items-start gap-3">
@@ -296,7 +308,13 @@ function StaffDashboard() {
                       {evt.action ?? "Event"} — {evt.resource ?? "System"}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {evt.actor ?? "System"} · {evt.loggedAt ? new Date(evt.loggedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"}
+                      {evt.actor ?? "System"} ·{" "}
+                      {evt.loggedAt
+                        ? new Date(evt.loggedAt).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
+                        : "—"}
                     </div>
                   </li>
                 ))}

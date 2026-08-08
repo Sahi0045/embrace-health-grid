@@ -1,13 +1,24 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { User, Stethoscope, ShieldCheck, ArrowRight, Hospital } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { login, signup } from "@/lib/api";
-import { setSession } from "@/lib/auth";
+import { signIn } from "@/lib/auth.server";
+import { useCurrentUser } from "@/lib/auth-context";
 import { toast } from "sonner";
+
+/**
+ * Whether to show the seeded demo logins on the sign-in form.
+ *
+ * These are real, working credentials for a live deployment, so they must be
+ * switched off before the app holds real PHI. Defaults to VISIBLE so the demo
+ * keeps working, and is disabled by setting VITE_HIDE_DEMO_CREDENTIALS=true —
+ * an opt-out rather than gating on import.meta.env.DEV, which would silently
+ * break the deployed demo.
+ */
+const SHOW_DEMO_CREDENTIALS = import.meta.env.VITE_HIDE_DEMO_CREDENTIALS !== "true";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -47,12 +58,46 @@ const roles = [
 
 function LoginPage() {
   const navigate = useNavigate();
+  const { user, loading, refresh } = useCurrentUser();
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [isSignup, setIsSignup] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  /**
+   * Which roles may enter each portal. The database is the authority on a
+   * user's role — this check only stops someone landing in the wrong UI, and
+   * RLS still governs what data they can actually read.
+   */
+  const PORTAL_ALLOWED_ROLES: Record<string, string[]> = {
+    patient: ["patient"],
+    staff: ["staff", "doctor"],
+    // super_admin signs in through the admin portal: there is no separate
+    // platform login, and omitting it here authenticated the account and then
+    // rejected it with "This account is not a admin account."
+    admin: ["admin", "super_admin"],
+  };
+
+  /**
+   * Send an already-authenticated visitor to their portal.
+   *
+   * /login previously rendered the form regardless of session, so anyone with a
+   * valid cookie who navigated or refreshed here saw a sign-in prompt while
+   * already signed in — and had to pick a portal tile again to get anywhere.
+   */
+  useEffect(() => {
+    if (loading || !user) return;
+    const LANDING: Record<string, string> = {
+      patient: "/patient",
+      doctor: "/staff",
+      staff: "/staff",
+      admin: "/admin",
+      super_admin: "/super",
+    };
+    navigate({ to: LANDING[user.role] ?? "/patient" });
+  }, [loading, user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,52 +107,61 @@ function LoginPage() {
 
     try {
       if (isSignup) {
-        if (!name.trim()) {
-          toast.error("Name is required for registration");
-          setIsLoading(false);
-          return;
-        }
-        if (password.length < 8) {
-          toast.error("Password must be at least 8 characters long");
-          setIsLoading(false);
-          return;
-        }
-        const hasNumber = /\d/.test(password);
-        const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
-        if (!hasNumber || !hasSpecial) {
-          toast.error("Password must contain at least one number and one special character");
-          setIsLoading(false);
-          return;
-        }
-        const signupRes = await signup({ name, email, role: selectedRole, password });
-        if (signupRes.success && signupRes.user) {
-          setSession(signupRes.token, signupRes.user);
-          toast.success(`Welcome, ${signupRes.user.name}! Account created.`);
-          navigate({ to: `/${signupRes.user.role}` });
-        }
-      } else {
-        const res = await login({ email, password });
-        if (res.success && res.user) {
-          setSession(res.token, res.user);
-          toast.success(`Welcome back, ${res.user.name}!`);
-          navigate({ to: `/${res.user.role}` });
-        } else if ((res as any).setupToken || (res as any).mfaSetupRequired) {
-          const userObj = {
-            name: email.split("@")[0].replace(".", " "),
-            email: email,
-            role: selectedRole || "staff",
-          };
-          setSession((res as any).setupToken || "demo-token", userObj);
-          toast.success(`Welcome to Staff Portal`);
-          navigate({ to: "/staff" });
-        }
+        // Self-service signup is disabled: accounts are provisioned by an
+        // administrator so that role, DID and credentials are issued together.
+        toast.error("Registration is handled by your administrator. Please sign in.");
+        setIsSignup(false);
+        return;
       }
-    } catch (err: any) {
-      const msg =
-        err.message?.includes("fetch") || err.name === "TypeError"
-          ? "Connection Error: Cannot reach backend server. Please ensure your network is connected."
-          : err.message || "Authentication failed";
-      toast.error(msg);
+
+      const res = await signIn({ data: { email, password } });
+
+      if (!res.ok) {
+        toast.error(res.error);
+        return;
+      }
+
+      // Where each role belongs. A super_admin has no /super_admin page — the
+      // platform console is /super — so this must be a map rather than `/${role}`.
+      const LANDING: Record<string, string> = {
+        patient: "/patient",
+        doctor: "/staff",
+        staff: "/staff",
+        admin: "/admin",
+        super_admin: "/super",
+      };
+
+      const destination = LANDING[res.user.role] ?? "/patient";
+
+      // The credentials were valid but the wrong portal tile was chosen.
+      //
+      // Do NOT bail here. signIn() has already set the session cookie, so
+      // returning early left the user authenticated while showing an error —
+      // which is why refreshing the page appeared to "fix" it and dropped them
+      // into a portal they had not chosen.
+      //
+      // Since we know who they are and where they belong, send them there and say
+      // so. Rejecting a correct password because of a mis-clicked tile is a
+      // pointless obstacle: the tile is a convenience, and RouteGuard plus RLS
+      // are what actually enforce access.
+      const allowed = PORTAL_ALLOWED_ROLES[selectedRole] ?? [];
+      const wrongPortal = !allowed.includes(res.user.role);
+
+      // Populate the auth context from the server-verified session.
+      await refresh();
+
+      if (wrongPortal) {
+        toast.success(`Welcome back, ${res.user.fullName}`, {
+          description: `Signed in as ${res.user.role.replace("_", " ")} — taking you to your portal.`,
+        });
+      } else {
+        toast.success(`Welcome back, ${res.user.fullName}!`);
+      }
+
+      navigate({ to: destination });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Authentication failed";
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }
@@ -215,17 +269,23 @@ function LoginPage() {
                     required
                   />
                 </div>
-                {!isSignup && (
+                {!isSignup && SHOW_DEMO_CREDENTIALS && (
                   <div className="rounded-lg bg-muted/50 p-3 text-xs space-y-1.5 border">
                     <div className="font-semibold text-foreground flex items-center justify-between">
                       <span>Demo Credentials</span>
-                      <span className="text-[10px] text-muted-foreground font-normal">Click to auto-fill</span>
+                      <span className="text-[10px] text-muted-foreground font-normal">
+                        Click to auto-fill
+                      </span>
                     </div>
                     {selectedRole === "staff" && (
                       <>
                         <div className="flex justify-between text-muted-foreground">
-                          <span>Email: <strong className="text-foreground">doctor@embracehealth.org</strong></span>
-                          <span>Pass: <strong className="text-foreground">Doctor123!</strong></span>
+                          <span>
+                            Email: <strong className="text-foreground">dr.smith@seed.test</strong>
+                          </span>
+                          <span>
+                            Pass: <strong className="text-foreground">SeedPassw0rd!dev</strong>
+                          </span>
                         </div>
                         <Button
                           type="button"
@@ -233,8 +293,8 @@ function LoginPage() {
                           size="sm"
                           className="h-7 w-full text-xs mt-1 bg-background"
                           onClick={() => {
-                            setEmail("doctor@embracehealth.org");
-                            setPassword("Doctor123!");
+                            setEmail("dr.smith@seed.test");
+                            setPassword("SeedPassw0rd!dev");
                           }}
                         >
                           Auto-fill Doctor Credentials
@@ -244,8 +304,13 @@ function LoginPage() {
                     {selectedRole === "patient" && (
                       <>
                         <div className="flex justify-between text-muted-foreground">
-                          <span>Email: <strong className="text-foreground">patient@example.com</strong></span>
-                          <span>Pass: <strong className="text-foreground">Patient123!</strong></span>
+                          <span>
+                            Email:{" "}
+                            <strong className="text-foreground">alice.patient@seed.test</strong>
+                          </span>
+                          <span>
+                            Pass: <strong className="text-foreground">SeedPassw0rd!dev</strong>
+                          </span>
                         </div>
                         <Button
                           type="button"
@@ -253,8 +318,8 @@ function LoginPage() {
                           size="sm"
                           className="h-7 w-full text-xs mt-1 bg-background"
                           onClick={() => {
-                            setEmail("patient@example.com");
-                            setPassword("Patient123!");
+                            setEmail("alice.patient@seed.test");
+                            setPassword("SeedPassw0rd!dev");
                           }}
                         >
                           Auto-fill Patient Credentials
@@ -264,8 +329,12 @@ function LoginPage() {
                     {selectedRole === "admin" && (
                       <>
                         <div className="flex justify-between text-muted-foreground">
-                          <span>Email: <strong className="text-foreground">admin@embracehealth.org</strong></span>
-                          <span>Pass: <strong className="text-foreground">Admin123!456</strong></span>
+                          <span>
+                            Email: <strong className="text-foreground">admin@seed.test</strong>
+                          </span>
+                          <span>
+                            Pass: <strong className="text-foreground">SeedPassw0rd!dev</strong>
+                          </span>
                         </div>
                         <Button
                           type="button"
@@ -273,8 +342,8 @@ function LoginPage() {
                           size="sm"
                           className="h-7 w-full text-xs mt-1 bg-background"
                           onClick={() => {
-                            setEmail("admin@embracehealth.org");
-                            setPassword("Admin123!456");
+                            setEmail("admin@seed.test");
+                            setPassword("SeedPassw0rd!dev");
                           }}
                         >
                           Auto-fill Admin Credentials
@@ -312,15 +381,11 @@ function LoginPage() {
                       </button>
                     </p>
                   ) : (
+                    // Self-service registration is intentionally unavailable:
+                    // an account needs a role, a DID and issued credentials
+                    // provisioned together, so an administrator creates it.
                     <p className="text-muted-foreground">
-                      Don't have an account?{" "}
-                      <button
-                        type="button"
-                        onClick={() => setIsSignup(true)}
-                        className="text-primary hover:underline font-medium"
-                      >
-                        Sign up
-                      </button>
+                      Need an account? Contact your administrator.
                     </p>
                   )}
                 </div>

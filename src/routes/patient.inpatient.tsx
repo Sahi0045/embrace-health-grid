@@ -25,6 +25,7 @@ import { useState, useEffect } from "react";
 import { usePatientVitals, useInpatientData } from "@/hooks/use-api";
 import { getBilling, getLabs } from "@/lib/api";
 import { toast } from "sonner";
+import { useCurrentUser } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/patient/inpatient")({
   head: () => ({
@@ -37,8 +38,10 @@ export const Route = createFileRoute("/patient/inpatient")({
 });
 
 function InpatientCare() {
-  const patientDid =
-    typeof window !== "undefined" ? localStorage.getItem("userDID") || "pat_001" : "pat_001";
+  const { user: currentUser } = useCurrentUser();
+  // No "pat_001" fallback: guessing an identifier would query another
+  // patient's data. An absent DID must resolve to nothing.
+  const patientDid = currentUser?.primaryDid ?? "";
   const { vitals: liveVitals } = usePatientVitals(patientDid);
   const { data: inpatientData } = useInpatientData(patientDid);
 
@@ -49,7 +52,8 @@ function InpatientCare() {
     getBilling(patientDid)
       .then((res) => {
         if (res?.billSummary) {
-          setBillSummary(res.billSummary);
+          // Merge: a response missing a field must not blank one already shown.
+          setBillSummary((prev: any) => ({ ...prev, ...res.billSummary }));
         }
       })
       .catch((err) => {
@@ -230,14 +234,14 @@ function InpatientCare() {
                         <div>
                           <div className="text-xs text-muted-foreground">Current Bill</div>
                           <div className="text-lg font-semibold">
-                            ₹{billSummary.totalCharges.toLocaleString("en-IN")}
+                            ₹{Number(billSummary?.totalCharges ?? 0).toLocaleString("en-IN")}
                           </div>
                         </div>
                       </div>
                       <div className="text-right">
                         <div className="text-xs text-muted-foreground">Balance Due</div>
                         <div className="text-sm font-semibold text-destructive">
-                          ₹{billSummary.balanceDue.toLocaleString("en-IN")}
+                          ₹{Number(billSummary?.balanceDue ?? 0).toLocaleString("en-IN")}
                         </div>
                       </div>
                     </div>
@@ -345,7 +349,7 @@ function InpatientCare() {
                       <CardContent>
                         <div className="font-medium">{dietOrder.type}</div>
                         <div className="mt-2 space-y-1">
-                          {dietOrder.restrictions.map((r: any, idx: number) => (
+                          {(dietOrder.restrictions ?? []).map((r: any, idx: number) => (
                             <div
                               key={idx}
                               className="text-sm text-muted-foreground flex items-center gap-1"

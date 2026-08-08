@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import crypto from "crypto";
 
 /**
  * Merkle Tree Implementation for Room Check-In Events
@@ -18,7 +18,7 @@ export function hashLeaf(leaf) {
     action: leaf.action,
     timestamp: leaf.timestamp,
   });
-  return crypto.createHash('sha256').update(leafData).digest('hex');
+  return crypto.createHash("sha256").update(leafData).digest("hex");
 }
 
 /**
@@ -26,7 +26,7 @@ export function hashLeaf(leaf) {
  */
 export function combineHashes(leftHash, rightHash) {
   const combined = leftHash + rightHash;
-  return crypto.createHash('sha256').update(combined).digest('hex');
+  return crypto.createHash("sha256").update(combined).digest("hex");
 }
 
 /**
@@ -92,7 +92,7 @@ export function verifyLeaf(leaf, root, tree) {
  */
 function findLeafInTree(targetHash, node) {
   if (!node) return false;
-  
+
   if (node.hash === targetHash) {
     return true;
   }
@@ -142,7 +142,7 @@ export function generateProof(leaf, tree) {
 
   function findPath(node) {
     if (!node) return false;
-    
+
     if (node.hash === leafHash) {
       return true;
     }
@@ -150,7 +150,7 @@ export function generateProof(leaf, tree) {
     if (node.left) {
       if (findPath(node.left)) {
         if (node.right) {
-          proof.push({ hash: node.right.hash, position: 'right' });
+          proof.push({ hash: node.right.hash, position: "right" });
         }
         return true;
       }
@@ -159,7 +159,7 @@ export function generateProof(leaf, tree) {
     if (node.right) {
       if (findPath(node.right)) {
         if (node.left) {
-          proof.push({ hash: node.left.hash, position: 'left' });
+          proof.push({ hash: node.left.hash, position: "left" });
         }
         return true;
       }
@@ -182,7 +182,7 @@ export function verifyProof(proof, root) {
   let hash = hashLeaf(proof.leaf);
 
   for (const step of proof.proof) {
-    if (step.position === 'left') {
+    if (step.position === "left") {
       hash = combineHashes(step.hash, hash);
     } else {
       hash = combineHashes(hash, step.hash);

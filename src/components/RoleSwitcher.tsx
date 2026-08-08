@@ -1,7 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { User, Stethoscope, ShieldCheck, Lock } from "lucide-react";
-import { getCurrentUser, type AuthUser } from "@/lib/auth";
+import { useCurrentUser } from "@/lib/auth-context";
 
 const roles = [
   { id: "patient", label: "Patient", icon: User, to: "/patient" as const },
@@ -12,17 +12,21 @@ const roles = [
 export function RoleSwitcher() {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
 
-  const [user, setUser] = useState<AuthUser | null>(null);
-  useEffect(() => {
-    setUser(getCurrentUser());
-  }, [pathname]);
+  const { user: user } = useCurrentUser();
+  useEffect(() => {}, [pathname]);
 
   return (
     <div className="grid grid-cols-3 gap-1 rounded-xl border border-border bg-muted/40 p-1">
       {roles.map((r) => {
         const active = pathname.startsWith(r.to);
         const Icon = r.icon;
-        const isAvailable = user?.role === "admin" || user?.role === r.id;
+        // Mirror hasAccess(): an admin may enter staff areas but NOT the patient
+        // portal, which belongs to a patient's own records. Offering it here
+        // showed an unlocked tab that the guard then refused.
+        const isAvailable =
+          user?.role === r.id ||
+          (user?.role === "admin" && r.id !== "patient") ||
+          (user?.role === "doctor" && r.id === "staff");
 
         if (!isAvailable) {
           return (

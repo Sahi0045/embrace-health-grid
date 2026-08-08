@@ -6,7 +6,7 @@ import { CredentialIssuerBadge } from "@/components/credentials/CredentialIssuer
 import { Search, ShieldCheck, Award, Filter } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useCredentials } from "@/hooks/use-api";
+import { useCredentials } from "~/lib/admin-hooks";
 
 interface CredentialFull {
   id: string;

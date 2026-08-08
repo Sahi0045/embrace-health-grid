@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { getBilling, payBill } from "@/lib/api";
-import { getCurrentUser } from "@/lib/auth";
+import { useCurrentUser } from "@/lib/auth-context";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/patient/billing")({
@@ -36,8 +36,8 @@ function PatientBilling() {
   const [billingData, setBillingData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  const patientDid = typeof window !== "undefined" ? localStorage.getItem("userDID") || "" : "";
-  const currentUser = getCurrentUser();
+  const { user: currentUser } = useCurrentUser();
+  const patientDid = currentUser?.primaryDid ?? "";
 
   const fetchBilling = () => {
     if (!patientDid) return;
@@ -193,7 +193,10 @@ Thank you for choosing Embrace Health.
   };
   const paymentRecords = billingData?.paymentRecords || [];
 
-  const fmt = (amount: number) => `₹${amount.toLocaleString("en-IN")}`;
+  // Coerce here: these amounts come from nullable numeric columns, and a missing
+  // charge should render as ₹0 rather than crash the statement.
+  const fmt = (amount: number | null | undefined) =>
+    `₹${Number(amount ?? 0).toLocaleString("en-IN")}`;
 
   const statusColor = (status: string) => {
     switch (status) {
@@ -369,7 +372,7 @@ Thank you for choosing Embrace Health.
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      {billSummary.categoryTotals.map((cat: any) => {
+                      {(billSummary.categoryTotals ?? []).map((cat: any) => {
                         const items = billItems.filter((i: any) => i.category === cat.category);
                         return (
                           <div key={cat.category} className="space-y-2">

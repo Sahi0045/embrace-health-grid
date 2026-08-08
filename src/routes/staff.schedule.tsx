@@ -3,27 +3,56 @@ import { PageHeader, StatCard } from "@/components/PageHeader";
 import { RouteGuard } from "@/components/RouteGuard";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import {
-  getStaffSchedule, createStaffRequest, getAppointmentsByDoctor,
+  getStaffSchedule,
+  createStaffRequest,
+  getAppointmentsByDoctor,
   updateAppointmentStatus,
 } from "@/lib/api";
-import { getCurrentUser } from "@/lib/auth";
+import { useCurrentUser } from "@/lib/auth-context";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { stagger, fadeUp } from "@/components/Motion";
 import {
-  Calendar, Clock, MapPin, Stethoscope, Plane, ChevronLeft, ChevronRight,
-  Users, Video, Scissors, Heart, PlusCircle, Check, AlertCircle, Moon, Sun,
-  CheckCircle2, XCircle, RefreshCw, Bell, X,
+  Calendar,
+  Clock,
+  MapPin,
+  Stethoscope,
+  Plane,
+  ChevronLeft,
+  ChevronRight,
+  Users,
+  Video,
+  Scissors,
+  Heart,
+  PlusCircle,
+  Check,
+  AlertCircle,
+  Moon,
+  Sun,
+  CheckCircle2,
+  XCircle,
+  RefreshCw,
+  Bell,
+  X,
 } from "lucide-react";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 
 export const Route = createFileRoute("/staff/schedule")({
@@ -54,8 +83,6 @@ interface Shift {
   notes?: string;
   confirmed: boolean;
 }
-
-
 
 const shiftConfig: Record<
   ShiftType,
@@ -210,12 +237,23 @@ function ShiftCard({ shift }: { shift: Shift }) {
 }
 
 // ─── Appointment Request Card ──────────────────────────────────────────────
-const APPT_STATUS_STYLES: Record<string, { bg: string; text: string; icon: React.ComponentType<{ className?: string }> }> = {
-  pending:     { bg: "bg-warning/10 border-warning/30",     text: "text-yellow-700 dark:text-yellow-400", icon: Clock },
-  confirmed:   { bg: "bg-success/10 border-success/30",     text: "text-success",                         icon: CheckCircle2 },
-  rejected:    { bg: "bg-destructive/10 border-destructive/30", text: "text-destructive",                 icon: XCircle },
-  rescheduled: { bg: "bg-primary/10 border-primary/30",     text: "text-primary",                         icon: RefreshCw },
-  cancelled:   { bg: "bg-muted border-border",               text: "text-muted-foreground",                icon: X },
+const APPT_STATUS_STYLES: Record<
+  string,
+  { bg: string; text: string; icon: React.ComponentType<{ className?: string }> }
+> = {
+  pending: {
+    bg: "bg-warning/10 border-warning/30",
+    text: "text-yellow-700 dark:text-yellow-400",
+    icon: Clock,
+  },
+  confirmed: { bg: "bg-success/10 border-success/30", text: "text-success", icon: CheckCircle2 },
+  rejected: {
+    bg: "bg-destructive/10 border-destructive/30",
+    text: "text-destructive",
+    icon: XCircle,
+  },
+  rescheduled: { bg: "bg-primary/10 border-primary/30", text: "text-primary", icon: RefreshCw },
+  cancelled: { bg: "bg-muted border-border", text: "text-muted-foreground", icon: X },
 };
 
 interface ApptRequest {
@@ -237,7 +275,11 @@ function AppointmentRequestCard({
   onAction,
 }: {
   appt: ApptRequest;
-  onAction: (apptId: string, status: "confirmed" | "rejected" | "rescheduled", opts?: { rejectionReason?: string; suggestedSlot?: string }) => Promise<void>;
+  onAction: (
+    apptId: string,
+    status: "confirmed" | "rejected" | "rescheduled",
+    opts?: { rejectionReason?: string; suggestedSlot?: string },
+  ) => Promise<void>;
 }) {
   const [processing, setProcessing] = useState(false);
   const [showRejectInput, setShowRejectInput] = useState(false);
@@ -263,18 +305,21 @@ function AppointmentRequestCard({
   };
 
   return (
-    <motion.div variants={fadeUp}
-      className={`rounded-xl border p-4 transition-all ${cfg.bg}`}>
+    <motion.div variants={fadeUp} className={`rounded-xl border p-4 transition-all ${cfg.bg}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-semibold text-foreground">{appt.patientName}</span>
-            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${cfg.text}`}>
+            <span
+              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${cfg.text}`}
+            >
               <StatusIcon className="h-3 w-3" />
               {appt.status.charAt(0).toUpperCase() + appt.status.slice(1)}
             </span>
           </div>
-          <div className="mt-1 text-xs text-muted-foreground">{appt.specialty} · {appt.mode === "tele" ? "Telehealth" : "In-Person"}</div>
+          <div className="mt-1 text-xs text-muted-foreground">
+            {appt.specialty} · {appt.mode === "tele" ? "Telehealth" : "In-Person"}
+          </div>
           <div className="mt-1 flex items-center gap-1.5 text-xs text-foreground font-medium">
             <Clock className="h-3.5 w-3.5 text-primary shrink-0" />
             <span>{appt.slot}</span>
@@ -295,7 +340,12 @@ function AppointmentRequestCard({
             </div>
           )}
           <div className="mt-1 text-[10px] text-muted-foreground">
-            Requested {new Date(appt.bookedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+            Requested{" "}
+            {new Date(appt.bookedAt).toLocaleDateString("en-IN", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            })}
           </div>
         </div>
       </div>
@@ -305,16 +355,25 @@ function AppointmentRequestCard({
         <div className="mt-3 pt-3 border-t border-border/50 space-y-2">
           {!showRejectInput && !showSuggestInput && (
             <div className="flex gap-2">
-              <button disabled={processing} onClick={() => handle("confirmed")}
-                className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-success/10 border border-success/30 py-2 text-xs font-bold text-success hover:bg-success/20 disabled:opacity-50 transition-colors">
+              <button
+                disabled={processing}
+                onClick={() => handle("confirmed")}
+                className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-success/10 border border-success/30 py-2 text-xs font-bold text-success hover:bg-success/20 disabled:opacity-50 transition-colors"
+              >
                 <CheckCircle2 className="h-3.5 w-3.5" /> Accept
               </button>
-              <button disabled={processing} onClick={() => setShowSuggestInput(true)}
-                className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-primary/10 border border-primary/30 py-2 text-xs font-bold text-primary hover:bg-primary/20 disabled:opacity-50 transition-colors">
+              <button
+                disabled={processing}
+                onClick={() => setShowSuggestInput(true)}
+                className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-primary/10 border border-primary/30 py-2 text-xs font-bold text-primary hover:bg-primary/20 disabled:opacity-50 transition-colors"
+              >
                 <RefreshCw className="h-3.5 w-3.5" /> Suggest Time
               </button>
-              <button disabled={processing} onClick={() => setShowRejectInput(true)}
-                className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-destructive/10 border border-destructive/30 py-2 text-xs font-bold text-destructive hover:bg-destructive/20 disabled:opacity-50 transition-colors">
+              <button
+                disabled={processing}
+                onClick={() => setShowRejectInput(true)}
+                className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-destructive/10 border border-destructive/30 py-2 text-xs font-bold text-destructive hover:bg-destructive/20 disabled:opacity-50 transition-colors"
+              >
                 <XCircle className="h-3.5 w-3.5" /> Decline
               </button>
             </div>
@@ -322,14 +381,24 @@ function AppointmentRequestCard({
 
           {showRejectInput && (
             <div className="space-y-2">
-              <input value={rejectReason} onChange={(e) => setRejectReason(e.target.value)}
+              <input
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
                 placeholder="Reason for declining (optional)..."
-                className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs outline-none focus:border-destructive" />
+                className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs outline-none focus:border-destructive"
+              />
               <div className="flex gap-2">
-                <button onClick={() => setShowRejectInput(false)}
-                  className="flex-1 rounded-lg border border-border py-1.5 text-xs font-medium hover:bg-muted">Cancel</button>
-                <button disabled={processing} onClick={() => handle("rejected", { rejectionReason: rejectReason })}
-                  className="flex-1 rounded-lg bg-destructive py-1.5 text-xs font-bold text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50">
+                <button
+                  onClick={() => setShowRejectInput(false)}
+                  className="flex-1 rounded-lg border border-border py-1.5 text-xs font-medium hover:bg-muted"
+                >
+                  Cancel
+                </button>
+                <button
+                  disabled={processing}
+                  onClick={() => handle("rejected", { rejectionReason: rejectReason })}
+                  className="flex-1 rounded-lg bg-destructive py-1.5 text-xs font-bold text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
+                >
                   {processing ? "Declining…" : "Confirm Decline"}
                 </button>
               </div>
@@ -338,15 +407,27 @@ function AppointmentRequestCard({
 
           {showSuggestInput && (
             <div className="space-y-2">
-              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">Suggest a new date and time</label>
-              <input value={suggestSlot} onChange={(e) => setSuggestSlot(e.target.value)}
+              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">
+                Suggest a new date and time
+              </label>
+              <input
+                value={suggestSlot}
+                onChange={(e) => setSuggestSlot(e.target.value)}
                 placeholder="e.g. 2026-08-05 · 02:00 PM"
-                className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs outline-none focus:border-primary" />
+                className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs outline-none focus:border-primary"
+              />
               <div className="flex gap-2">
-                <button onClick={() => setShowSuggestInput(false)}
-                  className="flex-1 rounded-lg border border-border py-1.5 text-xs font-medium hover:bg-muted">Cancel</button>
-                <button disabled={processing || !suggestSlot.trim()} onClick={() => handle("rescheduled", { suggestedSlot: suggestSlot.trim() })}
-                  className="flex-1 rounded-lg bg-primary py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+                <button
+                  onClick={() => setShowSuggestInput(false)}
+                  className="flex-1 rounded-lg border border-border py-1.5 text-xs font-medium hover:bg-muted"
+                >
+                  Cancel
+                </button>
+                <button
+                  disabled={processing || !suggestSlot.trim()}
+                  onClick={() => handle("rescheduled", { suggestedSlot: suggestSlot.trim() })}
+                  className="flex-1 rounded-lg bg-primary py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                >
                   {processing ? "Sending…" : "Send Suggestion"}
                 </button>
               </div>
@@ -385,7 +466,7 @@ function SchedulePage() {
   const [weekShifts, setWeekShifts] = useState<Shift[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const currentUser = getCurrentUser();
+  const { user: currentUser } = useCurrentUser();
   const staffEmail = currentUser?.email || "";
 
   const [isLeaveOpen, setIsLeaveOpen] = useState(false);
@@ -513,9 +594,19 @@ function SchedulePage() {
   ) => {
     try {
       await updateAppointmentStatus(apptId, status, opts?.rejectionReason, opts?.suggestedSlot);
-      const label = status === "confirmed" ? "Accepted" : status === "rejected" ? "Declined" : "New time suggested";
+      const label =
+        status === "confirmed"
+          ? "Accepted"
+          : status === "rejected"
+            ? "Declined"
+            : "New time suggested";
       toast.success(`Appointment ${label}`, {
-        description: status === "confirmed" ? "Patient has been notified." : opts?.suggestedSlot ? `Suggested: ${opts.suggestedSlot}` : "Patient has been notified.",
+        description:
+          status === "confirmed"
+            ? "Patient has been notified."
+            : opts?.suggestedSlot
+              ? `Suggested: ${opts.suggestedSlot}`
+              : "Patient has been notified.",
       });
       loadDoctorAppointments();
     } catch (err: any) {
@@ -564,9 +655,13 @@ function SchedulePage() {
   const onCallCount = weekShifts.filter((s) => s.role === "On-call").length;
   const offCount = weekShifts.filter((s) => s.role === "Off" || s.role === "Leave").length;
 
-  const navLabel = view === "month"
-    ? new Date(weekRange.start.getFullYear(), weekRange.start.getMonth(), 1).toLocaleDateString("en-US", { month: "long", year: "numeric" })
-    : formatDateRange(weekRange.start, weekRange.end);
+  const navLabel =
+    view === "month"
+      ? new Date(weekRange.start.getFullYear(), weekRange.start.getMonth(), 1).toLocaleDateString(
+          "en-US",
+          { month: "long", year: "numeric" },
+        )
+      : formatDateRange(weekRange.start, weekRange.end);
 
   const handlePrev = () => setWeekOffset((o) => o - (view === "month" ? 4 : 1));
   const handleNext = () => setWeekOffset((o) => o + (view === "month" ? 4 : 1));
@@ -648,7 +743,9 @@ function SchedulePage() {
         <div className="rounded-xl border border-border bg-card shadow-clinical overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b border-border">
             <div className="flex items-center gap-2">
-              <Bell className={`h-5 w-5 ${pendingRequests.length > 0 ? "text-warning-foreground" : "text-primary"}`} />
+              <Bell
+                className={`h-5 w-5 ${pendingRequests.length > 0 ? "text-warning-foreground" : "text-primary"}`}
+              />
               <h2 className="text-sm font-bold text-foreground">Appointment Requests</h2>
               {pendingRequests.length > 0 && (
                 <span className="inline-flex items-center justify-center rounded-full bg-warning/20 px-2 py-0.5 text-[10px] font-bold text-yellow-700 dark:text-yellow-400">
@@ -656,8 +753,10 @@ function SchedulePage() {
                 </span>
               )}
             </div>
-            <button onClick={loadDoctorAppointments}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted transition-colors">
+            <button
+              onClick={loadDoctorAppointments}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted transition-colors"
+            >
               <RefreshCw className="h-3.5 w-3.5" /> Refresh
             </button>
           </div>
@@ -667,17 +766,30 @@ function SchedulePage() {
               <div className="py-8 text-center">
                 <Stethoscope className="h-10 w-10 text-muted-foreground/40 mx-auto mb-2" />
                 <p className="text-sm text-muted-foreground">No appointment requests yet.</p>
-                <p className="text-xs text-muted-foreground mt-1">Patients will appear here once they book with you.</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Patients will appear here once they book with you.
+                </p>
               </div>
             ) : (
               <>
                 {/* Pending first, then all others */}
                 {pendingRequests.length > 0 && (
                   <div className="mb-4">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Awaiting Your Response</p>
-                    <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-3">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                      Awaiting Your Response
+                    </p>
+                    <motion.div
+                      variants={stagger}
+                      initial="hidden"
+                      animate="show"
+                      className="space-y-3"
+                    >
                       {pendingRequests.map((appt: any) => (
-                        <AppointmentRequestCard key={appt.apptId} appt={appt} onAction={handleAppointmentAction} />
+                        <AppointmentRequestCard
+                          key={appt.apptId}
+                          appt={appt}
+                          onAction={handleAppointmentAction}
+                        />
                       ))}
                     </motion.div>
                   </div>
@@ -685,13 +797,24 @@ function SchedulePage() {
 
                 {doctorAppointments.filter((a: any) => a.status !== "pending").length > 0 && (
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Reviewed</p>
-                    <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-2">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                      Reviewed
+                    </p>
+                    <motion.div
+                      variants={stagger}
+                      initial="hidden"
+                      animate="show"
+                      className="space-y-2"
+                    >
                       {doctorAppointments
                         .filter((a: any) => a.status !== "pending")
                         .slice(0, 8)
                         .map((appt: any) => (
-                          <AppointmentRequestCard key={appt.apptId} appt={appt} onAction={handleAppointmentAction} />
+                          <AppointmentRequestCard
+                            key={appt.apptId}
+                            appt={appt}
+                            onAction={handleAppointmentAction}
+                          />
                         ))}
                     </motion.div>
                   </div>
@@ -727,67 +850,103 @@ function SchedulePage() {
         </div>
 
         {/* ────── MONTH VIEW ────── */}
-        {view === "month" && (() => {
-          const monthStart = new Date(weekRange.start.getFullYear(), weekRange.start.getMonth(), 1);
-          const monthEnd = new Date(weekRange.start.getFullYear(), weekRange.start.getMonth() + 1, 0);
-          const startDay = monthStart.getDay() === 0 ? 6 : monthStart.getDay() - 1;
-          const cells: (Date | null)[] = [];
-          for (let i = 0; i < startDay; i++) cells.push(null);
-          for (let d = 1; d <= monthEnd.getDate(); d++) {
-            cells.push(new Date(monthStart.getFullYear(), monthStart.getMonth(), d));
-          }
-          while (cells.length % 7 !== 0) cells.push(null);
+        {view === "month" &&
+          (() => {
+            const monthStart = new Date(
+              weekRange.start.getFullYear(),
+              weekRange.start.getMonth(),
+              1,
+            );
+            const monthEnd = new Date(
+              weekRange.start.getFullYear(),
+              weekRange.start.getMonth() + 1,
+              0,
+            );
+            const startDay = monthStart.getDay() === 0 ? 6 : monthStart.getDay() - 1;
+            const cells: (Date | null)[] = [];
+            for (let i = 0; i < startDay; i++) cells.push(null);
+            for (let d = 1; d <= monthEnd.getDate(); d++) {
+              cells.push(new Date(monthStart.getFullYear(), monthStart.getMonth(), d));
+            }
+            while (cells.length % 7 !== 0) cells.push(null);
 
-          return (
-            <div className="rounded-xl border border-border bg-card overflow-hidden">
-              <div className="grid grid-cols-7 border-b border-border bg-muted/40">
-                {days.map((d) => (
-                  <div key={d} className="px-2 py-2.5 text-center text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                    {d}
-                  </div>
-                ))}
-              </div>
-              <div className="grid grid-cols-7">
-                {cells.map((cell, i) => {
-                  if (!cell) {
-                    return <div key={`empty-${i}`} className="min-h-[80px] border-b border-r border-border bg-muted/10" />;
-                  }
-                  const ds = toDateStr(cell);
-                  const isT = ds === todayStr;
-                  const dayShifts = weekShifts.filter((s) => s.date === ds);
-                  const dayAppts = appointmentsByDate.get(ds) || [];
-                  const totalEvents = dayShifts.length + dayAppts.length;
-
-                  return (
+            return (
+              <div className="rounded-xl border border-border bg-card overflow-hidden">
+                <div className="grid grid-cols-7 border-b border-border bg-muted/40">
+                  {days.map((d) => (
                     <div
-                      key={ds}
-                      className={`min-h-[80px] border-b border-r border-border p-1.5 transition-colors cursor-pointer hover:bg-muted/30 ${
-                        isT ? "bg-primary/5" : ""
-                      }`}
-                      onClick={() => { setView("day"); setWeekOffset(Math.round((cell.getTime() - new Date().getTime()) / (7 * 86400000))); }}
+                      key={d}
+                      className="px-2 py-2.5 text-center text-xs font-medium uppercase tracking-wider text-muted-foreground"
                     >
-                      <div className={`text-xs font-semibold mb-1 ${isT ? "text-primary" : "text-foreground"}`}>
-                        {cell.getDate()}
-                      </div>
-                      <div className="flex flex-wrap gap-0.5">
-                        {dayShifts.slice(0, 3).map((s) => {
-                          const cfg = shiftConfig[s.role];
-                          return <div key={s.id} className={`h-1.5 w-3 rounded-full ${cfg.accent} opacity-70`} title={s.role} />;
-                        })}
-                        {dayAppts.slice(0, 3).map((a: any, j: number) => (
-                          <div key={j} className={`h-1.5 w-3 rounded-full ${a.mode === "tele" ? "bg-chart-4" : "bg-primary"} opacity-70`} title={a.patientName} />
-                        ))}
-                      </div>
-                      {totalEvents > 0 && (
-                        <div className="text-[9px] text-muted-foreground mt-0.5">{totalEvents} event{totalEvents > 1 ? "s" : ""}</div>
-                      )}
+                      {d}
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
+                <div className="grid grid-cols-7">
+                  {cells.map((cell, i) => {
+                    if (!cell) {
+                      return (
+                        <div
+                          key={`empty-${i}`}
+                          className="min-h-[80px] border-b border-r border-border bg-muted/10"
+                        />
+                      );
+                    }
+                    const ds = toDateStr(cell);
+                    const isT = ds === todayStr;
+                    const dayShifts = weekShifts.filter((s) => s.date === ds);
+                    const dayAppts = appointmentsByDate.get(ds) || [];
+                    const totalEvents = dayShifts.length + dayAppts.length;
+
+                    return (
+                      <div
+                        key={ds}
+                        className={`min-h-[80px] border-b border-r border-border p-1.5 transition-colors cursor-pointer hover:bg-muted/30 ${
+                          isT ? "bg-primary/5" : ""
+                        }`}
+                        onClick={() => {
+                          setView("day");
+                          setWeekOffset(
+                            Math.round((cell.getTime() - new Date().getTime()) / (7 * 86400000)),
+                          );
+                        }}
+                      >
+                        <div
+                          className={`text-xs font-semibold mb-1 ${isT ? "text-primary" : "text-foreground"}`}
+                        >
+                          {cell.getDate()}
+                        </div>
+                        <div className="flex flex-wrap gap-0.5">
+                          {dayShifts.slice(0, 3).map((s) => {
+                            const cfg = shiftConfig[s.role];
+                            return (
+                              <div
+                                key={s.id}
+                                className={`h-1.5 w-3 rounded-full ${cfg.accent} opacity-70`}
+                                title={s.role}
+                              />
+                            );
+                          })}
+                          {dayAppts.slice(0, 3).map((a: any, j: number) => (
+                            <div
+                              key={j}
+                              className={`h-1.5 w-3 rounded-full ${a.mode === "tele" ? "bg-chart-4" : "bg-primary"} opacity-70`}
+                              title={a.patientName}
+                            />
+                          ))}
+                        </div>
+                        {totalEvents > 0 && (
+                          <div className="text-[9px] text-muted-foreground mt-0.5">
+                            {totalEvents} event{totalEvents > 1 ? "s" : ""}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          );
-        })()}
+            );
+          })()}
 
         {/* ────── WEEK VIEW ────── */}
         {view === "week" && (
@@ -803,22 +962,38 @@ function SchedulePage() {
                   <div
                     key={ds}
                     className={`rounded-xl border p-3 text-center transition-colors ${
-                      isT ? "border-primary/50 bg-primary/5 ring-1 ring-primary/20" : "border-border bg-card"
+                      isT
+                        ? "border-primary/50 bg-primary/5 ring-1 ring-primary/20"
+                        : "border-border bg-card"
                     }`}
                   >
-                    <div className={`text-xs font-medium uppercase tracking-wide ${isT ? "text-primary" : "text-muted-foreground"}`}>
+                    <div
+                      className={`text-xs font-medium uppercase tracking-wide ${isT ? "text-primary" : "text-muted-foreground"}`}
+                    >
                       {dayName}
                     </div>
-                    <div className={`text-lg font-bold mt-0.5 ${isT ? "text-primary" : "text-foreground"}`}>
+                    <div
+                      className={`text-lg font-bold mt-0.5 ${isT ? "text-primary" : "text-foreground"}`}
+                    >
                       {wd.getDate()}
                     </div>
                     <div className="mt-1.5 flex flex-wrap justify-center gap-1">
                       {dayShifts.map((s) => {
                         const cfg = shiftConfig[s.role];
-                        return <div key={s.id} className={`h-1.5 w-4 rounded-full ${cfg.accent} opacity-70`} title={s.role} />;
+                        return (
+                          <div
+                            key={s.id}
+                            className={`h-1.5 w-4 rounded-full ${cfg.accent} opacity-70`}
+                            title={s.role}
+                          />
+                        );
                       })}
                       {dayAppts.map((_: any, j: number) => (
-                        <div key={`a-${j}`} className="h-1.5 w-4 rounded-full bg-primary opacity-50" title="Appointment" />
+                        <div
+                          key={`a-${j}`}
+                          className="h-1.5 w-4 rounded-full bg-primary opacity-50"
+                          title="Appointment"
+                        />
                       ))}
                     </div>
                   </div>
@@ -827,13 +1002,17 @@ function SchedulePage() {
             </div>
 
             <div>
-              <div className="mb-3 text-sm font-semibold text-foreground">This Week&apos;s Shifts</div>
+              <div className="mb-3 text-sm font-semibold text-foreground">
+                This Week&apos;s Shifts
+              </div>
               <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-3">
                 {weekShifts.map((s) => (
                   <ShiftCard key={s.id} shift={s} />
                 ))}
                 {weekShifts.length === 0 && (
-                  <div className="py-6 text-center text-sm text-muted-foreground">No shifts scheduled this week</div>
+                  <div className="py-6 text-center text-sm text-muted-foreground">
+                    No shifts scheduled this week
+                  </div>
                 )}
               </motion.div>
             </div>
@@ -841,75 +1020,82 @@ function SchedulePage() {
         )}
 
         {/* ────── DAY VIEW ────── */}
-        {view === "day" && (() => {
-          const dayShifts = weekShifts.filter((s) => {
-            const dateMatch = weekDates.some((wd) => toDateStr(wd) === s.date);
-            return dateMatch && s.role !== "Off" && s.role !== "Leave";
-          });
-          const dayAppts = weekDates.flatMap((wd) => (appointmentsByDate.get(toDateStr(wd)) || []));
-          const hours = Array.from({ length: 14 }, (_, i) => i + 7);
-          const now = new Date();
-          const nowH = now.getHours();
-          const nowM = now.getMinutes();
+        {view === "day" &&
+          (() => {
+            const dayShifts = weekShifts.filter((s) => {
+              const dateMatch = weekDates.some((wd) => toDateStr(wd) === s.date);
+              return dateMatch && s.role !== "Off" && s.role !== "Leave";
+            });
+            const dayAppts = weekDates.flatMap((wd) => appointmentsByDate.get(toDateStr(wd)) || []);
+            const hours = Array.from({ length: 14 }, (_, i) => i + 7);
+            const now = new Date();
+            const nowH = now.getHours();
+            const nowM = now.getMinutes();
 
-          return (
-            <div className="rounded-xl border border-border bg-card overflow-hidden">
-              <div className="relative">
-                {hours.map((h) => (
-                  <div key={h} className="flex border-b border-border min-h-[56px]">
-                    <div className="w-16 shrink-0 py-2 px-3 text-xs text-muted-foreground font-medium border-r border-border bg-muted/20">
-                      {h.toString().padStart(2, "0")}:00
-                    </div>
-                    <div className="flex-1 px-2 py-1 flex flex-wrap gap-1.5">
-                      {dayShifts
-                        .filter((s) => {
-                          const [sh] = s.start.split(":").map(Number);
-                          return sh === h;
-                        })
-                        .map((s) => {
-                          const cfg = shiftConfig[s.role];
-                          const Icon = cfg.icon;
-                          return (
-                            <div key={s.id} className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium ${cfg.bg} ${cfg.text} ${cfg.border} border`}>
-                              <Icon className="h-3 w-3" />
-                              {s.role} · {s.unit} · {s.start}–{s.end}
+            return (
+              <div className="rounded-xl border border-border bg-card overflow-hidden">
+                <div className="relative">
+                  {hours.map((h) => (
+                    <div key={h} className="flex border-b border-border min-h-[56px]">
+                      <div className="w-16 shrink-0 py-2 px-3 text-xs text-muted-foreground font-medium border-r border-border bg-muted/20">
+                        {h.toString().padStart(2, "0")}:00
+                      </div>
+                      <div className="flex-1 px-2 py-1 flex flex-wrap gap-1.5">
+                        {dayShifts
+                          .filter((s) => {
+                            const [sh] = s.start.split(":").map(Number);
+                            return sh === h;
+                          })
+                          .map((s) => {
+                            const cfg = shiftConfig[s.role];
+                            const Icon = cfg.icon;
+                            return (
+                              <div
+                                key={s.id}
+                                className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium ${cfg.bg} ${cfg.text} ${cfg.border} border`}
+                              >
+                                <Icon className="h-3 w-3" />
+                                {s.role} · {s.unit} · {s.start}–{s.end}
+                              </div>
+                            );
+                          })}
+                        {dayAppts
+                          .filter((a: any) => {
+                            const slot = a.slot || a.time || "";
+                            const match = slot.match(/(\d{1,2})/);
+                            if (!match) return h === 10;
+                            let parsed = parseInt(match[1]);
+                            if (slot.toLowerCase().includes("pm") && parsed < 12) parsed += 12;
+                            return parsed === h;
+                          })
+                          .map((a: any, j: number) => (
+                            <div
+                              key={`appt-${j}`}
+                              className="inline-flex items-center gap-1.5 rounded-md border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary"
+                            >
+                              <Stethoscope className="h-3 w-3" />
+                              {a.patientName || "Patient"} · {a.specialty || "Consultation"}
+                              {a.mode === "tele" && <Video className="h-3 w-3" />}
                             </div>
-                          );
-                        })}
-                      {dayAppts
-                        .filter((a: any) => {
-                          const slot = a.slot || a.time || "";
-                          const match = slot.match(/(\d{1,2})/);
-                          if (!match) return h === 10;
-                          let parsed = parseInt(match[1]);
-                          if (slot.toLowerCase().includes("pm") && parsed < 12) parsed += 12;
-                          return parsed === h;
-                        })
-                        .map((a: any, j: number) => (
-                          <div key={`appt-${j}`} className="inline-flex items-center gap-1.5 rounded-md border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
-                            <Stethoscope className="h-3 w-3" />
-                            {a.patientName || "Patient"} · {a.specialty || "Consultation"}
-                            {a.mode === "tele" && <Video className="h-3 w-3" />}
-                          </div>
-                        ))}
+                          ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
 
-                {/* Current time indicator */}
-                {nowH >= 7 && nowH <= 20 && weekOffset === 0 && (
-                  <div
-                    className="absolute left-0 right-0 flex items-center z-10 pointer-events-none"
-                    style={{ top: `${((nowH - 7) * 56) + (nowM / 60) * 56}px` }}
-                  >
-                    <div className="h-2.5 w-2.5 rounded-full bg-destructive -ml-1 shadow-sm" />
-                    <div className="flex-1 h-[2px] bg-destructive/70" />
-                  </div>
-                )}
+                  {/* Current time indicator */}
+                  {nowH >= 7 && nowH <= 20 && weekOffset === 0 && (
+                    <div
+                      className="absolute left-0 right-0 flex items-center z-10 pointer-events-none"
+                      style={{ top: `${(nowH - 7) * 56 + (nowM / 60) * 56}px` }}
+                    >
+                      <div className="h-2.5 w-2.5 rounded-full bg-destructive -ml-1 shadow-sm" />
+                      <div className="flex-1 h-[2px] bg-destructive/70" />
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          );
-        })()}
+            );
+          })()}
 
         {/* Upcoming appointments */}
         <div className="rounded-xl border border-border bg-card p-5">
@@ -919,21 +1105,32 @@ function SchedulePage() {
           </div>
           <div className="space-y-2">
             {doctorAppointments.length === 0 ? (
-              <div className="py-4 text-center text-xs text-muted-foreground">No upcoming appointments</div>
-            ) : doctorAppointments.slice(0, 8).map((a: any, i: number) => (
-              <div key={a.apptId ?? i} className="flex items-center gap-3 rounded-lg bg-muted/50 px-3 py-2.5">
-                <div className={`h-2 w-2 rounded-full ${a.mode === "tele" ? "bg-chart-4" : "bg-primary"}`} />
-                <div className="flex-1">
-                  <div className="text-sm font-medium text-foreground">
-                    {a.patientName ?? "Patient"} — {a.specialty ?? a.mode ?? "Consultation"}
+              <div className="py-4 text-center text-xs text-muted-foreground">
+                No upcoming appointments
+              </div>
+            ) : (
+              doctorAppointments.slice(0, 8).map((a: any, i: number) => (
+                <div
+                  key={a.apptId ?? i}
+                  className="flex items-center gap-3 rounded-lg bg-muted/50 px-3 py-2.5"
+                >
+                  <div
+                    className={`h-2 w-2 rounded-full ${a.mode === "tele" ? "bg-chart-4" : "bg-primary"}`}
+                  />
+                  <div className="flex-1">
+                    <div className="text-sm font-medium text-foreground">
+                      {a.patientName ?? "Patient"} — {a.specialty ?? a.mode ?? "Consultation"}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground">
+                      {a.status || "confirmed"} · {a.mode === "tele" ? "Telehealth" : "In-person"}
+                    </div>
                   </div>
-                  <div className="text-[10px] text-muted-foreground">
-                    {a.status || "confirmed"} · {a.mode === "tele" ? "Telehealth" : "In-person"}
+                  <div className="text-xs text-muted-foreground">
+                    {a.date ?? a.slot?.split(" · ")[0] ?? "—"}
                   </div>
                 </div>
-                <div className="text-xs text-muted-foreground">{a.date ?? a.slot?.split(" · ")[0] ?? "—"}</div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </div>

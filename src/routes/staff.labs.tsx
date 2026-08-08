@@ -18,6 +18,7 @@ import { useState } from "react";
 import { useLabs, useLivePatients } from "@/hooks/use-api";
 import { orderLab } from "@/lib/api";
 import { toast } from "sonner";
+import { useCurrentUser } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/staff/labs")({
   head: () => ({ meta: [{ title: "Labs — Staff Portal" }] }),
@@ -67,6 +68,7 @@ const urgencyConfig = {
 // Lab orders sourced entirely from backend API — no local fallback
 
 function LabsPage() {
+  const { user: currentUser } = useCurrentUser();
   const [tab, setTab] = useState<"orders" | "builder">("orders");
   const [selectedTests, setSelectedTests] = useState<string[]>([]);
   const [testSearch, setTestSearch] = useState("");
@@ -82,8 +84,8 @@ function LabsPage() {
 
   const filteredPatients = (patientsList || []).filter(
     (p) =>
-      p.name.toLowerCase().includes(patientSearch.toLowerCase()) ||
-      p.mrn.toLowerCase().includes(patientSearch.toLowerCase()),
+      p.name?.toLowerCase().includes(patientSearch.toLowerCase()) ||
+      p.mrn?.toLowerCase().includes(patientSearch.toLowerCase()),
   );
 
   const selectedPatient = (patientsList || []).find((p) => p.did === selectedPatientDid);
@@ -99,10 +101,14 @@ function LabsPage() {
     }
 
     setOrdering(true);
-    const orderedBy =
-      typeof window !== "undefined"
-        ? localStorage.getItem("userEmail") || "clinician@apollo.in"
-        : "clinician@apollo.in";
+    // A lab order is attributable, so it must carry the real clinician, never a
+    // demo address.
+    const orderedBy = currentUser?.email ?? "";
+    if (!orderedBy) {
+      toast.error("Could not identify you — sign in again before ordering labs");
+      setOrdering(false);
+      return;
+    }
 
     try {
       await orderLab(selectedPatientDid, orderedBy, selectedTests, priority);

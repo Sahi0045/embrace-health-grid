@@ -8,7 +8,7 @@ import {
   useAmbulances,
   useEquipment,
   useFraudAlerts,
-} from "@/hooks/use-api";
+} from "~/lib/admin-hooks";
 import {
   KeyRound,
   Users,

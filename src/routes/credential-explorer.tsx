@@ -7,6 +7,7 @@ import { Search, ShieldCheck, Award, Filter } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCredentials } from "@/hooks/use-api";
+import { RouteGuard } from "@/components/RouteGuard";
 
 interface CredentialFull {
   id: string;
@@ -26,7 +27,7 @@ interface CredentialFull {
 
 export const Route = createFileRoute("/credential-explorer")({
   head: () => ({ meta: [{ title: "Credential Explorer — Embrace Health Grid" }] }),
-  component: CredentialExplorerPage,
+  component: CredentialExplorerPageGuarded,
 });
 
 const credentialTimeline = [
@@ -264,5 +265,20 @@ function CredentialExplorerPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Registry and oversight view, so staff and above.
+ *
+ * RLS already scopes what each role can read; this stops a patient landing on a
+ * page designed for hospital-wide oversight. Their own equivalents are in the
+ * patient portal: Credentials, Consent and Access History.
+ */
+function CredentialExplorerPageGuarded() {
+  return (
+    <RouteGuard requiredRole="staff">
+      <CredentialExplorerPage />
+    </RouteGuard>
   );
 }

@@ -7,7 +7,7 @@ import {
   type EmergencyAccessEvent,
 } from "@/components/emergency/EmergencyAccessCard";
 import { useLivePatients, useLiveStaff, useAudit } from "@/hooks/use-api";
-import { getCurrentUser, setSession } from "@/lib/auth";
+import { useCurrentUser } from "@/lib/auth-context";
 import { updateEmergencyProfile } from "@/lib/api";
 import {
   Heart,
@@ -57,10 +57,9 @@ function EmergencyPage() {
   const { patients: patientsList, refetch: refetchPatients } = useLivePatients();
   const { staff } = useLiveStaff();
   const { data: auditData } = useAudit();
-  const currentUser = getCurrentUser();
+  const { user: currentUser, refresh: refreshUser } = useCurrentUser();
   const userEmail = currentUser?.email || "";
-  const patient =
-    patientsList?.find((p: any) => p.email === userEmail) ||
+  const patient = patientsList?.find((p: any) => p.email === userEmail) ||
     patientsList?.[0] || {
       name: currentUser?.name || "Patient User",
       mrn: currentUser?.mrn || "MRN-2026-001",
@@ -151,8 +150,6 @@ function EmergencyPage() {
       });
 
       if (res.success && res.patient) {
-        // Sync local session user
-        const token = localStorage.getItem("authToken") || "";
         const updatedUser = {
           ...currentUser,
           ...res.patient,
@@ -162,7 +159,7 @@ function EmergencyPage() {
           allergies,
           conditions,
         };
-        setSession(token, updatedUser);
+        await refreshUser();
 
         toast.success("Emergency Profile Updated On-Chain!", {
           description: "Responders and hospital nodes now have your updated emergency records.",
@@ -189,7 +186,7 @@ function EmergencyPage() {
   }
   if (patient.primaryDoctor) {
     const doc = staff?.find(
-      (s: any) => s.name === patient.primaryDoctor || s.did === patient.primaryDoctor
+      (s: any) => s.name === patient.primaryDoctor || s.did === patient.primaryDoctor,
     );
     emergencyContactsList.push({
       name: doc ? doc.name : patient.primaryDoctor,
@@ -200,8 +197,9 @@ function EmergencyPage() {
   }
 
   // Live Critical Conditions
+  // Filter first: the column is nullable, so a null entry threw on toLowerCase.
   const criticalConditionsList = patient.conditions
-    ? patient.conditions.map((cond: string) => ({
+    ? patient.conditions.filter(Boolean).map((cond: string) => ({
         label: cond,
         severity:
           cond.toLowerCase().includes("allergy") || cond.toLowerCase().includes("diabet")
@@ -217,13 +215,22 @@ function EmergencyPage() {
     .filter(
       (e: any) =>
         e.severity === "critical" ||
-        e.action.toLowerCase().includes("break_glass") ||
-        e.action.toLowerCase().includes("emergency")
+        // action and actor are nullable on audit rows, so normalise before
+        // calling string methods on them.
+        String(e.action ?? "")
+          .toLowerCase()
+          .includes("break_glass") ||
+        String(e.action ?? "")
+          .toLowerCase()
+          .includes("emergency"),
     )
     .map((e: any) => ({
       id: e.txId || e._id,
       actor: e.actor || "Emergency Responder",
-      actorRole: e.actor.includes("doc") || e.actor.includes("Dr") ? "Physician" : "Staff",
+      actorRole:
+        String(e.actor ?? "").includes("doc") || String(e.actor ?? "").includes("Dr")
+          ? "Physician"
+          : "Staff",
       reason: e.resource || "Emergency medical records access",
       at: e.loggedAt ? new Date(e.loggedAt).toLocaleString("en-IN") : "N/A",
       autoAudited: true,
@@ -280,7 +287,8 @@ function EmergencyPage() {
                   </div>
                   <div className="text-lg font-bold">{patient.name}</div>
                   <div className="text-sm opacity-80">
-                    {patient.mrn} · Age {patient.age || 28} · {patient.gender === "F" ? "Female" : "Male"}
+                    {patient.mrn} · Age {patient.age || 28} ·{" "}
+                    {patient.gender === "F" ? "Female" : "Male"}
                   </div>
                 </div>
                 <div>
@@ -354,18 +362,20 @@ function EmergencyPage() {
                   </button>
                 </div>
                 <div className="space-y-2">
-                  {criticalConditionsList.map((c) => (
-                    <div
-                      key={c.label}
-                      className="flex items-center justify-between rounded-lg bg-muted px-3 py-2"
-                    >
-                      <div>
-                        <div className="text-sm font-medium text-foreground">{c.label}</div>
-                        <div className="text-[11px] text-muted-foreground">{c.since}</div>
+                  {criticalConditionsList.map(
+                    (c: { label: string; severity: string; since?: string }) => (
+                      <div
+                        key={c.label}
+                        className="flex items-center justify-between rounded-lg bg-muted px-3 py-2"
+                      >
+                        <div>
+                          <div className="text-sm font-medium text-foreground">{c.label}</div>
+                          <div className="text-[11px] text-muted-foreground">{c.since}</div>
+                        </div>
+                        <SeverityBadge severity={c.severity} />
                       </div>
-                      <SeverityBadge severity={c.severity} />
-                    </div>
-                  ))}
+                    ),
+                  )}
                   {criticalConditionsList.length === 0 && (
                     <div className="py-6 text-center text-sm text-muted-foreground">
                       No documented critical conditions
@@ -397,7 +407,7 @@ function EmergencyPage() {
                         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold shrink-0">
                           {ec.name
                             .split(" ")
-                            .map((w) => w[0])
+                            .map((w: string) => w[0])
                             .slice(0, 2)
                             .join("")}
                         </div>
@@ -408,7 +418,9 @@ function EmergencyPage() {
                       </div>
                       <div className="text-right">
                         <div className="text-xs font-medium text-foreground">{ec.phone}</div>
-                        {ec.primary && <span className="text-[10px] text-success font-bold">Primary</span>}
+                        {ec.primary && (
+                          <span className="text-[10px] text-success font-bold">Primary</span>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -488,7 +500,9 @@ function EmergencyPage() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-muted-foreground">Relationship</label>
+                    <label className="text-xs font-semibold text-muted-foreground">
+                      Relationship
+                    </label>
                     <select
                       value={contactRelation}
                       onChange={(e) => setContactRelation(e.target.value)}
@@ -504,7 +518,9 @@ function EmergencyPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-muted-foreground">Phone Number</label>
+                  <label className="text-xs font-semibold text-muted-foreground">
+                    Phone Number
+                  </label>
                   <input
                     type="text"
                     required
@@ -644,7 +660,9 @@ function EmergencyPage() {
                     </span>
                   ))}
                   {conditions.length === 0 && (
-                    <span className="text-xs text-muted-foreground italic">No conditions added</span>
+                    <span className="text-xs text-muted-foreground italic">
+                      No conditions added
+                    </span>
                   )}
                 </div>
               </div>

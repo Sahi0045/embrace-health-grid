@@ -1,4 +1,4 @@
 {
   "framework": null,
-  "buildCommand": "npm run build"
+  "buildCommand": "NODE_ENV=production npm run build"
 }

@@ -65,11 +65,13 @@ function StaffVisitors() {
       const allDids = (patientsList || []).map((p) => p.did).filter(Boolean);
       if (allDids.length === 0) {
         const data = await getNamespace("visitors");
-        const list = (data || []).map((entry: any) => entry.value) as Visitor[];
+        const list = (data.entries ?? []).map((entry: any) => entry.value) as Visitor[];
         setVisitors(list);
       } else {
         const { getVisitors } = await import("@/lib/api");
-        const results = await Promise.all(allDids.map((did) => getVisitors(did).catch(() => ({ visitors: [] }))));
+        const results = await Promise.all(
+          allDids.map((did) => getVisitors(did).catch(() => ({ visitors: [] }))),
+        );
         const list = results.flatMap((r) => (r.visitors ?? []) as Visitor[]);
         setVisitors(list);
       }

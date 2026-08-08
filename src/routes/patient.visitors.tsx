@@ -20,6 +20,7 @@ import {
   AlertCircle,
   Loader2,
 } from "lucide-react";
+import { useCurrentUser } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/patient/visitors")({
   head: () => ({ meta: [{ title: "Patient · Visitors — Embrace Health Grid" }] }),
@@ -41,6 +42,7 @@ interface Visitor {
 type Tab = "requests" | "history" | "new";
 
 function PatientVisitors() {
+  const { user: currentUser } = useCurrentUser();
   const [tab, setTab] = useState<Tab>("requests");
   const [visitors, setVisitors] = useState<Visitor[]>([]);
   const [loading, setLoading] = useState(false);
@@ -52,10 +54,7 @@ function PatientVisitors() {
   const [purpose, setPurpose] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const patientDid =
-    typeof window !== "undefined"
-      ? (localStorage.getItem("userDID") ?? "did:hosp:patient:current")
-      : "did:hosp:patient:current";
+  const patientDid = currentUser?.primaryDid ?? "";
 
   const fetchVisitors = useCallback(async () => {
     setLoading(true);

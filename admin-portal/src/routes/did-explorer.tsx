@@ -16,11 +16,14 @@ import {
   XCircle,
   AlertTriangle,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useDIDs, useAudit, useNFCCards } from "@/hooks/use-api";
-import { getCurrentUser } from "@/lib/auth";
-import { issueNFCCard, revokeNFCCard } from "@/lib/api";
+import { useDIDs, useAudit, useNFCCards } from "~/lib/admin-hooks";
+import { adminCurrentUser } from "~/lib/supabase";
+import {
+  adminIssueNFCCard as issueNFCCard,
+  adminRevokeNFCCard as revokeNFCCard,
+} from "~/lib/admin-api";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/did-explorer")({
@@ -58,13 +61,18 @@ function DIDExplorerPage() {
   const [viewMode, setViewMode] = useState<"dids" | "nfc">("dids");
   const [cardToRevoke, setCardToRevoke] = useState<string | null>(null);
 
-  const currentUser = getCurrentUser();
+  // Async because the profile is read from Postgres rather than local storage.
+  const [currentUser, setCurrentUser] = useState<{ did: string | null; role: string } | null>(null);
+  useEffect(() => {
+    void adminCurrentUser().then(setCurrentUser);
+  }, []);
   const isAdmin = currentUser?.role === "admin";
 
   const { data: didsData } = useDIDs();
   const { data: auditData } = useAudit();
   const { data: nfcCardsData, refetch: refetchNFCCards } = useNFCCards();
-  const nfcCards = nfcCardsData || [];
+  // useNFCCards now returns { entries: [...] } from Postgres.
+  const nfcCards = nfcCardsData?.entries ?? [];
 
   const patientCardEntry = selected
     ? nfcCards.find((c: any) => c.value?.patientDid === selected.did)

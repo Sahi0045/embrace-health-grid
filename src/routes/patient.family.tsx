@@ -8,7 +8,7 @@ import { Users, ShieldCheck, Shield, Baby, User, Plus } from "lucide-react";
 import { motion } from "framer-motion";
 
 import { useLivePatients, useLiveStaff, useConsents } from "@/hooks/use-api";
-import { getCurrentUser } from "@/lib/auth";
+import { useCurrentUser } from "@/lib/auth-context";
 import { revokeConsent } from "@/lib/api";
 import { toast } from "sonner";
 
@@ -30,7 +30,7 @@ function FamilyPage() {
   const { staff } = useLiveStaff();
   const { data: consentsData, refetch: refetchConsents } = useConsents();
 
-  const currentUser = getCurrentUser();
+  const { user: currentUser } = useCurrentUser();
   const userEmail = currentUser?.email || "";
   const patient = patients?.find((p: any) => p.email === userEmail);
 
@@ -55,10 +55,14 @@ function FamilyPage() {
 
   const emergencyMember = patient?.emergencyContact?.name
     ? (() => {
+        // emergencyContact is PHI and absent from the directory, so guard it
+        // rather than dereferencing through undefined.
+        const contactName = patient.emergencyContact?.name?.toLowerCase();
+        const contactPhone = patient.emergencyContact?.phone;
         const foundFamilyPatient = patients?.find(
           (p: any) =>
-            p.name.toLowerCase() === patient.emergencyContact.name.toLowerCase() ||
-            p.phone === patient.emergencyContact.phone,
+            (contactName && p.name?.toLowerCase() === contactName) ||
+            (contactPhone && p.phone === contactPhone),
         );
         return [
           {

@@ -4,8 +4,8 @@
   "sideEffects": false,
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"npm run dev --prefix backend\" \"vite dev\" \"npm run dev --prefix admin-portal\"",
-    "build": "vite build",
+    "dev": "concurrently \"vite dev\" \"npm run dev --prefix admin-portal\"",
+    "build": "NODE_ENV=production vite build",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
@@ -14,8 +14,9 @@
     "format": "prettier --write .",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"admin-portal/src/**/*.{ts,tsx}\"",
     "test:backend": "npm --prefix backend test",
-    "test:backend:api": "npm --prefix backend run test:api",
-    "test": "npm run test:backend"
+    "test": "npm run test:backend",
+    "test:supabase": "npm --prefix backend run test:all",
+    "verify": "node scripts/verify-all.mjs"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -55,8 +56,9 @@
     "@solana/wallet-adapter-base": "^0.9.27",
     "@solana/wallet-adapter-react": "^0.15.39",
     "@solana/wallet-adapter-react-ui": "^0.9.39",
-    "@solana/wallet-adapter-wallets": "^0.19.38",
     "@solana/web3.js": "^1.98.4",
+    "@supabase/ssr": "^0.5.2",
+    "@supabase/supabase-js": "^2.58.0",
     "@tailwindcss/vite": "^4.2.1",
     "@tanstack/query-core": "5.83.0",
     "@tanstack/react-query": "5.83.0",
@@ -65,11 +67,11 @@
     "@tanstack/router-plugin": "^1.167.28",
     "@zxing/browser": "^0.2.0",
     "@zxing/library": "^0.23.0",
+    "bs58": "6.0.0",
     "buffer": "^6.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
-    "convex": "^1.40.0",
     "date-fns": "^4.1.0",
     "embla-carousel-react": "^8.6.0",
     "framer-motion": "^12.40.0",
@@ -108,6 +110,8 @@
     "globals": "^15.15.0",
     "nitro": "3.0.260603-beta",
     "prettier": "^3.7.3",
+    "puppeteer": "^23.11.1",
+    "supabase": "^2.111.0",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",
     "vite": "^7.3.1"

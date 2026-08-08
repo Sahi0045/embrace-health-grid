@@ -2,8 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { RouteGuard } from "@/components/RouteGuard";
 import { PageHeader } from "@/components/PageHeader";
-import { useNFCCards, useLivePatients } from "@/hooks/use-api";
-import { issueNFCCard, revokeNFCCard } from "@/lib/api";
+import { useNFCCards, useLivePatients } from "~/lib/admin-hooks";
+import {
+  adminIssueNFCCard as issueNFCCard,
+  adminRevokeNFCCard as revokeNFCCard,
+} from "~/lib/admin-api";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -26,7 +29,8 @@ export const Route = createFileRoute("/nfc-cards")({
 function NfcCards() {
   const { data: nfcCardsData, loading, refetch: refetchNFCCards } = useNFCCards();
   const { patients: patientsList } = useLivePatients();
-  const cards = (nfcCardsData || []).map((entry: any) => entry.value);
+  // useNFCCards now returns { entries: [...] } from Postgres.
+  const cards = (nfcCardsData?.entries ?? []).map((entry: any) => entry.value);
   const patients = patientsList ?? [];
 
   const [search, setSearch] = useState("");
