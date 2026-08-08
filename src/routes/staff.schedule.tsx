@@ -161,7 +161,7 @@ const shiftConfig: Record<
 
 function ShiftCard({ shift }: { shift: Shift }) {
   const [expanded, setExpanded] = useState(false);
-  const cfg = shiftConfig[shift.role];
+  const cfg = shiftConfig[shift.role] || shiftConfig["Off"];
   const Icon = cfg.icon;
   const isOff = shift.role === "Off" || shift.role === "Leave";
   const isNight = shift.role === "On-call";
@@ -918,7 +918,7 @@ function SchedulePage() {
                         </div>
                         <div className="flex flex-wrap gap-0.5">
                           {dayShifts.slice(0, 3).map((s) => {
-                            const cfg = shiftConfig[s.role];
+                            const cfg = shiftConfig[s.role] || shiftConfig["Off"];
                             return (
                               <div
                                 key={s.id}
@@ -979,7 +979,7 @@ function SchedulePage() {
                     </div>
                     <div className="mt-1.5 flex flex-wrap justify-center gap-1">
                       {dayShifts.map((s) => {
-                        const cfg = shiftConfig[s.role];
+                        const cfg = shiftConfig[s.role] || shiftConfig["Off"];
                         return (
                           <div
                             key={s.id}
@@ -1047,7 +1047,7 @@ function SchedulePage() {
                             return sh === h;
                           })
                           .map((s) => {
-                            const cfg = shiftConfig[s.role];
+                            const cfg = shiftConfig[s.role] || shiftConfig["Off"];
                             const Icon = cfg.icon;
                             return (
                               <div
