@@ -18,6 +18,7 @@
 
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { getCookies, setCookie, getRequest } from "@tanstack/react-start/server";
+import WebSocket from "ws";
 
 /**
  * Read Supabase config per request, never at module scope.
@@ -100,6 +101,13 @@ export function getSupabaseServerClient() {
           setCookie(name, value, { ...options, ...baseCookieOptions() });
         }
       },
+    },
+    global: {
+      // Node.js < 22 requires explicit WebSocket implementation for Realtime
+      fetch: (...args) => fetch(...args),
+    },
+    realtime: {
+      transport: WebSocket as any,
     },
   });
 }
