@@ -35,7 +35,9 @@ export const API_BASE_URL = getApiBaseUrl();
 // ─── Credentials ──────────────────────────────────────────────────────────────
 
 // ─── Consent ──────────────────────────────────────────────────────────────────
-export const getConsents = () => apiFetch<{ consents: any[]; total: number }>(`/consent`);
+// Note: getConsents, grantConsent, revokeConsent, getConsentRequests,
+// denyConsentRequest are implemented as Supabase-native async functions
+// further down in this file. Only the doctor-portal-specific helpers live here.
 
 /** Doctor/Staff: fetch all consent grants + sent requests for the authenticated doctor */
 export const getMyConsents = () =>
@@ -52,22 +54,7 @@ export const getMyConsents = () =>
 export const getMyConsentRequests = () =>
   apiFetch<{ requests: any[]; total: number }>(`/consent/requests/my`);
 
-export const grantConsent = (
-  patientDid: string,
-  doctorDid: string,
-  resource: string,
-  expiry?: string,
-) =>
-  apiFetch<any>(`/consent/grant`, {
-    method: "POST",
-    body: JSON.stringify({ patientDid, doctorDid, resource, expiry }),
-  });
-
-export const revokeConsent = (id: string) =>
-  apiFetch<{ success: boolean }>(`/consent/${encodeURIComponent(id)}/revoke`, {
-    method: "PATCH",
-  });
-
+/** Doctor/Staff: send a consent request to a patient (Express-compatible shim) */
 export const requestConsent = (data: {
   doctorDid: string;
   doctorName?: string;
@@ -83,16 +70,6 @@ export const requestConsent = (data: {
       body: JSON.stringify(data),
     },
   );
-
-export const getConsentRequests = (patientDid: string) =>
-  apiFetch<{ requests: any[]; total: number }>(
-    `/consent/requests/${encodeURIComponent(patientDid)}`,
-  );
-
-export const denyConsentRequest = (id: string) =>
-  apiFetch<{ success: boolean }>(`/consent/requests/${encodeURIComponent(id)}/deny`, {
-    method: "PATCH",
-  });
 
 // ─── Audit Events ─────────────────────────────────────────────────────────────
 
