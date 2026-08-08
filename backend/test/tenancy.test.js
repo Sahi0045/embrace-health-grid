@@ -128,9 +128,26 @@ describe("Hospital-owned operations are isolated", () => {
     });
   }
 
+  // The reverse direction. Isolation was only ever asserted City Care -> Apollo,
+  // which a policy that happened to hardcode one hospital would still pass.
+  // apolloDoctor and apolloAdmin were signed in but never asserted against.
+  for (const table of ["beds", "rooms", "attendance", "staff_schedule", "equipment"]) {
+    it(`${table}: Apollo staff see no City Care rows`, async () => {
+      const { data } = await apolloDoctor.from(table).select("hospital_id");
+      const foreign = (data ?? []).filter((r) => r.hospital_id === cityId);
+      assert.equal(foreign.length, 0, `${table} leaked ${foreign.length} rows`);
+    });
+  }
+
   it("fraud alerts stay within the hospital", async () => {
     const { data } = await cityAdmin.from("fraud_alerts").select("hospital_id");
     const foreign = (data ?? []).filter((r) => r.hospital_id === apolloId);
+    assert.equal(foreign.length, 0);
+  });
+
+  it("fraud alerts stay within the hospital (reverse)", async () => {
+    const { data } = await apolloAdmin.from("fraud_alerts").select("hospital_id");
+    const foreign = (data ?? []).filter((r) => r.hospital_id === cityId);
     assert.equal(foreign.length, 0);
   });
 

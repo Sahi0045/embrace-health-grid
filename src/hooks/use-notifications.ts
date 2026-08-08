@@ -25,10 +25,13 @@ import {
 } from "@/lib/notifications";
 import type { Notification } from "@/lib/notifications";
 
-// ─── Module-level WS singleton ────────────────────────────────────────────────
-// Kept at module scope so multiple hook instances share a single connection
-// and avoid flooding the server with duplicate sockets.
-let _notifWs: WebSocket | null = null;
+// ─── Module-level init guard ──────────────────────────────────────────────────
+// Kept at module scope so multiple hook instances subscribe only once rather
+// than flooding the server with duplicate listeners.
+//
+// The old `_notifWs` socket handle is gone: this hook no longer opens its own
+// WebSocket (nothing assigned or read it after the Express WS server was
+// decommissioned — live updates now come from Supabase Realtime).
 let _wsInitialized = false;
 
 function handleNotifWsEvent(event: string) {

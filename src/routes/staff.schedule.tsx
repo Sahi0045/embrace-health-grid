@@ -581,7 +581,10 @@ function SchedulePage() {
         if (msg.event === "appointment:updated" || msg.event === "appointment:booked") {
           loadDoctorAppointments();
         }
-      } catch {}
+      } catch {
+        // Not JSON, or not a message this screen cares about. Other features
+        // share the ws:message event, so a parse failure is expected traffic.
+      }
     };
     window.addEventListener("ws:message", handler as EventListener);
     return () => window.removeEventListener("ws:message", handler as EventListener);

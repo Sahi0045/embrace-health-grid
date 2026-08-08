@@ -317,8 +317,14 @@ export function requestEmergencyAccess(user, patientId, justification) {
 
 /**
  * Generate temporary emergency access token
+ *
+ * NOTE: the token is currently pure entropy and is bound to neither the
+ * requesting user nor the patient, so it cannot be validated as belonging to a
+ * specific break-glass request. Args are kept in the signature (prefixed to mark
+ * them unused) so callers do not change when this is bound properly. This module
+ * is not imported anywhere yet — see _user/_patientId before relying on it.
  */
-function generateEmergencyAccessToken(user, patientId) {
+function generateEmergencyAccessToken(_user, _patientId) {
   const { randomBytes } = require("crypto");
   return `emergency-${randomBytes(16).toString("hex")}`;
 }
