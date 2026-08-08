@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import {
   getMyConsents, requestConsent, getMyPatients, API_BASE_URL,
 } from "@/lib/api";
-import { getCurrentUser } from "@/lib/auth";
+import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/staff/consent")({
   head: () => ({ meta: [{ title: "Consent Management — Doctor Portal" }] }),
@@ -39,9 +39,9 @@ const EXPIRY_OPTIONS = [
 ];
 
 function StaffConsentPage() {
-  const currentUser = getCurrentUser();
-  const doctorDid   = currentUser?.did  ?? (typeof window !== "undefined" ? localStorage.getItem("userDID")  ?? "" : "");
-  const doctorName  = currentUser?.name ?? (typeof window !== "undefined" ? localStorage.getItem("userName") ?? "Doctor" : "Doctor");
+  const { user: currentUser } = useAuth();
+  const doctorDid   = currentUser?.did  ?? "";
+  const doctorName  = currentUser?.name ?? "Doctor";
 
   const [tab, setTab] = useState<Tab>("active");
 
