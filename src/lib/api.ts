@@ -541,6 +541,10 @@ export async function getAllDIDs() {
     createdAt: d.created_at,
     // True for a hospital's own DID. Callers listing PEOPLE must exclude these.
     isOrganisation: d.is_organisation === true,
+    // Owning hospital. dids_select_clinician_directory is intentionally
+    // cross-hospital so referrals work, so any roster that means "my hospital"
+    // has to filter on this rather than assume the read is already scoped.
+    hospitalId: d.hospital_id ?? null,
   }));
   return { dids, total: dids.length };
 }

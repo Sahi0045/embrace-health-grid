@@ -197,6 +197,18 @@ Deno.serve(async (req) => {
           throw new HttpError(400, "ownerName and ownerType are required");
         }
 
+        // The issuing hospital comes from the caller's profile, never the request
+        // body, so an admin cannot mint a DID into another hospital. Without this
+        // the row landed with hospital_id NULL and was then invisible to its own
+        // hospital's roster while still appearing in the cross-hospital clinician
+        // directory.
+        if (!caller.hospitalId) {
+          throw new HttpError(
+            403,
+            "Only a hospital administrator may issue DIDs; this account belongs to no hospital",
+          );
+        }
+
         // Deterministic-looking but random suffix, matching the legacy format.
         const did = `did:hosp:0x${crypto.randomUUID().replace(/-/g, "").slice(0, 8)}`;
         const { error } = await db.from("dids").insert({
@@ -207,6 +219,7 @@ Deno.serve(async (req) => {
           public_key: publicKey ?? `pk_${crypto.randomUUID().slice(0, 12)}`,
           controller: "did:hosp:consortium:authority",
           status: "active",
+          hospital_id: caller.hospitalId,
         });
         if (error) throw new HttpError(500, error.message);
 
@@ -281,7 +294,7 @@ Deno.serve(async (req) => {
 
           const { data: profile } = await db
             .from("profiles")
-            .select("full_name, role")
+            .select("full_name, role, hospital_id")
             .eq("id", reqRow?.staff_id ?? "")
             .maybeSingle();
 
@@ -294,6 +307,11 @@ Deno.serve(async (req) => {
             public_key: `pk_${crypto.randomUUID().slice(0, 12)}`,
             controller: "did:hosp:consortium:authority",
             status: "active",
+            // The REQUESTER's hospital, not the approving admin's: the DID belongs
+            // to the person it identifies. Falls back to the admin's hospital only
+            // if the requester somehow has none. Leaving this NULL made the DID
+            // invisible to its own hospital's roster.
+            hospital_id: profile?.hospital_id ?? caller.hospitalId,
           });
           if (didErr)
             throw new HttpError(500, `Request approved but DID issuance failed: ${didErr.message}`);

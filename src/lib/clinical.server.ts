@@ -296,7 +296,9 @@ export const getAllDIDs = createServerFn({ method: "GET" }).handler(async () => 
   const { data, error } = await supabase
     .from("dids")
     .select(
-      "did, owner_name, owner_type, public_key, controller, status, created_at, is_organisation",
+      // hospital_id is required so callers can tell an own-hospital DID from one
+      // visible only through the cross-hospital clinician directory.
+      "did, owner_name, owner_type, public_key, controller, status, created_at, is_organisation, hospital_id",
     )
     .order("created_at", { ascending: false });
 

@@ -45,11 +45,12 @@ export function CredentialCard({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 8 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ scale: 1.01 }}
+      transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+      whileHover={{ scale: 1.01, y: -2 }}
       onClick={onClick}
-      className={`group rounded-xl border border-border bg-card p-4 shadow-clinical transition-shadow hover:shadow-clinical-md ${onClick ? "cursor-pointer" : ""}`}
+      className={`group rounded-xl border border-border bg-card p-4 shadow-clinical transition-all duration-300 hover:shadow-clinical-md hover:border-primary/20 ${onClick ? "cursor-pointer" : ""}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
