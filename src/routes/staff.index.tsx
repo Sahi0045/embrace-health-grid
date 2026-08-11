@@ -228,17 +228,19 @@ function StaffDashboard() {
               const Icon = l.icon;
               return (
                 <StaggerItem key={l.to}>
-                  <Link
-                    to={l.to}
-                    className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card p-4 text-center hover:shadow-clinical-md hover:-translate-y-0.5 transition-all"
-                  >
-                    <div
-                      className={`flex h-9 w-9 items-center justify-center rounded-lg ${l.color}`}
+                  <motion.div whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }}>
+                    <Link
+                      to={l.to}
+                      className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card p-4 text-center shadow-clinical-sm hover:shadow-clinical-md hover:border-primary/20 transition-all duration-300"
                     >
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <span className="text-xs font-medium text-foreground">{l.label}</span>
-                  </Link>
+                      <div
+                        className={`flex h-10 w-10 items-center justify-center rounded-lg ${l.color}`}
+                      >
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <span className="text-xs font-medium text-foreground">{l.label}</span>
+                    </Link>
+                  </motion.div>
                 </StaggerItem>
               );
             })}

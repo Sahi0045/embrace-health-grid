@@ -5,6 +5,7 @@ import { AdminSidebar } from "../components/AdminSidebar";
 import { Toaster } from "@/components/ui/sonner";
 
 import { NotificationBell } from "@/components/NotificationBell";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   component: RootComponent,
@@ -16,13 +17,14 @@ function RootComponent() {
       <div className="flex min-h-screen w-full bg-background">
         <AdminSidebar />
         <div className="flex flex-1 flex-col">
-          <header className="sticky top-0 z-10 flex h-14 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur">
+          <header className="sticky top-0 z-10 flex h-14 items-center gap-3 border-b border-border/50 bg-background/70 px-4 backdrop-blur-xl">
             <SidebarTrigger />
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="flex items-center gap-2 rounded-full bg-muted/50 px-3 py-1 text-xs text-muted-foreground">
               <span className="inline-block h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
               <span>Admin Console — Live</span>
             </div>
             <span className="ml-auto" />
+            <ThemeToggle />
             <NotificationBell />
           </header>
           <main className="flex-1 p-6">

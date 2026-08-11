@@ -39,9 +39,10 @@ export function DIDCard({
 
   return (
     <motion.div
-      whileHover={{ scale: 1.01 }}
+      whileHover={{ scale: 1.01, y: -2 }}
       whileTap={{ scale: 0.99 }}
-      className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${roleGradients[role]} text-white shadow-clinical-md ${compact ? "p-4" : "p-5"}`}
+      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+      className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${roleGradients[role]} text-white shadow-clinical-md hover:shadow-clinical-lg ${compact ? "p-4" : "p-5"}`}
     >
       <div className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/10" />
       <div className="pointer-events-none absolute -bottom-4 -left-4 h-16 w-16 rounded-full bg-white/5" />

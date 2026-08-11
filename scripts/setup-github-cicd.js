@@ -19,7 +19,6 @@
  *   GH_TOKEN=ghp_xxx node scripts/setup-github-cicd.js
  */
 
-import crypto from "node:crypto";
 import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -217,9 +216,8 @@ async function main() {
   // ── 5. Set repo-level secrets (available to all workflows) ─────────────
   section("Step 6 — Set Repository-Level Secrets");
 
-  const repoSecrets = {
-    // No repo-level secrets needed — all are environment-scoped for security
-  };
+  // No repo-level secrets: every secret is environment-scoped so that staging
+  // credentials cannot be read by a production workflow, and vice versa.
 
   // ── 6. Set staging environment secrets ──────────────────────────────────
   section("Step 7 — Set Staging Environment Secrets");

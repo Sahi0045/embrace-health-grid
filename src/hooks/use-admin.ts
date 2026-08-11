@@ -15,6 +15,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
+import { useCurrentUser } from "@/lib/auth-context";
 import {
   getAllDIDs,
   getCredentials,
@@ -221,14 +222,37 @@ export interface RosterPerson {
   };
 }
 
+/**
+ * Restrict a DID roster to one hospital.
+ *
+ * dids_select_clinician_directory is deliberately cross-hospital so a referring
+ * clinician can resolve a colleague at another hospital. That makes getAllDIDs()
+ * the wrong source for anything labelled "my hospital's people" — an admin at a
+ * brand-new hospital saw other hospitals' doctors in their own roster.
+ *
+ * A super_admin operates the platform and holds no hospital, so they keep the
+ * full list. Organisation DIDs are never people.
+ */
+function scopeToHospital(dids: any[], hospitalId?: string, isSuperAdmin = false) {
+  return dids.filter((d: any) => {
+    if (d.isOrganisation) return false;
+    if (isSuperAdmin) return true;
+    if (!hospitalId) return false;
+    return d.hospitalId === hospitalId;
+  });
+}
+
 export function useLivePatients() {
+  const { user } = useCurrentUser();
+  const hospitalId = user?.hospitalId;
+  const isSuper = user?.role === "super_admin";
   const loader = useCallback(async () => {
     const res = await getAllDIDs();
-    const patients: RosterPerson[] = (res.dids ?? [])
+    const patients: RosterPerson[] = scopeToHospital(res.dids ?? [], hospitalId, isSuper)
       .filter((d: any) => d.ownerType === "patient")
       .map((d: any) => ({ did: d.did, name: d.owner, status: d.status, id: d.did }));
     return { patients, total: patients.length };
-  }, []);
+  }, [hospitalId, isSuper]);
 
   const q = useAdminQuery(loader, { patients: [] as RosterPerson[], total: 0 });
   // Screens destructure `patients` straight off the hook.
@@ -236,9 +260,12 @@ export function useLivePatients() {
 }
 
 export function useLiveStaff() {
+  const { user } = useCurrentUser();
+  const hospitalId = user?.hospitalId;
+  const isSuper = user?.role === "super_admin";
   const loader = useCallback(async () => {
     const res = await getAllDIDs();
-    const staff: RosterPerson[] = (res.dids ?? [])
+    const staff: RosterPerson[] = scopeToHospital(res.dids ?? [], hospitalId, isSuper)
       .filter((d: any) => d.ownerType === "doctor" || d.ownerType === "staff")
       .map((d: any) => ({
         did: d.did,
@@ -248,7 +275,7 @@ export function useLiveStaff() {
         id: d.did,
       }));
     return { staff, total: staff.length };
-  }, []);
+  }, [hospitalId, isSuper]);
 
   const q = useAdminQuery(loader, { staff: [] as RosterPerson[], total: 0 });
   return { ...q, staff: q.data.staff };

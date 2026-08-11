@@ -44,7 +44,7 @@ export function AuditEventCard({ event }: AuditEventCardProps) {
   const Icon = sev.icon;
 
   return (
-    <div className="flex items-start gap-3 rounded-xl border border-border bg-card p-4">
+    <div className="flex items-start gap-3 rounded-xl border border-border bg-card p-4 shadow-clinical-sm transition-shadow duration-300 hover:shadow-clinical">
       <div
         className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${sev.className}`}
       >

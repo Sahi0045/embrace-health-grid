@@ -32,9 +32,11 @@ export function ConsentCard({ consent, onRevoke, onApprove }: ConsentCardProps) 
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 6 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-xl border border-border bg-card p-4 shadow-clinical"
+      transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+      whileHover={{ y: -2 }}
+      className="rounded-xl border border-border bg-card p-4 shadow-clinical transition-shadow duration-300 hover:shadow-clinical-md"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2 min-w-0">

@@ -14,7 +14,9 @@ const ALGORITHM = "aes-256-gcm";
 const KEY_LENGTH = 32; // 256 bits
 const IV_LENGTH = 16; // 128 bits for GCM
 const SALT_LENGTH = 32;
-const AUTH_TAG_LENGTH = 16;
+// GCM auth tag length is fixed at 16 bytes by node's createCipheriv API, so it
+// is not passed explicitly; kept for documentation.
+const _AUTH_TAG_LENGTH = 16;
 const SCRYPT_COST = 16384; // N parameter (CPU/memory cost)
 
 /**

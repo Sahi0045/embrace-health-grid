@@ -16,7 +16,7 @@ export function EmptyState({
     <motion.div
       initial={{ opacity: 0, scale: 0.96 }}
       animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
       className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/30 px-6 py-12 text-center"
     >
       <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
