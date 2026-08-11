@@ -638,9 +638,9 @@ function StaffRooms() {
               <Clock className="h-4 w-4 text-primary" /> Recent Check-In Events
             </div>
             <div className="space-y-1.5 max-h-40 overflow-y-auto">
-              {history.slice(0, 6).map((log: any) => (
+              {history.slice(0, 6).map((log: any, idx: number) => (
                 <div
-                  key={log.logId}
+                  key={log.logId || `log_${idx}`}
                   className="flex items-center gap-3 text-[11px] bg-muted/40 rounded-lg px-3 py-2"
                 >
                   <span
@@ -894,9 +894,9 @@ function StaffRooms() {
                     No check-in history yet.
                   </div>
                 ) : (
-                  history.map((log: any) => (
+                  history.map((log: any, idx: number) => (
                     <div
-                      key={log.logId}
+                      key={log.logId || `hist_${idx}`}
                       className="rounded-xl border border-border bg-muted/30 p-3 space-y-1.5"
                     >
                       <div className="flex items-center justify-between">

@@ -72,20 +72,34 @@ function StaffConsentPage() {
     const wsUrl = (API_BASE_URL || "http://localhost:3001").replace(/^http/, "ws");
     let ws: WebSocket | null = null;
     let retry: ReturnType<typeof setTimeout>;
+    let retryCount = 0;
     const connect = () => {
+      if (retryCount > 3) return;
       try {
         ws = new WebSocket(wsUrl);
         ws.onmessage = (e) => {
           try {
             const msg = JSON.parse(e.data);
-            if (["consent:granted","consent:revoked","consent:request"].includes(msg.event)) load();
+            if (["consent:granted", "consent:revoked", "consent:request"].includes(msg.event)) load();
           } catch { /* ignore */ }
         };
-        ws.onclose = () => { retry = setTimeout(connect, 5000); };
+        ws.onerror = () => { /* silent */ };
+        ws.onclose = () => {
+          retryCount++;
+          if (retryCount <= 3) {
+            retry = setTimeout(connect, 10000);
+          }
+        };
       } catch { /* no WS */ }
     };
     connect();
-    return () => { ws?.close(); clearTimeout(retry); };
+    return () => {
+      retryCount = 99;
+      if (ws && (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN)) {
+        ws.close();
+      }
+      clearTimeout(retry);
+    };
   }, [load]);
 
   // ── Request Access form ────────────────────────────────────────────────────
