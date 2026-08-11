@@ -630,26 +630,6 @@ function AdminDashboardPage() {
               </Link>
 
               <Link
-                to="/credential-explorer"
-                className="group p-5 rounded-2xl border border-border bg-card shadow-sm hover:border-primary hover:shadow-clinical transition-all space-y-2"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="h-10 w-10 rounded-xl bg-chart-2/10 text-chart-2 flex items-center justify-center">
-                    <FileCheck className="h-5 w-5" />
-                  </div>
-                  <Badge variant="outline" className="text-[10px] font-bold uppercase">
-                    Credentials
-                  </Badge>
-                </div>
-                <h4 className="font-bold text-foreground group-hover:text-primary transition-colors">
-                  Verifiable Credentials
-                </h4>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Issue, verify, and revoke cryptographic health credentials across the hospital.
-                </p>
-              </Link>
-
-              <Link
                 to="/audit-timeline"
                 className="group p-5 rounded-2xl border border-border bg-card shadow-sm hover:border-primary hover:shadow-clinical transition-all space-y-2"
               >

@@ -69,12 +69,6 @@ const globalTools = [
     desc: "Search all DID records",
   },
   {
-    to: "/credential-explorer" as const,
-    label: "Credential Explorer",
-    icon: Award,
-    desc: "Browse verifiable credentials",
-  },
-  {
     to: "/audit-timeline" as const,
     label: "Audit Timeline",
     icon: GitBranch,

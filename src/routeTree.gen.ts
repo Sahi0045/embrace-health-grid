@@ -11,7 +11,6 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as DidExplorerRouteImport } from './routes/did-explorer'
-import { Route as CredentialExplorerRouteImport } from './routes/credential-explorer'
 import { Route as AuditTimelineRouteImport } from './routes/audit-timeline'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SuperIndexRouteImport } from './routes/super.index'
@@ -61,7 +60,6 @@ import { Route as AdminFraudRouteImport } from './routes/admin.fraud'
 import { Route as AdminFinancialRouteImport } from './routes/admin.financial'
 import { Route as AdminDigitalTwinRouteImport } from './routes/admin.digital-twin'
 import { Route as AdminDidsRouteImport } from './routes/admin.dids'
-import { Route as AdminCredentialsRouteImport } from './routes/admin.credentials'
 import { Route as AdminCommandRouteImport } from './routes/admin.command'
 import { Route as AdminAuditRouteImport } from './routes/admin.audit'
 
@@ -73,11 +71,6 @@ const LoginRoute = LoginRouteImport.update({
 const DidExplorerRoute = DidExplorerRouteImport.update({
   id: '/did-explorer',
   path: '/did-explorer',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CredentialExplorerRoute = CredentialExplorerRouteImport.update({
-  id: '/credential-explorer',
-  path: '/credential-explorer',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuditTimelineRoute = AuditTimelineRouteImport.update({
@@ -325,11 +318,6 @@ const AdminDidsRoute = AdminDidsRouteImport.update({
   path: '/admin/dids',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminCredentialsRoute = AdminCredentialsRouteImport.update({
-  id: '/admin/credentials',
-  path: '/admin/credentials',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AdminCommandRoute = AdminCommandRouteImport.update({
   id: '/admin/command',
   path: '/admin/command',
@@ -344,12 +332,10 @@ const AdminAuditRoute = AdminAuditRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/audit-timeline': typeof AuditTimelineRoute
-  '/credential-explorer': typeof CredentialExplorerRoute
   '/did-explorer': typeof DidExplorerRoute
   '/login': typeof LoginRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/command': typeof AdminCommandRoute
-  '/admin/credentials': typeof AdminCredentialsRoute
   '/admin/dids': typeof AdminDidsRoute
   '/admin/digital-twin': typeof AdminDigitalTwinRoute
   '/admin/financial': typeof AdminFinancialRoute
@@ -401,12 +387,10 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/audit-timeline': typeof AuditTimelineRoute
-  '/credential-explorer': typeof CredentialExplorerRoute
   '/did-explorer': typeof DidExplorerRoute
   '/login': typeof LoginRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/command': typeof AdminCommandRoute
-  '/admin/credentials': typeof AdminCredentialsRoute
   '/admin/dids': typeof AdminDidsRoute
   '/admin/digital-twin': typeof AdminDigitalTwinRoute
   '/admin/financial': typeof AdminFinancialRoute
@@ -459,12 +443,10 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/audit-timeline': typeof AuditTimelineRoute
-  '/credential-explorer': typeof CredentialExplorerRoute
   '/did-explorer': typeof DidExplorerRoute
   '/login': typeof LoginRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/command': typeof AdminCommandRoute
-  '/admin/credentials': typeof AdminCredentialsRoute
   '/admin/dids': typeof AdminDidsRoute
   '/admin/digital-twin': typeof AdminDigitalTwinRoute
   '/admin/financial': typeof AdminFinancialRoute
@@ -518,12 +500,10 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/audit-timeline'
-    | '/credential-explorer'
     | '/did-explorer'
     | '/login'
     | '/admin/audit'
     | '/admin/command'
-    | '/admin/credentials'
     | '/admin/dids'
     | '/admin/digital-twin'
     | '/admin/financial'
@@ -575,12 +555,10 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/audit-timeline'
-    | '/credential-explorer'
     | '/did-explorer'
     | '/login'
     | '/admin/audit'
     | '/admin/command'
-    | '/admin/credentials'
     | '/admin/dids'
     | '/admin/digital-twin'
     | '/admin/financial'
@@ -632,12 +610,10 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/audit-timeline'
-    | '/credential-explorer'
     | '/did-explorer'
     | '/login'
     | '/admin/audit'
     | '/admin/command'
-    | '/admin/credentials'
     | '/admin/dids'
     | '/admin/digital-twin'
     | '/admin/financial'
@@ -690,12 +666,10 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuditTimelineRoute: typeof AuditTimelineRoute
-  CredentialExplorerRoute: typeof CredentialExplorerRoute
   DidExplorerRoute: typeof DidExplorerRoute
   LoginRoute: typeof LoginRoute
   AdminAuditRoute: typeof AdminAuditRoute
   AdminCommandRoute: typeof AdminCommandRoute
-  AdminCredentialsRoute: typeof AdminCredentialsRoute
   AdminDidsRoute: typeof AdminDidsRoute
   AdminDigitalTwinRoute: typeof AdminDigitalTwinRoute
   AdminFinancialRoute: typeof AdminFinancialRoute
@@ -759,13 +733,6 @@ declare module '@tanstack/react-router' {
       path: '/did-explorer'
       fullPath: '/did-explorer'
       preLoaderRoute: typeof DidExplorerRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/credential-explorer': {
-      id: '/credential-explorer'
-      path: '/credential-explorer'
-      fullPath: '/credential-explorer'
-      preLoaderRoute: typeof CredentialExplorerRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/audit-timeline': {
@@ -1111,13 +1078,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminDidsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/credentials': {
-      id: '/admin/credentials'
-      path: '/admin/credentials'
-      fullPath: '/admin/credentials'
-      preLoaderRoute: typeof AdminCredentialsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/admin/command': {
       id: '/admin/command'
       path: '/admin/command'
@@ -1138,12 +1098,10 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuditTimelineRoute: AuditTimelineRoute,
-  CredentialExplorerRoute: CredentialExplorerRoute,
   DidExplorerRoute: DidExplorerRoute,
   LoginRoute: LoginRoute,
   AdminAuditRoute: AdminAuditRoute,
   AdminCommandRoute: AdminCommandRoute,
-  AdminCredentialsRoute: AdminCredentialsRoute,
   AdminDidsRoute: AdminDidsRoute,
   AdminDigitalTwinRoute: AdminDigitalTwinRoute,
   AdminFinancialRoute: AdminFinancialRoute,

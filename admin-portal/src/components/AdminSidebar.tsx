@@ -60,7 +60,6 @@ const adminNav: Item[] = [
 
 const globalNav: Item[] = [
   { title: "DID Explorer", url: "/did-explorer", icon: Search },
-  { title: "Credential Explorer", url: "/credential-explorer", icon: Award },
   { title: "Audit Timeline", url: "/audit-timeline", icon: GitBranch },
 ];
 

@@ -142,7 +142,6 @@ const adminNav: Item[] = [
   // not access control, so the guard and RLS do the real work.
   { title: "Onboard User", url: "/admin/onboard", icon: UserPlus },
   { title: "DID Management", url: "/admin/dids", icon: Fingerprint },
-  { title: "Credentials", url: "/admin/credentials", icon: Award },
   { title: "People", url: "/admin/people", icon: Users },
   { title: "Prescriptions", url: "/admin/prescriptions", icon: Pill },
   { title: "NFC Cards", url: "/admin/nfc-cards", icon: CreditCard },
@@ -154,7 +153,6 @@ const adminNav: Item[] = [
   { title: "Command Center", url: "/admin/command", icon: Command },
   { title: "My Profile", url: "/admin/profile", icon: KeyRound },
   { title: "DID Registry", url: "/did-explorer", icon: Search },
-  { title: "Verifiable Credentials", url: "/credential-explorer", icon: Award },
   { title: "Security & Audit Trail", url: "/audit-timeline", icon: GitBranch },
 ];
 
@@ -170,7 +168,6 @@ const adminNav: Item[] = [
  */
 const networkNav: Item[] = [
   { title: "DID Explorer", url: "/did-explorer", icon: Search },
-  { title: "Credential Explorer", url: "/credential-explorer", icon: Award },
   { title: "Audit Timeline", url: "/audit-timeline", icon: GitBranch },
 ];
 
@@ -227,7 +224,6 @@ export function AppSidebar() {
         ? "staff"
         : pathname.startsWith("/admin") ||
             pathname === "/did-explorer" ||
-            pathname === "/credential-explorer" ||
             pathname === "/audit-timeline"
           ? "admin"
           : // A super_admin has no portal of its own to fall back to, so send it to
