@@ -692,3 +692,435 @@ export const recordHealthMetric = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true as const };
   });
+
+// ─── Hospital Infrastructure Hierarchy ──────────────────────────────────────
+
+/** Get complete hospital infrastructure hierarchy */
+export const getHospitalInfrastructure = createServerFn({ method: "GET" }).handler(async () => {
+  await requireSession();
+  const supabase = getSupabaseServerClient();
+  const hospitalId = await callerHospitalId();
+
+  // Get buildings
+  const { data: buildings, error: buildingsErr } = await supabase
+    .from("buildings")
+    .select("*")
+    .eq("hospital_id", hospitalId)
+    .order("building_name");
+
+  if (buildingsErr) throw new Error(buildingsErr.message);
+
+  // Get floors
+  const { data: floors, error: floorsErr } = await supabase
+    .from("floors")
+    .select("*")
+    .eq("hospital_id", hospitalId)
+    .order("building_id, floor_number");
+
+  if (floorsErr) throw new Error(floorsErr.message);
+
+  // Get wards
+  const { data: wards, error: wardsErr } = await supabase
+    .from("wards")
+    .select("*")
+    .eq("hospital_id", hospitalId)
+    .order("floor_id, ward_name");
+
+  if (wardsErr) throw new Error(wardsErr.message);
+
+  // Get rooms with status
+  const { data: rooms, error: roomsErr } = await supabase
+    .from("rooms")
+    .select("*")
+    .eq("hospital_id", hospitalId)
+    .order("ward_id, room_name");
+
+  if (roomsErr) throw new Error(roomsErr.message);
+
+  // Get beds with status
+  const { data: beds, error: bedsErr } = await supabase
+    .from("beds")
+    .select("*")
+    .eq("hospital_id", hospitalId)
+    .order("room_id, bed_number");
+
+  if (bedsErr) throw new Error(bedsErr.message);
+
+  return {
+    buildings: buildings ?? [],
+    floors: floors ?? [],
+    wards: wards ?? [],
+    rooms: rooms ?? [],
+    beds: beds ?? [],
+  };
+});
+
+/** Get buildings for a hospital */
+export const getBuildings = createServerFn({ method: "GET" }).handler(async () => {
+  await requireSession();
+  const supabase = getSupabaseServerClient();
+  const hospitalId = await callerHospitalId();
+
+  const { data, error } = await supabase
+    .from("buildings")
+    .select("*")
+    .eq("hospital_id", hospitalId)
+    .order("building_name");
+
+  if (error) throw new Error(error.message);
+  return { buildings: data ?? [] };
+});
+
+/** Get floors for a building */
+export const getFloors = createServerFn({ method: "GET" })
+  .validator((data: { buildingId?: string }) => data ?? {})
+  .handler(async ({ data }) => {
+    await requireSession();
+    const supabase = getSupabaseServerClient();
+
+    let query = supabase.from("floors").select("*").order("floor_number");
+
+    if (data.buildingId) {
+      query = query.eq("building_id", data.buildingId);
+    }
+
+    const { data: floors, error } = await query;
+    if (error) throw new Error(error.message);
+    return { floors: floors ?? [] };
+  });
+
+/** Get wards for a floor */
+export const getWards = createServerFn({ method: "GET" })
+  .validator((data: { floorId?: string }) => data ?? {})
+  .handler(async ({ data }) => {
+    await requireSession();
+    const supabase = getSupabaseServerClient();
+
+    let query = supabase.from("wards").select("*").order("ward_name");
+
+    if (data.floorId) {
+      query = query.eq("floor_id", data.floorId);
+    }
+
+    const { data: wards, error } = await query;
+    if (error) throw new Error(error.message);
+    return { wards: wards ?? [] };
+  });
+
+/** Create a new building */
+export const createBuilding = createServerFn({ method: "POST" })
+  .validator((data: { name: string; code?: string; description?: string; totalFloors?: number }) => {
+    if (!data?.name) throw new Error("Building name is required");
+    return data;
+  })
+  .handler(async ({ data }) => {
+    await requireSession();
+    const supabase = getSupabaseServerClient();
+    const hospitalId = await callerHospitalId();
+
+    const { data: building, error } = await supabase
+      .from("buildings")
+      .insert({
+        hospital_id: hospitalId,
+        building_name: data.name,
+        building_code: data.code ?? null,
+        description: data.description ?? null,
+        total_floors: data.totalFloors ?? 0,
+      })
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+    return { ok: true as const, building };
+  });
+
+/** Create a new floor */
+export const createFloor = createServerFn({ method: "POST" })
+  .validator(
+    (data: {
+      buildingId: string;
+      floorNumber: number;
+      name: string;
+      description?: string;
+    }) => {
+      if (!data?.buildingId || data?.floorNumber == null || !data?.name) {
+        throw new Error("Building ID, floor number, and name are required");
+      }
+      return data;
+    },
+  )
+  .handler(async ({ data }) => {
+    await requireSession();
+    const supabase = getSupabaseServerClient();
+    const hospitalId = await callerHospitalId();
+
+    const { data: floor, error } = await supabase
+      .from("floors")
+      .insert({
+        building_id: data.buildingId,
+        hospital_id: hospitalId,
+        floor_number: data.floorNumber,
+        floor_name: data.name,
+        description: data.description ?? null,
+      })
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+    return { ok: true as const, floor };
+  });
+
+/** Create a new ward */
+export const createWard = createServerFn({ method: "POST" })
+  .validator(
+    (data: {
+      floorId: string;
+      buildingId: string;
+      name: string;
+      code?: string;
+      type?: string;
+      description?: string;
+      capacity?: number;
+    }) => {
+      if (!data?.floorId || !data?.buildingId || !data?.name) {
+        throw new Error("Floor ID, building ID, and ward name are required");
+      }
+      return data;
+    },
+  )
+  .handler(async ({ data }) => {
+    await requireSession();
+    const supabase = getSupabaseServerClient();
+    const hospitalId = await callerHospitalId();
+
+    const { data: ward, error } = await supabase
+      .from("wards")
+      .insert({
+        floor_id: data.floorId,
+        building_id: data.buildingId,
+        hospital_id: hospitalId,
+        ward_name: data.name,
+        ward_code: data.code ?? null,
+        ward_type: data.type ?? null,
+        description: data.description ?? null,
+        capacity: data.capacity ?? 0,
+      })
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+    return { ok: true as const, ward };
+  });
+
+/** Create a new room */
+export const createRoom = createServerFn({ method: "POST" })
+  .validator(
+    (data: {
+      wardId: string;
+      buildingId: string;
+      name: string;
+      roomNumber?: string;
+      roomType?: string;
+      floor?: string;
+      capacity?: number;
+    }) => {
+      if (!data?.wardId || !data?.buildingId || !data?.name) {
+        throw new Error("Ward ID, building ID, and room name are required");
+      }
+      return data;
+    },
+  )
+  .handler(async ({ data }) => {
+    await requireSession();
+    const supabase = getSupabaseServerClient();
+    const hospitalId = await callerHospitalId();
+
+    const roomId = `room-${crypto.randomUUID().slice(0, 8)}`;
+    const { data: room, error } = await supabase
+      .from("rooms")
+      .insert({
+        room_id: roomId,
+        ward_id: data.wardId,
+        building_id: data.buildingId,
+        hospital_id: hospitalId,
+        room_name: data.name,
+        room_number: data.roomNumber ?? null,
+        room_type: data.roomType ?? null,
+        floor: data.floor ?? null,
+        capacity: data.capacity ?? 1,
+        status: "available",
+      })
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+    return { ok: true as const, room };
+  });
+
+/** Create a new bed */
+export const createBed = createServerFn({ method: "POST" })
+  .validator(
+    (data: {
+      roomId: string;
+      wardId: string;
+      buildingId: string;
+      bedNumber?: string;
+      bedType?: string;
+    }) => {
+      if (!data?.roomId || !data?.wardId || !data?.buildingId) {
+        throw new Error("Room ID, ward ID, and building ID are required");
+      }
+      return data;
+    },
+  )
+  .handler(async ({ data }) => {
+    await requireSession();
+    const supabase = getSupabaseServerClient();
+    const hospitalId = await callerHospitalId();
+
+    const bedId = `bed-${crypto.randomUUID().slice(0, 8)}`;
+    const { data: bed, error } = await supabase
+      .from("beds")
+      .insert({
+        bed_id: bedId,
+        room_id: data.roomId,
+        ward_id: data.wardId,
+        building_id: data.buildingId,
+        hospital_id: hospitalId,
+        bed_number: data.bedNumber ?? null,
+        bed_type: data.bedType ?? null,
+        status: "available",
+      })
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+    return { ok: true as const, bed };
+  });
+
+/** Update bed status */
+export const updateBedStatus = createServerFn({ method: "POST" })
+  .validator(
+    (data: {
+      bedId: string;
+      status: "available" | "occupied" | "reserved" | "cleaning" | "maintenance" | "blocked" | "emergency_reserved";
+      patientDid?: string;
+    }) => {
+      if (!data?.bedId || !data?.status) {
+        throw new Error("Bed ID and status are required");
+      }
+      return data;
+    },
+  )
+  .handler(async ({ data }) => {
+    await requireSession();
+    const supabase = getSupabaseServerClient();
+
+    // Validate occupancy consistency
+    const updateData: Record<string, unknown> = {
+      status: data.status,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (data.status === "occupied") {
+      if (!data.patientDid) {
+        throw new Error("Patient DID is required when marking bed as occupied");
+      }
+      updateData.patient_did = data.patientDid;
+    } else {
+      updateData.patient_did = null;
+    }
+
+    const { data: updated, error } = await supabase
+      .from("beds")
+      .update(updateData)
+      .eq("bed_id", data.bedId)
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+    if (!updated) throw new Error("Bed not found or you cannot update it");
+
+    return { ok: true as const, bed: updated };
+  });
+
+/** Update room status */
+export const updateRoomStatus = createServerFn({ method: "POST" })
+  .validator(
+    (data: {
+      roomId: string;
+      status: "available" | "occupied" | "reserved" | "cleaning" | "maintenance" | "blocked" | "emergency_reserved";
+    }) => {
+      if (!data?.roomId || !data?.status) {
+        throw new Error("Room ID and status are required");
+      }
+      return data;
+    },
+  )
+  .handler(async ({ data }) => {
+    await requireSession();
+    const supabase = getSupabaseServerClient();
+
+    const { data: updated, error } = await supabase
+      .from("rooms")
+      .update({
+        status: data.status,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("room_id", data.roomId)
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+    if (!updated) throw new Error("Room not found or you cannot update it");
+
+    return { ok: true as const, room: updated };
+  });
+
+/** Get bed/room statistics for dashboard */
+export const getBedRoomStatistics = createServerFn({ method: "GET" }).handler(async () => {
+  await requireSession();
+  const supabase = getSupabaseServerClient();
+  const hospitalId = await callerHospitalId();
+
+  // Get bed statistics
+  const { data: beds, error: bedsErr } = await supabase
+    .from("beds")
+    .select("status")
+    .eq("hospital_id", hospitalId);
+
+  if (bedsErr) throw new Error(bedsErr.message);
+
+  // Get room statistics
+  const { data: rooms, error: roomsErr } = await supabase
+    .from("rooms")
+    .select("status")
+    .eq("hospital_id", hospitalId);
+
+  if (roomsErr) throw new Error(roomsErr.message);
+
+  // Calculate statistics
+  const bedStats = {
+    total: beds?.length ?? 0,
+    available: beds?.filter((b) => b.status === "available").length ?? 0,
+    occupied: beds?.filter((b) => b.status === "occupied").length ?? 0,
+    reserved: beds?.filter((b) => b.status === "reserved").length ?? 0,
+    cleaning: beds?.filter((b) => b.status === "cleaning").length ?? 0,
+    maintenance: beds?.filter((b) => b.status === "maintenance").length ?? 0,
+    blocked: beds?.filter((b) => b.status === "blocked").length ?? 0,
+    emergency_reserved: beds?.filter((b) => b.status === "emergency_reserved").length ?? 0,
+  };
+
+  const roomStats = {
+    total: rooms?.length ?? 0,
+    available: rooms?.filter((r) => r.status === "available").length ?? 0,
+    occupied: rooms?.filter((r) => r.status === "occupied").length ?? 0,
+    reserved: rooms?.filter((r) => r.status === "reserved").length ?? 0,
+    cleaning: rooms?.filter((r) => r.status === "cleaning").length ?? 0,
+    maintenance: rooms?.filter((r) => r.status === "maintenance").length ?? 0,
+    blocked: rooms?.filter((r) => r.status === "blocked").length ?? 0,
+    emergency_reserved: rooms?.filter((r) => r.status === "emergency_reserved").length ?? 0,
+  };
+
+  return { bedStats, roomStats };
+});

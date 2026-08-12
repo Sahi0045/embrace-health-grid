@@ -13,6 +13,7 @@ import {
   getMerkleRootHistory,
   getVerifiedDoctors,
 } from "@/lib/api";
+import { getBeds, getBedRoomStatistics } from "@/lib/operations.server";
 import { useCurrentUser } from "@/lib/auth-context";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
@@ -39,9 +40,16 @@ import {
   AlertTriangle,
   CalendarDays,
   Wallet,
+  Bed,
+  Users,
+  Wrench,
+  Ban,
+  Activity,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/staff/rooms")({
   head: () => ({ meta: [{ title: "Room Check-In — Staff Portal" }] }),
@@ -89,6 +97,12 @@ function StaffRooms() {
   const [selectedRooms, setSelectedRooms] = useState<Set<string>>(new Set());
   const [acting, setActing] = useState<"checkin" | "checkout" | null>(null);
   const [typeFilter, setTypeFilter] = useState("All");
+
+  // ── bed/room status ──────────────────────────────────────────────────────
+  const [beds, setBeds] = useState<any[]>([]);
+  const [bedStats, setBedStats] = useState<any>(null);
+  const [loadingBeds, setLoadingBeds] = useState(false);
+  const [showBedStatus, setShowBedStatus] = useState(false);
 
   // ── modals ───────────────────────────────────────────────────────────────
   const [showHistory, setShowHistory] = useState(false);
@@ -179,9 +193,26 @@ function StaffRooms() {
     }
   }, [doctorDid]);
 
+  const loadBedStatus = useCallback(async () => {
+    setLoadingBeds(true);
+    try {
+      const [bedsData, statsData] = await Promise.all([
+        getBeds(),
+        getBedRoomStatistics(),
+      ]);
+      setBeds(bedsData.beds ?? []);
+      setBedStats(statsData);
+    } catch {
+      toast.error("Could not load bed status");
+    } finally {
+      setLoadingBeds(false);
+    }
+  }, []);
+
   useEffect(() => {
     loadRooms();
-  }, [loadRooms]);
+    loadBedStatus();
+  }, [loadRooms, loadBedStatus]);
   useEffect(() => {
     if (!doctorDid) return;
     loadStatus();
@@ -200,7 +231,11 @@ function StaffRooms() {
   }, [loadStatus, loadHistory, loadDaily]);
 
   useTableRefresh("room_checkins", refreshRoomState);
-  useTableRefresh("merkle_roots", loadPublished);
+  useTableRefresh("merkle_roots",  loadPublished);
+  useTableRefresh("beds",          loadBedStatus);
+  useTableRefresh("rooms",         loadRooms);
+  // When an admission changes, the bed occupancy map changes too.
+  useTableRefresh("admissions",    loadBedStatus);
 
   // ── helpers ───────────────────────────────────────────────────────────────
   const toggleRoom = (id: string) =>
@@ -503,6 +538,139 @@ function StaffRooms() {
             })}
           </div>
         )}
+
+        {/* ── Bed & Room Status Overview ─────────────────────────────────── */}
+        <div className="rounded-xl border-2 border-blue-500/20 bg-blue-500/5 p-5 space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <Bed className="h-5 w-5 text-blue-600" />
+              <div>
+                <h3 className="text-sm font-bold text-foreground">Bed & Room Availability</h3>
+                <p className="text-xs text-muted-foreground">
+                  Real-time bed and room status across the hospital
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowBedStatus(!showBedStatus)}
+              className="inline-flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-xs font-semibold hover:bg-muted"
+            >
+              {showBedStatus ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+              {showBedStatus ? "Hide" : "Show"} Details
+            </button>
+          </div>
+
+          {/* Statistics */}
+          {bedStats && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="rounded-lg bg-card border border-border p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <CheckCircle2 className="h-4 w-4 text-success" />
+                  <span className="text-xs font-semibold text-muted-foreground">Available</span>
+                </div>
+                <div className="text-2xl font-bold text-success">
+                  {bedStats.bedStats?.available || 0}
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  {bedStats.roomStats?.available || 0} rooms
+                </p>
+              </div>
+
+              <div className="rounded-lg bg-card border border-border p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <Users className="h-4 w-4 text-primary" />
+                  <span className="text-xs font-semibold text-muted-foreground">Occupied</span>
+                </div>
+                <div className="text-2xl font-bold text-primary">
+                  {bedStats.bedStats?.occupied || 0}
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  {Math.round(((bedStats.bedStats?.occupied || 0) / (bedStats.bedStats?.total || 1)) * 100)}% occupancy
+                </p>
+              </div>
+
+              <div className="rounded-lg bg-card border border-border p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <Activity className="h-4 w-4 text-blue-600" />
+                  <span className="text-xs font-semibold text-muted-foreground">Cleaning</span>
+                </div>
+                <div className="text-2xl font-bold text-blue-600">
+                  {bedStats.bedStats?.cleaning || 0}
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  {bedStats.bedStats?.maintenance || 0} maintenance
+                </p>
+              </div>
+
+              <div className="rounded-lg bg-card border border-border p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <Clock className="h-4 w-4 text-warning-foreground" />
+                  <span className="text-xs font-semibold text-muted-foreground">Reserved</span>
+                </div>
+                <div className="text-2xl font-bold text-warning-foreground">
+                  {bedStats.bedStats?.reserved || 0}
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  {bedStats.bedStats?.emergency_reserved || 0} emergency
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Bed List */}
+          {showBedStatus && (
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {loadingBeds ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : beds.length === 0 ? (
+                <div className="text-center py-8 text-sm text-muted-foreground">
+                  No bed data available
+                </div>
+              ) : (
+                beds.map((bed) => (
+                  <div
+                    key={bed.bed_id}
+                    className="flex items-center justify-between p-3 rounded-lg bg-card border border-border"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Bed className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-medium text-foreground">
+                          {bed.bed_number || bed.bed_id}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {bed.bed_type || "Standard"} · {bed.ward_name_legacy || "Unknown Ward"}
+                        </p>
+                      </div>
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className={
+                        bed.status === "available"
+                          ? "bg-success/10 text-success border-success/20"
+                          : bed.status === "occupied"
+                            ? "bg-primary/10 text-primary border-primary/20"
+                            : bed.status === "reserved"
+                              ? "bg-warning/10 text-warning-foreground border-warning/20"
+                              : bed.status === "cleaning"
+                                ? "bg-blue-500/10 text-blue-600 border-blue-200"
+                                : bed.status === "maintenance"
+                                  ? "bg-amber-500/10 text-amber-600 border-amber-200"
+                                  : bed.status === "blocked"
+                                    ? "bg-destructive/10 text-destructive border-destructive/20"
+                                    : "bg-red-600/10 text-red-600 border-red-200"
+                      }
+                    >
+                      {bed.status}
+                    </Badge>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
 
         {/* ── Daily Room Events (Merkle Tree) ─────────────────────────────── */}
         <div className="rounded-xl border-2 border-primary/20 bg-primary/5 p-5 space-y-4">

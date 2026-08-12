@@ -16,10 +16,28 @@ import {
   FlaskConical,
   CheckCircle2,
   Stethoscope,
+  Edit2,
+  Save,
+  X,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getPrescriptions, getMedicalRecords } from "@/lib/clinical.server";
+import { updatePrescription } from "@/lib/api";
 import { useTableRefresh } from "@/hooks/use-realtime";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 export const Route = createFileRoute("/admin/prescriptions")({
   head: () => ({ meta: [{ title: "Admin · Prescriptions — Embrace Health Grid" }] }),
@@ -40,6 +58,16 @@ function AdminPrescriptionsPage() {
   const [doctorFilter, setDoctorFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  
+  // Edit modal state
+  const [editingRx, setEditingRx] = useState<any | null>(null);
+  const [editForm, setEditForm] = useState({
+    diagnosis: "",
+    notes: "",
+    status: "",
+    drugs: [] as any[],
+  });
+  const [isSaving, setIsSaving] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -103,6 +131,78 @@ function AdminPrescriptionsPage() {
     allRecords.some((r) => r.rxId === rx.rxId),
   ).length;
 
+  // Open edit modal
+  const handleEdit = (rx: any) => {
+    setEditingRx(rx);
+    setEditForm({
+      diagnosis: rx.diagnosis || "",
+      notes: rx.notes || "",
+      status: rx.status || "active",
+      drugs: rx.drugs || [],
+    });
+  };
+
+  // Close edit modal
+  const handleCancelEdit = () => {
+    setEditingRx(null);
+    setEditForm({ diagnosis: "", notes: "", status: "", drugs: [] });
+  };
+
+  // Save prescription changes
+  const handleSave = async () => {
+    if (!editingRx) return;
+
+    setIsSaving(true);
+    try {
+      await updatePrescription(editingRx.rxId, {
+        diagnosis: editForm.diagnosis,
+        notes: editForm.notes,
+        status: editForm.status,
+        drugs: editForm.drugs,
+      });
+
+      toast.success("Prescription updated successfully", {
+        description: `Updated prescription ${editingRx.rxId}`,
+      });
+
+      // Refresh data
+      await load();
+      handleCancelEdit();
+    } catch (err: any) {
+      toast.error("Failed to update prescription", {
+        description: err.message || "An error occurred",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Add new drug to prescription
+  const handleAddDrug = () => {
+    setEditForm({
+      ...editForm,
+      drugs: [
+        ...editForm.drugs,
+        { name: "", dosage: "", frequency: "", duration: "", usage: "", instructions: "" },
+      ],
+    });
+  };
+
+  // Remove drug from prescription
+  const handleRemoveDrug = (index: number) => {
+    setEditForm({
+      ...editForm,
+      drugs: editForm.drugs.filter((_, i) => i !== index),
+    });
+  };
+
+  // Update drug field
+  const handleUpdateDrug = (index: number, field: string, value: string) => {
+    const updatedDrugs = [...editForm.drugs];
+    updatedDrugs[index] = { ...updatedDrugs[index], [field]: value };
+    setEditForm({ ...editForm, drugs: updatedDrugs });
+  };
+
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
       {/* Header */}
@@ -147,12 +247,11 @@ function AdminPrescriptionsPage() {
         ))}
       </div>
 
-      {/* Read-only banner */}
+      {/* Banner */}
       <div className="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-4 py-2.5 text-xs text-primary">
         <Shield className="h-4 w-4 shrink-0" />
         <span className="font-medium">
-          Read-only audit view — Admin can view but cannot create, edit, or delete prescriptions or
-          medical reports.
+          Admin Portal — View and modify prescriptions for clinical oversight and corrections.
         </span>
       </div>
 
@@ -258,6 +357,16 @@ function AdminPrescriptionsPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEdit(cx);
+                        }}
+                        className="inline-flex items-center gap-1 rounded-lg border border-primary/30 bg-primary/10 px-2 py-1 text-xs font-medium text-primary hover:bg-primary/20 transition-colors"
+                      >
+                        <Edit2 className="h-3 w-3" />
+                        Edit
+                      </button>
                       <span className="text-xs text-muted-foreground">
                         {(cx.drugs ?? []).length} drug{(cx.drugs ?? []).length !== 1 ? "s" : ""}
                       </span>
@@ -476,6 +585,203 @@ function AdminPrescriptionsPage() {
           })}
         </div>
       )}
+
+      {/* Edit Prescription Dialog */}
+      <Dialog open={!!editingRx} onOpenChange={(open) => !open && handleCancelEdit()}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Prescription</DialogTitle>
+            <DialogDescription>
+              Modify prescription details for clinical oversight and corrections. Patient and doctor
+              information cannot be changed.
+            </DialogDescription>
+          </DialogHeader>
+
+          {editingRx && (
+            <div className="space-y-4 py-4">
+              {/* Read-only Patient Info */}
+              <div className="grid grid-cols-2 gap-3 p-3 rounded-lg bg-muted/50 border border-border">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Patient</Label>
+                  <div className="text-sm font-medium">{editingRx.patientName || editingRx.patientDid}</div>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Doctor</Label>
+                  <div className="text-sm font-medium">{editingRx.doctorName || editingRx.signedBy}</div>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Prescription ID</Label>
+                  <div className="text-xs font-mono text-primary">{editingRx.rxId}</div>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Issued At</Label>
+                  <div className="text-xs">
+                    {editingRx.signedAt ? new Date(editingRx.signedAt).toLocaleString("en-IN") : "—"}
+                  </div>
+                </div>
+              </div>
+
+              {/* Diagnosis */}
+              <div className="space-y-2">
+                <Label htmlFor="diagnosis" className="text-sm font-semibold">
+                  Diagnosis
+                </Label>
+                <Input
+                  id="diagnosis"
+                  value={editForm.diagnosis}
+                  onChange={(e) => setEditForm({ ...editForm, diagnosis: e.target.value })}
+                  placeholder="e.g., Hypertension, Type 2 Diabetes"
+                  className="text-sm"
+                />
+              </div>
+
+              {/* Status */}
+              <div className="space-y-2">
+                <Label htmlFor="status" className="text-sm font-semibold">
+                  Status
+                </Label>
+                <select
+                  id="status"
+                  value={editForm.status}
+                  onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+                  className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm outline-none"
+                >
+                  <option value="active">Active</option>
+                  <option value="dispensed">Dispensed</option>
+                  <option value="cancelled">Cancelled</option>
+                  <option value="expired">Expired</option>
+                </select>
+              </div>
+
+              {/* Notes */}
+              <div className="space-y-2">
+                <Label htmlFor="notes" className="text-sm font-semibold">
+                  Additional Notes
+                </Label>
+                <Textarea
+                  id="notes"
+                  value={editForm.notes}
+                  onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                  placeholder="Any additional instructions or notes..."
+                  rows={3}
+                  className="text-sm"
+                />
+              </div>
+
+              {/* Medications */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-semibold">Medications</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleAddDrug}
+                    className="text-xs"
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Add Drug
+                  </Button>
+                </div>
+
+                {editForm.drugs.map((drug, index) => (
+                  <div
+                    key={index}
+                    className="p-3 rounded-lg border border-border bg-card space-y-2 relative"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveDrug(index)}
+                      className="absolute top-2 right-2 text-destructive hover:bg-destructive/10 rounded p-1"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label className="text-xs">Drug Name *</Label>
+                        <Input
+                          value={drug.name}
+                          onChange={(e) => handleUpdateDrug(index, "name", e.target.value)}
+                          placeholder="e.g., Metformin"
+                          className="text-xs mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Dosage</Label>
+                        <Input
+                          value={drug.dosage}
+                          onChange={(e) => handleUpdateDrug(index, "dosage", e.target.value)}
+                          placeholder="e.g., 500mg"
+                          className="text-xs mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Frequency</Label>
+                        <Input
+                          value={drug.frequency}
+                          onChange={(e) => handleUpdateDrug(index, "frequency", e.target.value)}
+                          placeholder="e.g., Twice daily"
+                          className="text-xs mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Duration</Label>
+                        <Input
+                          value={drug.duration}
+                          onChange={(e) => handleUpdateDrug(index, "duration", e.target.value)}
+                          placeholder="e.g., 30 days"
+                          className="text-xs mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Usage</Label>
+                        <Input
+                          value={drug.usage}
+                          onChange={(e) => handleUpdateDrug(index, "usage", e.target.value)}
+                          placeholder="e.g., After meals"
+                          className="text-xs mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Instructions</Label>
+                        <Input
+                          value={drug.instructions}
+                          onChange={(e) => handleUpdateDrug(index, "instructions", e.target.value)}
+                          placeholder="Special instructions"
+                          className="text-xs mt-1"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {editForm.drugs.length === 0 && (
+                  <div className="text-center py-4 text-xs text-muted-foreground border border-dashed rounded-lg">
+                    No medications added yet. Click "Add Drug" to add medications.
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleCancelEdit}
+              disabled={isSaving}
+            >
+              <X className="h-4 w-4 mr-1" />
+              Cancel
+            </Button>
+            <Button type="button" onClick={handleSave} disabled={isSaving}>
+              <Save className="h-4 w-4 mr-1" />
+              {isSaving ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

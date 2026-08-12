@@ -60,11 +60,15 @@ import { Route as AdminOnboardRouteImport } from './routes/admin.onboard'
 import { Route as AdminNfcCardsRouteImport } from './routes/admin.nfc-cards'
 import { Route as AdminFraudRouteImport } from './routes/admin.fraud'
 import { Route as AdminFinancialRouteImport } from './routes/admin.financial'
+import { Route as AdminDoctorsRouteImport } from './routes/admin.doctors'
 import { Route as AdminDigitalTwinRouteImport } from './routes/admin.digital-twin'
 import { Route as AdminDidsRouteImport } from './routes/admin.dids'
 import { Route as AdminCredentialsRouteImport } from './routes/admin.credentials'
 import { Route as AdminCommandRouteImport } from './routes/admin.command'
+import { Route as AdminCertificationsMgmtRouteImport } from './routes/admin.certifications-mgmt'
+import { Route as AdminBedsRoomsRouteImport } from './routes/admin.beds-rooms'
 import { Route as AdminAuditRouteImport } from './routes/admin.audit'
+import { Route as AdminAdmissionsRouteImport } from './routes/admin.admissions'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -321,6 +325,11 @@ const AdminFinancialRoute = AdminFinancialRouteImport.update({
   path: '/admin/financial',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminDoctorsRoute = AdminDoctorsRouteImport.update({
+  id: '/admin/doctors',
+  path: '/admin/doctors',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminDigitalTwinRoute = AdminDigitalTwinRouteImport.update({
   id: '/admin/digital-twin',
   path: '/admin/digital-twin',
@@ -341,9 +350,24 @@ const AdminCommandRoute = AdminCommandRouteImport.update({
   path: '/admin/command',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminCertificationsMgmtRoute = AdminCertificationsMgmtRouteImport.update({
+  id: '/admin/certifications-mgmt',
+  path: '/admin/certifications-mgmt',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminBedsRoomsRoute = AdminBedsRoomsRouteImport.update({
+  id: '/admin/beds-rooms',
+  path: '/admin/beds-rooms',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminAuditRoute = AdminAuditRouteImport.update({
   id: '/admin/audit',
   path: '/admin/audit',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminAdmissionsRoute = AdminAdmissionsRouteImport.update({
+  id: '/admin/admissions',
+  path: '/admin/admissions',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -353,11 +377,15 @@ export interface FileRoutesByFullPath {
   '/credential-explorer': typeof CredentialExplorerRoute
   '/did-explorer': typeof DidExplorerRoute
   '/login': typeof LoginRoute
+  '/admin/admissions': typeof AdminAdmissionsRoute
   '/admin/audit': typeof AdminAuditRoute
+  '/admin/beds-rooms': typeof AdminBedsRoomsRoute
+  '/admin/certifications-mgmt': typeof AdminCertificationsMgmtRoute
   '/admin/command': typeof AdminCommandRoute
   '/admin/credentials': typeof AdminCredentialsRoute
   '/admin/dids': typeof AdminDidsRoute
   '/admin/digital-twin': typeof AdminDigitalTwinRoute
+  '/admin/doctors': typeof AdminDoctorsRoute
   '/admin/financial': typeof AdminFinancialRoute
   '/admin/fraud': typeof AdminFraudRoute
   '/admin/nfc-cards': typeof AdminNfcCardsRoute
@@ -411,11 +439,15 @@ export interface FileRoutesByTo {
   '/credential-explorer': typeof CredentialExplorerRoute
   '/did-explorer': typeof DidExplorerRoute
   '/login': typeof LoginRoute
+  '/admin/admissions': typeof AdminAdmissionsRoute
   '/admin/audit': typeof AdminAuditRoute
+  '/admin/beds-rooms': typeof AdminBedsRoomsRoute
+  '/admin/certifications-mgmt': typeof AdminCertificationsMgmtRoute
   '/admin/command': typeof AdminCommandRoute
   '/admin/credentials': typeof AdminCredentialsRoute
   '/admin/dids': typeof AdminDidsRoute
   '/admin/digital-twin': typeof AdminDigitalTwinRoute
+  '/admin/doctors': typeof AdminDoctorsRoute
   '/admin/financial': typeof AdminFinancialRoute
   '/admin/fraud': typeof AdminFraudRoute
   '/admin/nfc-cards': typeof AdminNfcCardsRoute
@@ -470,11 +502,15 @@ export interface FileRoutesById {
   '/credential-explorer': typeof CredentialExplorerRoute
   '/did-explorer': typeof DidExplorerRoute
   '/login': typeof LoginRoute
+  '/admin/admissions': typeof AdminAdmissionsRoute
   '/admin/audit': typeof AdminAuditRoute
+  '/admin/beds-rooms': typeof AdminBedsRoomsRoute
+  '/admin/certifications-mgmt': typeof AdminCertificationsMgmtRoute
   '/admin/command': typeof AdminCommandRoute
   '/admin/credentials': typeof AdminCredentialsRoute
   '/admin/dids': typeof AdminDidsRoute
   '/admin/digital-twin': typeof AdminDigitalTwinRoute
+  '/admin/doctors': typeof AdminDoctorsRoute
   '/admin/financial': typeof AdminFinancialRoute
   '/admin/fraud': typeof AdminFraudRoute
   '/admin/nfc-cards': typeof AdminNfcCardsRoute
@@ -530,11 +566,15 @@ export interface FileRouteTypes {
     | '/credential-explorer'
     | '/did-explorer'
     | '/login'
+    | '/admin/admissions'
     | '/admin/audit'
+    | '/admin/beds-rooms'
+    | '/admin/certifications-mgmt'
     | '/admin/command'
     | '/admin/credentials'
     | '/admin/dids'
     | '/admin/digital-twin'
+    | '/admin/doctors'
     | '/admin/financial'
     | '/admin/fraud'
     | '/admin/nfc-cards'
@@ -588,11 +628,15 @@ export interface FileRouteTypes {
     | '/credential-explorer'
     | '/did-explorer'
     | '/login'
+    | '/admin/admissions'
     | '/admin/audit'
+    | '/admin/beds-rooms'
+    | '/admin/certifications-mgmt'
     | '/admin/command'
     | '/admin/credentials'
     | '/admin/dids'
     | '/admin/digital-twin'
+    | '/admin/doctors'
     | '/admin/financial'
     | '/admin/fraud'
     | '/admin/nfc-cards'
@@ -646,11 +690,15 @@ export interface FileRouteTypes {
     | '/credential-explorer'
     | '/did-explorer'
     | '/login'
+    | '/admin/admissions'
     | '/admin/audit'
+    | '/admin/beds-rooms'
+    | '/admin/certifications-mgmt'
     | '/admin/command'
     | '/admin/credentials'
     | '/admin/dids'
     | '/admin/digital-twin'
+    | '/admin/doctors'
     | '/admin/financial'
     | '/admin/fraud'
     | '/admin/nfc-cards'
@@ -705,11 +753,15 @@ export interface RootRouteChildren {
   CredentialExplorerRoute: typeof CredentialExplorerRoute
   DidExplorerRoute: typeof DidExplorerRoute
   LoginRoute: typeof LoginRoute
+  AdminAdmissionsRoute: typeof AdminAdmissionsRoute
   AdminAuditRoute: typeof AdminAuditRoute
+  AdminBedsRoomsRoute: typeof AdminBedsRoomsRoute
+  AdminCertificationsMgmtRoute: typeof AdminCertificationsMgmtRoute
   AdminCommandRoute: typeof AdminCommandRoute
   AdminCredentialsRoute: typeof AdminCredentialsRoute
   AdminDidsRoute: typeof AdminDidsRoute
   AdminDigitalTwinRoute: typeof AdminDigitalTwinRoute
+  AdminDoctorsRoute: typeof AdminDoctorsRoute
   AdminFinancialRoute: typeof AdminFinancialRoute
   AdminFraudRoute: typeof AdminFraudRoute
   AdminNfcCardsRoute: typeof AdminNfcCardsRoute
@@ -1117,6 +1169,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminFinancialRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/doctors': {
+      id: '/admin/doctors'
+      path: '/admin/doctors'
+      fullPath: '/admin/doctors'
+      preLoaderRoute: typeof AdminDoctorsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/digital-twin': {
       id: '/admin/digital-twin'
       path: '/admin/digital-twin'
@@ -1145,11 +1204,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCommandRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/certifications-mgmt': {
+      id: '/admin/certifications-mgmt'
+      path: '/admin/certifications-mgmt'
+      fullPath: '/admin/certifications-mgmt'
+      preLoaderRoute: typeof AdminCertificationsMgmtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/beds-rooms': {
+      id: '/admin/beds-rooms'
+      path: '/admin/beds-rooms'
+      fullPath: '/admin/beds-rooms'
+      preLoaderRoute: typeof AdminBedsRoomsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/audit': {
       id: '/admin/audit'
       path: '/admin/audit'
       fullPath: '/admin/audit'
       preLoaderRoute: typeof AdminAuditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/admissions': {
+      id: '/admin/admissions'
+      path: '/admin/admissions'
+      fullPath: '/admin/admissions'
+      preLoaderRoute: typeof AdminAdmissionsRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -1161,11 +1241,15 @@ const rootRouteChildren: RootRouteChildren = {
   CredentialExplorerRoute: CredentialExplorerRoute,
   DidExplorerRoute: DidExplorerRoute,
   LoginRoute: LoginRoute,
+  AdminAdmissionsRoute: AdminAdmissionsRoute,
   AdminAuditRoute: AdminAuditRoute,
+  AdminBedsRoomsRoute: AdminBedsRoomsRoute,
+  AdminCertificationsMgmtRoute: AdminCertificationsMgmtRoute,
   AdminCommandRoute: AdminCommandRoute,
   AdminCredentialsRoute: AdminCredentialsRoute,
   AdminDidsRoute: AdminDidsRoute,
   AdminDigitalTwinRoute: AdminDigitalTwinRoute,
+  AdminDoctorsRoute: AdminDoctorsRoute,
   AdminFinancialRoute: AdminFinancialRoute,
   AdminFraudRoute: AdminFraudRoute,
   AdminNfcCardsRoute: AdminNfcCardsRoute,

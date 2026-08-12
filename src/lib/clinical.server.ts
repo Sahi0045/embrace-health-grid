@@ -129,6 +129,74 @@ export const getPrescriptionsForPatient = createServerFn({ method: "GET" })
     return { prescriptions: rows ?? [] };
   });
 
+/**
+ * Update prescription details (admin only).
+ *
+ * Admins may update prescription details for clinical oversight and corrections.
+ * The RLS policy prescriptions_update_admin restricts this to role='admin'.
+ *
+ * Immutable fields (rx_id, patient_did, doctor_did, signed, signed_by, signed_at)
+ * are not updated to preserve audit integrity.
+ */
+export const updatePrescription = createServerFn({ method: "POST" })
+  .validator(
+    (data: {
+      rxId: string;
+      diagnosis?: string;
+      notes?: string;
+      status?: string;
+      drugs?: any[];
+    }) => {
+      if (!data?.rxId) throw new Error("rxId is required");
+      return data;
+    },
+  )
+  .handler(async ({ data }) => {
+    await requireSession();
+    const supabase = getSupabaseServerClient();
+
+    // Build the update patch with only the fields provided
+    const patch: Record<string, unknown> = {
+      updated_at: new Date().toISOString(),
+    };
+
+    if (data.diagnosis !== undefined) patch.diagnosis = data.diagnosis;
+    if (data.notes !== undefined) patch.notes = data.notes;
+    if (data.status !== undefined) {
+      // Validate status against rx_status enum
+      const validStatuses = ["active", "dispensed", "cancelled", "expired"];
+      if (!validStatuses.includes(data.status)) {
+        throw new Error(`Invalid status. Must be one of: ${validStatuses.join(", ")}`);
+      }
+      patch.status = data.status;
+    }
+    if (data.drugs !== undefined) patch.drugs = data.drugs;
+
+    // Only updated_at should change if no other fields provided
+    if (Object.keys(patch).length === 1) {
+      throw new Error("No fields to update");
+    }
+
+    const { data: updated, error } = await supabase
+      .from("prescriptions")
+      .update(patch)
+      .eq("rx_id", data.rxId)
+      .select("rx_id");
+
+    if (error) {
+      if (/row-level security/i.test(error.message)) {
+        throw new Error("Only administrators can update prescriptions");
+      }
+      throw new Error(error.message);
+    }
+
+    if (!updated?.length) {
+      throw new Error("Prescription not found or you do not have permission to update it");
+    }
+
+    return { ok: true as const, rxId: data.rxId };
+  });
+
 // ─── Lab results ────────────────────────────────────────────────────────────
 
 export const getLabResults = createServerFn({ method: "GET" }).handler(async () => {
