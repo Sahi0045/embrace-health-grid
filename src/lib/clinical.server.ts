@@ -19,6 +19,7 @@
 
 import { createServerFn } from "@tanstack/react-start";
 import { getSupabaseServerClient, getVerifiedUser } from "./supabase.server";
+import { resolveCallerForAudit, tryWriteAudit, buildPrescriptionAudit } from "./audit.server";
 
 /** Reject unauthenticated callers before touching the database. */
 /**
@@ -155,6 +156,13 @@ export const updatePrescription = createServerFn({ method: "POST" })
     await requireSession();
     const supabase = getSupabaseServerClient();
 
+    // Capture previous state for audit trail before applying changes
+    const { data: prevRow } = await supabase
+      .from("prescriptions")
+      .select("diagnosis, notes, status, drugs")
+      .eq("rx_id", data.rxId)
+      .maybeSingle();
+
     // Build the update patch with only the fields provided
     const patch: Record<string, unknown> = {
       updated_at: new Date().toISOString(),
@@ -193,6 +201,25 @@ export const updatePrescription = createServerFn({ method: "POST" })
     if (!updated?.length) {
       throw new Error("Prescription not found or you do not have permission to update it");
     }
+
+    // ── Rich audit record + blockchain proof ─────────────────────────────────
+    const caller = await resolveCallerForAudit();
+    tryWriteAudit(buildPrescriptionAudit(
+      caller,
+      data.rxId,
+      prevRow ? {
+        diagnosis: prevRow.diagnosis,
+        notes:     prevRow.notes,
+        status:    prevRow.status,
+        drugCount: Array.isArray(prevRow.drugs) ? prevRow.drugs.length : 0,
+      } : null,
+      {
+        diagnosis: data.diagnosis,
+        notes:     data.notes,
+        status:    data.status,
+        drugCount: Array.isArray(data.drugs) ? data.drugs.length : undefined,
+      },
+    ));
 
     return { ok: true as const, rxId: data.rxId };
   });

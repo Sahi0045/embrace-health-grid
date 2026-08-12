@@ -11,6 +11,7 @@
 
 import { createServerFn } from "@tanstack/react-start";
 import { getSupabaseServerClient, getVerifiedUser } from "./supabase.server";
+import { resolveCallerForAudit, tryWriteAudit, buildCertificationAudit } from "./audit.server";
 
 /** Reject unauthenticated callers */
 async function requireSession() {
@@ -232,6 +233,17 @@ export const createCertification = createServerFn({ method: "POST" })
       throw new Error(error.message);
     }
 
+    // ── Rich audit record ─────────────────────────────────────────────────────
+    const caller = await resolveCallerForAudit();
+    tryWriteAudit(buildCertificationAudit(
+      caller,
+      "CERTIFICATION_CREATED",
+      certification.cert_id,
+      data.staffDid,
+      null,
+      { certName: data.certName, issuingBody: data.issuingBody, status: data.status ?? "active" },
+    ));
+
     return { ok: true as const, certId: certification.cert_id };
   });
 
@@ -262,6 +274,13 @@ export const updateCertification = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const user = await requireSession();
     const supabase = getSupabaseServerClient();
+
+    // Fetch previous state before updating
+    const { data: prevRow } = await supabase
+      .from("staff_certifications")
+      .select("cert_name, issuing_body, status, expiry_date, staff_did")
+      .eq("cert_id", data.certId)
+      .maybeSingle();
 
     // Build update patch
     const patch: Record<string, unknown> = {
@@ -310,6 +329,17 @@ export const updateCertification = createServerFn({ method: "POST" })
       throw new Error("Certification not found or you do not have permission to update it");
     }
 
+    // ── Rich audit record ─────────────────────────────────────────────────────
+    const caller = await resolveCallerForAudit();
+    tryWriteAudit(buildCertificationAudit(
+      caller,
+      "CERTIFICATION_UPDATED",
+      data.certId,
+      prevRow?.staff_did ?? data.certId,
+      prevRow ? { certName: prevRow.cert_name, status: prevRow.status, expiryDate: prevRow.expiry_date } : null,
+      { certName: data.certName, status: data.status, expiryDate: data.expiryDate },
+    ));
+
     return { ok: true as const, certId: data.certId };
   });
 
@@ -327,6 +357,13 @@ export const deleteCertification = createServerFn({ method: "POST" })
     await requireSession();
     const supabase = getSupabaseServerClient();
 
+    // Fetch before deletion for audit snapshot
+    const { data: prevRow } = await supabase
+      .from("staff_certifications")
+      .select("cert_name, issuing_body, status, staff_did")
+      .eq("cert_id", data.certId)
+      .maybeSingle();
+
     const { data: deleted, error } = await supabase
       .from("staff_certifications")
       .delete()
@@ -343,6 +380,17 @@ export const deleteCertification = createServerFn({ method: "POST" })
     if (!deleted?.length) {
       throw new Error("Certification not found or you do not have permission to delete it");
     }
+
+    // ── Rich audit record ─────────────────────────────────────────────────────
+    const caller = await resolveCallerForAudit();
+    tryWriteAudit(buildCertificationAudit(
+      caller,
+      "CERTIFICATION_DELETED",
+      data.certId,
+      prevRow?.staff_did ?? data.certId,
+      prevRow ? { certName: prevRow.cert_name, issuingBody: prevRow.issuing_body, status: prevRow.status } : null,
+      null,
+    ));
 
     return { ok: true as const, certId: data.certId };
   });

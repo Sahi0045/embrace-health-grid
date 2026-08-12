@@ -350,6 +350,38 @@ export async function getWardOccupancy() {
   return await fn();
 }
 
+// ─── Audit Trail ─────────────────────────────────────────────────────────────
+
+export async function getAuditTrail(opts: {
+  module?: string;
+  entityId?: string;
+  actorId?: string;
+  severity?: string;
+  outcome?: string;
+  from?: string;
+  to?: string;
+  limit?: number;
+  offset?: number;
+} = {}) {
+  const { getAuditTrail: fn } = await import("./audit.server");
+  return await fn({ data: opts });
+}
+
+export async function verifyAuditRecord(txId: string) {
+  const { verifyAuditRecord: fn } = await import("./audit.server");
+  return await fn({ data: { txId } });
+}
+
+export async function processAuditAnchorQueue(limit?: number) {
+  const { processAuditAnchorQueue: fn } = await import("./audit.server");
+  return await fn({ data: { limit } });
+}
+
+export async function getAuditStats() {
+  const { getAuditStats: fn } = await import("./audit.server");
+  return await fn();
+}
+
 export async function getLabResults(_did?: string) {
   const { getLabResults: fn } = await import("./clinical.server");
   const res = await fn();

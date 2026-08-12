@@ -47,6 +47,11 @@
 
 import { createServerFn } from "@tanstack/react-start";
 import { getSupabaseServerClient, getVerifiedUser } from "./supabase.server";
+import {
+  resolveCallerForAudit,
+  tryWriteAudit,
+  buildAdmissionAudit,
+} from "./audit.server";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -73,41 +78,6 @@ async function callerProfile() {
 /** Generate a compact unique ID for a new admission. */
 function newAdmissionId(): string {
   return `ADM-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
-}
-
-/**
- * Write a row to audit_events.
- *
- * audit_events has no client INSERT policy — only service_role writes land.
- * This function uses the same supabase client (ANON key + session) so it will
- * silently skip if the policy is absent, rather than crashing the transaction.
- * The admission_events trigger provides the durable audit trail; this is a
- * best-effort secondary entry in the system-wide log.
- */
-async function tryWriteAuditEvent(
-  supabase: ReturnType<typeof getSupabaseServerClient>,
-  actorId: string | null,
-  actorDid: string | null,
-  resource: string,
-  action: string,
-  outcome: string,
-  severity: string,
-  metadata: Record<string, unknown>,
-) {
-  try {
-    await supabase.from("audit_events").insert({
-      actor_id: actorId,
-      actor_did: actorDid,
-      resource,
-      action,
-      outcome,
-      severity,
-      metadata,
-    });
-  } catch {
-    // Intentional: audit is best-effort from the app layer.
-    // The DB trigger on admissions is the guaranteed record.
-  }
 }
 
 // ─── admitPatient ────────────────────────────────────────────────────────────
@@ -231,25 +201,25 @@ export const admitPatient = createServerFn({ method: "POST" })
       { onConflict: "patient_did" },
     );
 
-    // ── Step 7: Write audit event (best-effort) ──────────────────────────────
-    await tryWriteAuditEvent(
-      supabase,
-      user.id,
-      profile?.primary_did ?? null,
-      "admissions",
-      "admit_patient",
-      "success",
-      "info",
+    // ── Step 7: Rich audit record + blockchain proof ─────────────────────────
+    const caller = await resolveCallerForAudit();
+    tryWriteAudit(buildAdmissionAudit(
+      caller,
+      "PATIENT_ADMITTED",
+      admissionId,
+      data.patientDid,
+      null,  // no previous state — new admission
       {
         admissionId,
-        patientDid:  data.patientDid,
-        bedId:       data.bedId,
-        ward:        data.ward,
-        room:        data.room ?? null,
-        diagnosis:   data.diagnosis ?? null,
+        bedId:    data.bedId,
+        ward:     data.ward,
+        room:     data.room ?? null,
+        diagnosis: data.diagnosis ?? null,
         admissionFee: fee,
+        status:   "admitted",
       },
-    );
+      { billingCharged: fee },
+    ));
 
     // admission_events trigger fires automatically on the INSERT above.
     // beds, billing_accounts, admissions are all in realtime publication →
@@ -369,24 +339,17 @@ export const dischargePatient = createServerFn({ method: "POST" })
       }
     }
 
-    // ── Step 6: Audit event (best-effort) ────────────────────────────────────
-    await tryWriteAuditEvent(
-      supabase,
-      user.id,
-      profile?.primary_did ?? null,
-      "admissions",
-      "discharge_patient",
-      "success",
-      "info",
-      {
-        admissionId:   data.admissionId,
-        patientDid:    admission.patient_did,
-        bedId:         admission.bed,
-        ward:          admission.ward,
-        finalBill:     data.finalBillAmount ?? 0,
-        dischargeSummary: data.dischargeSummary ?? null,
-      },
-    );
+    // ── Step 6: Rich audit record + blockchain proof ─────────────────────────
+    const caller = await resolveCallerForAudit();
+    tryWriteAudit(buildAdmissionAudit(
+      caller,
+      "PATIENT_DISCHARGED",
+      data.admissionId,
+      admission.patient_did,
+      { status: "admitted", bed: admission.bed, ward: admission.ward, room: admission.room },
+      { status: "discharged", dischargedAt: now, dischargeSummary: data.dischargeSummary ?? null },
+      { finalBill: data.finalBillAmount ?? 0, bedNowCleaning: admission.bed },
+    ));
 
     return {
       ok:          true as const,
@@ -522,27 +485,17 @@ export const transferPatient = createServerFn({ method: "POST" })
         .eq("room_id", newRoomId);
     }
 
-    // ── Step 7: Audit event ──────────────────────────────────────────────────
-    await tryWriteAuditEvent(
-      supabase,
-      user.id,
-      profile?.primary_did ?? null,
-      "admissions",
-      "transfer_patient",
-      "success",
-      "info",
-      {
-        admissionId:    data.admissionId,
-        patientDid:     admission.patient_did,
-        fromBed:        oldBedId,
-        fromWard:       admission.ward,
-        fromRoom:       admission.room,
-        toBed:          data.newBedId,
-        toWard:         data.newWard,
-        toRoom:         data.newRoom ?? null,
-        transferReason: data.transferReason ?? null,
-      },
-    );
+    // ── Step 7: Rich audit record + blockchain proof ─────────────────────────
+    const caller = await resolveCallerForAudit();
+    tryWriteAudit(buildAdmissionAudit(
+      caller,
+      "PATIENT_TRANSFERRED",
+      data.admissionId,
+      admission.patient_did,
+      { bed: oldBedId, ward: admission.ward, room: admission.room },
+      { bed: data.newBedId, ward: data.newWard, room: data.newRoom ?? null },
+      { transferReason: data.transferReason ?? null },
+    ));
 
     return {
       ok:          true as const,

@@ -12,6 +12,7 @@
 
 import { createServerFn } from "@tanstack/react-start";
 import { getSupabaseServerClient, getVerifiedUser } from "./supabase.server";
+import { resolveCallerForAudit, tryWriteAudit, buildBedAudit, buildRoomAudit } from "./audit.server";
 
 async function requireSession() {
   const user = await getVerifiedUser();
@@ -1041,6 +1042,16 @@ export const updateBedStatus = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     if (!updated) throw new Error("Bed not found or you cannot update it");
 
+    // ── Rich audit record ─────────────────────────────────────────────────────
+    const caller = await resolveCallerForAudit();
+    tryWriteAudit(buildBedAudit(
+      caller,
+      data.bedId,
+      "unknown",          // prev status not fetched to keep the update lean
+      data.status,
+      data.patientDid ? { patientDid: data.patientDid } : {},
+    ));
+
     return { ok: true as const, bed: updated };
   });
 
@@ -1073,6 +1084,10 @@ export const updateRoomStatus = createServerFn({ method: "POST" })
 
     if (error) throw new Error(error.message);
     if (!updated) throw new Error("Room not found or you cannot update it");
+
+    // ── Rich audit record ─────────────────────────────────────────────────────
+    const caller = await resolveCallerForAudit();
+    tryWriteAudit(buildRoomAudit(caller, data.roomId, "unknown", data.status));
 
     return { ok: true as const, room: updated };
   });
