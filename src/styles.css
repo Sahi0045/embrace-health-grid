@@ -183,7 +183,7 @@
     border-color: var(--color-border);
     transition-property:
       background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
-    transition-duration: 200ms;
+    transition-duration: 250ms;
     transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
   }
   html,
@@ -205,4 +205,88 @@
   h1 {
     font-family: var(--font-display);
   }
+}
+
+/*
+ * Liquid Glass 2026 & Bento Grid Design System Extensions
+ */
+.ambient-page-bg {
+  position: relative;
+  background-color: var(--color-background);
+}
+
+.ambient-page-bg::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 1400px;
+  height: 480px;
+  background: radial-gradient(
+    ellipse 80% 50% at 50% -10%,
+    oklch(0.44 0.19 242 / 0.08),
+    oklch(0.52 0.14 195 / 0.04),
+    transparent 80%
+  );
+  pointer-events: none;
+  z-index: -1;
+}
+
+.dark .ambient-page-bg::before {
+  background: radial-gradient(
+    ellipse 80% 50% at 50% -10%,
+    oklch(0.75 0.15 245 / 0.12),
+    oklch(0.65 0.15 195 / 0.06),
+    transparent 80%
+  );
+}
+
+/* Liquid Glass 2026 Card Utility */
+.liquid-glass {
+  background: var(--color-card);
+  background-image: linear-gradient(135deg, oklch(1 0 0 / 0.03) 0%, oklch(1 0 0 / 0.005) 100%);
+  backdrop-filter: blur(16px);
+  border: 1px solid oklch(0.89 0.01 240 / 0.8);
+  box-shadow: 0 4px 20px -2px oklch(0.2 0.04 240 / 0.05);
+}
+
+.dark .liquid-glass {
+  background: oklch(0.17 0.025 250 / 0.85);
+  background-image: linear-gradient(135deg, oklch(1 0 0 / 0.05) 0%, oklch(1 0 0 / 0.01) 100%);
+  backdrop-filter: blur(20px);
+  border: 1px solid oklch(1 0 0 / 0.12);
+  box-shadow: 0 8px 32px -4px oklch(0 0 0 / 0.4);
+}
+
+.bento-card {
+  border-radius: 1.25rem;
+  border: 1px solid oklch(0.89 0.01 240 / 0.7);
+  box-shadow: 0 4px 20px -2px oklch(0.2 0.04 240 / 0.04);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dark .bento-card {
+  border: 1px solid oklch(1 0 0 / 0.1);
+  box-shadow: 0 8px 30px -4px oklch(0 0 0 / 0.35);
+}
+
+/* Hover Glow Utility */
+.glow-on-hover {
+  transition:
+    transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glow-on-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 30px -8px oklch(0.44 0.19 242 / 0.18);
+  border-color: oklch(0.44 0.19 242 / 0.4);
+}
+
+.dark .glow-on-hover:hover {
+  box-shadow: 0 12px 36px -8px oklch(0.75 0.15 245 / 0.25);
+  border-color: oklch(0.75 0.15 245 / 0.45);
 }
