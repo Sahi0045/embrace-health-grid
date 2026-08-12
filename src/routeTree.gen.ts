@@ -9,7 +9,9 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as DidExplorerRouteImport } from './routes/did-explorer'
 import { Route as AuditTimelineRouteImport } from './routes/audit-timeline'
 import { Route as IndexRouteImport } from './routes/index'
@@ -63,9 +65,19 @@ import { Route as AdminDidsRouteImport } from './routes/admin.dids'
 import { Route as AdminCommandRouteImport } from './routes/admin.command'
 import { Route as AdminAuditRouteImport } from './routes/admin.audit'
 
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DidExplorerRoute = DidExplorerRouteImport.update({
@@ -333,7 +345,9 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/audit-timeline': typeof AuditTimelineRoute
   '/did-explorer': typeof DidExplorerRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/command': typeof AdminCommandRoute
   '/admin/dids': typeof AdminDidsRoute
@@ -388,7 +402,9 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/audit-timeline': typeof AuditTimelineRoute
   '/did-explorer': typeof DidExplorerRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/command': typeof AdminCommandRoute
   '/admin/dids': typeof AdminDidsRoute
@@ -444,7 +460,9 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/audit-timeline': typeof AuditTimelineRoute
   '/did-explorer': typeof DidExplorerRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/command': typeof AdminCommandRoute
   '/admin/dids': typeof AdminDidsRoute
@@ -501,7 +519,9 @@ export interface FileRouteTypes {
     | '/'
     | '/audit-timeline'
     | '/did-explorer'
+    | '/forgot-password'
     | '/login'
+    | '/reset-password'
     | '/admin/audit'
     | '/admin/command'
     | '/admin/dids'
@@ -556,7 +576,9 @@ export interface FileRouteTypes {
     | '/'
     | '/audit-timeline'
     | '/did-explorer'
+    | '/forgot-password'
     | '/login'
+    | '/reset-password'
     | '/admin/audit'
     | '/admin/command'
     | '/admin/dids'
@@ -611,7 +633,9 @@ export interface FileRouteTypes {
     | '/'
     | '/audit-timeline'
     | '/did-explorer'
+    | '/forgot-password'
     | '/login'
+    | '/reset-password'
     | '/admin/audit'
     | '/admin/command'
     | '/admin/dids'
@@ -667,7 +691,9 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuditTimelineRoute: typeof AuditTimelineRoute
   DidExplorerRoute: typeof DidExplorerRoute
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   AdminAuditRoute: typeof AdminAuditRoute
   AdminCommandRoute: typeof AdminCommandRoute
   AdminDidsRoute: typeof AdminDidsRoute
@@ -721,11 +747,25 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/did-explorer': {
@@ -1099,7 +1139,9 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuditTimelineRoute: AuditTimelineRoute,
   DidExplorerRoute: DidExplorerRoute,
+  ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   AdminAuditRoute: AdminAuditRoute,
   AdminCommandRoute: AdminCommandRoute,
   AdminDidsRoute: AdminDidsRoute,

@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { User, Stethoscope, ShieldCheck, ArrowRight, Hospital, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -334,7 +334,17 @@ function LoginPage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="password">Password</Label>
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="password">Password</Label>
+                          {!isSignup && (
+                            <Link
+                              to="/forgot-password"
+                              className="text-xs text-muted-foreground hover:text-primary transition-colors"
+                            >
+                              Forgot your password?
+                            </Link>
+                          )}
+                        </div>
                         <Input
                           id="password"
                           type="password"

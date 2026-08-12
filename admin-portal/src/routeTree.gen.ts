@@ -21,7 +21,6 @@ import { Route as DigitalTwinRouteImport } from './routes/digital-twin'
 import { Route as DidsRouteImport } from './routes/dids'
 import { Route as DidExplorerRouteImport } from './routes/did-explorer'
 import { Route as CredentialsRouteImport } from './routes/credentials'
-import { Route as CredentialExplorerRouteImport } from './routes/credential-explorer'
 import { Route as CommandRouteImport } from './routes/command'
 import { Route as AuditTimelineRouteImport } from './routes/audit-timeline'
 import { Route as AuditRouteImport } from './routes/audit'
@@ -87,11 +86,6 @@ const CredentialsRoute = CredentialsRouteImport.update({
   path: '/credentials',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CredentialExplorerRoute = CredentialExplorerRouteImport.update({
-  id: '/credential-explorer',
-  path: '/credential-explorer',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const CommandRoute = CommandRouteImport.update({
   id: '/command',
   path: '/command',
@@ -118,7 +112,6 @@ export interface FileRoutesByFullPath {
   '/audit': typeof AuditRoute
   '/audit-timeline': typeof AuditTimelineRoute
   '/command': typeof CommandRoute
-  '/credential-explorer': typeof CredentialExplorerRoute
   '/credentials': typeof CredentialsRoute
   '/did-explorer': typeof DidExplorerRoute
   '/dids': typeof DidsRoute
@@ -137,7 +130,6 @@ export interface FileRoutesByTo {
   '/audit': typeof AuditRoute
   '/audit-timeline': typeof AuditTimelineRoute
   '/command': typeof CommandRoute
-  '/credential-explorer': typeof CredentialExplorerRoute
   '/credentials': typeof CredentialsRoute
   '/did-explorer': typeof DidExplorerRoute
   '/dids': typeof DidsRoute
@@ -157,7 +149,6 @@ export interface FileRoutesById {
   '/audit': typeof AuditRoute
   '/audit-timeline': typeof AuditTimelineRoute
   '/command': typeof CommandRoute
-  '/credential-explorer': typeof CredentialExplorerRoute
   '/credentials': typeof CredentialsRoute
   '/did-explorer': typeof DidExplorerRoute
   '/dids': typeof DidsRoute
@@ -178,7 +169,6 @@ export interface FileRouteTypes {
     | '/audit'
     | '/audit-timeline'
     | '/command'
-    | '/credential-explorer'
     | '/credentials'
     | '/did-explorer'
     | '/dids'
@@ -197,7 +187,6 @@ export interface FileRouteTypes {
     | '/audit'
     | '/audit-timeline'
     | '/command'
-    | '/credential-explorer'
     | '/credentials'
     | '/did-explorer'
     | '/dids'
@@ -216,7 +205,6 @@ export interface FileRouteTypes {
     | '/audit'
     | '/audit-timeline'
     | '/command'
-    | '/credential-explorer'
     | '/credentials'
     | '/did-explorer'
     | '/dids'
@@ -236,7 +224,6 @@ export interface RootRouteChildren {
   AuditRoute: typeof AuditRoute
   AuditTimelineRoute: typeof AuditTimelineRoute
   CommandRoute: typeof CommandRoute
-  CredentialExplorerRoute: typeof CredentialExplorerRoute
   CredentialsRoute: typeof CredentialsRoute
   DidExplorerRoute: typeof DidExplorerRoute
   DidsRoute: typeof DidsRoute
@@ -337,13 +324,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CredentialsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/credential-explorer': {
-      id: '/credential-explorer'
-      path: '/credential-explorer'
-      fullPath: '/credential-explorer'
-      preLoaderRoute: typeof CredentialExplorerRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/command': {
       id: '/command'
       path: '/command'
@@ -380,7 +360,6 @@ const rootRouteChildren: RootRouteChildren = {
   AuditRoute: AuditRoute,
   AuditTimelineRoute: AuditTimelineRoute,
   CommandRoute: CommandRoute,
-  CredentialExplorerRoute: CredentialExplorerRoute,
   CredentialsRoute: CredentialsRoute,
   DidExplorerRoute: DidExplorerRoute,
   DidsRoute: DidsRoute,

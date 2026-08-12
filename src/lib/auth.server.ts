@@ -19,7 +19,7 @@
  */
 
 import { createServerFn } from "@tanstack/react-start";
-import { getSupabaseServerClient, getVerifiedUser } from "./supabase.server";
+import { getSupabaseServerClient, getVerifiedUser, getCurrentRequest } from "./supabase.server";
 
 /** Roles as stored in the database `user_role` enum. */
 export type UserRole = "patient" | "doctor" | "staff" | "admin" | "super_admin";
@@ -203,3 +203,67 @@ export function hasAccess(userRole: UserRole | null, required: UserRole): boolea
 
   return false;
 }
+
+/**
+ * Request a password reset link for the specified email.
+ * Always returns ok: true to prevent email enumeration.
+ */
+export const requestPasswordReset = createServerFn({ method: "POST" })
+  .validator((data: { email: string }) => {
+    if (!data?.email) throw new Error("Email is required");
+    return data;
+  })
+  .handler(async ({ data }) => {
+    const supabase = getSupabaseServerClient();
+    const req = getCurrentRequest();
+    let origin = "http://localhost:5173";
+    if (req) {
+      const originHeader = req.headers.get("origin");
+      if (originHeader) {
+        origin = originHeader;
+      } else {
+        const hostHeader = req.headers.get("host") || req.headers.get("x-forwarded-host");
+        const protoHeader = req.headers.get("x-forwarded-proto") || "http";
+        if (hostHeader) {
+          origin = `${protoHeader}://${hostHeader}`;
+        }
+      }
+    }
+
+    await supabase.auth.resetPasswordForEmail(data.email, {
+      redirectTo: `${origin}/reset-password`,
+    });
+
+    // Always return success to prevent email enumeration attacks
+    return { ok: true as const };
+  });
+
+/**
+ * Reset password using the code from the email link.
+ */
+export const resetPassword = createServerFn({ method: "POST" })
+  .validator((data: { code: string; newPassword: string }) => {
+    if (!data?.code) throw new Error("Reset code is required");
+    if (!data?.newPassword || data.newPassword.length < 8) {
+      throw new Error("Password must be at least 8 characters");
+    }
+    return data;
+  })
+  .handler(async ({ data }) => {
+    const supabase = getSupabaseServerClient();
+    const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(data.code);
+    if (exchangeError) {
+      throw new Error("Invalid or expired password reset link");
+    }
+
+    const { error: updateError } = await supabase.auth.updateUser({
+      password: data.newPassword,
+    });
+    if (updateError) {
+      throw new Error(updateError.message);
+    }
+
+    // Sign out to require fresh sign in with new password
+    await supabase.auth.signOut();
+    return { ok: true as const };
+  });
