@@ -20,10 +20,17 @@ import {
   Thermometer,
   Droplet,
   Receipt,
+  Bed,
+  CheckCircle2,
+  Users,
+  Wrench,
+  Ban,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { usePatientVitals, useInpatientData } from "@/hooks/use-api";
 import { getBilling, getLabs } from "@/lib/api";
+import { getBedRoomStatistics } from "@/lib/operations.server";
+import { useTableRefresh } from "@/hooks/use-realtime";
 import { toast } from "sonner";
 import { useCurrentUser } from "@/lib/auth-context";
 
@@ -45,31 +52,59 @@ function InpatientCare() {
   const { vitals: liveVitals } = usePatientVitals(patientDid);
   const { data: inpatientData } = useInpatientData(patientDid);
 
-  const [billSummary, setBillSummary] = useState<any>({ totalCharges: 0, balanceDue: 0 });
-  const [labTests, setLabTests] = useState<any[]>([]);
+  const [billSummary, setBillSummary]     = useState<any>({ totalCharges: 0, balanceDue: 0 });
+  const [labTests, setLabTests]           = useState<any[]>([]);
+  const [bedStats, setBedStats]           = useState<any>(null);
+  const [loadingBedStats, setLoadingBedStats] = useState(false);
 
-  useEffect(() => {
+  // ── Loaders ────────────────────────────────────────────────────────────────
+
+  // Load bed/room statistics
+  const loadBedStats = useCallback(async () => {
+    setLoadingBedStats(true);
+    try {
+      const stats = await getBedRoomStatistics();
+      setBedStats(stats);
+    } catch (err) {
+      console.error("Failed to load bed statistics:", err);
+    } finally {
+      setLoadingBedStats(false);
+    }
+  }, []);
+
+  const loadBilling = useCallback(async () => {
+    if (!patientDid) return;
     getBilling(patientDid)
       .then((res) => {
         if (res?.billSummary) {
-          // Merge: a response missing a field must not blank one already shown.
           setBillSummary((prev: any) => ({ ...prev, ...res.billSummary }));
         }
       })
-      .catch((err) => {
-        console.error(err);
-        toast.error("Failed to load billing summary", { description: err.message });
-      });
+      .catch(console.error);
+  }, [patientDid]);
 
+  useEffect(() => {
+    loadBedStats();
+  }, [loadBedStats]);
+
+  // Real-time: beds + rooms → refresh bed statistics
+  useTableRefresh("beds",    loadBedStats);
+  useTableRefresh("rooms",   loadBedStats);
+  // Real-time: admissions → useInpatientData refetches via its own hook;
+  //   we additionally refresh billing in case the admission changed charges.
+  useTableRefresh("admissions",       loadBilling);
+  // Real-time: billing_accounts → immediately show updated balance
+  useTableRefresh("billing_accounts", loadBilling);
+
+  useEffect(() => {
+    loadBilling();
     getLabs(patientDid)
-      .then((res) => {
-        setLabTests(res?.labs || []);
-      })
+      .then((res) => setLabTests(res?.labs || []))
       .catch((err) => {
         console.error(err);
         toast.error("Failed to load lab tests", { description: err.message });
       });
-  }, [patientDid]);
+  }, [patientDid, loadBilling]);
 
   const apiVitalSigns = inpatientData?.vitalSigns ?? [];
   const medications = inpatientData?.medications ?? [];
@@ -82,14 +117,28 @@ function InpatientCare() {
     specialInstructions: "",
   };
   const currentAdmission = inpatientData?.admission ?? {
-    admissionDate: new Date().toISOString(),
-    expectedDischargeDate: null,
+    admitted_at: new Date().toISOString(),
+    expected_discharge: null,
     ward: "—",
     room: "—",
     bed: "—",
+    diagnosis: "—",
+    admitting_doctor: "—",
+    // Legacy field aliases kept for compatibility
+    admissionDate: new Date().toISOString(),
+    expectedDischargeDate: null,
     primaryDiagnosis: "—",
     admittingDoctor: "—",
   };
+
+  // Normalise admission field names: DB columns (snake_case) vs legacy camelCase
+  const admDate   = currentAdmission.admitted_at      ?? currentAdmission.admissionDate;
+  const admExp    = currentAdmission.expected_discharge ?? currentAdmission.expectedDischargeDate;
+  const admWard   = currentAdmission.ward              ?? "—";
+  const admRoom   = currentAdmission.room              ?? "—";
+  const admBed    = currentAdmission.bed               ?? "—";
+  const admDx     = currentAdmission.diagnosis         ?? currentAdmission.primaryDiagnosis ?? "—";
+  const admDoctor = currentAdmission.admitting_doctor  ?? currentAdmission.admittingDoctor  ?? "—";
 
   const defaultVital = {
     id: "v0",
@@ -133,6 +182,108 @@ function InpatientCare() {
         />
 
         <div className="mt-6 space-y-6">
+          {/* Hospital Bed Availability Overview */}
+          {bedStats && (
+            <Card className="border-blue-500/30 bg-blue-500/5">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Bed className="h-4 w-4 text-blue-600" />
+                    <CardTitle className="text-sm">Hospital Bed Availability</CardTitle>
+                  </div>
+                  <Badge variant="outline" className="bg-background text-xs">
+                    Real-time Status
+                  </Badge>
+                </div>
+                <CardDescription className="text-xs">
+                  Live bed and room availability across the facility
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="rounded-lg bg-card border border-border p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <CheckCircle2 className="h-4 w-4 text-success" />
+                      <span className="text-xs font-semibold text-muted-foreground">Available</span>
+                    </div>
+                    <div className="text-2xl font-bold text-success">
+                      {bedStats.bedStats?.available || 0}
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">
+                      {bedStats.roomStats?.available || 0} rooms free
+                    </p>
+                  </div>
+
+                  <div className="rounded-lg bg-card border border-border p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Users className="h-4 w-4 text-primary" />
+                      <span className="text-xs font-semibold text-muted-foreground">Occupied</span>
+                    </div>
+                    <div className="text-2xl font-bold text-primary">
+                      {bedStats.bedStats?.occupied || 0}
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">
+                      {Math.round(
+                        ((bedStats.bedStats?.occupied || 0) / (bedStats.bedStats?.total || 1)) *
+                          100,
+                      )}
+                      % capacity
+                    </p>
+                  </div>
+
+                  <div className="rounded-lg bg-card border border-border p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Activity className="h-4 w-4 text-blue-600" />
+                      <span className="text-xs font-semibold text-muted-foreground">
+                        Cleaning/Maint.
+                      </span>
+                    </div>
+                    <div className="text-2xl font-bold text-blue-600">
+                      {(bedStats.bedStats?.cleaning || 0) + (bedStats.bedStats?.maintenance || 0)}
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">being prepared</p>
+                  </div>
+
+                  <div className="rounded-lg bg-card border border-border p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Clock className="h-4 w-4 text-warning-foreground" />
+                      <span className="text-xs font-semibold text-muted-foreground">Reserved</span>
+                    </div>
+                    <div className="text-2xl font-bold text-warning-foreground">
+                      {(bedStats.bedStats?.reserved || 0) +
+                        (bedStats.bedStats?.emergency_reserved || 0)}
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">
+                      {bedStats.bedStats?.emergency_reserved || 0} emergency
+                    </p>
+                  </div>
+                </div>
+
+                {bedStats.bedStats && bedStats.bedStats.total > 0 && (
+                  <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+                    <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-success"
+                        style={{
+                          width: `${((bedStats.bedStats?.available || 0) / bedStats.bedStats.total) * 100}%`,
+                        }}
+                      />
+                    </div>
+                    <span className="shrink-0">
+                      {bedStats.bedStats.available} / {bedStats.bedStats.total} beds available
+                    </span>
+                  </div>
+                )}
+
+                <div className="mt-3 flex items-center gap-1.5 rounded-lg border border-blue-500/20 bg-blue-500/5 px-3 py-2 text-[11px] text-muted-foreground">
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0 text-blue-600" />
+                  Bed availability updates in real-time. Contact admissions for specific room
+                  requests.
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Top row: admission card + quick stats + billing */}
           <div className="grid gap-4 lg:grid-cols-3">
             {/* Admission Status */}
@@ -145,7 +296,7 @@ function InpatientCare() {
                   <span className="text-xs text-muted-foreground">
                     Day{" "}
                     {Math.ceil(
-                      (new Date().getTime() - new Date(currentAdmission.admissionDate).getTime()) /
+                      (new Date().getTime() - new Date(admDate).getTime()) /
                         (1000 * 60 * 60 * 24),
                     )}{" "}
                     of stay
@@ -156,35 +307,31 @@ function InpatientCare() {
                 <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
                   <div>
                     <div className="text-xs text-muted-foreground">Ward</div>
-                    <div className="font-medium">{currentAdmission.ward}</div>
+                    <div className="font-medium">{admWard}</div>
                   </div>
                   <div>
                     <div className="text-xs text-muted-foreground">Room / Bed</div>
-                    <div className="font-medium">
-                      {currentAdmission.room} — {currentAdmission.bed}
-                    </div>
+                    <div className="font-medium">{admRoom} — {admBed}</div>
                   </div>
                   <div>
                     <div className="text-xs text-muted-foreground">Admitted</div>
                     <div className="font-medium">
-                      {new Date(currentAdmission.admissionDate).toLocaleDateString()}
+                      {new Date(admDate).toLocaleDateString()}
                     </div>
                   </div>
                   <div>
                     <div className="text-xs text-muted-foreground">Expected Discharge</div>
                     <div className="font-medium">
-                      {currentAdmission.expectedDischargeDate
-                        ? new Date(currentAdmission.expectedDischargeDate).toLocaleDateString()
-                        : "TBD"}
+                      {admExp ? new Date(admExp).toLocaleDateString() : "TBD"}
                     </div>
                   </div>
                 </div>
                 <div className="mt-3">
                   <div className="text-xs text-muted-foreground">Primary Diagnosis</div>
-                  <div className="font-medium">{currentAdmission.primaryDiagnosis}</div>
+                  <div className="font-medium">{admDx}</div>
                 </div>
                 <div className="mt-1 text-xs text-muted-foreground">
-                  Attending: {currentAdmission.admittingDoctor}
+                  Attending: {admDoctor}
                 </div>
               </CardContent>
             </Card>

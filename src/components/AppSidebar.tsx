@@ -49,6 +49,8 @@ import {
   Fingerprint,
   UserPlus,
   Code2,
+  GraduationCap,
+  Stethoscope,
 } from "lucide-react";
 import {
   Sidebar,
@@ -111,21 +113,22 @@ const patientAccountNav: Item[] = [
 ];
 
 const staffNav: Item[] = [
-  { title: "Dashboard", url: "/staff", icon: LayoutDashboard },
-  { title: "Command Center", url: "/staff/command", icon: Command },
-  { title: "Appointments", url: "/staff/appointments", icon: CalendarDays },
-  { title: "Doctor Locator", url: "/staff/tracker", icon: MapPin },
-  { title: "Room Check-In", url: "/staff/rooms", icon: Building2 },
-  { title: "My Profile", url: "/staff/profile", icon: User },
-  { title: "My Attendance", url: "/staff/attendance", icon: Clock },
-  { title: "Verify Patient", url: "/staff/verify", icon: ScanLine },
-  { title: "Patients", url: "/staff/patients", icon: Users },
-  { title: "Schedule", url: "/staff/schedule", icon: Calendar },
-  { title: "Sign & Prescribe", url: "/staff/sign", icon: FileSignature },
-  { title: "Prescriptions", url: "/staff/prescriptions", icon: Pill },
-  { title: "Labs", url: "/staff/labs", icon: FlaskConical },
-  { title: "Surgeries", url: "/staff/surgeries", icon: Scissors },
-  { title: "Emergency", url: "/staff/emergency", icon: ShieldAlert },
+  { title: "Dashboard",        url: "/staff",               icon: LayoutDashboard },
+  { title: "Command Center",   url: "/staff/command",       icon: Command         },
+  { title: "Appointments",     url: "/staff/appointments",  icon: CalendarDays    },
+  { title: "Doctor Locator",   url: "/staff/tracker",       icon: MapPin          },
+  { title: "Room Check-In",    url: "/staff/rooms",         icon: Building2       },
+  { title: "My Profile",       url: "/staff/profile",       icon: User            },
+  { title: "My Attendance",    url: "/staff/attendance",    icon: Clock           },
+  { title: "Verify Patient",   url: "/staff/verify",        icon: ScanLine        },
+  { title: "Patients",         url: "/staff/patients",      icon: Users           },
+  { title: "Schedule",         url: "/staff/schedule",      icon: Calendar        },
+  { title: "Sign & Prescribe", url: "/staff/sign",          icon: FileSignature   },
+  { title: "Prescriptions",    url: "/staff/prescriptions", icon: Pill            },
+  { title: "Consent",          url: "/staff/consent",       icon: ShieldCheck     },
+  { title: "Labs",             url: "/staff/labs",          icon: FlaskConical    },
+  { title: "Surgeries",        url: "/staff/surgeries",     icon: Scissors        },
+  { title: "Emergency",        url: "/staff/emergency",     icon: ShieldAlert     },
 ];
 
 /**
@@ -145,6 +148,10 @@ const adminNav: Item[] = [
   { title: "Credentials", url: "/admin/credentials", icon: Award },
   { title: "People", url: "/admin/people", icon: Users },
   { title: "Prescriptions", url: "/admin/prescriptions", icon: Pill },
+  { title: "Admissions", url: "/admin/admissions", icon: Activity },
+  { title: "Doctor Availability", url: "/admin/doctors", icon: Stethoscope },
+  { title: "Certifications", url: "/admin/certifications-mgmt", icon: GraduationCap },
+  { title: "Beds & Rooms", url: "/admin/beds-rooms", icon: Bed },
   { title: "NFC Cards", url: "/admin/nfc-cards", icon: CreditCard },
   { title: "Policies", url: "/admin/policies", icon: FileText },
   { title: "Fraud Detection", url: "/admin/fraud", icon: ShieldAlert },

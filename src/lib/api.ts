@@ -35,6 +35,41 @@ export const API_BASE_URL = getApiBaseUrl();
 // ─── Credentials ──────────────────────────────────────────────────────────────
 
 // ─── Consent ──────────────────────────────────────────────────────────────────
+// Note: getConsents, grantConsent, revokeConsent, getConsentRequests,
+// denyConsentRequest are implemented as Supabase-native async functions
+// further down in this file. Only the doctor-portal-specific helpers live here.
+
+/** Doctor/Staff: fetch all consent grants + sent requests for the authenticated doctor */
+export const getMyConsents = () =>
+  apiFetch<{
+    grants: any[];
+    requests: any[];
+    totalGrants: number;
+    totalRequests: number;
+    active: number;
+    pending: number;
+  }>(`/consent/my`);
+
+/** Doctor/Staff: fetch only consent requests sent by the authenticated doctor */
+export const getMyConsentRequests = () =>
+  apiFetch<{ requests: any[]; total: number }>(`/consent/requests/my`);
+
+/** Doctor/Staff: send a consent request to a patient (Express-compatible shim) */
+export const requestConsent = (data: {
+  doctorDid: string;
+  doctorName?: string;
+  patientDid: string;
+  resource: string;
+  reason?: string;
+  expiry?: string;
+}) =>
+  apiFetch<{ success: boolean; requestId: string; request: any; txId: string }>(
+    `/consent/request`,
+    {
+      method: "POST",
+      body: JSON.stringify(data),
+    },
+  );
 
 // ─── Audit Events ─────────────────────────────────────────────────────────────
 
@@ -179,6 +214,172 @@ export async function getPrescriptions(_did?: string) {
       createdAt: p.created_at,
     })),
   };
+}
+
+export async function updatePrescription(
+  rxId: string,
+  updates: {
+    diagnosis?: string;
+    notes?: string;
+    status?: string;
+    drugs?: any[];
+  }
+) {
+  const { updatePrescription: fn } = await import("./clinical.server");
+  return await fn({ data: { rxId, ...updates } });
+}
+
+// ─── Certifications ───────────────────────────────────────────────────────────
+export async function getCertifications() {
+  const { getCertifications: fn } = await import("./certifications.server");
+  return await fn();
+}
+
+export async function getCertificationsByStaffDid(staffDid: string) {
+  const { getCertificationsByStaffDid: fn } = await import("./certifications.server");
+  return await fn({ data: { staffDid } });
+}
+
+export async function getCertificationAuditLog(certId: string) {
+  const { getCertificationAuditLog: fn } = await import("./certifications.server");
+  return await fn({ data: { certId } });
+}
+
+export async function createCertification(data: {
+  staffDid: string;
+  certName: string;
+  certType?: string;
+  issuingBody: string;
+  issueDate?: string;
+  expiryDate?: string;
+  certNumber?: string;
+  status?: string;
+  documentUrl?: string;
+  verificationUrl?: string;
+  verifiedByAdmin?: boolean;
+  notes?: string;
+}) {
+  const { createCertification: fn } = await import("./certifications.server");
+  return await fn({ data });
+}
+
+export async function updateCertification(
+  certId: string,
+  updates: {
+    certName?: string;
+    certType?: string;
+    issuingBody?: string;
+    issueDate?: string;
+    expiryDate?: string;
+    certNumber?: string;
+    status?: string;
+    documentUrl?: string;
+    verificationUrl?: string;
+    verifiedByAdmin?: boolean;
+    notes?: string;
+  }
+) {
+  const { updateCertification: fn } = await import("./certifications.server");
+  return await fn({ data: { certId, ...updates } });
+}
+
+export async function deleteCertification(certId: string) {
+  const { deleteCertification: fn } = await import("./certifications.server");
+  return await fn({ data: { certId } });
+}
+
+export async function getCertificationStats() {
+  const { getCertificationStats: fn } = await import("./certifications.server");
+  return await fn();
+}
+
+// ─── Admissions lifecycle ─────────────────────────────────────────────────────
+
+export async function admitPatient(data: {
+  patientDid: string;
+  bedId: string;
+  ward: string;
+  room?: string;
+  roomId?: string;
+  admittingDoctorDid?: string;
+  diagnosis?: string;
+  expectedDischarge?: string;
+  admissionFee?: number;
+}) {
+  const { admitPatient: fn } = await import("./admissions.server");
+  return await fn({ data });
+}
+
+export async function dischargePatient(data: {
+  admissionId: string;
+  dischargeSummary?: string;
+  finalBillAmount?: number;
+}) {
+  const { dischargePatient: fn } = await import("./admissions.server");
+  return await fn({ data });
+}
+
+export async function transferPatient(data: {
+  admissionId: string;
+  newBedId: string;
+  newWard: string;
+  newRoom?: string;
+  newRoomId?: string;
+  transferReason?: string;
+}) {
+  const { transferPatient: fn } = await import("./admissions.server");
+  return await fn({ data });
+}
+
+export async function getAllAdmissions(status?: string) {
+  const { getAllAdmissions: fn } = await import("./admissions.server");
+  return await fn({ data: { status } });
+}
+
+export async function getAdmissionEvents(opts: {
+  admissionId?: string;
+  patientDid?: string;
+  limit?: number;
+} = {}) {
+  const { getAdmissionEvents: fn } = await import("./admissions.server");
+  return await fn({ data: opts });
+}
+
+export async function getWardOccupancy() {
+  const { getWardOccupancy: fn } = await import("./admissions.server");
+  return await fn();
+}
+
+// ─── Audit Trail ─────────────────────────────────────────────────────────────
+
+export async function getAuditTrail(opts: {
+  module?: string;
+  entityId?: string;
+  actorId?: string;
+  severity?: string;
+  outcome?: string;
+  from?: string;
+  to?: string;
+  limit?: number;
+  offset?: number;
+} = {}) {
+  const { getAuditTrail: fn } = await import("./audit.server");
+  return await fn({ data: opts });
+}
+
+export async function verifyAuditRecord(txId: string) {
+  const { verifyAuditRecord: fn } = await import("./audit.server");
+  return await fn({ data: { txId } });
+}
+
+export async function processAuditAnchorQueue(limit?: number) {
+  const { processAuditAnchorQueue: fn } = await import("./audit.server");
+  return await fn({ data: { limit } });
+}
+
+export async function getAuditStats() {
+  const { getAuditStats: fn } = await import("./audit.server");
+  return await fn();
 }
 
 export async function getLabResults(_did?: string) {

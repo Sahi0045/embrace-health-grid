@@ -28,6 +28,10 @@ import {
   CalendarCheck,
   Lock,
   ShieldAlert,
+  Bed,
+  Stethoscope,
+  Pill,
+  GraduationCap,
 } from "lucide-react";
 import { useCurrentUser } from "@/lib/auth-context";
 import {
@@ -63,7 +67,10 @@ function AdminDashboardPage() {
   // The roster carried a "Live WS Sync" badge but had no subscription at all, so
   // it only updated on a manual refresh. Supabase Realtime replaces the Express
   // socket the badge referred to.
-  useTableRefresh("attendance", refetchAdminAttendance);
+  useTableRefresh("attendance",  refetchAdminAttendance);
+  // Admission changes update the staff/patient counts on the dashboard.
+  useTableRefresh("admissions",  refetchAdminAttendance);
+  useTableRefresh("beds",        refetchAdminAttendance);
 
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const [didRequests, setDidRequests] = useState<any[]>([]);
@@ -726,6 +733,106 @@ function AdminDashboardPage() {
                 </h4>
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   View room presence logs, Merkle root verification, and Solana Devnet state.
+                </p>
+              </Link>
+
+              <Link
+                to="/admin/beds-rooms"
+                className="group p-5 rounded-2xl border border-border bg-card shadow-sm hover:border-primary hover:shadow-clinical transition-all space-y-2"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="h-10 w-10 rounded-xl bg-blue-600/10 text-blue-600 flex items-center justify-center">
+                    <Bed className="h-5 w-5" />
+                  </div>
+                  <Badge variant="outline" className="text-[10px] font-bold uppercase">
+                    Infrastructure
+                  </Badge>
+                </div>
+                <h4 className="font-bold text-foreground group-hover:text-primary transition-colors">
+                  Bed & Room Management
+                </h4>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Manage hospital infrastructure hierarchy, bed allocation, and real-time room status.
+                </p>
+              </Link>
+
+              <Link
+                to="/admin/admissions"
+                className="group p-5 rounded-2xl border border-border bg-card shadow-sm hover:border-primary hover:shadow-clinical transition-all space-y-2"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                    <Activity className="h-5 w-5" />
+                  </div>
+                  <Badge variant="outline" className="text-[10px] font-bold uppercase">
+                    Real-Time
+                  </Badge>
+                </div>
+                <h4 className="font-bold text-foreground group-hover:text-primary transition-colors">
+                  Admissions Management
+                </h4>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Admit, discharge, and transfer patients. Bed status, billing, and all portals update instantly.
+                </p>
+              </Link>
+
+              <Link
+                to="/admin/doctors"
+                className="group p-5 rounded-2xl border border-border bg-card shadow-sm hover:border-primary hover:shadow-clinical transition-all space-y-2"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="h-10 w-10 rounded-xl bg-chart-2/10 text-chart-2 flex items-center justify-center">
+                    <Stethoscope className="h-5 w-5" />
+                  </div>
+                  <Badge variant="outline" className="text-[10px] font-bold uppercase">
+                    Availability
+                  </Badge>
+                </div>
+                <h4 className="font-bold text-foreground group-hover:text-primary transition-colors">
+                  Doctor Availability
+                </h4>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Check doctor schedules, availability status, and view upcoming shifts across departments.
+                </p>
+              </Link>
+
+              <Link
+                to="/admin/prescriptions"
+                className="group p-5 rounded-2xl border border-border bg-card shadow-sm hover:border-primary hover:shadow-clinical transition-all space-y-2"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="h-10 w-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center">
+                    <Pill className="h-5 w-5" />
+                  </div>
+                  <Badge variant="outline" className="text-[10px] font-bold uppercase">
+                    Clinical
+                  </Badge>
+                </div>
+                <h4 className="font-bold text-foreground group-hover:text-primary transition-colors">
+                  Prescription Management
+                </h4>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  View and modify patient prescriptions, update medication details, and track dispensing status.
+                </p>
+              </Link>
+
+              <Link
+                to="/admin/certifications-mgmt"
+                className="group p-5 rounded-2xl border border-border bg-card shadow-sm hover:border-primary hover:shadow-clinical transition-all space-y-2"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="h-10 w-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+                    <GraduationCap className="h-5 w-5" />
+                  </div>
+                  <Badge variant="outline" className="text-[10px] font-bold uppercase">
+                    Qualifications
+                  </Badge>
+                </div>
+                <h4 className="font-bold text-foreground group-hover:text-primary transition-colors">
+                  Certifications &amp; Qualifications
+                </h4>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Add, edit, and remove staff certifications linked to verified DIDs with full audit trails.
                 </p>
               </Link>
             </div>

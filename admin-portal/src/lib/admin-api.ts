@@ -468,3 +468,228 @@ export async function adminLogAudit(
     return { success: false as const };
   }
 }
+
+// ─── Hospital Infrastructure (Buildings, Floors, Wards, Rooms, Beds) ────────
+
+export async function getHospitalInfrastructure() {
+  const supabase = getAdminSupabase();
+  
+  const [buildings, floors, wards, rooms, beds] = await Promise.all([
+    supabase.from("buildings").select("*").order("building_name"),
+    supabase.from("floors").select("*").order("building_id, floor_number"),
+    supabase.from("wards").select("*").order("floor_id, ward_name"),
+    supabase.from("rooms").select("*").order("ward_id, room_name"),
+    supabase.from("beds").select("*").order("room_id, bed_number"),
+  ]);
+
+  return {
+    buildings: buildings.data || [],
+    floors: floors.data || [],
+    wards: wards.data || [],
+    rooms: rooms.data || [],
+    beds: beds.data || [],
+  };
+}
+
+export async function getBedRoomStatistics() {
+  const supabase = getAdminSupabase();
+  
+  const [beds, rooms] = await Promise.all([
+    supabase.from("beds").select("status"),
+    supabase.from("rooms").select("status"),
+  ]);
+
+  const bedStats = {
+    total: beds.data?.length || 0,
+    available: beds.data?.filter((b) => b.status === "available").length || 0,
+    occupied: beds.data?.filter((b) => b.status === "occupied").length || 0,
+    reserved: beds.data?.filter((b) => b.status === "reserved").length || 0,
+    cleaning: beds.data?.filter((b) => b.status === "cleaning").length || 0,
+    maintenance: beds.data?.filter((b) => b.status === "maintenance").length || 0,
+    blocked: beds.data?.filter((b) => b.status === "blocked").length || 0,
+    emergency_reserved: beds.data?.filter((b) => b.status === "emergency_reserved").length || 0,
+  };
+
+  const roomStats = {
+    total: rooms.data?.length || 0,
+    available: rooms.data?.filter((r) => r.status === "available").length || 0,
+    occupied: rooms.data?.filter((r) => r.status === "occupied").length || 0,
+    reserved: rooms.data?.filter((r) => r.status === "reserved").length || 0,
+    cleaning: rooms.data?.filter((r) => r.status === "cleaning").length || 0,
+    maintenance: rooms.data?.filter((r) => r.status === "maintenance").length || 0,
+    blocked: rooms.data?.filter((r) => r.status === "blocked").length || 0,
+    emergency_reserved: rooms.data?.filter((r) => r.status === "emergency_reserved").length || 0,
+  };
+
+  return { bedStats, roomStats };
+}
+
+export async function createBuilding(data: {
+  name: string;
+  code?: string;
+  description?: string;
+  totalFloors?: number;
+}) {
+  const { data: building, error } = await getAdminSupabase()
+    .from("buildings")
+    .insert({
+      building_name: data.name,
+      building_code: data.code ?? null,
+      description: data.description ?? null,
+      total_floors: data.totalFloors ?? 0,
+    } as never)
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return { ok: true, building };
+}
+
+export async function createFloor(data: {
+  buildingId: string;
+  floorNumber: number;
+  name: string;
+  description?: string;
+}) {
+  const { data: floor, error } = await getAdminSupabase()
+    .from("floors")
+    .insert({
+      building_id: data.buildingId,
+      floor_number: data.floorNumber,
+      floor_name: data.name,
+      description: data.description ?? null,
+    } as never)
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return { ok: true, floor };
+}
+
+export async function createWard(data: {
+  floorId: string;
+  buildingId: string;
+  name: string;
+  code?: string;
+  type?: string;
+  description?: string;
+  capacity?: number;
+}) {
+  const { data: ward, error } = await getAdminSupabase()
+    .from("wards")
+    .insert({
+      floor_id: data.floorId,
+      building_id: data.buildingId,
+      ward_name: data.name,
+      ward_code: data.code ?? null,
+      ward_type: data.type ?? null,
+      description: data.description ?? null,
+      capacity: data.capacity ?? 0,
+    } as never)
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return { ok: true, ward };
+}
+
+export async function createRoom(data: {
+  wardId: string;
+  buildingId: string;
+  name: string;
+  roomNumber?: string;
+  roomType?: string;
+  floor?: string;
+  capacity?: number;
+}) {
+  const roomId = `room-${crypto.randomUUID().slice(0, 8)}`;
+  const { data: room, error } = await getAdminSupabase()
+    .from("rooms")
+    .insert({
+      room_id: roomId,
+      ward_id: data.wardId,
+      building_id: data.buildingId,
+      room_name: data.name,
+      room_number: data.roomNumber ?? null,
+      room_type: data.roomType ?? null,
+      floor: data.floor ?? null,
+      capacity: data.capacity ?? 1,
+      status: "available",
+    } as never)
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return { ok: true, room };
+}
+
+export async function createBed(data: {
+  roomId: string;
+  wardId: string;
+  buildingId: string;
+  bedNumber?: string;
+  bedType?: string;
+}) {
+  const bedId = `bed-${crypto.randomUUID().slice(0, 8)}`;
+  const { data: bed, error } = await getAdminSupabase()
+    .from("beds")
+    .insert({
+      bed_id: bedId,
+      room_id: data.roomId,
+      ward_id: data.wardId,
+      building_id: data.buildingId,
+      bed_number: data.bedNumber ?? null,
+      bed_type: data.bedType ?? null,
+      status: "available",
+    } as never)
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return { ok: true, bed };
+}
+
+export async function updateBedStatus(data: {
+  bedId: string;
+  status: string;
+  patientDid?: string;
+}) {
+  const updateData: Record<string, unknown> = {
+    status: data.status,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (data.status === "occupied") {
+    if (!data.patientDid) {
+      throw new Error("Patient DID is required when marking bed as occupied");
+    }
+    updateData.patient_did = data.patientDid;
+  } else {
+    updateData.patient_did = null;
+  }
+
+  const { data: updated, error } = await getAdminSupabase()
+    .from("beds")
+    .update(updateData as never)
+    .eq("bed_id", data.bedId)
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return { ok: true, bed: updated };
+}
+
+export async function updateRoomStatus(data: { roomId: string; status: string }) {
+  const { data: updated, error } = await getAdminSupabase()
+    .from("rooms")
+    .update({
+      status: data.status,
+      updated_at: new Date().toISOString(),
+    } as never)
+    .eq("room_id", data.roomId)
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return { ok: true, room: updated };
+}

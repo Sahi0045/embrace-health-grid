@@ -208,3 +208,26 @@ export function subscribeToMedicalRecords(onChange: (payload: ChangePayload) => 
 export function subscribeToLabResults(onChange: (payload: ChangePayload) => void): () => void {
   return subscribeToTable("lab_results", onChange);
 }
+
+/** Admission state changes (admit / discharge / transfer). */
+export function subscribeToAdmissions(onChange: (payload: ChangePayload) => void): () => void {
+  return subscribeToTable("admissions", onChange);
+}
+
+/** Admission event log — fires after every lifecycle transition. */
+export function subscribeToAdmissionEvents(onChange: (payload: ChangePayload) => void): () => void {
+  return subscribeToTable("admission_events", onChange);
+}
+
+/** Billing account updates — fires when outstanding balance changes. */
+export function subscribeToBilling(
+  patientDid: string | null | undefined,
+  onChange: (payload: ChangePayload) => void,
+): () => void {
+  if (!patientDid) return () => {};
+  return subscribeToTable(
+    "billing_accounts",
+    onChange,
+    `patient_did=eq.${patientDid}`,
+  );
+}
