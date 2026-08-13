@@ -35,16 +35,8 @@ export function ActivityItem({
       transition={{ duration: 0.3 }}
       className="relative flex items-start gap-3.5 group py-2.5"
     >
-      {/* Timeline Connecting Line */}
-      {!isLast && (
-        <span
-          className="absolute left-[17px] top-8 bottom-0 w-[2px] bg-border/60 group-hover:bg-primary/30 transition-colors"
-          aria-hidden="true"
-        />
-      )}
-
       {/* Icon / Dot Container */}
-      <div className="relative z-10 flex h-9 w-9 items-center justify-center rounded-xl bg-card border border-border/80 shadow-clinical-sm group-hover:border-primary/40 group-hover:scale-105 transition-all">
+      <div className="relative z-10 flex h-9 w-9 items-center justify-center rounded-xl bg-card border border-border/80 shadow-clinical-sm group-hover:border-primary/40 group-hover:bg-primary/5 transition-all">
         {Icon ? (
           <Icon className="h-4 w-4 text-foreground/80 group-hover:text-primary transition-colors" />
         ) : (
