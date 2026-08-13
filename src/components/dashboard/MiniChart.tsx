@@ -14,6 +14,7 @@ export interface DonutChartProps {
   height?: number;
   innerRadius?: number;
   outerRadius?: number;
+  showTooltip?: boolean;
 }
 
 export function DonutChart({
@@ -23,6 +24,7 @@ export function DonutChart({
   height = 180,
   innerRadius = 48,
   outerRadius = 68,
+  showTooltip = false,
 }: DonutChartProps) {
   const activeData = data.filter((d) => d.value > 0);
 
@@ -50,15 +52,17 @@ export function DonutChart({
               ),
             )}
           </Pie>
-          <Tooltip
-            contentStyle={{
-              backgroundColor: "var(--color-card, #fff)",
-              borderColor: "var(--color-border, #ccc)",
-              borderRadius: "0.75rem",
-              fontSize: "0.75rem",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-            }}
-          />
+          {showTooltip && (
+            <Tooltip
+              contentStyle={{
+                backgroundColor: "var(--color-card, #fff)",
+                borderColor: "var(--color-border, #ccc)",
+                borderRadius: "0.75rem",
+                fontSize: "0.75rem",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+              }}
+            />
+          )}
         </PieChart>
       </ResponsiveContainer>
 
@@ -67,7 +71,7 @@ export function DonutChart({
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5 }}
-          className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center"
+          className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center z-10"
         >
           <span className="text-2xl font-extrabold text-foreground tracking-tight font-display">
             {centerLabel}
