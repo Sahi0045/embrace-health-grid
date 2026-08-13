@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { motion, AnimatePresence } from "framer-motion";
 import { RouteGuard } from "@/components/RouteGuard";
 import {
   Bed,
@@ -137,21 +138,22 @@ function AdminAdmissionsPage() {
     setLoading(true);
     try {
       const [admRes, bedsRes, patientsRes, occRes] = await Promise.all([
-        getAllAdmissions(),
-        getBeds(),
+        getAllAdmissions().catch(() => ({ admissions: [] })),
+        getBeds().catch(() => ({ beds: [] })),
         getPatientDirectory().catch(() => ({ patients: [] })),
         getWardOccupancy().catch(() => ({ occupancy: [] })),
       ]);
       setAdmissions((admRes.admissions as Admission[]) ?? []);
       setBeds((bedsRes.beds ?? []) as BedRow[]);
       setPatients(patientsRes.patients ?? []);
-      setOccupancy(occRes.occupancy ?? []);
+      setOccupancy((occRes.occupancy as WardOccupancy[]) ?? []);
     } catch (err: any) {
-      toast.error("Could not load admissions", { description: err.message });
+      toast.error("Could not load admissions data", { description: err.message });
     } finally {
       setLoading(false);
     }
   }, []);
+
 
   useEffect(() => { load(); }, [load]);
 
@@ -345,7 +347,7 @@ function AdminAdmissionsPage() {
             {occupancy.map((w) => (
               <div
                 key={w.ward}
-                className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs"
+                className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs transition-all duration-150 hover:border-primary/40 hover:bg-muted/50 cursor-pointer"
               >
                 <div className="font-semibold text-foreground">{w.ward}</div>
                 <div className="text-muted-foreground mt-0.5">
@@ -405,11 +407,11 @@ function AdminAdmissionsPage() {
             return (
               <div
                 key={adm.admission_id}
-                className="rounded-xl border border-border bg-card shadow-clinical overflow-hidden"
+                className="rounded-xl border border-border bg-card shadow-clinical overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-clinical-md hover:border-primary/40"
               >
                 {/* Row */}
                 <button
-                  className="w-full text-left p-4"
+                  className="w-full text-left p-4 cursor-pointer hover:bg-muted/30 transition-colors"
                   onClick={() => setExpandedId(isExp ? null : adm.admission_id)}
                 >
                   <div className="flex items-start justify-between gap-3 flex-wrap">
@@ -446,13 +448,13 @@ function AdminAdmissionsPage() {
                         <>
                           <button
                             onClick={(e) => { e.stopPropagation(); setActiveAdmission(adm); setDischargeOpen(true); }}
-                            className="inline-flex items-center gap-1 rounded-lg border border-success/30 bg-success/10 px-2 py-1 text-[11px] font-medium text-success hover:bg-success/20"
+                            className="inline-flex items-center gap-1 rounded-lg border border-success/30 bg-success/10 px-2 py-1 text-[11px] font-medium text-success hover:bg-success/20 cursor-pointer transition-colors"
                           >
                             <LogOut className="h-3 w-3" /> Discharge
                           </button>
                           <button
                             onClick={(e) => { e.stopPropagation(); setActiveAdmission(adm); setTransferOpen(true); }}
-                            className="inline-flex items-center gap-1 rounded-lg border border-chart-2/30 bg-chart-2/10 px-2 py-1 text-[11px] font-medium text-chart-2 hover:bg-chart-2/20"
+                            className="inline-flex items-center gap-1 rounded-lg border border-chart-2/30 bg-chart-2/10 px-2 py-1 text-[11px] font-medium text-chart-2 hover:bg-chart-2/20 cursor-pointer transition-colors"
                           >
                             <ArrowRightLeft className="h-3 w-3" /> Transfer
                           </button>
@@ -460,48 +462,58 @@ function AdminAdmissionsPage() {
                       )}
                       <button
                         onClick={(e) => { e.stopPropagation(); openAudit(adm); }}
-                        className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-[11px] font-medium hover:bg-muted"
+                        className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-[11px] font-medium hover:bg-muted cursor-pointer transition-colors"
                       >
                         <History className="h-3 w-3" /> Audit
                       </button>
-                      {isExp ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                      <div className="shrink-0">
+                        <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-300 ease-out ${isExp ? "rotate-180" : "rotate-0"}`} />
+                      </div>
                     </div>
                   </div>
                 </button>
 
-                {/* Expanded details */}
-                {isExp && (
-                  <div className="border-t border-border px-4 pb-4 pt-3">
-                    <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">
-                      {[
-                        ["Admission ID",   adm.admission_id],
-                        ["Patient DID",    adm.patient_did],
-                        ["Ward",           adm.ward ?? "—"],
-                        ["Room",           adm.room ?? "—"],
-                        ["Bed",            adm.bed  ?? "—"],
-                        ["Admitted",       new Date(adm.admitted_at).toLocaleString("en-IN")],
-                        ["Expected Discharge", adm.expected_discharge
-                          ? new Date(adm.expected_discharge).toLocaleDateString("en-IN")
-                          : "—"],
-                        ["Discharged At",  adm.discharged_at
-                          ? new Date(adm.discharged_at).toLocaleString("en-IN")
-                          : "—"],
-                        ["Admitting Doctor", adm.admitting_doctor ?? "—"],
-                      ].map(([k, v]) => (
-                        <div key={k} className="rounded-lg bg-muted/50 px-3 py-2">
-                          <div className="text-[9px] font-bold uppercase text-muted-foreground mb-0.5">{k}</div>
-                          <div className="font-medium text-foreground truncate">{v}</div>
-                        </div>
-                      ))}
-                    </div>
-                    {adm.diagnosis && (
-                      <div className="mt-2 rounded-lg bg-muted/40 border border-border px-3 py-2 text-xs">
-                        <span className="font-semibold text-foreground">Diagnosis: </span>
-                        <span className="text-muted-foreground">{adm.diagnosis}</span>
+                {/* Expanded details — GPU-accelerated CSS Grid transition (0fr -> 1fr) */}
+                <div
+                  className={`grid transition-[grid-template-rows,opacity] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                    isExp
+                      ? "grid-rows-[1fr] opacity-100 border-t border-border"
+                      : "grid-rows-[0fr] opacity-0 border-t-0 pointer-events-none"
+                  }`}
+                >
+                  <div className="overflow-hidden">
+                    <div className="p-4 space-y-3 bg-card/50">
+                      <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">
+                        {[
+                          ["Admission ID",   adm.admission_id],
+                          ["Patient DID",    adm.patient_did],
+                          ["Ward",           adm.ward ?? "—"],
+                          ["Room",           adm.room ?? "—"],
+                          ["Bed",            adm.bed  ?? "—"],
+                          ["Admitted",       new Date(adm.admitted_at).toLocaleString("en-IN")],
+                          ["Expected Discharge", adm.expected_discharge
+                            ? new Date(adm.expected_discharge).toLocaleDateString("en-IN")
+                            : "—"],
+                          ["Discharged At",  adm.discharged_at
+                            ? new Date(adm.discharged_at).toLocaleString("en-IN")
+                            : "—"],
+                          ["Admitting Doctor", adm.admitting_doctor ?? "—"],
+                        ].map(([k, v]) => (
+                          <div key={k} className="rounded-lg bg-muted/50 px-3 py-2 border border-border/40">
+                            <div className="text-[9px] font-bold uppercase text-muted-foreground mb-0.5">{k}</div>
+                            <div className="font-medium text-foreground truncate">{v}</div>
+                          </div>
+                        ))}
                       </div>
-                    )}
+                      {adm.diagnosis && (
+                        <div className="rounded-lg bg-muted/40 border border-border px-3 py-2 text-xs">
+                          <span className="font-semibold text-foreground">Diagnosis: </span>
+                          <span className="text-muted-foreground">{adm.diagnosis}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                )}
+                </div>
               </div>
             );
           })}

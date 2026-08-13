@@ -30,7 +30,24 @@ const getApiBaseUrl = (): string => {
  */
 export const API_BASE_URL = getApiBaseUrl();
 
+async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const url = `${API_BASE_URL}${path}`;
+  const res = await fetch(url, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.headers || {}),
+    },
+  });
+  if (!res.ok) {
+    const errorText = await res.text().catch(() => res.statusText);
+    throw new Error(errorText || `API error ${res.status}`);
+  }
+  return res.json();
+}
+
 // ─── DIDs ─────────────────────────────────────────────────────────────────────
+
 
 // ─── Credentials ──────────────────────────────────────────────────────────────
 
@@ -2010,3 +2027,9 @@ export interface LiveTransaction {
   patientName?: string;
   blockTxId?: string;
 }
+
+export async function getPatientFullProfile(patientDid: string) {
+  const { getPatientFullProfile: fn } = await import("./patient-profile.server");
+  return fn({ data: { patientDid } });
+}
+

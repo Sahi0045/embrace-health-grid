@@ -72,10 +72,8 @@ function AdminPrescriptionsPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      // Fetch prescriptions and all medical records in parallel
-      // Server functions, so RLS applies and no bearer token touches the client.
       const [rxRes, recRes] = await Promise.all([
-        getPrescriptions(),
+        getPrescriptions().catch(() => []),
         getMedicalRecords().catch(() => []),
       ]);
       const rows = (Array.isArray(rxRes) ? rxRes : []) as any[];
@@ -313,11 +311,15 @@ function AdminPrescriptionsPage() {
             return (
               <div
                 key={cx.rxId}
-                className="rounded-xl border border-border bg-card shadow-clinical overflow-hidden"
+                className={`rounded-xl border bg-card shadow-clinical overflow-hidden transition-all duration-300 ${
+                  isExp
+                    ? "border-primary/50 ring-1 ring-primary/20 shadow-clinical-md"
+                    : "border-border hover:-translate-y-0.5 hover:shadow-clinical-md hover:border-primary/40"
+                }`}
               >
                 {/* ── Summary row ── */}
                 <button
-                  className="w-full text-left p-4"
+                  className="w-full text-left p-4 cursor-pointer hover:bg-muted/30 transition-colors"
                   onClick={() => setExpandedId(isExp ? null : cx.rxId)}
                 >
                   <div className="flex items-start justify-between gap-3 flex-wrap">
@@ -362,7 +364,7 @@ function AdminPrescriptionsPage() {
                           e.stopPropagation();
                           handleEdit(cx);
                         }}
-                        className="inline-flex items-center gap-1 rounded-lg border border-primary/30 bg-primary/10 px-2 py-1 text-xs font-medium text-primary hover:bg-primary/20 transition-colors"
+                        className="inline-flex items-center gap-1 rounded-lg border border-primary/30 bg-primary/10 px-2 py-1 text-xs font-medium text-primary hover:bg-primary/20 cursor-pointer transition-colors"
                       >
                         <Edit2 className="h-3 w-3" />
                         Edit
@@ -370,216 +372,160 @@ function AdminPrescriptionsPage() {
                       <span className="text-xs text-muted-foreground">
                         {(cx.drugs ?? []).length} drug{(cx.drugs ?? []).length !== 1 ? "s" : ""}
                       </span>
-                      {isExp ? (
-                        <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                      ) : (
-                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                      )}
+                      <div className="shrink-0">
+                        <ChevronDown className={`h-4 w-4 transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${isExp ? "rotate-180 text-primary" : "rotate-0 text-muted-foreground"}`} />
+                      </div>
                     </div>
                   </div>
                 </button>
 
-                {/* ── Expanded: prescription + linked report ── */}
-                {isExp && (
-                  <div className="border-t border-border px-4 pb-5 pt-3 space-y-4">
-                    {/* ── Prescription section ── */}
-                    <div className="space-y-3">
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
-                        <Pill className="h-3.5 w-3.5" /> Prescription Details
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">
-                        {[
-                          ["Doctor", cx.doctorName || cx.signedBy || "—"],
-                          ["Doctor DID", cx.doctorDid || "—"],
-                          ["Patient DID", cx.patientDid || "—"],
-                          ["Appointment ID", cx.apptId || "—"],
-                          [
-                            "Issued At",
-                            cx.signedAt ? new Date(cx.signedAt).toLocaleString("en-IN") : "—",
-                          ],
-                          [
-                            "Follow-up",
-                            cx.followUpDate
-                              ? new Date(cx.followUpDate).toLocaleDateString("en-IN")
-                              : "—",
-                          ],
-                        ].map(([k, v]) => (
-                          <div key={k} className="rounded-lg bg-muted/50 px-3 py-2">
-                            <div className="text-[9px] font-bold uppercase text-muted-foreground mb-0.5">
-                              {k}
-                            </div>
-                            <div className="font-medium text-foreground truncate">{v}</div>
-                          </div>
-                        ))}
-                      </div>
-
-                      {(cx.chiefComplaint || cx.symptoms) && (
-                        <div className="grid gap-2 sm:grid-cols-2 text-xs">
-                          {cx.chiefComplaint && (
-                            <div className="rounded-lg bg-card border border-border px-3 py-2">
-                              <div className="text-[9px] font-bold uppercase text-muted-foreground mb-0.5 flex items-center gap-1">
-                                <Stethoscope className="h-3 w-3" /> Chief Complaint
-                              </div>
-                              <div>{cx.chiefComplaint}</div>
-                            </div>
-                          )}
-                          {cx.symptoms && (
-                            <div className="rounded-lg bg-card border border-border px-3 py-2">
-                              <div className="text-[9px] font-bold uppercase text-muted-foreground mb-0.5">
-                                Symptoms
-                              </div>
-                              <div>{cx.symptoms}</div>
-                            </div>
-                          )}
+                {/* ── Expanded: prescription + linked report — GPU CSS Grid transition ── */}
+                <div
+                  className={`grid transition-[grid-template-rows,opacity] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[grid-template-rows,opacity] ${
+                    isExp
+                      ? "grid-rows-[1fr] opacity-100 border-t border-border/80"
+                      : "grid-rows-[0fr] opacity-0 border-t border-transparent pointer-events-none"
+                  }`}
+                >
+                  <div className="overflow-hidden">
+                    <div className="p-4 space-y-4 bg-card/50">
+                      {/* ── Prescription section ── */}
+                      <div className="space-y-3">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
+                          <Pill className="h-3.5 w-3.5" /> Prescription Details
                         </div>
-                      )}
 
-                      {(cx.drugs ?? []).length > 0 && (
-                        <div className="space-y-1.5">
-                          <div className="text-[10px] font-bold uppercase text-muted-foreground">
-                            Medicines
-                          </div>
-                          {(cx.drugs ?? []).map((d: any, i: number) => (
-                            <div
-                              key={i}
-                              className="flex items-start gap-2 rounded-lg border border-border bg-background px-3 py-2 text-xs"
-                            >
-                              <Pill className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
-                              <div>
-                                <span className="font-semibold text-foreground">{d.name}</span>
-                                {d.dosage && (
-                                  <span className="text-muted-foreground"> · {d.dosage}</span>
-                                )}
-                                {d.frequency && (
-                                  <span className="text-muted-foreground"> · {d.frequency}</span>
-                                )}
-                                {d.duration && (
-                                  <span className="text-muted-foreground"> · {d.duration}</span>
-                                )}
-                                {d.usage && <span className="text-primary"> ({d.usage})</span>}
-                                {d.instructions && (
-                                  <div className="italic text-muted-foreground mt-0.5">
-                                    {d.instructions}
-                                  </div>
-                                )}
+                        <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">
+                          {[
+                            ["Doctor", cx.doctorName || cx.signedBy || "—"],
+                            ["Doctor DID", cx.doctorDid || "—"],
+                            ["Patient DID", cx.patientDid || "—"],
+                            ["Appointment ID", cx.apptId || "—"],
+                            [
+                              "Issued At",
+                              cx.signedAt ? new Date(cx.signedAt).toLocaleString("en-IN") : "—",
+                            ],
+                            [
+                              "Follow-up",
+                              cx.followUpDate
+                                ? new Date(cx.followUpDate).toLocaleDateString("en-IN")
+                                : "—",
+                            ],
+                          ].map(([k, v]) => (
+                            <div key={k} className="rounded-lg bg-muted/50 px-3 py-2 border border-border/40">
+                              <div className="text-[9px] font-bold uppercase text-muted-foreground mb-0.5">
+                                {k}
                               </div>
+                              <div className="font-medium text-foreground truncate">{v}</div>
                             </div>
                           ))}
                         </div>
-                      )}
 
-                      {cx.notes && (
-                        <div className="rounded-lg bg-muted/40 border border-border px-3 py-2 text-xs">
-                          <span className="font-semibold text-foreground">Additional Notes: </span>
-                          <span className="text-muted-foreground">{cx.notes}</span>
-                        </div>
-                      )}
-
-                      <div className="flex items-center gap-2 rounded-lg bg-success/5 border border-success/20 px-3 py-2 text-xs">
-                        <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
-                        <span className="font-semibold text-success">Digitally Signed</span>
-                        <span className="text-muted-foreground">· DID + Ed25519</span>
-                      </div>
-
-                      <div className="flex items-center gap-1.5 rounded-lg bg-muted px-2 py-1.5 font-mono text-[9px] text-primary overflow-x-auto">
-                        <Hash className="h-3 w-3 shrink-0" />
-                        {cx.hash}
-                      </div>
-
-                      {cx.blockchainMeta && (
-                        <div className="flex items-center gap-1.5 rounded-lg border border-success/20 bg-success/5 px-3 py-2 text-[10px] text-success font-semibold">
-                          <Activity className="h-3.5 w-3.5 shrink-0" />
-                          Blockchain-ready · {cx.blockchainMeta.network ?? "solana-devnet"}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* ── Linked Medical Report section ── */}
-                    {cx.linkedReport ? (
-                      <div className="rounded-xl border border-chart-2/30 bg-chart-2/5 p-4 space-y-3">
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-chart-2 flex items-center gap-1.5">
-                          <FileText className="h-3.5 w-3.5" /> Linked Medical Report
-                        </div>
-                        <div>
-                          <div className="text-sm font-semibold text-foreground">
-                            {cx.linkedReport.title}
-                          </div>
-                          <div className="text-[10px] text-muted-foreground mt-0.5">
-                            {cx.linkedReport.recordId} ·{" "}
-                            {new Date(cx.linkedReport.createdAt).toLocaleString("en-IN")}
-                          </div>
-                        </div>
-                        <div className="grid gap-2 sm:grid-cols-2 text-xs">
-                          {cx.linkedReport.consultationSummary && (
-                            <div className="sm:col-span-2 rounded-lg bg-card border border-border px-3 py-2">
-                              <div className="text-[9px] font-bold uppercase text-muted-foreground mb-0.5">
-                                Consultation Summary
+                        {(cx.chiefComplaint || cx.symptoms) && (
+                          <div className="grid gap-2 sm:grid-cols-2 text-xs">
+                            {cx.chiefComplaint && (
+                              <div className="rounded-lg bg-card border border-border px-3 py-2">
+                                <div className="text-[9px] font-bold uppercase text-muted-foreground mb-0.5 flex items-center gap-1">
+                                  <Stethoscope className="h-3 w-3" /> Chief Complaint
+                                </div>
+                                <div>{cx.chiefComplaint}</div>
                               </div>
-                              <div className="text-foreground">
-                                {cx.linkedReport.consultationSummary}
-                              </div>
-                            </div>
-                          )}
-                          {cx.linkedReport.clinicalNotes && (
-                            <div className="rounded-lg bg-card border border-border px-3 py-2">
-                              <div className="text-[9px] font-bold uppercase text-muted-foreground mb-0.5">
-                                Clinical Notes
-                              </div>
-                              <div className="text-foreground">{cx.linkedReport.clinicalNotes}</div>
-                            </div>
-                          )}
-                          {cx.linkedReport.testResults && (
-                            <div className="rounded-lg bg-card border border-border px-3 py-2">
-                              <div className="text-[9px] font-bold uppercase text-muted-foreground mb-0.5 flex items-center gap-1">
-                                <FlaskConical className="h-3 w-3" /> Test Results
-                              </div>
-                              <div className="text-foreground">{cx.linkedReport.testResults}</div>
-                            </div>
-                          )}
-                          {cx.linkedReport.recommendedFollowUp && (
-                            <div className="rounded-lg bg-card border border-border px-3 py-2">
-                              <div className="text-[9px] font-bold uppercase text-muted-foreground mb-0.5">
-                                Recommended Follow-up
-                              </div>
-                              <div className="text-foreground">
-                                {cx.linkedReport.recommendedFollowUp}
-                              </div>
-                            </div>
-                          )}
-                          {!cx.linkedReport.consultationSummary && cx.linkedReport.content && (
-                            <div className="sm:col-span-2 rounded-lg bg-card border border-border px-3 py-2">
-                              <div className="text-[9px] font-bold uppercase text-muted-foreground mb-0.5">
-                                Report Content
-                              </div>
-                              <div className="text-foreground">{cx.linkedReport.content}</div>
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2 text-xs">
-                          <div>
-                            <div className="text-[9px] text-muted-foreground uppercase font-semibold">
-                              Treating Doctor
-                            </div>
-                            <div className="font-medium text-foreground">
-                              {cx.linkedReport.doctorName || cx.doctorName || "—"}
-                            </div>
-                            {cx.linkedReport.doctorDid && (
-                              <div className="font-mono text-[10px] text-primary">
-                                {cx.linkedReport.doctorDid}
+                            )}
+                            {cx.symptoms && (
+                              <div className="rounded-lg bg-card border border-border px-3 py-2">
+                                <div className="text-[9px] font-bold uppercase text-muted-foreground mb-0.5">
+                                  Symptoms
+                                </div>
+                                <div>{cx.symptoms}</div>
                               </div>
                             )}
                           </div>
+                        )}
+
+                        {(cx.drugs ?? []).length > 0 && (
+                          <div className="space-y-1.5">
+                            <div className="text-[10px] font-bold uppercase text-muted-foreground">
+                              Prescribed Medications ({(cx.drugs ?? []).length})
+                            </div>
+                            <div className="space-y-1.5">
+                              {(cx.drugs ?? []).map((d: any, idx: number) => (
+                                <div
+                                  key={idx}
+                                  className="flex items-start gap-2.5 rounded-lg border border-border bg-card p-2.5 text-xs"
+                                >
+                                  <Pill className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+                                  <div>
+                                    <span className="font-semibold text-foreground">{d.name}</span>
+                                    {d.dosage && (
+                                      <span className="text-muted-foreground"> · {d.dosage}</span>
+                                    )}
+                                    {d.frequency && (
+                                      <span className="text-muted-foreground"> · {d.frequency}</span>
+                                    )}
+                                    {d.duration && (
+                                      <span className="text-muted-foreground"> · {d.duration}</span>
+                                    )}
+                                    {d.usage && <span className="text-primary"> ({d.usage})</span>}
+                                    {d.instructions && (
+                                      <div className="italic text-muted-foreground mt-0.5">
+                                        {d.instructions}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {cx.notes && (
+                          <div className="rounded-lg bg-muted/40 border border-border px-3 py-2 text-xs">
+                            <span className="font-semibold text-foreground">Additional Notes: </span>
+                            <span className="text-muted-foreground">{cx.notes}</span>
+                          </div>
+                        )}
+
+                        <div className="flex items-center gap-2 rounded-lg bg-success/5 border border-success/20 px-3 py-2 text-xs">
+                          <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
+                          <span className="font-semibold text-success">Digitally Signed</span>
+                          <span className="text-muted-foreground">· DID + Ed25519</span>
                         </div>
+
+                        {cx.signature && (
+                          <div className="flex items-center gap-1.5 rounded-lg bg-muted px-2.5 py-1.5 font-mono text-[10px] text-muted-foreground border border-border/40 overflow-x-auto">
+                            <Hash className="h-3 w-3 shrink-0" />
+                            <span className="text-foreground/80">{cx.signature}</span>
+                          </div>
+                        )}
                       </div>
-                    ) : (
-                      <div className="rounded-xl border border-dashed border-border bg-card px-4 py-3 text-xs text-muted-foreground flex items-center gap-2">
-                        <FileText className="h-3.5 w-3.5 shrink-0" />
-                        No medical report linked to this prescription yet.
-                      </div>
-                    )}
+
+                      {/* ── Linked Medical Report section ── */}
+                      {cx.linkedReport ? (
+                        <div className="rounded-xl border border-chart-2/30 bg-chart-2/5 p-4 space-y-3">
+                          <div className="text-[10px] font-bold uppercase tracking-wider text-chart-2 flex items-center gap-1.5">
+                            <FileText className="h-3.5 w-3.5" /> Linked Medical Report
+                          </div>
+                          <div>
+                            <div className="text-sm font-semibold text-foreground">
+                              {cx.linkedReport.title}
+                            </div>
+                            <div className="text-[10px] text-muted-foreground mt-0.5">
+                              {cx.linkedReport.recordId || cx.linkedReport.record_id}
+                            </div>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {cx.linkedReport.content}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="rounded-xl border border-dashed border-border bg-card px-4 py-3 text-xs text-muted-foreground flex items-center gap-2">
+                          <FileText className="h-3.5 w-3.5 shrink-0" />
+                          No medical report linked to this prescription yet.
+                        </div>
+                      )}
+                    </div>
                   </div>
-                )}
+                </div>
               </div>
             );
           })}

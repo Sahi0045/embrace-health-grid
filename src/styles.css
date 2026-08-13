@@ -72,6 +72,18 @@
     0 16px 48px -8px oklch(0.2 0.04 240 / 0.16), 0 8px 24px -4px oklch(0.2 0.04 240 / 0.08);
 }
 
+/* Scrollbar hiding utilities */
+.no-scrollbar::-webkit-scrollbar,
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar,
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+
 :root {
   --radius: 0.625rem;
 

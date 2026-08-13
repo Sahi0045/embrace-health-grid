@@ -387,16 +387,26 @@ function PeopleManagement() {
                       </div>
                     )}
 
-                    <div className="mt-3 flex gap-2">
-                      <Button size="sm" variant="outline">
-                        <ClipboardList className="mr-2 h-4 w-4" />
-                        View Records
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        className="bg-primary text-primary-foreground font-extrabold rounded-xl text-xs shadow-xs"
+                        onClick={() => window.location.href = `/admin/patient-profile?did=${encodeURIComponent(patient.did)}`}
+                      >
+                        <Users className="mr-1.5 h-3.5 w-3.5" />
+                        Full Patient Profile
                       </Button>
-                      <Button size="sm" variant="outline">
-                        <Calendar className="mr-2 h-4 w-4" />
-                        Appointments
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="rounded-xl text-xs"
+                        onClick={() => window.location.href = `/admin/patient-profile?did=${encodeURIComponent(patient.did)}`}
+                      >
+                        <ClipboardList className="mr-1.5 h-3.5 w-3.5" />
+                        Medical History
                       </Button>
                     </div>
+
                   </CardContent>
                 </Card>
               ))}
