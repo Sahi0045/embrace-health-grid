@@ -28,6 +28,7 @@ import { Route as StaffScheduleRouteImport } from './routes/staff.schedule'
 import { Route as StaffRoomsRouteImport } from './routes/staff.rooms'
 import { Route as StaffProfileRouteImport } from './routes/staff.profile'
 import { Route as StaffPrescriptionsRouteImport } from './routes/staff.prescriptions'
+import { Route as StaffPharmacyInventoryRouteImport } from './routes/staff.pharmacy-inventory'
 import { Route as StaffPatientsRouteImport } from './routes/staff.patients'
 import { Route as StaffPatientMasterRouteImport } from './routes/staff.patient-master'
 import { Route as StaffLabsRouteImport } from './routes/staff.labs'
@@ -56,6 +57,7 @@ import { Route as PatientAppointmentsRouteImport } from './routes/patient.appoin
 import { Route as AdminProfileRouteImport } from './routes/admin.profile'
 import { Route as AdminPrescriptionsRouteImport } from './routes/admin.prescriptions'
 import { Route as AdminPoliciesRouteImport } from './routes/admin.policies'
+import { Route as AdminPharmacyInventoryRouteImport } from './routes/admin.pharmacy-inventory'
 import { Route as AdminPeopleRouteImport } from './routes/admin.people'
 import { Route as AdminPatientMasterRouteImport } from './routes/admin.patient-master'
 import { Route as AdminOnboardRouteImport } from './routes/admin.onboard'
@@ -165,6 +167,11 @@ const StaffProfileRoute = StaffProfileRouteImport.update({
 const StaffPrescriptionsRoute = StaffPrescriptionsRouteImport.update({
   id: '/staff/prescriptions',
   path: '/staff/prescriptions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StaffPharmacyInventoryRoute = StaffPharmacyInventoryRouteImport.update({
+  id: '/staff/pharmacy-inventory',
+  path: '/staff/pharmacy-inventory',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StaffPatientsRoute = StaffPatientsRouteImport.update({
@@ -307,6 +314,11 @@ const AdminPoliciesRoute = AdminPoliciesRouteImport.update({
   path: '/admin/policies',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminPharmacyInventoryRoute = AdminPharmacyInventoryRouteImport.update({
+  id: '/admin/pharmacy-inventory',
+  path: '/admin/pharmacy-inventory',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminPeopleRoute = AdminPeopleRouteImport.update({
   id: '/admin/people',
   path: '/admin/people',
@@ -404,6 +416,7 @@ export interface FileRoutesByFullPath {
   '/admin/onboard': typeof AdminOnboardRoute
   '/admin/patient-master': typeof AdminPatientMasterRoute
   '/admin/people': typeof AdminPeopleRoute
+  '/admin/pharmacy-inventory': typeof AdminPharmacyInventoryRoute
   '/admin/policies': typeof AdminPoliciesRoute
   '/admin/prescriptions': typeof AdminPrescriptionsRoute
   '/admin/profile': typeof AdminProfileRoute
@@ -432,6 +445,7 @@ export interface FileRoutesByFullPath {
   '/staff/labs': typeof StaffLabsRoute
   '/staff/patient-master': typeof StaffPatientMasterRoute
   '/staff/patients': typeof StaffPatientsRoute
+  '/staff/pharmacy-inventory': typeof StaffPharmacyInventoryRoute
   '/staff/prescriptions': typeof StaffPrescriptionsRoute
   '/staff/profile': typeof StaffProfileRoute
   '/staff/rooms': typeof StaffRoomsRoute
@@ -468,6 +482,7 @@ export interface FileRoutesByTo {
   '/admin/onboard': typeof AdminOnboardRoute
   '/admin/patient-master': typeof AdminPatientMasterRoute
   '/admin/people': typeof AdminPeopleRoute
+  '/admin/pharmacy-inventory': typeof AdminPharmacyInventoryRoute
   '/admin/policies': typeof AdminPoliciesRoute
   '/admin/prescriptions': typeof AdminPrescriptionsRoute
   '/admin/profile': typeof AdminProfileRoute
@@ -496,6 +511,7 @@ export interface FileRoutesByTo {
   '/staff/labs': typeof StaffLabsRoute
   '/staff/patient-master': typeof StaffPatientMasterRoute
   '/staff/patients': typeof StaffPatientsRoute
+  '/staff/pharmacy-inventory': typeof StaffPharmacyInventoryRoute
   '/staff/prescriptions': typeof StaffPrescriptionsRoute
   '/staff/profile': typeof StaffProfileRoute
   '/staff/rooms': typeof StaffRoomsRoute
@@ -533,6 +549,7 @@ export interface FileRoutesById {
   '/admin/onboard': typeof AdminOnboardRoute
   '/admin/patient-master': typeof AdminPatientMasterRoute
   '/admin/people': typeof AdminPeopleRoute
+  '/admin/pharmacy-inventory': typeof AdminPharmacyInventoryRoute
   '/admin/policies': typeof AdminPoliciesRoute
   '/admin/prescriptions': typeof AdminPrescriptionsRoute
   '/admin/profile': typeof AdminProfileRoute
@@ -561,6 +578,7 @@ export interface FileRoutesById {
   '/staff/labs': typeof StaffLabsRoute
   '/staff/patient-master': typeof StaffPatientMasterRoute
   '/staff/patients': typeof StaffPatientsRoute
+  '/staff/pharmacy-inventory': typeof StaffPharmacyInventoryRoute
   '/staff/prescriptions': typeof StaffPrescriptionsRoute
   '/staff/profile': typeof StaffProfileRoute
   '/staff/rooms': typeof StaffRoomsRoute
@@ -599,6 +617,7 @@ export interface FileRouteTypes {
     | '/admin/onboard'
     | '/admin/patient-master'
     | '/admin/people'
+    | '/admin/pharmacy-inventory'
     | '/admin/policies'
     | '/admin/prescriptions'
     | '/admin/profile'
@@ -627,6 +646,7 @@ export interface FileRouteTypes {
     | '/staff/labs'
     | '/staff/patient-master'
     | '/staff/patients'
+    | '/staff/pharmacy-inventory'
     | '/staff/prescriptions'
     | '/staff/profile'
     | '/staff/rooms'
@@ -663,6 +683,7 @@ export interface FileRouteTypes {
     | '/admin/onboard'
     | '/admin/patient-master'
     | '/admin/people'
+    | '/admin/pharmacy-inventory'
     | '/admin/policies'
     | '/admin/prescriptions'
     | '/admin/profile'
@@ -691,6 +712,7 @@ export interface FileRouteTypes {
     | '/staff/labs'
     | '/staff/patient-master'
     | '/staff/patients'
+    | '/staff/pharmacy-inventory'
     | '/staff/prescriptions'
     | '/staff/profile'
     | '/staff/rooms'
@@ -727,6 +749,7 @@ export interface FileRouteTypes {
     | '/admin/onboard'
     | '/admin/patient-master'
     | '/admin/people'
+    | '/admin/pharmacy-inventory'
     | '/admin/policies'
     | '/admin/prescriptions'
     | '/admin/profile'
@@ -755,6 +778,7 @@ export interface FileRouteTypes {
     | '/staff/labs'
     | '/staff/patient-master'
     | '/staff/patients'
+    | '/staff/pharmacy-inventory'
     | '/staff/prescriptions'
     | '/staff/profile'
     | '/staff/rooms'
@@ -792,6 +816,7 @@ export interface RootRouteChildren {
   AdminOnboardRoute: typeof AdminOnboardRoute
   AdminPatientMasterRoute: typeof AdminPatientMasterRoute
   AdminPeopleRoute: typeof AdminPeopleRoute
+  AdminPharmacyInventoryRoute: typeof AdminPharmacyInventoryRoute
   AdminPoliciesRoute: typeof AdminPoliciesRoute
   AdminPrescriptionsRoute: typeof AdminPrescriptionsRoute
   AdminProfileRoute: typeof AdminProfileRoute
@@ -820,6 +845,7 @@ export interface RootRouteChildren {
   StaffLabsRoute: typeof StaffLabsRoute
   StaffPatientMasterRoute: typeof StaffPatientMasterRoute
   StaffPatientsRoute: typeof StaffPatientsRoute
+  StaffPharmacyInventoryRoute: typeof StaffPharmacyInventoryRoute
   StaffPrescriptionsRoute: typeof StaffPrescriptionsRoute
   StaffProfileRoute: typeof StaffProfileRoute
   StaffRoomsRoute: typeof StaffRoomsRoute
@@ -969,6 +995,13 @@ declare module '@tanstack/react-router' {
       path: '/staff/prescriptions'
       fullPath: '/staff/prescriptions'
       preLoaderRoute: typeof StaffPrescriptionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/staff/pharmacy-inventory': {
+      id: '/staff/pharmacy-inventory'
+      path: '/staff/pharmacy-inventory'
+      fullPath: '/staff/pharmacy-inventory'
+      preLoaderRoute: typeof StaffPharmacyInventoryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/staff/patients': {
@@ -1167,6 +1200,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPoliciesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/pharmacy-inventory': {
+      id: '/admin/pharmacy-inventory'
+      path: '/admin/pharmacy-inventory'
+      fullPath: '/admin/pharmacy-inventory'
+      preLoaderRoute: typeof AdminPharmacyInventoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/people': {
       id: '/admin/people'
       path: '/admin/people'
@@ -1296,6 +1336,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminOnboardRoute: AdminOnboardRoute,
   AdminPatientMasterRoute: AdminPatientMasterRoute,
   AdminPeopleRoute: AdminPeopleRoute,
+  AdminPharmacyInventoryRoute: AdminPharmacyInventoryRoute,
   AdminPoliciesRoute: AdminPoliciesRoute,
   AdminPrescriptionsRoute: AdminPrescriptionsRoute,
   AdminProfileRoute: AdminProfileRoute,
@@ -1324,6 +1365,7 @@ const rootRouteChildren: RootRouteChildren = {
   StaffLabsRoute: StaffLabsRoute,
   StaffPatientMasterRoute: StaffPatientMasterRoute,
   StaffPatientsRoute: StaffPatientsRoute,
+  StaffPharmacyInventoryRoute: StaffPharmacyInventoryRoute,
   StaffPrescriptionsRoute: StaffPrescriptionsRoute,
   StaffProfileRoute: StaffProfileRoute,
   StaffRoomsRoute: StaffRoomsRoute,

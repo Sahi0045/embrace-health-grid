@@ -2063,3 +2063,52 @@ export async function getPatientDischargeInfo(patientDid: string) {
   const { getPatientDischargeInfo: fn } = await import("./patient-master.server");
   return fn({ patientDid });
 }
+
+
+// ─── Pharmacy & Medical Inventory ────────────────────────────────────────────
+
+// Re-export all pharmacy functions from pharmacy.server.ts for client-side usage
+
+export {
+  // Suppliers
+  createSupplier,
+  getSuppliers,
+  // Inventory Items
+  createInventoryItem,
+  getInventoryItems,
+  getInventoryItem,
+  updateInventoryItem,
+  // Batches
+  createBatch,
+  getBatches,
+  getBatchDetails,
+  // Stock Levels
+  getCurrentStockLevel,
+  getAllStockLevels,
+  // Stock Movements
+  addStock,
+  removeStock,
+  transferStock,
+  consumeStock,
+  adjustStock,
+  recordWastage,
+  recordExpiredStock,
+  getBatchMovements,
+  getItemMovements,
+  getMovement,
+  // Alerts
+  getLowStockItems,
+  getNearExpiryItems,
+  getExpiredStock,
+  resolveLowStockAlert,
+  resolveExpirationAlert,
+  // Purchase Orders
+  createPurchaseOrder,
+  getPurchaseOrders,
+  updatePurchaseOrderStatus,
+  // Prescription Dispensing Integration
+  dispensePrescriptionMedications,
+  checkPrescriptionMedicationAvailability,
+  getPrescriptionWithInventory,
+  getPendingDispensingPrescriptions,
+} from "./pharmacy.server";
