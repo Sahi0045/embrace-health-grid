@@ -2010,3 +2010,56 @@ export interface LiveTransaction {
   patientName?: string;
   blockTxId?: string;
 }
+
+
+// ─── Patient Master (Centralized patient data access) ─────────────────────────
+
+export async function getPatientMaster(patientDid: string) {
+  const { getPatientMaster: fn } = await import("./patient-master.server");
+  return fn({ patientDid });
+}
+
+export async function getPatientCurrentLocation(patientDid: string) {
+  const { getPatientCurrentLocation: fn } = await import("./patient-master.server");
+  return fn({ patientDid });
+}
+
+export async function getPatientAdmissionHistory(patientDid: string, limit?: number) {
+  const { getPatientAdmissionHistory: fn } = await import("./patient-master.server");
+  return fn({ patientDid, limit });
+}
+
+export async function getPatientTransferHistory(patientDid: string, limit?: number) {
+  const { getPatientTransferHistory: fn } = await import("./patient-master.server");
+  return fn({ patientDid, limit });
+}
+
+export async function getPatientMedicalRecords(patientDid: string, recordType?: string, limit?: number) {
+  const { getPatientMedicalRecords: fn } = await import("./patient-master.server");
+  return fn({ patientDid, recordType, limit });
+}
+
+export async function getPatientMedications(patientDid: string, status?: string) {
+  const { getPatientMedications: fn } = await import("./patient-master.server");
+  return fn({ patientDid, status });
+}
+
+export async function getPatientProcedures(patientDid: string, status?: string) {
+  const { getPatientProcedures: fn } = await import("./patient-master.server");
+  return fn({ patientDid, status });
+}
+
+export async function getPatientLabResults(patientDid: string, limit?: number) {
+  const { getPatientLabResults: fn } = await import("./patient-master.server");
+  return fn({ patientDid, limit });
+}
+
+export async function getPatientBilling(patientDid: string) {
+  const { getPatientBilling: fn } = await import("./patient-master.server");
+  return fn({ patientDid });
+}
+
+export async function getPatientDischargeInfo(patientDid: string) {
+  const { getPatientDischargeInfo: fn } = await import("./patient-master.server");
+  return fn({ patientDid });
+}

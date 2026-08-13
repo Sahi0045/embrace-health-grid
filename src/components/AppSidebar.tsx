@@ -115,6 +115,8 @@ const patientAccountNav: Item[] = [
 const staffNav: Item[] = [
   { title: "Dashboard",        url: "/staff",               icon: LayoutDashboard },
   { title: "Command Center",   url: "/staff/command",       icon: Command         },
+  { title: "Patient Master",   url: "/staff/patient-master",icon: Users           },
+  { title: "Patients",         url: "/staff/patients",      icon: Users           },
   { title: "Appointments",     url: "/staff/appointments",  icon: CalendarDays    },
   { title: "Doctor Locator",   url: "/staff/tracker",       icon: MapPin          },
   { title: "Room Check-In",    url: "/staff/rooms",         icon: Building2       },
@@ -147,6 +149,7 @@ const adminNav: Item[] = [
   { title: "DID Management", url: "/admin/dids", icon: Fingerprint },
   { title: "Credentials", url: "/admin/credentials", icon: Award },
   { title: "People", url: "/admin/people", icon: Users },
+  { title: "Patient Master", url: "/admin/patient-master", icon: Users },
   { title: "Prescriptions", url: "/admin/prescriptions", icon: Pill },
   { title: "Admissions", url: "/admin/admissions", icon: Activity },
   { title: "Doctor Availability", url: "/admin/doctors", icon: Stethoscope },
