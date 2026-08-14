@@ -631,3 +631,37 @@ export function buildRoomAudit(
     metadata:      { description: `Room status changed from ${prevStatus} to ${newStatus}` },
   };
 }
+
+export function buildInventoryAudit(
+  caller: { userId: string | null; actorDid: string | null; actorName: string | null; actorRole: string | null; hospital: string | null; email: string | null },
+  itemId: string,
+  movementType: string,
+  quantity: number,
+  prevStock: number,
+  newStock: number,
+  extra: Record<string, unknown> = {},
+): AuditEntry {
+  return {
+    actorId:       caller.userId,
+    actorDid:      caller.actorDid,
+    actorName:     caller.actorName,
+    actorRole:     caller.actorRole,
+    actorHospital: caller.hospital,
+    actorEmail:    caller.email,
+    action:        `STOCK_${movementType}`,
+    outcome:       "success",
+    severity:      "info",
+    module:        "inventory",
+    entityId:      itemId,
+    entityType:    "inventory_item",
+    resource:      `Inventory Item ${itemId}`,
+    hospital:      caller.hospital,
+    location:      "Admin Portal → Inventory Dashboard",
+    prevValue:     { stock: prevStock },
+    newValue:      { stock: newStock, quantity, movementType, ...extra },
+    authStatus:    "authorized",
+    authPolicy:    "stock_movements_insert",
+    metadata:      { description: `Stock movement ${movementType} of ${quantity} units recorded (${prevStock} → ${newStock})`, ...extra },
+  };
+}
+

@@ -53,6 +53,7 @@ import {
   Stethoscope,
   Map,
   Ambulance,
+  Package,
 } from "lucide-react";
 import {
   Sidebar,
@@ -156,6 +157,7 @@ const adminNav: Item[] = [
   { title: "Beds & Rooms", url: "/admin/beds-rooms", icon: Bed },
   { title: "Hospital Map", url: "/admin/hospital-map", icon: Map },
   { title: "Ambulance Fleet", url: "/admin/ambulances", icon: Ambulance },
+  { title: "Inventory", url: "/admin/inventory", icon: Package },
   { title: "NFC Cards", url: "/admin/nfc-cards", icon: CreditCard },
   { title: "Policies", url: "/admin/policies", icon: FileText },
   { title: "Fraud Detection", url: "/admin/fraud", icon: ShieldAlert },

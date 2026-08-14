@@ -282,3 +282,66 @@ export type InsuranceClaim = {
   processedDate?: string;
   remarks: string;
 };
+
+export type InventoryStatus = "normal" | "low_stock" | "critical" | "expired";
+
+export type InventoryCategory = {
+  category_id: string;
+  name: string;
+  description?: string;
+  color_code: string;
+  created_at?: string;
+};
+
+export type InventoryItem = {
+  item_id: string;
+  hospital_id?: string;
+  name: string;
+  sku: string;
+  category_id: string;
+  current_stock: number;
+  reserved_stock: number;
+  unit: string;
+  reorder_level: number;
+  reorder_qty: number;
+  unit_cost: number;
+  expiry_date?: string;
+  storage_location?: string;
+  supplier?: string;
+  status: InventoryStatus;
+  last_movement_at?: string;
+  created_at?: string;
+  updated_at?: string;
+  category?: InventoryCategory;
+};
+
+export type StockMovementType = "IN" | "OUT" | "ADJUSTMENT" | "RESERVATION" | "RELEASE";
+
+export type StockMovement = {
+  movement_id: string;
+  item_id: string;
+  hospital_id?: string;
+  movement_type: StockMovementType;
+  quantity: number;
+  previous_stock: number;
+  new_stock: number;
+  reason?: string;
+  performed_by?: string;
+  performed_by_name?: string;
+  recorded_at: string;
+};
+
+export type InventoryAlert = {
+  alert_id: string;
+  item_id: string;
+  hospital_id?: string;
+  alert_type: "low_stock" | "critical" | "near_expiry" | "expired";
+  severity: "warning" | "critical";
+  message: string;
+  current_level?: number;
+  threshold?: number;
+  acknowledged: boolean;
+  created_at: string;
+  item?: InventoryItem;
+};
+

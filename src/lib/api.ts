@@ -2042,3 +2042,41 @@ export async function getPatientFullProfile(patientDid: string) {
   return fn({ data: { patientDid } });
 }
 
+export async function getInventoryData() {
+  const { getInventoryData: fn } = await import("./operations.server");
+  return fn();
+}
+
+export async function getStockMovements(itemId: string) {
+  const { getStockMovements: fn } = await import("./operations.server");
+  return fn({ data: { itemId } });
+}
+
+export async function recordStockMovement(params: {
+  itemId: string;
+  movementType: "IN" | "OUT" | "ADJUSTMENT";
+  quantity: number;
+  reason?: string;
+}) {
+  const { recordStockMovement: fn } = await import("./operations.server");
+  return fn({ data: params });
+}
+
+export async function updateItemReorderSettings(params: {
+  itemId: string;
+  reorderLevel?: number;
+  reorderQty?: number;
+  storageLocation?: string;
+  supplier?: string;
+  unitCost?: number;
+}) {
+  const { updateItemReorderSettings: fn } = await import("./operations.server");
+  return fn({ data: params });
+}
+
+export async function acknowledgeInventoryAlert(alertId: string) {
+  const { acknowledgeInventoryAlert: fn } = await import("./operations.server");
+  return fn({ data: { alertId } });
+}
+
+
