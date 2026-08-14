@@ -11,6 +11,7 @@
  */
 
 import { createServerFn } from "@tanstack/react-start";
+import { getSupabaseServerClient, getVerifiedUser } from "./supabase.server";
 import {
   resolveCallerForAudit,
   tryWriteAudit,
@@ -1141,30 +1142,28 @@ export const getBedRoomStatistics = createServerFn({ method: "GET" }).handler(as
   // Calculate statistics
   const bedStats = {
     total: beds?.length ?? 0,
-    available: beds?.filter((b) => b.status === "available").length ?? 0,
-    occupied: beds?.filter((b) => b.status === "occupied").length ?? 0,
-    reserved: beds?.filter((b) => b.status === "reserved").length ?? 0,
-    cleaning: beds?.filter((b) => b.status === "cleaning").length ?? 0,
-    maintenance: beds?.filter((b) => b.status === "maintenance").length ?? 0,
-    blocked: beds?.filter((b) => b.status === "blocked").length ?? 0,
-    emergency_reserved: beds?.filter((b) => b.status === "emergency_reserved").length ?? 0,
+    available: beds?.filter((b: any) => b.status === "available").length ?? 0,
+    occupied: beds?.filter((b: any) => b.status === "occupied").length ?? 0,
+    reserved: beds?.filter((b: any) => b.status === "reserved").length ?? 0,
+    cleaning: beds?.filter((b: any) => b.status === "cleaning").length ?? 0,
+    maintenance: beds?.filter((b: any) => b.status === "maintenance").length ?? 0,
+    blocked: beds?.filter((b: any) => b.status === "blocked").length ?? 0,
+    emergency_reserved: beds?.filter((b: any) => b.status === "emergency_reserved").length ?? 0,
   };
 
   const roomStats = {
     total: rooms?.length ?? 0,
-    available: rooms?.filter((r) => r.status === "available").length ?? 0,
-    occupied: rooms?.filter((r) => r.status === "occupied").length ?? 0,
-    reserved: rooms?.filter((r) => r.status === "reserved").length ?? 0,
-    cleaning: rooms?.filter((r) => r.status === "cleaning").length ?? 0,
-    maintenance: rooms?.filter((r) => r.status === "maintenance").length ?? 0,
-    blocked: rooms?.filter((r) => r.status === "blocked").length ?? 0,
-    emergency_reserved: rooms?.filter((r) => r.status === "emergency_reserved").length ?? 0,
+    available: rooms?.filter((r: any) => r.status === "available").length ?? 0,
+    occupied: rooms?.filter((r: any) => r.status === "occupied").length ?? 0,
+    reserved: rooms?.filter((r: any) => r.status === "reserved").length ?? 0,
+    cleaning: rooms?.filter((r: any) => r.status === "cleaning").length ?? 0,
+    maintenance: rooms?.filter((r: any) => r.status === "maintenance").length ?? 0,
+    blocked: rooms?.filter((r: any) => r.status === "blocked").length ?? 0,
+    emergency_reserved: rooms?.filter((r: any) => r.status === "emergency_reserved").length ?? 0,
   };
 
   return { bedStats, roomStats };
 });
-
-// ─── Inventory & Supply Chain Governance ───────────────────────────────────
 
 // ─── Inventory & Supply Chain Governance ───────────────────────────────────
 
@@ -1255,27 +1254,27 @@ export const getInventoryData = createServerFn({ method: "GET" }).handler(async 
     const { data: alerts, error: alertErr } = await alertQuery;
     if (alertErr) throw alertErr;
 
-    const allItems = items || [];
+    const allItems: any[] = items || [];
     const totalItems = allItems.length;
-    const lowStockCount = allItems.filter((i) => i.status === "low_stock" || i.status === "critical" || i.current_stock <= i.reorder_level).length;
-    const criticalCount = allItems.filter((i) => i.status === "critical" || i.current_stock === 0).length;
+    const lowStockCount = allItems.filter((i: any) => i.status === "low_stock" || i.status === "critical" || i.current_stock <= i.reorder_level).length;
+    const criticalCount = allItems.filter((i: any) => i.status === "critical" || i.current_stock === 0).length;
 
     const now = new Date();
     const thirtyDaysLater = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-    const nearExpiryCount = allItems.filter((i) => {
+    const nearExpiryCount = allItems.filter((i: any) => {
       if (!i.expiry_date) return false;
       const exp = new Date(i.expiry_date);
       return exp <= thirtyDaysLater;
     }).length;
 
     const totalStockValuation = allItems.reduce(
-      (sum, i) => sum + (Number(i.current_stock) || 0) * (Number(i.unit_cost) || 0),
+      (sum: number, i: any) => sum + (Number(i.current_stock) || 0) * (Number(i.unit_cost) || 0),
       0,
     );
 
     const categoryBreakdown: Record<string, number> = {};
     for (const cat of categories || []) {
-      categoryBreakdown[cat.category_id] = allItems.filter((i) => i.category_id === cat.category_id).length;
+      categoryBreakdown[cat.category_id] = allItems.filter((i: any) => i.category_id === cat.category_id).length;
     }
 
     return {

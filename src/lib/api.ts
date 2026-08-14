@@ -551,7 +551,7 @@ export async function getRoomCheckinStatus(_did?: string) {
   return {
     checkins: rows,
     // Legacy alias: the rooms board reads `checkedInRooms`.
-    checkedInRooms: rows.filter((c) => c.lastAction === "checkin"),
+    checkedInRooms: rows.filter((c: any) => c.lastAction === "checkin"),
   };
 }
 
@@ -579,7 +579,7 @@ export async function getDailyRoomEvents(doctorDid?: string, date?: string) {
   let merkleRoot: string | null = null;
   if (events.length) {
     let level = await Promise.all(
-      events.map((e) =>
+      events.map((e: any) =>
         sha(
           JSON.stringify({
             doctorDid: e.doctorDid ?? null,
