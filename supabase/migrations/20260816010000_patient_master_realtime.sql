@@ -24,39 +24,33 @@
 
 -- ─── Add tables to realtime publication ──────────────────────────────────────
 
--- Admissions: patient admission/discharge/transfer lifecycle
-alter publication supabase_realtime add table if not exists public.admissions;
+DO $$
+DECLARE
+  tbl text;
+  tables text[] := ARRAY[
+    'admissions', 'beds', 'rooms', 'billing_accounts', 
+    'admission_events', 'staff_schedule', 'nursing_notes', 'daily_checkups'
+  ];
+BEGIN
+  FOREACH tbl IN ARRAY tables LOOP
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_publication_tables 
+      WHERE pubname = 'supabase_realtime' 
+        AND schemaname = 'public' 
+        AND tablename = tbl
+    ) THEN
+      EXECUTE format('ALTER PUBLICATION supabase_realtime ADD TABLE public.%I', tbl);
+    END IF;
+  END LOOP;
+END $$;
+
 alter table public.admissions replica identity full;
-
--- Beds: occupancy and status changes
-alter publication supabase_realtime add table if not exists public.beds;
 alter table public.beds replica identity full;
-
--- Rooms: occupancy and status changes
-alter publication supabase_realtime add table if not exists public.rooms;
 alter table public.rooms replica identity full;
-
--- Billing: charges, payments, outstanding balance updates
-alter publication supabase_realtime add table if not exists public.billing_accounts;
 alter table public.billing_accounts replica identity full;
-
--- Admission events: audit trail of all admission state changes
-alter publication supabase_realtime add table if not exists public.admission_events;
 alter table public.admission_events replica identity full;
-
--- ─── Optional: Staff schedule for availability tracking ──────────────────────
--- Enable live updates on staff schedule so doctor availability status updates
--- in real-time when shifts are confirmed/rejected
-alter publication supabase_realtime add table if not exists public.staff_schedule;
 alter table public.staff_schedule replica identity full;
-
--- ─── Optional: Nursing notes and checkups for live clinical updates ──────────
--- Enable realtime on clinical observation tables so staff can see live updates
--- during patient care
-alter publication supabase_realtime add table if not exists public.nursing_notes;
 alter table public.nursing_notes replica identity full;
-
-alter publication supabase_realtime add table if not exists public.daily_checkups;
 alter table public.daily_checkups replica identity full;
 
 -- ─── Realtime subscription helpers documentation ───────────────────────────

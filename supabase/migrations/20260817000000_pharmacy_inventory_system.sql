@@ -480,12 +480,25 @@ create policy purchase_orders_update_staff on public.purchase_orders
 
 -- ─── Enable Realtime ────────────────────────────────────────────────────────
 
-alter publication supabase_realtime add table if not exists public.inventory_items;
-alter publication supabase_realtime add table if not exists public.stock_levels;
-alter publication supabase_realtime add table if not exists public.stock_movements;
-alter publication supabase_realtime add table if not exists public.expiration_alerts;
-alter publication supabase_realtime add table if not exists public.low_stock_alerts;
-alter publication supabase_realtime add table if not exists public.purchase_orders;
+DO $$
+DECLARE
+  tbl text;
+  tables text[] := ARRAY[
+    'inventory_items', 'stock_levels', 'stock_movements', 
+    'expiration_alerts', 'low_stock_alerts', 'purchase_orders'
+  ];
+BEGIN
+  FOREACH tbl IN ARRAY tables LOOP
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_publication_tables 
+      WHERE pubname = 'supabase_realtime' 
+        AND schemaname = 'public' 
+        AND tablename = tbl
+    ) THEN
+      EXECUTE format('ALTER PUBLICATION supabase_realtime ADD TABLE public.%I', tbl);
+    END IF;
+  END LOOP;
+END $$;
 
 alter table public.stock_levels replica identity full;
 alter table public.stock_movements replica identity full;
