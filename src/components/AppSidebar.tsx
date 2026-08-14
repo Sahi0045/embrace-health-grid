@@ -53,6 +53,7 @@ import {
   Stethoscope,
   Map,
   Ambulance,
+  Package,
 } from "lucide-react";
 import {
   Sidebar,
@@ -117,6 +118,8 @@ const patientAccountNav: Item[] = [
 const staffNav: Item[] = [
   { title: "Dashboard",        url: "/staff",               icon: LayoutDashboard },
   { title: "Command Center",   url: "/staff/command",       icon: Command         },
+  { title: "Patient Master",   url: "/staff/patient-master",icon: Users           },
+  { title: "Patients",         url: "/staff/patients",      icon: Users           },
   { title: "Appointments",     url: "/staff/appointments",  icon: CalendarDays    },
   { title: "Doctor Locator",   url: "/staff/tracker",       icon: MapPin          },
   { title: "Room Check-In",    url: "/staff/rooms",         icon: Building2       },
@@ -127,6 +130,7 @@ const staffNav: Item[] = [
   { title: "Schedule",         url: "/staff/schedule",      icon: Calendar        },
   { title: "Sign & Prescribe", url: "/staff/sign",          icon: FileSignature   },
   { title: "Prescriptions",    url: "/staff/prescriptions", icon: Pill            },
+  { title: "Pharmacy Stock",   url: "/staff/pharmacy-inventory", icon: Package    },
   { title: "Consent",          url: "/staff/consent",       icon: ShieldCheck     },
   { title: "Labs",             url: "/staff/labs",          icon: FlaskConical    },
   { title: "Surgeries",        url: "/staff/surgeries",     icon: Scissors        },
@@ -149,6 +153,7 @@ const adminNav: Item[] = [
   { title: "DID Management", url: "/admin/dids", icon: Fingerprint },
   { title: "Credentials", url: "/admin/credentials", icon: Award },
   { title: "People", url: "/admin/people", icon: Users },
+  { title: "Patient Master", url: "/admin/patient-master", icon: Users },
   { title: "Prescriptions", url: "/admin/prescriptions", icon: Pill },
   { title: "Admissions", url: "/admin/admissions", icon: Activity },
   { title: "Staff Availability", url: "/admin/doctors", icon: Stethoscope },
@@ -156,6 +161,7 @@ const adminNav: Item[] = [
   { title: "Beds & Rooms", url: "/admin/beds-rooms", icon: Bed },
   { title: "Hospital Map", url: "/admin/hospital-map", icon: Map },
   { title: "Ambulance Fleet", url: "/admin/ambulances", icon: Ambulance },
+  { title: "Pharmacy Inventory", url: "/admin/pharmacy-inventory", icon: Package },
   { title: "NFC Cards", url: "/admin/nfc-cards", icon: CreditCard },
   { title: "Policies", url: "/admin/policies", icon: FileText },
   { title: "Fraud Detection", url: "/admin/fraud", icon: ShieldAlert },

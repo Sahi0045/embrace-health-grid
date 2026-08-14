@@ -28,7 +28,9 @@ import { Route as StaffScheduleRouteImport } from './routes/staff.schedule'
 import { Route as StaffRoomsRouteImport } from './routes/staff.rooms'
 import { Route as StaffProfileRouteImport } from './routes/staff.profile'
 import { Route as StaffPrescriptionsRouteImport } from './routes/staff.prescriptions'
+import { Route as StaffPharmacyInventoryRouteImport } from './routes/staff.pharmacy-inventory'
 import { Route as StaffPatientsRouteImport } from './routes/staff.patients'
+import { Route as StaffPatientMasterRouteImport } from './routes/staff.patient-master'
 import { Route as StaffLabsRouteImport } from './routes/staff.labs'
 import { Route as StaffEmergencyRouteImport } from './routes/staff.emergency'
 import { Route as StaffConsentRouteImport } from './routes/staff.consent'
@@ -55,8 +57,10 @@ import { Route as PatientAppointmentsRouteImport } from './routes/patient.appoin
 import { Route as AdminProfileRouteImport } from './routes/admin.profile'
 import { Route as AdminPrescriptionsRouteImport } from './routes/admin.prescriptions'
 import { Route as AdminPoliciesRouteImport } from './routes/admin.policies'
+import { Route as AdminPharmacyInventoryRouteImport } from './routes/admin.pharmacy-inventory'
 import { Route as AdminPeopleRouteImport } from './routes/admin.people'
 import { Route as AdminPatientProfileRouteImport } from './routes/admin.patient-profile'
+import { Route as AdminPatientMasterRouteImport } from './routes/admin.patient-master'
 import { Route as AdminOnboardRouteImport } from './routes/admin.onboard'
 import { Route as AdminNfcCardsRouteImport } from './routes/admin.nfc-cards'
 import { Route as AdminHospitalMapRouteImport } from './routes/admin.hospital-map'
@@ -168,9 +172,19 @@ const StaffPrescriptionsRoute = StaffPrescriptionsRouteImport.update({
   path: '/staff/prescriptions',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StaffPharmacyInventoryRoute = StaffPharmacyInventoryRouteImport.update({
+  id: '/staff/pharmacy-inventory',
+  path: '/staff/pharmacy-inventory',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StaffPatientsRoute = StaffPatientsRouteImport.update({
   id: '/staff/patients',
   path: '/staff/patients',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StaffPatientMasterRoute = StaffPatientMasterRouteImport.update({
+  id: '/staff/patient-master',
+  path: '/staff/patient-master',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StaffLabsRoute = StaffLabsRouteImport.update({
@@ -303,6 +317,11 @@ const AdminPoliciesRoute = AdminPoliciesRouteImport.update({
   path: '/admin/policies',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminPharmacyInventoryRoute = AdminPharmacyInventoryRouteImport.update({
+  id: '/admin/pharmacy-inventory',
+  path: '/admin/pharmacy-inventory',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminPeopleRoute = AdminPeopleRouteImport.update({
   id: '/admin/people',
   path: '/admin/people',
@@ -311,6 +330,11 @@ const AdminPeopleRoute = AdminPeopleRouteImport.update({
 const AdminPatientProfileRoute = AdminPatientProfileRouteImport.update({
   id: '/admin/patient-profile',
   path: '/admin/patient-profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminPatientMasterRoute = AdminPatientMasterRouteImport.update({
+  id: '/admin/patient-master',
+  path: '/admin/patient-master',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminOnboardRoute = AdminOnboardRouteImport.update({
@@ -410,8 +434,10 @@ export interface FileRoutesByFullPath {
   '/admin/hospital-map': typeof AdminHospitalMapRoute
   '/admin/nfc-cards': typeof AdminNfcCardsRoute
   '/admin/onboard': typeof AdminOnboardRoute
+  '/admin/patient-master': typeof AdminPatientMasterRoute
   '/admin/patient-profile': typeof AdminPatientProfileRoute
   '/admin/people': typeof AdminPeopleRoute
+  '/admin/pharmacy-inventory': typeof AdminPharmacyInventoryRoute
   '/admin/policies': typeof AdminPoliciesRoute
   '/admin/prescriptions': typeof AdminPrescriptionsRoute
   '/admin/profile': typeof AdminProfileRoute
@@ -438,7 +464,9 @@ export interface FileRoutesByFullPath {
   '/staff/consent': typeof StaffConsentRoute
   '/staff/emergency': typeof StaffEmergencyRoute
   '/staff/labs': typeof StaffLabsRoute
+  '/staff/patient-master': typeof StaffPatientMasterRoute
   '/staff/patients': typeof StaffPatientsRoute
+  '/staff/pharmacy-inventory': typeof StaffPharmacyInventoryRoute
   '/staff/prescriptions': typeof StaffPrescriptionsRoute
   '/staff/profile': typeof StaffProfileRoute
   '/staff/rooms': typeof StaffRoomsRoute
@@ -475,8 +503,10 @@ export interface FileRoutesByTo {
   '/admin/hospital-map': typeof AdminHospitalMapRoute
   '/admin/nfc-cards': typeof AdminNfcCardsRoute
   '/admin/onboard': typeof AdminOnboardRoute
+  '/admin/patient-master': typeof AdminPatientMasterRoute
   '/admin/patient-profile': typeof AdminPatientProfileRoute
   '/admin/people': typeof AdminPeopleRoute
+  '/admin/pharmacy-inventory': typeof AdminPharmacyInventoryRoute
   '/admin/policies': typeof AdminPoliciesRoute
   '/admin/prescriptions': typeof AdminPrescriptionsRoute
   '/admin/profile': typeof AdminProfileRoute
@@ -503,7 +533,9 @@ export interface FileRoutesByTo {
   '/staff/consent': typeof StaffConsentRoute
   '/staff/emergency': typeof StaffEmergencyRoute
   '/staff/labs': typeof StaffLabsRoute
+  '/staff/patient-master': typeof StaffPatientMasterRoute
   '/staff/patients': typeof StaffPatientsRoute
+  '/staff/pharmacy-inventory': typeof StaffPharmacyInventoryRoute
   '/staff/prescriptions': typeof StaffPrescriptionsRoute
   '/staff/profile': typeof StaffProfileRoute
   '/staff/rooms': typeof StaffRoomsRoute
@@ -541,8 +573,10 @@ export interface FileRoutesById {
   '/admin/hospital-map': typeof AdminHospitalMapRoute
   '/admin/nfc-cards': typeof AdminNfcCardsRoute
   '/admin/onboard': typeof AdminOnboardRoute
+  '/admin/patient-master': typeof AdminPatientMasterRoute
   '/admin/patient-profile': typeof AdminPatientProfileRoute
   '/admin/people': typeof AdminPeopleRoute
+  '/admin/pharmacy-inventory': typeof AdminPharmacyInventoryRoute
   '/admin/policies': typeof AdminPoliciesRoute
   '/admin/prescriptions': typeof AdminPrescriptionsRoute
   '/admin/profile': typeof AdminProfileRoute
@@ -569,7 +603,9 @@ export interface FileRoutesById {
   '/staff/consent': typeof StaffConsentRoute
   '/staff/emergency': typeof StaffEmergencyRoute
   '/staff/labs': typeof StaffLabsRoute
+  '/staff/patient-master': typeof StaffPatientMasterRoute
   '/staff/patients': typeof StaffPatientsRoute
+  '/staff/pharmacy-inventory': typeof StaffPharmacyInventoryRoute
   '/staff/prescriptions': typeof StaffPrescriptionsRoute
   '/staff/profile': typeof StaffProfileRoute
   '/staff/rooms': typeof StaffRoomsRoute
@@ -608,8 +644,10 @@ export interface FileRouteTypes {
     | '/admin/hospital-map'
     | '/admin/nfc-cards'
     | '/admin/onboard'
+    | '/admin/patient-master'
     | '/admin/patient-profile'
     | '/admin/people'
+    | '/admin/pharmacy-inventory'
     | '/admin/policies'
     | '/admin/prescriptions'
     | '/admin/profile'
@@ -636,7 +674,9 @@ export interface FileRouteTypes {
     | '/staff/consent'
     | '/staff/emergency'
     | '/staff/labs'
+    | '/staff/patient-master'
     | '/staff/patients'
+    | '/staff/pharmacy-inventory'
     | '/staff/prescriptions'
     | '/staff/profile'
     | '/staff/rooms'
@@ -673,8 +713,10 @@ export interface FileRouteTypes {
     | '/admin/hospital-map'
     | '/admin/nfc-cards'
     | '/admin/onboard'
+    | '/admin/patient-master'
     | '/admin/patient-profile'
     | '/admin/people'
+    | '/admin/pharmacy-inventory'
     | '/admin/policies'
     | '/admin/prescriptions'
     | '/admin/profile'
@@ -701,7 +743,9 @@ export interface FileRouteTypes {
     | '/staff/consent'
     | '/staff/emergency'
     | '/staff/labs'
+    | '/staff/patient-master'
     | '/staff/patients'
+    | '/staff/pharmacy-inventory'
     | '/staff/prescriptions'
     | '/staff/profile'
     | '/staff/rooms'
@@ -738,8 +782,10 @@ export interface FileRouteTypes {
     | '/admin/hospital-map'
     | '/admin/nfc-cards'
     | '/admin/onboard'
+    | '/admin/patient-master'
     | '/admin/patient-profile'
     | '/admin/people'
+    | '/admin/pharmacy-inventory'
     | '/admin/policies'
     | '/admin/prescriptions'
     | '/admin/profile'
@@ -766,7 +812,9 @@ export interface FileRouteTypes {
     | '/staff/consent'
     | '/staff/emergency'
     | '/staff/labs'
+    | '/staff/patient-master'
     | '/staff/patients'
+    | '/staff/pharmacy-inventory'
     | '/staff/prescriptions'
     | '/staff/profile'
     | '/staff/rooms'
@@ -804,8 +852,10 @@ export interface RootRouteChildren {
   AdminHospitalMapRoute: typeof AdminHospitalMapRoute
   AdminNfcCardsRoute: typeof AdminNfcCardsRoute
   AdminOnboardRoute: typeof AdminOnboardRoute
+  AdminPatientMasterRoute: typeof AdminPatientMasterRoute
   AdminPatientProfileRoute: typeof AdminPatientProfileRoute
   AdminPeopleRoute: typeof AdminPeopleRoute
+  AdminPharmacyInventoryRoute: typeof AdminPharmacyInventoryRoute
   AdminPoliciesRoute: typeof AdminPoliciesRoute
   AdminPrescriptionsRoute: typeof AdminPrescriptionsRoute
   AdminProfileRoute: typeof AdminProfileRoute
@@ -832,7 +882,9 @@ export interface RootRouteChildren {
   StaffConsentRoute: typeof StaffConsentRoute
   StaffEmergencyRoute: typeof StaffEmergencyRoute
   StaffLabsRoute: typeof StaffLabsRoute
+  StaffPatientMasterRoute: typeof StaffPatientMasterRoute
   StaffPatientsRoute: typeof StaffPatientsRoute
+  StaffPharmacyInventoryRoute: typeof StaffPharmacyInventoryRoute
   StaffPrescriptionsRoute: typeof StaffPrescriptionsRoute
   StaffProfileRoute: typeof StaffProfileRoute
   StaffRoomsRoute: typeof StaffRoomsRoute
@@ -984,11 +1036,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StaffPrescriptionsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/staff/pharmacy-inventory': {
+      id: '/staff/pharmacy-inventory'
+      path: '/staff/pharmacy-inventory'
+      fullPath: '/staff/pharmacy-inventory'
+      preLoaderRoute: typeof StaffPharmacyInventoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/staff/patients': {
       id: '/staff/patients'
       path: '/staff/patients'
       fullPath: '/staff/patients'
       preLoaderRoute: typeof StaffPatientsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/staff/patient-master': {
+      id: '/staff/patient-master'
+      path: '/staff/patient-master'
+      fullPath: '/staff/patient-master'
+      preLoaderRoute: typeof StaffPatientMasterRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/staff/labs': {
@@ -1173,6 +1239,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPoliciesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/pharmacy-inventory': {
+      id: '/admin/pharmacy-inventory'
+      path: '/admin/pharmacy-inventory'
+      fullPath: '/admin/pharmacy-inventory'
+      preLoaderRoute: typeof AdminPharmacyInventoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/people': {
       id: '/admin/people'
       path: '/admin/people'
@@ -1185,6 +1258,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/patient-profile'
       fullPath: '/admin/patient-profile'
       preLoaderRoute: typeof AdminPatientProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/patient-master': {
+      id: '/admin/patient-master'
+      path: '/admin/patient-master'
+      fullPath: '/admin/patient-master'
+      preLoaderRoute: typeof AdminPatientMasterRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/onboard': {
@@ -1316,8 +1396,10 @@ const rootRouteChildren: RootRouteChildren = {
   AdminHospitalMapRoute: AdminHospitalMapRoute,
   AdminNfcCardsRoute: AdminNfcCardsRoute,
   AdminOnboardRoute: AdminOnboardRoute,
+  AdminPatientMasterRoute: AdminPatientMasterRoute,
   AdminPatientProfileRoute: AdminPatientProfileRoute,
   AdminPeopleRoute: AdminPeopleRoute,
+  AdminPharmacyInventoryRoute: AdminPharmacyInventoryRoute,
   AdminPoliciesRoute: AdminPoliciesRoute,
   AdminPrescriptionsRoute: AdminPrescriptionsRoute,
   AdminProfileRoute: AdminProfileRoute,
@@ -1344,7 +1426,9 @@ const rootRouteChildren: RootRouteChildren = {
   StaffConsentRoute: StaffConsentRoute,
   StaffEmergencyRoute: StaffEmergencyRoute,
   StaffLabsRoute: StaffLabsRoute,
+  StaffPatientMasterRoute: StaffPatientMasterRoute,
   StaffPatientsRoute: StaffPatientsRoute,
+  StaffPharmacyInventoryRoute: StaffPharmacyInventoryRoute,
   StaffPrescriptionsRoute: StaffPrescriptionsRoute,
   StaffProfileRoute: StaffProfileRoute,
   StaffRoomsRoute: StaffRoomsRoute,
