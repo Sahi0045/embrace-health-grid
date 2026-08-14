@@ -52,9 +52,9 @@ function InpatientCare() {
   const { vitals: liveVitals } = usePatientVitals(patientDid);
   const { data: inpatientData } = useInpatientData(patientDid);
 
-  const [billSummary, setBillSummary]     = useState<any>({ totalCharges: 0, balanceDue: 0 });
-  const [labTests, setLabTests]           = useState<any[]>([]);
-  const [bedStats, setBedStats]           = useState<any>(null);
+  const [billSummary, setBillSummary] = useState<any>({ totalCharges: 0, balanceDue: 0 });
+  const [labTests, setLabTests] = useState<any[]>([]);
+  const [bedStats, setBedStats] = useState<any>(null);
   const [loadingBedStats, setLoadingBedStats] = useState(false);
 
   // ── Loaders ────────────────────────────────────────────────────────────────
@@ -88,11 +88,11 @@ function InpatientCare() {
   }, [loadBedStats]);
 
   // Real-time: beds + rooms → refresh bed statistics
-  useTableRefresh("beds",    loadBedStats);
-  useTableRefresh("rooms",   loadBedStats);
+  useTableRefresh("beds", loadBedStats);
+  useTableRefresh("rooms", loadBedStats);
   // Real-time: admissions → useInpatientData refetches via its own hook;
   //   we additionally refresh billing in case the admission changed charges.
-  useTableRefresh("admissions",       loadBilling);
+  useTableRefresh("admissions", loadBilling);
   // Real-time: billing_accounts → immediately show updated balance
   useTableRefresh("billing_accounts", loadBilling);
 
@@ -132,13 +132,13 @@ function InpatientCare() {
   };
 
   // Normalise admission field names: DB columns (snake_case) vs legacy camelCase
-  const admDate   = currentAdmission.admitted_at      ?? currentAdmission.admissionDate;
-  const admExp    = currentAdmission.expected_discharge ?? currentAdmission.expectedDischargeDate;
-  const admWard   = currentAdmission.ward              ?? "—";
-  const admRoom   = currentAdmission.room              ?? "—";
-  const admBed    = currentAdmission.bed               ?? "—";
-  const admDx     = currentAdmission.diagnosis         ?? currentAdmission.primaryDiagnosis ?? "—";
-  const admDoctor = currentAdmission.admitting_doctor  ?? currentAdmission.admittingDoctor  ?? "—";
+  const admDate = currentAdmission.admitted_at ?? currentAdmission.admissionDate;
+  const admExp = currentAdmission.expected_discharge ?? currentAdmission.expectedDischargeDate;
+  const admWard = currentAdmission.ward ?? "—";
+  const admRoom = currentAdmission.room ?? "—";
+  const admBed = currentAdmission.bed ?? "—";
+  const admDx = currentAdmission.diagnosis ?? currentAdmission.primaryDiagnosis ?? "—";
+  const admDoctor = currentAdmission.admitting_doctor ?? currentAdmission.admittingDoctor ?? "—";
 
   const defaultVital = {
     id: "v0",
@@ -296,8 +296,7 @@ function InpatientCare() {
                   <span className="text-xs text-muted-foreground">
                     Day{" "}
                     {Math.ceil(
-                      (new Date().getTime() - new Date(admDate).getTime()) /
-                        (1000 * 60 * 60 * 24),
+                      (new Date().getTime() - new Date(admDate).getTime()) / (1000 * 60 * 60 * 24),
                     )}{" "}
                     of stay
                   </span>
@@ -311,13 +310,13 @@ function InpatientCare() {
                   </div>
                   <div>
                     <div className="text-xs text-muted-foreground">Room / Bed</div>
-                    <div className="font-medium">{admRoom} — {admBed}</div>
+                    <div className="font-medium">
+                      {admRoom} — {admBed}
+                    </div>
                   </div>
                   <div>
                     <div className="text-xs text-muted-foreground">Admitted</div>
-                    <div className="font-medium">
-                      {new Date(admDate).toLocaleDateString()}
-                    </div>
+                    <div className="font-medium">{new Date(admDate).toLocaleDateString()}</div>
                   </div>
                   <div>
                     <div className="text-xs text-muted-foreground">Expected Discharge</div>
@@ -330,9 +329,7 @@ function InpatientCare() {
                   <div className="text-xs text-muted-foreground">Primary Diagnosis</div>
                   <div className="font-medium">{admDx}</div>
                 </div>
-                <div className="mt-1 text-xs text-muted-foreground">
-                  Attending: {admDoctor}
-                </div>
+                <div className="mt-1 text-xs text-muted-foreground">Attending: {admDoctor}</div>
               </CardContent>
             </Card>
 

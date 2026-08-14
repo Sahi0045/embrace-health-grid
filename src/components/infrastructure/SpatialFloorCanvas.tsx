@@ -105,13 +105,37 @@ const BED_THEME: Record<
 };
 
 const ROOM_TYPE_STYLE: Record<string, { bg: string; text: string; label: string }> = {
-  icu: { bg: "bg-destructive/10 border-destructive/30", text: "text-destructive", label: "ICU Critical" },
-  emergency: { bg: "bg-rose-500/10 border-rose-500/30", text: "text-rose-600", label: "Emergency Bay" },
+  icu: {
+    bg: "bg-destructive/10 border-destructive/30",
+    text: "text-destructive",
+    label: "ICU Critical",
+  },
+  emergency: {
+    bg: "bg-rose-500/10 border-rose-500/30",
+    text: "text-rose-600",
+    label: "Emergency Bay",
+  },
   general: { bg: "bg-primary/10 border-primary/20", text: "text-primary", label: "General Care" },
-  private: { bg: "bg-indigo-500/10 border-indigo-500/20", text: "text-indigo-600 dark:text-indigo-400", label: "VIP Suite" },
-  isolation: { bg: "bg-amber-500/10 border-amber-500/30", text: "text-amber-600", label: "Isolation" },
-  surgery: { bg: "bg-teal-500/10 border-teal-500/30", text: "text-teal-600", label: "PACU Recovery" },
-  recovery: { bg: "bg-cyan-500/10 border-cyan-500/30", text: "text-cyan-600", label: "Day Recovery" },
+  private: {
+    bg: "bg-indigo-500/10 border-indigo-500/20",
+    text: "text-indigo-600 dark:text-indigo-400",
+    label: "VIP Suite",
+  },
+  isolation: {
+    bg: "bg-amber-500/10 border-amber-500/30",
+    text: "text-amber-600",
+    label: "Isolation",
+  },
+  surgery: {
+    bg: "bg-teal-500/10 border-teal-500/30",
+    text: "text-teal-600",
+    label: "PACU Recovery",
+  },
+  recovery: {
+    bg: "bg-cyan-500/10 border-cyan-500/30",
+    text: "text-cyan-600",
+    label: "Day Recovery",
+  },
 };
 
 export const SpatialFloorCanvas = memo(function SpatialFloorCanvas({
@@ -144,12 +168,19 @@ export const SpatialFloorCanvas = memo(function SpatialFloorCanvas({
       const matchType = (bed.bed_type || "").toLowerCase().includes(query);
 
       const room = rooms.find((r) => r.room_id === bed.room_id);
-      const matchRoom = room && (
-        (room.room_name || "").toLowerCase().includes(query) ||
-        (room.room_number || "").toLowerCase().includes(query)
-      );
+      const matchRoom =
+        room &&
+        ((room.room_name || "").toLowerCase().includes(query) ||
+          (room.room_number || "").toLowerCase().includes(query));
 
-      if (!matchBedNumber && !matchPatientName && !matchMRN && !matchDID && !matchType && !matchRoom) {
+      if (
+        !matchBedNumber &&
+        !matchPatientName &&
+        !matchMRN &&
+        !matchDID &&
+        !matchType &&
+        !matchRoom
+      ) {
         return false;
       }
     }
@@ -181,8 +212,8 @@ export const SpatialFloorCanvas = memo(function SpatialFloorCanvas({
   const gridColumnClass = isLargeFocus
     ? "grid-cols-1 lg:grid-cols-2 gap-5"
     : isCompactOverview
-    ? "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3"
-    : "grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4";
+      ? "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3"
+      : "grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4";
 
   return (
     <div className={`space-y-6 sm:space-y-7 w-full ${className}`}>
@@ -217,7 +248,9 @@ export const SpatialFloorCanvas = memo(function SpatialFloorCanvas({
                     <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-medium mt-0.5">
                       <span>{ward.wing || "Clinical Wing"}</span>
                       <span>•</span>
-                      <span className="text-foreground font-semibold">{ward.lead_physician || "Lead Physician"}</span>
+                      <span className="text-foreground font-semibold">
+                        {ward.lead_physician || "Lead Physician"}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -226,19 +259,31 @@ export const SpatialFloorCanvas = memo(function SpatialFloorCanvas({
               {/* Wing Capacity Progress */}
               <div className="w-full sm:w-52 shrink-0 pt-1 sm:pt-0">
                 <div className="flex justify-between text-[11px] font-extrabold mb-1">
-                  <span className="text-muted-foreground uppercase tracking-wider">Wing Occupancy</span>
-                  <span className="font-mono text-foreground">{occupiedCount}/{totalCount} ({occupancyRate}%)</span>
+                  <span className="text-muted-foreground uppercase tracking-wider">
+                    Wing Occupancy
+                  </span>
+                  <span className="font-mono text-foreground">
+                    {occupiedCount}/{totalCount} ({occupancyRate}%)
+                  </span>
                 </div>
                 <GradientProgress
                   value={occupancyRate}
-                  tone={occupancyRate >= 85 ? "destructive" : occupancyRate >= 60 ? "warning" : "success"}
+                  tone={
+                    occupancyRate >= 85
+                      ? "destructive"
+                      : occupancyRate >= 60
+                        ? "warning"
+                        : "success"
+                  }
                   height={5}
                 />
               </div>
             </div>
 
             {/* Grid of Room Cards (Hardware Accelerated Responsive Grid) */}
-            <div className={`grid ${gridColumnClass} items-start w-full transition-all duration-200`}>
+            <div
+              className={`grid ${gridColumnClass} items-start w-full transition-all duration-200`}
+            >
               {wardRooms.map((room) => {
                 const roomBeds = filteredBeds.filter((b) => b.room_id === room.room_id);
                 const roomTypeKey = (room.room_type || "general").toLowerCase();
@@ -249,14 +294,20 @@ export const SpatialFloorCanvas = memo(function SpatialFloorCanvas({
                   <div
                     key={room.room_id}
                     className={`rounded-2xl border border-border/80 bg-background/90 shadow-clinical-sm hover:border-primary/40 hover:shadow-clinical-md transition-all duration-150 flex flex-col w-full ${
-                      isLargeFocus ? "p-5 space-y-4" : isCompactOverview ? "p-3 space-y-2.5" : "p-4 space-y-3.5"
+                      isLargeFocus
+                        ? "p-5 space-y-4"
+                        : isCompactOverview
+                          ? "p-3 space-y-2.5"
+                          : "p-4 space-y-3.5"
                     }`}
                   >
                     {/* Room Header */}
                     <div className="border-b border-border/60 pb-2.5 space-y-1.5 w-full">
                       {/* Row 1: Title + Active Counter */}
                       <div className="flex items-center justify-between gap-2">
-                        <span className={`font-display font-extrabold text-foreground tracking-tight truncate ${isLargeFocus ? "text-base" : "text-sm"}`}>
+                        <span
+                          className={`font-display font-extrabold text-foreground tracking-tight truncate ${isLargeFocus ? "text-base" : "text-sm"}`}
+                        >
                           {room.room_name || `Room ${room.room_number}`}
                         </span>
                         <span
@@ -264,8 +315,8 @@ export const SpatialFloorCanvas = memo(function SpatialFloorCanvas({
                             roomOccupied === roomBeds.length && roomBeds.length > 0
                               ? "bg-destructive/10 text-destructive border-destructive/20"
                               : roomOccupied > 0
-                              ? "bg-warning/10 text-warning-foreground border-warning/20"
-                              : "bg-success/10 text-success border-success/20"
+                                ? "bg-warning/10 text-warning-foreground border-warning/20"
+                                : "bg-success/10 text-success border-success/20"
                           }`}
                         >
                           {roomOccupied}/{roomBeds.length} Active
@@ -289,7 +340,9 @@ export const SpatialFloorCanvas = memo(function SpatialFloorCanvas({
                     </div>
 
                     {/* Bed Stations List */}
-                    <div className={`w-full ${isLargeFocus ? "space-y-3" : isCompactOverview ? "space-y-2" : "space-y-2.5"}`}>
+                    <div
+                      className={`w-full ${isLargeFocus ? "space-y-3" : isCompactOverview ? "space-y-2" : "space-y-2.5"}`}
+                    >
                       {roomBeds.map((bed) => {
                         const theme = BED_THEME[bed.status] || BED_THEME.available;
                         const isOccupied = bed.status === "occupied";
@@ -300,19 +353,27 @@ export const SpatialFloorCanvas = memo(function SpatialFloorCanvas({
                             type="button"
                             onClick={() => onSelectBed(bed)}
                             className={`w-full rounded-2xl border text-left transition-all duration-150 transform-gpu hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] relative overflow-hidden flex flex-col shadow-2xs ${theme.bg} ${theme.border} ${theme.glow} ${
-                              isLargeFocus ? "p-4 gap-2.5" : isCompactOverview ? "p-2.5 gap-1.5" : "p-3 sm:p-3.5 gap-2"
+                              isLargeFocus
+                                ? "p-4 gap-2.5"
+                                : isCompactOverview
+                                  ? "p-2.5 gap-1.5"
+                                  : "p-3 sm:p-3.5 gap-2"
                             }`}
                           >
                             {/* Station Header */}
                             <div className="flex items-center justify-between gap-2 w-full">
                               <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                                <div className={`shrink-0 flex items-center justify-center rounded-xl bg-card border border-border/80 shadow-2xs ${
-                                  isLargeFocus ? "h-8 w-8" : "h-7 w-7"
-                                }`}>
+                                <div
+                                  className={`shrink-0 flex items-center justify-center rounded-xl bg-card border border-border/80 shadow-2xs ${
+                                    isLargeFocus ? "h-8 w-8" : "h-7 w-7"
+                                  }`}
+                                >
                                   <Bed className={`h-3.5 w-3.5 ${theme.text}`} />
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                  <div className={`font-display font-black text-foreground tracking-tight truncate ${isLargeFocus ? "text-sm" : "text-xs"}`}>
+                                  <div
+                                    className={`font-display font-black text-foreground tracking-tight truncate ${isLargeFocus ? "text-sm" : "text-xs"}`}
+                                  >
                                     Station {bed.bed_number}
                                   </div>
                                   <div className="text-[10px] font-medium text-muted-foreground truncate">
@@ -324,7 +385,9 @@ export const SpatialFloorCanvas = memo(function SpatialFloorCanvas({
                               <span
                                 className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider border shrink-0 whitespace-nowrap bg-card/90 ${theme.text}`}
                               >
-                                <span className={`h-1.5 w-1.5 rounded-full ${theme.dot} ${isOccupied ? "animate-pulse" : ""}`} />
+                                <span
+                                  className={`h-1.5 w-1.5 rounded-full ${theme.dot} ${isOccupied ? "animate-pulse" : ""}`}
+                                />
                                 {theme.label}
                               </span>
                             </div>
@@ -337,7 +400,9 @@ export const SpatialFloorCanvas = memo(function SpatialFloorCanvas({
                                     <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground font-display font-extrabold text-[9px]">
                                       {(bed.patient_name || "P")[0]}
                                     </div>
-                                    <span className={`font-display font-extrabold text-foreground truncate ${isLargeFocus ? "text-sm" : "text-xs"}`}>
+                                    <span
+                                      className={`font-display font-extrabold text-foreground truncate ${isLargeFocus ? "text-sm" : "text-xs"}`}
+                                    >
                                       {bed.patient_name || "Assigned Patient"}
                                     </span>
                                   </div>
@@ -348,8 +413,8 @@ export const SpatialFloorCanvas = memo(function SpatialFloorCanvas({
                                         bed.patient_condition === "Critical"
                                           ? "bg-destructive/15 text-destructive border border-destructive/30"
                                           : bed.patient_condition === "Recovery"
-                                          ? "bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-300"
-                                          : "bg-success/15 text-success border border-success/30"
+                                            ? "bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-300"
+                                            : "bg-success/15 text-success border border-success/30"
                                       }`}
                                     >
                                       {bed.patient_condition}
@@ -359,9 +424,11 @@ export const SpatialFloorCanvas = memo(function SpatialFloorCanvas({
 
                                 {/* Telemetry Vitals Mini Strip */}
                                 {bed.vitals && (
-                                  <div className={`flex items-center justify-between font-mono font-bold bg-card/90 rounded-lg p-2 border border-border/60 whitespace-nowrap overflow-hidden w-full ${
-                                    isLargeFocus ? "text-xs" : "text-[10px]"
-                                  }`}>
+                                  <div
+                                    className={`flex items-center justify-between font-mono font-bold bg-card/90 rounded-lg p-2 border border-border/60 whitespace-nowrap overflow-hidden w-full ${
+                                      isLargeFocus ? "text-xs" : "text-[10px]"
+                                    }`}
+                                  >
                                     <span className="flex items-center gap-1.5 text-primary shrink-0">
                                       <Heart className="h-3 w-3 text-rose-500 animate-pulse" />
                                       {bed.vitals.hr} bpm
@@ -380,7 +447,9 @@ export const SpatialFloorCanvas = memo(function SpatialFloorCanvas({
                                 <span className="flex items-center gap-1 text-success whitespace-nowrap truncate">
                                   <Sparkles className="h-3 w-3 shrink-0" /> Ready for allocation
                                 </span>
-                                <span className="text-[9px] font-mono whitespace-nowrap shrink-0">Clean & Ready</span>
+                                <span className="text-[9px] font-mono whitespace-nowrap shrink-0">
+                                  Clean & Ready
+                                </span>
                               </div>
                             )}
                           </button>

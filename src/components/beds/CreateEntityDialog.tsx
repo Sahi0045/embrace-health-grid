@@ -17,7 +17,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { createBuilding, createFloor, createWard, createRoom, createBed } from "@/lib/operations.server";
+import {
+  createBuilding,
+  createFloor,
+  createWard,
+  createRoom,
+  createBed,
+} from "@/lib/operations.server";
 import { toast } from "sonner";
 
 interface CreateEntityDialogProps {
@@ -240,17 +246,32 @@ export function CreateEntityDialog({
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-foreground">Ward Type</Label>
-                <Select value={formData.type || ""} onValueChange={(v) => setFormData({ ...formData, type: v })}>
+                <Select
+                  value={formData.type || ""}
+                  onValueChange={(v) => setFormData({ ...formData, type: v })}
+                >
                   <SelectTrigger className="rounded-xl border border-border bg-background text-xs">
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl border border-border">
-                    <SelectItem value="General" className="text-xs">General</SelectItem>
-                    <SelectItem value="ICU" className="text-xs">ICU</SelectItem>
-                    <SelectItem value="Emergency" className="text-xs">Emergency</SelectItem>
-                    <SelectItem value="Pediatric" className="text-xs">Pediatric</SelectItem>
-                    <SelectItem value="Maternity" className="text-xs">Maternity</SelectItem>
-                    <SelectItem value="Surgery" className="text-xs">Surgery</SelectItem>
+                    <SelectItem value="General" className="text-xs">
+                      General
+                    </SelectItem>
+                    <SelectItem value="ICU" className="text-xs">
+                      ICU
+                    </SelectItem>
+                    <SelectItem value="Emergency" className="text-xs">
+                      Emergency
+                    </SelectItem>
+                    <SelectItem value="Pediatric" className="text-xs">
+                      Pediatric
+                    </SelectItem>
+                    <SelectItem value="Maternity" className="text-xs">
+                      Maternity
+                    </SelectItem>
+                    <SelectItem value="Surgery" className="text-xs">
+                      Surgery
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -289,16 +310,29 @@ export function CreateEntityDialog({
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-foreground">Room Type</Label>
-                <Select value={formData.roomType || ""} onValueChange={(v) => setFormData({ ...formData, roomType: v })}>
+                <Select
+                  value={formData.roomType || ""}
+                  onValueChange={(v) => setFormData({ ...formData, roomType: v })}
+                >
                   <SelectTrigger className="rounded-xl border border-border bg-background text-xs">
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl border border-border">
-                    <SelectItem value="Single" className="text-xs">Single</SelectItem>
-                    <SelectItem value="Double" className="text-xs">Double</SelectItem>
-                    <SelectItem value="ICU" className="text-xs">ICU</SelectItem>
-                    <SelectItem value="Emergency" className="text-xs">Emergency</SelectItem>
-                    <SelectItem value="Operating" className="text-xs">Operating</SelectItem>
+                    <SelectItem value="Single" className="text-xs">
+                      Single
+                    </SelectItem>
+                    <SelectItem value="Double" className="text-xs">
+                      Double
+                    </SelectItem>
+                    <SelectItem value="ICU" className="text-xs">
+                      ICU
+                    </SelectItem>
+                    <SelectItem value="Emergency" className="text-xs">
+                      Emergency
+                    </SelectItem>
+                    <SelectItem value="Operating" className="text-xs">
+                      Operating
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -328,15 +362,26 @@ export function CreateEntityDialog({
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-foreground">Bed Type</Label>
-                <Select value={formData.bedType || ""} onValueChange={(v) => setFormData({ ...formData, bedType: v })}>
+                <Select
+                  value={formData.bedType || ""}
+                  onValueChange={(v) => setFormData({ ...formData, bedType: v })}
+                >
                   <SelectTrigger className="rounded-xl border border-border bg-background text-xs">
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl border border-border">
-                    <SelectItem value="Standard" className="text-xs">Standard</SelectItem>
-                    <SelectItem value="ICU" className="text-xs">ICU</SelectItem>
-                    <SelectItem value="Pediatric" className="text-xs">Pediatric</SelectItem>
-                    <SelectItem value="Electric" className="text-xs">Electric</SelectItem>
+                    <SelectItem value="Standard" className="text-xs">
+                      Standard
+                    </SelectItem>
+                    <SelectItem value="ICU" className="text-xs">
+                      ICU
+                    </SelectItem>
+                    <SelectItem value="Pediatric" className="text-xs">
+                      Pediatric
+                    </SelectItem>
+                    <SelectItem value="Electric" className="text-xs">
+                      Electric
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>

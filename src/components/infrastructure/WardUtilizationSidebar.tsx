@@ -26,7 +26,9 @@ export function WardUtilizationSidebar({
     const total = wardBeds.length;
     const occupied = wardBeds.filter((b) => b.status === "occupied").length;
     const available = wardBeds.filter((b) => b.status === "available").length;
-    const maintenance = wardBeds.filter((b) => b.status === "maintenance" || b.status === "cleaning" || b.status === "blocked").length;
+    const maintenance = wardBeds.filter(
+      (b) => b.status === "maintenance" || b.status === "cleaning" || b.status === "blocked",
+    ).length;
     const occupancyRate = total > 0 ? Math.round((occupied / total) * 100) : 0;
 
     let tone: "success" | "warning" | "destructive" | "primary" = "success";
@@ -109,69 +111,72 @@ export function WardUtilizationSidebar({
             No clinical wards found on this floor.
           </div>
         ) : (
-          wardMetrics.map(({ ward, total, occupied, available, roomsCount, occupancyRate, tone }) => {
-            const isSelected = ward.ward_id === selectedWardId;
+          wardMetrics.map(
+            ({ ward, total, occupied, available, roomsCount, occupancyRate, tone }) => {
+              const isSelected = ward.ward_id === selectedWardId;
 
-            return (
-              <div
-                key={ward.ward_id}
-                onClick={() => onSelectWard(isSelected ? null : ward.ward_id)}
-                className={`rounded-2xl border p-3.5 transition-all cursor-pointer ${
-                  isSelected
-                    ? "border-primary ring-2 ring-primary/20 bg-primary/5 shadow-clinical-sm"
-                    : "border-border/80 bg-card hover:border-primary/40 hover:shadow-clinical-xs"
-                }`}
-              >
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-display font-extrabold text-xs text-foreground tracking-tight">
-                        {ward.ward_name}
-                      </span>
-                      {ward.ward_type && (
-                        <span className="inline-flex items-center rounded-md bg-muted/80 px-1.5 py-0.2 text-[9px] font-extrabold uppercase text-muted-foreground">
-                          {ward.ward_type}
+              return (
+                <div
+                  key={ward.ward_id}
+                  onClick={() => onSelectWard(isSelected ? null : ward.ward_id)}
+                  className={`rounded-2xl border p-3.5 transition-all cursor-pointer ${
+                    isSelected
+                      ? "border-primary ring-2 ring-primary/20 bg-primary/5 shadow-clinical-sm"
+                      : "border-border/80 bg-card hover:border-primary/40 hover:shadow-clinical-xs"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-display font-extrabold text-xs text-foreground tracking-tight">
+                          {ward.ward_name}
                         </span>
-                      )}
+                        {ward.ward_type && (
+                          <span className="inline-flex items-center rounded-md bg-muted/80 px-1.5 py-0.2 text-[9px] font-extrabold uppercase text-muted-foreground">
+                            {ward.ward_type}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[10px] text-muted-foreground font-medium">
+                        {roomsCount} {roomsCount === 1 ? "Room" : "Rooms"} • {total}{" "}
+                        {total === 1 ? "Bed" : "Beds"}
+                      </span>
                     </div>
-                    <span className="text-[10px] text-muted-foreground font-medium">
-                      {roomsCount} {roomsCount === 1 ? "Room" : "Rooms"} • {total} {total === 1 ? "Bed" : "Beds"}
+
+                    <span
+                      className={`font-mono text-xs font-extrabold px-1.5 py-0.5 rounded-lg border ${
+                        tone === "destructive"
+                          ? "bg-destructive/10 text-destructive border-destructive/20"
+                          : tone === "warning"
+                            ? "bg-warning/10 text-warning-foreground border-warning/20"
+                            : "bg-success/10 text-success border-success/20"
+                      }`}
+                    >
+                      {occupancyRate}%
                     </span>
                   </div>
 
-                  <span
-                    className={`font-mono text-xs font-extrabold px-1.5 py-0.5 rounded-lg border ${
-                      tone === "destructive"
-                        ? "bg-destructive/10 text-destructive border-destructive/20"
-                        : tone === "warning"
-                        ? "bg-warning/10 text-warning-foreground border-warning/20"
-                        : "bg-success/10 text-success border-success/20"
-                    }`}
-                  >
-                    {occupancyRate}%
-                  </span>
-                </div>
+                  {/* Progress bar */}
+                  <GradientProgress value={occupancyRate} tone={tone} height={5} />
 
-                {/* Progress bar */}
-                <GradientProgress value={occupancyRate} tone={tone} height={5} />
-
-                {/* Metrics detail row */}
-                <div className="flex items-center justify-between text-[10px] font-extrabold pt-2 mt-2 border-t border-border/40 text-muted-foreground">
-                  <span>
-                    <strong className="text-foreground">{occupied}</strong> Occupied
-                  </span>
-                  <span>
-                    <strong className="text-success">{available}</strong> Free
-                  </span>
-                  {ward.code && (
-                    <span className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/80">
-                      #{ward.code}
+                  {/* Metrics detail row */}
+                  <div className="flex items-center justify-between text-[10px] font-extrabold pt-2 mt-2 border-t border-border/40 text-muted-foreground">
+                    <span>
+                      <strong className="text-foreground">{occupied}</strong> Occupied
                     </span>
-                  )}
+                    <span>
+                      <strong className="text-success">{available}</strong> Free
+                    </span>
+                    {ward.code && (
+                      <span className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/80">
+                        #{ward.code}
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })
+              );
+            },
+          )
         )}
       </div>
     </div>

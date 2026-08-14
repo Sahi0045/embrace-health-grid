@@ -1,5 +1,17 @@
 import { useState, useMemo } from "react";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, CheckCircle2, AlertCircle, Sun, Sunset, Moon, PhoneCall, User } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Calendar as CalendarIcon,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  Sun,
+  Sunset,
+  Moon,
+  PhoneCall,
+  User,
+} from "lucide-react";
 import { GlowCard } from "@/components/dashboard/GlowCard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -181,7 +193,9 @@ export function DutyRosterGrid({ staffList, schedules, onSelectStaff }: DutyRost
                 >
                   <div className="flex flex-col items-center">
                     <span>{wd.dayName}</span>
-                    <span className={`text-xs ${wd.isToday ? "text-primary font-mono font-extrabold" : "text-foreground font-semibold"}`}>
+                    <span
+                      className={`text-xs ${wd.isToday ? "text-primary font-mono font-extrabold" : "text-foreground font-semibold"}`}
+                    >
                       {wd.monthDay}
                     </span>
                   </div>

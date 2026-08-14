@@ -50,12 +50,8 @@ export function AmbulanceKpiBar({
   const crewStaffingRate =
     stats.total > 0 ? Math.round((assignedCrewCount / stats.total) * 100) : 0;
 
-  const alsFleetCount = ambulances.filter(
-    (a) => (a.type || "").toLowerCase() === "als",
-  ).length;
-  const blsFleetCount = ambulances.filter(
-    (a) => (a.type || "").toLowerCase() === "bls",
-  ).length;
+  const alsFleetCount = ambulances.filter((a) => (a.type || "").toLowerCase() === "als").length;
+  const blsFleetCount = ambulances.filter((a) => (a.type || "").toLowerCase() === "bls").length;
 
   const pipelineStages = [
     {
@@ -92,7 +88,8 @@ export function AmbulanceKpiBar({
       icon: AlertTriangle,
       dotCls: "bg-destructive animate-pulse",
       badgeCls: "bg-destructive/15 text-destructive border-destructive/30",
-      activeCls: "border-destructive ring-2 ring-destructive/30 bg-destructive/5 shadow-clinical-sm",
+      activeCls:
+        "border-destructive ring-2 ring-destructive/30 bg-destructive/5 shadow-clinical-sm",
       hoverCls: "hover:border-destructive/40",
       accentText: "text-destructive",
       subtext: "On-site patient care",
@@ -279,7 +276,8 @@ export function AmbulanceKpiBar({
                 <span className="h-1.5 w-1.5 rounded-full bg-primary" /> Inbound ({stats.returning})
               </span>
               <span className="flex items-center gap-1">
-                <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground" /> Bay ({stats.maintenance})
+                <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground" /> Bay (
+                {stats.maintenance})
               </span>
             </div>
           </div>
@@ -287,19 +285,25 @@ export function AmbulanceKpiBar({
           {/* Clean 3-Cell Metric Grid Footer */}
           <div className="grid grid-cols-3 gap-3 pt-2 border-t border-border/60 text-center">
             <div className="p-2.5 rounded-xl bg-card border border-border/70 shadow-xs">
-              <div className="text-lg font-extrabold font-display text-foreground">{stats.total}</div>
+              <div className="text-lg font-extrabold font-display text-foreground">
+                {stats.total}
+              </div>
               <div className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider mt-0.5">
                 Total Fleet
               </div>
             </div>
             <div className="p-2.5 rounded-xl bg-card border border-border/70 shadow-xs">
-              <div className="text-lg font-extrabold font-display text-warning-foreground">{onMissionCount}</div>
+              <div className="text-lg font-extrabold font-display text-warning-foreground">
+                {onMissionCount}
+              </div>
               <div className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider mt-0.5">
                 Active Missions
               </div>
             </div>
             <div className="p-2.5 rounded-xl bg-card border border-border/70 shadow-xs">
-              <div className="text-lg font-extrabold font-display text-muted-foreground">{stats.maintenance}</div>
+              <div className="text-lg font-extrabold font-display text-muted-foreground">
+                {stats.maintenance}
+              </div>
               <div className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider mt-0.5">
                 In Repair Bay
               </div>
@@ -393,7 +397,9 @@ export function AmbulanceKpiBar({
           {/* Bottom Dock: Maintenance Bay & Telemetry Sync */}
           <div className="pt-2 border-t border-border/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
             <div
-              onClick={() => onSelectStatus?.(activeFilter === "maintenance" ? "all" : "maintenance")}
+              onClick={() =>
+                onSelectStatus?.(activeFilter === "maintenance" ? "all" : "maintenance")
+              }
               className={`flex items-center gap-2.5 p-2.5 px-3.5 rounded-xl border cursor-pointer transition-all ${
                 activeFilter === "maintenance"
                   ? "border-muted-foreground ring-2 ring-muted-foreground/30 bg-muted/40 shadow-xs"

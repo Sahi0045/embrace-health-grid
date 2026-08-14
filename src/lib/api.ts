@@ -48,7 +48,6 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
 
 // ─── DIDs ─────────────────────────────────────────────────────────────────────
 
-
 // ─── Credentials ──────────────────────────────────────────────────────────────
 
 // ─── Consent ──────────────────────────────────────────────────────────────────
@@ -240,7 +239,7 @@ export async function updatePrescription(
     notes?: string;
     status?: string;
     drugs?: any[];
-  }
+  },
 ) {
   const { updatePrescription: fn } = await import("./clinical.server");
   return await fn({ data: { rxId, ...updates } });
@@ -294,7 +293,7 @@ export async function updateCertification(
     verificationUrl?: string;
     verifiedByAdmin?: boolean;
     notes?: string;
-  }
+  },
 ) {
   const { updateCertification: fn } = await import("./certifications.server");
   return await fn({ data: { certId, ...updates } });
@@ -353,11 +352,13 @@ export async function getAllAdmissions(status?: string) {
   return await fn({ data: { status } });
 }
 
-export async function getAdmissionEvents(opts: {
-  admissionId?: string;
-  patientDid?: string;
-  limit?: number;
-} = {}) {
+export async function getAdmissionEvents(
+  opts: {
+    admissionId?: string;
+    patientDid?: string;
+    limit?: number;
+  } = {},
+) {
   const { getAdmissionEvents: fn } = await import("./admissions.server");
   return await fn({ data: opts });
 }
@@ -369,17 +370,19 @@ export async function getWardOccupancy() {
 
 // ─── Audit Trail ─────────────────────────────────────────────────────────────
 
-export async function getAuditTrail(opts: {
-  module?: string;
-  entityId?: string;
-  actorId?: string;
-  severity?: string;
-  outcome?: string;
-  from?: string;
-  to?: string;
-  limit?: number;
-  offset?: number;
-} = {}) {
+export async function getAuditTrail(
+  opts: {
+    module?: string;
+    entityId?: string;
+    actorId?: string;
+    severity?: string;
+    outcome?: string;
+    from?: string;
+    to?: string;
+    limit?: number;
+    offset?: number;
+  } = {},
+) {
   const { getAuditTrail: fn } = await import("./audit.server");
   return await fn({ data: opts });
 }
@@ -1511,7 +1514,12 @@ export async function getAmbulances() {
   return { ambulances, total: ambulances.length };
 }
 
-export async function updateAmbulanceStatus(params: { ambulanceId: string; status: string; location?: string; driverName?: string }) {
+export async function updateAmbulanceStatus(params: {
+  ambulanceId: string;
+  status: string;
+  location?: string;
+  driverName?: string;
+}) {
   const { updateAmbulanceStatus: fn } = await import("./inpatient.server");
   return fn({ data: params });
 }
@@ -2138,4 +2146,58 @@ export async function acknowledgeInventoryAlert(alertId: string) {
   return fn({ data: { alertId } });
 }
 
+// ─── Patient Master (Centralized patient data access) ─────────────────────────
 
+export async function getPatientMaster(data: { patientDid: string }) {
+  const { getPatientMaster: fn } = await import("./patient-master.server");
+  return fn({ data });
+}
+
+export async function getPatientCurrentLocation(data: { patientDid: string }) {
+  const { getPatientCurrentLocation: fn } = await import("./patient-master.server");
+  return fn({ data });
+}
+
+export async function getPatientAdmissionHistory(data: { patientDid: string; limit?: number }) {
+  const { getPatientAdmissionHistory: fn } = await import("./patient-master.server");
+  return fn({ data });
+}
+
+export async function getPatientTransferHistory(data: { patientDid: string; limit?: number }) {
+  const { getPatientTransferHistory: fn } = await import("./patient-master.server");
+  return fn({ data });
+}
+
+export async function getPatientMedicalRecords(data: {
+  patientDid: string;
+  recordType?: string;
+  limit?: number;
+}) {
+  const { getPatientMedicalRecords: fn } = await import("./patient-master.server");
+  return fn({ data });
+}
+
+export async function getPatientMedications(data: { patientDid: string; status?: string }) {
+  const { getPatientMedications: fn } = await import("./patient-master.server");
+  return fn({ data });
+}
+
+export async function getPatientProcedures(data: { patientDid: string; status?: string }) {
+  const { getPatientProcedures: fn } = await import("./patient-master.server");
+  return fn({ data });
+}
+
+export async function getPatientLabResults(data: { patientDid: string; limit?: number }) {
+  const { getPatientLabResults: fn } = await import("./patient-master.server");
+  return fn({ data });
+}
+
+export async function getPatientBilling(data: { patientDid: string }) {
+  const { getPatientBilling: fn } = await import("./patient-master.server");
+  return fn({ data });
+}
+
+export async function getPatientDischargeInfo(data: { patientDid: string }) {
+  const { getPatientDischargeInfo: fn } = await import("./patient-master.server");
+  return fn({ data });
+}

@@ -42,7 +42,9 @@ export function AppointmentsTab({ appointments }: AppointmentsTabProps) {
                     <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
                       <Clock className="h-3.5 w-3.5 text-primary" />
                       <span className="font-bold text-foreground">
-                        {apt.appointment_date ? new Date(apt.appointment_date).toLocaleDateString() : "N/A"}
+                        {apt.appointment_date
+                          ? new Date(apt.appointment_date).toLocaleDateString()
+                          : "N/A"}
                       </span>
                       {apt.appointment_time && <span>at {apt.appointment_time}</span>}
                     </div>
@@ -54,8 +56,8 @@ export function AppointmentsTab({ appointments }: AppointmentsTabProps) {
                     isCompleted
                       ? "bg-success/15 text-success border-success/30"
                       : isScheduled
-                      ? "bg-primary/10 text-primary border-primary/20"
-                      : "bg-muted/40 text-muted-foreground border-border/80"
+                        ? "bg-primary/10 text-primary border-primary/20"
+                        : "bg-muted/40 text-muted-foreground border-border/80"
                   }`}
                 >
                   <CheckCircle2 className="h-3 w-3" />
@@ -65,14 +67,18 @@ export function AppointmentsTab({ appointments }: AppointmentsTabProps) {
 
               <div className="grid grid-cols-2 gap-2 text-xs bg-background/60 p-3 rounded-xl border border-border/60">
                 <div>
-                  <span className="text-[10px] font-extrabold uppercase text-muted-foreground block">Physician</span>
+                  <span className="text-[10px] font-extrabold uppercase text-muted-foreground block">
+                    Physician
+                  </span>
                   <span className="font-bold text-foreground flex items-center gap-1 mt-0.5">
                     <User className="h-3.5 w-3.5 text-primary" />
                     {apt.doctor_name || apt.doctor_did || "Dr. Assigned"}
                   </span>
                 </div>
                 <div>
-                  <span className="text-[10px] font-extrabold uppercase text-muted-foreground block">Clinic / Room</span>
+                  <span className="text-[10px] font-extrabold uppercase text-muted-foreground block">
+                    Clinic / Room
+                  </span>
                   <span className="font-bold text-foreground flex items-center gap-1 mt-0.5">
                     <MapPin className="h-3.5 w-3.5 text-primary" />
                     {apt.location || "OPD Clinic"}

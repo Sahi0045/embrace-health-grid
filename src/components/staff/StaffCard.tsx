@@ -1,4 +1,14 @@
-import { Stethoscope, User, Clock, MapPin, CheckCircle2, ChevronRight, Activity, ShieldCheck, Mail } from "lucide-react";
+import {
+  Stethoscope,
+  User,
+  Clock,
+  MapPin,
+  CheckCircle2,
+  ChevronRight,
+  Activity,
+  ShieldCheck,
+  Mail,
+} from "lucide-react";
 import { GlowCard } from "@/components/dashboard/GlowCard";
 import { GradientProgress } from "@/components/dashboard/GradientProgress";
 import { Button } from "@/components/ui/button";
@@ -185,7 +195,10 @@ export function StaffCard({ staff, onSelect }: StaffCardProps) {
           <div className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground flex items-center gap-1 mb-1">
             <MapPin className="h-3 w-3 text-teal-500 shrink-0" /> Station
           </div>
-          <div className="text-xs font-semibold text-foreground truncate" title={staff.currentShift?.unit || staff.attendance?.location || "Unassigned"}>
+          <div
+            className="text-xs font-semibold text-foreground truncate"
+            title={staff.currentShift?.unit || staff.attendance?.location || "Unassigned"}
+          >
             {staff.currentShift?.unit || staff.attendance?.location || "Unassigned"}
           </div>
         </div>
@@ -198,14 +211,11 @@ export function StaffCard({ staff, onSelect }: StaffCardProps) {
             <Activity className="h-3 w-3 text-primary" /> Patient Load
           </span>
           <span className="font-mono text-[11px] font-bold text-foreground">
-            {staff.workload.activePatients} / {staff.workload.maxCapacity} ({staff.workload.percentage}%)
+            {staff.workload.activePatients} / {staff.workload.maxCapacity} (
+            {staff.workload.percentage}%)
           </span>
         </div>
-        <GradientProgress
-          value={staff.workload.percentage}
-          tone={workloadTone}
-          height={6}
-        />
+        <GradientProgress value={staff.workload.percentage} tone={workloadTone} height={6} />
       </div>
 
       {/* Bottom Footer Action */}

@@ -30,7 +30,9 @@ export function FloorSelector({
   const sortedFloors = [...floors].sort((a, b) => (a.floor_number ?? 0) - (b.floor_number ?? 0));
 
   return (
-    <div className={`flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none no-scrollbar ${className}`}>
+    <div
+      className={`flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none no-scrollbar ${className}`}
+    >
       <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground mr-1 shrink-0">
         <Layers className="h-3.5 w-3.5 text-primary" />
         <span className="text-[11px] uppercase tracking-wider font-extrabold">Floors:</span>
@@ -41,9 +43,7 @@ export function FloorSelector({
         const stats = statsByFloor[floor.floor_id];
         const floorLabel =
           floor.floor_name ||
-          (floor.floor_number === 0
-            ? "Ground Floor"
-            : `Floor ${floor.floor_number}`);
+          (floor.floor_number === 0 ? "Ground Floor" : `Floor ${floor.floor_number}`);
 
         return (
           <button

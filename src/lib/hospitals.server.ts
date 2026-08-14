@@ -148,7 +148,7 @@ export const getMyHospital = createServerFn({ method: "GET" }).handler(async () 
  * sign the HospitalCredential, neither of which may reach a browser.
  */
 export const onboardHospital = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (data: {
       name: string;
       city?: string;
@@ -183,7 +183,7 @@ export const onboardHospital = createServerFn({ method: "POST" })
  * clearer message than an empty result.
  */
 export const setHospitalStatus = createServerFn({ method: "POST" })
-  .validator((data: { hospitalId: string; status: "active" | "suspended" }) => {
+  .inputValidator((data: { hospitalId: string; status: "active" | "suspended" }) => {
     if (!data?.hospitalId) throw new Error("hospitalId is required");
     if (data.status !== "active" && data.status !== "suspended") {
       throw new Error("status must be 'active' or 'suspended'");

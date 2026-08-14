@@ -97,24 +97,31 @@ function AdminAuditPageGuarded() {
 }
 
 function AdminAuditPage() {
-  const [events, setEvents]         = useState<AuditEvent[]>([]);
-  const [stats, setStats]           = useState<any>(null);
-  const [loading, setLoading]       = useState(true);
-  const [searchQ, setSearchQ]       = useState("");
+  const [events, setEvents] = useState<AuditEvent[]>([]);
+  const [stats, setStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [searchQ, setSearchQ] = useState("");
   const [moduleFilter, setModuleFilter] = useState("All");
   const [outcomeFilter, setOutcomeFilter] = useState("All");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [verifyOpen, setVerifyOpen] = useState(false);
   const [verifyResult, setVerifyResult] = useState<VerifyResult | null>(null);
   const [verifyLoading, setVerifyLoading] = useState(false);
-  const [anchoring, setAnchoring]   = useState(false);
+  const [anchoring, setAnchoring] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const [eventsRes, statsRes] = await Promise.all([
         getAuditTrail({ limit: 200 }),
-        getAuditStats().catch(() => ({ total: 0, failures: 0, critical: 0, unauthorized: 0, anchored: 0, pendingAnchors: 0 })),
+        getAuditStats().catch(() => ({
+          total: 0,
+          failures: 0,
+          critical: 0,
+          unauthorized: 0,
+          anchored: 0,
+          pendingAnchors: 0,
+        })),
       ]);
       setEvents(eventsRes.events ?? []);
       setStats(statsRes);
@@ -143,7 +150,8 @@ function AdminAuditPage() {
   const filtered = useMemo(() => {
     return events.filter((event) => {
       const q = searchQ.toLowerCase();
-      const matchQ = !q ||
+      const matchQ =
+        !q ||
         (event.who_name ?? "").toLowerCase().includes(q) ||
         (event.action ?? "").toLowerCase().includes(q) ||
         (event.what_entity_id ?? "").toLowerCase().includes(q) ||
@@ -178,7 +186,7 @@ function AdminAuditPage() {
       toast.success(`Processed ${res.processed} events`, {
         description: `${res.anchored} anchored, ${res.failed} failed`,
       });
-      load();  // Refresh to show updated anchor statuses
+      load(); // Refresh to show updated anchor statuses
     } catch (err: any) {
       toast.error("Anchoring failed", { description: err.message });
     } finally {
@@ -188,45 +196,53 @@ function AdminAuditPage() {
 
   const getActionLabel = (action: string) => {
     const labels: Record<string, string> = {
-      PATIENT_ADMITTED:     "Patient Admitted",
-      PATIENT_DISCHARGED:   "Patient Discharged",
-      PATIENT_TRANSFERRED:  "Patient Transferred",
+      PATIENT_ADMITTED: "Patient Admitted",
+      PATIENT_DISCHARGED: "Patient Discharged",
+      PATIENT_TRANSFERRED: "Patient Transferred",
       PRESCRIPTION_UPDATED: "Prescription Updated",
       CERTIFICATION_CREATED: "Certification Created",
       CERTIFICATION_UPDATED: "Certification Updated",
       CERTIFICATION_DELETED: "Certification Deleted",
-      BED_STATUS_CHANGED:   "Bed Status Changed",
-      ROOM_STATUS_CHANGED:  "Room Status Changed",
+      BED_STATUS_CHANGED: "Bed Status Changed",
+      ROOM_STATUS_CHANGED: "Room Status Changed",
     };
-    return labels[action] ?? action.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+    return (
+      labels[action] ??
+      action
+        .replace(/_/g, " ")
+        .toLowerCase()
+        .replace(/\b\w/g, (c) => c.toUpperCase())
+    );
   };
 
   const getSeverityConfig = (severity: string) => {
     const configs = {
-      info:     { color: "text-primary",       bg: "bg-primary/10",    icon: Activity },
-      warning:  { color: "text-warning",      bg: "bg-warning/10",    icon: AlertTriangle },
-      critical: { color: "text-destructive",  bg: "bg-destructive/10", icon: XCircle },
+      info: { color: "text-primary", bg: "bg-primary/10", icon: Activity },
+      warning: { color: "text-warning", bg: "bg-warning/10", icon: AlertTriangle },
+      critical: { color: "text-destructive", bg: "bg-destructive/10", icon: XCircle },
     };
     return configs[severity as keyof typeof configs] ?? configs.info;
   };
 
   const getOutcomeConfig = (outcome: string) => {
     const configs = {
-      success:      { color: "text-success",      bg: "bg-success/10",     icon: CheckCircle2 },
-      failure:      { color: "text-destructive",  bg: "bg-destructive/10",  icon: XCircle },
-      unauthorized: { color: "text-warning",      bg: "bg-warning/10",     icon: Shield },
+      success: { color: "text-success", bg: "bg-success/10", icon: CheckCircle2 },
+      failure: { color: "text-destructive", bg: "bg-destructive/10", icon: XCircle },
+      unauthorized: { color: "text-warning", bg: "bg-warning/10", icon: Shield },
     };
     return configs[outcome as keyof typeof configs] ?? configs.success;
   };
 
   const getAnchorConfig = (status: string | null) => {
     const configs = {
-      pending:  { color: "text-warning", icon: Clock },
+      pending: { color: "text-warning", icon: Clock },
       anchored: { color: "text-success", icon: Anchor },
-      failed:   { color: "text-destructive", icon: XCircle },
+      failed: { color: "text-destructive", icon: XCircle },
     };
     if (!status) return { color: "text-muted-foreground", icon: Hash };
-    return configs[status as keyof typeof configs] ?? { color: "text-muted-foreground", icon: Hash };
+    return (
+      configs[status as keyof typeof configs] ?? { color: "text-muted-foreground", icon: Hash }
+    );
   };
 
   return (
@@ -242,7 +258,8 @@ function AdminAuditPage() {
             Audit Trail & Blockchain Proofs
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Tamper-evident audit records with blockchain anchoring. All sensitive data stays in the database.
+            Tamper-evident audit records with blockchain anchoring. All sensitive data stays in the
+            database.
           </p>
         </div>
         <div className="flex gap-2 shrink-0">
@@ -271,19 +288,30 @@ function AdminAuditPage() {
       {stats && (
         <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
           {[
-            { label: "Total Events",     value: stats.total,         cls: "text-primary",     icon: Activity },
-            { label: "Failures",         value: stats.failures,      cls: "text-destructive",  icon: XCircle },
-            { label: "Critical",         value: stats.critical,      cls: "text-destructive",  icon: AlertTriangle },
-            { label: "Unauthorized",     value: stats.unauthorized,  cls: "text-warning",      icon: Shield },
-            { label: "Anchored",         value: stats.anchored,      cls: "text-success",      icon: Anchor },
-            { label: "Pending Anchors",  value: stats.pendingAnchors, cls: "text-warning",     icon: Clock },
+            { label: "Total Events", value: stats.total, cls: "text-primary", icon: Activity },
+            { label: "Failures", value: stats.failures, cls: "text-destructive", icon: XCircle },
+            {
+              label: "Critical",
+              value: stats.critical,
+              cls: "text-destructive",
+              icon: AlertTriangle,
+            },
+            { label: "Unauthorized", value: stats.unauthorized, cls: "text-warning", icon: Shield },
+            { label: "Anchored", value: stats.anchored, cls: "text-success", icon: Anchor },
+            {
+              label: "Pending Anchors",
+              value: stats.pendingAnchors,
+              cls: "text-warning",
+              icon: Clock,
+            },
           ].map((s) => {
             const Icon = s.icon;
             return (
-              <div key={s.label} className="rounded-xl border border-border bg-card p-3 shadow-clinical text-center">
-                <div className={`text-2xl font-black ${s.cls} flex justify-center`}>                 
-                  {s.value}
-                </div>
+              <div
+                key={s.label}
+                className="rounded-xl border border-border bg-card p-3 shadow-clinical text-center"
+              >
+                <div className={`text-2xl font-black ${s.cls} flex justify-center`}>{s.value}</div>
                 <div className="text-xs text-muted-foreground mt-0.5 flex items-center justify-center gap-1">
                   <Icon className="h-3 w-3" />
                   {s.label}
@@ -357,7 +385,10 @@ function AdminAuditPage() {
             const hasChanges = event.prev_value || event.new_value;
 
             return (
-              <div key={event.tx_id} className="rounded-xl border border-border bg-card shadow-clinical overflow-hidden">
+              <div
+                key={event.tx_id}
+                className="rounded-xl border border-border bg-card shadow-clinical overflow-hidden"
+              >
                 {/* Summary */}
                 <button
                   className="w-full text-left p-4"
@@ -371,7 +402,9 @@ function AdminAuditPage() {
                       <div>
                         <div className="text-sm font-semibold text-foreground flex items-center gap-2 flex-wrap">
                           {getActionLabel(event.action)}
-                          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${outcomeConfig.color} ${outcomeConfig.bg}`}>
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${outcomeConfig.color} ${outcomeConfig.bg}`}
+                          >
                             <OutcomeIcon className="h-3 w-3" />
                             {event.outcome}
                           </span>
@@ -391,9 +424,7 @@ function AdminAuditPage() {
                             {new Date(event.logged_at).toLocaleString("en-IN")}
                           </span>
                           <span className="font-mono">{event.tx_id.slice(0, 8)}</span>
-                          {event.what_entity_id && (
-                            <span>Entity: {event.what_entity_id}</span>
-                          )}
+                          {event.what_entity_id && <span>Entity: {event.what_entity_id}</span>}
                         </div>
                       </div>
                     </div>
@@ -421,7 +452,11 @@ function AdminAuditPage() {
                           {event.anchor_status || "not anchored"}
                         </span>
                       </div>
-                      {isExp ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                      {isExp ? (
+                        <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      )}
                     </div>
                   </div>
                 </button>
@@ -432,7 +467,9 @@ function AdminAuditPage() {
                     {/* Before/After Changes */}
                     {(event.prev_value || event.new_value) && (
                       <div className="space-y-2">
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-primary">Changes</div>
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-primary">
+                          Changes
+                        </div>
                         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                           {event.prev_value && (
                             <div className="rounded-lg border border-border bg-muted/20 p-3">
@@ -467,12 +504,19 @@ function AdminAuditPage() {
                         ["Entity Type", event.what_entity_type ?? "—"],
                         ["Auth Status", event.auth_status ?? "—"],
                         ["Auth Policy", event.auth_policy ?? "—"],
-                        ["Record Hash", event.record_hash ? `${event.record_hash.slice(0, 12)}...` : "—"],
+                        [
+                          "Record Hash",
+                          event.record_hash ? `${event.record_hash.slice(0, 12)}...` : "—",
+                        ],
                         ["Anchor ID", event.anchor_id ?? "—"],
                       ].map(([k, v]) => (
                         <div key={k} className="rounded-lg bg-muted/50 px-3 py-2">
-                          <div className="text-[9px] font-bold uppercase text-muted-foreground mb-0.5">{k}</div>
-                          <div className="font-medium text-foreground font-mono text-[10px] truncate">{v}</div>
+                          <div className="text-[9px] font-bold uppercase text-muted-foreground mb-0.5">
+                            {k}
+                          </div>
+                          <div className="font-medium text-foreground font-mono text-[10px] truncate">
+                            {v}
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -513,11 +557,13 @@ function AdminAuditPage() {
             ) : verifyResult ? (
               <>
                 {/* Overall Status */}
-                <div className={`flex items-center gap-3 p-4 rounded-lg border ${
-                  verifyResult.verified
-                    ? "bg-success/10 border-success/30 text-success"
-                    : "bg-destructive/10 border-destructive/30 text-destructive"
-                }`}>
+                <div
+                  className={`flex items-center gap-3 p-4 rounded-lg border ${
+                    verifyResult.verified
+                      ? "bg-success/10 border-success/30 text-success"
+                      : "bg-destructive/10 border-destructive/30 text-destructive"
+                  }`}
+                >
                   {verifyResult.verified ? (
                     <CheckCircle2 className="h-6 w-6" />
                   ) : (
@@ -539,11 +585,15 @@ function AdminAuditPage() {
                     <div className="text-[9px] font-bold uppercase text-muted-foreground mb-1">
                       Database Integrity
                     </div>
-                    <div className={`font-semibold ${
-                      verifyResult.dbIntegrity === "OK" ? "text-success" :
-                      verifyResult.dbIntegrity === "FAIL" ? "text-destructive" :
-                      "text-warning"
-                    }`}>
+                    <div
+                      className={`font-semibold ${
+                        verifyResult.dbIntegrity === "OK"
+                          ? "text-success"
+                          : verifyResult.dbIntegrity === "FAIL"
+                            ? "text-destructive"
+                            : "text-warning"
+                      }`}
+                    >
                       {verifyResult.dbIntegrity}
                     </div>
                   </div>
@@ -551,11 +601,15 @@ function AdminAuditPage() {
                     <div className="text-[9px] font-bold uppercase text-muted-foreground mb-1">
                       Blockchain Integrity
                     </div>
-                    <div className={`font-semibold ${
-                      verifyResult.chainIntegrity === "OK" ? "text-success" :
-                      verifyResult.chainIntegrity === "FAIL" ? "text-destructive" :
-                      "text-warning"
-                    }`}>
+                    <div
+                      className={`font-semibold ${
+                        verifyResult.chainIntegrity === "OK"
+                          ? "text-success"
+                          : verifyResult.chainIntegrity === "FAIL"
+                            ? "text-destructive"
+                            : "text-warning"
+                      }`}
+                    >
                       {verifyResult.chainIntegrity}
                     </div>
                   </div>
@@ -571,9 +625,7 @@ function AdminAuditPage() {
                     <div className="text-[9px] font-bold uppercase text-muted-foreground mb-1">
                       Slot
                     </div>
-                    <div className="font-semibold text-foreground">
-                      {verifyResult.slot ?? "—"}
-                    </div>
+                    <div className="font-semibold text-foreground">{verifyResult.slot ?? "—"}</div>
                   </div>
                 </div>
 
@@ -585,14 +637,18 @@ function AdminAuditPage() {
                     </div>
                     <div className="space-y-1">
                       <div className="rounded-lg bg-muted/50 p-2">
-                        <div className="text-[9px] font-bold uppercase text-muted-foreground">Stored Hash (DB)</div>
+                        <div className="text-[9px] font-bold uppercase text-muted-foreground">
+                          Stored Hash (DB)
+                        </div>
                         <div className="font-mono text-[10px] text-foreground break-all">
                           {verifyResult.storedHash}
                         </div>
                       </div>
                       {verifyResult.chainHash && (
                         <div className="rounded-lg bg-muted/50 p-2">
-                          <div className="text-[9px] font-bold uppercase text-muted-foreground">Chain Hash (Solana)</div>
+                          <div className="text-[9px] font-bold uppercase text-muted-foreground">
+                            Chain Hash (Solana)
+                          </div>
                           <div className="font-mono text-[10px] text-foreground break-all">
                             {verifyResult.chainHash}
                           </div>

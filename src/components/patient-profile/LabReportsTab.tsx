@@ -31,9 +31,13 @@ export function LabReportsTab({ labResults }: LabReportsTabProps) {
             <GlowCard key={lab.lab_id || lab.id} className="p-5 space-y-3">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <div className={`flex h-9 w-9 items-center justify-center rounded-xl shadow-xs ${
-                    isAbnormal ? "bg-destructive/15 text-destructive" : "bg-primary/15 text-primary"
-                  }`}>
+                  <div
+                    className={`flex h-9 w-9 items-center justify-center rounded-xl shadow-xs ${
+                      isAbnormal
+                        ? "bg-destructive/15 text-destructive"
+                        : "bg-primary/15 text-primary"
+                    }`}
+                  >
                     <FlaskConical className="h-4.5 w-4.5" />
                   </div>
                   <div>
@@ -59,7 +63,11 @@ export function LabReportsTab({ labResults }: LabReportsTabProps) {
                       : "bg-success/15 text-success border-success/30"
                   }`}
                 >
-                  {isAbnormal ? <AlertTriangle className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
+                  {isAbnormal ? (
+                    <AlertTriangle className="h-3 w-3" />
+                  ) : (
+                    <CheckCircle2 className="h-3 w-3" />
+                  )}
                   {isAbnormal ? "Abnormal" : "Normal / Verified"}
                 </span>
               </div>
@@ -70,7 +78,9 @@ export function LabReportsTab({ labResults }: LabReportsTabProps) {
                     Findings & Result Values
                   </div>
                   <pre className="whitespace-pre-wrap font-sans text-xs text-foreground">
-                    {typeof lab.results === "string" ? lab.results : JSON.stringify(lab.results, null, 2)}
+                    {typeof lab.results === "string"
+                      ? lab.results
+                      : JSON.stringify(lab.results, null, 2)}
                   </pre>
                 </div>
               )}

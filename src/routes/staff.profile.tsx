@@ -674,8 +674,7 @@ function StaffProfile() {
                     const isRevoked = cert.status === "revoked";
                     const isExpiringSoon =
                       cert.expiry_date &&
-                      new Date(cert.expiry_date) <
-                        new Date(Date.now() + 60 * 24 * 60 * 60 * 1000);
+                      new Date(cert.expiry_date) < new Date(Date.now() + 60 * 24 * 60 * 60 * 1000);
                     return (
                       <div
                         key={cert.cert_id}
@@ -729,7 +728,9 @@ function StaffProfile() {
                                   </span>
                                 )}
                                 {cert.expiry_date && (
-                                  <span className={isExpiringSoon ? "text-warning font-semibold" : ""}>
+                                  <span
+                                    className={isExpiringSoon ? "text-warning font-semibold" : ""}
+                                  >
                                     {isExpiringSoon ? "⚠️ " : ""}Expires:{" "}
                                     <span className="font-medium">
                                       {new Date(cert.expiry_date).toLocaleDateString("en-IN", {

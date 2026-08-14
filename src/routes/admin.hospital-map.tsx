@@ -4,13 +4,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { RouteGuard } from "@/components/RouteGuard";
 import { StaggerList, StaggerItem } from "@/components/Motion";
 import { Button } from "@/components/ui/button";
-import {
-  RefreshCw,
-  Bed,
-  CheckCircle2,
-  Activity,
-  HeartPulse,
-} from "lucide-react";
+import { RefreshCw, Bed, CheckCircle2, Activity, HeartPulse } from "lucide-react";
 import { toast } from "sonner";
 import {
   getHospitalInfrastructure,
@@ -30,7 +24,8 @@ export const Route = createFileRoute("/admin/hospital-map")({
       { title: "Live Hospital Map — Admin Console" },
       {
         name: "description",
-        content: "Interactive visual spatial blueprint, clinical wing matrix, and real-time bed telemetry grid",
+        content:
+          "Interactive visual spatial blueprint, clinical wing matrix, and real-time bed telemetry grid",
       },
     ],
   }),
@@ -84,9 +79,10 @@ function HospitalMapPage() {
       // Default selection on initial load
       if (fetchedBuildings.length > 0) {
         setSelectedBuildingId((prevBId) => {
-          const activeBId = prevBId && fetchedBuildings.some((b: any) => b.building_id === prevBId)
-            ? prevBId
-            : fetchedBuildings[0]?.building_id || "";
+          const activeBId =
+            prevBId && fetchedBuildings.some((b: any) => b.building_id === prevBId)
+              ? prevBId
+              : fetchedBuildings[0]?.building_id || "";
 
           setSelectedFloorId((prevFId) => {
             const buildingFloors = fetchedFloors.filter((f: any) => f.building_id === activeBId);
@@ -117,13 +113,16 @@ function HospitalMapPage() {
   useTableRefresh("beds", loadData);
 
   // Handle building switch with instant zero-lag floor update
-  const handleSelectBuilding = useCallback((bId: string) => {
-    setSelectedBuildingId(bId);
-    const bFloors = floors.filter((f) => f.building_id === bId);
-    if (bFloors.length > 0) {
-      setSelectedFloorId(bFloors[0].floor_id);
-    }
-  }, [floors]);
+  const handleSelectBuilding = useCallback(
+    (bId: string) => {
+      setSelectedBuildingId(bId);
+      const bFloors = floors.filter((f) => f.building_id === bId);
+      if (bFloors.length > 0) {
+        setSelectedFloorId(bFloors[0].floor_id);
+      }
+    },
+    [floors],
+  );
 
   // Handle floor switch
   const handleSelectFloor = useCallback((fId: string) => {
@@ -132,7 +131,10 @@ function HospitalMapPage() {
 
   // Calculate statistics per floor
   const statsByFloor = useMemo(() => {
-    const map: Record<string, { totalBeds: number; occupiedBeds: number; availableBeds: number; roomsCount: number }> = {};
+    const map: Record<
+      string,
+      { totalBeds: number; occupiedBeds: number; availableBeds: number; roomsCount: number }
+    > = {};
     for (const f of floors) {
       const floorWards = wards.filter((w) => w.floor_id === f.floor_id);
       const floorWardIds = new Set(floorWards.map((w) => w.ward_id));
@@ -189,36 +191,45 @@ function HospitalMapPage() {
     const total = currentFloorBeds.length;
     const occupied = currentFloorBeds.filter((b) => b.status === "occupied").length;
     const available = currentFloorBeds.filter((b) => b.status === "available").length;
-    const critical = currentFloorBeds.filter((b) => b.patient_condition === "Critical" || b.status === "emergency_reserved").length;
+    const critical = currentFloorBeds.filter(
+      (b) => b.patient_condition === "Critical" || b.status === "emergency_reserved",
+    ).length;
     const rate = total > 0 ? Math.round((occupied / total) * 100) : 0;
     return { total, occupied, available, critical, rate, roomsCount: currentFloorRooms.length };
   }, [currentFloorBeds, currentFloorRooms]);
 
   // Bed status update handler
-  const handleBedStatusUpdate = useCallback(async (newStatus: string) => {
-    if (!selectedBed) return;
-    try {
-      await updateBedStatus({
-        data: {
-          bedId: selectedBed.bed_id,
-          status: newStatus as any,
-        },
-      });
-      toast.success("Bed status updated");
-    } catch {
-      toast.success(`Bed status updated to ${newStatus}`);
-    }
-    setBeds((prev) =>
-      prev.map((b) =>
-        b.bed_id === selectedBed.bed_id ? { ...b, status: newStatus } : b
-      )
-    );
-    setSelectedBed((prev: any) => (prev ? { ...prev, status: newStatus } : null));
-  }, [selectedBed]);
+  const handleBedStatusUpdate = useCallback(
+    async (newStatus: string) => {
+      if (!selectedBed) return;
+      try {
+        await updateBedStatus({
+          data: {
+            bedId: selectedBed.bed_id,
+            status: newStatus as any,
+          },
+        });
+        toast.success("Bed status updated");
+      } catch {
+        toast.success(`Bed status updated to ${newStatus}`);
+      }
+      setBeds((prev) =>
+        prev.map((b) => (b.bed_id === selectedBed.bed_id ? { ...b, status: newStatus } : b)),
+      );
+      setSelectedBed((prev: any) => (prev ? { ...prev, status: newStatus } : null));
+    },
+    [selectedBed],
+  );
 
   // Density / Scale step handlers (80% Compact ↔ 100% Standard ↔ 120% Detailed Focus)
-  const handleZoomIn = useCallback(() => setZoom((z) => Math.min(1.2, Number((z + 0.2).toFixed(1)))), []);
-  const handleZoomOut = useCallback(() => setZoom((z) => Math.max(0.8, Number((z - 0.2).toFixed(1)))), []);
+  const handleZoomIn = useCallback(
+    () => setZoom((z) => Math.min(1.2, Number((z + 0.2).toFixed(1)))),
+    [],
+  );
+  const handleZoomOut = useCallback(
+    () => setZoom((z) => Math.max(0.8, Number((z - 0.2).toFixed(1)))),
+    [],
+  );
   const handleResetZoom = useCallback(() => setZoom(1), []);
 
   return (
@@ -268,7 +279,10 @@ function HospitalMapPage() {
                 </div>
                 <div className="min-w-0">
                   <div className="text-2xl font-extrabold font-display text-primary truncate">
-                    {floorStats.occupied} <span className="text-xs text-muted-foreground font-mono font-medium">({floorStats.rate}%)</span>
+                    {floorStats.occupied}{" "}
+                    <span className="text-xs text-muted-foreground font-mono font-medium">
+                      ({floorStats.rate}%)
+                    </span>
                   </div>
                   <div className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider truncate">
                     Active Inpatients

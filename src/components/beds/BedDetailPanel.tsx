@@ -1,5 +1,16 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Bed, User, Shield, Clock, CheckCircle2, Wrench, Ban, Activity, Calendar } from "lucide-react";
+import {
+  X,
+  Bed,
+  User,
+  Shield,
+  Clock,
+  CheckCircle2,
+  Wrench,
+  Ban,
+  Activity,
+  Calendar,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface BedDetailPanelProps {
@@ -12,13 +23,48 @@ interface BedDetailPanelProps {
 }
 
 const STATUS_OPTIONS = [
-  { id: "available", label: "Available", color: "text-success bg-success/10 border-success/30", icon: CheckCircle2 },
-  { id: "occupied", label: "Occupied", color: "text-primary bg-primary/10 border-primary/30", icon: User },
-  { id: "reserved", label: "Reserved", color: "text-warning-foreground bg-warning/10 border-warning/30", icon: Clock },
-  { id: "cleaning", label: "Cleaning", color: "text-blue-600 bg-blue-500/10 border-blue-200", icon: Activity },
-  { id: "maintenance", label: "Maintenance", color: "text-amber-600 bg-amber-500/10 border-amber-200", icon: Wrench },
-  { id: "blocked", label: "Blocked", color: "text-destructive bg-destructive/10 border-destructive/30", icon: Ban },
-  { id: "emergency_reserved", label: "Emergency", color: "text-red-600 bg-red-500/10 border-red-200", icon: Shield },
+  {
+    id: "available",
+    label: "Available",
+    color: "text-success bg-success/10 border-success/30",
+    icon: CheckCircle2,
+  },
+  {
+    id: "occupied",
+    label: "Occupied",
+    color: "text-primary bg-primary/10 border-primary/30",
+    icon: User,
+  },
+  {
+    id: "reserved",
+    label: "Reserved",
+    color: "text-warning-foreground bg-warning/10 border-warning/30",
+    icon: Clock,
+  },
+  {
+    id: "cleaning",
+    label: "Cleaning",
+    color: "text-blue-600 bg-blue-500/10 border-blue-200",
+    icon: Activity,
+  },
+  {
+    id: "maintenance",
+    label: "Maintenance",
+    color: "text-amber-600 bg-amber-500/10 border-amber-200",
+    icon: Wrench,
+  },
+  {
+    id: "blocked",
+    label: "Blocked",
+    color: "text-destructive bg-destructive/10 border-destructive/30",
+    icon: Ban,
+  },
+  {
+    id: "emergency_reserved",
+    label: "Emergency",
+    color: "text-red-600 bg-red-500/10 border-red-200",
+    icon: Shield,
+  },
 ];
 
 export function BedDetailPanel({
@@ -113,8 +159,8 @@ export function BedDetailPanel({
                         bed.status === "available"
                           ? "bg-success"
                           : bed.status === "occupied"
-                          ? "bg-primary"
-                          : "bg-warning"
+                            ? "bg-primary"
+                            : "bg-warning"
                       }`}
                     />
                     <span className="font-display font-extrabold text-base text-foreground capitalize">
@@ -124,7 +170,10 @@ export function BedDetailPanel({
                   {bed.updated_at && (
                     <span className="text-[11px] font-medium text-muted-foreground flex items-center gap-1">
                       <Clock className="h-3 w-3" />
-                      {new Date(bed.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {new Date(bed.updated_at).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
                     </span>
                   )}
                 </div>

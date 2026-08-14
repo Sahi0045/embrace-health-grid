@@ -94,7 +94,7 @@ export function getSupabaseServerClient() {
           value: String(value ?? ""),
         }));
       },
-      setAll(cookiesToSet) {
+      setAll(cookiesToSet: Array<{ name: string; value: string; options: CookieOptions }>) {
         for (const { name, value, options } of cookiesToSet) {
           // Spread the library's options FIRST, then our security flags, so
           // httpOnly/secure/sameSite cannot be downgraded by the caller.
@@ -104,7 +104,7 @@ export function getSupabaseServerClient() {
     },
     global: {
       // Node.js < 22 requires explicit WebSocket implementation for Realtime
-      fetch: (...args) => fetch(...args),
+      fetch,
     },
     realtime: {
       transport: WebSocket as any,

@@ -87,7 +87,9 @@ export function DocumentsTab({ credentials, medicalRecords, vaccines }: Document
             <div className="text-xs space-y-1 bg-background/60 p-3 rounded-xl border border-border/60">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Issuer:</span>
-                <span className="font-bold text-foreground truncate max-w-[150px]">{doc.issuer || "Hospital Grid"}</span>
+                <span className="font-bold text-foreground truncate max-w-[150px]">
+                  {doc.issuer || "Hospital Grid"}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Date:</span>

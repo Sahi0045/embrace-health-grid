@@ -108,7 +108,7 @@ function toCurrentUser(profile: {
  * stored client-side.
  */
 export const signIn = createServerFn({ method: "POST" })
-  .validator((data: { email: string; password: string }) => {
+  .inputValidator((data: { email: string; password: string }) => {
     if (!data?.email || !data?.password) throw new Error("Email and password are required");
     return data;
   })

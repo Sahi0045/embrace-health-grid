@@ -40,9 +40,14 @@ export function PrescriptionsTab({ prescriptions }: PrescriptionsTabProps) {
                     </h3>
                     <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
                       <Calendar className="h-3.5 w-3.5 text-primary" />
-                      <span>{rx.created_at ? new Date(rx.created_at).toLocaleDateString() : "N/A"}</span>
+                      <span>
+                        {rx.created_at ? new Date(rx.created_at).toLocaleDateString() : "N/A"}
+                      </span>
                       <span>•</span>
-                      <span>By: <strong className="text-foreground">{rx.doctor_did || "Physician"}</strong></span>
+                      <span>
+                        By:{" "}
+                        <strong className="text-foreground">{rx.doctor_did || "Physician"}</strong>
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -59,8 +64,8 @@ export function PrescriptionsTab({ prescriptions }: PrescriptionsTabProps) {
                       rx.status === "dispensed"
                         ? "bg-success/10 text-success border-success/30"
                         : rx.status === "active"
-                        ? "bg-primary/10 text-primary border-primary/20"
-                        : "bg-muted/40 text-muted-foreground border-border/80"
+                          ? "bg-primary/10 text-primary border-primary/20"
+                          : "bg-muted/40 text-muted-foreground border-border/80"
                     }`}
                   >
                     {rx.status || "Active"}
@@ -81,8 +86,12 @@ export function PrescriptionsTab({ prescriptions }: PrescriptionsTabProps) {
                         className="p-3 rounded-xl border border-border/60 bg-background/80 flex justify-between items-center text-xs"
                       >
                         <div>
-                          <div className="font-extrabold text-foreground">{drug.name || drug.drug_name || "Medication"}</div>
-                          <div className="text-[11px] text-muted-foreground">{drug.dosage || "As directed"} • {drug.frequency || "Daily"}</div>
+                          <div className="font-extrabold text-foreground">
+                            {drug.name || drug.drug_name || "Medication"}
+                          </div>
+                          <div className="text-[11px] text-muted-foreground">
+                            {drug.dosage || "As directed"} • {drug.frequency || "Daily"}
+                          </div>
                         </div>
                         <span className="text-[10px] font-extrabold uppercase bg-primary/10 text-primary px-2 py-0.5 rounded-md">
                           {drug.duration || "7 Days"}

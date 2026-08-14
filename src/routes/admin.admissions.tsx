@@ -90,47 +90,66 @@ interface WardOccupancy {
 }
 
 const STATUS_CONFIG = {
-  admitted:    { label: "Admitted",    color: "text-primary",            bg: "bg-primary/10",     icon: Activity },
-  discharged:  { label: "Discharged",  color: "text-success",            bg: "bg-success/10",     icon: CheckCircle2 },
-  transferred: { label: "Transferred", color: "text-chart-2",            bg: "bg-chart-2/10",     icon: ArrowRightLeft },
+  admitted: { label: "Admitted", color: "text-primary", bg: "bg-primary/10", icon: Activity },
+  discharged: {
+    label: "Discharged",
+    color: "text-success",
+    bg: "bg-success/10",
+    icon: CheckCircle2,
+  },
+  transferred: {
+    label: "Transferred",
+    color: "text-chart-2",
+    bg: "bg-chart-2/10",
+    icon: ArrowRightLeft,
+  },
 };
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 function AdminAdmissionsPage() {
-  const [admissions, setAdmissions]       = useState<Admission[]>([]);
-  const [beds, setBeds]                   = useState<BedRow[]>([]);
-  const [patients, setPatients]           = useState<any[]>([]);
-  const [occupancy, setOccupancy]         = useState<WardOccupancy[]>([]);
-  const [loading, setLoading]             = useState(true);
-  const [searchQ, setSearchQ]             = useState("");
-  const [statusFilter, setStatusFilter]   = useState("admitted");
-  const [expandedId, setExpandedId]       = useState<string | null>(null);
-  const [auditLogs, setAuditLogs]         = useState<any[]>([]);
-  const [auditLoading, setAuditLoading]   = useState(false);
+  const [admissions, setAdmissions] = useState<Admission[]>([]);
+  const [beds, setBeds] = useState<BedRow[]>([]);
+  const [patients, setPatients] = useState<any[]>([]);
+  const [occupancy, setOccupancy] = useState<WardOccupancy[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQ, setSearchQ] = useState("");
+  const [statusFilter, setStatusFilter] = useState("admitted");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [auditLoading, setAuditLoading] = useState(false);
 
   // Modal states
-  const [admitOpen, setAdmitOpen]         = useState(false);
+  const [admitOpen, setAdmitOpen] = useState(false);
   const [dischargeOpen, setDischargeOpen] = useState(false);
-  const [transferOpen, setTransferOpen]   = useState(false);
-  const [auditOpen, setAuditOpen]         = useState(false);
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [auditOpen, setAuditOpen] = useState(false);
   const [activeAdmission, setActiveAdmission] = useState<Admission | null>(null);
-  const [saving, setSaving]               = useState(false);
+  const [saving, setSaving] = useState(false);
 
   // Admit form
   const [admitForm, setAdmitForm] = useState({
-    patientDid: "", bedId: "", ward: "", room: "",
-    diagnosis: "", expectedDischarge: "", admissionFee: "",
+    patientDid: "",
+    bedId: "",
+    ward: "",
+    room: "",
+    diagnosis: "",
+    expectedDischarge: "",
+    admissionFee: "",
   });
 
   // Discharge form
   const [dischargeForm, setDischargeForm] = useState({
-    dischargeSummary: "", finalBillAmount: "",
+    dischargeSummary: "",
+    finalBillAmount: "",
   });
 
   // Transfer form
   const [transferForm, setTransferForm] = useState({
-    newBedId: "", newWard: "", newRoom: "", transferReason: "",
+    newBedId: "",
+    newWard: "",
+    newRoom: "",
+    transferReason: "",
   });
 
   // ─── Data loading ──────────────────────────────────────────────────────────
@@ -154,19 +173,19 @@ function AdminAdmissionsPage() {
     }
   }, []);
 
-
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   // Real-time: all four tables trigger a refresh when any changes
-  useTableRefresh("admissions",       load);
-  useTableRefresh("beds",             load);
+  useTableRefresh("admissions", load);
+  useTableRefresh("beds", load);
   useTableRefresh("billing_accounts", load);
   useTableRefresh("admission_events", load);
 
   // ─── Helpers ───────────────────────────────────────────────────────────────
   const availableBeds = beds.filter((b) => b.status === "available");
-  const getPatientName = (did: string) =>
-    patients.find((p) => p.did === did)?.owner_name ?? did;
+  const getPatientName = (did: string) => patients.find((p) => p.did === did)?.owner_name ?? did;
 
   const filtered = admissions.filter((a) => {
     const q = searchQ.toLowerCase();
@@ -182,10 +201,10 @@ function AdminAdmissionsPage() {
   });
 
   const stats = {
-    admitted:    admissions.filter((a) => a.status === "admitted").length,
-    discharged:  admissions.filter((a) => a.status === "discharged").length,
+    admitted: admissions.filter((a) => a.status === "admitted").length,
+    discharged: admissions.filter((a) => a.status === "discharged").length,
     transferred: admissions.filter((a) => a.status === "transferred").length,
-    available:   availableBeds.length,
+    available: availableBeds.length,
   };
 
   // ─── Admit ─────────────────────────────────────────────────────────────────
@@ -197,17 +216,25 @@ function AdminAdmissionsPage() {
     setSaving(true);
     try {
       const res = await admitPatient({
-        patientDid:       admitForm.patientDid,
-        bedId:            admitForm.bedId,
-        ward:             admitForm.ward,
-        room:             admitForm.room || undefined,
-        diagnosis:        admitForm.diagnosis || undefined,
+        patientDid: admitForm.patientDid,
+        bedId: admitForm.bedId,
+        ward: admitForm.ward,
+        room: admitForm.room || undefined,
+        diagnosis: admitForm.diagnosis || undefined,
         expectedDischarge: admitForm.expectedDischarge || undefined,
-        admissionFee:     admitForm.admissionFee ? parseFloat(admitForm.admissionFee) : undefined,
+        admissionFee: admitForm.admissionFee ? parseFloat(admitForm.admissionFee) : undefined,
       });
       toast.success("Patient admitted", { description: `Admission ${res.admissionId} created` });
       setAdmitOpen(false);
-      setAdmitForm({ patientDid: "", bedId: "", ward: "", room: "", diagnosis: "", expectedDischarge: "", admissionFee: "" });
+      setAdmitForm({
+        patientDid: "",
+        bedId: "",
+        ward: "",
+        room: "",
+        diagnosis: "",
+        expectedDischarge: "",
+        admissionFee: "",
+      });
       load();
     } catch (err: any) {
       toast.error("Admission failed", { description: err.message });
@@ -222,9 +249,9 @@ function AdminAdmissionsPage() {
     setSaving(true);
     try {
       await dischargePatient({
-        admissionId:    activeAdmission.admission_id,
+        admissionId: activeAdmission.admission_id,
         dischargeSummary: dischargeForm.dischargeSummary || undefined,
-        finalBillAmount:  dischargeForm.finalBillAmount
+        finalBillAmount: dischargeForm.finalBillAmount
           ? parseFloat(dischargeForm.finalBillAmount)
           : undefined,
       });
@@ -252,10 +279,10 @@ function AdminAdmissionsPage() {
     setSaving(true);
     try {
       await transferPatient({
-        admissionId:   activeAdmission.admission_id,
-        newBedId:      transferForm.newBedId,
-        newWard:       transferForm.newWard,
-        newRoom:       transferForm.newRoom || undefined,
+        admissionId: activeAdmission.admission_id,
+        newBedId: transferForm.newBedId,
+        newWard: transferForm.newWard,
+        newRoom: transferForm.newRoom || undefined,
         transferReason: transferForm.transferReason || undefined,
       });
       toast.success("Patient transferred", {
@@ -290,7 +317,6 @@ function AdminAdmissionsPage() {
   // ─── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
-
       {/* Header */}
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between border-b border-border pb-4">
         <div>
@@ -325,12 +351,30 @@ function AdminAdmissionsPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
-          { label: "Currently Admitted", value: stats.admitted,    cls: "text-primary",    icon: Activity },
-          { label: "Available Beds",     value: stats.available,   cls: "text-success",    icon: Bed },
-          { label: "Discharged",         value: stats.discharged,  cls: "text-muted-foreground", icon: CheckCircle2 },
-          { label: "Transferred",        value: stats.transferred, cls: "text-chart-2",    icon: ArrowRightLeft },
+          {
+            label: "Currently Admitted",
+            value: stats.admitted,
+            cls: "text-primary",
+            icon: Activity,
+          },
+          { label: "Available Beds", value: stats.available, cls: "text-success", icon: Bed },
+          {
+            label: "Discharged",
+            value: stats.discharged,
+            cls: "text-muted-foreground",
+            icon: CheckCircle2,
+          },
+          {
+            label: "Transferred",
+            value: stats.transferred,
+            cls: "text-chart-2",
+            icon: ArrowRightLeft,
+          },
         ].map((s) => (
-          <div key={s.label} className="rounded-xl border border-border bg-card p-3 shadow-clinical">
+          <div
+            key={s.label}
+            className="rounded-xl border border-border bg-card p-3 shadow-clinical"
+          >
             <div className={`text-2xl font-black ${s.cls}`}>{s.value}</div>
             <div className="text-xs text-muted-foreground mt-0.5">{s.label}</div>
           </div>
@@ -393,7 +437,9 @@ function AdminAdmissionsPage() {
           <Bed className="h-10 w-10 text-muted-foreground/30 mb-3" />
           <div className="text-sm font-semibold text-foreground">No admissions found</div>
           <div className="text-xs text-muted-foreground mt-1">
-            {searchQ || statusFilter !== "all" ? "No results match your filters." : "No admissions yet. Click 'Admit Patient' to create one."}
+            {searchQ || statusFilter !== "all"
+              ? "No results match your filters."
+              : "No admissions yet. Click 'Admit Patient' to create one."}
           </div>
         </div>
       ) : (
@@ -422,7 +468,9 @@ function AdminAdmissionsPage() {
                       <div>
                         <div className="text-sm font-semibold text-foreground flex items-center gap-2 flex-wrap">
                           {adm.patient_name ?? adm.patient_did}
-                          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${cfg.color} ${cfg.bg}`}>
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${cfg.color} ${cfg.bg}`}
+                          >
                             <StatusIcon className="h-3 w-3" />
                             {cfg.label}
                           </span>
@@ -447,13 +495,21 @@ function AdminAdmissionsPage() {
                       {isActive && (
                         <>
                           <button
-                            onClick={(e) => { e.stopPropagation(); setActiveAdmission(adm); setDischargeOpen(true); }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveAdmission(adm);
+                              setDischargeOpen(true);
+                            }}
                             className="inline-flex items-center gap-1 rounded-lg border border-success/30 bg-success/10 px-2 py-1 text-[11px] font-medium text-success hover:bg-success/20 cursor-pointer transition-colors"
                           >
                             <LogOut className="h-3 w-3" /> Discharge
                           </button>
                           <button
-                            onClick={(e) => { e.stopPropagation(); setActiveAdmission(adm); setTransferOpen(true); }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveAdmission(adm);
+                              setTransferOpen(true);
+                            }}
                             className="inline-flex items-center gap-1 rounded-lg border border-chart-2/30 bg-chart-2/10 px-2 py-1 text-[11px] font-medium text-chart-2 hover:bg-chart-2/20 cursor-pointer transition-colors"
                           >
                             <ArrowRightLeft className="h-3 w-3" /> Transfer
@@ -461,13 +517,18 @@ function AdminAdmissionsPage() {
                         </>
                       )}
                       <button
-                        onClick={(e) => { e.stopPropagation(); openAudit(adm); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openAudit(adm);
+                        }}
                         className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-[11px] font-medium hover:bg-muted cursor-pointer transition-colors"
                       >
                         <History className="h-3 w-3" /> Audit
                       </button>
                       <div className="shrink-0">
-                        <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-300 ease-out ${isExp ? "rotate-180" : "rotate-0"}`} />
+                        <ChevronDown
+                          className={`h-4 w-4 text-muted-foreground transition-transform duration-300 ease-out ${isExp ? "rotate-180" : "rotate-0"}`}
+                        />
                       </div>
                     </div>
                   </div>
@@ -485,22 +546,33 @@ function AdminAdmissionsPage() {
                     <div className="p-4 space-y-3 bg-card/50">
                       <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">
                         {[
-                          ["Admission ID",   adm.admission_id],
-                          ["Patient DID",    adm.patient_did],
-                          ["Ward",           adm.ward ?? "—"],
-                          ["Room",           adm.room ?? "—"],
-                          ["Bed",            adm.bed  ?? "—"],
-                          ["Admitted",       new Date(adm.admitted_at).toLocaleString("en-IN")],
-                          ["Expected Discharge", adm.expected_discharge
-                            ? new Date(adm.expected_discharge).toLocaleDateString("en-IN")
-                            : "—"],
-                          ["Discharged At",  adm.discharged_at
-                            ? new Date(adm.discharged_at).toLocaleString("en-IN")
-                            : "—"],
+                          ["Admission ID", adm.admission_id],
+                          ["Patient DID", adm.patient_did],
+                          ["Ward", adm.ward ?? "—"],
+                          ["Room", adm.room ?? "—"],
+                          ["Bed", adm.bed ?? "—"],
+                          ["Admitted", new Date(adm.admitted_at).toLocaleString("en-IN")],
+                          [
+                            "Expected Discharge",
+                            adm.expected_discharge
+                              ? new Date(adm.expected_discharge).toLocaleDateString("en-IN")
+                              : "—",
+                          ],
+                          [
+                            "Discharged At",
+                            adm.discharged_at
+                              ? new Date(adm.discharged_at).toLocaleString("en-IN")
+                              : "—",
+                          ],
                           ["Admitting Doctor", adm.admitting_doctor ?? "—"],
                         ].map(([k, v]) => (
-                          <div key={k} className="rounded-lg bg-muted/50 px-3 py-2 border border-border/40">
-                            <div className="text-[9px] font-bold uppercase text-muted-foreground mb-0.5">{k}</div>
+                          <div
+                            key={k}
+                            className="rounded-lg bg-muted/50 px-3 py-2 border border-border/40"
+                          >
+                            <div className="text-[9px] font-bold uppercase text-muted-foreground mb-0.5">
+                              {k}
+                            </div>
                             <div className="font-medium text-foreground truncate">{v}</div>
                           </div>
                         ))}
@@ -599,7 +671,9 @@ function AdminAdmissionsPage() {
                 <Input
                   type="date"
                   value={admitForm.expectedDischarge}
-                  onChange={(e) => setAdmitForm({ ...admitForm, expectedDischarge: e.target.value })}
+                  onChange={(e) =>
+                    setAdmitForm({ ...admitForm, expectedDischarge: e.target.value })
+                  }
                 />
               </div>
               <div className="space-y-1.5">
@@ -633,7 +707,12 @@ function AdminAdmissionsPage() {
             <DialogTitle>Discharge Patient</DialogTitle>
             <DialogDescription>
               {activeAdmission && (
-                <>Discharging <strong>{activeAdmission.patient_name ?? activeAdmission.patient_did}</strong> from bed <strong>{activeAdmission.bed}</strong>. The bed will be marked for cleaning.</>
+                <>
+                  Discharging{" "}
+                  <strong>{activeAdmission.patient_name ?? activeAdmission.patient_did}</strong>{" "}
+                  from bed <strong>{activeAdmission.bed}</strong>. The bed will be marked for
+                  cleaning.
+                </>
               )}
             </DialogDescription>
           </DialogHeader>
@@ -642,7 +721,9 @@ function AdminAdmissionsPage() {
               <Label>Discharge Summary</Label>
               <Textarea
                 value={dischargeForm.dischargeSummary}
-                onChange={(e) => setDischargeForm({ ...dischargeForm, dischargeSummary: e.target.value })}
+                onChange={(e) =>
+                  setDischargeForm({ ...dischargeForm, dischargeSummary: e.target.value })
+                }
                 placeholder="Clinical notes, follow-up instructions…"
                 rows={3}
               />
@@ -653,7 +734,9 @@ function AdminAdmissionsPage() {
                 type="number"
                 min="0"
                 value={dischargeForm.finalBillAmount}
-                onChange={(e) => setDischargeForm({ ...dischargeForm, finalBillAmount: e.target.value })}
+                onChange={(e) =>
+                  setDischargeForm({ ...dischargeForm, finalBillAmount: e.target.value })
+                }
                 placeholder="0"
               />
             </div>
@@ -662,7 +745,11 @@ function AdminAdmissionsPage() {
             <Button variant="outline" onClick={() => setDischargeOpen(false)} disabled={saving}>
               Cancel
             </Button>
-            <Button onClick={handleDischarge} disabled={saving} className="bg-success text-success-foreground hover:bg-success/90">
+            <Button
+              onClick={handleDischarge}
+              disabled={saving}
+              className="bg-success text-success-foreground hover:bg-success/90"
+            >
               <LogOut className="h-4 w-4 mr-1" />
               {saving ? "Discharging…" : "Confirm Discharge"}
             </Button>
@@ -677,7 +764,15 @@ function AdminAdmissionsPage() {
             <DialogTitle>Transfer Patient</DialogTitle>
             <DialogDescription>
               {activeAdmission && (
-                <>Moving <strong>{activeAdmission.patient_name ?? activeAdmission.patient_did}</strong> from <strong>{activeAdmission.ward} / {activeAdmission.bed}</strong>.</>
+                <>
+                  Moving{" "}
+                  <strong>{activeAdmission.patient_name ?? activeAdmission.patient_did}</strong>{" "}
+                  from{" "}
+                  <strong>
+                    {activeAdmission.ward} / {activeAdmission.bed}
+                  </strong>
+                  .
+                </>
               )}
             </DialogDescription>
           </DialogHeader>
@@ -728,7 +823,9 @@ function AdminAdmissionsPage() {
               <Label>Transfer Reason</Label>
               <Textarea
                 value={transferForm.transferReason}
-                onChange={(e) => setTransferForm({ ...transferForm, transferReason: e.target.value })}
+                onChange={(e) =>
+                  setTransferForm({ ...transferForm, transferReason: e.target.value })
+                }
                 placeholder="Clinical reason for transfer…"
                 rows={2}
               />
@@ -752,7 +849,8 @@ function AdminAdmissionsPage() {
           <DialogHeader>
             <DialogTitle>Admission Audit Trail</DialogTitle>
             <DialogDescription>
-              {activeAdmission && `Complete event history for admission ${activeAdmission.admission_id}`}
+              {activeAdmission &&
+                `Complete event history for admission ${activeAdmission.admission_id}`}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2 py-2">
@@ -761,10 +859,15 @@ function AdminAdmissionsPage() {
                 <RefreshCw className="h-4 w-4 animate-spin" /> Loading…
               </div>
             ) : auditLogs.length === 0 ? (
-              <div className="text-center py-8 text-sm text-muted-foreground">No events recorded yet.</div>
+              <div className="text-center py-8 text-sm text-muted-foreground">
+                No events recorded yet.
+              </div>
             ) : (
               auditLogs.map((log) => (
-                <div key={log.event_id} className="rounded-lg border border-border bg-card p-3 text-xs">
+                <div
+                  key={log.event_id}
+                  className="rounded-lg border border-border bg-card p-3 text-xs"
+                >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1">
                       <div className="font-semibold text-foreground capitalize flex items-center gap-2">
@@ -804,7 +907,9 @@ function AdminAdmissionsPage() {
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAuditOpen(false)}>Close</Button>
+            <Button variant="outline" onClick={() => setAuditOpen(false)}>
+              Close
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

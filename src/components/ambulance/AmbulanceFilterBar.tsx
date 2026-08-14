@@ -1,4 +1,14 @@
-import { Search, ArrowUpDown, Filter, Ambulance, CheckCircle2, Navigation, AlertTriangle, RotateCcw, Wrench } from "lucide-react";
+import {
+  Search,
+  ArrowUpDown,
+  Filter,
+  Ambulance,
+  CheckCircle2,
+  Navigation,
+  AlertTriangle,
+  RotateCcw,
+  Wrench,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 
@@ -39,11 +49,26 @@ export function AmbulanceFilterBar({
 }: AmbulanceFilterBarProps) {
   const statusOptions: { key: AmbulanceStatusFilter; label: string; icon: any; count: number }[] = [
     { key: "all", label: "All Vehicles", icon: Ambulance, count: statusCounts.all ?? 0 },
-    { key: "available", label: "Available", icon: CheckCircle2, count: statusCounts.available ?? 0 },
+    {
+      key: "available",
+      label: "Available",
+      icon: CheckCircle2,
+      count: statusCounts.available ?? 0,
+    },
     { key: "en-route", label: "En-Route", icon: Navigation, count: statusCounts["en-route"] ?? 0 },
-    { key: "at-scene", label: "At Scene", icon: AlertTriangle, count: statusCounts["at-scene"] ?? 0 },
+    {
+      key: "at-scene",
+      label: "At Scene",
+      icon: AlertTriangle,
+      count: statusCounts["at-scene"] ?? 0,
+    },
     { key: "returning", label: "Returning", icon: RotateCcw, count: statusCounts.returning ?? 0 },
-    { key: "maintenance", label: "Maintenance", icon: Wrench, count: statusCounts.maintenance ?? 0 },
+    {
+      key: "maintenance",
+      label: "Maintenance",
+      icon: Wrench,
+      count: statusCounts.maintenance ?? 0,
+    },
   ];
 
   return (

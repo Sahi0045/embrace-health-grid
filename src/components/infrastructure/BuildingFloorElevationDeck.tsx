@@ -9,7 +9,10 @@ export interface BuildingFloorElevationDeckProps {
   selectedFloorId: string;
   onSelectBuilding: (buildingId: string) => void;
   onSelectFloor: (floorId: string) => void;
-  statsByFloor: Record<string, { totalBeds: number; occupiedBeds: number; availableBeds: number; roomsCount: number }>;
+  statsByFloor: Record<
+    string,
+    { totalBeds: number; occupiedBeds: number; availableBeds: number; roomsCount: number }
+  >;
   className?: string;
 }
 
@@ -24,7 +27,9 @@ export const BuildingFloorElevationDeck = memo(function BuildingFloorElevationDe
   className = "",
 }: BuildingFloorElevationDeckProps) {
   const currentFloors = floors.filter((f) => f.building_id === selectedBuildingId);
-  const sortedFloors = [...currentFloors].sort((a, b) => (b.floor_number ?? 0) - (a.floor_number ?? 0));
+  const sortedFloors = [...currentFloors].sort(
+    (a, b) => (b.floor_number ?? 0) - (a.floor_number ?? 0),
+  );
 
   return (
     <div className={`space-y-3.5 w-full ${className}`}>
@@ -44,10 +49,14 @@ export const BuildingFloorElevationDeck = memo(function BuildingFloorElevationDe
                     : "border-transparent text-muted-foreground hover:border-border hover:bg-muted/40 hover:text-foreground"
                 }`}
               >
-                <Building2 className={`h-4 w-4 shrink-0 ${isSelected ? "text-primary-foreground" : "text-primary"}`} />
+                <Building2
+                  className={`h-4 w-4 shrink-0 ${isSelected ? "text-primary-foreground" : "text-primary"}`}
+                />
                 <div className="text-left min-w-0">
                   <div className="leading-tight truncate font-extrabold">{b.building_name}</div>
-                  <div className={`text-[10px] font-mono font-medium truncate ${isSelected ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
+                  <div
+                    className={`text-[10px] font-mono font-medium truncate ${isSelected ? "text-primary-foreground/80" : "text-muted-foreground"}`}
+                  >
                     {b.building_code || "Main Complex"} • {b.total_floors || 3} Floors
                   </div>
                 </div>
@@ -66,8 +75,14 @@ export const BuildingFloorElevationDeck = memo(function BuildingFloorElevationDe
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 w-full">
         {sortedFloors.map((floor) => {
           const isSelected = floor.floor_id === selectedFloorId;
-          const stats = statsByFloor[floor.floor_id] || { totalBeds: 0, occupiedBeds: 0, availableBeds: 0, roomsCount: 0 };
-          const occupancyRate = stats.totalBeds > 0 ? Math.round((stats.occupiedBeds / stats.totalBeds) * 100) : 0;
+          const stats = statsByFloor[floor.floor_id] || {
+            totalBeds: 0,
+            occupiedBeds: 0,
+            availableBeds: 0,
+            roomsCount: 0,
+          };
+          const occupancyRate =
+            stats.totalBeds > 0 ? Math.round((stats.occupiedBeds / stats.totalBeds) * 100) : 0;
 
           let progressTone: "success" | "warning" | "destructive" | "primary" = "success";
           if (occupancyRate >= 85) progressTone = "destructive";
@@ -117,8 +132,8 @@ export const BuildingFloorElevationDeck = memo(function BuildingFloorElevationDe
                     progressTone === "destructive"
                       ? "bg-destructive/10 text-destructive border border-destructive/20"
                       : progressTone === "warning"
-                      ? "bg-warning/10 text-warning-foreground border border-warning/20"
-                      : "bg-success/10 text-success border border-success/20"
+                        ? "bg-warning/10 text-warning-foreground border border-warning/20"
+                        : "bg-success/10 text-success border border-success/20"
                   }`}
                 >
                   {occupancyRate}%
@@ -134,7 +149,8 @@ export const BuildingFloorElevationDeck = memo(function BuildingFloorElevationDe
               <div className="flex items-center justify-between text-[11px] font-bold text-muted-foreground pt-1 border-t border-border/40 w-full">
                 <span className="flex items-center gap-1 truncate">
                   <Bed className="h-3 w-3 text-primary shrink-0" />
-                  <strong className="text-foreground">{stats.occupiedBeds}</strong>/{stats.totalBeds} Beds
+                  <strong className="text-foreground">{stats.occupiedBeds}</strong>/
+                  {stats.totalBeds} Beds
                 </span>
                 <span className="flex items-center gap-1 text-success shrink-0">
                   <CheckCircle2 className="h-3 w-3 shrink-0" />

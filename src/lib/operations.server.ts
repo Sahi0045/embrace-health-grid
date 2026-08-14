@@ -11,8 +11,13 @@
  */
 
 import { createServerFn } from "@tanstack/react-start";
-import { getSupabaseServerClient, getVerifiedUser } from "./supabase.server";
-import { resolveCallerForAudit, tryWriteAudit, buildBedAudit, buildRoomAudit, buildInventoryAudit } from "./audit.server";
+import {
+  resolveCallerForAudit,
+  tryWriteAudit,
+  buildBedAudit,
+  buildRoomAudit,
+  buildInventoryAudit,
+} from "./audit.server";
 import type {
   InventoryCategory,
   InventoryItem,
@@ -96,7 +101,7 @@ export const getAttendance = createServerFn({ method: "GET" }).handler(async () 
 
 /** Clock in or out. RLS restricts the row to the caller's own staff_id. */
 export const clockAttendance = createServerFn({ method: "POST" })
-  .validator((data: { action: "in" | "out"; location?: string }) => {
+  .inputValidator((data: { action: "in" | "out"; location?: string }) => {
     if (data?.action !== "in" && data?.action !== "out") {
       throw new Error("action must be 'in' or 'out'");
     }
@@ -138,7 +143,7 @@ export const getStaffSchedule = createServerFn({ method: "GET" }).handler(async 
 
 /** Confirm one's own shift. RLS prevents confirming someone else's. */
 export const confirmShift = createServerFn({ method: "POST" })
-  .validator((data: { shiftId: string }) => {
+  .inputValidator((data: { shiftId: string }) => {
     if (!data?.shiftId) throw new Error("shiftId is required");
     return data;
   })
@@ -208,7 +213,7 @@ export const getRoomCheckinStatus = createServerFn({ method: "GET" }).handler(as
  * a separate append-only table rather than mutating history.
  */
 export const roomCheckin = createServerFn({ method: "POST" })
-  .validator((data: { roomId: string; roomName: string; action: "checkin" | "checkout" }) => {
+  .inputValidator((data: { roomId: string; roomName: string; action: "checkin" | "checkout" }) => {
     if (!data?.roomId || !data?.roomName || !data?.action) {
       throw new Error("roomId, roomName and action are required");
     }
@@ -260,7 +265,7 @@ export const roomCheckin = createServerFn({ method: "POST" })
 
 /** Room events for a day — the merkle leaves for that period. */
 export const getDailyRoomEvents = createServerFn({ method: "GET" })
-  .validator((data: { doctorDid?: string; date?: string }) => data ?? {})
+  .inputValidator((data: { doctorDid?: string; date?: string }) => data ?? {})
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();
@@ -300,7 +305,7 @@ export const getVisitors = createServerFn({ method: "GET" }).handler(async () =>
 });
 
 export const createVisitorRequest = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (data: {
       patientDid?: string;
       visitorName: string;
@@ -337,7 +342,7 @@ export const createVisitorRequest = createServerFn({ method: "POST" })
 
 /** Approve or deny a visit. RLS restricts this to clinical staff. */
 export const resolveVisitorRequest = createServerFn({ method: "POST" })
-  .validator((data: { visitorId: string; approve: boolean }) => {
+  .inputValidator((data: { visitorId: string; approve: boolean }) => {
     if (!data?.visitorId) throw new Error("visitorId is required");
     return data;
   })
@@ -381,7 +386,7 @@ export const getNfcCards = createServerFn({ method: "GET" }).handler(async () =>
  * A card scan should confirm identity, not unlock a chart.
  */
 export const verifyNfcCard = createServerFn({ method: "POST" })
-  .validator((data: { cardId: string }) => {
+  .inputValidator((data: { cardId: string }) => {
     if (!data?.cardId) throw new Error("cardId is required");
     return data;
   })
@@ -416,7 +421,7 @@ export const getInsurancePolicy = createServerFn({ method: "GET" }).handler(asyn
 });
 
 export const updateInsurancePolicy = createServerFn({ method: "POST" })
-  .validator((data: Record<string, unknown>) => data ?? {})
+  .inputValidator((data: Record<string, unknown>) => data ?? {})
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();
@@ -456,7 +461,7 @@ export const getInsuranceClaims = createServerFn({ method: "GET" }).handler(asyn
 });
 
 export const createInsuranceClaim = createServerFn({ method: "POST" })
-  .validator((data: { amount: number; description?: string }) => {
+  .inputValidator((data: { amount: number; description?: string }) => {
     if (!data?.amount || data.amount <= 0) throw new Error("A positive amount is required");
     return data;
   })
@@ -495,7 +500,7 @@ export const getStaffRequests = createServerFn({ method: "GET" }).handler(async 
 });
 
 export const createStaffRequest = createServerFn({ method: "POST" })
-  .validator((data: { requestType: string; subject: string; details?: string }) => {
+  .inputValidator((data: { requestType: string; subject: string; details?: string }) => {
     if (!data?.requestType || !data?.subject) {
       throw new Error("requestType and subject are required");
     }
@@ -524,7 +529,7 @@ export const createStaffRequest = createServerFn({ method: "POST" })
 /** Resolve a request. RLS restricts this to admins, so a requester cannot
  *  approve their own. */
 export const resolveStaffRequest = createServerFn({ method: "POST" })
-  .validator((data: { requestId: string; status: "approved" | "rejected" | "completed" }) => {
+  .inputValidator((data: { requestId: string; status: "approved" | "rejected" | "completed" }) => {
     if (!data?.requestId || !data?.status) throw new Error("requestId and status are required");
     return data;
   })
@@ -633,7 +638,7 @@ export const getAttendanceSummary = createServerFn({ method: "GET" }).handler(as
 
 /** Room check-in history for one clinician — the merkle leaf source. */
 export const getRoomCheckinHistory = createServerFn({ method: "GET" })
-  .validator((data: { doctorDid?: string }) => data ?? {})
+  .inputValidator((data: { doctorDid?: string }) => data ?? {})
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();
@@ -668,7 +673,7 @@ export const getHealthMetrics = createServerFn({ method: "GET" }).handler(async 
 });
 
 export const recordHealthMetric = createServerFn({ method: "POST" })
-  .validator((data: Record<string, unknown>) => {
+  .inputValidator((data: Record<string, unknown>) => {
     if (!data?.measuredOn) throw new Error("measuredOn is required");
     return data;
   })
@@ -780,7 +785,7 @@ export const getBuildings = createServerFn({ method: "GET" }).handler(async () =
 
 /** Get floors for a building */
 export const getFloors = createServerFn({ method: "GET" })
-  .validator((data: { buildingId?: string }) => data ?? {})
+  .inputValidator((data: { buildingId?: string }) => data ?? {})
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();
@@ -798,7 +803,7 @@ export const getFloors = createServerFn({ method: "GET" })
 
 /** Get wards for a floor */
 export const getWards = createServerFn({ method: "GET" })
-  .validator((data: { floorId?: string }) => data ?? {})
+  .inputValidator((data: { floorId?: string }) => data ?? {})
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();
@@ -816,10 +821,12 @@ export const getWards = createServerFn({ method: "GET" })
 
 /** Create a new building */
 export const createBuilding = createServerFn({ method: "POST" })
-  .validator((data: { name: string; code?: string; description?: string; totalFloors?: number }) => {
-    if (!data?.name) throw new Error("Building name is required");
-    return data;
-  })
+  .inputValidator(
+    (data: { name: string; code?: string; description?: string; totalFloors?: number }) => {
+      if (!data?.name) throw new Error("Building name is required");
+      return data;
+    },
+  )
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();
@@ -843,13 +850,8 @@ export const createBuilding = createServerFn({ method: "POST" })
 
 /** Create a new floor */
 export const createFloor = createServerFn({ method: "POST" })
-  .validator(
-    (data: {
-      buildingId: string;
-      floorNumber: number;
-      name: string;
-      description?: string;
-    }) => {
+  .inputValidator(
+    (data: { buildingId: string; floorNumber: number; name: string; description?: string }) => {
       if (!data?.buildingId || data?.floorNumber == null || !data?.name) {
         throw new Error("Building ID, floor number, and name are required");
       }
@@ -879,7 +881,7 @@ export const createFloor = createServerFn({ method: "POST" })
 
 /** Create a new ward */
 export const createWard = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (data: {
       floorId: string;
       buildingId: string;
@@ -921,7 +923,7 @@ export const createWard = createServerFn({ method: "POST" })
 
 /** Create a new room */
 export const createRoom = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (data: {
       wardId: string;
       buildingId: string;
@@ -966,7 +968,7 @@ export const createRoom = createServerFn({ method: "POST" })
 
 /** Create a new bed */
 export const createBed = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (data: {
       roomId: string;
       wardId: string;
@@ -1007,10 +1009,17 @@ export const createBed = createServerFn({ method: "POST" })
 
 /** Update bed status */
 export const updateBedStatus = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (data: {
       bedId: string;
-      status: "available" | "occupied" | "reserved" | "cleaning" | "maintenance" | "blocked" | "emergency_reserved";
+      status:
+        | "available"
+        | "occupied"
+        | "reserved"
+        | "cleaning"
+        | "maintenance"
+        | "blocked"
+        | "emergency_reserved";
       patientDid?: string;
     }) => {
       if (!data?.bedId || !data?.status) {
@@ -1050,23 +1059,32 @@ export const updateBedStatus = createServerFn({ method: "POST" })
 
     // ── Rich audit record ─────────────────────────────────────────────────────
     const caller = await resolveCallerForAudit();
-    tryWriteAudit(buildBedAudit(
-      caller,
-      data.bedId,
-      "unknown",          // prev status not fetched to keep the update lean
-      data.status,
-      data.patientDid ? { patientDid: data.patientDid } : {},
-    ));
+    tryWriteAudit(
+      buildBedAudit(
+        caller,
+        data.bedId,
+        "unknown", // prev status not fetched to keep the update lean
+        data.status,
+        data.patientDid ? { patientDid: data.patientDid } : {},
+      ),
+    );
 
     return { ok: true as const, bed: updated };
   });
 
 /** Update room status */
 export const updateRoomStatus = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (data: {
       roomId: string;
-      status: "available" | "occupied" | "reserved" | "cleaning" | "maintenance" | "blocked" | "emergency_reserved";
+      status:
+        | "available"
+        | "occupied"
+        | "reserved"
+        | "cleaning"
+        | "maintenance"
+        | "blocked"
+        | "emergency_reserved";
     }) => {
       if (!data?.roomId || !data?.status) {
         throw new Error("Room ID and status are required");
@@ -1317,7 +1335,7 @@ export const getInventoryData = createServerFn({ method: "GET" }).handler(async 
 
 /** Get stock movements for a specific inventory item */
 export const getStockMovements = createServerFn({ method: "GET" })
-  .validator((data: { itemId: string }) => {
+  .inputValidator((data: { itemId: string }) => {
     if (!data?.itemId) throw new Error("itemId is required");
     return data;
   })
@@ -1343,7 +1361,7 @@ export const getStockMovements = createServerFn({ method: "GET" })
 
 /** Record a stock movement (IN / OUT / ADJUSTMENT) and update inventory item stock */
 export const recordStockMovement = createServerFn({ method: "POST" })
-  .validator((data: {
+  .inputValidator((data: {
     itemId: string;
     movementType: "IN" | "OUT" | "ADJUSTMENT";
     quantity: number;
@@ -1465,7 +1483,7 @@ export const recordStockMovement = createServerFn({ method: "POST" })
 
 /** Update item reorder parameters and storage location */
 export const updateItemReorderSettings = createServerFn({ method: "POST" })
-  .validator((data: {
+  .inputValidator((data: {
     itemId: string;
     reorderLevel?: number;
     reorderQty?: number;
@@ -1517,7 +1535,7 @@ export const updateItemReorderSettings = createServerFn({ method: "POST" })
 
 /** Acknowledge an inventory alert */
 export const acknowledgeInventoryAlert = createServerFn({ method: "POST" })
-  .validator((data: { alertId: string }) => {
+  .inputValidator((data: { alertId: string }) => {
     if (!data?.alertId) throw new Error("alertId is required");
     return data;
   })

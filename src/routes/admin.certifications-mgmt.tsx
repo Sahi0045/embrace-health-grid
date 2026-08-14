@@ -136,10 +136,10 @@ function AdminCertificationsManagementPage() {
       ]);
 
       setCertifications(certsRes.certifications || []);
-      
+
       // Filter to staff/doctor DIDs only
       const staffDids = (didsRes.dids || []).filter(
-        (d: any) => d.owner_type === "doctor" || d.owner_type === "staff"
+        (d: any) => d.owner_type === "doctor" || d.owner_type === "staff",
       );
       setStaffDIDs(staffDids);
       setStats(statsRes.stats);
@@ -294,7 +294,9 @@ function AdminCertificationsManagementPage() {
 
   // Delete certification
   const handleDelete = async (cert: Certification) => {
-    if (!confirm(`Are you sure you want to delete "${cert.cert_name}"? This action cannot be undone.`)) {
+    if (
+      !confirm(`Are you sure you want to delete "${cert.cert_name}"? This action cannot be undone.`)
+    ) {
       return;
     }
 
@@ -424,9 +426,12 @@ function AdminCertificationsManagementPage() {
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">
           {filteredCerts.map((cert) => {
-            const statusConfig = STATUS_CONFIG[cert.status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.active;
+            const statusConfig =
+              STATUS_CONFIG[cert.status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.active;
             const StatusIcon = statusConfig.icon;
-            const isExpiringSoon = cert.expiry_date && new Date(cert.expiry_date) < new Date(Date.now() + 60 * 24 * 60 * 60 * 1000);
+            const isExpiringSoon =
+              cert.expiry_date &&
+              new Date(cert.expiry_date) < new Date(Date.now() + 60 * 24 * 60 * 60 * 1000);
 
             return (
               <div
@@ -466,7 +471,9 @@ function AdminCertificationsManagementPage() {
                   {/* Staff Info */}
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <User className="h-3 w-3" />
-                    <span className="font-medium text-foreground">{getStaffName(cert.staff_did)}</span>
+                    <span className="font-medium text-foreground">
+                      {getStaffName(cert.staff_did)}
+                    </span>
                     <span className="font-mono text-[10px]">{cert.staff_did.slice(0, 20)}...</span>
                   </div>
 
@@ -484,11 +491,17 @@ function AdminCertificationsManagementPage() {
                         </div>
                       )}
                       {cert.expiry_date && (
-                        <div className={`rounded-lg px-3 py-2 ${isExpiringSoon ? "bg-warning/10 border border-warning/30" : "bg-muted/50"}`}>
-                          <div className={`text-[9px] font-bold uppercase mb-0.5 ${isExpiringSoon ? "text-warning" : "text-muted-foreground"}`}>
+                        <div
+                          className={`rounded-lg px-3 py-2 ${isExpiringSoon ? "bg-warning/10 border border-warning/30" : "bg-muted/50"}`}
+                        >
+                          <div
+                            className={`text-[9px] font-bold uppercase mb-0.5 ${isExpiringSoon ? "text-warning" : "text-muted-foreground"}`}
+                          >
                             {isExpiringSoon ? "⚠️ Expires Soon" : "Expires"}
                           </div>
-                          <div className={`font-medium ${isExpiringSoon ? "text-warning" : "text-foreground"}`}>
+                          <div
+                            className={`font-medium ${isExpiringSoon ? "text-warning" : "text-foreground"}`}
+                          >
                             {new Date(cert.expiry_date).toLocaleDateString("en-IN")}
                           </div>
                         </div>
@@ -557,13 +570,16 @@ function AdminCertificationsManagementPage() {
       )}
 
       {/* Add/Edit Dialog */}
-      <Dialog open={isAddOpen || isEditOpen} onOpenChange={(open) => {
-        if (!open) {
-          setIsAddOpen(false);
-          setIsEditOpen(false);
-          setEditingCert(null);
-        }
-      }}>
+      <Dialog
+        open={isAddOpen || isEditOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setIsAddOpen(false);
+            setIsEditOpen(false);
+            setEditingCert(null);
+          }
+        }}
+      >
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{isAddOpen ? "Add New Certification" : "Edit Certification"}</DialogTitle>

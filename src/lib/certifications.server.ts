@@ -68,7 +68,7 @@ export const getCertifications = createServerFn({ method: "GET" }).handler(async
       notes,
       created_at,
       updated_at
-    `
+    `,
     )
     .order("created_at", { ascending: false });
 
@@ -81,7 +81,7 @@ export const getCertifications = createServerFn({ method: "GET" }).handler(async
  * Respects RLS: only callable for same-hospital staff.
  */
 export const getCertificationsByStaffDid = createServerFn({ method: "GET" })
-  .validator((data: { staffDid: string }) => {
+  .inputValidator((data: { staffDid: string }) => {
     if (!data?.staffDid) throw new Error("staffDid is required");
     return data;
   })
@@ -109,7 +109,7 @@ export const getCertificationsByStaffDid = createServerFn({ method: "GET" })
         notes,
         created_at,
         updated_at
-      `
+      `,
       )
       .eq("staff_did", data.staffDid)
       .order("issue_date", { ascending: false });
@@ -123,7 +123,7 @@ export const getCertificationsByStaffDid = createServerFn({ method: "GET" })
  * Admin can view all, staff can view their own.
  */
 export const getCertificationAuditLog = createServerFn({ method: "GET" })
-  .validator((data: { certId: string }) => {
+  .inputValidator((data: { certId: string }) => {
     if (!data?.certId) throw new Error("certId is required");
     return data;
   })
@@ -147,7 +147,7 @@ export const getCertificationAuditLog = createServerFn({ method: "GET" })
         hospital_id,
         reason,
         logged_at
-      `
+      `,
       )
       .eq("cert_id", data.certId)
       .order("logged_at", { ascending: false });
@@ -163,7 +163,7 @@ export const getCertificationAuditLog = createServerFn({ method: "GET" })
  * Admin-only operation with automatic audit logging.
  */
 export const createCertification = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (data: {
       staffDid: string;
       certName: string;
@@ -235,14 +235,16 @@ export const createCertification = createServerFn({ method: "POST" })
 
     // ── Rich audit record ─────────────────────────────────────────────────────
     const caller = await resolveCallerForAudit();
-    tryWriteAudit(buildCertificationAudit(
-      caller,
-      "CERTIFICATION_CREATED",
-      certification.cert_id,
-      data.staffDid,
-      null,
-      { certName: data.certName, issuingBody: data.issuingBody, status: data.status ?? "active" },
-    ));
+    tryWriteAudit(
+      buildCertificationAudit(
+        caller,
+        "CERTIFICATION_CREATED",
+        certification.cert_id,
+        data.staffDid,
+        null,
+        { certName: data.certName, issuingBody: data.issuingBody, status: data.status ?? "active" },
+      ),
+    );
 
     return { ok: true as const, certId: certification.cert_id };
   });
@@ -252,7 +254,7 @@ export const createCertification = createServerFn({ method: "POST" })
  * Admin-only operation with automatic field-level audit logging.
  */
 export const updateCertification = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (data: {
       certId: string;
       certName?: string;
@@ -331,14 +333,18 @@ export const updateCertification = createServerFn({ method: "POST" })
 
     // ── Rich audit record ─────────────────────────────────────────────────────
     const caller = await resolveCallerForAudit();
-    tryWriteAudit(buildCertificationAudit(
-      caller,
-      "CERTIFICATION_UPDATED",
-      data.certId,
-      prevRow?.staff_did ?? data.certId,
-      prevRow ? { certName: prevRow.cert_name, status: prevRow.status, expiryDate: prevRow.expiry_date } : null,
-      { certName: data.certName, status: data.status, expiryDate: data.expiryDate },
-    ));
+    tryWriteAudit(
+      buildCertificationAudit(
+        caller,
+        "CERTIFICATION_UPDATED",
+        data.certId,
+        prevRow?.staff_did ?? data.certId,
+        prevRow
+          ? { certName: prevRow.cert_name, status: prevRow.status, expiryDate: prevRow.expiry_date }
+          : null,
+        { certName: data.certName, status: data.status, expiryDate: data.expiryDate },
+      ),
+    );
 
     return { ok: true as const, certId: data.certId };
   });
@@ -349,7 +355,7 @@ export const updateCertification = createServerFn({ method: "POST" })
  * Note: Consider soft delete (status = 'revoked') instead for audit trail.
  */
 export const deleteCertification = createServerFn({ method: "POST" })
-  .validator((data: { certId: string }) => {
+  .inputValidator((data: { certId: string }) => {
     if (!data?.certId) throw new Error("certId is required");
     return data;
   })
@@ -383,14 +389,22 @@ export const deleteCertification = createServerFn({ method: "POST" })
 
     // ── Rich audit record ─────────────────────────────────────────────────────
     const caller = await resolveCallerForAudit();
-    tryWriteAudit(buildCertificationAudit(
-      caller,
-      "CERTIFICATION_DELETED",
-      data.certId,
-      prevRow?.staff_did ?? data.certId,
-      prevRow ? { certName: prevRow.cert_name, issuingBody: prevRow.issuing_body, status: prevRow.status } : null,
-      null,
-    ));
+    tryWriteAudit(
+      buildCertificationAudit(
+        caller,
+        "CERTIFICATION_DELETED",
+        data.certId,
+        prevRow?.staff_did ?? data.certId,
+        prevRow
+          ? {
+              certName: prevRow.cert_name,
+              issuingBody: prevRow.issuing_body,
+              status: prevRow.status,
+            }
+          : null,
+        null,
+      ),
+    );
 
     return { ok: true as const, certId: data.certId };
   });

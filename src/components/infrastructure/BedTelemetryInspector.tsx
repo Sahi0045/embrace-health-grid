@@ -33,13 +33,48 @@ export interface BedTelemetryInspectorProps {
 }
 
 const STATUS_ACTIONS = [
-  { id: "available", label: "Available", color: "text-success bg-success/10 border-success/30", icon: CheckCircle2 },
-  { id: "occupied", label: "Occupied", color: "text-primary bg-primary/10 border-primary/30", icon: User },
-  { id: "reserved", label: "Reserved", color: "text-warning-foreground bg-warning/10 border-warning/30", icon: Clock },
-  { id: "cleaning", label: "Cleaning", color: "text-blue-600 bg-blue-500/10 border-blue-200", icon: Activity },
-  { id: "maintenance", label: "Maintenance", color: "text-amber-600 bg-amber-500/10 border-amber-200", icon: Wrench },
-  { id: "blocked", label: "Blocked", color: "text-destructive bg-destructive/10 border-destructive/30", icon: Ban },
-  { id: "emergency_reserved", label: "Emergency", color: "text-rose-600 bg-rose-500/10 border-rose-200", icon: Shield },
+  {
+    id: "available",
+    label: "Available",
+    color: "text-success bg-success/10 border-success/30",
+    icon: CheckCircle2,
+  },
+  {
+    id: "occupied",
+    label: "Occupied",
+    color: "text-primary bg-primary/10 border-primary/30",
+    icon: User,
+  },
+  {
+    id: "reserved",
+    label: "Reserved",
+    color: "text-warning-foreground bg-warning/10 border-warning/30",
+    icon: Clock,
+  },
+  {
+    id: "cleaning",
+    label: "Cleaning",
+    color: "text-blue-600 bg-blue-500/10 border-blue-200",
+    icon: Activity,
+  },
+  {
+    id: "maintenance",
+    label: "Maintenance",
+    color: "text-amber-600 bg-amber-500/10 border-amber-200",
+    icon: Wrench,
+  },
+  {
+    id: "blocked",
+    label: "Blocked",
+    color: "text-destructive bg-destructive/10 border-destructive/30",
+    icon: Ban,
+  },
+  {
+    id: "emergency_reserved",
+    label: "Emergency",
+    color: "text-rose-600 bg-rose-500/10 border-rose-200",
+    icon: Shield,
+  },
 ];
 
 export function BedTelemetryInspector({
@@ -111,7 +146,8 @@ export function BedTelemetryInspector({
                   </span>
                 </div>
                 <p className="text-xs font-medium text-muted-foreground">
-                  {room?.room_name || `Room ${room?.room_number || ""}`} • {ward?.ward_name || "General Wing"}
+                  {room?.room_name || `Room ${room?.room_number || ""}`} •{" "}
+                  {ward?.ward_name || "General Wing"}
                 </p>
               </div>
             </div>
@@ -130,7 +166,9 @@ export function BedTelemetryInspector({
           <div className="p-3.5 rounded-2xl bg-muted/40 border border-border/60 space-y-2">
             <div className="flex items-center gap-1.5 text-muted-foreground">
               <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
-              <span className="text-[10px] uppercase font-extrabold tracking-wider">Spatial Location:</span>
+              <span className="text-[10px] uppercase font-extrabold tracking-wider">
+                Spatial Location:
+              </span>
             </div>
             <div className="flex flex-wrap items-center gap-1.5 text-xs font-extrabold text-foreground">
               <span className="bg-background px-2.5 py-1 rounded-xl border border-border/60 shadow-2xs">
@@ -169,8 +207,8 @@ export function BedTelemetryInspector({
                             bed.patient_condition === "Critical"
                               ? "bg-destructive/20 text-destructive border border-destructive/30"
                               : bed.patient_condition === "Recovery"
-                              ? "bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-300"
-                              : "bg-success/20 text-success border border-success/30"
+                                ? "bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-300"
+                                : "bg-success/20 text-success border border-success/30"
                           }`}
                         >
                           {bed.patient_condition}
@@ -204,7 +242,11 @@ export function BedTelemetryInspector({
                       className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground shrink-0 transition-colors"
                       title="Copy DID"
                     >
-                      {copiedDid ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
+                      {copiedDid ? (
+                        <Check className="h-3.5 w-3.5 text-success" />
+                      ) : (
+                        <Copy className="h-3.5 w-3.5" />
+                      )}
                     </button>
                   </div>
                 </div>
@@ -218,7 +260,8 @@ export function BedTelemetryInspector({
                       <Activity className="h-3.5 w-3.5" /> Live Telemetry Feed
                     </span>
                     <span className="text-emerald-500 flex items-center gap-1 font-bold">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" /> Continuous Monitoring
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />{" "}
+                      Continuous Monitoring
                     </span>
                   </div>
 
@@ -227,17 +270,27 @@ export function BedTelemetryInspector({
                       <div className="text-base font-mono font-black text-rose-500 flex items-center justify-center gap-1">
                         <Heart className="h-3.5 w-3.5 animate-pulse" /> {bed.vitals.hr}
                       </div>
-                      <div className="text-[9px] font-extrabold text-muted-foreground uppercase mt-0.5">Heart Rate</div>
+                      <div className="text-[9px] font-extrabold text-muted-foreground uppercase mt-0.5">
+                        Heart Rate
+                      </div>
                     </div>
 
                     <div className="p-3 rounded-xl bg-background border border-border/60 shadow-2xs">
-                      <div className="text-base font-mono font-black text-foreground">{bed.vitals.bp}</div>
-                      <div className="text-[9px] font-extrabold text-muted-foreground uppercase mt-0.5">Blood Pressure</div>
+                      <div className="text-base font-mono font-black text-foreground">
+                        {bed.vitals.bp}
+                      </div>
+                      <div className="text-[9px] font-extrabold text-muted-foreground uppercase mt-0.5">
+                        Blood Pressure
+                      </div>
                     </div>
 
                     <div className="p-3 rounded-xl bg-background border border-border/60 shadow-2xs">
-                      <div className="text-base font-mono font-black text-teal-600">{bed.vitals.spo2}%</div>
-                      <div className="text-[9px] font-extrabold text-muted-foreground uppercase mt-0.5">Oxygen Sat</div>
+                      <div className="text-base font-mono font-black text-teal-600">
+                        {bed.vitals.spo2}%
+                      </div>
+                      <div className="text-[9px] font-extrabold text-muted-foreground uppercase mt-0.5">
+                        Oxygen Sat
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -252,7 +305,8 @@ export function BedTelemetryInspector({
                 Station Ready for Inpatient Admission
               </div>
               <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                This bed is sterilized, clinically inspected, and available for immediate allocation.
+                This bed is sterilized, clinically inspected, and available for immediate
+                allocation.
               </p>
             </div>
           )}

@@ -84,12 +84,19 @@ export function MedicalHistoryTab({ records }: MedicalHistoryTabProps) {
             <div className="flex items-center justify-between text-[11px] font-medium text-muted-foreground pt-2 border-t border-border/40">
               <div className="flex items-center gap-1.5">
                 <User className="h-3.5 w-3.5 text-primary" />
-                <span>Author: <strong className="text-foreground">{record.author_name || "Staff Clinician"}</strong></span>
+                <span>
+                  Author:{" "}
+                  <strong className="text-foreground">
+                    {record.author_name || "Staff Clinician"}
+                  </strong>
+                </span>
               </div>
               {record.content_hash && (
                 <div className="flex items-center gap-1.5 font-mono text-[11px] bg-background/50 px-2 py-0.5 rounded-md border border-border/40 text-muted-foreground">
                   <Hash className="h-3 w-3 text-muted-foreground" />
-                  <span className="text-foreground/80 font-medium">{truncateMiddle(record.content_hash, 10, 8)}</span>
+                  <span className="text-foreground/80 font-medium">
+                    {truncateMiddle(record.content_hash, 10, 8)}
+                  </span>
                   <button
                     type="button"
                     onClick={() => handleCopyHash(record.content_hash, record.record_id)}

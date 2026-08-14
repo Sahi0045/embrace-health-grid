@@ -46,7 +46,7 @@ export function DischargeWizard({
   const [step, setStep] = useState(1);
   const [summaryNote, setSummaryNote] = useState("");
   const [finalBillAmount, setFinalBillAmount] = useState<number>(
-    billing?.outstanding ? Number(billing.outstanding) : 250
+    billing?.outstanding ? Number(billing.outstanding) : 250,
   );
   const [followupDate, setFollowupDate] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -59,7 +59,8 @@ export function DischargeWizard({
       await dischargePatient({
         data: {
           admissionId: activeAdmission.admission_id,
-          dischargeSummary: summaryNote || "Standard discharge completed. Patient in stable condition.",
+          dischargeSummary:
+            summaryNote || "Standard discharge completed. Patient in stable condition.",
           finalBillAmount,
         },
       });
@@ -113,7 +114,8 @@ export function DischargeWizard({
                   Patient Discharge Flow
                 </h2>
                 <p className="text-xs font-medium text-muted-foreground">
-                  Discharging <strong className="text-foreground">{patientName}</strong> • Ward {activeAdmission.ward}, Room {activeAdmission.room}
+                  Discharging <strong className="text-foreground">{patientName}</strong> • Ward{" "}
+                  {activeAdmission.ward}, Room {activeAdmission.room}
                 </p>
               </div>
             </div>
@@ -137,14 +139,17 @@ export function DischargeWizard({
               const isCurrent = s.num === step;
 
               return (
-                <div key={s.num} className="relative z-10 flex flex-col items-center gap-1.5 bg-card px-2">
+                <div
+                  key={s.num}
+                  className="relative z-10 flex flex-col items-center gap-1.5 bg-card px-2"
+                >
                   <div
                     className={`flex h-9 w-9 items-center justify-center rounded-full text-xs font-extrabold transition-all ${
                       isDone
                         ? "bg-success text-success-foreground"
                         : isCurrent
-                        ? "bg-primary text-primary-foreground shadow-md ring-4 ring-primary/20"
-                        : "bg-muted text-muted-foreground border border-border/80"
+                          ? "bg-primary text-primary-foreground shadow-md ring-4 ring-primary/20"
+                          : "bg-muted text-muted-foreground border border-border/80"
                     }`}
                   >
                     {isDone ? <CheckCircle2 className="h-4 w-4" /> : s.num}
@@ -172,17 +177,23 @@ export function DischargeWizard({
                 <div className="p-4 rounded-xl bg-background/80 border border-border/60 space-y-3 text-xs">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Admission ID:</span>
-                    <span className="font-extrabold font-mono text-foreground">{activeAdmission.admission_id}</span>
+                    <span className="font-extrabold font-mono text-foreground">
+                      {activeAdmission.admission_id}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Admitted Date:</span>
                     <span className="font-bold text-foreground">
-                      {activeAdmission.admitted_at ? new Date(activeAdmission.admitted_at).toLocaleDateString() : "N/A"}
+                      {activeAdmission.admitted_at
+                        ? new Date(activeAdmission.admitted_at).toLocaleDateString()
+                        : "N/A"}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Admitting Physician:</span>
-                    <span className="font-bold text-foreground">{activeAdmission.admitting_doctor || "Staff Physician"}</span>
+                    <span className="font-bold text-foreground">
+                      {activeAdmission.admitting_doctor || "Staff Physician"}
+                    </span>
                   </div>
                 </div>
 
@@ -208,7 +219,9 @@ export function DischargeWizard({
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-4 rounded-xl bg-background/80 border border-border/60 space-y-1">
-                    <span className="text-[10px] font-extrabold uppercase text-muted-foreground">Primary Insurance</span>
+                    <span className="text-[10px] font-extrabold uppercase text-muted-foreground">
+                      Primary Insurance
+                    </span>
                     <div className="font-extrabold text-foreground text-sm">
                       {insurancePolicy?.provider || "Self-Pay (No Insurance)"}
                     </div>
@@ -218,7 +231,9 @@ export function DischargeWizard({
                   </div>
 
                   <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 space-y-1">
-                    <span className="text-[10px] font-extrabold uppercase text-primary">Current Outstanding</span>
+                    <span className="text-[10px] font-extrabold uppercase text-primary">
+                      Current Outstanding
+                    </span>
                     <div className="font-extrabold text-primary text-lg">
                       ${billing?.outstanding ? Number(billing.outstanding).toLocaleString() : "0"}
                     </div>
@@ -251,10 +266,17 @@ export function DischargeWizard({
                 {prescriptions && prescriptions.length > 0 ? (
                   <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
                     {prescriptions.map((rx) => (
-                      <div key={rx.rx_id} className="p-3 rounded-xl bg-background/80 border border-border/60 flex items-center justify-between text-xs">
+                      <div
+                        key={rx.rx_id}
+                        className="p-3 rounded-xl bg-background/80 border border-border/60 flex items-center justify-between text-xs"
+                      >
                         <div>
-                          <div className="font-bold text-foreground">Rx #{rx.rx_id.slice(-6).toUpperCase()}</div>
-                          <div className="text-[11px] text-muted-foreground">{rx.diagnosis || "Active Medication"}</div>
+                          <div className="font-bold text-foreground">
+                            Rx #{rx.rx_id.slice(-6).toUpperCase()}
+                          </div>
+                          <div className="text-[11px] text-muted-foreground">
+                            {rx.diagnosis || "Active Medication"}
+                          </div>
                         </div>
                         <span className="inline-flex items-center gap-1 rounded-full bg-success/15 border border-success/30 px-2 py-0.5 text-[10px] font-extrabold text-success uppercase">
                           <CheckCircle2 className="h-3 w-3" />
@@ -284,9 +306,14 @@ export function DischargeWizard({
                     <span>Discharge Governance Verification</span>
                   </div>
                   <ul className="space-y-1.5 text-muted-foreground list-disc pl-4">
-                    <li>Room {activeAdmission.room}, Bed {activeAdmission.bed} will be marked as <strong>Cleaning/Available</strong>.</li>
+                    <li>
+                      Room {activeAdmission.room}, Bed {activeAdmission.bed} will be marked as{" "}
+                      <strong>Cleaning/Available</strong>.
+                    </li>
                     <li>Discharge summary recorded on immutable audit log.</li>
-                    <li>Final bill of <strong>${finalBillAmount}</strong> processed.</li>
+                    <li>
+                      Final bill of <strong>${finalBillAmount}</strong> processed.
+                    </li>
                   </ul>
                 </div>
 

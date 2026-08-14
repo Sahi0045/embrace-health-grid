@@ -44,6 +44,11 @@ import {
   getPharmacyOrders,
   getRehabSessions,
   getFeedbackList,
+  getPatientMaster,
+  getPatientMedicalRecords,
+  getPatientMedications,
+  getPatientProcedures,
+  getPatientLabResults,
 } from "@/lib/api";
 import { useCurrentUser } from "@/lib/auth-context";
 

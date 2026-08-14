@@ -41,9 +41,13 @@ export function VisitsTab({ admissions }: VisitsTabProps) {
                     </h3>
                     <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
                       <MapPin className="h-3.5 w-3.5 text-primary" />
-                      <span className="font-bold text-foreground">Ward: {admission.ward || "General"}</span>
+                      <span className="font-bold text-foreground">
+                        Ward: {admission.ward || "General"}
+                      </span>
                       <span>•</span>
-                      <span>Room {admission.room || "101"}, Bed {admission.bed || "A"}</span>
+                      <span>
+                        Room {admission.room || "101"}, Bed {admission.bed || "A"}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -53,8 +57,8 @@ export function VisitsTab({ admissions }: VisitsTabProps) {
                     isAdmitted
                       ? "bg-success/10 text-success border-success/30"
                       : isDischarged
-                      ? "bg-muted/40 text-muted-foreground border-border/80"
-                      : "bg-warning/10 text-warning-foreground border-warning/30"
+                        ? "bg-muted/40 text-muted-foreground border-border/80"
+                        : "bg-warning/10 text-warning-foreground border-warning/30"
                   }`}
                 >
                   <span
@@ -88,8 +92,8 @@ export function VisitsTab({ admissions }: VisitsTabProps) {
                     {admission.discharged_at
                       ? new Date(admission.discharged_at).toLocaleDateString()
                       : isAdmitted
-                      ? "Currently Admitted"
-                      : "N/A"}
+                        ? "Currently Admitted"
+                        : "N/A"}
                   </span>
                 </div>
 

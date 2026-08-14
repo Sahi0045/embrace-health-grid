@@ -1,4 +1,16 @@
-import { Ambulance, MapPin, User, ShieldCheck, ChevronRight, Activity, Navigation, AlertTriangle, RotateCcw, Wrench, Radio } from "lucide-react";
+import {
+  Ambulance,
+  MapPin,
+  User,
+  ShieldCheck,
+  ChevronRight,
+  Activity,
+  Navigation,
+  AlertTriangle,
+  RotateCcw,
+  Wrench,
+  Radio,
+} from "lucide-react";
 import { GlowCard } from "@/components/dashboard/GlowCard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -57,10 +69,22 @@ const statusConfig: Record<
 };
 
 const typeLabels: Record<string, { label: string; tone: string }> = {
-  als: { label: "ALS · Advanced Life Support", tone: "text-primary border-primary/20 bg-primary/10" },
-  bls: { label: "BLS · Basic Life Support", tone: "text-blue-600 dark:text-blue-400 border-blue-500/20 bg-blue-500/10" },
-  neonatal: { label: "NICU · Neonatal Critical Care", tone: "text-pink-600 dark:text-pink-400 border-pink-500/20 bg-pink-500/10" },
-  air: { label: "Air Ambulance · Helicopter", tone: "text-purple-600 dark:text-purple-400 border-purple-500/20 bg-purple-500/10" },
+  als: {
+    label: "ALS · Advanced Life Support",
+    tone: "text-primary border-primary/20 bg-primary/10",
+  },
+  bls: {
+    label: "BLS · Basic Life Support",
+    tone: "text-blue-600 dark:text-blue-400 border-blue-500/20 bg-blue-500/10",
+  },
+  neonatal: {
+    label: "NICU · Neonatal Critical Care",
+    tone: "text-pink-600 dark:text-pink-400 border-pink-500/20 bg-pink-500/10",
+  },
+  air: {
+    label: "Air Ambulance · Helicopter",
+    tone: "text-purple-600 dark:text-purple-400 border-purple-500/20 bg-purple-500/10",
+  },
 };
 
 export function AmbulanceFleetCard({ ambulance, onSelect }: AmbulanceFleetCardProps) {
@@ -86,10 +110,10 @@ export function AmbulanceFleetCard({ ambulance, onSelect }: AmbulanceFleetCardPr
                 ambulance.status === "at-scene"
                   ? "bg-destructive/15 text-destructive"
                   : ambulance.status === "en-route"
-                  ? "bg-warning/20 text-warning-foreground"
-                  : ambulance.status === "available"
-                  ? "bg-success/15 text-success"
-                  : "bg-primary/15 text-primary"
+                    ? "bg-warning/20 text-warning-foreground"
+                    : ambulance.status === "available"
+                      ? "bg-success/15 text-success"
+                      : "bg-primary/15 text-primary"
               }`}
             >
               <Ambulance className="h-5 w-5" />
@@ -128,7 +152,10 @@ export function AmbulanceFleetCard({ ambulance, onSelect }: AmbulanceFleetCardPr
             <div className="flex items-center gap-1.5 truncate">
               <User className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
               <span className="truncate">
-                Driver: <span className="font-semibold text-foreground">{ambulance.driver || "Unassigned"}</span>
+                Driver:{" "}
+                <span className="font-semibold text-foreground">
+                  {ambulance.driver || "Unassigned"}
+                </span>
               </span>
             </div>
             <div className="flex items-center gap-1 text-[11px] font-mono text-muted-foreground shrink-0">

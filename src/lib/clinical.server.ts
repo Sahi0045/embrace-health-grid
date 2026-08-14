@@ -70,7 +70,7 @@ export const getMedicalRecords = createServerFn({ method: "GET" }).handler(async
 });
 
 export const getMedicalRecordsForPatient = createServerFn({ method: "GET" })
-  .validator((data: { patientDid: string }) => {
+  .inputValidator((data: { patientDid: string }) => {
     if (!data?.patientDid) throw new Error("patientDid is required");
     return data;
   })
@@ -110,7 +110,7 @@ export const getPrescriptions = createServerFn({ method: "GET" }).handler(async 
 });
 
 export const getPrescriptionsForPatient = createServerFn({ method: "GET" })
-  .validator((data: { patientDid: string }) => {
+  .inputValidator((data: { patientDid: string }) => {
     if (!data?.patientDid) throw new Error("patientDid is required");
     return data;
   })
@@ -140,7 +140,7 @@ export const getPrescriptionsForPatient = createServerFn({ method: "GET" })
  * are not updated to preserve audit integrity.
  */
 export const updatePrescription = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (data: {
       rxId: string;
       diagnosis?: string;
@@ -204,22 +204,26 @@ export const updatePrescription = createServerFn({ method: "POST" })
 
     // ── Rich audit record + blockchain proof ─────────────────────────────────
     const caller = await resolveCallerForAudit();
-    tryWriteAudit(buildPrescriptionAudit(
-      caller,
-      data.rxId,
-      prevRow ? {
-        diagnosis: prevRow.diagnosis,
-        notes:     prevRow.notes,
-        status:    prevRow.status,
-        drugCount: Array.isArray(prevRow.drugs) ? prevRow.drugs.length : 0,
-      } : null,
-      {
-        diagnosis: data.diagnosis,
-        notes:     data.notes,
-        status:    data.status,
-        drugCount: Array.isArray(data.drugs) ? data.drugs.length : undefined,
-      },
-    ));
+    tryWriteAudit(
+      buildPrescriptionAudit(
+        caller,
+        data.rxId,
+        prevRow
+          ? {
+              diagnosis: prevRow.diagnosis,
+              notes: prevRow.notes,
+              status: prevRow.status,
+              drugCount: Array.isArray(prevRow.drugs) ? prevRow.drugs.length : 0,
+            }
+          : null,
+        {
+          diagnosis: data.diagnosis,
+          notes: data.notes,
+          status: data.status,
+          drugCount: Array.isArray(data.drugs) ? data.drugs.length : undefined,
+        },
+      ),
+    );
 
     return { ok: true as const, rxId: data.rxId };
   });
@@ -288,10 +292,12 @@ export const getAppointments = createServerFn({ method: "GET" }).handler(async (
 });
 
 export const bookAppointment = createServerFn({ method: "POST" })
-  .validator((data: { doctorDid: string; slot: string; specialty?: string; mode?: string }) => {
-    if (!data?.doctorDid || !data?.slot) throw new Error("doctorDid and slot are required");
-    return data;
-  })
+  .inputValidator(
+    (data: { doctorDid: string; slot: string; specialty?: string; mode?: string }) => {
+      if (!data?.doctorDid || !data?.slot) throw new Error("doctorDid and slot are required");
+      return data;
+    },
+  )
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();
@@ -335,7 +341,7 @@ export const getConsents = createServerFn({ method: "GET" }).handler(async () =>
 });
 
 export const grantConsent = createServerFn({ method: "POST" })
-  .validator((data: { doctorDid: string; resource: string; expiresAt?: string }) => {
+  .inputValidator((data: { doctorDid: string; resource: string; expiresAt?: string }) => {
     if (!data?.doctorDid || !data?.resource) throw new Error("doctorDid and resource are required");
     return data;
   })
@@ -361,7 +367,7 @@ export const grantConsent = createServerFn({ method: "POST" })
   });
 
 export const revokeConsent = createServerFn({ method: "POST" })
-  .validator((data: { grantId: string }) => {
+  .inputValidator((data: { grantId: string }) => {
     if (!data?.grantId) throw new Error("grantId is required");
     return data;
   })
@@ -594,7 +600,7 @@ export const getProfiles = createServerFn({ method: "GET" }).handler(async () =>
  * escalation.
  */
 export const updateOwnProfile = createServerFn({ method: "POST" })
-  .validator((data: { fullName?: string }) => data ?? {})
+  .inputValidator((data: { fullName?: string }) => data ?? {})
   .handler(async ({ data }) => {
     const user = await requireSession();
     const supabase = getSupabaseServerClient();
@@ -641,7 +647,7 @@ const APPT_STATUSES = new Set([
 ]);
 
 export const updateAppointmentStatus = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (data: { apptId: string; status: string; reason?: string; suggestedSlot?: string }) => {
       if (!data?.apptId || !data?.status) throw new Error("apptId and status are required");
       return data;
@@ -686,7 +692,7 @@ export const updateAppointmentStatus = createServerFn({ method: "POST" })
 
 /** Deny a consent request — only the patient who would grant it may do so. */
 export const denyConsent = createServerFn({ method: "POST" })
-  .validator((data: { grantId: string }) => {
+  .inputValidator((data: { grantId: string }) => {
     if (!data?.grantId) throw new Error("grantId is required");
     return data;
   })
@@ -713,7 +719,7 @@ export const denyConsent = createServerFn({ method: "POST" })
  * has no client INSERT policy — results arrive from the lab, not the browser.
  */
 export const orderLabTest = createServerFn({ method: "POST" })
-  .validator((data: { patientDid: string; testName: string }) => {
+  .inputValidator((data: { patientDid: string; testName: string }) => {
     if (!data?.patientDid || !data?.testName) {
       throw new Error("patientDid and testName are required");
     }
@@ -758,7 +764,7 @@ export const orderLabTest = createServerFn({ method: "POST" })
 
 /** On-chain anchor history for one patient — hashes only, never PHI. */
 export const getPatientAnchorHistory = createServerFn({ method: "GET" })
-  .validator((data: { patientDid?: string }) => data ?? {})
+  .inputValidator((data: { patientDid?: string }) => data ?? {})
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();
@@ -818,7 +824,7 @@ async function invokeEdgeFunction(name: string, payload: unknown) {
  * Real on-chain transaction — the wallet key lives only in the Edge Function.
  */
 export const anchorRecord = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (data: { subjectDid: string; recordHash: string; recordType: string; recordId?: string }) => {
       if (!data?.subjectDid || !data?.recordHash || !data?.recordType) {
         throw new Error("subjectDid, recordHash and recordType are required");
@@ -833,7 +839,7 @@ export const anchorRecord = createServerFn({ method: "POST" })
 
 /** Publish a merkle root for a subject/day. */
 export const publishMerkleRoot = createServerFn({ method: "POST" })
-  .validator((data: { subjectDid: string; periodDate: string; events: unknown[] }) => {
+  .inputValidator((data: { subjectDid: string; periodDate: string; events: unknown[] }) => {
     if (!data?.subjectDid || !data?.periodDate || !Array.isArray(data?.events)) {
       throw new Error("subjectDid, periodDate and events[] are required");
     }
@@ -846,7 +852,7 @@ export const publishMerkleRoot = createServerFn({ method: "POST" })
 
 /** Issue a signed Verifiable Credential (issuer key stays server-side). */
 export const signCredential = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (data: { subjectDid: string; credentialType: string; claims?: Record<string, unknown> }) => {
       if (!data?.subjectDid || !data?.credentialType) {
         throw new Error("subjectDid and credentialType are required");
@@ -869,7 +875,7 @@ export const signCredential = createServerFn({ method: "POST" })
  * Admins may onboard any role; staff and doctors may onboard patients only.
  */
 export const onboardUser = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (data: {
       email: string;
       password: string;
@@ -902,7 +908,7 @@ export const onboardUser = createServerFn({ method: "POST" })
  * policy, and audit_events has no client write policy at all.
  */
 export const identityOp = createServerFn({ method: "POST" })
-  .validator((data: { op: string; [key: string]: unknown }) => {
+  .inputValidator((data: { op: string; [key: string]: unknown }) => {
     if (!data?.op) throw new Error("op is required");
     return data;
   })
@@ -922,7 +928,7 @@ export const identityOp = createServerFn({ method: "POST" })
  * Returns a base64 serialised transaction plus the merkle root it commits to.
  */
 export const buildPatientAnchorTx = createServerFn({ method: "POST" })
-  .validator((data: { authorityPubkey: string }) => {
+  .inputValidator((data: { authorityPubkey: string }) => {
     if (!data?.authorityPubkey) throw new Error("authorityPubkey is required");
     return data;
   })
@@ -1030,7 +1036,7 @@ export const buildPatientAnchorTx = createServerFn({ method: "POST" })
  * insert otherwise, so no server-side role check is duplicated here.
  */
 export const createMedicalRecord = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (data: { patientDid: string; title: string; recordType: string; content?: string }) => {
       if (!data?.patientDid || !data?.title || !data?.recordType) {
         throw new Error("patientDid, title and recordType are required");
