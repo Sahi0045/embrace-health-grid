@@ -135,7 +135,7 @@ function AdminAuditPage() {
 
   // Unique modules
   const modules = useMemo(() => {
-    const mods = new Set(events.map((e) => e.what_module).filter(Boolean));
+    const mods = new Set(events.map((e) => e.what_module).filter((m): m is string => Boolean(m)));
     return ["All", ...Array.from(mods).sort()];
   }, [events]);
 

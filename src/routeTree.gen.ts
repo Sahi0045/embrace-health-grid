@@ -59,6 +59,7 @@ import { Route as AdminPeopleRouteImport } from './routes/admin.people'
 import { Route as AdminPatientProfileRouteImport } from './routes/admin.patient-profile'
 import { Route as AdminOnboardRouteImport } from './routes/admin.onboard'
 import { Route as AdminNfcCardsRouteImport } from './routes/admin.nfc-cards'
+import { Route as AdminHospitalMapRouteImport } from './routes/admin.hospital-map'
 import { Route as AdminFraudRouteImport } from './routes/admin.fraud'
 import { Route as AdminFinancialRouteImport } from './routes/admin.financial'
 import { Route as AdminDoctorsRouteImport } from './routes/admin.doctors'
@@ -321,6 +322,11 @@ const AdminNfcCardsRoute = AdminNfcCardsRouteImport.update({
   path: '/admin/nfc-cards',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminHospitalMapRoute = AdminHospitalMapRouteImport.update({
+  id: '/admin/hospital-map',
+  path: '/admin/hospital-map',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminFraudRoute = AdminFraudRouteImport.update({
   id: '/admin/fraud',
   path: '/admin/fraud',
@@ -394,6 +400,7 @@ export interface FileRoutesByFullPath {
   '/admin/doctors': typeof AdminDoctorsRoute
   '/admin/financial': typeof AdminFinancialRoute
   '/admin/fraud': typeof AdminFraudRoute
+  '/admin/hospital-map': typeof AdminHospitalMapRoute
   '/admin/nfc-cards': typeof AdminNfcCardsRoute
   '/admin/onboard': typeof AdminOnboardRoute
   '/admin/patient-profile': typeof AdminPatientProfileRoute
@@ -457,6 +464,7 @@ export interface FileRoutesByTo {
   '/admin/doctors': typeof AdminDoctorsRoute
   '/admin/financial': typeof AdminFinancialRoute
   '/admin/fraud': typeof AdminFraudRoute
+  '/admin/hospital-map': typeof AdminHospitalMapRoute
   '/admin/nfc-cards': typeof AdminNfcCardsRoute
   '/admin/onboard': typeof AdminOnboardRoute
   '/admin/patient-profile': typeof AdminPatientProfileRoute
@@ -521,6 +529,7 @@ export interface FileRoutesById {
   '/admin/doctors': typeof AdminDoctorsRoute
   '/admin/financial': typeof AdminFinancialRoute
   '/admin/fraud': typeof AdminFraudRoute
+  '/admin/hospital-map': typeof AdminHospitalMapRoute
   '/admin/nfc-cards': typeof AdminNfcCardsRoute
   '/admin/onboard': typeof AdminOnboardRoute
   '/admin/patient-profile': typeof AdminPatientProfileRoute
@@ -586,6 +595,7 @@ export interface FileRouteTypes {
     | '/admin/doctors'
     | '/admin/financial'
     | '/admin/fraud'
+    | '/admin/hospital-map'
     | '/admin/nfc-cards'
     | '/admin/onboard'
     | '/admin/patient-profile'
@@ -649,6 +659,7 @@ export interface FileRouteTypes {
     | '/admin/doctors'
     | '/admin/financial'
     | '/admin/fraud'
+    | '/admin/hospital-map'
     | '/admin/nfc-cards'
     | '/admin/onboard'
     | '/admin/patient-profile'
@@ -712,6 +723,7 @@ export interface FileRouteTypes {
     | '/admin/doctors'
     | '/admin/financial'
     | '/admin/fraud'
+    | '/admin/hospital-map'
     | '/admin/nfc-cards'
     | '/admin/onboard'
     | '/admin/patient-profile'
@@ -776,6 +788,7 @@ export interface RootRouteChildren {
   AdminDoctorsRoute: typeof AdminDoctorsRoute
   AdminFinancialRoute: typeof AdminFinancialRoute
   AdminFraudRoute: typeof AdminFraudRoute
+  AdminHospitalMapRoute: typeof AdminHospitalMapRoute
   AdminNfcCardsRoute: typeof AdminNfcCardsRoute
   AdminOnboardRoute: typeof AdminOnboardRoute
   AdminPatientProfileRoute: typeof AdminPatientProfileRoute
@@ -1175,6 +1188,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminNfcCardsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/hospital-map': {
+      id: '/admin/hospital-map'
+      path: '/admin/hospital-map'
+      fullPath: '/admin/hospital-map'
+      preLoaderRoute: typeof AdminHospitalMapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/fraud': {
       id: '/admin/fraud'
       path: '/admin/fraud'
@@ -1272,6 +1292,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminDoctorsRoute: AdminDoctorsRoute,
   AdminFinancialRoute: AdminFinancialRoute,
   AdminFraudRoute: AdminFraudRoute,
+  AdminHospitalMapRoute: AdminHospitalMapRoute,
   AdminNfcCardsRoute: AdminNfcCardsRoute,
   AdminOnboardRoute: AdminOnboardRoute,
   AdminPatientProfileRoute: AdminPatientProfileRoute,

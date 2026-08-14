@@ -92,18 +92,27 @@ function BedsRoomsManagement() {
     setLoading(true);
     try {
       const [infraData, statsData] = await Promise.all([
-        getHospitalInfrastructure(),
-        getBedRoomStatistics(),
+        getHospitalInfrastructure().catch((e) => {
+          console.warn("Live infrastructure fetch error:", e);
+          return null;
+        }),
+        getBedRoomStatistics().catch(() => null),
       ]);
 
-      setBuildings(infraData.buildings || []);
-      setFloors(infraData.floors || []);
-      setWards(infraData.wards || []);
-      setRooms(infraData.rooms || []);
-      setBeds(infraData.beds || []);
+      const fetchedBuildings = infraData?.buildings || [];
+      const fetchedFloors = infraData?.floors || [];
+      const fetchedWards = infraData?.wards || [];
+      const fetchedRooms = infraData?.rooms || [];
+      const fetchedBeds = infraData?.beds || [];
+
+      setBuildings(fetchedBuildings);
+      setFloors(fetchedFloors);
+      setWards(fetchedWards);
+      setRooms(fetchedRooms);
+      setBeds(fetchedBeds);
       setStats(statsData);
-    } catch (error: any) {
-      toast.error("Failed to load infrastructure data", { description: error.message });
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to sync bed and room infrastructure");
     } finally {
       setLoading(false);
     }
