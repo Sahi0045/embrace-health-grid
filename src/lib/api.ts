@@ -1498,13 +1498,22 @@ export async function getAmbulances() {
   const res = await fn();
   const ambulances = (res.ambulances ?? []).map((a: any) => ({
     id: a.ambulance_id,
-    registration: a.registration,
-    type: a.vehicle_type,
-    status: a.status,
-    location: a.current_location,
-    driver: a.driver_name,
+    vehicleNo: a.registration || a.ambulance_id,
+    registration: a.registration || a.ambulance_id,
+    type: a.vehicle_type || "als",
+    status: a.status || "available",
+    location: a.current_location || "Base Station",
+    driver: a.driver_name || "Unassigned",
+    paramedic: "EMT On-Duty",
+    did: `did:hosp:ambulance:${a.ambulance_id}`,
+    updatedAt: a.updated_at,
   }));
   return { ambulances, total: ambulances.length };
+}
+
+export async function updateAmbulanceStatus(params: { ambulanceId: string; status: string; location?: string; driverName?: string }) {
+  const { updateAmbulanceStatus: fn } = await import("./inpatient.server");
+  return fn({ data: params });
 }
 
 export async function getEquipment() {

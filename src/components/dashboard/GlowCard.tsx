@@ -7,6 +7,7 @@ export interface GlowCardProps {
   accent?: "primary" | "success" | "warning" | "destructive" | "none";
   className?: string;
   glowOnHover?: boolean;
+  onClick?: (e?: any) => void;
 }
 
 export function GlowCard({
@@ -14,6 +15,7 @@ export function GlowCard({
   accent = "primary",
   className = "",
   glowOnHover = true,
+  onClick,
 }: GlowCardProps) {
   const accentGlow = {
     primary: "bg-primary/20",
@@ -25,9 +27,10 @@ export function GlowCard({
 
   return (
     <motion.div
+      onClick={onClick}
       whileHover={glowOnHover ? { y: -4, scale: 1.015 } : undefined}
       transition={{ type: "spring", stiffness: 350, damping: 25 }}
-      className="relative group rounded-2xl"
+      className="relative group rounded-2xl h-full flex flex-col"
     >
       {/* Background Hotspot Glow */}
       {accent !== "none" && (
@@ -37,7 +40,7 @@ export function GlowCard({
       )}
 
       <Card
-        className={`relative overflow-hidden rounded-2xl liquid-glass transition-all duration-300 group-hover:border-primary/40 dark:group-hover:border-primary/50 group-hover:shadow-clinical-md ${className}`}
+        className={`relative overflow-hidden rounded-2xl liquid-glass transition-all duration-300 group-hover:border-primary/40 dark:group-hover:border-primary/50 group-hover:shadow-clinical-md h-full flex flex-col ${className}`}
       >
         {children}
       </Card>

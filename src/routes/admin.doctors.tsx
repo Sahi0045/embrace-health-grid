@@ -48,105 +48,40 @@ export const Route = createFileRoute("/admin/doctors")({
   component: StaffAvailabilityDashboard,
 });
 
-// Fallback staff directory for realistic clinical operations
-const DEFAULT_CLINICAL_STAFF: Partial<StaffMember>[] = [
-  {
-    id: "staff-1",
-    fullName: "Dr. Sarah Jenkins, MD",
-    email: "sarah.jenkins@embrace.health",
-    role: "doctor",
-    department: "Emergency",
-    specialty: "Trauma & Emergency Medicine",
-    primaryDid: "did:embrace:doc:98f12a34",
-    phone: "+1 (555) 234-5678",
-    availability: "available",
-    workload: { activePatients: 4, maxCapacity: 8, percentage: 50, hoursThisWeek: 34 },
-  },
-  {
-    id: "staff-2",
-    fullName: "Dr. Marcus Vance, MD",
-    email: "marcus.vance@embrace.health",
-    role: "doctor",
-    department: "ICU & Critical Care",
-    specialty: "Critical Care & Intensivist",
-    primaryDid: "did:embrace:doc:44a71b89",
-    phone: "+1 (555) 345-6789",
-    availability: "busy",
-    workload: { activePatients: 7, maxCapacity: 8, percentage: 88, hoursThisWeek: 42 },
-  },
-  {
-    id: "staff-3",
-    fullName: "Dr. Elena Rostova, MD",
-    email: "elena.rostova@embrace.health",
-    role: "specialist",
-    department: "Cardiology",
-    specialty: "Interventional Cardiology",
-    primaryDid: "did:embrace:doc:12c98d45",
-    phone: "+1 (555) 456-7890",
-    availability: "available",
-    workload: { activePatients: 3, maxCapacity: 6, percentage: 50, hoursThisWeek: 30 },
-  },
-  {
-    id: "staff-4",
-    fullName: "Dr. David Chen, MD",
-    email: "david.chen@embrace.health",
-    role: "doctor",
-    department: "Surgery",
-    specialty: "Orthopedic & Trauma Surgery",
-    primaryDid: "did:embrace:doc:77e43f12",
-    phone: "+1 (555) 567-8901",
-    availability: "oncall",
-    workload: { activePatients: 5, maxCapacity: 6, percentage: 83, hoursThisWeek: 38 },
-  },
-  {
-    id: "staff-5",
-    fullName: "Nurse Manager Jessica Patel, RN",
-    email: "jessica.patel@embrace.health",
-    role: "nurse",
-    department: "Emergency",
-    specialty: "Triage & Emergency Care",
-    primaryDid: "did:embrace:nurse:33b21c90",
-    phone: "+1 (555) 678-9012",
-    availability: "available",
-    workload: { activePatients: 6, maxCapacity: 10, percentage: 60, hoursThisWeek: 36 },
-  },
-  {
-    id: "staff-6",
-    fullName: "Nurse Practitioner Liam O'Connor",
-    email: "liam.oconnor@embrace.health",
-    role: "nurse",
-    department: "ICU & Critical Care",
-    specialty: "Critical Care Nursing",
-    primaryDid: "did:embrace:nurse:88d54a23",
-    phone: "+1 (555) 789-0123",
-    availability: "busy",
-    workload: { activePatients: 8, maxCapacity: 8, percentage: 100, hoursThisWeek: 40 },
-  },
-  {
-    id: "staff-7",
-    fullName: "Dr. Aisha Morales, MD",
-    email: "aisha.morales@embrace.health",
-    role: "doctor",
-    department: "Pediatrics",
-    specialty: "Pediatric Critical Care",
-    primaryDid: "did:embrace:doc:55f89e67",
-    phone: "+1 (555) 890-1234",
-    availability: "available",
-    workload: { activePatients: 4, maxCapacity: 8, percentage: 50, hoursThisWeek: 32 },
-  },
-  {
-    id: "staff-8",
-    fullName: "Dr. Jonathan Reyes, MD",
-    email: "jonathan.reyes@embrace.health",
-    role: "specialist",
-    department: "Neurology",
-    specialty: "Stroke & Neurocritical Care",
-    primaryDid: "did:embrace:doc:99a12c44",
-    phone: "+1 (555) 901-2345",
-    availability: "off",
-    workload: { activePatients: 0, maxCapacity: 6, percentage: 0, hoursThisWeek: 28 },
-  },
-];
+function getShiftMetrics(now: Date = new Date()) {
+  const currentHour = now.getHours();
+  const currentMinute = now.getMinutes();
+
+  let activeShiftName = "Morning Clinical Shift";
+  let shiftWindow = "07:00 – 15:00";
+  let endHour = 15;
+  let endMin = 0;
+
+  if (currentHour >= 15 && currentHour < 23) {
+    activeShiftName = "Evening Clinical Shift";
+    shiftWindow = "15:00 – 23:00";
+    endHour = 23;
+    endMin = 0;
+  } else if (currentHour >= 23 || currentHour < 7) {
+    activeShiftName = "Overnight Emergency Shift";
+    shiftWindow = "23:00 – 07:00";
+    endHour = 7;
+    endMin = 0;
+  }
+
+  let remainingMinutes = 0;
+  if (endHour > currentHour) {
+    remainingMinutes = (endHour - currentHour) * 60 + (endMin - currentMinute);
+  } else {
+    remainingMinutes = (endHour + 24 - currentHour) * 60 + (endMin - currentMinute);
+  }
+
+  const hoursLeft = Math.floor(remainingMinutes / 60);
+  const minsLeft = remainingMinutes % 60;
+  const handoverIn = `${hoursLeft}h ${minsLeft}m`;
+
+  return { activeShiftName, shiftWindow, handoverIn };
+}
 
 const ITEMS_PER_PAGE = 9;
 
@@ -186,7 +121,7 @@ function StaffAvailabilityDashboard() {
   // Drawer Detail State
   const [selectedStaff, setSelectedStaff] = useState<StaffMember | null>(null);
 
-  // Load Data
+  // Load Data directly from database
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
@@ -214,17 +149,9 @@ function StaffAvailabilityDashboard() {
         notes: s.notes,
       }));
 
-      // Combine profiles with attendance and shifts
-      const staffMap = new Map<string, StaffMember>();
+      // Map actual database profiles
+      const staffList: StaffMember[] = [];
 
-      // 1. Seed with realistic default clinical staff
-      for (const fallback of DEFAULT_CLINICAL_STAFF) {
-        if (fallback.id) {
-          staffMap.set(fallback.id, fallback as StaffMember);
-        }
-      }
-
-      // 2. Overlay actual database profiles
       for (const p of rawProfiles) {
         if (p.role === "doctor" || p.role === "staff" || p.role === "admin") {
           const userShifts = mappedSchedules.filter((s) => s.staffId === p.id);
@@ -233,16 +160,19 @@ function StaffAvailabilityDashboard() {
 
           const isDoctor = p.role === "doctor" || (p.full_name || "").toLowerCase().includes("dr.");
           const memberRole: StaffMember["role"] = isDoctor ? "doctor" : "nurse";
+          const patientCount = userShifts[0]?.patientCount ?? (latestAtt?.action === "in" ? 2 : 0);
+          const maxCap = isDoctor ? 8 : 10;
+          const weeklyHours = userShifts.reduce((acc, s) => acc + 8, 0) || (latestAtt?.action === "in" ? 36 : 0);
 
-          staffMap.set(p.id, {
+          staffList.push({
             id: p.id,
             fullName: p.full_name || p.email?.split("@")[0] || "Staff Member",
             email: p.email || "",
             role: memberRole,
-            department: (p as any).department || (isDoctor ? "Emergency" : "General Medicine"),
-            specialty: (p as any).specialty || (isDoctor ? "General Practice" : "Clinical Care"),
+            department: (p as any).department || (isDoctor ? "Emergency & Trauma" : "General Medicine"),
+            specialty: (p as any).specialty || (isDoctor ? "Clinical Specialist" : "Staff Nursing"),
             primaryDid: (p as any).primary_did || undefined,
-            phone: "+1 (555) 019-4832",
+            phone: (p as any).phone_number || (p as any).phone || undefined,
             availability: latestAtt?.action === "in" ? "available" : userShifts.length > 0 ? "busy" : "off",
             currentShift: userShifts[0]
               ? {
@@ -256,10 +186,10 @@ function StaffAvailabilityDashboard() {
                 }
               : undefined,
             workload: {
-              activePatients: userShifts[0]?.patientCount || (latestAtt?.action === "in" ? 4 : 0),
-              maxCapacity: 8,
-              percentage: Math.min(100, Math.round(((userShifts[0]?.patientCount || 4) / 8) * 100)),
-              hoursThisWeek: 36,
+              activePatients: patientCount,
+              maxCapacity: maxCap,
+              percentage: Math.min(100, Math.round((patientCount / maxCap) * 100)),
+              hoursThisWeek: weeklyHours,
             },
             attendance: latestAtt
               ? {
@@ -272,7 +202,7 @@ function StaffAvailabilityDashboard() {
         }
       }
 
-      setStaffMembers(Array.from(staffMap.values()));
+      setStaffMembers(staffList);
       setSchedules(mappedSchedules);
       setAttendanceRecords(rawAttendance);
     } catch (err: any) {
@@ -315,22 +245,8 @@ function StaffAvailabilityDashboard() {
     const doctorCount = staffMembers.filter((s) => s.role === "doctor" || s.role === "specialist").length;
     const nurseCount = staffMembers.filter((s) => s.role === "nurse").length;
 
-    // Shift context calculation
-    const now = new Date();
-    const currentHour = now.getHours();
-    let activeShiftName = "Morning Clinical Shift";
-    let shiftWindow = "07:00 – 15:00";
-    let handoverIn = "2h 45m";
-
-    if (currentHour >= 15 && currentHour < 23) {
-      activeShiftName = "Evening Clinical Shift";
-      shiftWindow = "15:00 – 23:00";
-      handoverIn = "4h 15m";
-    } else if (currentHour >= 23 || currentHour < 7) {
-      activeShiftName = "Overnight Emergency Shift";
-      shiftWindow = "23:00 – 07:00";
-      handoverIn = "5h 30m";
-    }
+    // Dynamic shift context calculation
+    const { activeShiftName, shiftWindow, handoverIn } = getShiftMetrics();
 
     return {
       totalStaff,

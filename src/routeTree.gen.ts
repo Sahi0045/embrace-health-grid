@@ -70,6 +70,7 @@ import { Route as AdminCommandRouteImport } from './routes/admin.command'
 import { Route as AdminCertificationsMgmtRouteImport } from './routes/admin.certifications-mgmt'
 import { Route as AdminBedsRoomsRouteImport } from './routes/admin.beds-rooms'
 import { Route as AdminAuditRouteImport } from './routes/admin.audit'
+import { Route as AdminAmbulancesRouteImport } from './routes/admin.ambulances'
 import { Route as AdminAdmissionsRouteImport } from './routes/admin.admissions'
 
 const LoginRoute = LoginRouteImport.update({
@@ -377,6 +378,11 @@ const AdminAuditRoute = AdminAuditRouteImport.update({
   path: '/admin/audit',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminAmbulancesRoute = AdminAmbulancesRouteImport.update({
+  id: '/admin/ambulances',
+  path: '/admin/ambulances',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminAdmissionsRoute = AdminAdmissionsRouteImport.update({
   id: '/admin/admissions',
   path: '/admin/admissions',
@@ -390,6 +396,7 @@ export interface FileRoutesByFullPath {
   '/did-explorer': typeof DidExplorerRoute
   '/login': typeof LoginRoute
   '/admin/admissions': typeof AdminAdmissionsRoute
+  '/admin/ambulances': typeof AdminAmbulancesRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/beds-rooms': typeof AdminBedsRoomsRoute
   '/admin/certifications-mgmt': typeof AdminCertificationsMgmtRoute
@@ -454,6 +461,7 @@ export interface FileRoutesByTo {
   '/did-explorer': typeof DidExplorerRoute
   '/login': typeof LoginRoute
   '/admin/admissions': typeof AdminAdmissionsRoute
+  '/admin/ambulances': typeof AdminAmbulancesRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/beds-rooms': typeof AdminBedsRoomsRoute
   '/admin/certifications-mgmt': typeof AdminCertificationsMgmtRoute
@@ -519,6 +527,7 @@ export interface FileRoutesById {
   '/did-explorer': typeof DidExplorerRoute
   '/login': typeof LoginRoute
   '/admin/admissions': typeof AdminAdmissionsRoute
+  '/admin/ambulances': typeof AdminAmbulancesRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/beds-rooms': typeof AdminBedsRoomsRoute
   '/admin/certifications-mgmt': typeof AdminCertificationsMgmtRoute
@@ -585,6 +594,7 @@ export interface FileRouteTypes {
     | '/did-explorer'
     | '/login'
     | '/admin/admissions'
+    | '/admin/ambulances'
     | '/admin/audit'
     | '/admin/beds-rooms'
     | '/admin/certifications-mgmt'
@@ -649,6 +659,7 @@ export interface FileRouteTypes {
     | '/did-explorer'
     | '/login'
     | '/admin/admissions'
+    | '/admin/ambulances'
     | '/admin/audit'
     | '/admin/beds-rooms'
     | '/admin/certifications-mgmt'
@@ -713,6 +724,7 @@ export interface FileRouteTypes {
     | '/did-explorer'
     | '/login'
     | '/admin/admissions'
+    | '/admin/ambulances'
     | '/admin/audit'
     | '/admin/beds-rooms'
     | '/admin/certifications-mgmt'
@@ -778,6 +790,7 @@ export interface RootRouteChildren {
   DidExplorerRoute: typeof DidExplorerRoute
   LoginRoute: typeof LoginRoute
   AdminAdmissionsRoute: typeof AdminAdmissionsRoute
+  AdminAmbulancesRoute: typeof AdminAmbulancesRoute
   AdminAuditRoute: typeof AdminAuditRoute
   AdminBedsRoomsRoute: typeof AdminBedsRoomsRoute
   AdminCertificationsMgmtRoute: typeof AdminCertificationsMgmtRoute
@@ -1265,6 +1278,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAuditRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/ambulances': {
+      id: '/admin/ambulances'
+      path: '/admin/ambulances'
+      fullPath: '/admin/ambulances'
+      preLoaderRoute: typeof AdminAmbulancesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/admissions': {
       id: '/admin/admissions'
       path: '/admin/admissions'
@@ -1282,6 +1302,7 @@ const rootRouteChildren: RootRouteChildren = {
   DidExplorerRoute: DidExplorerRoute,
   LoginRoute: LoginRoute,
   AdminAdmissionsRoute: AdminAdmissionsRoute,
+  AdminAmbulancesRoute: AdminAmbulancesRoute,
   AdminAuditRoute: AdminAuditRoute,
   AdminBedsRoomsRoute: AdminBedsRoomsRoute,
   AdminCertificationsMgmtRoute: AdminCertificationsMgmtRoute,

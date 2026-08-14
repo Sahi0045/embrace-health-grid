@@ -52,6 +52,7 @@ import {
   GraduationCap,
   Stethoscope,
   Map,
+  Ambulance,
 } from "lucide-react";
 import {
   Sidebar,
@@ -154,6 +155,7 @@ const adminNav: Item[] = [
   { title: "Certifications", url: "/admin/certifications-mgmt", icon: GraduationCap },
   { title: "Beds & Rooms", url: "/admin/beds-rooms", icon: Bed },
   { title: "Hospital Map", url: "/admin/hospital-map", icon: Map },
+  { title: "Ambulance Fleet", url: "/admin/ambulances", icon: Ambulance },
   { title: "NFC Cards", url: "/admin/nfc-cards", icon: CreditCard },
   { title: "Policies", url: "/admin/policies", icon: FileText },
   { title: "Fraud Detection", url: "/admin/fraud", icon: ShieldAlert },

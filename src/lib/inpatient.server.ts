@@ -211,6 +211,31 @@ export const getAmbulances = createServerFn({ method: "GET" }).handler(async () 
   ambulances: await selectAll("ambulances", "updated_at"),
 }));
 
+export const updateAmbulanceStatus = createServerFn({ method: "POST" })
+  .validator((data: { ambulanceId: string; status: string; location?: string; driverName?: string }) => {
+    if (!data?.ambulanceId) throw new Error("Ambulance ID is required");
+    if (!data?.status) throw new Error("Status is required");
+    return data;
+  })
+  .handler(async ({ data }) => {
+    await requireSession();
+    const supabase = getSupabaseServerClient();
+    const updatePayload: Record<string, any> = {
+      status: data.status,
+      updated_at: new Date().toISOString(),
+    };
+    if (data.location !== undefined) updatePayload.current_location = data.location;
+    if (data.driverName !== undefined) updatePayload.driver_name = data.driverName;
+
+    const { error } = await supabase
+      .from("ambulances")
+      .update(updatePayload)
+      .eq("ambulance_id", data.ambulanceId);
+
+    if (error) throw new Error(error.message);
+    return { ok: true as const, ambulanceId: data.ambulanceId, status: data.status };
+  });
+
 export const getEquipment = createServerFn({ method: "GET" }).handler(async () => ({
   equipment: await selectAll("equipment", "updated_at"),
 }));

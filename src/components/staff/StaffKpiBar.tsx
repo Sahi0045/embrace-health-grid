@@ -23,12 +23,6 @@ interface StaffKpiBarProps {
 }
 
 export function StaffKpiBar({ stats, className = "" }: StaffKpiBarProps) {
-  // Sparkline synthetic samples for visual trend activity
-  const totalTrend = [28, 30, 31, 32, 34, 35, stats.totalStaff || 36];
-  const onDutyTrend = [18, 20, 22, 21, 24, 25, stats.onDuty || 26];
-  const availableTrend = [12, 14, 11, 15, 13, 16, stats.availableNow || 14];
-  const onCallTrend = [4, 5, 3, 6, 4, 5, stats.onCall || 6];
-
   const dutyPercentage = stats.totalStaff > 0 ? Math.round((stats.onDuty / stats.totalStaff) * 100) : 0;
 
   return (
@@ -86,8 +80,6 @@ export function StaffKpiBar({ stats, className = "" }: StaffKpiBarProps) {
           icon={Users}
           tone="default"
           size="md"
-          sparklineData={totalTrend}
-          delta="+3 Onboarded this month"
         />
 
         <KpiTile
@@ -96,8 +88,7 @@ export function StaffKpiBar({ stats, className = "" }: StaffKpiBarProps) {
           icon={UserCheck}
           tone="success"
           size="md"
-          sparklineData={onDutyTrend}
-          trend={{ value: `${dutyPercentage}% Coverage`, isPositive: true }}
+          trend={{ value: `${dutyPercentage}% Coverage`, isPositive: dutyPercentage >= 50 }}
         />
 
         <KpiTile
@@ -106,18 +97,14 @@ export function StaffKpiBar({ stats, className = "" }: StaffKpiBarProps) {
           icon={Activity}
           tone="success"
           size="md"
-          sparklineData={availableTrend}
-          delta="Immediate Dispatch Ready"
         />
 
         <KpiTile
           label="Emergency On-Call"
           value={stats.onCall}
           icon={Stethoscope}
-          tone="destructive"
+          tone={stats.onCall > 0 ? "warning" : "default"}
           size="md"
-          sparklineData={onCallTrend}
-          delta="High-Acuity Standby"
         />
       </div>
     </div>

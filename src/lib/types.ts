@@ -251,13 +251,20 @@ export type EquipmentRecord = {
 export type AmbulanceRecord = {
   id: string;
   vehicleNo: string;
-  type: "als" | "bls" | "neonatal" | "air";
+  registration?: string;
+  type: "als" | "bls" | "neonatal" | "air" | string;
   driver: string;
-  paramedic: string;
+  paramedic?: string;
   status: AmbulanceStatus;
   location: string;
-  lastDeployment: string;
-  did: string;
+  destination?: string;
+  patientName?: string;
+  etaMinutes?: number;
+  fuelLevel?: number;
+  batteryLevel?: number;
+  lastDeployment?: string;
+  did?: string;
+  updatedAt?: string;
 };
 
 export type InsuranceClaim = {
