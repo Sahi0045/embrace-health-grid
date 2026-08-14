@@ -150,7 +150,7 @@ const adminNav: Item[] = [
   { title: "People", url: "/admin/people", icon: Users },
   { title: "Prescriptions", url: "/admin/prescriptions", icon: Pill },
   { title: "Admissions", url: "/admin/admissions", icon: Activity },
-  { title: "Doctor Availability", url: "/admin/doctors", icon: Stethoscope },
+  { title: "Staff Availability", url: "/admin/doctors", icon: Stethoscope },
   { title: "Certifications", url: "/admin/certifications-mgmt", icon: GraduationCap },
   { title: "Beds & Rooms", url: "/admin/beds-rooms", icon: Bed },
   { title: "Hospital Map", url: "/admin/hospital-map", icon: Map },
