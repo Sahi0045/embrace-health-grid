@@ -12,7 +12,12 @@
 
 import { createServerFn } from "@tanstack/react-start";
 import { getSupabaseServerClient, getVerifiedUser } from "./supabase.server";
-import { resolveCallerForAudit, tryWriteAudit, buildBedAudit, buildRoomAudit } from "./audit.server";
+import {
+  resolveCallerForAudit,
+  tryWriteAudit,
+  buildBedAudit,
+  buildRoomAudit,
+} from "./audit.server";
 
 async function requireSession() {
   const user = await getVerifiedUser();
@@ -810,10 +815,12 @@ export const getWards = createServerFn({ method: "GET" })
 
 /** Create a new building */
 export const createBuilding = createServerFn({ method: "POST" })
-  .inputValidator((data: { name: string; code?: string; description?: string; totalFloors?: number }) => {
-    if (!data?.name) throw new Error("Building name is required");
-    return data;
-  })
+  .inputValidator(
+    (data: { name: string; code?: string; description?: string; totalFloors?: number }) => {
+      if (!data?.name) throw new Error("Building name is required");
+      return data;
+    },
+  )
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();
@@ -838,12 +845,7 @@ export const createBuilding = createServerFn({ method: "POST" })
 /** Create a new floor */
 export const createFloor = createServerFn({ method: "POST" })
   .inputValidator(
-    (data: {
-      buildingId: string;
-      floorNumber: number;
-      name: string;
-      description?: string;
-    }) => {
+    (data: { buildingId: string; floorNumber: number; name: string; description?: string }) => {
       if (!data?.buildingId || data?.floorNumber == null || !data?.name) {
         throw new Error("Building ID, floor number, and name are required");
       }
@@ -1004,7 +1006,14 @@ export const updateBedStatus = createServerFn({ method: "POST" })
   .inputValidator(
     (data: {
       bedId: string;
-      status: "available" | "occupied" | "reserved" | "cleaning" | "maintenance" | "blocked" | "emergency_reserved";
+      status:
+        | "available"
+        | "occupied"
+        | "reserved"
+        | "cleaning"
+        | "maintenance"
+        | "blocked"
+        | "emergency_reserved";
       patientDid?: string;
     }) => {
       if (!data?.bedId || !data?.status) {
@@ -1044,13 +1053,15 @@ export const updateBedStatus = createServerFn({ method: "POST" })
 
     // ── Rich audit record ─────────────────────────────────────────────────────
     const caller = await resolveCallerForAudit();
-    tryWriteAudit(buildBedAudit(
-      caller,
-      data.bedId,
-      "unknown",          // prev status not fetched to keep the update lean
-      data.status,
-      data.patientDid ? { patientDid: data.patientDid } : {},
-    ));
+    tryWriteAudit(
+      buildBedAudit(
+        caller,
+        data.bedId,
+        "unknown", // prev status not fetched to keep the update lean
+        data.status,
+        data.patientDid ? { patientDid: data.patientDid } : {},
+      ),
+    );
 
     return { ok: true as const, bed: updated };
   });
@@ -1060,7 +1071,14 @@ export const updateRoomStatus = createServerFn({ method: "POST" })
   .inputValidator(
     (data: {
       roomId: string;
-      status: "available" | "occupied" | "reserved" | "cleaning" | "maintenance" | "blocked" | "emergency_reserved";
+      status:
+        | "available"
+        | "occupied"
+        | "reserved"
+        | "cleaning"
+        | "maintenance"
+        | "blocked"
+        | "emergency_reserved";
     }) => {
       if (!data?.roomId || !data?.status) {
         throw new Error("Room ID and status are required");

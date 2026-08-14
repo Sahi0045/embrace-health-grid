@@ -1,13 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -82,8 +76,7 @@ function StaffPharmacyInventory() {
   // Inventory items
   const { data: inventoryData } = useQuery({
     queryKey: ["inventory-items-staff", searchTerm, refreshInventory],
-    queryFn: () =>
-          getInventoryItems({ data: { search: searchTerm || undefined, limit: 100 } }),
+    queryFn: () => getInventoryItems({ data: { search: searchTerm || undefined, limit: 100 } }),
     enabled: activeTab === "inventory",
   });
 
@@ -104,7 +97,7 @@ function StaffPharmacyInventory() {
   const { data: nearExpiryData } = useQuery({
     queryKey: ["near-expiry-staff", refreshInventory],
     queryFn: () =>
-          getNearExpiryItems({ data: { status: "near_expiry", resolved: false, limit: 10 } }),
+      getNearExpiryItems({ data: { status: "near_expiry", resolved: false, limit: 10 } }),
   });
 
   // ─── Render ─────────────────────────────────────────────────────────────
@@ -114,9 +107,7 @@ function StaffPharmacyInventory() {
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            Pharmacy Stock Operations
-          </h1>
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">Pharmacy Stock Operations</h1>
           <p className="text-gray-600">
             Dispense medications, receive stock, track movements, and manage alerts
           </p>
@@ -163,8 +154,8 @@ function StaffPharmacyInventory() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-blue-700">
-                {prescriptionsData?.prescriptions?.filter((rx: any) => rx.readyToDispense)
-                  .length || 0}
+                {prescriptionsData?.prescriptions?.filter((rx: any) => rx.readyToDispense).length ||
+                  0}
               </div>
               <p className="text-xs text-blue-600 mt-1">Ready to dispense</p>
             </CardContent>
@@ -186,13 +177,10 @@ function StaffPharmacyInventory() {
             <Card>
               <CardHeader>
                 <CardTitle>Pending Prescription Dispenses</CardTitle>
-                <CardDescription>
-                  Prescriptions ready for medication dispensing
-                </CardDescription>
+                <CardDescription>Prescriptions ready for medication dispensing</CardDescription>
               </CardHeader>
               <CardContent>
-                {prescriptionsData?.prescriptions &&
-                prescriptionsData.prescriptions.length > 0 ? (
+                {prescriptionsData?.prescriptions && prescriptionsData.prescriptions.length > 0 ? (
                   <div className="space-y-4">
                     {prescriptionsData.prescriptions
                       .filter((rx: any) => rx.readyToDispense)
@@ -237,32 +225,17 @@ function StaffPharmacyInventory() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b">
-                          <th className="text-left py-3 px-3 font-medium">
-                            Batch Number
-                          </th>
-                          <th className="text-left py-3 px-3 font-medium">
-                            Available
-                          </th>
-                          <th className="text-left py-3 px-3 font-medium">
-                            Expiry
-                          </th>
-                          <th className="text-left py-3 px-3 font-medium">
-                            Status
-                          </th>
+                          <th className="text-left py-3 px-3 font-medium">Batch Number</th>
+                          <th className="text-left py-3 px-3 font-medium">Available</th>
+                          <th className="text-left py-3 px-3 font-medium">Expiry</th>
+                          <th className="text-left py-3 px-3 font-medium">Status</th>
                         </tr>
                       </thead>
                       <tbody>
                         {batchesData.batches.map((batch: any) => (
-                          <tr
-                            key={batch.batch_id}
-                            className="border-b hover:bg-gray-50"
-                          >
-                            <td className="py-3 px-3 font-medium">
-                              {batch.batch_number}
-                            </td>
-                            <td className="py-3 px-3">
-                              {batch.quantity_available}
-                            </td>
+                          <tr key={batch.batch_id} className="border-b hover:bg-gray-50">
+                            <td className="py-3 px-3 font-medium">{batch.batch_number}</td>
+                            <td className="py-3 px-3">{batch.quantity_available}</td>
                             <td className="py-3 px-3">
                               {batch.expiry_date
                                 ? new Date(batch.expiry_date).toLocaleDateString()
@@ -270,15 +243,9 @@ function StaffPharmacyInventory() {
                             </td>
                             <td className="py-3 px-3">
                               <Badge
-                                variant={
-                                  batch.quantity_available > 0
-                                    ? "default"
-                                    : "secondary"
-                                }
+                                variant={batch.quantity_available > 0 ? "default" : "secondary"}
                               >
-                                {batch.quantity_available > 0
-                                  ? "In Stock"
-                                  : "Depleted"}
+                                {batch.quantity_available > 0 ? "In Stock" : "Depleted"}
                               </Badge>
                             </td>
                           </tr>
@@ -339,32 +306,17 @@ function StaffPharmacyInventory() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b">
-                          <th className="text-left py-3 px-3 font-medium">
-                            Item
-                          </th>
-                          <th className="text-left py-3 px-3 font-medium">
-                            Code
-                          </th>
-                          <th className="text-left py-3 px-3 font-medium">
-                            Type
-                          </th>
-                          <th className="text-left py-3 px-3 font-medium">
-                            Unit
-                          </th>
-                          <th className="text-left py-3 px-3 font-medium">
-                            Reorder Level
-                          </th>
+                          <th className="text-left py-3 px-3 font-medium">Item</th>
+                          <th className="text-left py-3 px-3 font-medium">Code</th>
+                          <th className="text-left py-3 px-3 font-medium">Type</th>
+                          <th className="text-left py-3 px-3 font-medium">Unit</th>
+                          <th className="text-left py-3 px-3 font-medium">Reorder Level</th>
                         </tr>
                       </thead>
                       <tbody>
                         {inventoryData.items.map((item: any) => (
-                          <tr
-                            key={item.item_id}
-                            className="border-b hover:bg-gray-50"
-                          >
-                            <td className="py-3 px-3 font-medium">
-                              {item.item_name}
-                            </td>
+                          <tr key={item.item_id} className="border-b hover:bg-gray-50">
+                            <td className="py-3 px-3 font-medium">{item.item_name}</td>
                             <td className="py-3 px-3">{item.item_code}</td>
                             <td className="py-3 px-3">
                               <Badge variant="outline">{item.item_type}</Badge>
@@ -390,13 +342,7 @@ function StaffPharmacyInventory() {
 
 // ─── Dispense Card Component ─────────────────────────────────────────────────
 
-function DispenseCard({
-  prescription,
-  onSuccess,
-}: {
-  prescription: any;
-  onSuccess: () => void;
-}) {
+function DispenseCard({ prescription, onSuccess }: { prescription: any; onSuccess: () => void }) {
   const [isOpen, setIsOpen] = useState(false);
   const mutation = useMutation({
     mutationFn: dispensePrescriptionMedications,
@@ -433,9 +379,7 @@ function DispenseCard({
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
-              <h3 className="font-semibold text-gray-900">
-                Prescription {prescription.rx_id}
-              </h3>
+              <h3 className="font-semibold text-gray-900">Prescription {prescription.rx_id}</h3>
               {prescription.allMedicationsAvailable && (
                 <Badge className="bg-green-100 text-green-800">All in stock</Badge>
               )}
@@ -489,21 +433,14 @@ function DispenseCard({
 
         <div className="space-y-4">
           {prescription.medicationDetails?.map((med: any, idx: number) => (
-            <div
-              key={idx}
-              className="flex justify-between items-center p-3 border rounded-lg"
-            >
+            <div key={idx} className="flex justify-between items-center p-3 border rounded-lg">
               <span className="font-medium">{med.name}</span>
               <span className="text-sm text-gray-600">x{med.quantity}</span>
             </div>
           ))}
         </div>
 
-        <Button
-          onClick={handleDispense}
-          disabled={mutation.isPending}
-          className="w-full"
-        >
+        <Button onClick={handleDispense} disabled={mutation.isPending} className="w-full">
           {mutation.isPending ? "Dispensing..." : "Confirm Dispense"}
         </Button>
       </DialogContent>
@@ -594,9 +531,7 @@ function ReceiveStockForm({ onSuccess }: { onSuccess: () => void }) {
 // ─── Transfer Form ──────────────────────────────────────────────────────────
 
 function TransferForm({ onSuccess }: { onSuccess: () => void }) {
-  const [operation, setOperation] = useState<"transfer" | "consume" | "waste">(
-    "consume"
-  );
+  const [operation, setOperation] = useState<"transfer" | "consume" | "waste">("consume");
   const [batchId, setBatchId] = useState("");
   const [quantity, setQuantity] = useState("");
   const [reason, setReason] = useState("");
@@ -665,9 +600,7 @@ function TransferForm({ onSuccess }: { onSuccess: () => void }) {
   };
 
   const isLoading =
-    removeStockMutation.isPending ||
-    consumeStockMutation.isPending ||
-    wasteStockMutation.isPending;
+    removeStockMutation.isPending || consumeStockMutation.isPending || wasteStockMutation.isPending;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
@@ -763,9 +696,7 @@ function MovementsTable({ onRefresh }: { onRefresh: () => void }) {
             ))}
           </SelectContent>
         </Select>
-        <div className="text-center py-8 text-gray-500">
-          Select an item to view movements
-        </div>
+        <div className="text-center py-8 text-gray-500">Select an item to view movements</div>
       </div>
     );
   }

@@ -1,4 +1,11 @@
-import { DollarSign, CreditCard, Calendar, CheckCircle2, AlertCircle, ArrowUpRight } from "lucide-react";
+import {
+  DollarSign,
+  CreditCard,
+  Calendar,
+  CheckCircle2,
+  AlertCircle,
+  ArrowUpRight,
+} from "lucide-react";
 import { GlowCard } from "@/components/dashboard/GlowCard";
 import { EmptyState } from "@/components/EmptyState";
 
@@ -17,15 +24,21 @@ export function PaymentsTab({ billing, payments }: PaymentsTabProps) {
       {/* Billing Summary KPI Row */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="rounded-2xl border border-border/80 bg-card p-5 shadow-clinical space-y-1">
-          <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">Total Billed</span>
+          <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">
+            Total Billed
+          </span>
           <div className="text-2xl font-extrabold font-display text-foreground">
             ${totalBilled.toLocaleString()}
           </div>
-          <span className="text-[11px] font-medium text-muted-foreground block">Lifetime hospital charges</span>
+          <span className="text-[11px] font-medium text-muted-foreground block">
+            Lifetime hospital charges
+          </span>
         </div>
 
         <div className="rounded-2xl border border-border/80 bg-card p-5 shadow-clinical space-y-1">
-          <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">Total Paid</span>
+          <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">
+            Total Paid
+          </span>
           <div className="text-2xl font-extrabold font-display text-success">
             ${totalPaid.toLocaleString()}
           </div>
@@ -35,7 +48,9 @@ export function PaymentsTab({ billing, payments }: PaymentsTabProps) {
         </div>
 
         <div className="rounded-2xl border border-primary/30 bg-primary/5 p-5 shadow-clinical space-y-1">
-          <span className="text-[10px] font-extrabold uppercase tracking-wider text-primary">Outstanding Due</span>
+          <span className="text-[10px] font-extrabold uppercase tracking-wider text-primary">
+            Outstanding Due
+          </span>
           <div className="text-2xl font-extrabold font-display text-primary">
             ${outstanding.toLocaleString()}
           </div>
@@ -70,11 +85,16 @@ export function PaymentsTab({ billing, payments }: PaymentsTabProps) {
                       Payment #{p.payment_id.slice(-6).toUpperCase()}
                     </div>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                      <span>Method: <strong className="text-foreground capitalize">{p.method || "card"}</strong></span>
+                      <span>
+                        Method:{" "}
+                        <strong className="text-foreground capitalize">{p.method || "card"}</strong>
+                      </span>
                       <span>•</span>
                       <span className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
-                        {p.paid_at || p.created_at ? new Date(p.paid_at || p.created_at).toLocaleDateString() : "N/A"}
+                        {p.paid_at || p.created_at
+                          ? new Date(p.paid_at || p.created_at).toLocaleDateString()
+                          : "N/A"}
                       </span>
                     </div>
                   </div>

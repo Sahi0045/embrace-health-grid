@@ -1,6 +1,17 @@
 import { GlowCard } from "@/components/dashboard/GlowCard";
 import { BedCell } from "./BedCell";
-import { Home, Plus, Edit2, CheckCircle2, Ban, Wrench, Clock, Users, Shield, Activity } from "lucide-react";
+import {
+  Home,
+  Plus,
+  Edit2,
+  CheckCircle2,
+  Ban,
+  Wrench,
+  Clock,
+  Users,
+  Shield,
+  Activity,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface RoomCardProps {
@@ -13,24 +24,66 @@ interface RoomCardProps {
 
 const ROOM_STATUS_CONFIG: Record<
   string,
-  { label: string; bg: string; text: string; border: string; icon: React.ComponentType<{ className?: string }> }
+  {
+    label: string;
+    bg: string;
+    text: string;
+    border: string;
+    icon: React.ComponentType<{ className?: string }>;
+  }
 > = {
-  available: { label: "Available", bg: "bg-success/10", text: "text-success", border: "border-success/20", icon: CheckCircle2 },
-  occupied: { label: "Occupied", bg: "bg-primary/10", text: "text-primary", border: "border-primary/20", icon: Users },
-  reserved: { label: "Reserved", bg: "bg-warning/10", text: "text-warning-foreground", border: "border-warning/20", icon: Clock },
-  cleaning: { label: "Cleaning", bg: "bg-blue-500/10", text: "text-blue-600 dark:text-blue-400", border: "border-blue-200", icon: Activity },
-  maintenance: { label: "Maintenance", bg: "bg-amber-500/10", text: "text-amber-600 dark:text-amber-400", border: "border-amber-200", icon: Wrench },
-  blocked: { label: "Blocked", bg: "bg-destructive/10", text: "text-destructive", border: "border-destructive/20", icon: Ban },
-  emergency_reserved: { label: "Emergency", bg: "bg-red-600/10", text: "text-red-600 dark:text-red-400", border: "border-red-200", icon: Shield },
+  available: {
+    label: "Available",
+    bg: "bg-success/10",
+    text: "text-success",
+    border: "border-success/20",
+    icon: CheckCircle2,
+  },
+  occupied: {
+    label: "Occupied",
+    bg: "bg-primary/10",
+    text: "text-primary",
+    border: "border-primary/20",
+    icon: Users,
+  },
+  reserved: {
+    label: "Reserved",
+    bg: "bg-warning/10",
+    text: "text-warning-foreground",
+    border: "border-warning/20",
+    icon: Clock,
+  },
+  cleaning: {
+    label: "Cleaning",
+    bg: "bg-blue-500/10",
+    text: "text-blue-600 dark:text-blue-400",
+    border: "border-blue-200",
+    icon: Activity,
+  },
+  maintenance: {
+    label: "Maintenance",
+    bg: "bg-amber-500/10",
+    text: "text-amber-600 dark:text-amber-400",
+    border: "border-amber-200",
+    icon: Wrench,
+  },
+  blocked: {
+    label: "Blocked",
+    bg: "bg-destructive/10",
+    text: "text-destructive",
+    border: "border-destructive/20",
+    icon: Ban,
+  },
+  emergency_reserved: {
+    label: "Emergency",
+    bg: "bg-red-600/10",
+    text: "text-red-600 dark:text-red-400",
+    border: "border-red-200",
+    icon: Shield,
+  },
 };
 
-export function RoomCard({
-  room,
-  beds,
-  onSelectBed,
-  onUpdateRoomStatus,
-  onAddBed,
-}: RoomCardProps) {
+export function RoomCard({ room, beds, onSelectBed, onUpdateRoomStatus, onAddBed }: RoomCardProps) {
   const statusCfg = ROOM_STATUS_CONFIG[room.status || "available"] || ROOM_STATUS_CONFIG.available;
   const StatusIcon = statusCfg.icon;
 
@@ -69,7 +122,9 @@ export function RoomCard({
         {/* Beds Mini Grid */}
         <div className="space-y-2">
           <div className="flex items-center justify-between text-[11px] font-bold text-muted-foreground">
-            <span>Beds ({beds.length}/{room.capacity || 1})</span>
+            <span>
+              Beds ({beds.length}/{room.capacity || 1})
+            </span>
             <Button
               variant="ghost"
               size="sm"
@@ -97,11 +152,7 @@ export function RoomCard({
           ) : (
             <div className="grid grid-cols-1 gap-2">
               {beds.map((bed) => (
-                <BedCell
-                  key={bed.bed_id}
-                  bed={bed}
-                  onClick={() => onSelectBed(bed)}
-                />
+                <BedCell key={bed.bed_id} bed={bed} onClick={() => onSelectBed(bed)} />
               ))}
             </div>
           )}

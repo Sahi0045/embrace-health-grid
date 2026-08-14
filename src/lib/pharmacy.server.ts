@@ -24,11 +24,7 @@
 
 import { createServerFn } from "@tanstack/react-start";
 import { getSupabaseServerClient, getVerifiedUser } from "./supabase.server";
-import {
-  resolveCallerForAudit,
-  tryWriteAudit,
-  AuditEntry,
-} from "./audit.server";
+import { resolveCallerForAudit, tryWriteAudit, AuditEntry } from "./audit.server";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -107,10 +103,7 @@ export const getSuppliers = createServerFn({ method: "GET" })
     await requireSession();
     const supabase = getSupabaseServerClient();
 
-    let query = supabase
-      .from("suppliers")
-      .select("*")
-      .order("supplier_name");
+    let query = supabase.from("suppliers").select("*").order("supplier_name");
 
     if (data.active !== undefined) {
       query = query.eq("is_active", data.active);
@@ -188,30 +181,27 @@ export const createInventoryItem = createServerFn({ method: "POST" })
 
 export const getInventoryItems = createServerFn({ method: "GET" })
   .inputValidator(
-    (data: {
-      status?: string;
-      category?: string;
-      search?: string;
-      limit?: number;
-    } = {}) => data,
+    (
+      data: {
+        status?: string;
+        category?: string;
+        search?: string;
+        limit?: number;
+      } = {},
+    ) => data,
   )
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();
 
-    let query = supabase
-      .from("inventory_items")
-      .select("*")
-      .order("item_name");
+    let query = supabase.from("inventory_items").select("*").order("item_name");
 
     if (data.status) query = query.eq("status", data.status);
     if (data.category) query = query.eq("category", data.category);
 
     if (data.search) {
       const q = data.search.toLowerCase();
-      query = query.or(
-        `item_code.ilike.%${q}%,item_name.ilike.%${q}%,category.ilike.%${q}%`,
-      );
+      query = query.or(`item_code.ilike.%${q}%,item_name.ilike.%${q}%,category.ilike.%${q}%`);
     }
 
     if (data.limit) query = query.limit(data.limit);
@@ -226,12 +216,10 @@ export const getInventoryItems = createServerFn({ method: "GET" })
   });
 
 export const getInventoryItem = createServerFn({ method: "GET" })
-  .inputValidator(
-    (data: { itemId: string }) => {
-      if (!data?.itemId) throw new Error("itemId is required");
-      return data;
-    },
-  )
+  .inputValidator((data: { itemId: string }) => {
+    if (!data?.itemId) throw new Error("itemId is required");
+    return data;
+  })
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();
@@ -371,11 +359,13 @@ export const createBatch = createServerFn({ method: "POST" })
 
 export const getBatches = createServerFn({ method: "GET" })
   .inputValidator(
-    (data: {
-      itemId?: string;
-      includeInactive?: boolean;
-      limit?: number;
-    } = {}) => data,
+    (
+      data: {
+        itemId?: string;
+        includeInactive?: boolean;
+        limit?: number;
+      } = {},
+    ) => data,
   )
   .handler(async ({ data }) => {
     await requireSession();
@@ -400,12 +390,10 @@ export const getBatches = createServerFn({ method: "GET" })
   });
 
 export const getBatchDetails = createServerFn({ method: "GET" })
-  .inputValidator(
-    (data: { batchId: string }) => {
-      if (!data?.batchId) throw new Error("batchId is required");
-      return data;
-    },
-  )
+  .inputValidator((data: { batchId: string }) => {
+    if (!data?.batchId) throw new Error("batchId is required");
+    return data;
+  })
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();
@@ -436,20 +424,15 @@ export const getBatchDetails = createServerFn({ method: "GET" })
 // ─── CURRENT STOCK LEVELS ───────────────────────────────────────────────────
 
 export const getCurrentStockLevel = createServerFn({ method: "GET" })
-  .inputValidator(
-    (data: { itemId: string; location?: string }) => {
-      if (!data?.itemId) throw new Error("itemId is required");
-      return data;
-    },
-  )
+  .inputValidator((data: { itemId: string; location?: string }) => {
+    if (!data?.itemId) throw new Error("itemId is required");
+    return data;
+  })
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();
 
-    let query = supabase
-      .from("stock_levels")
-      .select("*")
-      .eq("item_id", data.itemId);
+    let query = supabase.from("stock_levels").select("*").eq("item_id", data.itemId);
 
     if (data.location) {
       query = query.eq("storage_location", data.location);
@@ -468,11 +451,13 @@ export const getCurrentStockLevel = createServerFn({ method: "GET" })
 
 export const getAllStockLevels = createServerFn({ method: "GET" })
   .inputValidator(
-    (data: {
-      location?: string;
-      includeLowStock?: boolean;
-      limit?: number;
-    } = {}) => data,
+    (
+      data: {
+        location?: string;
+        includeLowStock?: boolean;
+        limit?: number;
+      } = {},
+    ) => data,
   )
   .handler(async ({ data }) => {
     await requireSession();
@@ -513,27 +498,30 @@ export const getAllStockLevels = createServerFn({ method: "GET" })
  * 3. Updates stock_levels
  * 4. Writes audit entry
  */
-async function createStockMovement(supabase: any, payload: {
-  hospitalId: string;
-  itemId: string;
-  batchId?: string;
-  movementType: string;
-  quantityMoved: number;
-  quantityBefore: number;
-  quantityAfter: number;
-  sourceLocation?: string;
-  destinationLocation?: string;
-  sourceBuilding?: string;
-  destinationBuilding?: string;
-  sourceWard?: string;
-  destinationWard?: string;
-  reason?: string;
-  prescriptionId?: string;
-  patientDid?: string;
-  performedById: string;
-  performedByName: string;
-  performedByRole: string;
-}) {
+async function createStockMovement(
+  supabase: any,
+  payload: {
+    hospitalId: string;
+    itemId: string;
+    batchId?: string;
+    movementType: string;
+    quantityMoved: number;
+    quantityBefore: number;
+    quantityAfter: number;
+    sourceLocation?: string;
+    destinationLocation?: string;
+    sourceBuilding?: string;
+    destinationBuilding?: string;
+    sourceWard?: string;
+    destinationWard?: string;
+    reason?: string;
+    prescriptionId?: string;
+    patientDid?: string;
+    performedById: string;
+    performedByName: string;
+    performedByRole: string;
+  },
+) {
   // Generate movement ID
   const { data: seqData } = await supabase.rpc("generate_movement_id");
   const movementId = seqData || `MOV-${Date.now()}`;
@@ -646,15 +634,31 @@ export const addStock = createServerFn({ method: "POST" })
 
     // Write audit
     await tryWriteAudit({
-      actorId: user.id, actorDid: null, actorName: profile?.full_name ?? null,
-      actorRole: profile?.role ?? null, actorHospital: profile?.hospital_id ?? null, actorEmail: null,
-      action: "STOCK_RECEIVED", outcome: "success", severity: "info",
-      module: "pharmacy", entityId: movement.movement_id ?? null, entityType: "stock_movement",
+      actorId: user.id,
+      actorDid: null,
+      actorName: profile?.full_name ?? null,
+      actorRole: profile?.role ?? null,
+      actorHospital: profile?.hospital_id ?? null,
+      actorEmail: null,
+      action: "STOCK_RECEIVED",
+      outcome: "success",
+      severity: "info",
+      module: "pharmacy",
+      entityId: movement.movement_id ?? null,
+      entityType: "stock_movement",
       resource: `Stock received – item ${data.itemId}`,
-      hospital: profile?.hospital_id ?? null, location: "Pharmacy Inventory",
-      prevValue: { quantity: quantityBefore }, newValue: { quantity: quantityAfter },
-      authStatus: "authorized", authPolicy: null,
-      metadata: { itemId: data.itemId, batchId: data.batchId, quantity: data.quantityToAdd, movementId: movement.movement_id },
+      hospital: profile?.hospital_id ?? null,
+      location: "Pharmacy Inventory",
+      prevValue: { quantity: quantityBefore },
+      newValue: { quantity: quantityAfter },
+      authStatus: "authorized",
+      authPolicy: null,
+      metadata: {
+        itemId: data.itemId,
+        batchId: data.batchId,
+        quantity: data.quantityToAdd,
+        movementId: movement.movement_id,
+      },
     });
 
     return {
@@ -718,7 +722,7 @@ export const removeStock = createServerFn({ method: "POST" })
     const quantityAfter = quantityBefore - data.quantityToRemove;
 
     // Update batch based on movement type
-    let batchUpdate: any = { quantity_available: quantityAfter };
+    const batchUpdate: any = { quantity_available: quantityAfter };
     if (data.movementType === "wasted") {
       batchUpdate.quantity_wasted = (batch.quantity_wasted || 0) + data.quantityToRemove;
     } else if (data.movementType === "expired") {
@@ -752,15 +756,32 @@ export const removeStock = createServerFn({ method: "POST" })
 
     // Write audit
     await tryWriteAudit({
-      actorId: user.id, actorDid: null, actorName: profile?.full_name ?? null,
-      actorRole: profile?.role ?? null, actorHospital: profile?.hospital_id ?? null, actorEmail: null,
-      action: `STOCK_${data.movementType.toUpperCase()}`, outcome: "success", severity: "info",
-      module: "pharmacy", entityId: movement.movement_id ?? null, entityType: "stock_movement",
+      actorId: user.id,
+      actorDid: null,
+      actorName: profile?.full_name ?? null,
+      actorRole: profile?.role ?? null,
+      actorHospital: profile?.hospital_id ?? null,
+      actorEmail: null,
+      action: `STOCK_${data.movementType.toUpperCase()}`,
+      outcome: "success",
+      severity: "info",
+      module: "pharmacy",
+      entityId: movement.movement_id ?? null,
+      entityType: "stock_movement",
       resource: `Stock removed – item ${data.itemId}`,
-      hospital: profile?.hospital_id ?? null, location: "Pharmacy Inventory",
-      prevValue: { quantity: quantityBefore }, newValue: { quantity: quantityAfter },
-      authStatus: "authorized", authPolicy: null,
-      metadata: { itemId: data.itemId, batchId: data.batchId, quantity: data.quantityToRemove, movementId: movement.movement_id, prescriptionId: data.prescriptionId },
+      hospital: profile?.hospital_id ?? null,
+      location: "Pharmacy Inventory",
+      prevValue: { quantity: quantityBefore },
+      newValue: { quantity: quantityAfter },
+      authStatus: "authorized",
+      authPolicy: null,
+      metadata: {
+        itemId: data.itemId,
+        batchId: data.batchId,
+        quantity: data.quantityToRemove,
+        movementId: movement.movement_id,
+        prescriptionId: data.prescriptionId,
+      },
     });
 
     return {
@@ -839,15 +860,33 @@ export const transferStock = createServerFn({ method: "POST" })
 
     // Write audit
     await tryWriteAudit({
-      actorId: user.id, actorDid: null, actorName: profile?.full_name ?? null,
-      actorRole: profile?.role ?? null, actorHospital: profile?.hospital_id ?? null, actorEmail: null,
-      action: "STOCK_TRANSFERRED", outcome: "success", severity: "info",
-      module: "pharmacy", entityId: movement.movement_id ?? null, entityType: "stock_movement",
+      actorId: user.id,
+      actorDid: null,
+      actorName: profile?.full_name ?? null,
+      actorRole: profile?.role ?? null,
+      actorHospital: profile?.hospital_id ?? null,
+      actorEmail: null,
+      action: "STOCK_TRANSFERRED",
+      outcome: "success",
+      severity: "info",
+      module: "pharmacy",
+      entityId: movement.movement_id ?? null,
+      entityType: "stock_movement",
       resource: `Stock transferred – item ${data.itemId}`,
-      hospital: profile?.hospital_id ?? null, location: "Pharmacy Inventory",
-      prevValue: { location: data.sourceLocation }, newValue: { location: data.destinationLocation },
-      authStatus: "authorized", authPolicy: null,
-      metadata: { itemId: data.itemId, batchId: data.batchId, quantity: data.quantityToTransfer, from: data.sourceLocation, to: data.destinationLocation, movementId: movement.movement_id },
+      hospital: profile?.hospital_id ?? null,
+      location: "Pharmacy Inventory",
+      prevValue: { location: data.sourceLocation },
+      newValue: { location: data.destinationLocation },
+      authStatus: "authorized",
+      authPolicy: null,
+      metadata: {
+        itemId: data.itemId,
+        batchId: data.batchId,
+        quantity: data.quantityToTransfer,
+        from: data.sourceLocation,
+        to: data.destinationLocation,
+        movementId: movement.movement_id,
+      },
     });
 
     return {
@@ -932,15 +971,32 @@ export const consumeStock = createServerFn({ method: "POST" })
 
     // Write audit
     await tryWriteAudit({
-      actorId: user.id, actorDid: null, actorName: profile?.full_name ?? null,
-      actorRole: profile?.role ?? null, actorHospital: profile?.hospital_id ?? null, actorEmail: null,
-      action: "STOCK_CONSUMED", outcome: "success", severity: "info",
-      module: "pharmacy", entityId: movement.movement_id ?? null, entityType: "stock_movement",
+      actorId: user.id,
+      actorDid: null,
+      actorName: profile?.full_name ?? null,
+      actorRole: profile?.role ?? null,
+      actorHospital: profile?.hospital_id ?? null,
+      actorEmail: null,
+      action: "STOCK_CONSUMED",
+      outcome: "success",
+      severity: "info",
+      module: "pharmacy",
+      entityId: movement.movement_id ?? null,
+      entityType: "stock_movement",
       resource: `Stock consumed – item ${data.itemId}`,
-      hospital: profile?.hospital_id ?? null, location: "Pharmacy Inventory",
-      prevValue: { quantity: quantityBefore }, newValue: { quantity: quantityAfter },
-      authStatus: "authorized", authPolicy: null,
-      metadata: { itemId: data.itemId, batchId: data.batchId, quantity: data.quantityToConsume, movementId: movement.movement_id, patientDid: data.patientDid },
+      hospital: profile?.hospital_id ?? null,
+      location: "Pharmacy Inventory",
+      prevValue: { quantity: quantityBefore },
+      newValue: { quantity: quantityAfter },
+      authStatus: "authorized",
+      authPolicy: null,
+      metadata: {
+        itemId: data.itemId,
+        batchId: data.batchId,
+        quantity: data.quantityToConsume,
+        movementId: movement.movement_id,
+        patientDid: data.patientDid,
+      },
     });
 
     return {
@@ -958,12 +1014,7 @@ export const consumeStock = createServerFn({ method: "POST" })
  */
 export const adjustStock = createServerFn({ method: "POST" })
   .inputValidator(
-    (data: {
-      itemId: string;
-      batchId: string;
-      adjustment: number;
-      reason: string;
-    }) => {
+    (data: { itemId: string; batchId: string; adjustment: number; reason: string }) => {
       if (!data?.itemId) throw new Error("itemId is required");
       if (!data?.batchId) throw new Error("batchId is required");
       if (data?.adjustment === undefined || data.adjustment === 0) {
@@ -1024,15 +1075,32 @@ export const adjustStock = createServerFn({ method: "POST" })
 
     // Write audit (more critical)
     await tryWriteAudit({
-      actorId: user.id, actorDid: null, actorName: profile?.full_name ?? null,
-      actorRole: profile?.role ?? null, actorHospital: profile?.hospital_id ?? null, actorEmail: null,
-      action: "STOCK_ADJUSTED", outcome: "success", severity: "info",
-      module: "pharmacy", entityId: movement.movement_id ?? null, entityType: "stock_movement",
+      actorId: user.id,
+      actorDid: null,
+      actorName: profile?.full_name ?? null,
+      actorRole: profile?.role ?? null,
+      actorHospital: profile?.hospital_id ?? null,
+      actorEmail: null,
+      action: "STOCK_ADJUSTED",
+      outcome: "success",
+      severity: "info",
+      module: "pharmacy",
+      entityId: movement.movement_id ?? null,
+      entityType: "stock_movement",
       resource: `Stock adjusted – item ${data.itemId}`,
-      hospital: profile?.hospital_id ?? null, location: "Pharmacy Inventory",
-      prevValue: { quantity: quantityBefore }, newValue: { quantity: quantityAfter },
-      authStatus: "authorized", authPolicy: null,
-      metadata: { itemId: data.itemId, batchId: data.batchId, adjustment: data.adjustment, reason: data.reason, movementId: movement.movement_id },
+      hospital: profile?.hospital_id ?? null,
+      location: "Pharmacy Inventory",
+      prevValue: { quantity: quantityBefore },
+      newValue: { quantity: quantityAfter },
+      authStatus: "authorized",
+      authPolicy: null,
+      metadata: {
+        itemId: data.itemId,
+        batchId: data.batchId,
+        adjustment: data.adjustment,
+        reason: data.reason,
+        movementId: movement.movement_id,
+      },
     });
 
     return {
@@ -1050,12 +1118,7 @@ export const adjustStock = createServerFn({ method: "POST" })
  */
 export const recordWastage = createServerFn({ method: "POST" })
   .inputValidator(
-    (data: {
-      itemId: string;
-      batchId: string;
-      quantityWasted: number;
-      reason: string;
-    }) => {
+    (data: { itemId: string; batchId: string; quantityWasted: number; reason: string }) => {
       if (!data?.itemId) throw new Error("itemId is required");
       if (!data?.batchId) throw new Error("batchId is required");
       if (!data?.quantityWasted || data.quantityWasted <= 0) {
@@ -1130,21 +1193,19 @@ export const recordExpiredStock = createServerFn({ method: "POST" })
     });
 
     // Create expiration alert
-    const { error: alertError } = await supabase
-      .from("expiration_alerts")
-      .insert({
-        hospital_id: profile.hospital_id,
-        batch_id: data.batchId,
-        item_id: data.itemId,
-        expiration_status: "expired",
-        expiry_date: batch.expiry_date,
-        days_until_expiry: -1,
-        quantity_affected: data.quantityExpired,
-        action_taken_at: new Date().toISOString(),
-        action_taken_by: data.actionTakenBy || profile?.full_name || "Unknown",
-        action_notes: `${data.quantityExpired} units disposed due to expiration`,
-        is_resolved: true,
-      });
+    const { error: alertError } = await supabase.from("expiration_alerts").insert({
+      hospital_id: profile.hospital_id,
+      batch_id: data.batchId,
+      item_id: data.itemId,
+      expiration_status: "expired",
+      expiry_date: batch.expiry_date,
+      days_until_expiry: -1,
+      quantity_affected: data.quantityExpired,
+      action_taken_at: new Date().toISOString(),
+      action_taken_by: data.actionTakenBy || profile?.full_name || "Unknown",
+      action_notes: `${data.quantityExpired} units disposed due to expiration`,
+      is_resolved: true,
+    });
 
     if (alertError) {
       console.error("Failed to create expiration alert:", alertError);
@@ -1162,10 +1223,12 @@ export const recordExpiredStock = createServerFn({ method: "POST" })
  */
 export const getLowStockItems = createServerFn({ method: "GET" })
   .inputValidator(
-    (data: {
-      resolved?: boolean;
-      limit?: number;
-    } = {}) => data,
+    (
+      data: {
+        resolved?: boolean;
+        limit?: number;
+      } = {},
+    ) => data,
   )
   .handler(async ({ data }) => {
     await requireSession();
@@ -1201,11 +1264,13 @@ export const getLowStockItems = createServerFn({ method: "GET" })
  */
 export const getNearExpiryItems = createServerFn({ method: "GET" })
   .inputValidator(
-    (data: {
-      status?: string; // 'valid', 'near_expiry', 'expired'
-      resolved?: boolean;
-      limit?: number;
-    } = {}) => data,
+    (
+      data: {
+        status?: string; // 'valid', 'near_expiry', 'expired'
+        resolved?: boolean;
+        limit?: number;
+      } = {},
+    ) => data,
   )
   .handler(async ({ data }) => {
     await requireSession();
@@ -1245,10 +1310,12 @@ export const getNearExpiryItems = createServerFn({ method: "GET" })
  */
 export const getExpiredStock = createServerFn({ method: "GET" })
   .inputValidator(
-    (data: {
-      limit?: number;
-      daysAgo?: number;
-    } = {}) => data,
+    (
+      data: {
+        limit?: number;
+        daysAgo?: number;
+      } = {},
+    ) => data,
   )
   .handler(async ({ data }) => {
     await requireSession();
@@ -1286,12 +1353,10 @@ export const getExpiredStock = createServerFn({ method: "GET" })
  * Mark low-stock alert as resolved
  */
 export const resolveLowStockAlert = createServerFn({ method: "POST" })
-  .inputValidator(
-    (data: { alertId: string }) => {
-      if (!data?.alertId) throw new Error("alertId is required");
-      return data;
-    },
-  )
+  .inputValidator((data: { alertId: string }) => {
+    if (!data?.alertId) throw new Error("alertId is required");
+    return data;
+  })
   .handler(async ({ data }) => {
     const { profile } = await callerProfile();
     const supabase = getSupabaseServerClient();
@@ -1319,16 +1384,10 @@ export const resolveLowStockAlert = createServerFn({ method: "POST" })
  * Mark expiration alert as resolved
  */
 export const resolveExpirationAlert = createServerFn({ method: "POST" })
-  .inputValidator(
-    (data: {
-      alertId: string;
-      actionNotes?: string;
-      actionTakenBy?: string;
-    }) => {
-      if (!data?.alertId) throw new Error("alertId is required");
-      return data;
-    },
-  )
+  .inputValidator((data: { alertId: string; actionNotes?: string; actionTakenBy?: string }) => {
+    if (!data?.alertId) throw new Error("alertId is required");
+    return data;
+  })
   .handler(async ({ data }) => {
     const { profile } = await callerProfile();
     const supabase = getSupabaseServerClient();
@@ -1357,7 +1416,6 @@ export const resolveExpirationAlert = createServerFn({ method: "POST" })
     };
   });
 
-
 // ─── STOCK MOVEMENTS QUERIES ────────────────────────────────────────────────
 
 /**
@@ -1365,15 +1423,10 @@ export const resolveExpirationAlert = createServerFn({ method: "POST" })
  * Complete audit trail of all changes
  */
 export const getBatchMovements = createServerFn({ method: "GET" })
-  .inputValidator(
-    (data: {
-      batchId: string;
-      limit?: number;
-    }) => {
-      if (!data?.batchId) throw new Error("batchId is required");
-      return data;
-    },
-  )
+  .inputValidator((data: { batchId: string; limit?: number }) => {
+    if (!data?.batchId) throw new Error("batchId is required");
+    return data;
+  })
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();
@@ -1400,16 +1453,10 @@ export const getBatchMovements = createServerFn({ method: "GET" })
  * Complete transaction history
  */
 export const getItemMovements = createServerFn({ method: "GET" })
-  .inputValidator(
-    (data: {
-      itemId: string;
-      movementType?: string;
-      limit?: number;
-    }) => {
-      if (!data?.itemId) throw new Error("itemId is required");
-      return data;
-    },
-  )
+  .inputValidator((data: { itemId: string; movementType?: string; limit?: number }) => {
+    if (!data?.itemId) throw new Error("itemId is required");
+    return data;
+  })
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();
@@ -1439,12 +1486,10 @@ export const getItemMovements = createServerFn({ method: "GET" })
  * Get stock movement by ID (for detailed audit)
  */
 export const getMovement = createServerFn({ method: "GET" })
-  .inputValidator(
-    (data: { movementId: string }) => {
-      if (!data?.movementId) throw new Error("movementId is required");
-      return data;
-    },
-  )
+  .inputValidator((data: { movementId: string }) => {
+    if (!data?.movementId) throw new Error("movementId is required");
+    return data;
+  })
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();
@@ -1541,11 +1586,13 @@ export const createPurchaseOrder = createServerFn({ method: "POST" })
  */
 export const getPurchaseOrders = createServerFn({ method: "GET" })
   .inputValidator(
-    (data: {
-      status?: string;
-      supplierId?: string;
-      limit?: number;
-    } = {}) => data,
+    (
+      data: {
+        status?: string;
+        supplierId?: string;
+        limit?: number;
+      } = {},
+    ) => data,
   )
   .handler(async ({ data }) => {
     await requireSession();
@@ -1573,17 +1620,11 @@ export const getPurchaseOrders = createServerFn({ method: "GET" })
  * Update purchase order status
  */
 export const updatePurchaseOrderStatus = createServerFn({ method: "POST" })
-  .inputValidator(
-    (data: {
-      orderId: string;
-      status: string;
-      receivedDate?: string;
-    }) => {
-      if (!data?.orderId) throw new Error("orderId is required");
-      if (!data?.status) throw new Error("status is required");
-      return data;
-    },
-  )
+  .inputValidator((data: { orderId: string; status: string; receivedDate?: string }) => {
+    if (!data?.orderId) throw new Error("orderId is required");
+    if (!data?.status) throw new Error("status is required");
+    return data;
+  })
   .handler(async ({ data }) => {
     const { profile, user } = await callerProfile();
     const supabase = getSupabaseServerClient();
@@ -1614,12 +1655,11 @@ export const updatePurchaseOrderStatus = createServerFn({ method: "POST" })
     };
   });
 
-
 // ─── PRESCRIPTION DISPENSING INTEGRATION ────────────────────────────────────
 
 /**
  * Dispense prescription medications
- * 
+ *
  * Atomically:
  * 1. Links prescription to stock movements
  * 2. Removes medication quantities from inventory
@@ -1627,7 +1667,7 @@ export const updatePurchaseOrderStatus = createServerFn({ method: "POST" })
  * 4. Updates batch quantities
  * 5. Writes audit trail with patient context
  * 6. Triggers low-stock alerts if needed
- * 
+ *
  * Called when prescription status changes to 'dispensed' or from pharmacy staff
  * dispensing interface when giving medicine to patient.
  */
@@ -1721,14 +1761,25 @@ export const dispensePrescriptionMedications = createServerFn({ method: "POST" }
 
         // Write audit
         await tryWriteAudit({
-          actorId: user.id, actorDid: null, actorName: profile?.full_name ?? null,
-          actorRole: profile?.role ?? null, actorHospital: profile?.hospital_id ?? null, actorEmail: null,
-          action: "PRESCRIPTION_DISPENSED", outcome: "success", severity: "info",
-          module: "pharmacy", entityId: data.prescriptionId, entityType: "prescription",
+          actorId: user.id,
+          actorDid: null,
+          actorName: profile?.full_name ?? null,
+          actorRole: profile?.role ?? null,
+          actorHospital: profile?.hospital_id ?? null,
+          actorEmail: null,
+          action: "PRESCRIPTION_DISPENSED",
+          outcome: "success",
+          severity: "info",
+          module: "pharmacy",
+          entityId: data.prescriptionId,
+          entityType: "prescription",
           resource: `Prescription dispensed – ${med.medicationName ?? med.itemId}`,
-          hospital: profile?.hospital_id ?? null, location: "Pharmacy Inventory",
-          prevValue: null, newValue: null,
-          authStatus: "authorized", authPolicy: null,
+          hospital: profile?.hospital_id ?? null,
+          location: "Pharmacy Inventory",
+          prevValue: null,
+          newValue: null,
+          authStatus: "authorized",
+          authPolicy: null,
           metadata: {
             prescriptionId: data.prescriptionId,
             patientDid: data.patientDid,
@@ -1796,13 +1847,14 @@ export const checkPrescriptionMedicationAvailability = createServerFn({ method: 
         .eq("item_id", med.itemId)
         .eq("is_active", true);
 
-      const totalAvailable = batches?.reduce((sum, b) => {
-        // Only count if not expired
-        if (b.expiry_date && new Date(b.expiry_date) < new Date()) {
-          return sum;
-        }
-        return sum + (b.quantity_available || 0);
-      }, 0) || 0;
+      const totalAvailable =
+        batches?.reduce((sum, b) => {
+          // Only count if not expired
+          if (b.expiry_date && new Date(b.expiry_date) < new Date()) {
+            return sum;
+          }
+          return sum + (b.quantity_available || 0);
+        }, 0) || 0;
 
       const isAvailable = totalAvailable >= med.requiredQuantity;
       allAvailable = allAvailable && isAvailable;
@@ -1829,12 +1881,10 @@ export const checkPrescriptionMedicationAvailability = createServerFn({ method: 
  * Enriches prescription data with current stock levels
  */
 export const getPrescriptionWithInventory = createServerFn({ method: "GET" })
-  .inputValidator(
-    (data: { prescriptionId: string }) => {
-      if (!data?.prescriptionId) throw new Error("prescriptionId is required");
-      return data;
-    },
-  )
+  .inputValidator((data: { prescriptionId: string }) => {
+    if (!data?.prescriptionId) throw new Error("prescriptionId is required");
+    return data;
+  })
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();
@@ -1858,14 +1908,12 @@ export const getPrescriptionWithInventory = createServerFn({ method: "GET" })
         const { data: items } = await supabase
           .from("inventory_items")
           .select("*")
-          .or(
-            `item_name.ilike.%${drug.name}%,item_code.ilike.%${drug.name}%`,
-          )
+          .or(`item_name.ilike.%${drug.name}%,item_code.ilike.%${drug.name}%`)
           .limit(1);
 
         if (items && items.length > 0) {
           const item = items[0];
-          
+
           // Get total stock for this medication
           const { data: batches } = await supabase
             .from("inventory_batches")
@@ -1873,12 +1921,13 @@ export const getPrescriptionWithInventory = createServerFn({ method: "GET" })
             .eq("item_id", item.item_id)
             .eq("is_active", true);
 
-          const totalAvailable = batches?.reduce((sum, b) => {
-            if (b.expiry_date && new Date(b.expiry_date) < new Date()) {
-              return sum;
-            }
-            return sum + (b.quantity_available || 0);
-          }, 0) || 0;
+          const totalAvailable =
+            batches?.reduce((sum, b) => {
+              if (b.expiry_date && new Date(b.expiry_date) < new Date()) {
+                return sum;
+              }
+              return sum + (b.quantity_available || 0);
+            }, 0) || 0;
 
           medicationsWithStock.push({
             ...drug,
@@ -1886,9 +1935,9 @@ export const getPrescriptionWithInventory = createServerFn({ method: "GET" })
             inventoryName: item.item_name,
             unitOfMeasure: item.unit_of_measure,
             totalInStock: totalAvailable,
-            availableBatches: batches?.filter(
-              (b) => !b.expiry_date || new Date(b.expiry_date) >= new Date()
-            ).length || 0,
+            availableBatches:
+              batches?.filter((b) => !b.expiry_date || new Date(b.expiry_date) >= new Date())
+                .length || 0,
             isAvailable: totalAvailable >= (drug.quantity || 1),
           });
         } else {
@@ -1916,10 +1965,12 @@ export const getPrescriptionWithInventory = createServerFn({ method: "GET" })
  */
 export const getPendingDispensingPrescriptions = createServerFn({ method: "GET" })
   .inputValidator(
-    (data: {
-      limit?: number;
-      patientDid?: string;
-    } = {}) => data,
+    (
+      data: {
+        limit?: number;
+        patientDid?: string;
+      } = {},
+    ) => data,
   )
   .handler(async ({ data }) => {
     await requireSession();
@@ -1951,9 +2002,7 @@ export const getPendingDispensingPrescriptions = createServerFn({ method: "GET" 
           const { data: items } = await supabase
             .from("inventory_items")
             .select("*")
-            .or(
-              `item_name.ilike.%${drug.name}%,item_code.ilike.%${drug.name}%`,
-            )
+            .or(`item_name.ilike.%${drug.name}%,item_code.ilike.%${drug.name}%`)
             .limit(1);
 
           if (items && items.length > 0) {
@@ -1964,7 +2013,8 @@ export const getPendingDispensingPrescriptions = createServerFn({ method: "GET" 
               .eq("item_id", item.item_id)
               .eq("is_active", true);
 
-            const available = batches?.reduce((sum, b) => sum + (b.quantity_available || 0), 0) || 0;
+            const available =
+              batches?.reduce((sum, b) => sum + (b.quantity_available || 0), 0) || 0;
             const needed = drug.quantity || 1;
             const isAvailable = available >= needed;
 

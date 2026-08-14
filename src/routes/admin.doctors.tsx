@@ -162,18 +162,21 @@ function StaffAvailabilityDashboard() {
           const memberRole: StaffMember["role"] = isDoctor ? "doctor" : "nurse";
           const patientCount = userShifts[0]?.patientCount ?? (latestAtt?.action === "in" ? 2 : 0);
           const maxCap = isDoctor ? 8 : 10;
-          const weeklyHours = userShifts.reduce((acc, s) => acc + 8, 0) || (latestAtt?.action === "in" ? 36 : 0);
+          const weeklyHours =
+            userShifts.reduce((acc, s) => acc + 8, 0) || (latestAtt?.action === "in" ? 36 : 0);
 
           staffList.push({
             id: p.id,
             fullName: p.full_name || p.email?.split("@")[0] || "Staff Member",
             email: p.email || "",
             role: memberRole,
-            department: (p as any).department || (isDoctor ? "Emergency & Trauma" : "General Medicine"),
+            department:
+              (p as any).department || (isDoctor ? "Emergency & Trauma" : "General Medicine"),
             specialty: (p as any).specialty || (isDoctor ? "Clinical Specialist" : "Staff Nursing"),
             primaryDid: (p as any).primary_did || undefined,
             phone: (p as any).phone_number || (p as any).phone || undefined,
-            availability: latestAtt?.action === "in" ? "available" : userShifts.length > 0 ? "busy" : "off",
+            availability:
+              latestAtt?.action === "in" ? "available" : userShifts.length > 0 ? "busy" : "off",
             currentShift: userShifts[0]
               ? {
                   id: userShifts[0].shiftId,
@@ -236,13 +239,15 @@ function StaffAvailabilityDashboard() {
   const kpiStats: StaffKpiStats = useMemo(() => {
     const totalStaff = staffMembers.length;
     const onDuty = staffMembers.filter(
-      (s) => s.availability === "available" || s.availability === "busy"
+      (s) => s.availability === "available" || s.availability === "busy",
     ).length;
     const availableNow = staffMembers.filter((s) => s.availability === "available").length;
     const onCall = staffMembers.filter((s) => s.availability === "oncall").length;
     const busyNow = staffMembers.filter((s) => s.availability === "busy").length;
     const offDuty = staffMembers.filter((s) => s.availability === "off").length;
-    const doctorCount = staffMembers.filter((s) => s.role === "doctor" || s.role === "specialist").length;
+    const doctorCount = staffMembers.filter(
+      (s) => s.role === "doctor" || s.role === "specialist",
+    ).length;
     const nurseCount = staffMembers.filter((s) => s.role === "nurse").length;
 
     // Dynamic shift context calculation
@@ -288,7 +293,9 @@ function StaffAvailabilityDashboard() {
 
         const matchesShift =
           shiftFilter === "all" ||
-          (shiftFilter === "morning" && (s.currentShift?.startsAt?.startsWith("07") || s.currentShift?.startsAt?.startsWith("08"))) ||
+          (shiftFilter === "morning" &&
+            (s.currentShift?.startsAt?.startsWith("07") ||
+              s.currentShift?.startsAt?.startsWith("08"))) ||
           (shiftFilter === "evening" && s.currentShift?.startsAt?.startsWith("15")) ||
           (shiftFilter === "night" && s.currentShift?.startsAt?.startsWith("23")) ||
           (shiftFilter === "oncall" && s.availability === "oncall");
@@ -321,7 +328,7 @@ function StaffAvailabilityDashboard() {
 
   const handleSelectDepartmentFromMatrix = (deptName: string) => {
     const matched = departments.find((d) =>
-      d.toLowerCase().includes(deptName.toLowerCase().split(" ")[0])
+      d.toLowerCase().includes(deptName.toLowerCase().split(" ")[0]),
     );
     if (matched) {
       setDepartmentFilter(matched);
@@ -540,9 +547,7 @@ function StaffAvailabilityDashboard() {
         <StaffDetailPanel
           staff={selectedStaff}
           shifts={schedules}
-          attendanceLogs={attendanceRecords.filter(
-            (a: any) => a.staff_id === selectedStaff?.id
-          )}
+          attendanceLogs={attendanceRecords.filter((a: any) => a.staff_id === selectedStaff?.id)}
           onClose={() => setSelectedStaff(null)}
           onConfirmShift={loadData}
         />

@@ -1,5 +1,18 @@
 import { useState } from "react";
-import { User, Shield, Phone, Mail, FileText, Activity, LogOut, ExternalLink, Calendar, MapPin, Copy, Check } from "lucide-react";
+import {
+  User,
+  Shield,
+  Phone,
+  Mail,
+  FileText,
+  Activity,
+  LogOut,
+  ExternalLink,
+  Calendar,
+  MapPin,
+  Copy,
+  Check,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -98,7 +111,11 @@ export function ProfileSidebar({
               className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0"
               title="Copy DID"
             >
-              {copiedDid ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
+              {copiedDid ? (
+                <Check className="h-3.5 w-3.5 text-success" />
+              ) : (
+                <Copy className="h-3.5 w-3.5" />
+              )}
             </button>
           </div>
         </div>
@@ -141,18 +158,30 @@ export function ProfileSidebar({
             </div>
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div>
-                <span className="text-muted-foreground block text-[10px] uppercase font-bold">Ward</span>
-                <span className="font-extrabold text-foreground">{activeAdmission.ward || "General"}</span>
+                <span className="text-muted-foreground block text-[10px] uppercase font-bold">
+                  Ward
+                </span>
+                <span className="font-extrabold text-foreground">
+                  {activeAdmission.ward || "General"}
+                </span>
               </div>
               <div>
-                <span className="text-muted-foreground block text-[10px] uppercase font-bold">Bed</span>
-                <span className="font-extrabold text-primary">{activeAdmission.bed || "B-101"}</span>
+                <span className="text-muted-foreground block text-[10px] uppercase font-bold">
+                  Bed
+                </span>
+                <span className="font-extrabold text-primary">
+                  {activeAdmission.bed || "B-101"}
+                </span>
               </div>
             </div>
             {activeAdmission.admitting_doctor && (
               <div className="text-xs pt-1 border-t border-primary/20">
-                <span className="text-muted-foreground text-[10px] uppercase font-bold block">Attending Doctor</span>
-                <span className="font-bold text-foreground">{activeAdmission.admitting_doctor}</span>
+                <span className="text-muted-foreground text-[10px] uppercase font-bold block">
+                  Attending Doctor
+                </span>
+                <span className="font-bold text-foreground">
+                  {activeAdmission.admitting_doctor}
+                </span>
               </div>
             )}
           </div>
@@ -175,7 +204,9 @@ export function ProfileSidebar({
               variant="outline"
               size="sm"
               className="flex-1 rounded-xl text-xs font-bold shadow-xs hover:bg-accent h-9"
-              onClick={() => window.open(`/did-explorer?did=${encodeURIComponent(patientDid)}`, "_blank")}
+              onClick={() =>
+                window.open(`/did-explorer?did=${encodeURIComponent(patientDid)}`, "_blank")
+              }
             >
               <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
               DID Explorer
@@ -200,11 +231,15 @@ export function ProfileSidebar({
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground font-medium">Policy #:</span>
-              <span className="font-mono font-bold text-foreground">{insurancePolicy.policy_number || "N/A"}</span>
+              <span className="font-mono font-bold text-foreground">
+                {insurancePolicy.policy_number || "N/A"}
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground font-medium">Coverage:</span>
-              <span className="font-extrabold text-success">{insurancePolicy.coverage_percentage || 80}%</span>
+              <span className="font-extrabold text-success">
+                {insurancePolicy.coverage_percentage || 80}%
+              </span>
             </div>
           </div>
         ) : (

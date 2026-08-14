@@ -30,7 +30,11 @@ export function BedStatusDonut({ bedStats }: BedStatusDonutProps) {
   ];
 
   return (
-    <GlowCard accent="primary" glowOnHover={false} className="h-full p-5 flex flex-col justify-between space-y-4">
+    <GlowCard
+      accent="primary"
+      glowOnHover={false}
+      className="h-full p-5 flex flex-col justify-between space-y-4"
+    >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />

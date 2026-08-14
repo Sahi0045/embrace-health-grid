@@ -212,11 +212,13 @@ export const getAmbulances = createServerFn({ method: "GET" }).handler(async () 
 }));
 
 export const updateAmbulanceStatus = createServerFn({ method: "POST" })
-  .inputValidator((data: { ambulanceId: string; status: string; location?: string; driverName?: string }) => {
-    if (!data?.ambulanceId) throw new Error("Ambulance ID is required");
-    if (!data?.status) throw new Error("Status is required");
-    return data;
-  })
+  .inputValidator(
+    (data: { ambulanceId: string; status: string; location?: string; driverName?: string }) => {
+      if (!data?.ambulanceId) throw new Error("Ambulance ID is required");
+      if (!data?.status) throw new Error("Status is required");
+      return data;
+    },
+  )
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();
@@ -311,10 +313,12 @@ export const getPolicies = createServerFn({ method: "GET" }).handler(async () =>
 
 /** Author a policy. RLS restricts this to admins. */
 export const createPolicy = createServerFn({ method: "POST" })
-  .inputValidator((data: { name: string; category?: string; description?: string; status?: string }) => {
-    if (!data?.name) throw new Error("name is required");
-    return data;
-  })
+  .inputValidator(
+    (data: { name: string; category?: string; description?: string; status?: string }) => {
+      if (!data?.name) throw new Error("name is required");
+      return data;
+    },
+  )
   .handler(async ({ data }) => {
     const user = await requireSession();
     const supabase = getSupabaseServerClient();

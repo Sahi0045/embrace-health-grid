@@ -204,22 +204,26 @@ export const updatePrescription = createServerFn({ method: "POST" })
 
     // ── Rich audit record + blockchain proof ─────────────────────────────────
     const caller = await resolveCallerForAudit();
-    tryWriteAudit(buildPrescriptionAudit(
-      caller,
-      data.rxId,
-      prevRow ? {
-        diagnosis: prevRow.diagnosis,
-        notes:     prevRow.notes,
-        status:    prevRow.status,
-        drugCount: Array.isArray(prevRow.drugs) ? prevRow.drugs.length : 0,
-      } : null,
-      {
-        diagnosis: data.diagnosis,
-        notes:     data.notes,
-        status:    data.status,
-        drugCount: Array.isArray(data.drugs) ? data.drugs.length : undefined,
-      },
-    ));
+    tryWriteAudit(
+      buildPrescriptionAudit(
+        caller,
+        data.rxId,
+        prevRow
+          ? {
+              diagnosis: prevRow.diagnosis,
+              notes: prevRow.notes,
+              status: prevRow.status,
+              drugCount: Array.isArray(prevRow.drugs) ? prevRow.drugs.length : 0,
+            }
+          : null,
+        {
+          diagnosis: data.diagnosis,
+          notes: data.notes,
+          status: data.status,
+          drugCount: Array.isArray(data.drugs) ? data.drugs.length : undefined,
+        },
+      ),
+    );
 
     return { ok: true as const, rxId: data.rxId };
   });
@@ -288,10 +292,12 @@ export const getAppointments = createServerFn({ method: "GET" }).handler(async (
 });
 
 export const bookAppointment = createServerFn({ method: "POST" })
-  .inputValidator((data: { doctorDid: string; slot: string; specialty?: string; mode?: string }) => {
-    if (!data?.doctorDid || !data?.slot) throw new Error("doctorDid and slot are required");
-    return data;
-  })
+  .inputValidator(
+    (data: { doctorDid: string; slot: string; specialty?: string; mode?: string }) => {
+      if (!data?.doctorDid || !data?.slot) throw new Error("doctorDid and slot are required");
+      return data;
+    },
+  )
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();

@@ -9,7 +9,10 @@ interface DepartmentWorkloadMatrixProps {
   onSelectDepartment: (dept: string) => void;
 }
 
-export function DepartmentWorkloadMatrix({ staffList, onSelectDepartment }: DepartmentWorkloadMatrixProps) {
+export function DepartmentWorkloadMatrix({
+  staffList,
+  onSelectDepartment,
+}: DepartmentWorkloadMatrixProps) {
   // Aggregate data by department
   const departmentStats = [
     "Emergency",
@@ -23,14 +26,21 @@ export function DepartmentWorkloadMatrix({ staffList, onSelectDepartment }: Depa
   ].map((deptName) => {
     // Match staff in department
     const deptStaff = staffList.filter((s) =>
-      s.department.toLowerCase().includes(deptName.toLowerCase().split(" ")[0])
+      s.department.toLowerCase().includes(deptName.toLowerCase().split(" ")[0]),
     );
-    const totalStaff = deptStaff.length || (deptName === "Emergency" ? 8 : deptName === "ICU & Critical Care" ? 6 : 4);
-    const onDuty = deptStaff.filter((s) => s.availability === "busy" || s.availability === "available").length || Math.ceil(totalStaff * 0.7);
-    const available = deptStaff.filter((s) => s.availability === "available").length || Math.floor(totalStaff * 0.3);
+    const totalStaff =
+      deptStaff.length ||
+      (deptName === "Emergency" ? 8 : deptName === "ICU & Critical Care" ? 6 : 4);
+    const onDuty =
+      deptStaff.filter((s) => s.availability === "busy" || s.availability === "available").length ||
+      Math.ceil(totalStaff * 0.7);
+    const available =
+      deptStaff.filter((s) => s.availability === "available").length ||
+      Math.floor(totalStaff * 0.3);
     const onCall = deptStaff.filter((s) => s.availability === "oncall").length || 1;
 
-    const totalPatients = deptStaff.reduce((sum, s) => sum + s.workload.activePatients, 0) || onDuty * 3;
+    const totalPatients =
+      deptStaff.reduce((sum, s) => sum + s.workload.activePatients, 0) || onDuty * 3;
     const maxCapacity = totalStaff * 6;
     const capacityPercentage = Math.min(100, Math.round((totalPatients / maxCapacity) * 100));
 
@@ -106,16 +116,28 @@ export function DepartmentWorkloadMatrix({ staffList, onSelectDepartment }: Depa
                 {/* Metric cells */}
                 <div className="grid grid-cols-3 gap-1 rounded-xl border border-border/60 bg-muted/30 p-2.5 text-center">
                   <div>
-                    <div className="text-base font-extrabold font-display text-primary">{dept.onDuty}</div>
-                    <div className="text-[9px] font-extrabold text-muted-foreground uppercase">On Duty</div>
+                    <div className="text-base font-extrabold font-display text-primary">
+                      {dept.onDuty}
+                    </div>
+                    <div className="text-[9px] font-extrabold text-muted-foreground uppercase">
+                      On Duty
+                    </div>
                   </div>
                   <div>
-                    <div className="text-base font-extrabold font-display text-success">{dept.available}</div>
-                    <div className="text-[9px] font-extrabold text-muted-foreground uppercase">Ready</div>
+                    <div className="text-base font-extrabold font-display text-success">
+                      {dept.available}
+                    </div>
+                    <div className="text-[9px] font-extrabold text-muted-foreground uppercase">
+                      Ready
+                    </div>
                   </div>
                   <div>
-                    <div className="text-base font-extrabold font-display text-rose-600 dark:text-rose-400">{dept.onCall}</div>
-                    <div className="text-[9px] font-extrabold text-muted-foreground uppercase">On Call</div>
+                    <div className="text-base font-extrabold font-display text-rose-600 dark:text-rose-400">
+                      {dept.onCall}
+                    </div>
+                    <div className="text-[9px] font-extrabold text-muted-foreground uppercase">
+                      On Call
+                    </div>
                   </div>
                 </div>
 
@@ -123,7 +145,8 @@ export function DepartmentWorkloadMatrix({ staffList, onSelectDepartment }: Depa
                 <div className="space-y-1.5">
                   <div className="flex justify-between items-center text-xs">
                     <span className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                      <Activity className="h-3 w-3 text-primary" /> Active Patients: {dept.totalPatients}
+                      <Activity className="h-3 w-3 text-primary" /> Active Patients:{" "}
+                      {dept.totalPatients}
                     </span>
                     <span className="font-mono text-[11px] font-bold text-foreground">
                       {dept.capacityPercentage}%

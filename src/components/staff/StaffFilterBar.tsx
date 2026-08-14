@@ -1,4 +1,15 @@
-import { Search, Filter, ArrowUpDown, LayoutGrid, CalendarRange, Building2, CheckCircle2, Clock, AlertCircle, XCircle } from "lucide-react";
+import {
+  Search,
+  Filter,
+  ArrowUpDown,
+  LayoutGrid,
+  CalendarRange,
+  Building2,
+  CheckCircle2,
+  Clock,
+  AlertCircle,
+  XCircle,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 export type StaffViewMode = "grid" | "roster" | "departments";

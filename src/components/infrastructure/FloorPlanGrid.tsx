@@ -1,5 +1,15 @@
 import { motion } from "framer-motion";
-import { Bed, User, Home, Activity, CheckCircle2, Shield, Wrench, Ban, AlertCircle } from "lucide-react";
+import {
+  Bed,
+  User,
+  Home,
+  Activity,
+  CheckCircle2,
+  Shield,
+  Wrench,
+  Ban,
+  AlertCircle,
+} from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 
 export interface FloorPlanGridProps {
@@ -87,7 +97,10 @@ const ROOM_TYPE_BADGES: Record<string, { bg: string; text: string }> = {
   icu: { bg: "bg-destructive/15 border-destructive/30", text: "text-destructive" },
   emergency: { bg: "bg-rose-500/15 border-rose-500/30", text: "text-rose-600" },
   general: { bg: "bg-primary/10 border-primary/20", text: "text-primary" },
-  private: { bg: "bg-indigo-500/10 border-indigo-500/20", text: "text-indigo-600 dark:text-indigo-400" },
+  private: {
+    bg: "bg-indigo-500/10 border-indigo-500/20",
+    text: "text-indigo-600 dark:text-indigo-400",
+  },
   isolation: { bg: "bg-amber-500/15 border-amber-500/30", text: "text-amber-600" },
   operating: { bg: "bg-teal-500/15 border-teal-500/30", text: "text-teal-600" },
   recovery: { bg: "bg-cyan-500/15 border-cyan-500/30", text: "text-cyan-600" },
@@ -156,7 +169,9 @@ export function FloorPlanGrid({
   }
 
   return (
-    <div className={`w-full overflow-x-auto overflow-y-visible rounded-2xl border border-border/80 bg-background/50 p-4 sm:p-6 shadow-clinical-sm ${className}`}>
+    <div
+      className={`w-full overflow-x-auto overflow-y-visible rounded-2xl border border-border/80 bg-background/50 p-4 sm:p-6 shadow-clinical-sm ${className}`}
+    >
       {/* Zoom transform wrapper */}
       <div
         style={{
@@ -207,8 +222,8 @@ export function FloorPlanGrid({
                       occupiedCount === totalCount && totalCount > 0
                         ? "bg-destructive/10 text-destructive border-destructive/20"
                         : occupiedCount > 0
-                        ? "bg-warning/10 text-warning-foreground border-warning/20"
-                        : "bg-success/10 text-success border-success/20"
+                          ? "bg-warning/10 text-warning-foreground border-warning/20"
+                          : "bg-success/10 text-success border-success/20"
                     }`}
                   >
                     {occupiedCount}/{totalCount}
@@ -220,7 +235,9 @@ export function FloorPlanGrid({
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider">
                   <span>Bed Allocation</span>
-                  <span>{totalCount} {totalCount === 1 ? "Slot" : "Slots"}</span>
+                  <span>
+                    {totalCount} {totalCount === 1 ? "Slot" : "Slots"}
+                  </span>
                 </div>
 
                 {roomBeds.length === 0 ? (

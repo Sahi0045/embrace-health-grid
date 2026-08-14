@@ -225,9 +225,5 @@ export function subscribeToBilling(
   onChange: (payload: ChangePayload) => void,
 ): () => void {
   if (!patientDid) return () => {};
-  return subscribeToTable(
-    "billing_accounts",
-    onChange,
-    `patient_did=eq.${patientDid}`,
-  );
+  return subscribeToTable("billing_accounts", onChange, `patient_did=eq.${patientDid}`);
 }

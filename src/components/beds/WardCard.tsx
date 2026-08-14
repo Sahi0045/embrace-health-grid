@@ -14,22 +14,25 @@ interface WardCardProps {
 const WARD_TYPE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
   ICU: { bg: "bg-destructive/10", text: "text-destructive", border: "border-destructive/20" },
   Emergency: { bg: "bg-warning/15", text: "text-warning-foreground", border: "border-warning/30" },
-  Pediatric: { bg: "bg-cyan-500/10", text: "text-cyan-600 dark:text-cyan-400", border: "border-cyan-500/20" },
-  Maternity: { bg: "bg-purple-500/10", text: "text-purple-600 dark:text-purple-400", border: "border-purple-500/20" },
+  Pediatric: {
+    bg: "bg-cyan-500/10",
+    text: "text-cyan-600 dark:text-cyan-400",
+    border: "border-cyan-500/20",
+  },
+  Maternity: {
+    bg: "bg-purple-500/10",
+    text: "text-purple-600 dark:text-purple-400",
+    border: "border-purple-500/20",
+  },
   General: { bg: "bg-primary/10", text: "text-primary", border: "border-primary/20" },
 };
 
-export function WardCard({
-  ward,
-  roomsCount,
-  bedsStats,
-  onSelect,
-  onAddRoom,
-}: WardCardProps) {
+export function WardCard({ ward, roomsCount, bedsStats, onSelect, onAddRoom }: WardCardProps) {
   const typeStyle = WARD_TYPE_COLORS[ward.ward_type || "General"] || WARD_TYPE_COLORS.General;
-  
+
   // Utilization rate based on beds occupied vs total
-  const utilization = bedsStats.total > 0 ? Math.round((bedsStats.occupied / bedsStats.total) * 100) : 0;
+  const utilization =
+    bedsStats.total > 0 ? Math.round((bedsStats.occupied / bedsStats.total) * 100) : 0;
   const progressTone = utilization > 85 ? "destructive" : utilization > 60 ? "warning" : "success";
 
   return (
@@ -51,7 +54,9 @@ export function WardCard({
                       {ward.ward_code}
                     </span>
                   )}
-                  <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${typeStyle.bg} ${typeStyle.text} ${typeStyle.border}`}>
+                  <span
+                    className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${typeStyle.bg} ${typeStyle.text} ${typeStyle.border}`}
+                  >
                     {ward.ward_type || "General"}
                   </span>
                 </div>
@@ -64,7 +69,9 @@ export function WardCard({
           <div className="space-y-1.5">
             <div className="flex items-center justify-between text-xs font-bold">
               <span className="text-muted-foreground">Ward Occupancy</span>
-              <span className="text-foreground font-mono">{utilization}% ({bedsStats.occupied}/{bedsStats.total} beds)</span>
+              <span className="text-foreground font-mono">
+                {utilization}% ({bedsStats.occupied}/{bedsStats.total} beds)
+              </span>
             </div>
             <GradientProgress value={utilization} tone={progressTone} height={8} />
           </div>

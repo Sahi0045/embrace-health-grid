@@ -1,6 +1,6 @@
 /**
  * Admin Portal — Patient Master Detail View
- * 
+ *
  * Provides comprehensive unified patient information and actions:
  * - Patient summary (demographics, DIDs, preferences)
  * - Current admission and location (bed, room, ward, building, hospital)
@@ -132,38 +132,35 @@ function AdminPatientMasterPage() {
   }, []);
 
   // Load detailed patient master data
-  const loadPatientData = useCallback(
-    async (patientDid: string) => {
-      if (!patientDid) return;
-      setLoading(true);
-      try {
-        const [master, history, transfers, records, meds, procs, labs, bill] = await Promise.all([
-          getPatientMaster({ patientDid }),
-          getPatientAdmissionHistory({ patientDid, limit: 50 }),
-          getPatientTransferHistory({ patientDid, limit: 50 }),
-          getPatientMedicalRecords({ patientDid, limit: 50 }),
-          getPatientMedications({ patientDid }),
-          getPatientProcedures({ patientDid }),
-          getPatientLabResults({ patientDid, limit: 50 }),
-          getPatientBilling({ patientDid }),
-        ]);
+  const loadPatientData = useCallback(async (patientDid: string) => {
+    if (!patientDid) return;
+    setLoading(true);
+    try {
+      const [master, history, transfers, records, meds, procs, labs, bill] = await Promise.all([
+        getPatientMaster({ patientDid }),
+        getPatientAdmissionHistory({ patientDid, limit: 50 }),
+        getPatientTransferHistory({ patientDid, limit: 50 }),
+        getPatientMedicalRecords({ patientDid, limit: 50 }),
+        getPatientMedications({ patientDid }),
+        getPatientProcedures({ patientDid }),
+        getPatientLabResults({ patientDid, limit: 50 }),
+        getPatientBilling({ patientDid }),
+      ]);
 
-        if (master.ok) setPatientMaster(master.patient);
-        if (history.ok) setAdmissionHistory(history.admissions);
-        if (transfers.ok) setTransferHistory(transfers.transfers);
-        if (records.ok) setMedicalRecords(records.records);
-        if (meds.ok) setMedications(meds.medications);
-        if (procs.ok) setProcedures(procs.procedures);
-        if (labs.ok) setLabResults(labs.labResults);
-        if (bill.ok) setBilling(bill);
-      } catch (err: any) {
-        toast.error("Could not load patient data", { description: err.message });
-      } finally {
-        setLoading(false);
-      }
-    },
-    [],
-  );
+      if (master.ok) setPatientMaster(master.patient);
+      if (history.ok) setAdmissionHistory(history.admissions);
+      if (transfers.ok) setTransferHistory(transfers.transfers);
+      if (records.ok) setMedicalRecords(records.records);
+      if (meds.ok) setMedications(meds.medications);
+      if (procs.ok) setProcedures(procs.procedures);
+      if (labs.ok) setLabResults(labs.labResults);
+      if (bill.ok) setBilling(bill);
+    } catch (err: any) {
+      toast.error("Could not load patient data", { description: err.message });
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   React.useEffect(() => {
     loadPatientList();
@@ -185,7 +182,7 @@ function AdminPatientMasterPage() {
     const q = searchQ.toLowerCase();
     return patients.filter(
       (p) =>
-        p.patient_name?.toLowerCase().includes(q) || 
+        p.patient_name?.toLowerCase().includes(q) ||
         p.patient_did?.toLowerCase().includes(q) ||
         p.ward?.toLowerCase().includes(q),
     );
@@ -336,11 +333,15 @@ function AdminPatientMasterPage() {
                           <div>{patientMaster.currentLocation.floor?.floorNumber || "-"}</div>
                         </div>
                         <div>
-                          <div className="text-xs font-semibold text-muted-foreground">Building</div>
+                          <div className="text-xs font-semibold text-muted-foreground">
+                            Building
+                          </div>
                           <div>{patientMaster.currentLocation.building?.buildingName || "-"}</div>
                         </div>
                         <div>
-                          <div className="text-xs font-semibold text-muted-foreground">Hospital</div>
+                          <div className="text-xs font-semibold text-muted-foreground">
+                            Hospital
+                          </div>
                           <div>{patientMaster.currentLocation.hospital?.hospitalName || "-"}</div>
                         </div>
                       </div>
@@ -432,11 +433,16 @@ function AdminPatientMasterPage() {
                           <p className="text-xs text-muted-foreground">No procedures found</p>
                         ) : (
                           procedures.slice(0, 5).map((proc) => (
-                            <div key={proc.procedureId} className="text-xs p-2 rounded-lg bg-muted/50">
+                            <div
+                              key={proc.procedureId}
+                              className="text-xs p-2 rounded-lg bg-muted/50"
+                            >
                               <div className="font-semibold">{proc.name}</div>
                               <div className="text-muted-foreground">Status: {proc.status}</div>
                               <div className="text-[10px] mt-1">
-                                {proc.scheduledFor ? new Date(proc.scheduledFor).toLocaleDateString("en-IN") : "Not scheduled"}
+                                {proc.scheduledFor
+                                  ? new Date(proc.scheduledFor).toLocaleDateString("en-IN")
+                                  : "Not scheduled"}
                               </div>
                             </div>
                           ))
@@ -561,7 +567,10 @@ function AdminPatientMasterPage() {
                       <p className="text-xs text-muted-foreground">No admission history</p>
                     ) : (
                       admissionHistory.map((adm) => (
-                        <div key={adm.admissionId} className="border-l-2 border-primary/50 pl-3 py-2">
+                        <div
+                          key={adm.admissionId}
+                          className="border-l-2 border-primary/50 pl-3 py-2"
+                        >
                           <div className="text-sm font-semibold flex items-center justify-between">
                             {adm.status === "discharged" ? "Discharged" : "Admitted"}
                             <Badge variant="outline" className="text-[10px]">
@@ -570,9 +579,12 @@ function AdminPatientMasterPage() {
                           </div>
                           <div className="text-xs text-muted-foreground">
                             {new Date(adm.admittedAt).toLocaleDateString("en-IN")}
-                            {adm.dischargedAt && ` - ${new Date(adm.dischargedAt).toLocaleDateString("en-IN")}`}
+                            {adm.dischargedAt &&
+                              ` - ${new Date(adm.dischargedAt).toLocaleDateString("en-IN")}`}
                           </div>
-                          <div className="text-xs mt-1">{adm.diagnosis || "No diagnosis recorded"}</div>
+                          <div className="text-xs mt-1">
+                            {adm.diagnosis || "No diagnosis recorded"}
+                          </div>
                         </div>
                       ))
                     )}

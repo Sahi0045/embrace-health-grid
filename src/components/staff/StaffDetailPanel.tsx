@@ -45,7 +45,9 @@ export function StaffDetailPanel({
   onConfirmShift,
 }: StaffDetailPanelProps) {
   const [copiedDid, setCopiedDid] = useState(false);
-  const [activeTab, setActiveTab] = useState<"assignment" | "schedule" | "attendance" | "credentials">("assignment");
+  const [activeTab, setActiveTab] = useState<
+    "assignment" | "schedule" | "attendance" | "credentials"
+  >("assignment");
 
   if (!staff) return null;
 
@@ -104,7 +106,10 @@ export function StaffDetailPanel({
                     {staff.fullName}
                   </h2>
                   <div className="flex items-center gap-2 mt-1">
-                    <Badge variant="outline" className="rounded-md bg-primary/10 border-primary/20 px-2 py-0.5 text-[10px] font-extrabold text-primary uppercase">
+                    <Badge
+                      variant="outline"
+                      className="rounded-md bg-primary/10 border-primary/20 px-2 py-0.5 text-[10px] font-extrabold text-primary uppercase"
+                    >
                       {staff.role}
                     </Badge>
                     <span className="text-xs text-muted-foreground font-semibold">
@@ -205,7 +210,9 @@ export function StaffDetailPanel({
                         Current Shift
                       </div>
                       <div className="font-bold text-foreground">
-                        {staff.currentShift ? `${staff.currentShift.startsAt} – ${staff.currentShift.endsAt}` : "No Active Shift"}
+                        {staff.currentShift
+                          ? `${staff.currentShift.startsAt} – ${staff.currentShift.endsAt}`
+                          : "No Active Shift"}
                       </div>
                       <div className="text-[10px] text-muted-foreground">
                         {staff.currentShift?.role || "General Duty"}
@@ -219,9 +226,7 @@ export function StaffDetailPanel({
                       <div className="font-bold text-foreground">
                         {staff.currentShift?.unit || staff.attendance?.location || "Unassigned"}
                       </div>
-                      <div className="text-[10px] text-muted-foreground">
-                        {staff.department}
-                      </div>
+                      <div className="text-[10px] text-muted-foreground">{staff.department}</div>
                     </div>
                   </div>
                 </div>
@@ -235,9 +240,12 @@ export function StaffDetailPanel({
 
                   <div className="space-y-1.5">
                     <div className="flex justify-between items-center text-xs">
-                      <span className="font-semibold text-muted-foreground">Active Inpatients Assigned</span>
+                      <span className="font-semibold text-muted-foreground">
+                        Active Inpatients Assigned
+                      </span>
                       <span className="font-mono font-bold text-foreground">
-                        {staff.workload.activePatients} of {staff.workload.maxCapacity} ({staff.workload.percentage}%)
+                        {staff.workload.activePatients} of {staff.workload.maxCapacity} (
+                        {staff.workload.percentage}%)
                       </span>
                     </div>
                     <GradientProgress
@@ -249,23 +257,37 @@ export function StaffDetailPanel({
 
                   <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border/60 text-center">
                     <div className="p-2 rounded-xl bg-muted/30">
-                      <div className="text-base font-extrabold font-display text-foreground">{staff.workload.hoursThisWeek}h</div>
-                      <div className="text-[9px] font-extrabold text-muted-foreground uppercase">Week Hours</div>
+                      <div className="text-base font-extrabold font-display text-foreground">
+                        {staff.workload.hoursThisWeek}h
+                      </div>
+                      <div className="text-[9px] font-extrabold text-muted-foreground uppercase">
+                        Week Hours
+                      </div>
                     </div>
                     <div className="p-2 rounded-xl bg-muted/30">
-                      <div className="text-base font-extrabold font-display text-success">98.5%</div>
-                      <div className="text-[9px] font-extrabold text-muted-foreground uppercase">Punctuality</div>
+                      <div className="text-base font-extrabold font-display text-success">
+                        98.5%
+                      </div>
+                      <div className="text-[9px] font-extrabold text-muted-foreground uppercase">
+                        Punctuality
+                      </div>
                     </div>
                     <div className="p-2 rounded-xl bg-muted/30">
-                      <div className="text-base font-extrabold font-display text-primary">4.9 ★</div>
-                      <div className="text-[9px] font-extrabold text-muted-foreground uppercase">Care Rating</div>
+                      <div className="text-base font-extrabold font-display text-primary">
+                        4.9 ★
+                      </div>
+                      <div className="text-[9px] font-extrabold text-muted-foreground uppercase">
+                        Care Rating
+                      </div>
                     </div>
                   </div>
                 </div>
 
                 {/* Contact Info */}
                 <div className="rounded-2xl border border-border/80 bg-card p-4 space-y-2.5 shadow-clinical-xs">
-                  <h3 className="font-display font-extrabold text-sm text-foreground">Contact & Dispatch</h3>
+                  <h3 className="font-display font-extrabold text-sm text-foreground">
+                    Contact & Dispatch
+                  </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Mail className="h-3.5 w-3.5 text-primary shrink-0" />
@@ -273,7 +295,9 @@ export function StaffDetailPanel({
                     </div>
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Phone className="h-3.5 w-3.5 text-teal-500 shrink-0" />
-                      <span className="text-foreground font-medium">{staff.phone || "+1 (555) 019-4832"}</span>
+                      <span className="text-foreground font-medium">
+                        {staff.phone || "+1 (555) 019-4832"}
+                      </span>
                     </div>
                   </div>
                 </div>

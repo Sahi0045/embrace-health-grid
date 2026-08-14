@@ -49,12 +49,20 @@ export function FloorCard({
           {/* Metrics summary */}
           <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border/60 text-center">
             <div className="p-2 rounded-xl bg-muted/40 border border-border/40">
-              <div className="text-[10px] font-extrabold uppercase text-muted-foreground">Wards</div>
-              <div className="text-sm font-extrabold font-display text-foreground">{wardsCount}</div>
+              <div className="text-[10px] font-extrabold uppercase text-muted-foreground">
+                Wards
+              </div>
+              <div className="text-sm font-extrabold font-display text-foreground">
+                {wardsCount}
+              </div>
             </div>
             <div className="p-2 rounded-xl bg-muted/40 border border-border/40">
-              <div className="text-[10px] font-extrabold uppercase text-muted-foreground">Rooms</div>
-              <div className="text-sm font-extrabold font-display text-foreground">{roomsCount}</div>
+              <div className="text-[10px] font-extrabold uppercase text-muted-foreground">
+                Rooms
+              </div>
+              <div className="text-sm font-extrabold font-display text-foreground">
+                {roomsCount}
+              </div>
             </div>
             <div className="p-2 rounded-xl bg-muted/40 border border-border/40">
               <div className="text-[10px] font-extrabold uppercase text-muted-foreground">Beds</div>

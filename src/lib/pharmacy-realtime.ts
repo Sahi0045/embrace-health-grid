@@ -22,17 +22,17 @@ import { RealtimeChannel } from "@supabase/supabase-js";
 /**
  * Subscribe to stock movements (append-only audit log)
  * Fires on every inventory transaction (add, remove, consume, waste, etc.)
- * 
+ *
  * Use case: Real-time audit trail, compliance reporting, movement history
  */
 export function subscribeToStockMovements(
   hospitalId: string,
   onMovement: (movement: any) => void,
-  onError?: (error: any) => void
+  onError?: (error: any) => void,
 ): RealtimeChannel | null {
   try {
     const supabase = getSupabaseServerClient();
-    
+
     const channel = supabase
       .channel(`pharmacy:stock-movements:${hospitalId}`)
       .on(
@@ -48,7 +48,7 @@ export function subscribeToStockMovements(
           if (payload.eventType === "INSERT") {
             onMovement(payload.new);
           }
-        }
+        },
       )
       .subscribe();
 
@@ -62,18 +62,18 @@ export function subscribeToStockMovements(
 /**
  * Subscribe to stock level changes
  * Fires when availability updates (due to movements, batch changes)
- * 
+ *
  * Use case: Live inventory dashboards, availability checks for dispensing
  */
 export function subscribeToStockLevels(
   hospitalId: string,
   itemId: string | undefined,
   onUpdate: (level: any) => void,
-  onError?: (error: any) => void
+  onError?: (error: any) => void,
 ): RealtimeChannel | null {
   try {
     const supabase = getSupabaseServerClient();
-    
+
     const filter = itemId
       ? `hospital_id=eq.${hospitalId},item_id=eq.${itemId}`
       : `hospital_id=eq.${hospitalId}`;
@@ -92,7 +92,7 @@ export function subscribeToStockLevels(
           // Track both new and updated values
           const data = payload.new || payload.old;
           onUpdate(data);
-        }
+        },
       )
       .subscribe();
 
@@ -106,13 +106,13 @@ export function subscribeToStockLevels(
 /**
  * Subscribe to expiration alerts
  * Fires when batches approach or pass expiry dates
- * 
+ *
  * Use case: Real-time expiry monitoring, compliance alerts
  */
 export function subscribeToExpirationAlerts(
   hospitalId: string,
   onAlert: (alert: any) => void,
-  onError?: (error: any) => void
+  onError?: (error: any) => void,
 ): RealtimeChannel | null {
   try {
     const supabase = getSupabaseServerClient();
@@ -129,7 +129,7 @@ export function subscribeToExpirationAlerts(
         },
         (payload: any) => {
           onAlert(payload.new || payload.old);
-        }
+        },
       )
       .subscribe();
 
@@ -143,13 +143,13 @@ export function subscribeToExpirationAlerts(
 /**
  * Subscribe to low-stock alerts
  * Fires when inventory falls below reorder level
- * 
+ *
  * Use case: Real-time low-stock notifications, replenishment triggers
  */
 export function subscribeToLowStockAlerts(
   hospitalId: string,
   onAlert: (alert: any) => void,
-  onError?: (error: any) => void
+  onError?: (error: any) => void,
 ): RealtimeChannel | null {
   try {
     const supabase = getSupabaseServerClient();
@@ -166,7 +166,7 @@ export function subscribeToLowStockAlerts(
         },
         (payload: any) => {
           onAlert(payload.new || payload.old);
-        }
+        },
       )
       .subscribe();
 
@@ -180,13 +180,13 @@ export function subscribeToLowStockAlerts(
 /**
  * Subscribe to batch updates
  * Fires when batch quantities change (received, consumed, wasted)
- * 
+ *
  * Use case: Batch tracking, inventory adjustments, batch lifecycle
  */
 export function subscribeToBatches(
   hospitalId: string,
   onUpdate: (batch: any) => void,
-  onError?: (error: any) => void
+  onError?: (error: any) => void,
 ): RealtimeChannel | null {
   try {
     const supabase = getSupabaseServerClient();
@@ -203,7 +203,7 @@ export function subscribeToBatches(
         },
         (payload: any) => {
           onUpdate(payload.new || payload.old);
-        }
+        },
       )
       .subscribe();
 
@@ -217,13 +217,13 @@ export function subscribeToBatches(
 /**
  * Subscribe to purchase orders
  * Fires when PO status changes (draft → submitted → received)
- * 
+ *
  * Use case: Procurement tracking, order fulfillment monitoring
  */
 export function subscribeToPurchaseOrders(
   hospitalId: string,
   onUpdate: (order: any) => void,
-  onError?: (error: any) => void
+  onError?: (error: any) => void,
 ): RealtimeChannel | null {
   try {
     const supabase = getSupabaseServerClient();
@@ -240,7 +240,7 @@ export function subscribeToPurchaseOrders(
         },
         (payload: any) => {
           onUpdate(payload.new || payload.old);
-        }
+        },
       )
       .subscribe();
 
@@ -275,7 +275,7 @@ export interface PharmacyRealtimeCallbacks {
 /**
  * Subscribe to multiple pharmacy channels at once
  * Manages all subscriptions and provides cleanup
- * 
+ *
  * Usage:
  * ```
  * const channels = subscribeToPharmacyUpdates(hospitalId, {
@@ -286,7 +286,7 @@ export interface PharmacyRealtimeCallbacks {
  *   onMovement: (mov) => console.log("Movement:", mov),
  *   onStockLevelChange: (level) => console.log("Stock:", level),
  * });
- * 
+ *
  * // Later: unsubscribe all
  * channels.unsubscribeAll();
  * ```
@@ -299,7 +299,7 @@ export function subscribeToPharmacyUpdates(
     expirationAlerts: true,
     lowStockAlerts: true,
   },
-  callbacks: PharmacyRealtimeCallbacks
+  callbacks: PharmacyRealtimeCallbacks,
 ) {
   const channels: RealtimeChannel[] = [];
 
@@ -307,7 +307,7 @@ export function subscribeToPharmacyUpdates(
     const ch = subscribeToStockMovements(
       hospitalId,
       callbacks.onMovement || (() => {}),
-      callbacks.onError
+      callbacks.onError,
     );
     if (ch) channels.push(ch);
   }
@@ -317,7 +317,7 @@ export function subscribeToPharmacyUpdates(
       hospitalId,
       undefined,
       callbacks.onStockLevelChange || (() => {}),
-      callbacks.onError
+      callbacks.onError,
     );
     if (ch) channels.push(ch);
   }
@@ -326,7 +326,7 @@ export function subscribeToPharmacyUpdates(
     const ch = subscribeToExpirationAlerts(
       hospitalId,
       callbacks.onExpirationAlert || (() => {}),
-      callbacks.onError
+      callbacks.onError,
     );
     if (ch) channels.push(ch);
   }
@@ -335,7 +335,7 @@ export function subscribeToPharmacyUpdates(
     const ch = subscribeToLowStockAlerts(
       hospitalId,
       callbacks.onLowStockAlert || (() => {}),
-      callbacks.onError
+      callbacks.onError,
     );
     if (ch) channels.push(ch);
   }
@@ -344,7 +344,7 @@ export function subscribeToPharmacyUpdates(
     const ch = subscribeToBatches(
       hospitalId,
       callbacks.onBatchUpdate || (() => {}),
-      callbacks.onError
+      callbacks.onError,
     );
     if (ch) channels.push(ch);
   }
@@ -353,7 +353,7 @@ export function subscribeToPharmacyUpdates(
     const ch = subscribeToPurchaseOrders(
       hospitalId,
       callbacks.onPurchaseOrderUpdate || (() => {}),
-      callbacks.onError
+      callbacks.onError,
     );
     if (ch) channels.push(ch);
   }
@@ -380,7 +380,7 @@ import { useEffect, useRef, useCallback, useState } from "react";
 /**
  * React hook for pharmacy realtime subscriptions
  * Automatically handles subscription lifecycle (mount/unmount)
- * 
+ *
  * Usage:
  * ```
  * const { movements, stockLevels } = usePharmacyRealtime(hospitalId, {
@@ -391,7 +391,7 @@ import { useEffect, useRef, useCallback, useState } from "react";
  */
 export function usePharmacyRealtime(
   hospitalId: string,
-  config: PharmacyRealtimeConfig = { movements: true, stockLevels: true }
+  config: PharmacyRealtimeConfig = { movements: true, stockLevels: true },
 ) {
   const subscriptionsRef = useRef<ReturnType<typeof subscribeToPharmacyUpdates> | null>(null);
 
@@ -403,45 +403,41 @@ export function usePharmacyRealtime(
   const [purchaseOrders, setPurchaseOrders] = useState<any[]>([]);
 
   useEffect(() => {
-    subscriptionsRef.current = subscribeToPharmacyUpdates(
-      hospitalId,
-      config,
-      {
-        onMovement: (mov) => {
-          setMovements((prev) => [mov, ...prev.slice(0, 99)]); // Keep last 100
-        },
-        onStockLevelChange: (level) => {
-          setStockLevels((prev) => {
-            const filtered = prev.filter((l) => l.stock_id !== level.stock_id);
-            return [level, ...filtered];
-          });
-        },
-        onExpirationAlert: (alert) => {
-          setExpirationAlerts((prev) => {
-            const filtered = prev.filter((a) => a.alert_id !== alert.alert_id);
-            return [alert, ...filtered];
-          });
-        },
-        onLowStockAlert: (alert) => {
-          setLowStockAlerts((prev) => {
-            const filtered = prev.filter((a) => a.alert_id !== alert.alert_id);
-            return [alert, ...filtered];
-          });
-        },
-        onBatchUpdate: (batch) => {
-          setBatches((prev) => {
-            const filtered = prev.filter((b) => b.batch_id !== batch.batch_id);
-            return [batch, ...filtered];
-          });
-        },
-        onPurchaseOrderUpdate: (order) => {
-          setPurchaseOrders((prev) => {
-            const filtered = prev.filter((o) => o.order_id !== order.order_id);
-            return [order, ...filtered];
-          });
-        },
-      }
-    );
+    subscriptionsRef.current = subscribeToPharmacyUpdates(hospitalId, config, {
+      onMovement: (mov) => {
+        setMovements((prev) => [mov, ...prev.slice(0, 99)]); // Keep last 100
+      },
+      onStockLevelChange: (level) => {
+        setStockLevels((prev) => {
+          const filtered = prev.filter((l) => l.stock_id !== level.stock_id);
+          return [level, ...filtered];
+        });
+      },
+      onExpirationAlert: (alert) => {
+        setExpirationAlerts((prev) => {
+          const filtered = prev.filter((a) => a.alert_id !== alert.alert_id);
+          return [alert, ...filtered];
+        });
+      },
+      onLowStockAlert: (alert) => {
+        setLowStockAlerts((prev) => {
+          const filtered = prev.filter((a) => a.alert_id !== alert.alert_id);
+          return [alert, ...filtered];
+        });
+      },
+      onBatchUpdate: (batch) => {
+        setBatches((prev) => {
+          const filtered = prev.filter((b) => b.batch_id !== batch.batch_id);
+          return [batch, ...filtered];
+        });
+      },
+      onPurchaseOrderUpdate: (order) => {
+        setPurchaseOrders((prev) => {
+          const filtered = prev.filter((o) => o.order_id !== order.order_id);
+          return [order, ...filtered];
+        });
+      },
+    });
 
     return () => {
       subscriptionsRef.current?.unsubscribeAll();

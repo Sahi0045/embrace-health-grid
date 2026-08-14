@@ -43,7 +43,11 @@ export const Route = createFileRoute("/admin/patient-profile")({
   head: () => ({
     meta: [
       { title: "Patient Profile — Admin Console" },
-      { name: "description", content: "Comprehensive medical history, visits, prescriptions, and billing governance profile" },
+      {
+        name: "description",
+        content:
+          "Comprehensive medical history, visits, prescriptions, and billing governance profile",
+      },
     ],
   }),
   component: PatientProfilePage,
@@ -106,7 +110,9 @@ function PatientProfilePage() {
 
         <PageHeader
           eyebrow="Patient Health Grid & Governance Profile"
-          title={profileData?.did?.owner_name || profileData?.profile?.full_name || "Patient Profile"}
+          title={
+            profileData?.did?.owner_name || profileData?.profile?.full_name || "Patient Profile"
+          }
           description="Complete longitudinal health history, active inpatient status, prescriptions, and financial ledger"
           actions={
             <div className="flex items-center gap-2">
@@ -244,7 +250,6 @@ function PatientProfilePage() {
                     Documents
                   </TabsTrigger>
                 </TabsList>
-
 
                 <TabsContent value="medical-history" className="focus-visible:outline-none">
                   <MedicalHistoryTab records={profileData?.medicalRecords || []} />

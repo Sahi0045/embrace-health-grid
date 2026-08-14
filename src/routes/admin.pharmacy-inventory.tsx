@@ -1,13 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -151,12 +145,8 @@ function AdminPharmacyInventory() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            Pharmacy Inventory Management
-          </h1>
-          <p className="text-gray-600">
-            Manage medicines, stock levels, suppliers, and alerts
-          </p>
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">Pharmacy Inventory Management</h1>
+          <p className="text-gray-600">Manage medicines, stock levels, suppliers, and alerts</p>
         </div>
 
         {/* Alert Summary Cards */}
@@ -170,12 +160,8 @@ function AdminPharmacyInventory() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-yellow-700">
-                {lowStockCount}
-              </div>
-              <p className="text-xs text-yellow-600 mt-1">
-                Items below reorder level
-              </p>
+              <div className="text-2xl font-bold text-yellow-700">{lowStockCount}</div>
+              <p className="text-xs text-yellow-600 mt-1">Items below reorder level</p>
             </CardContent>
           </Card>
 
@@ -188,12 +174,8 @@ function AdminPharmacyInventory() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-orange-700">
-                {nearExpiryCount}
-              </div>
-              <p className="text-xs text-orange-600 mt-1">
-                Items within 30 days of expiry
-              </p>
+              <div className="text-2xl font-bold text-orange-700">{nearExpiryCount}</div>
+              <p className="text-xs text-orange-600 mt-1">Items within 30 days of expiry</p>
             </CardContent>
           </Card>
 
@@ -206,9 +188,7 @@ function AdminPharmacyInventory() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-red-700">
-                {expiredCount}
-              </div>
+              <div className="text-2xl font-bold text-red-700">{expiredCount}</div>
               <p className="text-xs text-red-600 mt-1">
                 {expiredData?.totalQuantityExpired || 0} units total
               </p>
@@ -217,11 +197,7 @@ function AdminPharmacyInventory() {
         </div>
 
         {/* Tabs */}
-        <Tabs
-          value={activeTab}
-          onValueChange={setActiveTab}
-          className="w-full"
-        >
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-5 bg-white border">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="inventory">Inventory</TabsTrigger>
@@ -260,9 +236,7 @@ function AdminPharmacyInventory() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-gray-500 text-center py-6">
-                    All items well-stocked
-                  </p>
+                  <p className="text-gray-500 text-center py-6">All items well-stocked</p>
                 )}
               </CardContent>
             </Card>
@@ -292,17 +266,13 @@ function AdminPharmacyInventory() {
                           <p className="text-sm font-medium text-orange-600">
                             {alert.days_until_expiry} days
                           </p>
-                          <p className="text-xs text-gray-500">
-                            Qty: {alert.quantity_affected}
-                          </p>
+                          <p className="text-xs text-gray-500">Qty: {alert.quantity_affected}</p>
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-gray-500 text-center py-6">
-                    No items near expiry
-                  </p>
+                  <p className="text-gray-500 text-center py-6">No items near expiry</p>
                 )}
               </CardContent>
             </Card>
@@ -352,44 +322,26 @@ function AdminPharmacyInventory() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b">
-                          <th className="text-left py-3 px-3 font-medium">
-                            Name
-                          </th>
-                          <th className="text-left py-3 px-3 font-medium">
-                            Code
-                          </th>
-                          <th className="text-left py-3 px-3 font-medium">
-                            Type
-                          </th>
-                          <th className="text-left py-3 px-3 font-medium">
-                            Unit
-                          </th>
-                          <th className="text-left py-3 px-3 font-medium">
-                            Reorder Level
-                          </th>
-                          <th className="text-left py-3 px-3 font-medium">
-                            Status
-                          </th>
+                          <th className="text-left py-3 px-3 font-medium">Name</th>
+                          <th className="text-left py-3 px-3 font-medium">Code</th>
+                          <th className="text-left py-3 px-3 font-medium">Type</th>
+                          <th className="text-left py-3 px-3 font-medium">Unit</th>
+                          <th className="text-left py-3 px-3 font-medium">Reorder Level</th>
+                          <th className="text-left py-3 px-3 font-medium">Status</th>
                         </tr>
                       </thead>
                       <tbody>
                         {inventoryData.items.map((item: any) => (
                           <tr key={item.item_id} className="border-b hover:bg-gray-50">
                             <td className="py-3 px-3">{item.item_name}</td>
-                            <td className="py-3 px-3 text-gray-600">
-                              {item.item_code}
-                            </td>
+                            <td className="py-3 px-3 text-gray-600">{item.item_code}</td>
                             <td className="py-3 px-3">
                               <Badge variant="outline">{item.item_type}</Badge>
                             </td>
                             <td className="py-3 px-3">{item.unit_of_measure}</td>
                             <td className="py-3 px-3">{item.reorder_level}</td>
                             <td className="py-3 px-3">
-                              <Badge
-                                variant={
-                                  item.status === "active" ? "default" : "outline"
-                                }
-                              >
+                              <Badge variant={item.status === "active" ? "default" : "outline"}>
                                 {item.status}
                               </Badge>
                             </td>
@@ -399,9 +351,7 @@ function AdminPharmacyInventory() {
                     </table>
                   </div>
                 ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    No inventory items found
-                  </div>
+                  <div className="text-center py-8 text-gray-500">No inventory items found</div>
                 )}
               </CardContent>
             </Card>
@@ -414,9 +364,7 @@ function AdminPharmacyInventory() {
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle>Inventory Batches</CardTitle>
-                    <CardDescription>
-                      All active batches with tracking
-                    </CardDescription>
+                    <CardDescription>All active batches with tracking</CardDescription>
                   </div>
                   <AddBatchDialog onSuccess={() => refreshInventory()} />
                 </div>
@@ -470,9 +418,7 @@ function AdminPharmacyInventory() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-gray-500 text-center py-6">
-                      No low stock alerts
-                    </p>
+                    <p className="text-gray-500 text-center py-6">No low stock alerts</p>
                   )}
                 </CardContent>
               </Card>
@@ -498,8 +444,8 @@ function AdminPharmacyInventory() {
                               {alert.inventory_items?.item_name}
                             </p>
                             <p className="text-sm text-gray-600">
-                              Batch: {alert.inventory_batches?.batch_number} | 
-                              Qty: {alert.quantity_affected}
+                              Batch: {alert.inventory_batches?.batch_number} | Qty:{" "}
+                              {alert.quantity_affected}
                             </p>
                           </div>
                           <div className="text-right">
@@ -512,9 +458,7 @@ function AdminPharmacyInventory() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-gray-500 text-center py-6">
-                      No near-expiry items
-                    </p>
+                    <p className="text-gray-500 text-center py-6">No near-expiry items</p>
                   )}
                 </CardContent>
               </Card>
@@ -539,9 +483,7 @@ function AdminPharmacyInventory() {
                             <p className="font-medium text-gray-900">
                               {alert.inventory_items?.item_name}
                             </p>
-                            <p className="text-sm text-gray-600">
-                              {alert.action_notes}
-                            </p>
+                            <p className="text-sm text-gray-600">{alert.action_notes}</p>
                           </div>
                           <div className="text-right">
                             <p className="text-xs text-gray-600">
@@ -552,9 +494,7 @@ function AdminPharmacyInventory() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-gray-500 text-center py-6">
-                      No expired stock records
-                    </p>
+                    <p className="text-gray-500 text-center py-6">No expired stock records</p>
                   )}
                 </CardContent>
               </Card>
@@ -658,12 +598,7 @@ function AddItemDialog({ onSuccess }: { onSuccess: () => void }) {
           </div>
           <div>
             <label className="text-sm font-medium">Reorder Level</label>
-            <Input
-              name="reorderLevel"
-              type="number"
-              defaultValue={50}
-              min={1}
-            />
+            <Input name="reorderLevel" type="number" defaultValue={50} min={1} />
           </div>
           <Button type="submit" className="w-full" disabled={mutation.isPending}>
             {mutation.isPending ? "Creating..." : "Create Item"}
@@ -742,13 +677,7 @@ function AddBatchDialog({ onSuccess }: { onSuccess: () => void }) {
           </div>
           <div>
             <label className="text-sm font-medium">Quantity *</label>
-            <Input
-              name="quantityReceived"
-              type="number"
-              placeholder="Quantity"
-              required
-              min={1}
-            />
+            <Input name="quantityReceived" type="number" placeholder="Quantity" required min={1} />
           </div>
           <div>
             <label className="text-sm font-medium">Supplier</label>
@@ -803,8 +732,8 @@ function AddPurchaseOrderDialog({ onSuccess }: { onSuccess: () => void }) {
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Purchase order creation requires a more detailed interface. Use the
-            pharmacy staff portal for full functionality.
+            Purchase order creation requires a more detailed interface. Use the pharmacy staff
+            portal for full functionality.
           </AlertDescription>
         </Alert>
       </DialogContent>
@@ -841,21 +770,13 @@ function BatchesTable({ onRefresh }: { onRefresh: () => void }) {
               <td className="py-3 px-3">{batch.item_id}</td>
               <td className="py-3 px-3">
                 <span className="font-medium">{batch.quantity_available}</span>
-                <span className="text-gray-500 text-xs ml-1">
-                  / {batch.quantity_received}
-                </span>
+                <span className="text-gray-500 text-xs ml-1">/ {batch.quantity_received}</span>
               </td>
               <td className="py-3 px-3">
-                {batch.expiry_date
-                  ? new Date(batch.expiry_date).toLocaleDateString()
-                  : "—"}
+                {batch.expiry_date ? new Date(batch.expiry_date).toLocaleDateString() : "—"}
               </td>
               <td className="py-3 px-3">
-                <Badge
-                  variant={
-                    batch.quantity_available > 0 ? "default" : "destructive"
-                  }
-                >
+                <Badge variant={batch.quantity_available > 0 ? "default" : "destructive"}>
                   {batch.quantity_available > 0 ? "Active" : "Depleted"}
                 </Badge>
               </td>
@@ -867,13 +788,7 @@ function BatchesTable({ onRefresh }: { onRefresh: () => void }) {
   );
 }
 
-function PurchaseOrdersTable({
-  orders,
-  onRefresh,
-}: {
-  orders: any[];
-  onRefresh: () => void;
-}) {
+function PurchaseOrdersTable({ orders, onRefresh }: { orders: any[]; onRefresh: () => void }) {
   if (!orders || orders.length === 0) {
     return <div className="text-center py-8 text-gray-500">No purchase orders</div>;
   }
@@ -894,9 +809,7 @@ function PurchaseOrdersTable({
           {orders.map((order: any) => (
             <tr key={order.order_id} className="border-b hover:bg-gray-50">
               <td className="py-3 px-3 font-medium">{order.order_id}</td>
-              <td className="py-3 px-3">
-                {order.suppliers?.supplier_name || "—"}
-              </td>
+              <td className="py-3 px-3">{order.suppliers?.supplier_name || "—"}</td>
               <td className="py-3 px-3">
                 <Badge variant="outline">{order.status}</Badge>
               </td>

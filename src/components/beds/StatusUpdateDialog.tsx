@@ -22,7 +22,12 @@ import { CheckCircle2, Users, Clock, Activity, Wrench, Ban, Shield } from "lucid
 interface StatusUpdateDialogProps {
   dialog: { open: boolean; item: any; type: "bed" | "room" | null };
   onClose: () => void;
-  onUpdate: (itemId: string, status: string, type: "bed" | "room", patientDid?: string) => Promise<void>;
+  onUpdate: (
+    itemId: string,
+    status: string,
+    type: "bed" | "room",
+    patientDid?: string,
+  ) => Promise<void>;
 }
 
 const STATUS_CONFIG: Record<
@@ -38,11 +43,7 @@ const STATUS_CONFIG: Record<
   emergency_reserved: { label: "Emergency Reserved", icon: Shield },
 };
 
-export function StatusUpdateDialog({
-  dialog,
-  onClose,
-  onUpdate,
-}: StatusUpdateDialogProps) {
+export function StatusUpdateDialog({ dialog, onClose, onUpdate }: StatusUpdateDialogProps) {
   const [selectedStatus, setSelectedStatus] = useState("");
   const [patientDid, setPatientDid] = useState("");
   const [updating, setUpdating] = useState(false);
@@ -59,7 +60,12 @@ export function StatusUpdateDialog({
     setUpdating(true);
     try {
       const itemId = dialog.type === "bed" ? dialog.item.bed_id : dialog.item.room_id;
-      await onUpdate(itemId, selectedStatus, dialog.type, selectedStatus === "occupied" ? patientDid : undefined);
+      await onUpdate(
+        itemId,
+        selectedStatus,
+        dialog.type,
+        selectedStatus === "occupied" ? patientDid : undefined,
+      );
     } finally {
       setUpdating(false);
     }
@@ -107,7 +113,9 @@ export function StatusUpdateDialog({
 
           {dialog.type === "bed" && selectedStatus === "occupied" && (
             <div className="space-y-2">
-              <Label className="text-xs font-bold text-foreground">Patient DID (Required when occupied)</Label>
+              <Label className="text-xs font-bold text-foreground">
+                Patient DID (Required when occupied)
+              </Label>
               <Input
                 value={patientDid}
                 onChange={(e) => setPatientDid(e.target.value)}

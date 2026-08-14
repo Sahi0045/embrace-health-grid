@@ -1,6 +1,6 @@
 /**
  * Staff Portal — Patient Master Detail View
- * 
+ *
  * Shows comprehensive patient information for assigned patients:
  * - Current admission and ward location
  * - Medical information (records, medications, procedures)
@@ -118,30 +118,27 @@ function StaffPatientMasterPage() {
   }, []);
 
   // Load detailed patient master data
-  const loadPatientData = useCallback(
-    async (patientDid: string) => {
-      if (!patientDid) return;
-      setLoading(true);
-      try {
-        const [master, records, meds, procs] = await Promise.all([
-          getPatientMaster({ patientDid }),
-          getPatientMedicalRecords({ patientDid, limit: 50 }),
-          getPatientMedications({ patientDid }),
-          getPatientProcedures({ patientDid }),
-        ]);
+  const loadPatientData = useCallback(async (patientDid: string) => {
+    if (!patientDid) return;
+    setLoading(true);
+    try {
+      const [master, records, meds, procs] = await Promise.all([
+        getPatientMaster({ patientDid }),
+        getPatientMedicalRecords({ patientDid, limit: 50 }),
+        getPatientMedications({ patientDid }),
+        getPatientProcedures({ patientDid }),
+      ]);
 
-        if (master.ok) setPatientMaster(master.patient);
-        if (records.ok) setMedicalRecords(records.records);
-        if (meds.ok) setMedications(meds.medications);
-        if (procs.ok) setProcedures(procs.procedures);
-      } catch (err: any) {
-        toast.error("Could not load patient data", { description: err.message });
-      } finally {
-        setLoading(false);
-      }
-    },
-    [],
-  );
+      if (master.ok) setPatientMaster(master.patient);
+      if (records.ok) setMedicalRecords(records.records);
+      if (meds.ok) setMedications(meds.medications);
+      if (procs.ok) setProcedures(procs.procedures);
+    } catch (err: any) {
+      toast.error("Could not load patient data", { description: err.message });
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   React.useEffect(() => {
     loadPatientList();
@@ -235,9 +232,7 @@ function StaffPatientMasterPage() {
         <div className="lg:col-span-1">
           <Card className="h-full">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm">
-                Ward Patients ({filteredPatients.length})
-              </CardTitle>
+              <CardTitle className="text-sm">Ward Patients ({filteredPatients.length})</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="relative">
@@ -350,9 +345,9 @@ function StaffPatientMasterPage() {
                             Admitted
                           </div>
                           <div className="text-xs">
-                            {new Date(
-                              patientMaster.currentLocation.admittedAt,
-                            ).toLocaleString("en-IN")}
+                            {new Date(patientMaster.currentLocation.admittedAt).toLocaleString(
+                              "en-IN",
+                            )}
                           </div>
                         </div>
                       )}
@@ -415,7 +410,10 @@ function StaffPatientMasterPage() {
                           <p className="text-xs text-muted-foreground">No procedures</p>
                         ) : (
                           procedures.slice(0, 10).map((proc) => (
-                            <div key={proc.procedureId} className="text-xs p-2 rounded-lg bg-muted/50">
+                            <div
+                              key={proc.procedureId}
+                              className="text-xs p-2 rounded-lg bg-muted/50"
+                            >
                               <div className="font-semibold">{proc.name}</div>
                               <div className="text-muted-foreground">Status: {proc.status}</div>
                             </div>
@@ -525,11 +523,7 @@ function StaffPatientMasterPage() {
             >
               Cancel
             </Button>
-            <Button
-              onClick={handleAddRecord}
-              disabled={savingRecord}
-              className="text-xs"
-            >
+            <Button onClick={handleAddRecord} disabled={savingRecord} className="text-xs">
               {savingRecord ? (
                 <>
                   <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />

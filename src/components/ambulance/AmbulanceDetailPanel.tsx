@@ -33,7 +33,11 @@ import type { AmbulanceRecord, AmbulanceStatus } from "@/lib/types";
 interface AmbulanceDetailPanelProps {
   ambulance: AmbulanceRecord | null;
   onClose: () => void;
-  onUpdateStatus: (ambulanceId: string, newStatus: AmbulanceStatus, location?: string) => Promise<void>;
+  onUpdateStatus: (
+    ambulanceId: string,
+    newStatus: AmbulanceStatus,
+    location?: string,
+  ) => Promise<void>;
 }
 
 type TabKey = "mission" | "telemetry" | "equipment" | "logs";
@@ -71,11 +75,31 @@ export function AmbulanceDetailPanel({
   };
 
   const statusBadgeConfig: Record<string, { label: string; cls: string; dot: string }> = {
-    available: { label: "Available / Standby", cls: "border-success/30 bg-success/10 text-success", dot: "bg-success" },
-    "en-route": { label: "En Route Dispatched", cls: "border-warning/30 bg-warning/15 text-warning-foreground", dot: "bg-warning" },
-    "at-scene": { label: "At Scene Responding", cls: "border-destructive/30 bg-destructive/15 text-destructive", dot: "bg-destructive" },
-    returning: { label: "Returning to Base", cls: "border-primary/30 bg-primary/10 text-primary", dot: "bg-primary" },
-    maintenance: { label: "Under Maintenance", cls: "border-border/80 bg-muted/40 text-muted-foreground", dot: "bg-muted-foreground" },
+    available: {
+      label: "Available / Standby",
+      cls: "border-success/30 bg-success/10 text-success",
+      dot: "bg-success",
+    },
+    "en-route": {
+      label: "En Route Dispatched",
+      cls: "border-warning/30 bg-warning/15 text-warning-foreground",
+      dot: "bg-warning",
+    },
+    "at-scene": {
+      label: "At Scene Responding",
+      cls: "border-destructive/30 bg-destructive/15 text-destructive",
+      dot: "bg-destructive",
+    },
+    returning: {
+      label: "Returning to Base",
+      cls: "border-primary/30 bg-primary/10 text-primary",
+      dot: "bg-primary",
+    },
+    maintenance: {
+      label: "Under Maintenance",
+      cls: "border-border/80 bg-muted/40 text-muted-foreground",
+      dot: "bg-muted-foreground",
+    },
   };
 
   const currentBadge = statusBadgeConfig[ambulance.status] || statusBadgeConfig.available;
@@ -123,7 +147,9 @@ export function AmbulanceDetailPanel({
                   <p className="text-xs font-medium text-muted-foreground mt-0.5 flex items-center gap-2">
                     <span>Emergency Response Unit</span>
                     <span className="text-border">•</span>
-                    <span className="font-mono text-[11px] text-muted-foreground">ID: {ambulance.id}</span>
+                    <span className="font-mono text-[11px] text-muted-foreground">
+                      ID: {ambulance.id}
+                    </span>
                   </p>
                 </div>
               </div>
@@ -229,7 +255,10 @@ export function AmbulanceDetailPanel({
                       {ambulance.driver || "Driver Unassigned"}
                     </div>
                     <p className="text-[11px] text-muted-foreground">
-                      Paramedic Team: <span className="font-semibold text-foreground">{ambulance.paramedic || "Emergency Paramedic Staff"}</span>
+                      Paramedic Team:{" "}
+                      <span className="font-semibold text-foreground">
+                        {ambulance.paramedic || "Emergency Paramedic Staff"}
+                      </span>
                     </p>
                   </div>
                 </div>
@@ -381,7 +410,9 @@ export function AmbulanceDetailPanel({
                         Last Telemetry Heartbeat
                       </div>
                       <div className="font-mono text-muted-foreground">
-                        {ambulance.updatedAt ? new Date(ambulance.updatedAt).toLocaleString() : "Realtime Active"}
+                        {ambulance.updatedAt
+                          ? new Date(ambulance.updatedAt).toLocaleString()
+                          : "Realtime Active"}
                       </div>
                     </div>
                   </div>
@@ -394,7 +425,10 @@ export function AmbulanceDetailPanel({
                       <ShieldCheck className="h-4 w-4 text-success" />
                       <span>Decentralized Asset Identity (DID)</span>
                     </div>
-                    <Badge variant="outline" className="border-success/30 bg-success/10 text-success text-[10px] font-bold">
+                    <Badge
+                      variant="outline"
+                      className="border-success/30 bg-success/10 text-success text-[10px] font-bold"
+                    >
                       Verified Smart Asset
                     </Badge>
                   </div>
@@ -409,7 +443,11 @@ export function AmbulanceDetailPanel({
                       onClick={handleCopyDid}
                       className="h-7 w-7 p-0 shrink-0 hover:bg-muted"
                     >
-                      {copiedDid ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
+                      {copiedDid ? (
+                        <Check className="h-3.5 w-3.5 text-success" />
+                      ) : (
+                        <Copy className="h-3.5 w-3.5" />
+                      )}
                     </Button>
                   </div>
                 </div>
@@ -424,7 +462,10 @@ export function AmbulanceDetailPanel({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {[
-                    { name: "Emergency Life Support System", type: "Standard Protocol for " + ambulance.type.toUpperCase() },
+                    {
+                      name: "Emergency Life Support System",
+                      type: "Standard Protocol for " + ambulance.type.toUpperCase(),
+                    },
                     { name: "Patient Monitoring & Trauma Kit", type: "Certified Asset Standard" },
                     { name: "Oxygen Delivery & Airway Support", type: "Medical Grade Oxygen" },
                     { name: "Emergency Stretcher Transport", type: "Hydraulic Rapid Load" },
@@ -458,7 +499,11 @@ export function AmbulanceDetailPanel({
                     severity="success"
                     title={`Current Status: ${ambulance.status.toUpperCase()}`}
                     subtitle={`Stationed at: ${ambulance.location || "Base Station"}`}
-                    time={ambulance.updatedAt ? new Date(ambulance.updatedAt).toLocaleTimeString() : "Live"}
+                    time={
+                      ambulance.updatedAt
+                        ? new Date(ambulance.updatedAt).toLocaleTimeString()
+                        : "Live"
+                    }
                     isLast={true}
                   />
                 </div>

@@ -58,7 +58,7 @@ function AdminPrescriptionsPage() {
   const [doctorFilter, setDoctorFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  
+
   // Edit modal state
   const [editingRx, setEditingRx] = useState<any | null>(null);
   const [editForm, setEditForm] = useState({
@@ -373,7 +373,9 @@ function AdminPrescriptionsPage() {
                         {(cx.drugs ?? []).length} drug{(cx.drugs ?? []).length !== 1 ? "s" : ""}
                       </span>
                       <div className="shrink-0">
-                        <ChevronDown className={`h-4 w-4 transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${isExp ? "rotate-180 text-primary" : "rotate-0 text-muted-foreground"}`} />
+                        <ChevronDown
+                          className={`h-4 w-4 transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${isExp ? "rotate-180 text-primary" : "rotate-0 text-muted-foreground"}`}
+                        />
                       </div>
                     </div>
                   </div>
@@ -412,7 +414,10 @@ function AdminPrescriptionsPage() {
                                 : "—",
                             ],
                           ].map(([k, v]) => (
-                            <div key={k} className="rounded-lg bg-muted/50 px-3 py-2 border border-border/40">
+                            <div
+                              key={k}
+                              className="rounded-lg bg-muted/50 px-3 py-2 border border-border/40"
+                            >
                               <div className="text-[9px] font-bold uppercase text-muted-foreground mb-0.5">
                                 {k}
                               </div>
@@ -460,7 +465,10 @@ function AdminPrescriptionsPage() {
                                       <span className="text-muted-foreground"> · {d.dosage}</span>
                                     )}
                                     {d.frequency && (
-                                      <span className="text-muted-foreground"> · {d.frequency}</span>
+                                      <span className="text-muted-foreground">
+                                        {" "}
+                                        · {d.frequency}
+                                      </span>
                                     )}
                                     {d.duration && (
                                       <span className="text-muted-foreground"> · {d.duration}</span>
@@ -480,7 +488,9 @@ function AdminPrescriptionsPage() {
 
                         {cx.notes && (
                           <div className="rounded-lg bg-muted/40 border border-border px-3 py-2 text-xs">
-                            <span className="font-semibold text-foreground">Additional Notes: </span>
+                            <span className="font-semibold text-foreground">
+                              Additional Notes:{" "}
+                            </span>
                             <span className="text-muted-foreground">{cx.notes}</span>
                           </div>
                         )}
@@ -549,11 +559,15 @@ function AdminPrescriptionsPage() {
               <div className="grid grid-cols-2 gap-3 p-3 rounded-lg bg-muted/50 border border-border">
                 <div>
                   <Label className="text-xs text-muted-foreground">Patient</Label>
-                  <div className="text-sm font-medium">{editingRx.patientName || editingRx.patientDid}</div>
+                  <div className="text-sm font-medium">
+                    {editingRx.patientName || editingRx.patientDid}
+                  </div>
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">Doctor</Label>
-                  <div className="text-sm font-medium">{editingRx.doctorName || editingRx.signedBy}</div>
+                  <div className="text-sm font-medium">
+                    {editingRx.doctorName || editingRx.signedBy}
+                  </div>
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">Prescription ID</Label>
@@ -562,7 +576,9 @@ function AdminPrescriptionsPage() {
                 <div>
                   <Label className="text-xs text-muted-foreground">Issued At</Label>
                   <div className="text-xs">
-                    {editingRx.signedAt ? new Date(editingRx.signedAt).toLocaleString("en-IN") : "—"}
+                    {editingRx.signedAt
+                      ? new Date(editingRx.signedAt).toLocaleString("en-IN")
+                      : "—"}
                   </div>
                 </div>
               </div>
@@ -712,12 +728,7 @@ function AdminPrescriptionsPage() {
           )}
 
           <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleCancelEdit}
-              disabled={isSaving}
-            >
+            <Button type="button" variant="outline" onClick={handleCancelEdit} disabled={isSaving}>
               <X className="h-4 w-4 mr-1" />
               Cancel
             </Button>

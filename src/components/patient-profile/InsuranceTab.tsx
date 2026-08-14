@@ -23,7 +23,10 @@ export function InsuranceTab({ insurancePolicy, insuranceClaims }: InsuranceTabP
                   {insurancePolicy.provider || "Primary Health Insurance"}
                 </h3>
                 <p className="text-xs text-muted-foreground font-medium">
-                  Policy #: <strong className="text-foreground font-mono">{insurancePolicy.policy_number || "POL-109283"}</strong>
+                  Policy #:{" "}
+                  <strong className="text-foreground font-mono">
+                    {insurancePolicy.policy_number || "POL-109283"}
+                  </strong>
                 </p>
               </div>
             </div>
@@ -64,7 +67,8 @@ export function InsuranceTab({ insurancePolicy, insuranceClaims }: InsuranceTabP
                 Out-of-Pocket Met
               </span>
               <span className="text-lg font-extrabold font-display text-foreground mt-0.5 block">
-                ${insurancePolicy.out_of_pocket_met || 1200} / ${insurancePolicy.out_of_pocket_max || 3000}
+                ${insurancePolicy.out_of_pocket_met || 1200} / $
+                {insurancePolicy.out_of_pocket_max || 3000}
               </span>
             </div>
           </div>
@@ -92,7 +96,10 @@ export function InsuranceTab({ insurancePolicy, insuranceClaims }: InsuranceTabP
         ) : (
           <div className="space-y-3">
             {insuranceClaims.map((claim) => (
-              <GlowCard key={claim.claim_id} className="p-4 flex items-center justify-between gap-4">
+              <GlowCard
+                key={claim.claim_id}
+                className="p-4 flex items-center justify-between gap-4"
+              >
                 <div className="flex items-center gap-3">
                   <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/15 text-primary shadow-xs">
                     <FileText className="h-4.5 w-4.5" />
@@ -102,7 +109,10 @@ export function InsuranceTab({ insurancePolicy, insuranceClaims }: InsuranceTabP
                       Claim #{claim.claim_id.slice(-6).toUpperCase()}
                     </div>
                     <div className="text-xs text-muted-foreground mt-0.5">
-                      {claim.description || "General Medical Claim"} • Submitted {claim.submitted_at ? new Date(claim.submitted_at).toLocaleDateString() : "N/A"}
+                      {claim.description || "General Medical Claim"} • Submitted{" "}
+                      {claim.submitted_at
+                        ? new Date(claim.submitted_at).toLocaleDateString()
+                        : "N/A"}
                     </div>
                   </div>
                 </div>

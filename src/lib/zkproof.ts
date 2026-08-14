@@ -212,7 +212,7 @@ export function getDefaultClaims(
 ): ZKProofClaim[] {
   // Cast to any internally so property access stays concise — the parameter
   // is still typed for callers; the any is local to this function body.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   const p = (patientRecord ?? {}) as Record<string, any>;
 
   const age =

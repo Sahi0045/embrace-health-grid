@@ -38,21 +38,73 @@ export const getPatientFullProfile = createServerFn({ method: "GET" })
     ] = await Promise.all([
       supabase.from("dids").select("*").eq("did", patientDid).maybeSingle(),
       supabase.from("profiles").select("*").eq("primary_did", patientDid).maybeSingle(),
-      supabase.from("admissions").select("*").eq("patient_did", patientDid).order("admitted_at", { ascending: false }),
-      supabase.from("medical_records").select("*").eq("patient_did", patientDid).order("created_at", { ascending: false }),
-      supabase.from("prescriptions").select("*").eq("patient_did", patientDid).order("created_at", { ascending: false }),
-      supabase.from("lab_results").select("*").eq("patient_did", patientDid).order("created_at", { ascending: false }),
-      supabase.from("procedures").select("*").eq("patient_did", patientDid).order("created_at", { ascending: false }),
-      supabase.from("surgeries").select("*").eq("patient_did", patientDid).order("scheduled_for", { ascending: false }),
-      supabase.from("appointments").select("*").eq("patient_did", patientDid).order("appointment_date", { ascending: false }),
-      supabase.from("medications").select("*").eq("patient_did", patientDid).order("started_on", { ascending: false }),
+      supabase
+        .from("admissions")
+        .select("*")
+        .eq("patient_did", patientDid)
+        .order("admitted_at", { ascending: false }),
+      supabase
+        .from("medical_records")
+        .select("*")
+        .eq("patient_did", patientDid)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("prescriptions")
+        .select("*")
+        .eq("patient_did", patientDid)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("lab_results")
+        .select("*")
+        .eq("patient_did", patientDid)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("procedures")
+        .select("*")
+        .eq("patient_did", patientDid)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("surgeries")
+        .select("*")
+        .eq("patient_did", patientDid)
+        .order("scheduled_for", { ascending: false }),
+      supabase
+        .from("appointments")
+        .select("*")
+        .eq("patient_did", patientDid)
+        .order("appointment_date", { ascending: false }),
+      supabase
+        .from("medications")
+        .select("*")
+        .eq("patient_did", patientDid)
+        .order("started_on", { ascending: false }),
       supabase.from("billing_accounts").select("*").eq("patient_did", patientDid).maybeSingle(),
-      supabase.from("payments").select("*").eq("patient_did", patientDid).order("created_at", { ascending: false }),
+      supabase
+        .from("payments")
+        .select("*")
+        .eq("patient_did", patientDid)
+        .order("created_at", { ascending: false }),
       supabase.from("insurance_policies").select("*").eq("patient_did", patientDid).maybeSingle(),
-      supabase.from("insurance_claims").select("*").eq("patient_did", patientDid).order("submitted_at", { ascending: false }),
-      supabase.from("credentials").select("*").eq("subject_did", patientDid).order("issued_at", { ascending: false }),
-      supabase.from("vaccines").select("*").eq("patient_did", patientDid).order("administered_on", { ascending: false }),
-      supabase.from("health_metrics").select("*").eq("patient_did", patientDid).order("measured_on", { ascending: false }),
+      supabase
+        .from("insurance_claims")
+        .select("*")
+        .eq("patient_did", patientDid)
+        .order("submitted_at", { ascending: false }),
+      supabase
+        .from("credentials")
+        .select("*")
+        .eq("subject_did", patientDid)
+        .order("issued_at", { ascending: false }),
+      supabase
+        .from("vaccines")
+        .select("*")
+        .eq("patient_did", patientDid)
+        .order("administered_on", { ascending: false }),
+      supabase
+        .from("health_metrics")
+        .select("*")
+        .eq("patient_did", patientDid)
+        .order("measured_on", { ascending: false }),
     ]);
 
     return {

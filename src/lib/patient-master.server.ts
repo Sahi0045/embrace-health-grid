@@ -36,12 +36,10 @@ async function requireSession() {
 // ─── Get Patient Master Summary ─────────────────────────────────────────────
 
 export const getPatientMaster = createServerFn({ method: "GET" })
-  .inputValidator(
-    (data: { patientDid: string }) => {
-      if (!data?.patientDid) throw new Error("patientDid is required");
-      return data;
-    },
-  )
+  .inputValidator((data: { patientDid: string }) => {
+    if (!data?.patientDid) throw new Error("patientDid is required");
+    return data;
+  })
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();
@@ -142,12 +140,10 @@ export const getPatientMaster = createServerFn({ method: "GET" })
 // ─── Get Patient Current Location ────────────────────────────────────────────
 
 export const getPatientCurrentLocation = createServerFn({ method: "GET" })
-  .inputValidator(
-    (data: { patientDid: string }) => {
-      if (!data?.patientDid) throw new Error("patientDid is required");
-      return data;
-    },
-  )
+  .inputValidator((data: { patientDid: string }) => {
+    if (!data?.patientDid) throw new Error("patientDid is required");
+    return data;
+  })
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();
@@ -206,12 +202,10 @@ export const getPatientCurrentLocation = createServerFn({ method: "GET" })
 // ─── Get Patient Admission History ──────────────────────────────────────────
 
 export const getPatientAdmissionHistory = createServerFn({ method: "GET" })
-  .inputValidator(
-    (data: { patientDid: string; limit?: number }) => {
-      if (!data?.patientDid) throw new Error("patientDid is required");
-      return { ...data, limit: data.limit ?? 50 };
-    },
-  )
+  .inputValidator((data: { patientDid: string; limit?: number }) => {
+    if (!data?.patientDid) throw new Error("patientDid is required");
+    return { ...data, limit: data.limit ?? 50 };
+  })
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();
@@ -247,12 +241,10 @@ export const getPatientAdmissionHistory = createServerFn({ method: "GET" })
 // ─── Get Patient Transfer History ────────────────────────────────────────────
 
 export const getPatientTransferHistory = createServerFn({ method: "GET" })
-  .inputValidator(
-    (data: { patientDid: string; limit?: number }) => {
-      if (!data?.patientDid) throw new Error("patientDid is required");
-      return { ...data, limit: data.limit ?? 100 };
-    },
-  )
+  .inputValidator((data: { patientDid: string; limit?: number }) => {
+    if (!data?.patientDid) throw new Error("patientDid is required");
+    return { ...data, limit: data.limit ?? 100 };
+  })
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();
@@ -290,12 +282,10 @@ export const getPatientTransferHistory = createServerFn({ method: "GET" })
 // ─── Get Patient Medical Records ─────────────────────────────────────────────
 
 export const getPatientMedicalRecords = createServerFn({ method: "GET" })
-  .inputValidator(
-    (data: { patientDid: string; recordType?: string; limit?: number }) => {
-      if (!data?.patientDid) throw new Error("patientDid is required");
-      return { ...data, limit: data.limit ?? 100 };
-    },
-  )
+  .inputValidator((data: { patientDid: string; recordType?: string; limit?: number }) => {
+    if (!data?.patientDid) throw new Error("patientDid is required");
+    return { ...data, limit: data.limit ?? 100 };
+  })
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();
@@ -329,12 +319,10 @@ export const getPatientMedicalRecords = createServerFn({ method: "GET" })
 // ─── Get Patient Medications ─────────────────────────────────────────────────
 
 export const getPatientMedications = createServerFn({ method: "GET" })
-  .inputValidator(
-    (data: { patientDid: string; status?: string }) => {
-      if (!data?.patientDid) throw new Error("patientDid is required");
-      return data;
-    },
-  )
+  .inputValidator((data: { patientDid: string; status?: string }) => {
+    if (!data?.patientDid) throw new Error("patientDid is required");
+    return data;
+  })
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();
@@ -369,12 +357,10 @@ export const getPatientMedications = createServerFn({ method: "GET" })
 // ─── Get Patient Procedures ──────────────────────────────────────────────────
 
 export const getPatientProcedures = createServerFn({ method: "GET" })
-  .inputValidator(
-    (data: { patientDid: string; status?: string }) => {
-      if (!data?.patientDid) throw new Error("patientDid is required");
-      return data;
-    },
-  )
+  .inputValidator((data: { patientDid: string; status?: string }) => {
+    if (!data?.patientDid) throw new Error("patientDid is required");
+    return data;
+  })
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();
@@ -408,12 +394,10 @@ export const getPatientProcedures = createServerFn({ method: "GET" })
 // ─── Get Patient Lab Results ─────────────────────────────────────────────────
 
 export const getPatientLabResults = createServerFn({ method: "GET" })
-  .inputValidator(
-    (data: { patientDid: string; limit?: number }) => {
-      if (!data?.patientDid) throw new Error("patientDid is required");
-      return { ...data, limit: data.limit ?? 50 };
-    },
-  )
+  .inputValidator((data: { patientDid: string; limit?: number }) => {
+    if (!data?.patientDid) throw new Error("patientDid is required");
+    return { ...data, limit: data.limit ?? 50 };
+  })
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();
@@ -444,12 +428,10 @@ export const getPatientLabResults = createServerFn({ method: "GET" })
 // ─── Get Patient Billing Information ─────────────────────────────────────────
 
 export const getPatientBilling = createServerFn({ method: "GET" })
-  .inputValidator(
-    (data: { patientDid: string }) => {
-      if (!data?.patientDid) throw new Error("patientDid is required");
-      return data;
-    },
-  )
+  .inputValidator((data: { patientDid: string }) => {
+    if (!data?.patientDid) throw new Error("patientDid is required");
+    return data;
+  })
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();
@@ -521,12 +503,10 @@ export const getPatientBilling = createServerFn({ method: "GET" })
 // ─── Get Patient Discharge Information ───────────────────────────────────────
 
 export const getPatientDischargeInfo = createServerFn({ method: "GET" })
-  .inputValidator(
-    (data: { patientDid: string }) => {
-      if (!data?.patientDid) throw new Error("patientDid is required");
-      return data;
-    },
-  )
+  .inputValidator((data: { patientDid: string }) => {
+    if (!data?.patientDid) throw new Error("patientDid is required");
+    return data;
+  })
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();
@@ -565,7 +545,8 @@ export const getPatientDischargeInfo = createServerFn({ method: "GET" })
         room: discharge.room,
         lengthOfStayDays: discharge.discharged_at
           ? Math.floor(
-              (new Date(discharge.discharged_at).getTime() - new Date(discharge.admitted_at).getTime()) /
+              (new Date(discharge.discharged_at).getTime() -
+                new Date(discharge.admitted_at).getTime()) /
                 (1000 * 60 * 60 * 24),
             )
           : null,

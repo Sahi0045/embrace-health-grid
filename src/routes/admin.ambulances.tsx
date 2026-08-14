@@ -5,14 +5,7 @@ import { RouteGuard } from "@/components/RouteGuard";
 import { StaggerList, StaggerItem } from "@/components/Motion";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/EmptyState";
-import {
-  Ambulance,
-  RefreshCw,
-  Plus,
-  ChevronLeft,
-  ChevronRight,
-  ShieldAlert,
-} from "lucide-react";
+import { Ambulance, RefreshCw, Plus, ChevronLeft, ChevronRight, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { getAmbulances, updateAmbulanceStatus } from "@/lib/api";
 import { useTableRefresh } from "@/hooks/use-realtime";
@@ -94,11 +87,19 @@ function AmbulanceManagementPage() {
   useTableRefresh("ambulances", loadData);
 
   // Handle Status Update
-  const handleUpdateStatus = async (ambulanceId: string, newStatus: AmbulanceStatus, location?: string) => {
+  const handleUpdateStatus = async (
+    ambulanceId: string,
+    newStatus: AmbulanceStatus,
+    location?: string,
+  ) => {
     await updateAmbulanceStatus({ ambulanceId, status: newStatus, location });
     await loadData();
     if (selectedAmbulance && selectedAmbulance.id === ambulanceId) {
-      setSelectedAmbulance({ ...selectedAmbulance, status: newStatus, location: location || selectedAmbulance.location });
+      setSelectedAmbulance({
+        ...selectedAmbulance,
+        status: newStatus,
+        location: location || selectedAmbulance.location,
+      });
     }
   };
 
@@ -154,7 +155,8 @@ function AmbulanceManagementPage() {
           (a.type && a.type.toLowerCase().includes(q));
 
         const matchesStatus = statusFilter === "all" || a.status === statusFilter;
-        const matchesType = typeFilter === "all" || (a.type || "").toLowerCase() === typeFilter.toLowerCase();
+        const matchesType =
+          typeFilter === "all" || (a.type || "").toLowerCase() === typeFilter.toLowerCase();
 
         return matchesSearch && matchesStatus && matchesType;
       })

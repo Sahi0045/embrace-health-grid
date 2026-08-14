@@ -151,7 +151,10 @@ export const SpatialCommandBar = memo(function SpatialCommandBar({
       <div className="flex flex-wrap items-center gap-2 w-full pt-0.5">
         {FILTER_PILLS.map((pill) => {
           const isSelected = statusFilter === pill.id;
-          const count = pill.id === "all" ? Object.values(statusCounts).reduce((a, b) => a + b, 0) : (statusCounts[pill.id] || 0);
+          const count =
+            pill.id === "all"
+              ? Object.values(statusCounts).reduce((a, b) => a + b, 0)
+              : statusCounts[pill.id] || 0;
 
           return (
             <button
@@ -164,11 +167,15 @@ export const SpatialCommandBar = memo(function SpatialCommandBar({
                   : "border-border/80 bg-card text-muted-foreground hover:border-border hover:text-foreground hover:bg-muted/40 shadow-2xs"
               }`}
             >
-              <span className={`h-2 w-2 rounded-full ${pill.color} ${pill.id === "occupied" && isSelected ? "animate-pulse" : ""}`} />
+              <span
+                className={`h-2 w-2 rounded-full ${pill.color} ${pill.id === "occupied" && isSelected ? "animate-pulse" : ""}`}
+              />
               <span>{pill.label}</span>
               <span
                 className={`font-mono text-[10px] font-black px-1.5 py-0.2 rounded-md ${
-                  isSelected ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
+                  isSelected
+                    ? "bg-primary-foreground/20 text-primary-foreground"
+                    : "bg-muted text-muted-foreground"
                 }`}
               >
                 {count}

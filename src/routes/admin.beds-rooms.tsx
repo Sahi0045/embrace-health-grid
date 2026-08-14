@@ -43,7 +43,10 @@ export const Route = createFileRoute("/admin/beds-rooms")({
   head: () => ({
     meta: [
       { title: "Bed & Room Management — Admin Console" },
-      { name: "description", content: "Manage hospital infrastructure, buildings, wards, rooms, and live bed allocation" },
+      {
+        name: "description",
+        content: "Manage hospital infrastructure, buildings, wards, rooms, and live bed allocation",
+      },
     ],
   }),
   component: BedsRoomsManagement,
@@ -204,7 +207,9 @@ function BedsRoomsManagement() {
   const getFloorStats = useCallback(
     (fId: string) => {
       const fWards = wards.filter((w) => w.floor_id === fId);
-      const fRooms = rooms.filter((r) => r.floor === floors.find((f) => f.floor_id === fId)?.floor_name || r.building_id);
+      const fRooms = rooms.filter(
+        (r) => r.floor === floors.find((f) => f.floor_id === fId)?.floor_name || r.building_id,
+      );
       const fBeds = beds.filter((b) => fWards.some((w) => w.ward_id === b.ward_id));
       return {
         wardsCount: fWards.length,
@@ -455,7 +460,8 @@ function BedsRoomsManagement() {
                 {/* Level 1: Floors Grid */}
                 {selectedBuilding && !selectedFloor && (
                   <div>
-                    {floors.filter((f) => f.building_id === selectedBuilding.building_id).length === 0 ? (
+                    {floors.filter((f) => f.building_id === selectedBuilding.building_id).length ===
+                    0 ? (
                       <EmptyState
                         icon={Layers}
                         title={`No Floors in ${selectedBuilding.building_name}`}
@@ -463,7 +469,11 @@ function BedsRoomsManagement() {
                         action={
                           <Button
                             onClick={() =>
-                              setCreateDialog({ open: true, type: "floor", parent: selectedBuilding })
+                              setCreateDialog({
+                                open: true,
+                                type: "floor",
+                                parent: selectedBuilding,
+                              })
                             }
                             className="bg-primary text-primary-foreground font-extrabold rounded-xl shadow-clinical-md text-xs"
                           >
@@ -593,15 +603,15 @@ function BedsRoomsManagement() {
               /* All Beds Directory View */
               <div className="space-y-4">
                 {filteredBeds.length === 0 ? (
-                  <EmptyState icon={Bed} title="No Beds Found" description="No beds match the selected filters." />
+                  <EmptyState
+                    icon={Bed}
+                    title="No Beds Found"
+                    description="No beds match the selected filters."
+                  />
                 ) : (
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                     {filteredBeds.map((bed) => (
-                      <BedCell
-                        key={bed.bed_id}
-                        bed={bed}
-                        onClick={() => setSelectedBed(bed)}
-                      />
+                      <BedCell key={bed.bed_id} bed={bed} onClick={() => setSelectedBed(bed)} />
                     ))}
                   </div>
                 )}
@@ -610,7 +620,11 @@ function BedsRoomsManagement() {
               /* All Rooms Directory View */
               <div className="space-y-4">
                 {filteredRooms.length === 0 ? (
-                  <EmptyState icon={Home} title="No Rooms Found" description="No rooms match the selected filters." />
+                  <EmptyState
+                    icon={Home}
+                    title="No Rooms Found"
+                    description="No rooms match the selected filters."
+                  />
                 ) : (
                   <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                     {filteredRooms.map((room) => {
@@ -624,7 +638,9 @@ function BedsRoomsManagement() {
                           onUpdateRoomStatus={() =>
                             setStatusDialog({ open: true, item: room, type: "room" })
                           }
-                          onAddBed={() => setCreateDialog({ open: true, type: "bed", parent: room })}
+                          onAddBed={() =>
+                            setCreateDialog({ open: true, type: "bed", parent: room })
+                          }
                         />
                       );
                     })}

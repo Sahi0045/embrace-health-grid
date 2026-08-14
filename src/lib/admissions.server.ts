@@ -47,11 +47,7 @@
 
 import { createServerFn } from "@tanstack/react-start";
 import { getSupabaseServerClient, getVerifiedUser } from "./supabase.server";
-import {
-  resolveCallerForAudit,
-  tryWriteAudit,
-  buildAdmissionAudit,
-} from "./audit.server";
+import { resolveCallerForAudit, tryWriteAudit, buildAdmissionAudit } from "./audit.server";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -96,8 +92,8 @@ export const admitPatient = createServerFn({ method: "POST" })
       admissionFee?: number;
     }) => {
       if (!data?.patientDid) throw new Error("patientDid is required");
-      if (!data?.bedId)      throw new Error("bedId is required");
-      if (!data?.ward)       throw new Error("ward is required");
+      if (!data?.bedId) throw new Error("bedId is required");
+      if (!data?.ward) throw new Error("ward is required");
       return data;
     },
   )
@@ -113,7 +109,7 @@ export const admitPatient = createServerFn({ method: "POST" })
       .maybeSingle();
 
     if (bedErr) throw new Error(bedErr.message);
-    if (!bed)   throw new Error("Bed not found");
+    if (!bed) throw new Error("Bed not found");
     if (bed.status !== "available") {
       throw new Error(`Bed is currently '${bed.status}' — cannot admit to an unavailable bed`);
     }
@@ -129,7 +125,7 @@ export const admitPatient = createServerFn({ method: "POST" })
     if (existing) {
       throw new Error(
         `Patient already has an active admission (${existing.admission_id}). ` +
-        `Discharge or transfer them first.`,
+          `Discharge or transfer them first.`,
       );
     }
 
@@ -188,51 +184,53 @@ export const admitPatient = createServerFn({ method: "POST" })
       .maybeSingle();
 
     const prevBilled = Number(billingRow?.total_billed ?? 0);
-    const prevOut    = Number(billingRow?.outstanding   ?? 0);
+    const prevOut = Number(billingRow?.outstanding ?? 0);
 
     await supabase.from("billing_accounts").upsert(
       {
-        patient_did:  data.patientDid,
+        patient_did: data.patientDid,
         total_billed: prevBilled + fee,
-        outstanding:  prevOut    + fee,
-        total_paid:   billingRow ? undefined : 0,
-        updated_at:   now,
+        outstanding: prevOut + fee,
+        total_paid: billingRow ? undefined : 0,
+        updated_at: now,
       },
       { onConflict: "patient_did" },
     );
 
     // ── Step 7: Rich audit record + blockchain proof ─────────────────────────
     const caller = await resolveCallerForAudit();
-    tryWriteAudit(buildAdmissionAudit(
-      caller,
-      "PATIENT_ADMITTED",
-      admissionId,
-      data.patientDid,
-      null,  // no previous state — new admission
-      {
+    tryWriteAudit(
+      buildAdmissionAudit(
+        caller,
+        "PATIENT_ADMITTED",
         admissionId,
-        bedId:    data.bedId,
-        ward:     data.ward,
-        room:     data.room ?? null,
-        diagnosis: data.diagnosis ?? null,
-        admissionFee: fee,
-        status:   "admitted",
-      },
-      { billingCharged: fee },
-    ));
+        data.patientDid,
+        null, // no previous state — new admission
+        {
+          admissionId,
+          bedId: data.bedId,
+          ward: data.ward,
+          room: data.room ?? null,
+          diagnosis: data.diagnosis ?? null,
+          admissionFee: fee,
+          status: "admitted",
+        },
+        { billingCharged: fee },
+      ),
+    );
 
     // admission_events trigger fires automatically on the INSERT above.
     // beds, billing_accounts, admissions are all in realtime publication →
     // all subscribers receive push notifications immediately.
 
     return {
-      ok:          true as const,
+      ok: true as const,
       admissionId,
-      patientDid:  data.patientDid,
-      bedId:       data.bedId,
-      ward:        data.ward,
-      room:        data.room ?? null,
-      status:      "admitted" as const,
+      patientDid: data.patientDid,
+      bedId: data.bedId,
+      ward: data.ward,
+      room: data.room ?? null,
+      status: "admitted" as const,
     };
   });
 
@@ -240,11 +238,7 @@ export const admitPatient = createServerFn({ method: "POST" })
 
 export const dischargePatient = createServerFn({ method: "POST" })
   .inputValidator(
-    (data: {
-      admissionId: string;
-      dischargeSummary?: string;
-      finalBillAmount?: number;
-    }) => {
+    (data: { admissionId: string; dischargeSummary?: string; finalBillAmount?: number }) => {
       if (!data?.admissionId) throw new Error("admissionId is required");
       return data;
     },
@@ -263,7 +257,9 @@ export const dischargePatient = createServerFn({ method: "POST" })
     if (fetchErr) throw new Error(fetchErr.message);
     if (!admission) throw new Error("Admission not found");
     if (admission.status !== "admitted") {
-      throw new Error(`Admission is '${admission.status}' — can only discharge an active admission`);
+      throw new Error(
+        `Admission is '${admission.status}' — can only discharge an active admission`,
+      );
     }
 
     const now = new Date().toISOString();
@@ -272,9 +268,9 @@ export const dischargePatient = createServerFn({ method: "POST" })
     const { error: admErr } = await supabase
       .from("admissions")
       .update({
-        status:          "discharged",
-        discharged_at:   now,
-        diagnosis:       data.dischargeSummary
+        status: "discharged",
+        discharged_at: now,
+        diagnosis: data.dischargeSummary
           ? (admission as any).diagnosis
             ? `${(admission as any).diagnosis} | Discharge: ${data.dischargeSummary}`
             : data.dischargeSummary
@@ -332,8 +328,8 @@ export const dischargePatient = createServerFn({ method: "POST" })
           .from("billing_accounts")
           .update({
             total_billed: Number(billingRow.total_billed) + data.finalBillAmount,
-            outstanding:  Number(billingRow.outstanding)  + data.finalBillAmount,
-            updated_at:   now,
+            outstanding: Number(billingRow.outstanding) + data.finalBillAmount,
+            updated_at: now,
           })
           .eq("patient_did", admission.patient_did);
       }
@@ -341,22 +337,28 @@ export const dischargePatient = createServerFn({ method: "POST" })
 
     // ── Step 6: Rich audit record + blockchain proof ─────────────────────────
     const caller = await resolveCallerForAudit();
-    tryWriteAudit(buildAdmissionAudit(
-      caller,
-      "PATIENT_DISCHARGED",
-      data.admissionId,
-      admission.patient_did,
-      { status: "admitted", bed: admission.bed, ward: admission.ward, room: admission.room },
-      { status: "discharged", dischargedAt: now, dischargeSummary: data.dischargeSummary ?? null },
-      { finalBill: data.finalBillAmount ?? 0, bedNowCleaning: admission.bed },
-    ));
+    tryWriteAudit(
+      buildAdmissionAudit(
+        caller,
+        "PATIENT_DISCHARGED",
+        data.admissionId,
+        admission.patient_did,
+        { status: "admitted", bed: admission.bed, ward: admission.ward, room: admission.room },
+        {
+          status: "discharged",
+          dischargedAt: now,
+          dischargeSummary: data.dischargeSummary ?? null,
+        },
+        { finalBill: data.finalBillAmount ?? 0, bedNowCleaning: admission.bed },
+      ),
+    );
 
     return {
-      ok:          true as const,
+      ok: true as const,
       admissionId: data.admissionId,
-      patientDid:  admission.patient_did,
-      status:      "discharged" as const,
-      bedFreed:    admission.bed ?? null,
+      patientDid: admission.patient_did,
+      status: "discharged" as const,
+      bedFreed: admission.bed ?? null,
     };
   });
 
@@ -373,8 +375,8 @@ export const transferPatient = createServerFn({ method: "POST" })
       transferReason?: string;
     }) => {
       if (!data?.admissionId) throw new Error("admissionId is required");
-      if (!data?.newBedId)    throw new Error("newBedId is required");
-      if (!data?.newWard)     throw new Error("newWard is required");
+      if (!data?.newBedId) throw new Error("newBedId is required");
+      if (!data?.newWard) throw new Error("newWard is required");
       return data;
     },
   )
@@ -403,7 +405,7 @@ export const transferPatient = createServerFn({ method: "POST" })
       .maybeSingle();
 
     if (newBedErr) throw new Error(newBedErr.message);
-    if (!newBed)   throw new Error("Target bed not found");
+    if (!newBed) throw new Error("Target bed not found");
     if (newBed.status !== "available") {
       throw new Error(`Target bed is '${newBed.status}' — cannot transfer to an unavailable bed`);
     }
@@ -416,9 +418,9 @@ export const transferPatient = createServerFn({ method: "POST" })
       .from("admissions")
       .update({
         status: "transferred",
-        ward:   data.newWard,
-        room:   data.newRoom ?? null,
-        bed:    data.newBedId,
+        ward: data.newWard,
+        room: data.newRoom ?? null,
+        bed: data.newBedId,
       })
       .eq("admission_id", data.admissionId);
 
@@ -445,9 +447,9 @@ export const transferPatient = createServerFn({ method: "POST" })
     await supabase
       .from("beds")
       .update({
-        status:      "occupied",
+        status: "occupied",
         patient_did: admission.patient_did,
-        updated_at:  now,
+        updated_at: now,
       })
       .eq("bed_id", data.newBedId);
 
@@ -487,24 +489,26 @@ export const transferPatient = createServerFn({ method: "POST" })
 
     // ── Step 7: Rich audit record + blockchain proof ─────────────────────────
     const caller = await resolveCallerForAudit();
-    tryWriteAudit(buildAdmissionAudit(
-      caller,
-      "PATIENT_TRANSFERRED",
-      data.admissionId,
-      admission.patient_did,
-      { bed: oldBedId, ward: admission.ward, room: admission.room },
-      { bed: data.newBedId, ward: data.newWard, room: data.newRoom ?? null },
-      { transferReason: data.transferReason ?? null },
-    ));
+    tryWriteAudit(
+      buildAdmissionAudit(
+        caller,
+        "PATIENT_TRANSFERRED",
+        data.admissionId,
+        admission.patient_did,
+        { bed: oldBedId, ward: admission.ward, room: admission.room },
+        { bed: data.newBedId, ward: data.newWard, room: data.newRoom ?? null },
+        { transferReason: data.transferReason ?? null },
+      ),
+    );
 
     return {
-      ok:          true as const,
+      ok: true as const,
       admissionId: data.admissionId,
-      patientDid:  admission.patient_did,
-      status:      "admitted" as const,
-      fromBed:     oldBedId ?? null,
-      toBed:       data.newBedId,
-      toWard:      data.newWard,
+      patientDid: admission.patient_did,
+      status: "admitted" as const,
+      fromBed: oldBedId ?? null,
+      toBed: data.newBedId,
+      toWard: data.newWard,
     };
   });
 
@@ -512,7 +516,9 @@ export const transferPatient = createServerFn({ method: "POST" })
 
 /** Fetch the audit trail for a single admission or all admissions. */
 export const getAdmissionEvents = createServerFn({ method: "GET" })
-  .inputValidator((data: { admissionId?: string; patientDid?: string; limit?: number }) => data ?? {})
+  .inputValidator(
+    (data: { admissionId?: string; patientDid?: string; limit?: number }) => data ?? {},
+  )
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();
@@ -521,15 +527,15 @@ export const getAdmissionEvents = createServerFn({ method: "GET" })
       .from("admission_events")
       .select(
         "event_id, admission_id, patient_did, event_type, " +
-        "bed_id_old, bed_id_new, ward_old, ward_new, room_old, room_new, " +
-        "status_old, status_new, performed_by_name, performed_by_role, " +
-        "hospital_id, reason, occurred_at",
+          "bed_id_old, bed_id_new, ward_old, ward_new, room_old, room_new, " +
+          "status_old, status_new, performed_by_name, performed_by_role, " +
+          "hospital_id, reason, occurred_at",
       )
       .order("occurred_at", { ascending: false })
       .limit(data.limit ?? 100);
 
     if (data.admissionId) query = query.eq("admission_id", data.admissionId);
-    if (data.patientDid)  query = query.eq("patient_did",  data.patientDid);
+    if (data.patientDid) query = query.eq("patient_did", data.patientDid);
 
     const { data: events, error } = await query;
     if (error) throw new Error(error.message);
@@ -549,7 +555,7 @@ export const getAllAdmissions = createServerFn({ method: "GET" })
       .from("admissions")
       .select(
         "admission_id, patient_did, admitted_at, expected_discharge, " +
-        "discharged_at, status, ward, room, bed, admitting_doctor, diagnosis",
+          "discharged_at, status, ward, room, bed, admitting_doctor, diagnosis",
       )
       .order("admitted_at", { ascending: false });
 
@@ -558,12 +564,20 @@ export const getAllAdmissions = createServerFn({ method: "GET" })
     const { data: rows, error } = await query;
     if (error) throw new Error(error.message);
 
-    const typedRows = (rows as unknown as Array<{
-      admission_id: string; patient_did: string; admitted_at: string;
-      expected_discharge: string | null; discharged_at: string | null;
-      status: string; ward: string | null; room: string | null;
-      bed: string | null; admitting_doctor: string | null; diagnosis: string | null;
-    }>) ?? [];
+    const typedRows =
+      (rows as unknown as Array<{
+        admission_id: string;
+        patient_did: string;
+        admitted_at: string;
+        expected_discharge: string | null;
+        discharged_at: string | null;
+        status: string;
+        ward: string | null;
+        room: string | null;
+        bed: string | null;
+        admitting_doctor: string | null;
+        diagnosis: string | null;
+      }>) ?? [];
 
     // Resolve patient names from dids table.
     const didSet = typedRows.map((r) => r.patient_did).filter(Boolean) as string[];
