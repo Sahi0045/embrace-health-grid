@@ -81,7 +81,7 @@ export const getCertifications = createServerFn({ method: "GET" }).handler(async
  * Respects RLS: only callable for same-hospital staff.
  */
 export const getCertificationsByStaffDid = createServerFn({ method: "GET" })
-  .validator((data: { staffDid: string }) => {
+  .inputValidator((data: { staffDid: string }) => {
     if (!data?.staffDid) throw new Error("staffDid is required");
     return data;
   })
@@ -123,7 +123,7 @@ export const getCertificationsByStaffDid = createServerFn({ method: "GET" })
  * Admin can view all, staff can view their own.
  */
 export const getCertificationAuditLog = createServerFn({ method: "GET" })
-  .validator((data: { certId: string }) => {
+  .inputValidator((data: { certId: string }) => {
     if (!data?.certId) throw new Error("certId is required");
     return data;
   })
@@ -163,7 +163,7 @@ export const getCertificationAuditLog = createServerFn({ method: "GET" })
  * Admin-only operation with automatic audit logging.
  */
 export const createCertification = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (data: {
       staffDid: string;
       certName: string;
@@ -252,7 +252,7 @@ export const createCertification = createServerFn({ method: "POST" })
  * Admin-only operation with automatic field-level audit logging.
  */
 export const updateCertification = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (data: {
       certId: string;
       certName?: string;
@@ -349,7 +349,7 @@ export const updateCertification = createServerFn({ method: "POST" })
  * Note: Consider soft delete (status = 'revoked') instead for audit trail.
  */
 export const deleteCertification = createServerFn({ method: "POST" })
-  .validator((data: { certId: string }) => {
+  .inputValidator((data: { certId: string }) => {
     if (!data?.certId) throw new Error("certId is required");
     return data;
   })

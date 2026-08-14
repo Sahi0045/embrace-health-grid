@@ -49,13 +49,14 @@ async function callerProfile() {
     .eq("id", user.id)
     .maybeSingle();
 
+  if (!data) throw new Error("User profile not found");
   return { user, profile: data };
 }
 
 // ─── SUPPLIERS ──────────────────────────────────────────────────────────────
 
 export const createSupplier = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (data: {
       supplierName: string;
       contactPerson?: string;
@@ -101,7 +102,7 @@ export const createSupplier = createServerFn({ method: "POST" })
   });
 
 export const getSuppliers = createServerFn({ method: "GET" })
-  .validator((data: { active?: boolean } = {}) => data)
+  .inputValidator((data: { active?: boolean } = {}) => data)
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();
@@ -127,7 +128,7 @@ export const getSuppliers = createServerFn({ method: "GET" })
 // ─── INVENTORY ITEMS ────────────────────────────────────────────────────────
 
 export const createInventoryItem = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (data: {
       itemCode: string;
       itemName: string;
@@ -186,7 +187,7 @@ export const createInventoryItem = createServerFn({ method: "POST" })
   });
 
 export const getInventoryItems = createServerFn({ method: "GET" })
-  .validator(
+  .inputValidator(
     (data: {
       status?: string;
       category?: string;
@@ -225,7 +226,7 @@ export const getInventoryItems = createServerFn({ method: "GET" })
   });
 
 export const getInventoryItem = createServerFn({ method: "GET" })
-  .validator(
+  .inputValidator(
     (data: { itemId: string }) => {
       if (!data?.itemId) throw new Error("itemId is required");
       return data;
@@ -251,7 +252,7 @@ export const getInventoryItem = createServerFn({ method: "GET" })
   });
 
 export const updateInventoryItem = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (data: {
       itemId: string;
       itemName?: string;
@@ -307,7 +308,7 @@ export const updateInventoryItem = createServerFn({ method: "POST" })
 // ─── BATCHES ────────────────────────────────────────────────────────────────
 
 export const createBatch = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (data: {
       itemId: string;
       batchNumber: string;
@@ -369,7 +370,7 @@ export const createBatch = createServerFn({ method: "POST" })
   });
 
 export const getBatches = createServerFn({ method: "GET" })
-  .validator(
+  .inputValidator(
     (data: {
       itemId?: string;
       includeInactive?: boolean;
@@ -399,7 +400,7 @@ export const getBatches = createServerFn({ method: "GET" })
   });
 
 export const getBatchDetails = createServerFn({ method: "GET" })
-  .validator(
+  .inputValidator(
     (data: { batchId: string }) => {
       if (!data?.batchId) throw new Error("batchId is required");
       return data;
@@ -435,7 +436,7 @@ export const getBatchDetails = createServerFn({ method: "GET" })
 // ─── CURRENT STOCK LEVELS ───────────────────────────────────────────────────
 
 export const getCurrentStockLevel = createServerFn({ method: "GET" })
-  .validator(
+  .inputValidator(
     (data: { itemId: string; location?: string }) => {
       if (!data?.itemId) throw new Error("itemId is required");
       return data;
@@ -466,7 +467,7 @@ export const getCurrentStockLevel = createServerFn({ method: "GET" })
   });
 
 export const getAllStockLevels = createServerFn({ method: "GET" })
-  .validator(
+  .inputValidator(
     (data: {
       location?: string;
       includeLowStock?: boolean;
@@ -579,7 +580,7 @@ async function createStockMovement(supabase: any, payload: {
  * - Triggers audit trail
  */
 export const addStock = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (data: {
       itemId: string;
       batchId: string;
@@ -671,7 +672,7 @@ export const addStock = createServerFn({ method: "POST" })
  * - May trigger low-stock alert
  */
 export const removeStock = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (data: {
       itemId: string;
       batchId: string;
@@ -776,7 +777,7 @@ export const removeStock = createServerFn({ method: "POST" })
  * - Does NOT change batch quantities
  */
 export const transferStock = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (data: {
       itemId: string;
       batchId: string;
@@ -862,7 +863,7 @@ export const transferStock = createServerFn({ method: "POST" })
  * - Creates audit trail
  */
 export const consumeStock = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (data: {
       itemId: string;
       batchId: string;
@@ -956,7 +957,7 @@ export const consumeStock = createServerFn({ method: "POST" })
  * - Requires admin approval ideally, but we allow staff with audit trail
  */
 export const adjustStock = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (data: {
       itemId: string;
       batchId: string;
@@ -1048,7 +1049,7 @@ export const adjustStock = createServerFn({ method: "POST" })
  * - Creates audit trail
  */
 export const recordWastage = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (data: {
       itemId: string;
       batchId: string;
@@ -1065,7 +1066,7 @@ export const recordWastage = createServerFn({ method: "POST" })
     },
   )
   .handler(async ({ data }) => {
-    return removeStock.handler({
+    return removeStock({
       data: {
         itemId: data.itemId,
         batchId: data.batchId,
@@ -1084,7 +1085,7 @@ export const recordWastage = createServerFn({ method: "POST" })
  * - Audit trail
  */
 export const recordExpiredStock = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (data: {
       itemId: string;
       batchId: string;
@@ -1118,7 +1119,7 @@ export const recordExpiredStock = createServerFn({ method: "POST" })
     if (!batch) throw new Error("Batch not found");
 
     // Remove from stock
-    const result = await removeStock.handler({
+    const result = await removeStock({
       data: {
         itemId: data.itemId,
         batchId: data.batchId,
@@ -1160,7 +1161,7 @@ export const recordExpiredStock = createServerFn({ method: "POST" })
  * Returns items where quantity_total < reorder_level
  */
 export const getLowStockItems = createServerFn({ method: "GET" })
-  .validator(
+  .inputValidator(
     (data: {
       resolved?: boolean;
       limit?: number;
@@ -1199,7 +1200,7 @@ export const getLowStockItems = createServerFn({ method: "GET" })
  * Returns items where expiry_date is within 30 days or already expired
  */
 export const getNearExpiryItems = createServerFn({ method: "GET" })
-  .validator(
+  .inputValidator(
     (data: {
       status?: string; // 'valid', 'near_expiry', 'expired'
       resolved?: boolean;
@@ -1243,7 +1244,7 @@ export const getNearExpiryItems = createServerFn({ method: "GET" })
  * Shows historical disposal records
  */
 export const getExpiredStock = createServerFn({ method: "GET" })
-  .validator(
+  .inputValidator(
     (data: {
       limit?: number;
       daysAgo?: number;
@@ -1285,7 +1286,7 @@ export const getExpiredStock = createServerFn({ method: "GET" })
  * Mark low-stock alert as resolved
  */
 export const resolveLowStockAlert = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (data: { alertId: string }) => {
       if (!data?.alertId) throw new Error("alertId is required");
       return data;
@@ -1318,7 +1319,7 @@ export const resolveLowStockAlert = createServerFn({ method: "POST" })
  * Mark expiration alert as resolved
  */
 export const resolveExpirationAlert = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (data: {
       alertId: string;
       actionNotes?: string;
@@ -1364,7 +1365,7 @@ export const resolveExpirationAlert = createServerFn({ method: "POST" })
  * Complete audit trail of all changes
  */
 export const getBatchMovements = createServerFn({ method: "GET" })
-  .validator(
+  .inputValidator(
     (data: {
       batchId: string;
       limit?: number;
@@ -1399,7 +1400,7 @@ export const getBatchMovements = createServerFn({ method: "GET" })
  * Complete transaction history
  */
 export const getItemMovements = createServerFn({ method: "GET" })
-  .validator(
+  .inputValidator(
     (data: {
       itemId: string;
       movementType?: string;
@@ -1438,7 +1439,7 @@ export const getItemMovements = createServerFn({ method: "GET" })
  * Get stock movement by ID (for detailed audit)
  */
 export const getMovement = createServerFn({ method: "GET" })
-  .validator(
+  .inputValidator(
     (data: { movementId: string }) => {
       if (!data?.movementId) throw new Error("movementId is required");
       return data;
@@ -1469,7 +1470,7 @@ export const getMovement = createServerFn({ method: "GET" })
  * Create purchase order
  */
 export const createPurchaseOrder = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (data: {
       supplierId: string;
       items: Array<{
@@ -1539,7 +1540,7 @@ export const createPurchaseOrder = createServerFn({ method: "POST" })
  * Get purchase orders
  */
 export const getPurchaseOrders = createServerFn({ method: "GET" })
-  .validator(
+  .inputValidator(
     (data: {
       status?: string;
       supplierId?: string;
@@ -1572,7 +1573,7 @@ export const getPurchaseOrders = createServerFn({ method: "GET" })
  * Update purchase order status
  */
 export const updatePurchaseOrderStatus = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (data: {
       orderId: string;
       status: string;
@@ -1631,7 +1632,7 @@ export const updatePurchaseOrderStatus = createServerFn({ method: "POST" })
  * dispensing interface when giving medicine to patient.
  */
 export const dispensePrescriptionMedications = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (data: {
       prescriptionId: string;
       patientDid: string;
@@ -1765,7 +1766,7 @@ export const dispensePrescriptionMedications = createServerFn({ method: "POST" }
  * Before dispensing, verify all medications are in stock
  */
 export const checkPrescriptionMedicationAvailability = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (data: {
       medications: Array<{
         itemId: string;
@@ -1828,7 +1829,7 @@ export const checkPrescriptionMedicationAvailability = createServerFn({ method: 
  * Enriches prescription data with current stock levels
  */
 export const getPrescriptionWithInventory = createServerFn({ method: "GET" })
-  .validator(
+  .inputValidator(
     (data: { prescriptionId: string }) => {
       if (!data?.prescriptionId) throw new Error("prescriptionId is required");
       return data;
@@ -1914,7 +1915,7 @@ export const getPrescriptionWithInventory = createServerFn({ method: "GET" })
  * For pharmacy staff to see pending dispenses
  */
 export const getPendingDispensingPrescriptions = createServerFn({ method: "GET" })
-  .validator(
+  .inputValidator(
     (data: {
       limit?: number;
       patientDid?: string;

@@ -8,7 +8,7 @@ async function requireSession() {
 }
 
 export const getPatientFullProfile = createServerFn({ method: "GET" })
-  .validator((data: { patientDid: string }) => {
+  .inputValidator((data: { patientDid: string }) => {
     if (!data?.patientDid) throw new Error("patientDid is required");
     return data;
   })

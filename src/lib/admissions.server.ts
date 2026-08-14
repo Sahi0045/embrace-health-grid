@@ -83,7 +83,7 @@ function newAdmissionId(): string {
 // ─── admitPatient ────────────────────────────────────────────────────────────
 
 export const admitPatient = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (data: {
       patientDid: string;
       bedId: string;
@@ -239,7 +239,7 @@ export const admitPatient = createServerFn({ method: "POST" })
 // ─── dischargePatient ────────────────────────────────────────────────────────
 
 export const dischargePatient = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (data: {
       admissionId: string;
       dischargeSummary?: string;
@@ -363,7 +363,7 @@ export const dischargePatient = createServerFn({ method: "POST" })
 // ─── transferPatient ─────────────────────────────────────────────────────────
 
 export const transferPatient = createServerFn({ method: "POST" })
-  .validator(
+  .inputValidator(
     (data: {
       admissionId: string;
       newBedId: string;
@@ -512,7 +512,7 @@ export const transferPatient = createServerFn({ method: "POST" })
 
 /** Fetch the audit trail for a single admission or all admissions. */
 export const getAdmissionEvents = createServerFn({ method: "GET" })
-  .validator((data: { admissionId?: string; patientDid?: string; limit?: number }) => data ?? {})
+  .inputValidator((data: { admissionId?: string; patientDid?: string; limit?: number }) => data ?? {})
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();
@@ -540,7 +540,7 @@ export const getAdmissionEvents = createServerFn({ method: "GET" })
 
 /** Hospital-wide admissions list (staff/admin see all via RLS). */
 export const getAllAdmissions = createServerFn({ method: "GET" })
-  .validator((data: { status?: string }) => data ?? {})
+  .inputValidator((data: { status?: string }) => data ?? {})
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();

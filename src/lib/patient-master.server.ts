@@ -36,7 +36,7 @@ async function requireSession() {
 // ─── Get Patient Master Summary ─────────────────────────────────────────────
 
 export const getPatientMaster = createServerFn({ method: "GET" })
-  .validator(
+  .inputValidator(
     (data: { patientDid: string }) => {
       if (!data?.patientDid) throw new Error("patientDid is required");
       return data;
@@ -142,7 +142,7 @@ export const getPatientMaster = createServerFn({ method: "GET" })
 // ─── Get Patient Current Location ────────────────────────────────────────────
 
 export const getPatientCurrentLocation = createServerFn({ method: "GET" })
-  .validator(
+  .inputValidator(
     (data: { patientDid: string }) => {
       if (!data?.patientDid) throw new Error("patientDid is required");
       return data;
@@ -206,7 +206,7 @@ export const getPatientCurrentLocation = createServerFn({ method: "GET" })
 // ─── Get Patient Admission History ──────────────────────────────────────────
 
 export const getPatientAdmissionHistory = createServerFn({ method: "GET" })
-  .validator(
+  .inputValidator(
     (data: { patientDid: string; limit?: number }) => {
       if (!data?.patientDid) throw new Error("patientDid is required");
       return { ...data, limit: data.limit ?? 50 };
@@ -247,7 +247,7 @@ export const getPatientAdmissionHistory = createServerFn({ method: "GET" })
 // ─── Get Patient Transfer History ────────────────────────────────────────────
 
 export const getPatientTransferHistory = createServerFn({ method: "GET" })
-  .validator(
+  .inputValidator(
     (data: { patientDid: string; limit?: number }) => {
       if (!data?.patientDid) throw new Error("patientDid is required");
       return { ...data, limit: data.limit ?? 100 };
@@ -290,7 +290,7 @@ export const getPatientTransferHistory = createServerFn({ method: "GET" })
 // ─── Get Patient Medical Records ─────────────────────────────────────────────
 
 export const getPatientMedicalRecords = createServerFn({ method: "GET" })
-  .validator(
+  .inputValidator(
     (data: { patientDid: string; recordType?: string; limit?: number }) => {
       if (!data?.patientDid) throw new Error("patientDid is required");
       return { ...data, limit: data.limit ?? 100 };
@@ -329,7 +329,7 @@ export const getPatientMedicalRecords = createServerFn({ method: "GET" })
 // ─── Get Patient Medications ─────────────────────────────────────────────────
 
 export const getPatientMedications = createServerFn({ method: "GET" })
-  .validator(
+  .inputValidator(
     (data: { patientDid: string; status?: string }) => {
       if (!data?.patientDid) throw new Error("patientDid is required");
       return data;
@@ -369,7 +369,7 @@ export const getPatientMedications = createServerFn({ method: "GET" })
 // ─── Get Patient Procedures ──────────────────────────────────────────────────
 
 export const getPatientProcedures = createServerFn({ method: "GET" })
-  .validator(
+  .inputValidator(
     (data: { patientDid: string; status?: string }) => {
       if (!data?.patientDid) throw new Error("patientDid is required");
       return data;
@@ -408,7 +408,7 @@ export const getPatientProcedures = createServerFn({ method: "GET" })
 // ─── Get Patient Lab Results ─────────────────────────────────────────────────
 
 export const getPatientLabResults = createServerFn({ method: "GET" })
-  .validator(
+  .inputValidator(
     (data: { patientDid: string; limit?: number }) => {
       if (!data?.patientDid) throw new Error("patientDid is required");
       return { ...data, limit: data.limit ?? 50 };
@@ -444,7 +444,7 @@ export const getPatientLabResults = createServerFn({ method: "GET" })
 // ─── Get Patient Billing Information ─────────────────────────────────────────
 
 export const getPatientBilling = createServerFn({ method: "GET" })
-  .validator(
+  .inputValidator(
     (data: { patientDid: string }) => {
       if (!data?.patientDid) throw new Error("patientDid is required");
       return data;
@@ -521,7 +521,7 @@ export const getPatientBilling = createServerFn({ method: "GET" })
 // ─── Get Patient Discharge Information ───────────────────────────────────────
 
 export const getPatientDischargeInfo = createServerFn({ method: "GET" })
-  .validator(
+  .inputValidator(
     (data: { patientDid: string }) => {
       if (!data?.patientDid) throw new Error("patientDid is required");
       return data;

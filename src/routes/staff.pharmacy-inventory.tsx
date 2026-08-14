@@ -56,7 +56,7 @@ import {
   getPendingDispensingPrescriptions,
   dispensePrescriptionMedications,
   getItemMovements,
-} from "@/lib/api";
+} from "@/lib/pharmacy.server";
 import { useTableRefresh } from "@/lib/hooks/useTableRefresh";
 
 export const Route = createFileRoute("/staff/pharmacy-inventory")({
@@ -75,34 +75,36 @@ function StaffPharmacyInventory() {
   // Pending prescriptions for dispensing
   const { data: prescriptionsData } = useQuery({
     queryKey: ["pending-dispensing-rx", refreshInventory],
-    queryFn: () => getPendingDispensingPrescriptions({ limit: 20 }),
+    queryFn: () => getPendingDispensingPrescriptions({ data: { limit: 20 } }),
     enabled: activeTab === "dispense",
   });
 
   // Inventory items
   const { data: inventoryData } = useQuery({
     queryKey: ["inventory-items-staff", searchTerm, refreshInventory],
-    queryFn: () => getInventoryItems({ search: searchTerm || undefined, limit: 100 }),
+    queryFn: () =>
+          getInventoryItems({ data: { search: searchTerm || undefined, limit: 100 } }),
     enabled: activeTab === "inventory",
   });
 
   // All batches
   const { data: batchesData } = useQuery({
     queryKey: ["batches-staff", refreshInventory],
-    queryFn: () => getBatches({ limit: 100 }),
+    queryFn: () => getBatches({ data: { limit: 100 } }),
     enabled: activeTab === "receive" || activeTab === "inventory",
   });
 
   // Low-stock items
   const { data: lowStockData } = useQuery({
     queryKey: ["low-stock-alerts-staff", refreshInventory],
-    queryFn: () => getLowStockItems({ resolved: false, limit: 10 }),
+    queryFn: () => getLowStockItems({ data: { resolved: false, limit: 10 } }),
   });
 
   // Near-expiry items
   const { data: nearExpiryData } = useQuery({
     queryKey: ["near-expiry-staff", refreshInventory],
-    queryFn: () => getNearExpiryItems({ status: "near_expiry", resolved: false, limit: 10 }),
+    queryFn: () =>
+          getNearExpiryItems({ data: { status: "near_expiry", resolved: false, limit: 10 } }),
   });
 
   // ─── Render ─────────────────────────────────────────────────────────────
@@ -417,9 +419,11 @@ function DispenseCard({
       }));
 
     mutation.mutate({
-      prescriptionId: prescription.rx_id,
-      patientDid: prescription.patient_did,
-      medications,
+      data: {
+        prescriptionId: prescription.rx_id,
+        patientDid: prescription.patient_did,
+        medications,
+      },
     });
   };
 
@@ -517,7 +521,7 @@ function ReceiveStockForm({ onSuccess }: { onSuccess: () => void }) {
 
   const { data: items } = useQuery({
     queryKey: ["items-receive"],
-    queryFn: () => getInventoryItems({ limit: 100 }),
+    queryFn: () => getInventoryItems({ data: { limit: 100 } }),
   });
 
   const mutation = useMutation({
@@ -534,10 +538,12 @@ function ReceiveStockForm({ onSuccess }: { onSuccess: () => void }) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     mutation.mutate({
-      itemId,
-      batchId: batchNumber,
-      quantityToAdd: parseInt(quantity),
-      reason: "Stock received",
+      data: {
+        itemId,
+        batchId: batchNumber,
+        quantityToAdd: parseInt(quantity),
+        reason: "Stock received",
+      },
     });
   };
 
@@ -597,7 +603,7 @@ function TransferForm({ onSuccess }: { onSuccess: () => void }) {
 
   const { data: batches } = useQuery({
     queryKey: ["batches-transfer"],
-    queryFn: () => getBatches({ limit: 100 }),
+    queryFn: () => getBatches({ data: { limit: 100 } }),
   });
 
   const removeStockMutation = useMutation({
@@ -639,17 +645,21 @@ function TransferForm({ onSuccess }: { onSuccess: () => void }) {
 
     if (operation === "consume") {
       consumeStockMutation.mutate({
-        itemId: batch.item_id,
-        batchId,
-        quantityToConsume: qty,
-        reason: reason || "Consumed",
+        data: {
+          itemId: batch.item_id,
+          batchId,
+          quantityToConsume: qty,
+          reason: reason || "Consumed",
+        },
       });
     } else if (operation === "waste") {
       wasteStockMutation.mutate({
-        itemId: batch.item_id,
-        batchId,
-        quantityWasted: qty,
-        reason: reason || "Wastage",
+        data: {
+          itemId: batch.item_id,
+          batchId,
+          quantityWasted: qty,
+          reason: reason || "Wastage",
+        },
       });
     }
   };
@@ -729,13 +739,13 @@ function MovementsTable({ onRefresh }: { onRefresh: () => void }) {
     queryKey: ["movements-staff", itemIdFilter],
     queryFn: () =>
       itemIdFilter
-        ? getItemMovements({ itemId: itemIdFilter, limit: 50 })
+        ? getItemMovements({ data: { itemId: itemIdFilter, limit: 50 } })
         : Promise.resolve({ ok: true as const, movements: [] }),
   });
 
   const { data: items } = useQuery({
     queryKey: ["items-filter"],
-    queryFn: () => getInventoryItems({ limit: 100 }),
+    queryFn: () => getInventoryItems({ data: { limit: 100 } }),
   });
 
   if (!data?.movements || data.movements.length === 0) {

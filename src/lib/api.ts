@@ -2046,100 +2046,52 @@ export async function getPatientFullProfile(patientDid: string) {
 
 export async function getPatientMaster(data: { patientDid: string }) {
   const { getPatientMaster: fn } = await import("./patient-master.server");
-  return fn(data);
+  return fn({ data });
 }
 
 export async function getPatientCurrentLocation(data: { patientDid: string }) {
   const { getPatientCurrentLocation: fn } = await import("./patient-master.server");
-  return fn(data);
+  return fn({ data });
 }
 
 export async function getPatientAdmissionHistory(data: { patientDid: string; limit?: number }) {
   const { getPatientAdmissionHistory: fn } = await import("./patient-master.server");
-  return fn(data);
+  return fn({ data });
 }
 
 export async function getPatientTransferHistory(data: { patientDid: string; limit?: number }) {
   const { getPatientTransferHistory: fn } = await import("./patient-master.server");
-  return fn(data);
+  return fn({ data });
 }
 
 export async function getPatientMedicalRecords(data: { patientDid: string; recordType?: string; limit?: number }) {
   const { getPatientMedicalRecords: fn } = await import("./patient-master.server");
-  return fn(data);
+  return fn({ data });
 }
 
 export async function getPatientMedications(data: { patientDid: string; status?: string }) {
   const { getPatientMedications: fn } = await import("./patient-master.server");
-  return fn(data);
+  return fn({ data });
 }
 
 export async function getPatientProcedures(data: { patientDid: string; status?: string }) {
   const { getPatientProcedures: fn } = await import("./patient-master.server");
-  return fn(data);
+  return fn({ data });
 }
 
 export async function getPatientLabResults(data: { patientDid: string; limit?: number }) {
   const { getPatientLabResults: fn } = await import("./patient-master.server");
-  return fn(data);
+  return fn({ data });
 }
 
 export async function getPatientBilling(data: { patientDid: string }) {
   const { getPatientBilling: fn } = await import("./patient-master.server");
-  return fn(data);
+  return fn({ data });
 }
 
 export async function getPatientDischargeInfo(data: { patientDid: string }) {
   const { getPatientDischargeInfo: fn } = await import("./patient-master.server");
-  return fn(data);
+  return fn({ data });
 }
 
 
-
-// ─── Pharmacy & Medical Inventory ──────────────────────────────────────────────
-
-// Re-export all pharmacy functions from pharmacy.server.ts for client-side usage
-
-export {
-  // Suppliers
-  createSupplier,
-  getSuppliers,
-  // Inventory Items
-  createInventoryItem,
-  getInventoryItems,
-  getInventoryItem,
-  updateInventoryItem,
-  // Batches
-  createBatch,
-  getBatches,
-  getBatchDetails,
-  // Stock Levels
-  getCurrentStockLevel,
-  getAllStockLevels,
-  // Stock Movements
-  addStock,
-  removeStock,
-  transferStock,
-  consumeStock,
-  adjustStock,
-  recordWastage,
-  recordExpiredStock,
-  getBatchMovements,
-  getItemMovements,
-  getMovement,
-  // Alerts
-  getLowStockItems,
-  getNearExpiryItems,
-  getExpiredStock,
-  resolveLowStockAlert,
-  resolveExpirationAlert,
-  // Purchase Orders
-  createPurchaseOrder,
-  getPurchaseOrders,
-  updatePurchaseOrderStatus,
-  // Prescription Dispensing Integration
-  dispensePrescriptionMedications,
-  checkPrescriptionMedicationAvailability,
-  getPrescriptionWithInventory,
-  getPendingDispensingPrescriptions,
-} from "./pharmacy.server";

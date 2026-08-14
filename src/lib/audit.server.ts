@@ -219,7 +219,7 @@ export async function tryWriteAudit(entry: AuditEntry): Promise<void> {
  * Admin sees all; staff/doctor sees own actions; patient sees own events.
  */
 export const getAuditTrail = createServerFn({ method: "GET" })
-  .validator((data: {
+  .inputValidator((data: {
     module?:    string;
     entityId?:  string;
     actorId?:   string;
@@ -293,7 +293,7 @@ export const getAuditTrail = createServerFn({ method: "GET" })
  * Returns structured result with Solana explorer link if available.
  */
 export const verifyAuditRecord = createServerFn({ method: "GET" })
-  .validator((data: { txId: string }) => {
+  .inputValidator((data: { txId: string }) => {
     if (!data?.txId) throw new Error("txId is required");
     return data;
   })
@@ -336,7 +336,7 @@ export const verifyAuditRecord = createServerFn({ method: "GET" })
  * Limited to 10 rows per call to avoid Edge Function timeout.
  */
 export const processAuditAnchorQueue = createServerFn({ method: "POST" })
-  .validator((data: { limit?: number }) => data ?? {})
+  .inputValidator((data: { limit?: number }) => data ?? {})
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();

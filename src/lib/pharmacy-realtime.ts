@@ -67,7 +67,7 @@ export function subscribeToStockMovements(
  */
 export function subscribeToStockLevels(
   hospitalId: string,
-  itemId?: string,
+  itemId: string | undefined,
   onUpdate: (level: any) => void,
   onError?: (error: any) => void
 ): RealtimeChannel | null {

@@ -153,7 +153,7 @@ export const getPatientPreferences = createServerFn({ method: "GET" }).handler(a
 });
 
 export const updatePatientPreferences = createServerFn({ method: "POST" })
-  .validator((data: Record<string, unknown>) => data ?? {})
+  .inputValidator((data: Record<string, unknown>) => data ?? {})
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();
@@ -181,7 +181,7 @@ export const getFeedback = createServerFn({ method: "GET" }).handler(async () =>
 }));
 
 export const submitFeedback = createServerFn({ method: "POST" })
-  .validator((data: { rating: number; doctor?: string; comments?: string }) => {
+  .inputValidator((data: { rating: number; doctor?: string; comments?: string }) => {
     if (!data?.rating || data.rating < 1 || data.rating > 5) {
       throw new Error("A rating between 1 and 5 is required");
     }
@@ -212,7 +212,7 @@ export const getAmbulances = createServerFn({ method: "GET" }).handler(async () 
 }));
 
 export const updateAmbulanceStatus = createServerFn({ method: "POST" })
-  .validator((data: { ambulanceId: string; status: string; location?: string; driverName?: string }) => {
+  .inputValidator((data: { ambulanceId: string; status: string; location?: string; driverName?: string }) => {
     if (!data?.ambulanceId) throw new Error("Ambulance ID is required");
     if (!data?.status) throw new Error("Status is required");
     return data;
@@ -271,7 +271,7 @@ export const getBilling = createServerFn({ method: "GET" }).handler(async () => 
  * is a service_role operation once a provider webhook lands.
  */
 export const recordPayment = createServerFn({ method: "POST" })
-  .validator((data: { amount: number; method?: string; reference?: string }) => {
+  .inputValidator((data: { amount: number; method?: string; reference?: string }) => {
     if (!data?.amount || data.amount <= 0) throw new Error("A positive amount is required");
     return data;
   })
@@ -311,7 +311,7 @@ export const getPolicies = createServerFn({ method: "GET" }).handler(async () =>
 
 /** Author a policy. RLS restricts this to admins. */
 export const createPolicy = createServerFn({ method: "POST" })
-  .validator((data: { name: string; category?: string; description?: string; status?: string }) => {
+  .inputValidator((data: { name: string; category?: string; description?: string; status?: string }) => {
     if (!data?.name) throw new Error("name is required");
     return data;
   })
@@ -350,7 +350,7 @@ export const createPolicy = createServerFn({ method: "POST" })
 
 /** Amend a policy. RLS restricts this to admins. */
 export const updatePolicy = createServerFn({ method: "POST" })
-  .validator((data: { policyId: string; [key: string]: unknown }) => {
+  .inputValidator((data: { policyId: string; [key: string]: unknown }) => {
     if (!data?.policyId) throw new Error("policyId is required");
     return data;
   })
@@ -384,7 +384,7 @@ export const updatePolicy = createServerFn({ method: "POST" })
  * fraud alerts name a suspected actor.
  */
 export const updateFraudAlertStatus = createServerFn({ method: "POST" })
-  .validator((data: { alertId: string; status: string }) => {
+  .inputValidator((data: { alertId: string; status: string }) => {
     if (!data?.alertId || !data?.status) throw new Error("alertId and status are required");
     return data;
   })

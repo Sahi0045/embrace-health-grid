@@ -49,7 +49,7 @@ import {
   createInventoryItem,
   createSupplier,
   createBatch,
-} from "@/lib/api";
+} from "@/lib/pharmacy.server";
 import { useTableRefresh } from "@/lib/hooks/useTableRefresh";
 
 export const Route = createFileRoute("/admin/pharmacy-inventory")({
@@ -73,8 +73,10 @@ function AdminPharmacyInventory() {
     queryKey: ["inventory-items", searchTerm, statusFilter, refreshInventory],
     queryFn: () =>
       getInventoryItems({
-        search: searchTerm || undefined,
-        status: statusFilter !== "all" ? statusFilter : undefined,
+        data: {
+          search: searchTerm || undefined,
+          status: statusFilter !== "all" ? statusFilter : undefined,
+        },
       }),
     enabled: activeTab === "inventory" || activeTab === "overview",
   });
@@ -82,7 +84,7 @@ function AdminPharmacyInventory() {
   // Low-stock alerts
   const { data: lowStockData } = useQuery({
     queryKey: ["low-stock-alerts", refreshInventory],
-    queryFn: () => getLowStockItems({ resolved: false, limit: 10 }),
+    queryFn: () => getLowStockItems({ data: { resolved: false, limit: 10 } }),
     enabled: activeTab === "overview" || activeTab === "alerts",
   });
 
@@ -90,28 +92,28 @@ function AdminPharmacyInventory() {
   const { data: nearExpiryData } = useQuery({
     queryKey: ["near-expiry-alerts", refreshInventory],
     queryFn: () =>
-      getNearExpiryItems({ status: "near_expiry", resolved: false, limit: 10 }),
+      getNearExpiryItems({ data: { status: "near_expiry", resolved: false, limit: 10 } }),
     enabled: activeTab === "overview" || activeTab === "alerts",
   });
 
   // Expired stock
   const { data: expiredData } = useQuery({
     queryKey: ["expired-stock", refreshInventory],
-    queryFn: () => getExpiredStock({ limit: 5 }),
+    queryFn: () => getExpiredStock({ data: { limit: 5 } }),
     enabled: activeTab === "alerts",
   });
 
   // Suppliers
   const { data: suppliersData } = useQuery({
     queryKey: ["suppliers", refreshInventory],
-    queryFn: () => getSuppliers({ active: true }),
+    queryFn: () => getSuppliers({ data: { active: true } }),
     enabled: activeTab === "suppliers" || activeTab === "overview",
   });
 
   // Purchase orders
   const { data: purchaseOrdersData } = useQuery({
     queryKey: ["purchase-orders", refreshInventory],
-    queryFn: () => getPurchaseOrders({ limit: 20 }),
+    queryFn: () => getPurchaseOrders({ data: { limit: 20 } }),
     enabled: activeTab === "purchase-orders",
   });
 
@@ -603,13 +605,15 @@ function AddItemDialog({ onSuccess }: { onSuccess: () => void }) {
     e.preventDefault();
     const formData = new FormData(e.currentTarget as HTMLFormElement);
     mutation.mutate({
-      itemCode: formData.get("itemCode") as string,
-      itemName: formData.get("itemName") as string,
-      itemType: formData.get("itemType") as string,
-      category: formData.get("category") as string,
-      unitOfMeasure: formData.get("unitOfMeasure") as string,
-      reorderLevel: parseInt(formData.get("reorderLevel") as string) || 50,
-      reorderQuantity: parseInt(formData.get("reorderQuantity") as string) || 100,
+      data: {
+        itemCode: formData.get("itemCode") as string,
+        itemName: formData.get("itemName") as string,
+        itemType: formData.get("itemType") as string,
+        category: formData.get("category") as string,
+        unitOfMeasure: formData.get("unitOfMeasure") as string,
+        reorderLevel: parseInt(formData.get("reorderLevel") as string) || 50,
+        reorderQuantity: parseInt(formData.get("reorderQuantity") as string) || 100,
+      },
     });
   };
 
@@ -674,7 +678,7 @@ function AddBatchDialog({ onSuccess }: { onSuccess: () => void }) {
   const [open, setOpen] = useState(false);
   const { data: items } = useQuery({
     queryKey: ["inventory-items-select"],
-    queryFn: () => getInventoryItems({ limit: 100 }),
+    queryFn: () => getInventoryItems({ data: { limit: 100 } }),
   });
   const { data: suppliers } = useQuery({
     queryKey: ["suppliers-select"],
@@ -693,11 +697,13 @@ function AddBatchDialog({ onSuccess }: { onSuccess: () => void }) {
     e.preventDefault();
     const formData = new FormData(e.currentTarget as HTMLFormElement);
     mutation.mutate({
-      itemId: formData.get("itemId") as string,
-      batchNumber: formData.get("batchNumber") as string,
-      quantityReceived: parseInt(formData.get("quantityReceived") as string),
-      supplierId: (formData.get("supplierId") as string) || undefined,
-      expiryDate: (formData.get("expiryDate") as string) || undefined,
+      data: {
+        itemId: formData.get("itemId") as string,
+        batchNumber: formData.get("batchNumber") as string,
+        quantityReceived: parseInt(formData.get("quantityReceived") as string),
+        supplierId: (formData.get("supplierId") as string) || undefined,
+        expiryDate: (formData.get("expiryDate") as string) || undefined,
+      },
     });
   };
 
@@ -809,7 +815,7 @@ function AddPurchaseOrderDialog({ onSuccess }: { onSuccess: () => void }) {
 function BatchesTable({ onRefresh }: { onRefresh: () => void }) {
   const { data } = useQuery({
     queryKey: ["batches-all"],
-    queryFn: () => getBatches({ limit: 50 }),
+    queryFn: () => getBatches({ data: { limit: 50 } }),
   });
 
   if (!data?.batches || data.batches.length === 0) {
