@@ -236,7 +236,9 @@ export type EquipmentRecord = {
     | "defibrillator"
     | "infusion"
     | "wheelchair"
-    | "oxygen-cylinder";
+    | "oxygen-cylinder"
+    | string;
+  category?: string;
   manufacturer: string;
   model: string;
   serial: string;
@@ -245,7 +247,29 @@ export type EquipmentRecord = {
   status: EquipmentStatus;
   lastMaintenance: string;
   nextMaintenance: string;
+  warrantyExpiry?: string;
+  purchaseDate?: string;
+  utilization: number;
+  calibrationDate?: string;
+  nextCalibration?: string;
+  assignedWard?: string;
+  location?: string;
   did: string;
+  updatedAt?: string;
+};
+
+export type MaintenanceLogEntry = {
+  logId: string;
+  equipmentId: string;
+  maintenanceType: "preventive" | "corrective" | "calibration" | "routine_check" | string;
+  description: string;
+  performedBy: string;
+  performedAt: string;
+  nextDue?: string;
+  cost: number;
+  status: "completed" | "scheduled" | "overdue" | "in_progress" | string;
+  notes?: string;
+  createdAt?: string;
 };
 
 export type AmbulanceRecord = {

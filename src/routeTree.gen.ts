@@ -63,6 +63,7 @@ import { Route as AdminInventoryRouteImport } from './routes/admin.inventory'
 import { Route as AdminHospitalMapRouteImport } from './routes/admin.hospital-map'
 import { Route as AdminFraudRouteImport } from './routes/admin.fraud'
 import { Route as AdminFinancialRouteImport } from './routes/admin.financial'
+import { Route as AdminEquipmentRouteImport } from './routes/admin.equipment'
 import { Route as AdminDoctorsRouteImport } from './routes/admin.doctors'
 import { Route as AdminDigitalTwinRouteImport } from './routes/admin.digital-twin'
 import { Route as AdminDidsRouteImport } from './routes/admin.dids'
@@ -344,6 +345,11 @@ const AdminFinancialRoute = AdminFinancialRouteImport.update({
   path: '/admin/financial',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminEquipmentRoute = AdminEquipmentRouteImport.update({
+  id: '/admin/equipment',
+  path: '/admin/equipment',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminDoctorsRoute = AdminDoctorsRouteImport.update({
   id: '/admin/doctors',
   path: '/admin/doctors',
@@ -411,6 +417,7 @@ export interface FileRoutesByFullPath {
   '/admin/dids': typeof AdminDidsRoute
   '/admin/digital-twin': typeof AdminDigitalTwinRoute
   '/admin/doctors': typeof AdminDoctorsRoute
+  '/admin/equipment': typeof AdminEquipmentRoute
   '/admin/financial': typeof AdminFinancialRoute
   '/admin/fraud': typeof AdminFraudRoute
   '/admin/hospital-map': typeof AdminHospitalMapRoute
@@ -477,6 +484,7 @@ export interface FileRoutesByTo {
   '/admin/dids': typeof AdminDidsRoute
   '/admin/digital-twin': typeof AdminDigitalTwinRoute
   '/admin/doctors': typeof AdminDoctorsRoute
+  '/admin/equipment': typeof AdminEquipmentRoute
   '/admin/financial': typeof AdminFinancialRoute
   '/admin/fraud': typeof AdminFraudRoute
   '/admin/hospital-map': typeof AdminHospitalMapRoute
@@ -544,6 +552,7 @@ export interface FileRoutesById {
   '/admin/dids': typeof AdminDidsRoute
   '/admin/digital-twin': typeof AdminDigitalTwinRoute
   '/admin/doctors': typeof AdminDoctorsRoute
+  '/admin/equipment': typeof AdminEquipmentRoute
   '/admin/financial': typeof AdminFinancialRoute
   '/admin/fraud': typeof AdminFraudRoute
   '/admin/hospital-map': typeof AdminHospitalMapRoute
@@ -612,6 +621,7 @@ export interface FileRouteTypes {
     | '/admin/dids'
     | '/admin/digital-twin'
     | '/admin/doctors'
+    | '/admin/equipment'
     | '/admin/financial'
     | '/admin/fraud'
     | '/admin/hospital-map'
@@ -678,6 +688,7 @@ export interface FileRouteTypes {
     | '/admin/dids'
     | '/admin/digital-twin'
     | '/admin/doctors'
+    | '/admin/equipment'
     | '/admin/financial'
     | '/admin/fraud'
     | '/admin/hospital-map'
@@ -744,6 +755,7 @@ export interface FileRouteTypes {
     | '/admin/dids'
     | '/admin/digital-twin'
     | '/admin/doctors'
+    | '/admin/equipment'
     | '/admin/financial'
     | '/admin/fraud'
     | '/admin/hospital-map'
@@ -811,6 +823,7 @@ export interface RootRouteChildren {
   AdminDidsRoute: typeof AdminDidsRoute
   AdminDigitalTwinRoute: typeof AdminDigitalTwinRoute
   AdminDoctorsRoute: typeof AdminDoctorsRoute
+  AdminEquipmentRoute: typeof AdminEquipmentRoute
   AdminFinancialRoute: typeof AdminFinancialRoute
   AdminFraudRoute: typeof AdminFraudRoute
   AdminHospitalMapRoute: typeof AdminHospitalMapRoute
@@ -1242,6 +1255,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminFinancialRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/equipment': {
+      id: '/admin/equipment'
+      path: '/admin/equipment'
+      fullPath: '/admin/equipment'
+      preLoaderRoute: typeof AdminEquipmentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/doctors': {
       id: '/admin/doctors'
       path: '/admin/doctors'
@@ -1331,6 +1351,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminDidsRoute: AdminDidsRoute,
   AdminDigitalTwinRoute: AdminDigitalTwinRoute,
   AdminDoctorsRoute: AdminDoctorsRoute,
+  AdminEquipmentRoute: AdminEquipmentRoute,
   AdminFinancialRoute: AdminFinancialRoute,
   AdminFraudRoute: AdminFraudRoute,
   AdminHospitalMapRoute: AdminHospitalMapRoute,

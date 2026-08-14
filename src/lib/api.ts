@@ -1522,12 +1522,71 @@ export async function getEquipment() {
   const equipment = (res.equipment ?? []).map((e: any) => ({
     id: e.equipment_id,
     name: e.name,
-    category: e.category,
-    status: e.status,
-    location: e.location,
-    lastServicedOn: e.last_serviced_on,
+    type: e.equipment_type || "general",
+    category: e.category || "General Medical",
+    manufacturer: e.manufacturer || "Hospital Engineering",
+    model: e.model || "Standard Unit",
+    serial: e.serial_number || e.equipment_id,
+    department: e.department || "General Facility",
+    floor: Number(e.floor_number ?? 1),
+    status: e.status || "operational",
+    lastMaintenance: e.last_serviced_on || "N/A",
+    nextMaintenance: e.next_service_on || "N/A",
+    warrantyExpiry: e.warranty_expiry,
+    purchaseDate: e.purchase_date,
+    utilization: Number(e.utilization_pct ?? 0),
+    calibrationDate: e.calibration_date,
+    nextCalibration: e.next_calibration,
+    assignedWard: e.assigned_ward || "Unassigned Ward",
+    location: e.location || "Facility Depot",
+    did: e.did || `did:hosp:equipment:${e.equipment_id}`,
+    updatedAt: e.updated_at,
   }));
   return { equipment, total: equipment.length };
+}
+
+export async function getEquipmentMaintenanceLog(equipmentId?: string) {
+  const { getEquipmentMaintenanceLog: fn } = await import("./inpatient.server");
+  const res = await fn({ data: { equipmentId } });
+  const logs = (res.logs ?? []).map((l: any) => ({
+    logId: l.log_id,
+    equipmentId: l.equipment_id,
+    maintenanceType: l.maintenance_type,
+    description: l.description,
+    performedBy: l.performed_by,
+    performedAt: l.performed_at,
+    nextDue: l.next_due,
+    cost: Number(l.cost ?? 0),
+    status: l.status,
+    notes: l.notes,
+    createdAt: l.created_at,
+  }));
+  return { logs, total: logs.length };
+}
+
+export async function updateEquipmentStatus(params: {
+  equipmentId: string;
+  status: string;
+  location?: string;
+  assignedWard?: string;
+  utilizationPct?: number;
+}) {
+  const { updateEquipmentStatus: fn } = await import("./inpatient.server");
+  return fn({ data: params });
+}
+
+export async function recordEquipmentMaintenance(params: {
+  equipmentId: string;
+  maintenanceType: "preventive" | "corrective" | "calibration" | "routine_check" | string;
+  description: string;
+  performedBy: string;
+  nextDue?: string;
+  cost?: number;
+  status?: string;
+  notes?: string;
+}) {
+  const { recordEquipmentMaintenance: fn } = await import("./inpatient.server");
+  return fn({ data: params });
 }
 
 export async function getFraudAlerts() {
