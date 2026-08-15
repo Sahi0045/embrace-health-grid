@@ -2240,3 +2240,70 @@ export async function getCentralAlertStats() {
   return fn();
 }
 
+// ─── Laboratory & Diagnostics API (Sprint 9) ────────────────────────────────
+
+export async function getLaboratoryData() {
+  const { getLaboratoryData: fn } = await import("./operations.server");
+  return fn();
+}
+
+export async function updateLabOrderStatus(data: {
+  orderId: string;
+  status: "pending" | "in_progress" | "completed" | "cancelled";
+}) {
+  const { updateLabOrderStatus: fn } = await import("./operations.server");
+  return fn({ data });
+}
+
+export async function updateSampleStatus(data: {
+  sampleId: string;
+  status: "collected" | "lab_received" | "processing" | "resulted" | "reported";
+  notes?: string;
+}) {
+  const { updateSampleStatus: fn } = await import("./operations.server");
+  return fn({ data });
+}
+
+export async function updateRadiologyOrderStatus(data: {
+  orderId: string;
+  status: "scheduled" | "in_progress" | "completed" | "reported" | "cancelled";
+  reportText?: string;
+  reportedBy?: string;
+}) {
+  const { updateRadiologyOrderStatus: fn } = await import("./operations.server");
+  return fn({ data });
+}
+
+export async function orderLabTestDirect(data: {
+  patientDid: string;
+  patientName?: string;
+  patientMrn?: string;
+  testName: string;
+  testCategory: string;
+  priority: "stat" | "urgent" | "routine";
+  clinicalNotes?: string;
+  specimenType?: string;
+}) {
+  const { orderLabTestDirect: fn } = await import("./operations.server");
+  return fn({ data });
+}
+
+export async function recordLabResult(data: {
+  labId?: string;
+  orderId?: string;
+  patientDid: string;
+  patientName?: string;
+  patientMrn?: string;
+  testName: string;
+  category?: string;
+  resultValue: string;
+  unit: string;
+  referenceRange: string;
+  isCritical?: boolean;
+  criticalFlag?: "high" | "low" | "critical_high" | "critical_low" | "panic" | null;
+}) {
+  const { recordLabResult: fn } = await import("./operations.server");
+  return fn({ data });
+}
+
+

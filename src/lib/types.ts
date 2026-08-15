@@ -451,4 +451,111 @@ export type CentralAlertStats = {
   resolvedToday: number;
 };
 
+export type LabOrderPriority = "stat" | "urgent" | "routine";
+export type LabOrderStatus = "pending" | "in_progress" | "completed" | "cancelled";
+export type SampleCollectionStatus = "collected" | "lab_received" | "processing" | "resulted" | "reported";
+
+export type LabOrderRecord = {
+  order_id: string;
+  patient_did: string;
+  patient_name?: string;
+  patient_mrn?: string;
+  ordered_by: string;
+  doctor_name?: string;
+  hospital_id?: string;
+  test_name: string;
+  test_category?: "hematology" | "biochemistry" | "microbiology" | "immunology" | "pathology" | "genetics" | string;
+  priority: LabOrderPriority;
+  clinical_notes?: string;
+  specimen_type?: string;
+  status: LabOrderStatus;
+  lab_id?: string;
+  ordered_at: string;
+  completed_at?: string;
+  created_at: string;
+};
+
+export type LabSampleRecord = {
+  sample_id: string;
+  order_id?: string;
+  lab_id?: string;
+  patient_did: string;
+  patient_name?: string;
+  patient_mrn?: string;
+  hospital_id?: string;
+  sample_type: "blood" | "urine" | "tissue" | "swab" | "csf" | "sputum" | string;
+  barcode?: string;
+  collection_status: SampleCollectionStatus;
+  collected_by?: string;
+  collected_at?: string;
+  received_at?: string;
+  processed_at?: string;
+  reported_at?: string;
+  temperature_c?: number;
+  container_type?: string;
+  notes?: string;
+  created_at: string;
+};
+
+export type LabResultRecord = {
+  lab_id: string;
+  order_id?: string;
+  patient_did: string;
+  patient_name?: string;
+  patient_mrn?: string;
+  ordered_by?: string;
+  doctor_name?: string;
+  test_name: string;
+  category?: string;
+  result_value?: string;
+  unit?: string;
+  reference_range?: string;
+  status: "pending" | "in-progress" | "completed" | "critical" | "abnormal" | "normal" | string;
+  is_critical?: boolean;
+  critical_flag?: "high" | "low" | "critical_high" | "critical_low" | "panic" | null;
+  content_hash?: string;
+  verified_by?: string;
+  resulted_at?: string;
+  created_at: string;
+};
+
+export type RadiologyModality = "mri" | "ct" | "xray" | "ultrasound" | "fluoroscopy" | "pet" | string;
+export type RadiologyOrderStatus = "scheduled" | "in_progress" | "completed" | "reported" | "cancelled";
+
+export type RadiologyOrderRecord = {
+  order_id: string;
+  patient_did: string;
+  patient_name?: string;
+  patient_mrn?: string;
+  ordered_by: string;
+  doctor_name?: string;
+  hospital_id?: string;
+  modality: RadiologyModality;
+  body_part: string;
+  clinical_indication: string;
+  priority: LabOrderPriority;
+  status: RadiologyOrderStatus;
+  scheduled_at: string;
+  completed_at?: string;
+  equipment_id?: string;
+  equipment_name?: string;
+  equipment_room?: string;
+  report_text?: string;
+  reported_by?: string;
+  reported_at?: string;
+  pacs_image_url?: string;
+  created_at: string;
+};
+
+export type LabDashboardStats = {
+  pendingTests: number;
+  inProgress: number;
+  completedToday: number;
+  criticalResults: number;
+  avgTurnaroundTime: string;
+  totalSamplesCollected: number;
+  radiologyScansToday: number;
+};
+
+
 

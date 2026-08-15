@@ -165,6 +165,7 @@ const adminNav: Item[] = [
   { title: "Inventory", url: "/admin/inventory", icon: Package },
   { title: "Pharmacy Inventory", url: "/admin/pharmacy-inventory", icon: Package },
   { title: "Equipment", url: "/admin/equipment", icon: Wrench },
+  { title: "Laboratory", url: "/admin/laboratory", icon: FlaskConical },
   { title: "Alert Center", url: "/admin/alerts", icon: BellRing },
   { title: "Policies", url: "/admin/policies", icon: FileText },
   { title: "Fraud Detection", url: "/admin/fraud", icon: ShieldAlert },
