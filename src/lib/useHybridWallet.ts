@@ -1,320 +1,259 @@
 /**
  * useHybridWallet Hook
- * Manages hybrid wallet state (Phantom + Embedded detection and switching)
- * 
- * Usage:
- *   const wallet = useHybridWallet();
- *   if (wallet.isPhantomDetected) { ... }
- *   const result = await wallet.sign(txData);
+ * Client-side state management for hybrid wallet system
+ * Manages: Phantom detection, wallet preference, signing state, recent activity
  */
 
-'use client';
+import { useEffect, useState } from 'react';
+import { getWalletPreference, saveWalletPreference } from '@/routes/api.wallet-preference';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import {
-  getWalletStatus,
-  getUserWalletPreference,
-  saveUserWalletPreference,
-  signAndAnchorTransaction,
-  connectPhantom,
-  disconnectPhantom,
-  isPhantomInstalled,
-  getWalletErrorMessage,
-  onPhantomAccountChange,
-  onPhantomNetworkChange,
-  type WalletMode,
-  type HybridWalletState,
-  type SigningResult,
-  type TransactionPayload,
-} from './hybrid-wallet.client';
+// ─── Types ──────────────────────────────────────────────────────────────────
 
-export interface UseHybridWalletResult extends HybridWalletState {
-  // Actions
-  sign: (data: TransactionPayload, options?: any) => Promise<SigningResult>;
-  setWalletMode: (mode: WalletMode) => Promise<void>;
-  connectPhantom: () => Promise<{ publicKey: string }>;
-  disconnectPhantom: () => Promise<void>;
+export interface HybridWalletState {
+  // Wallet detection
+  phantomAvailable: boolean;
+  phantomConnected: boolean;
+  phantomAddress?: string;
+  phantomNetwork?: string;
 
-  // Computed
-  effectiveWalletMode: WalletMode;
-  shouldShowPhantomOption: boolean;
-  isSigningReady: boolean;
+  // User preferences
+  walletMode: 'auto' | 'phantom' | 'embedded';
+  hospitalId?: string;
 
-  // Helpers
-  getStatusMessage: () => string;
+  // Signing state
+  isSigning: boolean;
+  lastSigningTime?: Date;
+  signingError?: string;
+
+  // Connection events
+  isListening: boolean;
 }
 
-/**
- * Hook to manage hybrid wallet selection and signing
- */
-export function useHybridWallet(): UseHybridWalletResult {
+// ─── Hook ────────────────────────────────────────────────────────────────────
+
+export function useHybridWallet(hospitalId?: string) {
   const [state, setState] = useState<HybridWalletState>({
-    walletMode: 'embedded',
-    isPhantomDetected: false,
-    isPhantomConnected: false,
-    phantomPublicKey: null,
-    userPreference: null,
-    loading: true,
-    error: null,
+    phantomAvailable: false,
+    phantomConnected: false,
+    walletMode: 'auto',
+    isSigning: false,
+    isListening: false,
   });
 
-  const unsubscribeRef = useRef<(() => void)[]>([]);
+  // ─── Load Wallet Preference ─────────────────────────────────────────────
 
-  // Initialize wallet state on mount
   useEffect(() => {
-    const initialize = async () => {
+    const loadPreference = async () => {
       try {
-        const status = await getWalletStatus();
-        setState({
-          ...status,
-          loading: false,
-        });
+        if (!hospitalId) return;
 
-        // Subscribe to Phantom changes if connected
-        if (isPhantomInstalled()) {
-          const unsubscribeAccount = onPhantomAccountChange((publicKey) => {
-            setState((prev) => ({
-              ...prev,
-              phantomPublicKey: publicKey,
-              isPhantomConnected: !!publicKey,
-            }));
-          });
-
-          const unsubscribeNetwork = onPhantomNetworkChange((network) => {
-            console.log('Phantom network changed:', network);
-            // Handle network change if needed
-          });
-
-          unsubscribeRef.current = [unsubscribeAccount, unsubscribeNetwork];
+        const pref = await getWalletPreference({ hospitalId });
+        if (pref) {
+          setState((prev) => ({
+            ...prev,
+            walletMode: pref.walletMode || 'auto',
+            hospitalId,
+          }));
         }
-      } catch (error) {
-        console.error('Failed to initialize wallet:', error);
+      } catch (err) {
+        console.warn('Failed to load wallet preference:', err);
+      }
+    };
+
+    loadPreference();
+  }, [hospitalId]);
+
+  // ─── Detect Phantom Wallet ──────────────────────────────────────────────
+
+  useEffect(() => {
+    const detectPhantom = () => {
+      const isPhantomAvailable = !!window?.solana?.isPhantom;
+
+      setState((prev) => ({
+        ...prev,
+        phantomAvailable: isPhantomAvailable,
+      }));
+
+      console.log(`🔍 Phantom Detection:`, {
+        available: isPhantomAvailable,
+        address: window?.solana?.publicKey?.toString?.(),
+      });
+    };
+
+    // Detect on mount
+    detectPhantom();
+
+    // Listen for wallet connect/disconnect
+    if (window?.solana?.on) {
+      const handleConnect = () => {
         setState((prev) => ({
           ...prev,
-          loading: false,
-          error: getWalletErrorMessage(error),
+          phantomConnected: true,
+          phantomAddress: window.solana?.publicKey?.toString?.(),
         }));
+
+        console.log(`✅ Phantom Connected:`, window.solana?.publicKey?.toString?.());
+      };
+
+      const handleDisconnect = () => {
+        setState((prev) => ({
+          ...prev,
+          phantomConnected: false,
+          phantomAddress: undefined,
+        }));
+
+        console.log(`❌ Phantom Disconnected`);
+      };
+
+      const handleAccountChanged = (newPublicKey: any) => {
+        if (newPublicKey) {
+          setState((prev) => ({
+            ...prev,
+            phantomAddress: newPublicKey.toString?.(),
+          }));
+
+          console.log(`🔄 Phantom Account Changed:`, newPublicKey.toString?.());
+        }
+      };
+
+      const handleNetworkChanged = (network: string) => {
+        setState((prev) => ({
+          ...prev,
+          phantomNetwork: network,
+        }));
+
+        console.log(`🌐 Phantom Network Changed:`, network);
+      };
+
+      try {
+        window.solana.on('connect', handleConnect);
+        window.solana.on('disconnect', handleDisconnect);
+        window.solana.on('accountChanged', handleAccountChanged);
+        window.solana.on('networkChanged', handleNetworkChanged);
+
+        setState((prev) => ({ ...prev, isListening: true }));
+
+        // Check initial connected state
+        if (window.solana?.publicKey) {
+          setState((prev) => ({
+            ...prev,
+            phantomConnected: true,
+            phantomAddress: window.solana.publicKey.toString(),
+          }));
+        }
+      } catch (err) {
+        console.warn('Failed to attach Phantom listeners:', err);
       }
-    };
 
-    initialize();
-
-    // Cleanup on unmount
-    return () => {
-      unsubscribeRef.current.forEach((unsubscribe) => unsubscribe?.());
-    };
+      // Cleanup
+      return () => {
+        try {
+          window.solana.off('connect', handleConnect);
+          window.solana.off('disconnect', handleDisconnect);
+          window.solana.off('accountChanged', handleAccountChanged);
+          window.solana.off('networkChanged', handleNetworkChanged);
+        } catch (_) {}
+      };
+    }
   }, []);
 
-  // Determine effective wallet mode (considering preferences)
-  const effectiveWalletMode: WalletMode = (() => {
-    if (state.userPreference && state.userPreference !== 'auto') {
-      return state.userPreference;
-    }
-    return state.walletMode;
-  })();
+  // ─── Save Wallet Preference ─────────────────────────────────────────────
 
-  // Sign transaction with selected wallet
-  const sign = useCallback(
-    async (data: TransactionPayload, options?: any): Promise<SigningResult> => {
+  const setWalletMode = async (mode: 'auto' | 'phantom' | 'embedded') => {
+    setState((prev) => ({ ...prev, walletMode: mode }));
+
+    if (hospitalId) {
       try {
-        setState((prev) => ({ ...prev, error: null }));
-
-        const result = await signAndAnchorTransaction(data, {
-          forceMode:
-            effectiveWalletMode !== 'auto' ? (effectiveWalletMode as any) : undefined,
-          showProgress: options?.showProgress,
+        await saveWalletPreference({
+          hospitalId,
+          walletMode: mode,
+          phantomPublicKey:
+            mode === 'phantom' && state.phantomAddress ? state.phantomAddress : null,
         });
 
-        return result;
-      } catch (error) {
-        const errorMessage = getWalletErrorMessage(error);
-        setState((prev) => ({ ...prev, error: errorMessage }));
-        throw error;
+        console.log(`💾 Wallet preference saved:`, mode);
+      } catch (err) {
+        console.error('Failed to save wallet preference:', err);
       }
-    },
-    [effectiveWalletMode]
-  );
-
-  // Update wallet mode preference
-  const setWalletMode = useCallback(async (mode: WalletMode) => {
-    try {
-      await saveUserWalletPreference(mode);
-      setState((prev) => ({
-        ...prev,
-        userPreference: mode,
-        walletMode: mode === 'auto' ? (prev.isPhantomDetected ? 'phantom' : 'embedded') : mode,
-      }));
-    } catch (error) {
-      const errorMessage = getWalletErrorMessage(error);
-      setState((prev) => ({ ...prev, error: errorMessage }));
-      throw error;
-    }
-  }, []);
-
-  // Connect Phantom wallet
-  const handleConnectPhantom = useCallback(async () => {
-    try {
-      const { publicKey } = await connectPhantom();
-      setState((prev) => ({
-        ...prev,
-        isPhantomConnected: true,
-        phantomPublicKey: publicKey,
-      }));
-      return { publicKey };
-    } catch (error) {
-      const errorMessage = getWalletErrorMessage(error);
-      setState((prev) => ({ ...prev, error: errorMessage }));
-      throw error;
-    }
-  }, []);
-
-  // Disconnect Phantom wallet
-  const handleDisconnectPhantom = useCallback(async () => {
-    try {
-      await disconnectPhantom();
-      setState((prev) => ({
-        ...prev,
-        isPhantomConnected: false,
-        phantomPublicKey: null,
-      }));
-    } catch (error) {
-      const errorMessage = getWalletErrorMessage(error);
-      setState((prev) => ({ ...prev, error: errorMessage }));
-      throw error;
-    }
-  }, []);
-
-  // Determine if Phantom option should be shown
-  const shouldShowPhantomOption = state.isPhantomDetected || state.isPhantomConnected;
-
-  // Determine if we're ready to sign
-  const isSigningReady =
-    !state.loading && effectiveWalletMode === 'embedded'
-      ? true
-      : effectiveWalletMode === 'phantom'
-        ? state.isPhantomConnected
-        : false;
-
-  // Get human-readable status message
-  const getStatusMessage = (): string => {
-    if (state.loading) {
-      return 'Loading wallet configuration...';
-    }
-
-    if (state.error) {
-      return `Error: ${state.error}`;
-    }
-
-    switch (effectiveWalletMode) {
-      case 'phantom':
-        if (state.isPhantomConnected) {
-          return `✓ Connected to Phantom (${state.phantomPublicKey?.slice(0, 8)}...)`;
-        } else {
-          return '🔗 Phantom detected. Click to connect.';
-        }
-
-      case 'embedded':
-        return '✓ Using embedded wallet (seamless)';
-
-      case 'auto':
-        if (state.isPhantomDetected && state.isPhantomConnected) {
-          return `✓ Auto-detected: Phantom (${state.phantomPublicKey?.slice(0, 8)}...)`;
-        } else if (state.isPhantomDetected && !state.isPhantomConnected) {
-          return '🔗 Auto-detected: Phantom available';
-        } else {
-          return '✓ Auto-detected: Using embedded wallet';
-        }
-
-      default:
-        return 'Wallet ready';
     }
   };
 
+  // ─── Record Signing Activity ─────────────────────────────────────────────
+
+  const recordSigningActivity = () => {
+    setState((prev) => ({
+      ...prev,
+      lastSigningTime: new Date(),
+      isSigning: false,
+    }));
+  };
+
+  const setSigningError = (error: string) => {
+    setState((prev) => ({
+      ...prev,
+      signingError: error,
+      isSigning: false,
+    }));
+  };
+
+  // ─── Determine Active Wallet ────────────────────────────────────────────
+
+  const getActiveWallet = (): 'phantom' | 'embedded' => {
+    if (state.walletMode === 'phantom') {
+      if (state.phantomConnected) return 'phantom';
+      // Fallback if Phantom chosen but not connected
+      console.warn('Phantom chosen but not connected, falling back to embedded');
+      return 'embedded';
+    }
+
+    if (state.walletMode === 'embedded') {
+      return 'embedded';
+    }
+
+    // Auto mode: prefer Phantom if connected
+    if (state.phantomConnected) return 'phantom';
+    return 'embedded';
+  };
+
   return {
-    ...state,
-    effectiveWalletMode,
-    shouldShowPhantomOption,
-    isSigningReady,
-    sign,
+    // Detection
+    phantomAvailable: state.phantomAvailable,
+    isPhantomConnected: state.phantomConnected,
+    phantomAddress: state.phantomAddress,
+    phantomNetwork: state.phantomNetwork,
+
+    // Preferences
+    walletMode: state.walletMode,
     setWalletMode,
-    connectPhantom: handleConnectPhantom,
-    disconnectPhantom: handleDisconnectPhantom,
-    getStatusMessage,
+
+    // Signing state
+    isSigning: state.isSigning,
+    lastSigningTime: state.lastSigningTime,
+    signingError: state.signingError,
+    recordSigningActivity,
+    setSigningError,
+
+    // Active wallet determination
+    getActiveWallet,
+
+    // Connection state
+    isListening: state.isListening,
   };
 }
 
-/**
- * Hook to detect Phantom wallet presence
- * Simpler alternative for just checking availability
- */
-export function usePhantomDetection() {
-  const [isDetected, setIsDetected] = useState(false);
-  const [isConnected, setIsConnected] = useState(false);
+// ─── Global Type Extensions ─────────────────────────────────────────────────
 
-  useEffect(() => {
-    setIsDetected(isPhantomInstalled());
-
-    if (isPhantomInstalled()) {
-      const unsubscribe = onPhantomAccountChange((publicKey) => {
-        setIsConnected(!!publicKey);
-      });
-
-      return () => unsubscribe();
-    }
-  }, []);
-
-  return { isDetected, isConnected };
-}
-
-/**
- * Hook to manage wallet signing with progress tracking
- */
-export function useWalletSigning() {
-  const wallet = useHybridWallet();
-  const [isSigning, setIsSigning] = useState(false);
-  const [signingProgress, setSigningProgress] = useState<{
-    stage: 'building' | 'signing' | 'confirming';
-    message: string;
-  } | null>(null);
-
-  const signTransaction = useCallback(
-    async (data: TransactionPayload) => {
-      try {
-        setIsSigning(true);
-        setSigningProgress({ stage: 'building', message: 'Building transaction...' });
-
-        if (wallet.effectiveWalletMode === 'phantom') {
-          setSigningProgress({
-            stage: 'signing',
-            message: 'Approve in Phantom wallet...',
-          });
-        } else {
-          setSigningProgress({
-            stage: 'signing',
-            message: 'Signing with embedded wallet...',
-          });
-        }
-
-        const result = await wallet.sign(data, { showProgress: true });
-
-        setSigningProgress({
-          stage: 'confirming',
-          message: 'Confirming on blockchain...',
-        });
-
-        return result;
-      } finally {
-        setIsSigning(false);
-        setSigningProgress(null);
-      }
-    },
-    [wallet]
-  );
-
-  return {
-    isSigning,
-    signingProgress,
-    signTransaction,
-    walletStatus: wallet.getStatusMessage(),
-  };
+declare global {
+  interface Window {
+    solana?: {
+      isPhantom?: boolean;
+      publicKey?: { toString: () => string };
+      signTransaction?: (tx: any) => Promise<any>;
+      signMessage?: (msg: Uint8Array) => Promise<{ signature: Uint8Array; publicKey: any }>;
+      connect?: () => Promise<{ publicKey: any }>;
+      disconnect?: () => Promise<void>;
+      on?: (event: string, handler: any) => void;
+      off?: (event: string, handler: any) => void;
+    };
+  }
 }
