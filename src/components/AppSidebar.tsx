@@ -56,6 +56,7 @@ import {
   Map,
   Ambulance,
   Package,
+  UtensilsCrossed,
 } from "lucide-react";
 import {
   Sidebar,
@@ -166,6 +167,7 @@ const adminNav: Item[] = [
   { title: "Pharmacy Inventory", url: "/admin/pharmacy-inventory", icon: Package },
   { title: "Equipment", url: "/admin/equipment", icon: Wrench },
   { title: "Laboratory", url: "/admin/laboratory", icon: FlaskConical },
+  { title: "Cafeteria", url: "/admin/cafeteria", icon: UtensilsCrossed },
   { title: "Alert Center", url: "/admin/alerts", icon: BellRing },
   { title: "Policies", url: "/admin/policies", icon: FileText },
   { title: "Fraud Detection", url: "/admin/fraud", icon: ShieldAlert },

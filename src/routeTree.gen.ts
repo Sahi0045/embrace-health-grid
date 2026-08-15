@@ -75,6 +75,7 @@ import { Route as AdminDidsRouteImport } from './routes/admin.dids'
 import { Route as AdminCredentialsRouteImport } from './routes/admin.credentials'
 import { Route as AdminCommandRouteImport } from './routes/admin.command'
 import { Route as AdminCertificationsMgmtRouteImport } from './routes/admin.certifications-mgmt'
+import { Route as AdminCafeteriaRouteImport } from './routes/admin.cafeteria'
 import { Route as AdminBedsRoomsRouteImport } from './routes/admin.beds-rooms'
 import { Route as AdminAuditRouteImport } from './routes/admin.audit'
 import { Route as AdminAmbulancesRouteImport } from './routes/admin.ambulances'
@@ -411,6 +412,11 @@ const AdminCertificationsMgmtRoute = AdminCertificationsMgmtRouteImport.update({
   path: '/admin/certifications-mgmt',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminCafeteriaRoute = AdminCafeteriaRouteImport.update({
+  id: '/admin/cafeteria',
+  path: '/admin/cafeteria',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminBedsRoomsRoute = AdminBedsRoomsRouteImport.update({
   id: '/admin/beds-rooms',
   path: '/admin/beds-rooms',
@@ -448,6 +454,7 @@ export interface FileRoutesByFullPath {
   '/admin/ambulances': typeof AdminAmbulancesRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/beds-rooms': typeof AdminBedsRoomsRoute
+  '/admin/cafeteria': typeof AdminCafeteriaRoute
   '/admin/certifications-mgmt': typeof AdminCertificationsMgmtRoute
   '/admin/command': typeof AdminCommandRoute
   '/admin/credentials': typeof AdminCredentialsRoute
@@ -521,6 +528,7 @@ export interface FileRoutesByTo {
   '/admin/ambulances': typeof AdminAmbulancesRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/beds-rooms': typeof AdminBedsRoomsRoute
+  '/admin/cafeteria': typeof AdminCafeteriaRoute
   '/admin/certifications-mgmt': typeof AdminCertificationsMgmtRoute
   '/admin/command': typeof AdminCommandRoute
   '/admin/credentials': typeof AdminCredentialsRoute
@@ -595,6 +603,7 @@ export interface FileRoutesById {
   '/admin/ambulances': typeof AdminAmbulancesRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/beds-rooms': typeof AdminBedsRoomsRoute
+  '/admin/cafeteria': typeof AdminCafeteriaRoute
   '/admin/certifications-mgmt': typeof AdminCertificationsMgmtRoute
   '/admin/command': typeof AdminCommandRoute
   '/admin/credentials': typeof AdminCredentialsRoute
@@ -670,6 +679,7 @@ export interface FileRouteTypes {
     | '/admin/ambulances'
     | '/admin/audit'
     | '/admin/beds-rooms'
+    | '/admin/cafeteria'
     | '/admin/certifications-mgmt'
     | '/admin/command'
     | '/admin/credentials'
@@ -743,6 +753,7 @@ export interface FileRouteTypes {
     | '/admin/ambulances'
     | '/admin/audit'
     | '/admin/beds-rooms'
+    | '/admin/cafeteria'
     | '/admin/certifications-mgmt'
     | '/admin/command'
     | '/admin/credentials'
@@ -816,6 +827,7 @@ export interface FileRouteTypes {
     | '/admin/ambulances'
     | '/admin/audit'
     | '/admin/beds-rooms'
+    | '/admin/cafeteria'
     | '/admin/certifications-mgmt'
     | '/admin/command'
     | '/admin/credentials'
@@ -890,6 +902,7 @@ export interface RootRouteChildren {
   AdminAmbulancesRoute: typeof AdminAmbulancesRoute
   AdminAuditRoute: typeof AdminAuditRoute
   AdminBedsRoomsRoute: typeof AdminBedsRoomsRoute
+  AdminCafeteriaRoute: typeof AdminCafeteriaRoute
   AdminCertificationsMgmtRoute: typeof AdminCertificationsMgmtRoute
   AdminCommandRoute: typeof AdminCommandRoute
   AdminCredentialsRoute: typeof AdminCredentialsRoute
@@ -1417,6 +1430,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCertificationsMgmtRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/cafeteria': {
+      id: '/admin/cafeteria'
+      path: '/admin/cafeteria'
+      fullPath: '/admin/cafeteria'
+      preLoaderRoute: typeof AdminCafeteriaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/beds-rooms': {
       id: '/admin/beds-rooms'
       path: '/admin/beds-rooms'
@@ -1466,6 +1486,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminAmbulancesRoute: AdminAmbulancesRoute,
   AdminAuditRoute: AdminAuditRoute,
   AdminBedsRoomsRoute: AdminBedsRoomsRoute,
+  AdminCafeteriaRoute: AdminCafeteriaRoute,
   AdminCertificationsMgmtRoute: AdminCertificationsMgmtRoute,
   AdminCommandRoute: AdminCommandRoute,
   AdminCredentialsRoute: AdminCredentialsRoute,

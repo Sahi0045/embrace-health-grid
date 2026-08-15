@@ -557,5 +557,122 @@ export type LabDashboardStats = {
   radiologyScansToday: number;
 };
 
+// ─── Cafeteria & Food Service Domain Types ─────────────────────────────────
 
+export type MealCategory = "breakfast" | "lunch" | "dinner" | "snack" | "beverage";
+export type DietaryTag = "vegan" | "halal" | "gluten_free" | "kosher" | "diabetic" | "low_sodium" | "vegetarian" | string;
+export type MealAvailability = "patient" | "staff" | "both";
+export type DeliveryStatus = "preparing" | "dispatched" | "delivered" | "cancelled";
+export type ContractStatus = "active" | "expired" | "pending" | "terminated";
+export type MealPlanStatus = "active" | "pending" | "review" | "suspended";
+export type KitchenStockStatus = "normal" | "low_stock" | "expired";
+export type FoodWastageReason = "overproduction" | "spoilage" | "unconsumed_tray" | "expired_stock" | "damaged";
 
+export type CafeteriaMenuItem = {
+  menu_item_id: string;
+  hospital_id?: string;
+  name: string;
+  category: MealCategory;
+  dietary_tags: string[];
+  available_for: MealAvailability;
+  price: number;
+  calories: number;
+  status: "active" | "inactive" | "sold_out";
+  description?: string;
+  allergens?: string[];
+  created_at: string;
+  updated_at?: string;
+};
+
+export type KitchenStockItem = {
+  stock_id: string;
+  hospital_id?: string;
+  item_name: string;
+  category: "produce" | "dairy" | "meat" | "dry_goods" | "beverages" | "bakery" | "frozen" | string;
+  quantity: number;
+  unit: string;
+  reorder_level: number;
+  unit_cost: number;
+  expiry_date?: string;
+  supplier?: string;
+  storage_location?: string;
+  status: KitchenStockStatus;
+  last_restocked_at?: string;
+  created_at: string;
+  updated_at?: string;
+};
+
+export type DietaryRequirement = {
+  requirement_id: string;
+  hospital_id?: string;
+  patient_did: string;
+  patient_name: string;
+  patient_mrn?: string;
+  room_number?: string;
+  requirements: string[];
+  allergies: string[];
+  meal_plan_status: MealPlanStatus;
+  prescribed_by?: string;
+  notes?: string;
+  created_at: string;
+  updated_at?: string;
+};
+
+export type MealDeliveryRecord = {
+  delivery_id: string;
+  hospital_id?: string;
+  patient_did: string;
+  patient_name: string;
+  room_number: string;
+  meal_type: "breakfast" | "lunch" | "dinner" | "snack";
+  menu_item_name: string;
+  delivery_status: DeliveryStatus;
+  scheduled_at: string;
+  delivered_at?: string;
+  dietary_notes?: string;
+  assigned_runner?: string;
+  created_at: string;
+  updated_at?: string;
+};
+
+export type CafeteriaVendor = {
+  vendor_id: string;
+  hospital_id?: string;
+  name: string;
+  contact_person?: string;
+  contact_email?: string;
+  contact_phone?: string;
+  contract_status: ContractStatus;
+  supplied_categories: string[];
+  last_delivery_at?: string;
+  contract_expiry?: string;
+  rating?: number;
+  address?: string;
+  created_at: string;
+  updated_at?: string;
+};
+
+export type FoodWastageLog = {
+  log_id: string;
+  hospital_id?: string;
+  date: string;
+  meal_type: "breakfast" | "lunch" | "dinner" | "snack" | "prep_waste" | string;
+  item_name: string;
+  quantity_wasted: number;
+  unit: string;
+  cost_impact: number;
+  reason: FoodWastageReason;
+  logged_by: string;
+  created_at: string;
+};
+
+export type CafeteriaDashboardStats = {
+  activeMenuItems: number;
+  pendingDeliveries: number;
+  deliveredToday: number;
+  activeDietaryPlans: number;
+  lowKitchenStockCount: number;
+  todayWastageKg: number;
+  activeVendorsCount: number;
+  averageMealRating: number;
+};

@@ -2306,4 +2306,99 @@ export async function recordLabResult(data: {
   return fn({ data });
 }
 
+// ─── Cafeteria & Food Service API ──────────────────────────────────────────
+
+export async function getCafeteriaData() {
+  const { getCafeteriaData: fn } = await import("./operations.server");
+  return fn();
+}
+
+export async function createMenuItem(data: {
+  name: string;
+  category: "breakfast" | "lunch" | "dinner" | "snack" | "beverage";
+  dietaryTags: string[];
+  availableFor: "patient" | "staff" | "both";
+  price: number;
+  calories: number;
+  description?: string;
+  allergens?: string[];
+}) {
+  const { createMenuItem: fn } = await import("./operations.server");
+  return fn({ data });
+}
+
+export async function updateMenuItemStatus(data: {
+  menuItemId: string;
+  status: "active" | "inactive" | "sold_out";
+}) {
+  const { updateMenuItemStatus: fn } = await import("./operations.server");
+  return fn({ data });
+}
+
+export async function updateDeliveryStatus(data: {
+  deliveryId: string;
+  status: "preparing" | "dispatched" | "delivered" | "cancelled";
+}) {
+  const { updateDeliveryStatus: fn } = await import("./operations.server");
+  return fn({ data });
+}
+
+export async function addKitchenStockItem(data: {
+  itemName: string;
+  category: "produce" | "dairy" | "meat" | "dry_goods" | "beverages" | "bakery" | "frozen" | string;
+  quantity: number;
+  unit: string;
+  reorderLevel: number;
+  unitCost: number;
+  expiryDate?: string;
+  supplier?: string;
+  storageLocation?: string;
+}) {
+  const { addKitchenStockItem: fn } = await import("./operations.server");
+  return fn({ data });
+}
+
+export async function createCafeteriaVendor(data: {
+  name: string;
+  contactPerson?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  suppliedCategories: string[];
+  contractExpiry?: string;
+  address?: string;
+}) {
+  const { createCafeteriaVendor: fn } = await import("./operations.server");
+  return fn({ data });
+}
+
+export async function updateVendorContract(data: {
+  vendorId: string;
+  status: "active" | "expired" | "pending" | "terminated";
+}) {
+  const { updateVendorContract: fn } = await import("./operations.server");
+  return fn({ data });
+}
+
+export async function logFoodWastage(data: {
+  date?: string;
+  mealType: "breakfast" | "lunch" | "dinner" | "snack" | "prep_waste" | string;
+  itemName: string;
+  quantityWasted: number;
+  unit?: string;
+  costImpact?: number;
+  reason: "overproduction" | "spoilage" | "unconsumed_tray" | "expired_stock" | "damaged";
+}) {
+  const { logFoodWastage: fn } = await import("./operations.server");
+  return fn({ data });
+}
+
+export async function updateDietaryRequirementStatus(data: {
+  requirementId: string;
+  status: "active" | "pending" | "review" | "suspended";
+}) {
+  const { updateDietaryRequirementStatus: fn } = await import("./operations.server");
+  return fn({ data });
+}
+
+
 
