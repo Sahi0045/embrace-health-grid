@@ -38,8 +38,13 @@ import { BedCell } from "@/components/beds/BedCell";
 import { BedDetailPanel } from "@/components/beds/BedDetailPanel";
 import { StatusUpdateDialog } from "@/components/beds/StatusUpdateDialog";
 import { CreateEntityDialog } from "@/components/beds/CreateEntityDialog";
+import { useSpotlightTarget } from "@/hooks/use-spotlight";
+
 
 export const Route = createFileRoute("/admin/beds-rooms")({
+  validateSearch: (search: Record<string, unknown>): { highlight?: string } => ({
+    highlight: typeof search.highlight === "string" ? search.highlight : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Bed & Room Management — Admin Console" },
@@ -55,6 +60,9 @@ export const Route = createFileRoute("/admin/beds-rooms")({
 type ViewMode = "hierarchy" | "beds" | "rooms";
 
 function BedsRoomsManagement() {
+  const search = Route.useSearch();
+  useSpotlightTarget(search.highlight);
+
   // Raw Data State
   const [buildings, setBuildings] = useState<any[]>([]);
   const [floors, setFloors] = useState<any[]>([]);

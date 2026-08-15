@@ -62,11 +62,15 @@ export function InventoryItemCard({
 
   return (
     <motion.div
+      data-spotlight-id={item.item_id}
+      data-id={item.item_id}
+      id={item.item_id}
       whileHover={{ y: -4, scale: 1.015 }}
       transition={{ type: "spring", stiffness: 350, damping: 25 }}
       onClick={() => onSelect(item)}
       className="group relative flex flex-col justify-between rounded-2xl border border-border/80 bg-card p-5 shadow-clinical-sm hover:border-primary/40 hover:shadow-clinical-md transition-all cursor-pointer overflow-hidden space-y-4"
     >
+
       {/* Top Row: Category Pill & Status Badge */}
       <div className="flex items-center justify-between gap-2">
         <span

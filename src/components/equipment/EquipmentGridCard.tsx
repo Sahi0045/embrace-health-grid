@@ -102,11 +102,15 @@ export function EquipmentGridCard({ equipment, onSelect }: EquipmentGridCardProp
 
   return (
     <motion.div
+      data-spotlight-id={equipment.id}
+      data-id={equipment.id}
+      id={equipment.id}
       whileHover={{ y: -4, scale: 1.012 }}
       transition={{ type: "spring", stiffness: 350, damping: 25 }}
       onClick={() => onSelect(equipment)}
       className="group cursor-pointer rounded-2xl border border-border/80 bg-card p-5 sm:p-5.5 shadow-clinical-sm hover:border-primary/40 hover:shadow-clinical-md transition-all relative flex flex-col justify-between"
     >
+
       <div className="space-y-4">
         {/* ─── 1. Top Meta Bar: ID + Type Pill (Left) & Status Badge (Right) ─ */}
         <div className="flex items-center justify-between gap-2 border-b border-border/50 pb-3">

@@ -214,9 +214,22 @@ export function NotificationBell() {
                 ))
               )}
             </div>
+
+            {/* Footer: Quick Jump to Central Alert Center */}
+            <div className="border-t border-border bg-muted/30 p-2 text-center">
+              <a
+                href="/admin/alerts"
+                onClick={() => setOpen(false)}
+                className="inline-flex items-center justify-center gap-1.5 w-full rounded-md py-1.5 text-xs font-bold text-primary hover:bg-primary/10 transition-colors"
+              >
+                <ShieldAlert className="h-3.5 w-3.5" />
+                <span>Open Hospital Alert Center</span>
+              </a>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
     </div>
   );
 }
+

@@ -36,7 +36,12 @@ import {
 import { InventoryItemCard } from "@/components/inventory/InventoryItemCard";
 import { InventoryDetailDialog } from "@/components/inventory/InventoryDetailDialog";
 
+import { useSpotlightTarget } from "@/hooks/use-spotlight";
+
 export const Route = createFileRoute("/admin/inventory")({
+  validateSearch: (search: Record<string, unknown>): { highlight?: string } => ({
+    highlight: typeof search.highlight === "string" ? search.highlight : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Inventory & Stock Dashboard — Admin Console" },
@@ -49,6 +54,7 @@ export const Route = createFileRoute("/admin/inventory")({
   }),
   component: InventoryDashboardPage,
 });
+
 
 const ITEMS_PER_PAGE = 12;
 
@@ -66,6 +72,9 @@ function getPaginationRange(current: number, total: number): (number | string)[]
 }
 
 function InventoryDashboardPage() {
+  const search = Route.useSearch();
+  useSpotlightTarget(search.highlight);
+
   // Raw Data State
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [categories, setCategories] = useState<InventoryCategory[]>([]);
@@ -88,8 +97,19 @@ function InventoryDashboardPage() {
   const [sortBy, setSortBy] = useState("name-asc");
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Detail Drawer State
+  // Detail Modal State
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
+
+  // If highlight param matches an item, ensure it's selected
+  useEffect(() => {
+    if (search.highlight && items.length > 0) {
+      const match = items.find((i) => i.item_id === search.highlight);
+      if (match) {
+        setSelectedItem(match);
+      }
+    }
+  }, [search.highlight, items]);
+
 
   // Load Data
   const loadData = useCallback(async (isInitial = false) => {

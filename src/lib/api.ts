@@ -2201,3 +2201,42 @@ export async function getPatientDischargeInfo(data: { patientDid: string }) {
   const { getPatientDischargeInfo: fn } = await import("./patient-master.server");
   return fn({ data });
 }
+
+// ─── Central Alerts API (Sprint 8) ──────────────────────────────────────────
+
+export async function getCentralAlerts(params?: {
+  category?: string;
+  severity?: string;
+  status?: string;
+  search?: string;
+}) {
+  const { getCentralAlerts: fn } = await import("./operations.server");
+  return fn({ data: params || {} });
+}
+
+export async function acknowledgeCentralAlert(data: { alertId: string; sourceTable: string }) {
+  const { acknowledgeCentralAlert: fn } = await import("./operations.server");
+  return fn({ data });
+}
+
+export async function resolveCentralAlert(data: { alertId: string; sourceTable: string }) {
+  const { resolveCentralAlert: fn } = await import("./operations.server");
+  return fn({ data });
+}
+
+export async function broadcastEmergencyAlert(data: {
+  broadcastCode: import("./types").EmergencyBroadcastCode;
+  title: string;
+  message: string;
+  location: string;
+  severity?: import("./types").AlertSeverity;
+}) {
+  const { broadcastEmergencyAlert: fn } = await import("./operations.server");
+  return fn({ data });
+}
+
+export async function getCentralAlertStats() {
+  const { getCentralAlertStats: fn } = await import("./operations.server");
+  return fn();
+}
+

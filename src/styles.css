@@ -302,3 +302,34 @@
   box-shadow: 0 12px 36px -8px oklch(0.75 0.15 245 / 0.25);
   border-color: oklch(0.75 0.15 245 / 0.45);
 }
+
+/* ─── Precision Clinical Spotlight Animation (for Alert Deep-Linking) ─── */
+@keyframes clinical-spotlight-pulse {
+  0% {
+    box-shadow: 0 0 0 0 oklch(0.44 0.19 242 / 0.7), 0 0 24px 4px oklch(0.44 0.19 242 / 0.45);
+    border-color: oklch(0.44 0.19 242);
+    transform: scale(1.02);
+  }
+  30% {
+    box-shadow: 0 0 0 8px oklch(0.44 0.19 242 / 0.25), 0 0 32px 8px oklch(0.44 0.19 242 / 0.35);
+    border-color: oklch(0.44 0.19 242);
+    transform: scale(1.015);
+  }
+  60% {
+    box-shadow: 0 0 0 14px oklch(0.44 0.19 242 / 0.1), 0 0 20px 2px oklch(0.44 0.19 242 / 0.2);
+    border-color: oklch(0.44 0.19 242 / 0.8);
+    transform: scale(1.005);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent, 0 0 0 0 transparent;
+    border-color: inherit;
+    transform: scale(1);
+  }
+}
+
+.clinical-spotlight {
+  animation: clinical-spotlight-pulse 3.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  z-index: 30;
+  position: relative;
+}
+

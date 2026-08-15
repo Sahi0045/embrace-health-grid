@@ -15,7 +15,9 @@ import {
   KeyRound,
   Activity,
   AlertTriangle,
+  BellRing,
   BarChart3,
+
   Settings,
   LogOut,
   Hospital,
@@ -163,8 +165,10 @@ const adminNav: Item[] = [
   { title: "Inventory", url: "/admin/inventory", icon: Package },
   { title: "Pharmacy Inventory", url: "/admin/pharmacy-inventory", icon: Package },
   { title: "Equipment", url: "/admin/equipment", icon: Wrench },
+  { title: "Alert Center", url: "/admin/alerts", icon: BellRing },
   { title: "Policies", url: "/admin/policies", icon: FileText },
   { title: "Fraud Detection", url: "/admin/fraud", icon: ShieldAlert },
+
   { title: "Audit Logs", url: "/admin/audit", icon: GitBranch },
   { title: "Financials", url: "/admin/financial", icon: Wallet },
   { title: "Digital Twin", url: "/admin/digital-twin", icon: Activity },

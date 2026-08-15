@@ -77,6 +77,7 @@ import { Route as AdminCertificationsMgmtRouteImport } from './routes/admin.cert
 import { Route as AdminBedsRoomsRouteImport } from './routes/admin.beds-rooms'
 import { Route as AdminAuditRouteImport } from './routes/admin.audit'
 import { Route as AdminAmbulancesRouteImport } from './routes/admin.ambulances'
+import { Route as AdminAlertsRouteImport } from './routes/admin.alerts'
 import { Route as AdminAdmissionsRouteImport } from './routes/admin.admissions'
 
 const LoginRoute = LoginRouteImport.update({
@@ -419,6 +420,11 @@ const AdminAmbulancesRoute = AdminAmbulancesRouteImport.update({
   path: '/admin/ambulances',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminAlertsRoute = AdminAlertsRouteImport.update({
+  id: '/admin/alerts',
+  path: '/admin/alerts',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminAdmissionsRoute = AdminAdmissionsRouteImport.update({
   id: '/admin/admissions',
   path: '/admin/admissions',
@@ -432,6 +438,7 @@ export interface FileRoutesByFullPath {
   '/did-explorer': typeof DidExplorerRoute
   '/login': typeof LoginRoute
   '/admin/admissions': typeof AdminAdmissionsRoute
+  '/admin/alerts': typeof AdminAlertsRoute
   '/admin/ambulances': typeof AdminAmbulancesRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/beds-rooms': typeof AdminBedsRoomsRoute
@@ -503,6 +510,7 @@ export interface FileRoutesByTo {
   '/did-explorer': typeof DidExplorerRoute
   '/login': typeof LoginRoute
   '/admin/admissions': typeof AdminAdmissionsRoute
+  '/admin/alerts': typeof AdminAlertsRoute
   '/admin/ambulances': typeof AdminAmbulancesRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/beds-rooms': typeof AdminBedsRoomsRoute
@@ -575,6 +583,7 @@ export interface FileRoutesById {
   '/did-explorer': typeof DidExplorerRoute
   '/login': typeof LoginRoute
   '/admin/admissions': typeof AdminAdmissionsRoute
+  '/admin/alerts': typeof AdminAlertsRoute
   '/admin/ambulances': typeof AdminAmbulancesRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/beds-rooms': typeof AdminBedsRoomsRoute
@@ -648,6 +657,7 @@ export interface FileRouteTypes {
     | '/did-explorer'
     | '/login'
     | '/admin/admissions'
+    | '/admin/alerts'
     | '/admin/ambulances'
     | '/admin/audit'
     | '/admin/beds-rooms'
@@ -719,6 +729,7 @@ export interface FileRouteTypes {
     | '/did-explorer'
     | '/login'
     | '/admin/admissions'
+    | '/admin/alerts'
     | '/admin/ambulances'
     | '/admin/audit'
     | '/admin/beds-rooms'
@@ -790,6 +801,7 @@ export interface FileRouteTypes {
     | '/did-explorer'
     | '/login'
     | '/admin/admissions'
+    | '/admin/alerts'
     | '/admin/ambulances'
     | '/admin/audit'
     | '/admin/beds-rooms'
@@ -862,6 +874,7 @@ export interface RootRouteChildren {
   DidExplorerRoute: typeof DidExplorerRoute
   LoginRoute: typeof LoginRoute
   AdminAdmissionsRoute: typeof AdminAdmissionsRoute
+  AdminAlertsRoute: typeof AdminAlertsRoute
   AdminAmbulancesRoute: typeof AdminAmbulancesRoute
   AdminAuditRoute: typeof AdminAuditRoute
   AdminBedsRoomsRoute: typeof AdminBedsRoomsRoute
@@ -1405,6 +1418,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAmbulancesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/alerts': {
+      id: '/admin/alerts'
+      path: '/admin/alerts'
+      fullPath: '/admin/alerts'
+      preLoaderRoute: typeof AdminAlertsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/admissions': {
       id: '/admin/admissions'
       path: '/admin/admissions'
@@ -1422,6 +1442,7 @@ const rootRouteChildren: RootRouteChildren = {
   DidExplorerRoute: DidExplorerRoute,
   LoginRoute: LoginRoute,
   AdminAdmissionsRoute: AdminAdmissionsRoute,
+  AdminAlertsRoute: AdminAlertsRoute,
   AdminAmbulancesRoute: AdminAmbulancesRoute,
   AdminAuditRoute: AdminAuditRoute,
   AdminBedsRoomsRoute: AdminBedsRoomsRoute,

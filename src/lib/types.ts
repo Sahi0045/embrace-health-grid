@@ -369,3 +369,86 @@ export type InventoryAlert = {
   item?: InventoryItem;
 };
 
+export type AlertCategory =
+  | "emergency"
+  | "critical_patient"
+  | "bed_shortage"
+  | "low_stock"
+  | "near_expiry"
+  | "equipment_failure"
+  | "staff_shortage"
+  | "security"
+  | "maintenance"
+  | "ambulance";
+
+export type AlertSeverity = "critical" | "warning" | "info";
+export type AlertStatus = "active" | "acknowledged" | "resolved" | "dismissed";
+
+export type EmergencyBroadcastCode =
+  | "code_blue"
+  | "code_red"
+  | "trauma_alpha"
+  | "mass_casualty"
+  | "cyber_incident"
+  | "lockdown"
+  | "disaster";
+
+export type EmergencyBroadcastRecord = {
+  broadcast_id: string;
+  hospital_id?: string;
+  broadcast_code: EmergencyBroadcastCode;
+  title: string;
+  severity: AlertSeverity;
+  message: string;
+  location: string;
+  initiator_did: string;
+  initiator_name: string;
+  status: "active" | "acknowledged" | "resolved" | "cancelled";
+  acknowledged_by?: string;
+  acknowledged_at?: string;
+  resolved_at?: string;
+  metadata?: Record<string, any>;
+  created_at: string;
+};
+
+export type CentralAlert = {
+  id: string;
+  category: AlertCategory;
+  severity: AlertSeverity;
+  status: AlertStatus;
+  title: string;
+  message: string;
+  source_table:
+    | "emergency_broadcasts"
+    | "inventory_alerts"
+    | "fraud_alerts"
+    | "equipment_maintenance_log"
+    | "equipment"
+    | "beds"
+    | "vitals"
+    | "ambulances"
+    | "admissions";
+  source_id: string;
+  target_url?: string;
+  highlight_id?: string;
+  actor?: string;
+  department?: string;
+  location?: string;
+  created_at: string;
+  acknowledged_at?: string;
+  resolved_at?: string;
+  metadata?: Record<string, any>;
+};
+
+
+export type CentralAlertStats = {
+  total: number;
+  active: number;
+  critical: number;
+  warning: number;
+  info: number;
+  acknowledged: number;
+  resolvedToday: number;
+};
+
+

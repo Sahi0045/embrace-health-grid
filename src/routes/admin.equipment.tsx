@@ -38,7 +38,12 @@ import { EquipmentDepartmentView } from "@/components/equipment/EquipmentDepartm
 import { EquipmentMaintenanceRadar } from "@/components/equipment/EquipmentMaintenanceRadar";
 import { EquipmentDetailPanel } from "@/components/equipment/EquipmentDetailPanel";
 
+import { useSpotlightTarget } from "@/hooks/use-spotlight";
+
 export const Route = createFileRoute("/admin/equipment")({
+  validateSearch: (search: Record<string, unknown>): { highlight?: string } => ({
+    highlight: typeof search.highlight === "string" ? search.highlight : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Equipment & Biomedical Assets — Admin Console" },
@@ -68,6 +73,9 @@ function getPaginationRange(current: number, total: number): (number | string)[]
 }
 
 function EquipmentManagementPage() {
+  const search = Route.useSearch();
+  useSpotlightTarget(search.highlight);
+
   // Raw Data State
   const [equipmentList, setEquipmentList] = useState<EquipmentRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -83,8 +91,18 @@ function EquipmentManagementPage() {
   const [sortBy, setSortBy] = useState("name-asc");
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Selected Equipment for Detail Drawer
+  // Drawer / Inspector Selection State
   const [selectedEquipment, setSelectedEquipment] = useState<EquipmentRecord | null>(null);
+
+  // If highlight param matches, auto-open drawer
+  useEffect(() => {
+    if (search.highlight && equipmentList.length > 0) {
+      const match = equipmentList.find((e) => e.id === search.highlight || `eq-alert-${e.id}` === search.highlight);
+      if (match) {
+        setSelectedEquipment(match);
+      }
+    }
+  }, [search.highlight, equipmentList]);
 
   // Load Data
   const loadData = useCallback(async (isInitial = false) => {
