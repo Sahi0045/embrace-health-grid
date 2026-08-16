@@ -1,0 +1,26 @@
+# Embrace Health Grid
+
+> A modern healthcare management platform built with React, Vite, Express, and Supabase, designed for high-performance patient master index tracking, bed room management, clinical equipment, central alerts, laboratory diagnostics, and cafeteria management.
+
+## Getting Started
+- [README_UPDATED.md](./README_UPDATED.md): Project overview, architecture, and step-by-step setup guides for frontend, admin-portal, and backend.
+- [00_START_HERE.md](./00_START_HERE.md): Quick navigation documentation index.
+- [FOLDER_STRUCTURE.md](./FOLDER_STRUCTURE.md): Detailed map of directories and files across client, admin portal, and backend components.
+
+## Core Modules & Features
+- [ADMIN-PORTAL-FEATURES.md](./ADMIN-PORTAL-FEATURES.md): Functional and technical overview of administrative panels and configuration consoles.
+- [INPATIENT_FEATURES.md](./INPATIENT_FEATURES.md): Details of the inpatient tracking module, including bed occupancy, room assignments, and ward layouts.
+- [PATIENT_MASTER_INTEGRATION.md](./PATIENT_MASTER_INTEGRATION.md): Architecture of the Multi-Hospital Patient Master Index (MPI) and patient reconciliation.
+- [MERKLE_TREE_INTEGRATION.md](./MERKLE_TREE_INTEGRATION.md): Implementation details of patient data integrity checking using Merkle Trees.
+- [RBAC_IMPLEMENTATION.md](./RBAC_IMPLEMENTATION.md): Role-Based Access Control configuration, JWT auth, and permission mappings.
+- [NFC_DEVICE_CONSTRAINTS.md](./NFC_DEVICE_CONSTRAINTS.md): Security constraints and implementation for NFC-based staff and patient tracking.
+
+## System Architecture & Migration
+- [FINAL_STATUS_REPORT.md](./FINAL_STATUS_REPORT.md): Summary of the backend refactoring status, architecture improvements, and code hygiene.
+- [HYPERLEDGER_REMOVAL_REPORT.md](./HYPERLEDGER_REMOVAL_REPORT.md): Statistics and design decisions behind removing Hyperledger Fabric in favor of a clean, decentralized REST/WS architecture.
+- [MIGRATION_GUIDE.md](./MIGRATION_GUIDE.md): Guide for database schema migrations and data transfers.
+
+## Testing & Verification
+- [TESTING-CHECKLIST.md](./TESTING-CHECKLIST.md): System-wide checklists for verifying end-to-end functionality, APIs, and security.
+- [TESTING-BED-ROOM-MANAGEMENT.md](./TESTING-BED-ROOM-MANAGEMENT.md): Focused verification instructions for inpatient room and ward configurations.
+- [TESTING-CREDENTIALS.md](./TESTING-CREDENTIALS.md): Walkthrough of testing Decentralized Identifiers (DIDs) and verifiable credential issues.
