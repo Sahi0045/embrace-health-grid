@@ -91,11 +91,13 @@ export async function routeTransactionSigner(
         const startTime = Date.now();
 
         const result = await signAndAnchorWithEmbedded({
-          patientDid: transactionData.patientDid,
-          recordType: transactionData.recordType,
-          recordHash: transactionData.recordHash,
-          hospitalId: transactionData.hospitalId,
-          metadata: transactionData.metadata,
+          data: {
+            patientDid: transactionData.patientDid,
+            recordType: transactionData.recordType,
+            recordHash: transactionData.recordHash,
+            hospitalId: transactionData.hospitalId,
+            metadata: transactionData.metadata,
+          }
         });
 
         const duration = Date.now() - startTime;

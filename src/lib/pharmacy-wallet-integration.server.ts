@@ -74,6 +74,16 @@ export async function dispensePrescriptionMedicationsWithBlockchain(
     throw new Error('User not authenticated');
   }
 
+  const { data: profile } = await db
+    .from('profiles')
+    .select('hospital_id')
+    .eq('id', user.id)
+    .single();
+
+  if (!profile) {
+    throw new Error('User profile not found');
+  }
+
   try {
     console.log(`\n💊 === DISPENSING WITH BLOCKCHAIN INTEGRATION ===`);
     console.log(`   Prescription: ${params.prescriptionId}`);
@@ -132,7 +142,7 @@ export async function dispensePrescriptionMedicationsWithBlockchain(
             patientDid: params.patientDid,
             recordType: 'PRESCRIPTION_DISPENSED',
             recordHash,
-            hospitalId: user.hospital_id,
+            hospitalId: profile.hospital_id,
             userPreferredWallet: params.userPreferredWallet || 'auto',
             phantomAvailable: params.phantomAvailable || false,
             phantomConnected: params.phantomConnected || false,
@@ -157,7 +167,7 @@ export async function dispensePrescriptionMedicationsWithBlockchain(
           await recordWalletSigningAudit({
             // Standard audit fields
             actorId: user.id,
-            actorName: params.dispensedBy,
+            actorName: params.dispensedBy || null,
             action: 'PRESCRIPTION_DISPENSED_SIGNED',
             outcome: 'success',
             severity: 'info',
@@ -165,7 +175,7 @@ export async function dispensePrescriptionMedicationsWithBlockchain(
             entityId: params.prescriptionId,
             entityType: 'prescription_dispensing',
             resource: `Prescription dispensed and signed: ${params.prescriptionId}`,
-            hospital: user.hospital_id,
+            hospital: profile.hospital_id,
             // Wallet-specific fields
             signerType: signingResult.walletUsed,
             txId: signingResult.txId,

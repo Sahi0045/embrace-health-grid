@@ -494,31 +494,34 @@ export async function getHospitalInfrastructure() {
 export async function getBedRoomStatistics() {
   const supabase = getAdminSupabase();
   
-  const [beds, rooms] = await Promise.all([
+  const [bedsResult, roomsResult] = await Promise.all([
     supabase.from("beds").select("status"),
     supabase.from("rooms").select("status"),
   ]);
 
+  const bedsData = (bedsResult.data || []) as any[];
+  const roomsData = (roomsResult.data || []) as any[];
+
   const bedStats = {
-    total: beds.data?.length || 0,
-    available: beds.data?.filter((b) => b.status === "available").length || 0,
-    occupied: beds.data?.filter((b) => b.status === "occupied").length || 0,
-    reserved: beds.data?.filter((b) => b.status === "reserved").length || 0,
-    cleaning: beds.data?.filter((b) => b.status === "cleaning").length || 0,
-    maintenance: beds.data?.filter((b) => b.status === "maintenance").length || 0,
-    blocked: beds.data?.filter((b) => b.status === "blocked").length || 0,
-    emergency_reserved: beds.data?.filter((b) => b.status === "emergency_reserved").length || 0,
+    total: bedsData.length,
+    available: bedsData.filter((b) => b.status === "available").length,
+    occupied: bedsData.filter((b) => b.status === "occupied").length,
+    reserved: bedsData.filter((b) => b.status === "reserved").length,
+    cleaning: bedsData.filter((b) => b.status === "cleaning").length,
+    maintenance: bedsData.filter((b) => b.status === "maintenance").length,
+    blocked: bedsData.filter((b) => b.status === "blocked").length,
+    emergency_reserved: bedsData.filter((b) => b.status === "emergency_reserved").length,
   };
 
   const roomStats = {
-    total: rooms.data?.length || 0,
-    available: rooms.data?.filter((r) => r.status === "available").length || 0,
-    occupied: rooms.data?.filter((r) => r.status === "occupied").length || 0,
-    reserved: rooms.data?.filter((r) => r.status === "reserved").length || 0,
-    cleaning: rooms.data?.filter((r) => r.status === "cleaning").length || 0,
-    maintenance: rooms.data?.filter((r) => r.status === "maintenance").length || 0,
-    blocked: rooms.data?.filter((r) => r.status === "blocked").length || 0,
-    emergency_reserved: rooms.data?.filter((r) => r.status === "emergency_reserved").length || 0,
+    total: roomsData.length,
+    available: roomsData.filter((r) => r.status === "available").length,
+    occupied: roomsData.filter((r) => r.status === "occupied").length,
+    reserved: roomsData.filter((r) => r.status === "reserved").length,
+    cleaning: roomsData.filter((r) => r.status === "cleaning").length,
+    maintenance: roomsData.filter((r) => r.status === "maintenance").length,
+    blocked: roomsData.filter((r) => r.status === "blocked").length,
+    emergency_reserved: roomsData.filter((r) => r.status === "emergency_reserved").length,
   };
 
   return { bedStats, roomStats };

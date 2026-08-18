@@ -51,6 +51,8 @@ describe('Hybrid Wallet Signing Integration', () => {
       const { signWithPhantom } = await import('@/lib/hybrid-wallet.client');
 
       const result = await signWithPhantom({
+        patientDid: 'patient-123',
+        hospitalId: 'hospital-123',
         recordHash: 'record-hash-123',
         recordType: 'PRESCRIPTION_DISPENSED',
       });
@@ -71,6 +73,8 @@ describe('Hybrid Wallet Signing Integration', () => {
       const { signWithPhantom } = await import('@/lib/hybrid-wallet.client');
 
       const result = await signWithPhantom({
+        patientDid: 'patient-123',
+        hospitalId: 'hospital-123',
         recordHash: 'record-hash-123',
         recordType: 'PRESCRIPTION_DISPENSED',
       });
@@ -95,6 +99,8 @@ describe('Hybrid Wallet Signing Integration', () => {
       const { signWithPhantom } = await import('@/lib/hybrid-wallet.client');
 
       const promise = signWithPhantom({
+        patientDid: 'patient-123',
+        hospitalId: 'hospital-123',
         recordHash: 'record-hash-123',
         recordType: 'PRESCRIPTION_DISPENSED',
       });
@@ -224,6 +230,8 @@ describe('Hybrid Wallet Signing Integration', () => {
 
       // First attempt fails, second succeeds
       const result = await signWithPhantom({
+        patientDid: 'patient-123',
+        hospitalId: 'hospital-123',
         recordHash: 'record-hash-123',
         recordType: 'PRESCRIPTION_DISPENSED',
       });
@@ -405,6 +413,8 @@ describe('Hybrid Wallet Signing Integration', () => {
       const { signWithPhantom } = await import('@/lib/hybrid-wallet.client');
 
       await signWithPhantom({
+        patientDid: 'patient-123',
+        hospitalId: 'hospital-123',
         recordHash: 'record-hash-123',
         recordType: 'PRESCRIPTION_DISPENSED',
       });
@@ -431,6 +441,8 @@ describe('Security', () => {
     const { signWithPhantom } = await import('@/lib/hybrid-wallet.client');
 
     await signWithPhantom({
+      patientDid: 'patient-123',
+      hospitalId: 'hospital-123',
       recordHash: 'record-hash-123',
       recordType: 'PRESCRIPTION_DISPENSED',
     });
@@ -448,6 +460,8 @@ describe('Security', () => {
 
     // Empty hash should be rejected
     const result = await signWithPhantom({
+      patientDid: 'patient-123',
+      hospitalId: 'hospital-123',
       recordHash: '',
       recordType: 'PRESCRIPTION_DISPENSED',
     });

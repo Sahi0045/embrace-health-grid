@@ -47,21 +47,26 @@ export interface SignAndAnchorResponse {
 export const signAndAnchorWithEmbedded = createServerFn({
   method: 'POST',
 })
-  .middleware(async () => {
-    const user = await getVerifiedUser();
-    if (!user) throw new Error('Unauthorized');
-    return { user };
-  })
-  .handler(async (opts) => {
+  .inputValidator((data: SignAndAnchorRequest) => data)
+  .handler(async ({ data }) => {
     const db = getSupabaseServerClient();
-    const user = opts.data?.user || (await getVerifiedUser());
+    const user = await getVerifiedUser();
 
     if (!user) {
       throw new Error('User not authenticated');
     }
 
-    const { patientDid, recordType, recordHash, hospitalId, userWallet, metadata } =
-      opts.data as SignAndAnchorRequest;
+    const { data: profile } = await db
+      .from('profiles')
+      .select('hospital_id')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile) {
+      throw new Error('User profile not found');
+    }
+
+    const { patientDid, recordType, recordHash, hospitalId, userWallet, metadata } = data;
 
     // ─── Validation ──────────────────────────────────────────────────────────
 
@@ -79,7 +84,7 @@ export const signAndAnchorWithEmbedded = createServerFn({
     }
 
     // Verify user has access to this hospital
-    if (user.hospital_id !== hospitalId) {
+    if (profile.hospital_id !== hospitalId) {
       throw new Error('Unauthorized: User does not have access to this hospital');
     }
 
@@ -114,17 +119,19 @@ export const signAndAnchorWithEmbedded = createServerFn({
 
       try {
         await recordSigningEvent({
-          signerType: 'embedded',
-          txId,
-          recordType,
-          recordHash,
-          userWallet: userWallet || undefined,
-          hospitalId,
-          metadata: {
-            ...metadata,
-            userId: user.id,
-            userName: user.user_metadata?.name || 'Unknown',
-          },
+          data: {
+            signerType: 'embedded',
+            txId,
+            recordType,
+            recordHash,
+            userWallet: userWallet || undefined,
+            hospitalId,
+            metadata: {
+              ...metadata,
+              userId: user.id,
+              userName: user.user_metadata?.name || 'Unknown',
+            },
+          }
         });
 
         console.log(`✅ Event recorded`);
@@ -158,15 +165,17 @@ export const signAndAnchorWithEmbedded = createServerFn({
       try {
         const errorMsg = error instanceof Error ? error.message : String(error);
         await recordSigningEvent({
-          signerType: 'embedded',
-          txId: 'failed',
-          recordType,
-          recordHash,
-          userWallet: userWallet || undefined,
-          hospitalId,
-          metadata: {
-            error: errorMsg,
-          },
+          data: {
+            signerType: 'embedded',
+            txId: 'failed',
+            recordType,
+            recordHash,
+            userWallet: userWallet || undefined,
+            hospitalId,
+            metadata: {
+              error: errorMsg,
+            },
+          }
         }).catch(() => {}); // Silently fail if audit recording fails
       } catch (_) {
         // Ignore
@@ -185,13 +194,9 @@ export const signAndAnchorWithEmbedded = createServerFn({
 export const verifyAnchoredRecord = createServerFn({
   method: 'GET',
 })
-  .middleware(async () => {
-    const user = await getVerifiedUser();
-    if (!user) throw new Error('Unauthorized');
-    return { user };
-  })
-  .handler(async (opts) => {
-    const { txId } = opts.data || {};
+  .inputValidator((data: { txId: string }) => data)
+  .handler(async ({ data }) => {
+    const { txId } = data;
 
     if (!txId) {
       throw new Error('Transaction ID required');
@@ -225,20 +230,26 @@ export const verifyAnchoredRecord = createServerFn({
 export const getTransactionStatus = createServerFn({
   method: 'GET',
 })
-  .middleware(async () => {
-    const user = await getVerifiedUser();
-    if (!user) throw new Error('Unauthorized');
-    return { user };
-  })
-  .handler(async (opts) => {
+  .inputValidator((data: { txId: string }) => data)
+  .handler(async ({ data }) => {
     const db = getSupabaseServerClient();
-    const user = opts.data?.user || (await getVerifiedUser());
+    const user = await getVerifiedUser();
 
     if (!user) {
       throw new Error('User not authenticated');
     }
 
-    const { txId } = opts.data || {};
+    const { data: profile } = await db
+      .from('profiles')
+      .select('hospital_id')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile) {
+      throw new Error('User profile not found');
+    }
+
+    const { txId } = data;
 
     if (!txId) {
       throw new Error('Transaction ID required');
@@ -246,11 +257,11 @@ export const getTransactionStatus = createServerFn({
 
     try {
       // Get from audit trail
-      const { data, error } = await db
+      const { data: record, error } = await db
         .from('signing_events')
         .select('status, confirmed, error_message, created_at')
         .eq('transaction_id', txId)
-        .eq('hospital_id', user.hospital_id)
+        .eq('hospital_id', profile.hospital_id)
         .single();
 
       if (error?.code === 'PGRST116') {
@@ -263,10 +274,10 @@ export const getTransactionStatus = createServerFn({
 
       return {
         txId,
-        status: data.status,
-        confirmed: data.confirmed,
-        errorMessage: data.error_message,
-        created_at: data.created_at,
+        status: record.status,
+        confirmed: record.confirmed,
+        errorMessage: record.error_message,
+        created_at: record.created_at,
       };
     } catch (error) {
       console.error('Failed to get transaction status:', error);
@@ -284,26 +295,29 @@ export const getTransactionStatus = createServerFn({
 export const getHospitalWalletBalance = createServerFn({
   method: 'GET',
 })
-  .middleware(async () => {
+  .handler(async () => {
     const user = await getVerifiedUser();
-    if (!user || user.role !== 'admin') throw new Error('Unauthorized - admin only');
-    return { user };
-  })
-  .handler(async (opts) => {
-    const user = opts.data?.user || (await getVerifiedUser());
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
 
-    if (!user || user.role !== 'admin') {
+    const db = getSupabaseServerClient();
+    const { data: profile } = await db
+      .from('profiles')
+      .select('hospital_id, role')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile || profile.role !== 'admin') {
       throw new Error('Only admins can view hospital wallet balance');
     }
 
     try {
       // Get hospital wallet public key from embedded_wallets table
-      const db = getSupabaseServerClient();
-
       const { data: wallet, error } = await db
         .from('embedded_wallets')
         .select('public_key')
-        .eq('hospital_id', user.hospital_id)
+        .eq('hospital_id', profile.hospital_id)
         .eq('owner_type', 'hospital')
         .eq('is_active', true)
         .single();
@@ -345,36 +359,40 @@ export const getHospitalWalletBalance = createServerFn({
 export const requestHospitalAirdrop = createServerFn({
   method: 'POST',
 })
-  .middleware(async () => {
-    const user = await getVerifiedUser();
-    if (!user || user.role !== 'admin') throw new Error('Unauthorized - admin only');
-    return { user };
-  })
-  .handler(async (opts) => {
+  .inputValidator((data: { amount?: number } | undefined) => data || {})
+  .handler(async ({ data }) => {
     const network = process.env.SOLANA_NETWORK || 'devnet';
 
     if (network === 'mainnet') {
       throw new Error('Airdrops only available on Devnet/Testnet');
     }
 
-    const user = opts.data?.user || (await getVerifiedUser());
+    const user = await getVerifiedUser();
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
 
-    if (!user || user.role !== 'admin') {
+    const db = getSupabaseServerClient();
+    const { data: profile } = await db
+      .from('profiles')
+      .select('hospital_id, role')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile || profile.role !== 'admin') {
       throw new Error('Only admins can request airdrops');
     }
 
-    const { amount = 1 } = opts.data || {};
+    const { amount = 1 } = data;
 
     try {
       console.log(`💰 Requesting ${amount} SOL airdrop for hospital wallet...`);
 
       // Get hospital wallet
-      const db = getSupabaseServerClient();
-
       const { data: wallet, error } = await db
         .from('embedded_wallets')
         .select('public_key')
-        .eq('hospital_id', user.hospital_id)
+        .eq('hospital_id', profile.hospital_id)
         .eq('owner_type', 'hospital')
         .eq('is_active', true)
         .single();

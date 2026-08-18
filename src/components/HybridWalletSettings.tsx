@@ -52,9 +52,6 @@ export function HybridWalletSettings() {
                 {wallet.effectiveWalletMode === 'embedded' && (
                   <span className="text-blue-600">✓ Embedded (Seamless)</span>
                 )}
-                {wallet.effectiveWalletMode === 'auto' && (
-                  <span className="text-amber-600">🔄 Auto-Detect</span>
-                )}
               </p>
 
               {phantom.isDetected && (

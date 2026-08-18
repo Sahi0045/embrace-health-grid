@@ -36,21 +36,16 @@ export interface SigningEventResponse {
 export const recordSigningEvent = createServerFn({
   method: 'POST',
 })
-  .middleware(async () => {
-    const user = await getVerifiedUser();
-    if (!user) throw new Error('Unauthorized');
-    return { user };
-  })
-  .handler(async (opts) => {
+  .inputValidator((data: SigningEventRecord) => data)
+  .handler(async ({ data }) => {
     const db = getSupabaseServerClient();
-    const user = opts.data?.user || (await getVerifiedUser());
+    const user = await getVerifiedUser();
 
     if (!user) {
       throw new Error('User not authenticated');
     }
 
-    const { signerType, txId, recordType, recordHash, userWallet, hospitalId, metadata } =
-      opts.data as SigningEventRecord;
+    const { signerType, txId, recordType, recordHash, userWallet, hospitalId, metadata } = data;
 
     // Validation
     if (!signerType || !['phantom', 'embedded'].includes(signerType)) {
@@ -65,7 +60,7 @@ export const recordSigningEvent = createServerFn({
 
     try {
       // Insert signing event
-      const { data, error } = await db
+      const { data: record, error } = await db
         .from('signing_events')
         .insert({
           hospital_id: hospitalId,
@@ -94,12 +89,12 @@ export const recordSigningEvent = createServerFn({
       );
 
       return {
-        eventId: data.event_id,
-        txId: data.transaction_id,
-        signerType: data.signer_type,
-        status: data.status,
-        confirmed: data.confirmed,
-        created_at: data.created_at,
+        eventId: record.event_id,
+        txId: record.transaction_id,
+        signerType: record.signer_type,
+        status: record.status,
+        confirmed: record.confirmed,
+        created_at: record.created_at,
       } as SigningEventResponse;
     } catch (error) {
       console.error('Failed to record signing event:', error);
@@ -116,20 +111,26 @@ export const recordSigningEvent = createServerFn({
 export const confirmSigningEvent = createServerFn({
   method: 'POST',
 })
-  .middleware(async () => {
-    const user = await getVerifiedUser();
-    if (!user) throw new Error('Unauthorized');
-    return { user };
-  })
-  .handler(async (opts) => {
+  .inputValidator((data: { txId: string; confirmationSlot?: number; confirmationCount?: number }) => data)
+  .handler(async ({ data }) => {
     const db = getSupabaseServerClient();
-    const user = opts.data?.user || (await getVerifiedUser());
+    const user = await getVerifiedUser();
 
     if (!user) {
       throw new Error('User not authenticated');
     }
 
-    const { txId, confirmationSlot, confirmationCount } = opts.data || {};
+    const { data: profile } = await db
+      .from('profiles')
+      .select('hospital_id')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile) {
+      throw new Error('User profile not found');
+    }
+
+    const { txId, confirmationSlot, confirmationCount } = data;
 
     if (!txId) {
       throw new Error('Transaction ID required');
@@ -146,7 +147,7 @@ export const confirmSigningEvent = createServerFn({
           confirmation_count: confirmationCount || 32,
         })
         .eq('transaction_id', txId)
-        .eq('hospital_id', user.hospital_id);
+        .eq('hospital_id', profile.hospital_id);
 
       if (error) {
         console.error('Error confirming signing event:', error);
@@ -171,20 +172,26 @@ export const confirmSigningEvent = createServerFn({
 export const failSigningEvent = createServerFn({
   method: 'POST',
 })
-  .middleware(async () => {
-    const user = await getVerifiedUser();
-    if (!user) throw new Error('Unauthorized');
-    return { user };
-  })
-  .handler(async (opts) => {
+  .inputValidator((data: { txId: string; errorMessage?: string }) => data)
+  .handler(async ({ data }) => {
     const db = getSupabaseServerClient();
-    const user = opts.data?.user || (await getVerifiedUser());
+    const user = await getVerifiedUser();
 
     if (!user) {
       throw new Error('User not authenticated');
     }
 
-    const { txId, errorMessage } = opts.data || {};
+    const { data: profile } = await db
+      .from('profiles')
+      .select('hospital_id')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile) {
+      throw new Error('User profile not found');
+    }
+
+    const { txId, errorMessage } = data;
 
     if (!txId) {
       throw new Error('Transaction ID required');
@@ -198,7 +205,7 @@ export const failSigningEvent = createServerFn({
           error_message: errorMessage || 'Unknown error',
         })
         .eq('transaction_id', txId)
-        .eq('hospital_id', user.hospital_id);
+        .eq('hospital_id', profile.hospital_id);
 
       if (error) {
         throw new Error(`Failed to mark as failed: ${error.message}`);
@@ -222,31 +229,37 @@ export const failSigningEvent = createServerFn({
 export const getSigningEvent = createServerFn({
   method: 'GET',
 })
-  .middleware(async () => {
-    const user = await getVerifiedUser();
-    if (!user) throw new Error('Unauthorized');
-    return { user };
-  })
-  .handler(async (opts) => {
+  .inputValidator((data: { txId: string }) => data)
+  .handler(async ({ data }) => {
     const db = getSupabaseServerClient();
-    const user = opts.data?.user || (await getVerifiedUser());
+    const user = await getVerifiedUser();
 
     if (!user) {
       throw new Error('User not authenticated');
     }
 
-    const { txId } = opts.data || {};
+    const { data: profile } = await db
+      .from('profiles')
+      .select('hospital_id')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile) {
+      throw new Error('User profile not found');
+    }
+
+    const { txId } = data;
 
     if (!txId) {
       throw new Error('Transaction ID required');
     }
 
     try {
-      const { data, error } = await db
+      const { data: record, error } = await db
         .from('signing_events')
         .select('*')
         .eq('transaction_id', txId)
-        .eq('hospital_id', user.hospital_id)
+        .eq('hospital_id', profile.hospital_id)
         .single();
 
       if (error?.code === 'PGRST116') {
@@ -258,17 +271,17 @@ export const getSigningEvent = createServerFn({
       }
 
       return {
-        eventId: data.event_id,
-        txId: data.transaction_id,
-        recordType: data.record_type,
-        recordHash: data.record_hash,
-        signerType: data.signer_type,
-        userWallet: data.user_wallet,
-        status: data.status,
-        confirmed: data.confirmed,
-        confirmationSlot: data.confirmation_slot,
-        created_at: data.created_at,
-        confirmed_at: data.confirmed_at,
+        eventId: record.event_id,
+        txId: record.transaction_id,
+        recordType: record.record_type,
+        recordHash: record.record_hash,
+        signerType: record.signer_type,
+        userWallet: record.user_wallet,
+        status: record.status,
+        confirmed: record.confirmed,
+        confirmationSlot: record.confirmation_slot,
+        created_at: record.created_at,
+        confirmed_at: record.confirmed_at,
       };
     } catch (error) {
       console.error('Failed to get signing event:', error);
@@ -285,23 +298,19 @@ export const getSigningEvent = createServerFn({
 export const getUserSigningHistory = createServerFn({
   method: 'GET',
 })
-  .middleware(async () => {
-    const user = await getVerifiedUser();
-    if (!user) throw new Error('Unauthorized');
-    return { user };
-  })
-  .handler(async (opts) => {
+  .inputValidator((data: { limit?: number } | undefined) => data || {})
+  .handler(async ({ data }) => {
     const db = getSupabaseServerClient();
-    const user = opts.data?.user || (await getVerifiedUser());
+    const user = await getVerifiedUser();
 
     if (!user) {
       throw new Error('User not authenticated');
     }
 
-    const { limit = 50 } = opts.data || {};
+    const { limit = 50 } = data;
 
     try {
-      const { data, error } = await db
+      const { data: records, error } = await db
         .from('signing_events')
         .select('event_id, transaction_id, record_type, signer_type, status, confirmed, created_at')
         .eq('user_id', user.id)
@@ -312,7 +321,7 @@ export const getUserSigningHistory = createServerFn({
         throw new Error(`Failed to fetch history: ${error.message}`);
       }
 
-      return (data || []).map((event: any) => ({
+      return (records || []).map((event: any) => ({
         eventId: event.event_id,
         txId: event.transaction_id,
         recordType: event.record_type,
@@ -336,23 +345,28 @@ export const getUserSigningHistory = createServerFn({
 export const getHospitalSigningStats = createServerFn({
   method: 'GET',
 })
-  .middleware(async () => {
-    const user = await getVerifiedUser();
-    if (!user || user.role !== 'admin') throw new Error('Unauthorized - admin only');
-    return { user };
-  })
-  .handler(async (opts) => {
+  .handler(async () => {
     const db = getSupabaseServerClient();
-    const user = opts.data?.user || (await getVerifiedUser());
+    const user = await getVerifiedUser();
 
-    if (!user || user.role !== 'admin') {
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    const { data: profile } = await db
+      .from('profiles')
+      .select('hospital_id, role')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile || profile.role !== 'admin') {
       throw new Error('Only admins can view hospital signing statistics');
     }
 
     try {
       // Use the SQL function to get stats
       const { data, error } = await db
-        .rpc('get_signing_stats', { p_hospital_id: user.hospital_id });
+        .rpc('get_signing_stats', { p_hospital_id: profile.hospital_id });
 
       if (error) {
         throw new Error(`Failed to fetch stats: ${error.message}`);
@@ -381,24 +395,30 @@ export const getHospitalSigningStats = createServerFn({
 export const getDailySigningVolume = createServerFn({
   method: 'GET',
 })
-  .middleware(async () => {
-    const user = await getVerifiedUser();
-    if (!user || user.role !== 'admin') throw new Error('Unauthorized - admin only');
-    return { user };
-  })
-  .handler(async (opts) => {
+  .inputValidator((data: { date?: string } | undefined) => data || {})
+  .handler(async ({ data }) => {
     const db = getSupabaseServerClient();
-    const user = opts.data?.user || (await getVerifiedUser());
+    const user = await getVerifiedUser();
 
-    if (!user || user.role !== 'admin') {
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    const { data: profile } = await db
+      .from('profiles')
+      .select('hospital_id, role')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile || profile.role !== 'admin') {
       throw new Error('Only admins can view signing volume');
     }
 
-    const { date = new Date().toISOString().split('T')[0] } = opts.data || {};
+    const { date = new Date().toISOString().split('T')[0] } = data;
 
     try {
-      const { data, error } = await db.rpc('get_daily_signing_volume', {
-        p_hospital_id: user.hospital_id,
+      const { data: records, error } = await db.rpc('get_daily_signing_volume', {
+        p_hospital_id: profile.hospital_id,
         p_date: date,
       });
 
@@ -408,9 +428,9 @@ export const getDailySigningVolume = createServerFn({
 
       return {
         date,
-        totalSignings: data[0]?.total_signings || 0,
-        phantomSignings: data[0]?.phantom_signings || 0,
-        embeddedSignings: data[0]?.embedded_signings || 0,
+        totalSignings: records[0]?.total_signings || 0,
+        phantomSignings: records[0]?.phantom_signings || 0,
+        embeddedSignings: records[0]?.embedded_signings || 0,
       };
     } catch (error) {
       console.error('Failed to get daily signing volume:', error);

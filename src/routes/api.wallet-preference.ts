@@ -25,14 +25,9 @@ export interface WalletPreference {
 export const getUserWalletPreference = createServerFn({
   method: 'GET',
 })
-  .middleware(async () => {
-    const user = await getVerifiedUser();
-    if (!user) throw new Error('Unauthorized');
-    return { user };
-  })
-  .handler(async (opts) => {
+  .handler(async () => {
     const db = getSupabaseServerClient();
-    const user = opts.data?.user || (await getVerifiedUser());
+    const user = await getVerifiedUser();
 
     if (!user) {
       throw new Error('User not authenticated');
@@ -84,20 +79,26 @@ export const getUserWalletPreference = createServerFn({
 export const saveUserWalletPreference = createServerFn({
   method: 'POST',
 })
-  .middleware(async () => {
-    const user = await getVerifiedUser();
-    if (!user) throw new Error('Unauthorized');
-    return { user };
-  })
-  .handler(async (opts) => {
+  .inputValidator((data: { walletMode: 'auto' | 'phantom' | 'embedded'; phantomPublicKey?: string | null }) => data)
+  .handler(async ({ data }) => {
     const db = getSupabaseServerClient();
-    const user = opts.data?.user || (await getVerifiedUser());
+    const user = await getVerifiedUser();
 
     if (!user) {
       throw new Error('User not authenticated');
     }
 
-    const { walletMode, phantomPublicKey } = opts.data || {};
+    const { data: profile } = await db
+      .from('profiles')
+      .select('hospital_id')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile) {
+      throw new Error('User profile not found');
+    }
+
+    const { walletMode, phantomPublicKey } = data;
 
     if (!walletMode || !['auto', 'phantom', 'embedded'].includes(walletMode)) {
       throw new Error('Invalid wallet mode. Must be: auto, phantom, or embedded');
@@ -107,7 +108,7 @@ export const saveUserWalletPreference = createServerFn({
       // Upsert preference (insert or update)
       const { error } = await db.from('user_wallet_preferences').upsert(
         {
-          hospital_id: user.hospital_id,
+          hospital_id: profile.hospital_id,
           user_id: user.id,
           wallet_mode: walletMode,
           phantom_public_key: phantomPublicKey || null,
@@ -148,14 +149,9 @@ export const saveUserWalletPreference = createServerFn({
 export const disconnectPhantom = createServerFn({
   method: 'POST',
 })
-  .middleware(async () => {
-    const user = await getVerifiedUser();
-    if (!user) throw new Error('Unauthorized');
-    return { user };
-  })
-  .handler(async (opts) => {
+  .handler(async () => {
     const db = getSupabaseServerClient();
-    const user = opts.data?.user || (await getVerifiedUser());
+    const user = await getVerifiedUser();
 
     if (!user) {
       throw new Error('User not authenticated');
@@ -196,16 +192,21 @@ export const disconnectPhantom = createServerFn({
 export const getWalletStats = createServerFn({
   method: 'GET',
 })
-  .middleware(async () => {
-    const user = await getVerifiedUser();
-    if (!user || user.role !== 'admin') throw new Error('Unauthorized - admin only');
-    return { user };
-  })
-  .handler(async (opts) => {
+  .handler(async () => {
     const db = getSupabaseServerClient();
-    const user = opts.data?.user || (await getVerifiedUser());
+    const user = await getVerifiedUser();
 
-    if (!user || user.role !== 'admin') {
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    const { data: profile } = await db
+      .from('profiles')
+      .select('hospital_id, role')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile || profile.role !== 'admin') {
       throw new Error('Only admins can view wallet statistics');
     }
 
@@ -214,7 +215,7 @@ export const getWalletStats = createServerFn({
       const { data: stats, error } = await db
         .from('user_wallet_preferences')
         .select('wallet_mode')
-        .eq('hospital_id', user.hospital_id);
+        .eq('hospital_id', profile.hospital_id);
 
       if (error) {
         throw new Error(`Failed to fetch stats: ${error.message}`);

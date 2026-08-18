@@ -5,13 +5,13 @@
  */
 
 import { useEffect, useState } from 'react';
+import { Badge } from '@/components/ui/badge';
 import {
-  Badge,
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '@/components/ui/index';
+} from '@/components/ui/tooltip';
 import { AlertCircle, CheckCircle2, Wallet, Zap, Shield } from 'lucide-react';
 import { SOLANA_CLIENT_CONFIG, getExplorerUrl } from '@/lib/solana-config.client';
 import { useHybridWallet } from '@/lib/useHybridWallet';
@@ -44,19 +44,19 @@ export function WalletStatusIndicator(props: WalletStatusProps) {
     isConnected: false,
   });
 
-  const { walletMode, isPhantomConnected, phantomAddress, lastSigningTime } = useHybridWallet();
+  const { effectiveWalletMode, isPhantomConnected, phantomAddress, lastSigningTime } = useHybridWallet();
 
   // Update status when wallet state changes
   useEffect(() => {
     setStatus({
-      mode: walletMode || 'embedded',
+      mode: effectiveWalletMode,
       network: SOLANA_CLIENT_CONFIG.network,
-      isConnected: walletMode === 'phantom' ? isPhantomConnected : true,
+      isConnected: effectiveWalletMode === 'phantom' ? isPhantomConnected : true,
       lastActivityTime: lastSigningTime?.toISOString(),
       phantomAddress,
       error: undefined,
     });
-  }, [walletMode, isPhantomConnected, phantomAddress, lastSigningTime]);
+  }, [effectiveWalletMode, isPhantomConnected, phantomAddress, lastSigningTime]);
 
   // ─── Render Compact Version (for sidebar) ──────────────────────────────
 

@@ -5,7 +5,12 @@
  */
 
 import { useEffect, useState } from 'react';
-import { getWalletPreference, saveWalletPreference } from '@/routes/api.wallet-preference';
+import { getUserWalletPreference, saveUserWalletPreference } from '@/routes/api.wallet-preference';
+import {
+  isPhantomInstalled,
+  connectPhantom as clientConnectPhantom,
+  disconnectPhantom as clientDisconnectPhantom,
+} from './hybrid-wallet.client';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -32,6 +37,10 @@ export interface HybridWalletState {
 // ─── Hook ────────────────────────────────────────────────────────────────────
 
 export function useHybridWallet(hospitalId?: string) {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [userPreference, setUserPreference] = useState<'phantom' | 'embedded' | 'auto'>('auto');
+  
   const [state, setState] = useState<HybridWalletState>({
     phantomAvailable: false,
     phantomConnected: false,
@@ -45,10 +54,10 @@ export function useHybridWallet(hospitalId?: string) {
   useEffect(() => {
     const loadPreference = async () => {
       try {
-        if (!hospitalId) return;
-
-        const pref = await getWalletPreference({ hospitalId });
+        setLoading(true);
+        const pref = await getUserWalletPreference();
         if (pref) {
+          setUserPreference(pref.walletMode);
           setState((prev) => ({
             ...prev,
             walletMode: pref.walletMode || 'auto',
@@ -57,6 +66,9 @@ export function useHybridWallet(hospitalId?: string) {
         }
       } catch (err) {
         console.warn('Failed to load wallet preference:', err);
+        setError(err instanceof Error ? err.message : String(err));
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -67,7 +79,7 @@ export function useHybridWallet(hospitalId?: string) {
 
   useEffect(() => {
     const detectPhantom = () => {
-      const isPhantomAvailable = !!window?.solana?.isPhantom;
+      const isPhantomAvailable = isPhantomInstalled();
 
       setState((prev) => ({
         ...prev,
@@ -76,7 +88,7 @@ export function useHybridWallet(hospitalId?: string) {
 
       console.log(`🔍 Phantom Detection:`, {
         available: isPhantomAvailable,
-        address: window?.solana?.publicKey?.toString?.(),
+        address: (window as any)?.solana?.publicKey?.toString?.(),
       });
     };
 
@@ -84,15 +96,15 @@ export function useHybridWallet(hospitalId?: string) {
     detectPhantom();
 
     // Listen for wallet connect/disconnect
-    if (window?.solana?.on) {
+    if ((window as any)?.solana?.on) {
       const handleConnect = () => {
         setState((prev) => ({
           ...prev,
           phantomConnected: true,
-          phantomAddress: window.solana?.publicKey?.toString?.(),
+          phantomAddress: (window as any).solana?.publicKey?.toString?.(),
         }));
 
-        console.log(`✅ Phantom Connected:`, window.solana?.publicKey?.toString?.());
+        console.log(`... Phantom Connected:`, (window as any).solana?.publicKey?.toString?.());
       };
 
       const handleDisconnect = () => {
@@ -102,7 +114,7 @@ export function useHybridWallet(hospitalId?: string) {
           phantomAddress: undefined,
         }));
 
-        console.log(`❌ Phantom Disconnected`);
+        console.log(`... Phantom Disconnected`);
       };
 
       const handleAccountChanged = (newPublicKey: any) => {
@@ -112,7 +124,7 @@ export function useHybridWallet(hospitalId?: string) {
             phantomAddress: newPublicKey.toString?.(),
           }));
 
-          console.log(`🔄 Phantom Account Changed:`, newPublicKey.toString?.());
+          console.log(`... Phantom Account Changed:`, newPublicKey.toString?.());
         }
       };
 
@@ -122,23 +134,23 @@ export function useHybridWallet(hospitalId?: string) {
           phantomNetwork: network,
         }));
 
-        console.log(`🌐 Phantom Network Changed:`, network);
+        console.log(`... Phantom Network Changed:`, network);
       };
 
       try {
-        window.solana.on('connect', handleConnect);
-        window.solana.on('disconnect', handleDisconnect);
-        window.solana.on('accountChanged', handleAccountChanged);
-        window.solana.on('networkChanged', handleNetworkChanged);
+        (window as any).solana.on('connect', handleConnect);
+        (window as any).solana.on('disconnect', handleDisconnect);
+        (window as any).solana.on('accountChanged', handleAccountChanged);
+        (window as any).solana.on('networkChanged', handleNetworkChanged);
 
         setState((prev) => ({ ...prev, isListening: true }));
 
         // Check initial connected state
-        if (window.solana?.publicKey) {
+        if ((window as any).solana?.publicKey) {
           setState((prev) => ({
             ...prev,
             phantomConnected: true,
-            phantomAddress: window.solana.publicKey.toString(),
+            phantomAddress: (window as any).solana.publicKey.toString(),
           }));
         }
       } catch (err) {
@@ -148,10 +160,10 @@ export function useHybridWallet(hospitalId?: string) {
       // Cleanup
       return () => {
         try {
-          window.solana.off('connect', handleConnect);
-          window.solana.off('disconnect', handleDisconnect);
-          window.solana.off('accountChanged', handleAccountChanged);
-          window.solana.off('networkChanged', handleNetworkChanged);
+          (window as any).solana.off('connect', handleConnect);
+          (window as any).solana.off('disconnect', handleDisconnect);
+          (window as any).solana.off('accountChanged', handleAccountChanged);
+          (window as any).solana.off('networkChanged', handleNetworkChanged);
         } catch (_) {}
       };
     }
@@ -160,21 +172,57 @@ export function useHybridWallet(hospitalId?: string) {
   // ─── Save Wallet Preference ─────────────────────────────────────────────
 
   const setWalletMode = async (mode: 'auto' | 'phantom' | 'embedded') => {
-    setState((prev) => ({ ...prev, walletMode: mode }));
+    try {
+      setLoading(true);
+      setError(null);
+      setUserPreference(mode);
+      setState((prev) => ({ ...prev, walletMode: mode }));
 
-    if (hospitalId) {
-      try {
-        await saveWalletPreference({
-          hospitalId,
+      await saveUserWalletPreference({
+        data: {
           walletMode: mode,
           phantomPublicKey:
             mode === 'phantom' && state.phantomAddress ? state.phantomAddress : null,
-        });
+        }
+      });
 
-        console.log(`💾 Wallet preference saved:`, mode);
-      } catch (err) {
-        console.error('Failed to save wallet preference:', err);
-      }
+      console.log(`💾 Wallet preference saved:`, mode);
+    } catch (err) {
+      console.error('Failed to save wallet preference:', err);
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ─── Connect / Disconnect Phantom ──────────────────────────────────────
+
+  const connectPhantom = async () => {
+    try {
+      setError(null);
+      setLoading(true);
+      await clientConnectPhantom();
+    } catch (err) {
+      console.error('Failed to connect Phantom:', err);
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const disconnectPhantom = async () => {
+    try {
+      setError(null);
+      setLoading(true);
+      await clientDisconnectPhantom();
+      
+      const { disconnectPhantom: apiDisconnect } = await import('@/routes/api.wallet-preference');
+      await apiDisconnect();
+    } catch (err) {
+      console.error('Failed to disconnect Phantom:', err);
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -188,10 +236,10 @@ export function useHybridWallet(hospitalId?: string) {
     }));
   };
 
-  const setSigningError = (error: string) => {
+  const setSigningError = (err: string) => {
     setState((prev) => ({
       ...prev,
-      signingError: error,
+      signingError: err,
       isSigning: false,
     }));
   };
@@ -215,7 +263,40 @@ export function useHybridWallet(hospitalId?: string) {
     return 'embedded';
   };
 
+  const effectiveWalletMode =
+    userPreference !== 'auto'
+      ? userPreference
+      : state.phantomAvailable
+        ? 'phantom'
+        : 'embedded';
+
+  const getStatusMessage = (): string => {
+    if (loading) return 'Loading settings...';
+    if (userPreference === 'phantom') {
+      return state.phantomConnected ? 'Phantom connected and active.' : 'Phantom selected but offline.';
+    }
+    if (userPreference === 'embedded') {
+      return 'Seamless embedded wallet active.';
+    }
+    // Auto mode
+    return state.phantomAvailable
+      ? 'Auto-detect: Using Phantom wallet.'
+      : 'Auto-detect: Phantom not found, using embedded wallet.';
+  };
+
   return {
+    // Basic state
+    loading,
+    error,
+    userPreference,
+    effectiveWalletMode,
+    getStatusMessage,
+
+    // Methods
+    connectPhantom,
+    disconnectPhantom,
+    setWalletMode,
+
     // Detection
     phantomAvailable: state.phantomAvailable,
     isPhantomConnected: state.phantomConnected,
@@ -224,7 +305,6 @@ export function useHybridWallet(hospitalId?: string) {
 
     // Preferences
     walletMode: state.walletMode,
-    setWalletMode,
 
     // Signing state
     isSigning: state.isSigning,
@@ -241,6 +321,35 @@ export function useHybridWallet(hospitalId?: string) {
   };
 }
 
+// ─── usePhantomDetection Hook ────────────────────────────────────────────────
+
+export function usePhantomDetection() {
+  const [isDetected, setIsDetected] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
+
+  useEffect(() => {
+    setIsDetected(isPhantomInstalled());
+    
+    const phantom = typeof window !== 'undefined' ? (window as any).solana : null;
+    setIsConnected(!!phantom && phantom.isConnected);
+
+    if (phantom && phantom.on) {
+      const handleConnect = () => setIsConnected(true);
+      const handleDisconnect = () => setIsConnected(false);
+
+      phantom.on('connect', handleConnect);
+      phantom.on('disconnect', handleDisconnect);
+
+      return () => {
+        phantom.off('connect', handleConnect);
+        phantom.off('disconnect', handleDisconnect);
+      };
+    }
+  }, []);
+
+  return { isDetected, isConnected };
+}
+
 // ─── Global Type Extensions ─────────────────────────────────────────────────
 
 declare global {
@@ -250,10 +359,11 @@ declare global {
       publicKey?: { toString: () => string };
       signTransaction?: (tx: any) => Promise<any>;
       signMessage?: (msg: Uint8Array) => Promise<{ signature: Uint8Array; publicKey: any }>;
-      connect?: () => Promise<{ publicKey: any }>;
+      connect?: (options?: { onlyIfTrusted?: boolean }) => Promise<{ publicKey: any }>;
       disconnect?: () => Promise<void>;
       on?: (event: string, handler: any) => void;
       off?: (event: string, handler: any) => void;
+      isConnected?: boolean;
     };
   }
 }

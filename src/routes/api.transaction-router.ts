@@ -70,20 +70,26 @@ export interface TransactionRouterError {
 export const routeTransaction = createServerFn({
   method: 'POST',
 })
-  .middleware(async () => {
-    const user = await getVerifiedUser();
-    if (!user) throw new Error('Unauthorized');
-    return { user };
-  })
-  .handler(async (opts) => {
+  .inputValidator((data: TransactionRouterRequest) => data)
+  .handler(async ({ data }) => {
     const db = getSupabaseServerClient();
-    const user = opts.data?.user || (await getVerifiedUser());
+    const user = await getVerifiedUser();
 
     if (!user) {
       throw new Error('User not authenticated');
     }
 
-    const request = opts.data as TransactionRouterRequest;
+    const { data: profile } = await db
+      .from('profiles')
+      .select('hospital_id')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile) {
+      throw new Error('User profile not found');
+    }
+
+    const request = data;
     const {
       patientDid,
       recordType,
@@ -103,7 +109,7 @@ export const routeTransaction = createServerFn({
       throw new Error('Missing required transaction data');
     }
 
-    if (user.hospital_id !== hospitalId) {
+    if (profile.hospital_id !== hospitalId) {
       throw new Error('Unauthorized: User does not have access to this hospital');
     }
 
@@ -150,10 +156,9 @@ export const routeTransaction = createServerFn({
 
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
         const attemptStart = Date.now();
+        console.log(`\n📤 Attempt ${attempt}/${maxRetries}: Using ${walletMode}`);
 
         try {
-          console.log(`\n📤 Attempt ${attempt}/${maxRetries}: Using ${walletMode}`);
-
           const result = await routeTransactionSigner(
             {
               patientDid,
@@ -189,17 +194,19 @@ export const routeTransaction = createServerFn({
 
           try {
             await recordSigningEvent({
-              signerType: walletMode,
-              txId: result.txId,
-              recordType,
-              recordHash,
-              hospitalId,
-              userWallet: walletMode === 'phantom' ? undefined : user.id,
-              metadata: {
-                attempt,
-                duration: attempts[attempt - 1]?.duration || 0,
-                totalAttempts: attempt,
-              },
+              data: {
+                signerType: walletMode,
+                txId: result.txId,
+                recordType,
+                recordHash,
+                hospitalId,
+                userWallet: walletMode === 'phantom' ? undefined : user.id,
+                metadata: {
+                  attempt,
+                  duration: attempts[attempt - 1]?.duration || 0,
+                  totalAttempts: attempt,
+                },
+              }
             });
           } catch (auditError) {
             console.warn('Failed to record signing event:', auditError);
@@ -286,16 +293,18 @@ export const routeTransaction = createServerFn({
       // Try to record failure event
       try {
         await recordSigningEvent({
-          signerType: 'embedded', // Default
-          txId: 'failed',
-          recordType,
-          recordHash,
-          hospitalId,
-          metadata: {
-            error: errorMsg,
-            attempts: attempts.length,
-            totalDuration,
-          },
+          data: {
+            signerType: 'embedded',
+            txId: 'failed',
+            recordType,
+            recordHash,
+            hospitalId,
+            metadata: {
+              error: errorMsg,
+              attempts: attempts.length,
+              totalDuration,
+            },
+          }
         }).catch(() => {});
       } catch (_) {
         // Silently ignore audit logging failures
@@ -378,20 +387,26 @@ async function determineWalletMode(params: {
 export const preflightCheck = createServerFn({
   method: 'POST',
 })
-  .middleware(async () => {
-    const user = await getVerifiedUser();
-    if (!user) throw new Error('Unauthorized');
-    return { user };
-  })
-  .handler(async (opts) => {
+  .inputValidator((data: { hospitalId: string; checkPhantom?: boolean; checkNetwork?: boolean }) => data)
+  .handler(async ({ data }) => {
     const db = getSupabaseServerClient();
-    const user = opts.data?.user || (await getVerifiedUser());
+    const user = await getVerifiedUser();
 
     if (!user) {
       throw new Error('User not authenticated');
     }
 
-    const { hospitalId, checkPhantom = true, checkNetwork = true } = opts.data || {};
+    const { data: profile } = await db
+      .from('profiles')
+      .select('hospital_id')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile) {
+      throw new Error('User profile not found');
+    }
+
+    const { hospitalId, checkPhantom = true, checkNetwork = true } = data;
 
     try {
       console.log(`\n✈️ === PREFLIGHT CHECK ===`);
@@ -406,7 +421,7 @@ export const preflightCheck = createServerFn({
 
       // ─── Check User Wallet Preference ─────────────────────────────
 
-      if (user.hospital_id === hospitalId) {
+      if (profile.hospital_id === hospitalId) {
         const { data: pref } = await db
           .from('user_wallet_preferences')
           .select('wallet_mode, phantom_public_key')
@@ -468,23 +483,28 @@ export const preflightCheck = createServerFn({
 export const getRoutingStats = createServerFn({
   method: 'GET',
 })
-  .middleware(async () => {
-    const user = await getVerifiedUser();
-    if (!user || user.role !== 'admin') throw new Error('Unauthorized - admin only');
-    return { user };
-  })
-  .handler(async (opts) => {
+  .handler(async () => {
     const db = getSupabaseServerClient();
-    const user = opts.data?.user || (await getVerifiedUser());
+    const user = await getVerifiedUser();
 
-    if (!user || user.role !== 'admin') {
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    const { data: profile } = await db
+      .from('profiles')
+      .select('hospital_id, role')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile || profile.role !== 'admin') {
       throw new Error('Only admins can view routing statistics');
     }
 
     try {
       // Get signing stats from signing_events
       const { data: stats } = await db.rpc('get_signing_stats', {
-        p_hospital_id: user.hospital_id,
+        p_hospital_id: profile.hospital_id,
       });
 
       return {

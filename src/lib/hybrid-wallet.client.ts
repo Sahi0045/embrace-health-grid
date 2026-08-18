@@ -7,7 +7,7 @@
  *   const { txId } = await signAndAnchorTransaction(data);
  */
 
-import { createClientFn } from '@tanstack/react-start';
+
 import {
   Connection,
   PublicKey,
@@ -44,6 +44,8 @@ export interface SigningResult {
   signature: string;
   userWallet?: string; // If Phantom mode
   timestamp: Date;
+  confirmed?: boolean;
+  explorerUrl?: string;
 }
 
 // ─── Phantom Wallet Integration ──────────────────────────────────────────────

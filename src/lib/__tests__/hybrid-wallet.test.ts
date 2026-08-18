@@ -23,8 +23,8 @@ const mockPhantomWallet = {
 
 // Mock API calls
 vi.mock('@/routes/api.wallet-preference', () => ({
-  getWalletPreference: vi.fn(),
-  saveWalletPreference: vi.fn(),
+  getUserWalletPreference: vi.fn(),
+  saveUserWalletPreference: vi.fn(),
 }));
 
 // ─── Tests ──────────────────────────────────────────────────────────────────

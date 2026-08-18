@@ -11,7 +11,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/index';
+} from '@/components/ui/dialog';
 import { AlertCircle, CheckCircle2, Loader, Zap } from 'lucide-react';
 
 // ─── Types ──────────────────────────────────────────────────────────────────

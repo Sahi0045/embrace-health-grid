@@ -8,9 +8,10 @@ import { getSupabaseServerClient, getVerifiedUser } from '@/lib/supabase.server'
 import { recordSigningEvent } from '@/routes/api.signing-events';
 import type { AuditEntry } from '@/lib/audit.server';
 
+
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-export interface WalletSigningAuditEntry extends AuditEntry {
+export interface WalletSigningAuditEntry extends Partial<AuditEntry> {
   signerType: 'phantom' | 'embedded';
   txId: string;
   userWallet?: string; // If Phantom: user's public key
@@ -68,21 +69,23 @@ export async function recordWalletSigningAudit(
     console.log(`⏳ Recording signing event...`);
 
     const signingEventRecord = await recordSigningEvent({
-      signerType: entry.signerType,
-      txId: entry.txId,
-      recordType: entry.entityType || entry.module,
-      recordHash: entry.metadata?.recordHash as string | undefined,
-      hospitalId: entry.hospital as string,
-      userWallet: entry.userWallet,
-      metadata: {
-        action: entry.action,
-        outcome: entry.outcome,
-        module: entry.module,
-        entityId: entry.entityId,
+      data: {
+        signerType: entry.signerType,
+        txId: entry.txId,
+        recordType: entry.entityType || entry.module || 'unknown',
+        recordHash: (entry.metadata?.recordHash as string) || 'unknown',
+        hospitalId: entry.hospital as string,
         userWallet: entry.userWallet,
-        walletType: entry.signerType,
-        severity: entry.severity,
-      },
+        metadata: {
+          action: entry.action,
+          outcome: entry.outcome,
+          module: entry.module,
+          entityId: entry.entityId,
+          userWallet: entry.userWallet,
+          walletType: entry.signerType,
+          severity: entry.severity,
+        },
+      }
     });
 
     console.log(`✅ Signing event recorded: ${signingEventRecord.eventId}`);
