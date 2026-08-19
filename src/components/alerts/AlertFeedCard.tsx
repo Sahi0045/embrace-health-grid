@@ -107,8 +107,8 @@ export function AlertFeedCard({
     alert.severity === "critical"
       ? "destructive"
       : alert.severity === "warning"
-      ? "warning"
-      : "primary";
+        ? "warning"
+        : "primary";
 
   return (
     <GlowCard accent={glowAccent} className="p-5 md:p-6 space-y-4">
@@ -130,8 +130,8 @@ export function AlertFeedCard({
                 alert.severity === "critical"
                   ? "bg-destructive animate-pulse"
                   : alert.severity === "warning"
-                  ? "bg-warning"
-                  : "bg-primary"
+                    ? "bg-warning"
+                    : "bg-primary"
               }`}
             />
             <span className="text-[10px] font-extrabold uppercase text-muted-foreground tracking-wider">
@@ -174,9 +174,7 @@ export function AlertFeedCard({
         <h3 className="font-display font-extrabold text-base text-foreground tracking-tight flex items-center gap-2">
           {alert.title}
         </h3>
-        <p className="text-xs font-medium text-muted-foreground leading-relaxed">
-          {alert.message}
-        </p>
+        <p className="text-xs font-medium text-muted-foreground leading-relaxed">{alert.message}</p>
       </div>
 
       {/* Metadata Badges (Department, Location, Actor, etc.) */}
@@ -220,7 +218,9 @@ export function AlertFeedCard({
             <span>Jump to Source</span>
             <ArrowUpRight className="h-3.5 w-3.5" />
           </Button>
-        ) : <div />}
+        ) : (
+          <div />
+        )}
 
         {/* Context Action Buttons */}
         <div className="flex items-center gap-2 shrink-0">

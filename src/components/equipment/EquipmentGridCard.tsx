@@ -110,7 +110,6 @@ export function EquipmentGridCard({ equipment, onSelect }: EquipmentGridCardProp
       onClick={() => onSelect(equipment)}
       className="group cursor-pointer rounded-2xl border border-border/80 bg-card p-5 sm:p-5.5 shadow-clinical-sm hover:border-primary/40 hover:shadow-clinical-md transition-all relative flex flex-col justify-between"
     >
-
       <div className="space-y-4">
         {/* ─── 1. Top Meta Bar: ID + Type Pill (Left) & Status Badge (Right) ─ */}
         <div className="flex items-center justify-between gap-2 border-b border-border/50 pb-3">
@@ -176,9 +175,7 @@ export function EquipmentGridCard({ equipment, onSelect }: EquipmentGridCardProp
           {/* Serial Number */}
           <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/40 text-[11px]">
             <span className="text-muted-foreground">Serial Number:</span>
-            <span className="font-mono font-bold text-foreground">
-              {equipment.serial}
-            </span>
+            <span className="font-mono font-bold text-foreground">{equipment.serial}</span>
           </div>
         </div>
 

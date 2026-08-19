@@ -98,14 +98,20 @@ function LaboratoryDiagnosticsPage() {
     inProgress: 0,
     completedToday: 0,
     criticalResults: 0,
-    avgTurnaroundTime: "38 min",
+    // Placeholder until the server reports a measured figure. Every other value
+    // here starts at 0; this one used to start at a plausible-looking "38 min",
+    // so the dashboard showed an invented turnaround time during loading and
+    // whenever the fetch failed.
+    avgTurnaroundTime: "—",
     totalSamplesCollected: 0,
     radiologyScansToday: 0,
   });
   const [loading, setLoading] = useState(true);
 
   // Active Tab & Filters
-  const [activeTab, setActiveTab] = useState<"queue" | "samples" | "results" | "radiology" | "orders">("queue");
+  const [activeTab, setActiveTab] = useState<
+    "queue" | "samples" | "results" | "radiology" | "orders"
+  >("queue");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<LabStatusFilter>("all");
   const [priorityFilter, setPriorityFilter] = useState<LabPriorityFilter>("all");
@@ -163,10 +169,7 @@ function LaboratoryDiagnosticsPage() {
   };
 
   // Handle Sample Stage Advancement
-  const handleAdvanceSampleStage = async (
-    sampleId: string,
-    nextStatus: SampleCollectionStatus,
-  ) => {
+  const handleAdvanceSampleStage = async (sampleId: string, nextStatus: SampleCollectionStatus) => {
     try {
       await updateSampleStatus({ sampleId, status: nextStatus });
       toast.success(`Sample #${sampleId} advanced to ${nextStatus.toUpperCase()}`);
@@ -203,11 +206,9 @@ function LaboratoryDiagnosticsPage() {
           (item.patient_mrn || "").toLowerCase().includes(q) ||
           (item.doctor_name || "").toLowerCase().includes(q);
 
-        const matchesStatus =
-          statusFilter === "all" || item.status === statusFilter;
+        const matchesStatus = statusFilter === "all" || item.status === statusFilter;
 
-        const matchesPriority =
-          priorityFilter === "all" || item.priority === priorityFilter;
+        const matchesPriority = priorityFilter === "all" || item.priority === priorityFilter;
 
         const matchesCategory =
           categoryFilter === "all" ||
@@ -218,9 +219,7 @@ function LaboratoryDiagnosticsPage() {
       .sort((a, b) => {
         if (sortBy === "priority") {
           const priorityScore = { stat: 3, urgent: 2, routine: 1 };
-          return (
-            (priorityScore[b.priority] || 0) - (priorityScore[a.priority] || 0)
-          );
+          return (priorityScore[b.priority] || 0) - (priorityScore[a.priority] || 0);
         }
         if (sortBy === "patient") {
           return (a.patient_name || "").localeCompare(b.patient_name || "");
@@ -228,7 +227,10 @@ function LaboratoryDiagnosticsPage() {
         if (sortBy === "test") {
           return a.test_name.localeCompare(b.test_name);
         }
-        return new Date(b.ordered_at || b.created_at).getTime() - new Date(a.ordered_at || a.created_at).getTime();
+        return (
+          new Date(b.ordered_at || b.created_at).getTime() -
+          new Date(a.ordered_at || a.created_at).getTime()
+        );
       });
   }, [orders, searchQuery, statusFilter, priorityFilter, categoryFilter, sortBy]);
 
@@ -298,7 +300,14 @@ function LaboratoryDiagnosticsPage() {
       default:
         return filteredOrders.length;
     }
-  }, [activeTab, filteredOrders.length, filteredSamples.length, filteredResults.length, radiology.length, orders.length]);
+  }, [
+    activeTab,
+    filteredOrders.length,
+    filteredSamples.length,
+    filteredResults.length,
+    radiology.length,
+    orders.length,
+  ]);
 
   const totalPages = Math.max(1, Math.ceil(activeCount / ITEMS_PER_PAGE));
 
@@ -511,10 +520,7 @@ function LaboratoryDiagnosticsPage() {
 
                 {/* Tab 5: Doctor Orders */}
                 <TabsContent value="orders" className="focus-visible:outline-none">
-                  <DoctorOrdersTab
-                    labOrders={orders}
-                    radiologyOrders={radiology}
-                  />
+                  <DoctorOrdersTab labOrders={orders} radiologyOrders={radiology} />
                 </TabsContent>
               </Tabs>
 
@@ -578,7 +584,6 @@ function LaboratoryDiagnosticsPage() {
             </div>
           </StaggerItem>
         </StaggerList>
-
 
         {/* Create Order Dialog */}
         <CreateLabOrderDialog

@@ -1,43 +1,84 @@
-import {
-  Keypair,
-  PublicKey,
-  Connection,
-  SystemProgram,
-} from '@solana/web3.js';
-import crypto from 'crypto';
-import { getSupabaseServerClient } from './supabase.server';
+import { Keypair, PublicKey, Connection, SystemProgram } from "@solana/web3.js";
+import crypto from "crypto";
+import { getSupabaseServiceRoleClient } from "./supabase.server";
 
 // ─── Cryptography Helper Utilities ──────────────────────────────────────────
 
-const ALGORITHM = 'aes-256-gcm';
+const ALGORITHM = "aes-256-gcm";
 const IV_LENGTH = 12;
 
+/**
+ * Derive the 32-byte AES key used to wrap Solana private keys.
+ *
+ * Two accepted forms:
+ *
+ *   64 hex characters   the documented form (crypto.randomBytes(32)). Used
+ *                       directly — already full entropy, so hashing adds nothing.
+ *   any other string    treated as a passphrase and stretched with scrypt.
+ *
+ * This previously ran a bare SHA-256 over whatever was supplied. For a random
+ * 32-byte key that is harmless, but for a passphrase it is close to no protection:
+ * SHA-256 is fast and unsalted, so anyone holding the ciphertext could brute-force
+ * the key offline. These ciphertexts live in a database row, so that is a
+ * realistic threat, and scrypt makes each guess expensive.
+ *
+ * The fixed salt is a deliberate compromise. Per-key salts would be stronger, but
+ * a salt must be recoverable to decrypt and there is nowhere to store it that an
+ * attacker holding the ciphertext would not also reach. It therefore serves only
+ * as domain separation, and the passphrase path stays a fallback — prefer hex.
+ */
+const KEY_LENGTH = 32;
+const SCRYPT_SALT = Buffer.from("embrace-health-grid/embedded-wallet/v1");
+const MIN_PASSPHRASE_LENGTH = 32;
+
+function getMasterKey(): Buffer {
+  const masterKey = process.env.MASTER_ENCRYPTION_KEY?.trim();
+  if (!masterKey) {
+    throw new Error(
+      "MASTER_ENCRYPTION_KEY environment variable is required. Cannot encrypt/decrypt " +
+        "wallet keys without it. Generate one with: " +
+        "node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\"",
+    );
+  }
+
+  if (/^[0-9a-fA-F]{64}$/.test(masterKey)) {
+    return Buffer.from(masterKey, "hex");
+  }
+
+  if (masterKey.length < MIN_PASSPHRASE_LENGTH) {
+    throw new Error(
+      "MASTER_ENCRYPTION_KEY must be 64 hex characters, or a passphrase of at least " +
+        `${MIN_PASSPHRASE_LENGTH} characters. It protects Solana signing keys at rest.`,
+    );
+  }
+
+  return crypto.scryptSync(masterKey, SCRYPT_SALT, KEY_LENGTH, { N: 16384, r: 8, p: 1 });
+}
+
 function encryptPrivateKey(privateKey: Uint8Array): string {
-  const masterKey = process.env.MASTER_ENCRYPTION_KEY || 'fallback-key-32-chars-min-length!!!';
-  const key = crypto.createHash('sha256').update(masterKey).digest();
+  const key = getMasterKey();
   const iv = crypto.randomBytes(IV_LENGTH);
   const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
-  
+
   const encrypted = Buffer.concat([cipher.update(privateKey), cipher.final()]);
   const tag = cipher.getAuthTag();
-  
+
   return JSON.stringify({
-    iv: iv.toString('hex'),
-    tag: tag.toString('hex'),
-    encrypted: encrypted.toString('hex'),
+    iv: iv.toString("hex"),
+    tag: tag.toString("hex"),
+    encrypted: encrypted.toString("hex"),
   });
 }
 
 function decryptPrivateKey(encryptedStr: string): Uint8Array {
-  const masterKey = process.env.MASTER_ENCRYPTION_KEY || 'fallback-key-32-chars-min-length!!!';
-  const key = crypto.createHash('sha256').update(masterKey).digest();
-  
+  const key = getMasterKey();
+
   const { iv, tag, encrypted } = JSON.parse(encryptedStr);
-  const decipher = crypto.createDecipheriv(ALGORITHM, key, Buffer.from(iv, 'hex'));
-  decipher.setAuthTag(Buffer.from(tag, 'hex'));
-  
+  const decipher = crypto.createDecipheriv(ALGORITHM, key, Buffer.from(iv, "hex"));
+  decipher.setAuthTag(Buffer.from(tag, "hex"));
+
   const decrypted = Buffer.concat([
-    decipher.update(Buffer.from(encrypted, 'hex')),
+    decipher.update(Buffer.from(encrypted, "hex")),
     decipher.final(),
   ]);
   return new Uint8Array(decrypted);
@@ -48,7 +89,7 @@ function decryptPrivateKey(encryptedStr: string): Uint8Array {
 export interface EmbeddedWallet {
   walletId: string;
   hospitalId: string;
-  ownerType: 'hospital' | 'patient';
+  ownerType: "hospital" | "patient";
   ownerId: string; // hospital_id or patient_did
   publicKey: string; // Solana address (base58)
   derivationPath?: string; // BIP44 path
@@ -63,20 +104,21 @@ export class HospitalWalletService {
   private connection: Connection;
 
   constructor() {
-    this.connection = new Connection(
-      process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com'
-    );
+    this.connection = new Connection(process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com");
   }
 
   async getOrCreateHospitalWallet(hospitalId: string): Promise<EmbeddedWallet> {
-    const db = getSupabaseServerClient();
+    // Service role: encrypted_private_key is not granted to `authenticated`, so the
+    // request-scoped client cannot see it. Callers must have already verified the
+    // user's identity and hospital before reaching this service.
+    const db = getSupabaseServiceRoleClient();
 
     const { data: existingWallet, error: fetchError } = await db
-      .from('embedded_wallets')
-      .select('*')
-      .eq('hospital_id', hospitalId)
-      .eq('owner_type', 'hospital')
-      .eq('is_active', true)
+      .from("embedded_wallets")
+      .select("*")
+      .eq("hospital_id", hospitalId)
+      .eq("owner_type", "hospital")
+      .eq("is_active", true)
       .maybeSingle();
 
     if (existingWallet && !fetchError) {
@@ -99,10 +141,10 @@ export class HospitalWalletService {
     const encryptedPrivateKey = encryptPrivateKey(keypair.secretKey);
 
     const walletId = crypto.randomUUID();
-    const { error: insertError } = await db.from('embedded_wallets').insert({
+    const { error: insertError } = await db.from("embedded_wallets").insert({
       wallet_id: walletId,
       hospital_id: hospitalId,
-      owner_type: 'hospital',
+      owner_type: "hospital",
       owner_id: hospitalId,
       public_key: keypair.publicKey.toBase58(),
       encrypted_private_key: encryptedPrivateKey,
@@ -117,12 +159,14 @@ export class HospitalWalletService {
       throw new Error(`Failed to store wallet: ${insertError.message}`);
     }
 
-    console.log(`✅ Created hospital wallet ${keypair.publicKey.toBase58()} for hospital ${hospitalId}`);
+    console.log(
+      `✅ Created hospital wallet ${keypair.publicKey.toBase58()} for hospital ${hospitalId}`,
+    );
 
     return {
       walletId,
       hospitalId,
-      ownerType: 'hospital',
+      ownerType: "hospital",
       ownerId: hospitalId,
       publicKey: keypair.publicKey.toBase58(),
       isActive: true,
@@ -132,19 +176,24 @@ export class HospitalWalletService {
   }
 
   async getHospitalKeypair(hospitalId: string): Promise<Keypair> {
-    const db = getSupabaseServerClient();
+    // Service role: encrypted_private_key is not granted to `authenticated`, so the
+    // request-scoped client cannot see it. Callers must have already verified the
+    // user's identity and hospital before reaching this service.
+    const db = getSupabaseServiceRoleClient();
 
     const { data: wallet, error } = await db
-      .from('embedded_wallets')
-      .select('encrypted_private_key, public_key')
-      .eq('hospital_id', hospitalId)
-      .eq('owner_type', 'hospital')
+      .from("embedded_wallets")
+      .select("encrypted_private_key, public_key")
+      .eq("hospital_id", hospitalId)
+      .eq("owner_type", "hospital")
       .single();
 
     if (!wallet || error) {
       // Create one if it does not exist
       const newWallet = await this.getOrCreateHospitalWallet(hospitalId);
-      throw new Error(`Hospital wallet not found for: ${hospitalId}. Generated new one: ${newWallet.publicKey}`);
+      throw new Error(
+        `Hospital wallet not found for: ${hospitalId}. Generated new one: ${newWallet.publicKey}`,
+      );
     }
 
     try {
@@ -157,13 +206,16 @@ export class HospitalWalletService {
   }
 
   async rotateHospitalWallet(hospitalId: string): Promise<string> {
-    const db = getSupabaseServerClient();
+    // Service role: encrypted_private_key is not granted to `authenticated`, so the
+    // request-scoped client cannot see it. Callers must have already verified the
+    // user's identity and hospital before reaching this service.
+    const db = getSupabaseServiceRoleClient();
 
     await db
-      .from('embedded_wallets')
+      .from("embedded_wallets")
       .update({ is_active: false })
-      .eq('hospital_id', hospitalId)
-      .eq('owner_type', 'hospital');
+      .eq("hospital_id", hospitalId)
+      .eq("owner_type", "hospital");
 
     const newWallet = await this.getOrCreateHospitalWallet(hospitalId);
 
@@ -184,8 +236,8 @@ export class HospitalWalletService {
   }
 
   async requestAirdrop(publicKey: string, amount: number = 1): Promise<string> {
-    if (process.env.SOLANA_NETWORK === 'mainnet') {
-      throw new Error('Airdrops only available on Devnet/Testnet');
+    if (process.env.SOLANA_NETWORK === "mainnet") {
+      throw new Error("Airdrops only available on Devnet/Testnet");
     }
 
     try {
@@ -206,7 +258,7 @@ export class HospitalWalletService {
 
 export class PatientWalletService {
   async derivePatientWallet(patientDid: string, hospitalId: string): Promise<string> {
-    const didParts = patientDid.split(':');
+    const didParts = patientDid.split(":");
     const patientPublicKey = didParts[2];
 
     if (!patientPublicKey) {
@@ -215,7 +267,7 @@ export class PatientWalletService {
 
     // Combine patient DID + hospital ID deterministically
     const seedPhrase = `${patientDid}|${hospitalId}|health-grid`;
-    const seed = crypto.createHash('sha256').update(seedPhrase).digest();
+    const seed = crypto.createHash("sha256").update(seedPhrase).digest();
 
     const keypair = Keypair.fromSeed(seed);
     return keypair.publicKey.toBase58();
@@ -224,12 +276,14 @@ export class PatientWalletService {
   async getProgramDerivedAddress(
     patientDid: string,
     recordType: string,
-    hospitalId: string
+    hospitalId: string,
   ): Promise<string> {
-    const programId = new PublicKey(process.env.HEALTH_GRID_PROGRAM_ID || '11111111111111111111111111111111');
+    const programId = new PublicKey(
+      process.env.HEALTH_GRID_PROGRAM_ID || "11111111111111111111111111111111",
+    );
 
     const seeds = [
-      Buffer.from('record_account'),
+      Buffer.from("record_account"),
       Buffer.from(patientDid),
       Buffer.from(recordType),
       Buffer.from(hospitalId),
@@ -253,11 +307,11 @@ export class WalletVerificationService {
   }
 
   verifySolanaDid(did: string): boolean {
-    if (!did.startsWith('did:solana:')) {
+    if (!did.startsWith("did:solana:")) {
       return false;
     }
 
-    const publicKey = did.split(':')[2];
+    const publicKey = did.split(":")[2];
     return this.verifyPublicKey(publicKey);
   }
 }

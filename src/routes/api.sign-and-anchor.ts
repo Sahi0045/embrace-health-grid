@@ -4,10 +4,28 @@
  * Used as fallback when Phantom not available or user chooses embedded mode
  */
 
-import { createServerFn } from '@tanstack/react-start';
-import { getSupabaseServerClient, getVerifiedUser } from '@/lib/supabase.server';
-import { solanaBlockchainService } from '@/lib/solana-blockchain.server';
-import { recordSigningEvent } from './api.signing-events';
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
+import { getSupabaseServerClient, getVerifiedUser } from "@/lib/supabase.server";
+import { solanaBlockchainService } from "@/lib/solana-blockchain.server";
+import { recordSigningEvent } from "./api.signing-events";
+
+const nonEmptyString = z.string().trim().min(1);
+const transactionIdSchema = z.object({ txId: nonEmptyString });
+const signAndAnchorRequestSchema = z.object({
+  patientDid: nonEmptyString,
+  recordType: nonEmptyString,
+  recordHash: nonEmptyString,
+  hospitalId: nonEmptyString,
+  userWallet: z.string().trim().min(1).optional(),
+  metadata: z.record(z.unknown()).optional(),
+});
+const airdropRequestSchema = z
+  .object({
+    amount: z.number().positive().max(10).optional(),
+  })
+  .optional()
+  .transform((data) => data ?? {});
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -24,7 +42,7 @@ export interface SignAndAnchorResponse {
   success: boolean;
   txId: string;
   signature: string;
-  walletUsed: 'embedded';
+  walletUsed: "embedded";
   confirmed: boolean;
   explorerUrl: string;
 }
@@ -45,25 +63,25 @@ export interface SignAndAnchorResponse {
  * Response includes explorer URL so user can verify on-chain
  */
 export const signAndAnchorWithEmbedded = createServerFn({
-  method: 'POST',
+  method: "POST",
 })
-  .inputValidator((data: SignAndAnchorRequest) => data)
+  .validator(signAndAnchorRequestSchema)
   .handler(async ({ data }) => {
     const db = getSupabaseServerClient();
     const user = await getVerifiedUser();
 
     if (!user) {
-      throw new Error('User not authenticated');
+      throw new Error("User not authenticated");
     }
 
     const { data: profile } = await db
-      .from('profiles')
-      .select('hospital_id')
-      .eq('id', user.id)
+      .from("profiles")
+      .select("hospital_id")
+      .eq("id", user.id)
       .single();
 
     if (!profile) {
-      throw new Error('User profile not found');
+      throw new Error("User profile not found");
     }
 
     const { patientDid, recordType, recordHash, hospitalId, userWallet, metadata } = data;
@@ -71,21 +89,21 @@ export const signAndAnchorWithEmbedded = createServerFn({
     // ─── Validation ──────────────────────────────────────────────────────────
 
     if (!patientDid || patientDid.length === 0) {
-      throw new Error('Patient DID required');
+      throw new Error("Patient DID required");
     }
     if (!recordType || recordType.length === 0) {
-      throw new Error('Record type required');
+      throw new Error("Record type required");
     }
     if (!recordHash || recordHash.length === 0) {
-      throw new Error('Record hash required');
+      throw new Error("Record hash required");
     }
     if (!hospitalId || hospitalId.length === 0) {
-      throw new Error('Hospital ID required');
+      throw new Error("Hospital ID required");
     }
 
     // Verify user has access to this hospital
     if (profile.hospital_id !== hospitalId) {
-      throw new Error('Unauthorized: User does not have access to this hospital');
+      throw new Error("Unauthorized: User does not have access to this hospital");
     }
 
     try {
@@ -105,7 +123,7 @@ export const signAndAnchorWithEmbedded = createServerFn({
         hospitalId,
         metadata: {
           ...metadata,
-          signerType: 'embedded',
+          signerType: "embedded",
           userWallet: userWallet || null,
           signedAt: new Date().toISOString(),
         },
@@ -120,7 +138,7 @@ export const signAndAnchorWithEmbedded = createServerFn({
       try {
         await recordSigningEvent({
           data: {
-            signerType: 'embedded',
+            signerType: "embedded",
             txId,
             recordType,
             recordHash,
@@ -129,9 +147,9 @@ export const signAndAnchorWithEmbedded = createServerFn({
             metadata: {
               ...metadata,
               userId: user.id,
-              userName: user.user_metadata?.name || 'Unknown',
+              userName: user.user_metadata?.name || "Unknown",
             },
-          }
+          },
         });
 
         console.log(`✅ Event recorded`);
@@ -142,9 +160,9 @@ export const signAndAnchorWithEmbedded = createServerFn({
 
       // ─── Step 3: Generate explorer URL ────────────────────────────────────
 
-      const network = process.env.SOLANA_NETWORK || 'devnet';
+      const network = process.env.SOLANA_NETWORK || "devnet";
       const explorerUrl =
-        network === 'mainnet'
+        network === "mainnet"
           ? `https://explorer.solana.com/tx/${txId}`
           : `https://explorer.solana.com/tx/${txId}?cluster=${network}`;
 
@@ -154,20 +172,20 @@ export const signAndAnchorWithEmbedded = createServerFn({
         success: true,
         txId,
         signature: txId,
-        walletUsed: 'embedded',
+        walletUsed: "embedded",
         confirmed: true,
         explorerUrl,
       } as SignAndAnchorResponse;
     } catch (error) {
-      console.error('❌ Embedded signing failed:', error);
+      console.error("❌ Embedded signing failed:", error);
 
       // Try to record failure event
       try {
         const errorMsg = error instanceof Error ? error.message : String(error);
         await recordSigningEvent({
           data: {
-            signerType: 'embedded',
-            txId: 'failed',
+            signerType: "embedded",
+            txId: "failed",
             recordType,
             recordHash,
             userWallet: userWallet || undefined,
@@ -175,7 +193,7 @@ export const signAndAnchorWithEmbedded = createServerFn({
             metadata: {
               error: errorMsg,
             },
-          }
+          },
         }).catch(() => {}); // Silently fail if audit recording fails
       } catch (_) {
         // Ignore
@@ -192,14 +210,19 @@ export const signAndAnchorWithEmbedded = createServerFn({
  * Verify that a transaction was successfully anchored and confirmed
  */
 export const verifyAnchoredRecord = createServerFn({
-  method: 'GET',
+  method: "GET",
 })
-  .inputValidator((data: { txId: string }) => data)
+  .validator(transactionIdSchema)
   .handler(async ({ data }) => {
+    const user = await getVerifiedUser();
+    if (!user) {
+      throw new Error("Authentication required");
+    }
+
     const { txId } = data;
 
     if (!txId) {
-      throw new Error('Transaction ID required');
+      throw new Error("Transaction ID required");
     }
 
     try {
@@ -213,10 +236,10 @@ export const verifyAnchoredRecord = createServerFn({
         slot: result.slot,
         signature: result.signature,
         explorerUrl: result.explorerUrl,
-        message: result.verified ? '✅ Record verified on blockchain' : '⏳ Awaiting confirmation',
+        message: result.verified ? "✅ Record verified on blockchain" : "⏳ Awaiting confirmation",
       };
     } catch (error) {
-      console.error('Verification failed:', error);
+      console.error("Verification failed:", error);
       throw error;
     }
   });
@@ -228,43 +251,43 @@ export const verifyAnchoredRecord = createServerFn({
  * Get current status of a transaction (pending, confirmed, failed)
  */
 export const getTransactionStatus = createServerFn({
-  method: 'GET',
+  method: "GET",
 })
-  .inputValidator((data: { txId: string }) => data)
+  .validator(transactionIdSchema)
   .handler(async ({ data }) => {
     const db = getSupabaseServerClient();
     const user = await getVerifiedUser();
 
     if (!user) {
-      throw new Error('User not authenticated');
+      throw new Error("User not authenticated");
     }
 
     const { data: profile } = await db
-      .from('profiles')
-      .select('hospital_id')
-      .eq('id', user.id)
+      .from("profiles")
+      .select("hospital_id")
+      .eq("id", user.id)
       .single();
 
     if (!profile) {
-      throw new Error('User profile not found');
+      throw new Error("User profile not found");
     }
 
     const { txId } = data;
 
     if (!txId) {
-      throw new Error('Transaction ID required');
+      throw new Error("Transaction ID required");
     }
 
     try {
       // Get from audit trail
       const { data: record, error } = await db
-        .from('signing_events')
-        .select('status, confirmed, error_message, created_at')
-        .eq('transaction_id', txId)
-        .eq('hospital_id', profile.hospital_id)
+        .from("signing_events")
+        .select("status, confirmed, error_message, created_at")
+        .eq("transaction_id", txId)
+        .eq("hospital_id", profile.hospital_id)
         .single();
 
-      if (error?.code === 'PGRST116') {
+      if (error?.code === "PGRST116") {
         throw new Error(`Transaction not found: ${txId}`);
       }
 
@@ -280,7 +303,7 @@ export const getTransactionStatus = createServerFn({
         created_at: record.created_at,
       };
     } catch (error) {
-      console.error('Failed to get transaction status:', error);
+      console.error("Failed to get transaction status:", error);
       throw error;
     }
   });
@@ -293,61 +316,59 @@ export const getTransactionStatus = createServerFn({
  * Used to monitor if hospital has enough SOL for gas fees
  */
 export const getHospitalWalletBalance = createServerFn({
-  method: 'GET',
-})
-  .handler(async () => {
-    const user = await getVerifiedUser();
-    if (!user) {
-      throw new Error('User not authenticated');
-    }
+  method: "GET",
+}).handler(async () => {
+  const user = await getVerifiedUser();
+  if (!user) {
+    throw new Error("User not authenticated");
+  }
 
-    const db = getSupabaseServerClient();
-    const { data: profile } = await db
-      .from('profiles')
-      .select('hospital_id, role')
-      .eq('id', user.id)
+  const db = getSupabaseServerClient();
+  const { data: profile } = await db
+    .from("profiles")
+    .select("hospital_id, role")
+    .eq("id", user.id)
+    .single();
+
+  if (!profile || profile.role !== "admin") {
+    throw new Error("Only admins can view hospital wallet balance");
+  }
+
+  try {
+    // Get hospital wallet public key from embedded_wallets table
+    const { data: wallet, error } = await db
+      .from("embedded_wallets")
+      .select("public_key")
+      .eq("hospital_id", profile.hospital_id)
+      .eq("owner_type", "hospital")
+      .eq("is_active", true)
       .single();
 
-    if (!profile || profile.role !== 'admin') {
-      throw new Error('Only admins can view hospital wallet balance');
+    if (error) {
+      throw new Error("Hospital wallet not found");
     }
 
-    try {
-      // Get hospital wallet public key from embedded_wallets table
-      const { data: wallet, error } = await db
-        .from('embedded_wallets')
-        .select('public_key')
-        .eq('hospital_id', profile.hospital_id)
-        .eq('owner_type', 'hospital')
-        .eq('is_active', true)
-        .single();
+    // Get balance from blockchain
+    const balance = await solanaBlockchainService.getBalance(wallet.public_key);
 
-      if (error) {
-        throw new Error('Hospital wallet not found');
-      }
+    // Convert lamports to SOL (1 SOL = 1 billion lamports)
+    const solBalance = balance / 1_000_000_000;
 
-      // Get balance from blockchain
-      const balance = await solanaBlockchainService.getBalance(wallet.public_key);
+    const status = solBalance > 1 ? "✅ Sufficient" : solBalance > 0.1 ? "⚠️ Low" : "❌ Critical";
 
-      // Convert lamports to SOL (1 SOL = 1 billion lamports)
-      const solBalance = balance / 1_000_000_000;
-
-      const status =
-        solBalance > 1 ? '✅ Sufficient' : solBalance > 0.1 ? '⚠️ Low' : '❌ Critical';
-
-      return {
-        walletAddress: wallet.public_key,
-        balanceLamports: balance,
-        balanceSOL: solBalance.toFixed(6),
-        status,
-        warningThreshold: 0.1,
-        criticalThreshold: 0.01,
-      };
-    } catch (error) {
-      console.error('Failed to get hospital wallet balance:', error);
-      throw error;
-    }
-  });
+    return {
+      walletAddress: wallet.public_key,
+      balanceLamports: balance,
+      balanceSOL: solBalance.toFixed(6),
+      status,
+      warningThreshold: 0.1,
+      criticalThreshold: 0.01,
+    };
+  } catch (error) {
+    console.error("Failed to get hospital wallet balance:", error);
+    throw error;
+  }
+});
 
 // ─── Request SOL Airdrop (Devnet Only) ───────────────────────────────────────
 
@@ -357,30 +378,30 @@ export const getHospitalWalletBalance = createServerFn({
  * Admin only - for testing purposes
  */
 export const requestHospitalAirdrop = createServerFn({
-  method: 'POST',
+  method: "POST",
 })
-  .inputValidator((data: { amount?: number } | undefined) => data || {})
+  .validator(airdropRequestSchema)
   .handler(async ({ data }) => {
-    const network = process.env.SOLANA_NETWORK || 'devnet';
+    const network = process.env.SOLANA_NETWORK || "devnet";
 
-    if (network === 'mainnet') {
-      throw new Error('Airdrops only available on Devnet/Testnet');
+    if (network === "mainnet") {
+      throw new Error("Airdrops only available on Devnet/Testnet");
     }
 
     const user = await getVerifiedUser();
     if (!user) {
-      throw new Error('User not authenticated');
+      throw new Error("User not authenticated");
     }
 
     const db = getSupabaseServerClient();
     const { data: profile } = await db
-      .from('profiles')
-      .select('hospital_id, role')
-      .eq('id', user.id)
+      .from("profiles")
+      .select("hospital_id, role")
+      .eq("id", user.id)
       .single();
 
-    if (!profile || profile.role !== 'admin') {
-      throw new Error('Only admins can request airdrops');
+    if (!profile || profile.role !== "admin") {
+      throw new Error("Only admins can request airdrops");
     }
 
     const { amount = 1 } = data;
@@ -390,22 +411,19 @@ export const requestHospitalAirdrop = createServerFn({
 
       // Get hospital wallet
       const { data: wallet, error } = await db
-        .from('embedded_wallets')
-        .select('public_key')
-        .eq('hospital_id', profile.hospital_id)
-        .eq('owner_type', 'hospital')
-        .eq('is_active', true)
+        .from("embedded_wallets")
+        .select("public_key")
+        .eq("hospital_id", profile.hospital_id)
+        .eq("owner_type", "hospital")
+        .eq("is_active", true)
         .single();
 
       if (error) {
-        throw new Error('Hospital wallet not found');
+        throw new Error("Hospital wallet not found");
       }
 
       // Request airdrop
-      const signature = await solanaBlockchainService.requestAirdrop(
-        wallet.public_key,
-        amount
-      );
+      const signature = await solanaBlockchainService.requestAirdrop(wallet.public_key, amount);
 
       console.log(`✅ Airdrop requested: ${signature}`);
 
@@ -417,7 +435,7 @@ export const requestHospitalAirdrop = createServerFn({
         message: `Requested ${amount} SOL airdrop. Transaction: ${signature}`,
       };
     } catch (error) {
-      console.error('Failed to request airdrop:', error);
+      console.error("Failed to request airdrop:", error);
       throw error;
     }
   });

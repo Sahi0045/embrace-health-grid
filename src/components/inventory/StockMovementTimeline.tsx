@@ -16,18 +16,12 @@ export interface StockMovementTimelineProps {
   loading?: boolean;
 }
 
-export function StockMovementTimeline({
-  movements,
-  loading = false,
-}: StockMovementTimelineProps) {
+export function StockMovementTimeline({ movements, loading = false }: StockMovementTimelineProps) {
   if (loading) {
     return (
       <div className="space-y-3 py-2">
         {[1, 2, 3].map((i) => (
-          <div
-            key={i}
-            className="animate-pulse flex items-center gap-3 p-3 rounded-xl bg-muted/40"
-          >
+          <div key={i} className="animate-pulse flex items-center gap-3 p-3 rounded-xl bg-muted/40">
             <div className="h-8 w-8 bg-muted rounded-xl" />
             <div className="flex-1 space-y-1.5">
               <div className="h-3.5 bg-muted rounded w-1/3" />
@@ -87,8 +81,8 @@ export function StockMovementTimeline({
                   isEntry
                     ? "bg-success/15 text-success"
                     : isExit
-                    ? "bg-destructive/15 text-destructive"
-                    : "bg-primary/15 text-primary"
+                      ? "bg-destructive/15 text-destructive"
+                      : "bg-primary/15 text-primary"
                 }`}
               >
                 {isEntry ? (
@@ -108,15 +102,20 @@ export function StockMovementTimeline({
                       isEntry
                         ? "bg-success/10 text-success border border-success/20"
                         : isExit
-                        ? "bg-destructive/10 text-destructive border border-destructive/20"
-                        : "bg-primary/10 text-primary border border-primary/20"
+                          ? "bg-destructive/10 text-destructive border border-destructive/20"
+                          : "bg-primary/10 text-primary border border-primary/20"
                     }`}
                   >
                     {move.movement_type}
                   </span>
 
                   <span className="text-xs font-extrabold font-display text-foreground">
-                    {isEntry ? `+${move.quantity}` : isExit ? `-${Math.abs(move.quantity)}` : `${move.quantity > 0 ? "+" : ""}${move.quantity}`} units
+                    {isEntry
+                      ? `+${move.quantity}`
+                      : isExit
+                        ? `-${Math.abs(move.quantity)}`
+                        : `${move.quantity > 0 ? "+" : ""}${move.quantity}`}{" "}
+                    units
                   </span>
 
                   <span className="text-[11px] font-mono text-muted-foreground">

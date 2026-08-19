@@ -23,7 +23,9 @@ export function RecordResultDialog({
   const [unit, setUnit] = useState("mg/dL");
   const [referenceRange, setReferenceRange] = useState("70 – 99 mg/dL");
   const [isCritical, setIsCritical] = useState(false);
-  const [criticalFlag, setCriticalFlag] = useState<"high" | "low" | "critical_high" | "critical_low" | "panic" | null>(null);
+  const [criticalFlag, setCriticalFlag] = useState<
+    "high" | "low" | "critical_high" | "critical_low" | "panic" | null
+  >(null);
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -47,7 +49,7 @@ export function RecordResultDialog({
         unit,
         referenceRange,
         isCritical,
-        criticalFlag: isCritical ? (criticalFlag || "critical_high") : null,
+        criticalFlag: isCritical ? criticalFlag || "critical_high" : null,
       });
 
       // Complete order
@@ -56,9 +58,12 @@ export function RecordResultDialog({
         status: "completed",
       });
 
-      toast.success(isCritical ? "CRITICAL panic result logged" : "Lab result verified & recorded", {
-        description: `${order.test_name}: ${resultValue} ${unit}`,
-      });
+      toast.success(
+        isCritical ? "CRITICAL panic result logged" : "Lab result verified & recorded",
+        {
+          description: `${order.test_name}: ${resultValue} ${unit}`,
+        },
+      );
 
       onOpenChange(false);
       onSuccess();
@@ -123,11 +128,12 @@ export function RecordResultDialog({
               <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">
                 Clinical Test
               </span>
-              <p className="font-display font-bold text-sm text-foreground">
-                {order.test_name}
-              </p>
+              <p className="font-display font-bold text-sm text-foreground">{order.test_name}</p>
               <p className="text-xs text-muted-foreground">
-                Discipline: <span className="uppercase font-semibold text-primary">{order.test_category || "Biochemistry"}</span>
+                Discipline:{" "}
+                <span className="uppercase font-semibold text-primary">
+                  {order.test_category || "Biochemistry"}
+                </span>
               </p>
             </div>
 
@@ -200,8 +206,12 @@ export function RecordResultDialog({
                     onChange={(e) => setCriticalFlag(e.target.value as any)}
                     className="w-full rounded-lg bg-card border border-destructive/40 px-2.5 py-1.5 text-xs font-bold text-destructive focus:outline-none cursor-pointer"
                   >
-                    <option value="critical_high">Critical High (Exceeds upper safety threshold)</option>
-                    <option value="critical_low">Critical Low (Below viable lower threshold)</option>
+                    <option value="critical_high">
+                      Critical High (Exceeds upper safety threshold)
+                    </option>
+                    <option value="critical_low">
+                      Critical Low (Below viable lower threshold)
+                    </option>
                     <option value="panic">Severe Panic (Immediate life-threatening)</option>
                   </select>
                 </div>

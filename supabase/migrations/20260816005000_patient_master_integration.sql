@@ -257,7 +257,7 @@ RETURNS TABLE (
   bed_id text,
   bed_number text,
   bed_type text,
-  room_id uuid,
+  room_id text,   -- rooms.room_id is text, not uuid
   room_number text,
   room_type text,
   ward_id uuid,

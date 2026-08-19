@@ -169,7 +169,11 @@ export function EquipmentDepartmentView({
                     <span>Cluster Load</span>
                     <span>{avgUtil}%</span>
                   </div>
-                  <GradientProgress value={avgUtil} tone={avgUtil >= 80 ? "primary" : "cyan"} height={5} />
+                  <GradientProgress
+                    value={avgUtil}
+                    tone={avgUtil >= 80 ? "primary" : "cyan"}
+                    height={5}
+                  />
                 </div>
               </div>
             </div>
@@ -177,12 +181,14 @@ export function EquipmentDepartmentView({
             {/* Equipment Items in this Department Cluster */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
               {items.map((eq) => {
-                const statusTone = {
-                  operational: "text-success bg-success/10 border-success/30",
-                  "in-use": "text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 border-cyan-500/30",
-                  maintenance: "text-warning-foreground dark:text-amber-400 bg-warning/10 border-warning/30",
-                  offline: "text-destructive bg-destructive/10 border-destructive/30",
-                }[eq.status] || "text-muted-foreground bg-muted border-border";
+                const statusTone =
+                  {
+                    operational: "text-success bg-success/10 border-success/30",
+                    "in-use": "text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 border-cyan-500/30",
+                    maintenance:
+                      "text-warning-foreground dark:text-amber-400 bg-warning/10 border-warning/30",
+                    offline: "text-destructive bg-destructive/10 border-destructive/30",
+                  }[eq.status] || "text-muted-foreground bg-muted border-border";
 
                 return (
                   <motion.div

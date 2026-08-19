@@ -120,7 +120,7 @@ begin
         'Advanced Diagnostic Center', 'did:solana:4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R', now()
       ),
       (
-        'EQ-CT-001', seed_hospital, 'Aquilion ONE GENESIS 640-Slice CT', 'Diagnostic Imaging', 'operational', 'Imaging Bay B',
+        'EQ-CT-001', seed_hospital, 'Aquilion ONE GENESIS 640-Slice CT', 'Diagnostic Imaging', 'available', 'Imaging Bay B',
         'Canon Medical Systems', 'Aquilion ONE PRISM', 'SN-CT-77412-C', 'Radiology & Imaging', 1,
         'ct', '2026-07-20', '2026-10-20', '2028-06-30',
         '2022-05-18', 74, '2026-07-20', '2027-01-20',
@@ -134,21 +134,21 @@ begin
         'ICU Ward Alpha', 'did:solana:9v8X8tC45y3VwBf89J7LKsPqNm67TyUip8XzV91k3412', now()
       ),
       (
-        'EQ-VENT-002', seed_hospital, 'Hamilton-C6 High-End Transport Ventilator', 'Critical Care', 'operational', 'ICU Equipment Depot',
+        'EQ-VENT-002', seed_hospital, 'Hamilton-C6 High-End Transport Ventilator', 'Critical Care', 'available', 'ICU Equipment Depot',
         'Hamilton Medical', 'Hamilton-C6', 'SN-VNT-55244-H', 'Intensive Care Unit (ICU)', 3,
         'ventilator', '2026-07-10', '2026-09-10', '2027-10-22',
         '2023-08-05', 40, '2026-07-10', '2026-10-10',
         'ICU Ward Beta', 'did:solana:3m8Y7tC45y3VwBf89J7LKsPqNm67TyUip8XzV91k8921', now()
       ),
       (
-        'EQ-XRAY-001', seed_hospital, 'MobileDaRt Evolution MX8 Digital X-Ray', 'Diagnostic Imaging', 'operational', 'Trauma Bay 1',
+        'EQ-XRAY-001', seed_hospital, 'MobileDaRt Evolution MX8 Digital X-Ray', 'Diagnostic Imaging', 'available', 'Trauma Bay 1',
         'Shimadzu Medical', 'MobileDaRt MX8', 'SN-XRY-33290-S', 'Emergency Medicine', 1,
         'xray', '2026-05-18', '2026-08-18', '2028-03-15',
         '2022-11-20', 62, '2026-05-18', '2026-11-18',
         'Emergency Department', 'did:solana:5v9Y8tC45y3VwBf89J7LKsPqNm67TyUip8XzV91k7733', now()
       ),
       (
-        'EQ-DEFIB-001', seed_hospital, 'HeartStart XL+ Defibrillator / Monitor', 'Emergency & Resuscitation', 'operational', 'Crash Cart Station 2A',
+        'EQ-DEFIB-001', seed_hospital, 'HeartStart XL+ Defibrillator / Monitor', 'Emergency & Resuscitation', 'available', 'Crash Cart Station 2A',
         'Philips Healthcare', 'HeartStart XL+', 'SN-DFB-88301-P', 'Cardiology', 2,
         'defibrillator', '2026-08-05', '2026-09-05', '2029-01-30',
         '2024-02-14', 25, '2026-08-05', '2026-11-05',
@@ -169,7 +169,7 @@ begin
         'Cardiac Diagnostic Suite', 'did:solana:1a9X8tC45y3VwBf89J7LKsPqNm67TyUip8XzV91k1122', now()
       ),
       (
-        'EQ-ECG-001', seed_hospital, 'MAC 7 Diagnostic 12-Lead Resting ECG', 'Cardiovascular Monitoring', 'operational', 'Outpatient Clinic 104',
+        'EQ-ECG-001', seed_hospital, 'MAC 7 Diagnostic 12-Lead Resting ECG', 'Cardiovascular Monitoring', 'available', 'Outpatient Clinic 104',
         'GE HealthCare', 'MAC 7 Workstation', 'SN-ECG-11983-G', 'Outpatient Services', 1,
         'ecg', '2026-07-15', '2026-10-15', '2027-12-01',
         '2023-09-12', 48, '2026-07-15', '2027-01-15',
@@ -183,7 +183,7 @@ begin
         'Hemodialysis Center', 'did:solana:4e8X8tC45y3VwBf89J7LKsPqNm67TyUip8XzV91k7766', now()
       ),
       (
-        'EQ-DIAL-002', seed_hospital, 'Fresenius 5008S CorDiax Hemodialysis', 'Nephrology & Renal Care', 'offline', 'Dialysis Storage Bay',
+        'EQ-DIAL-002', seed_hospital, 'Fresenius 5008S CorDiax Hemodialysis', 'Nephrology & Renal Care', 'maintenance', 'Dialysis Storage Bay',
         'Fresenius Medical Care', '5008S CorDiax HDF', 'SN-DIA-99411-F', 'Nephrology', 4,
         'dialysis', '2026-04-10', '2026-07-10', '2028-09-10',
         '2022-08-30', 0, '2026-04-10', '2026-07-10',
@@ -197,21 +197,21 @@ begin
         'Surgical Step-Down Unit', 'did:solana:8w8X8tC45y3VwBf89J7LKsPqNm67TyUip8XzV91k2211', now()
       ),
       (
-        'EQ-INF-002', seed_hospital, 'Alaris CC Plus Smart Infusion Pump', 'Infusion Therapy', 'operational', 'Central Nursing Supply',
+        'EQ-INF-002', seed_hospital, 'Alaris CC Plus Smart Infusion Pump', 'Infusion Therapy', 'available', 'Central Nursing Supply',
         'BD Medical', 'Alaris CC Plus', 'SN-INF-33105-B', 'General Medicine', 2,
         'infusion', '2026-08-02', '2026-11-02', '2027-04-15',
         '2023-10-05', 35, '2026-08-02', '2027-02-02',
         'Ward 2B Station', 'did:solana:9q8X8tC45y3VwBf89J7LKsPqNm67TyUip8XzV91k6655', now()
       ),
       (
-        'EQ-OXY-001', seed_hospital, 'BOC Medical Mobile Oxygen Cylinder Unit (10L)', 'Respiratory Support', 'operational', 'ER Triage Zone',
+        'EQ-OXY-001', seed_hospital, 'BOC Medical Mobile Oxygen Cylinder Unit (10L)', 'Respiratory Support', 'available', 'ER Triage Zone',
         'BOC Healthcare', 'OxyLite Mobile 10L', 'SN-OXY-10042-B', 'Emergency Medicine', 1,
         'oxygen-cylinder', '2026-07-01', '2026-10-01', '2030-01-01',
         '2024-01-15', 55, '2026-07-01', '2027-01-01',
         'Emergency Rapid Response', 'did:solana:1x8X8tC45y3VwBf89J7LKsPqNm67TyUip8XzV91k9988', now()
       ),
       (
-        'EQ-WCH-001', seed_hospital, 'Invacare Action 3 NG Heavy Duty Wheelchair', 'Patient Mobility', 'operational', 'Main Hospital Lobby',
+        'EQ-WCH-001', seed_hospital, 'Invacare Action 3 NG Heavy Duty Wheelchair', 'Patient Mobility', 'available', 'Main Hospital Lobby',
         'Invacare Corp', 'Action 3 NG', 'SN-WCH-88019-I', 'Patient Transport', 1,
         'wheelchair', '2026-06-01', '2026-12-01', '2028-05-01',
         '2023-05-10', 50, '2026-06-01', '2027-06-01',

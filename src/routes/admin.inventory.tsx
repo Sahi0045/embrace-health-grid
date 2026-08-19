@@ -18,16 +18,9 @@ import {
 import { toast } from "sonner";
 import { getInventoryData } from "@/lib/api";
 import { useTableRefresh } from "@/hooks/use-realtime";
-import type {
-  InventoryItem,
-  InventoryCategory,
-  InventoryAlert,
-} from "@/lib/types";
+import type { InventoryItem, InventoryCategory, InventoryAlert } from "@/lib/types";
 
-import {
-  InventoryKpiBar,
-  InventoryKpiStats,
-} from "@/components/inventory/InventoryKpiBar";
+import { InventoryKpiBar, InventoryKpiStats } from "@/components/inventory/InventoryKpiBar";
 import { InventoryAlertPanel } from "@/components/inventory/InventoryAlertPanel";
 import {
   InventoryFilterBar,
@@ -54,7 +47,6 @@ export const Route = createFileRoute("/admin/inventory")({
   }),
   component: InventoryDashboardPage,
 });
-
 
 const ITEMS_PER_PAGE = 12;
 
@@ -110,7 +102,6 @@ function InventoryDashboardPage() {
     }
   }, [search.highlight, items]);
 
-
   // Load Data
   const loadData = useCallback(async (isInitial = false) => {
     if (isInitial) setLoading(true);
@@ -157,8 +148,12 @@ function InventoryDashboardPage() {
 
     const counts: Record<string, number> = {
       all: items.length,
-      normal: items.filter((i) => i.status === "normal" && i.current_stock > i.reorder_level).length,
-      low_stock: items.filter((i) => i.status === "low_stock" || (i.current_stock <= i.reorder_level && i.current_stock > 0)).length,
+      normal: items.filter((i) => i.status === "normal" && i.current_stock > i.reorder_level)
+        .length,
+      low_stock: items.filter(
+        (i) =>
+          i.status === "low_stock" || (i.current_stock <= i.reorder_level && i.current_stock > 0),
+      ).length,
       critical: items.filter((i) => i.status === "critical" || i.current_stock === 0).length,
       near_expiry: items.filter((i) => {
         if (!i.expiry_date) return false;
@@ -184,14 +179,15 @@ function InventoryDashboardPage() {
           (item.storage_location && item.storage_location.toLowerCase().includes(q)) ||
           (item.supplier && item.supplier.toLowerCase().includes(q));
 
-        const matchesCat =
-          categoryFilter === "all" || item.category_id === categoryFilter;
+        const matchesCat = categoryFilter === "all" || item.category_id === categoryFilter;
 
         let matchesStatus = true;
         if (statusFilter === "normal") {
           matchesStatus = item.status === "normal" && item.current_stock > item.reorder_level;
         } else if (statusFilter === "low_stock") {
-          matchesStatus = item.status === "low_stock" || (item.current_stock <= item.reorder_level && item.current_stock > 0);
+          matchesStatus =
+            item.status === "low_stock" ||
+            (item.current_stock <= item.reorder_level && item.current_stock > 0);
         } else if (statusFilter === "critical") {
           matchesStatus = item.status === "critical" || item.current_stock === 0;
         } else if (statusFilter === "near_expiry") {

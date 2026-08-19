@@ -64,7 +64,9 @@ export function EquipmentBentoHero({
     );
     const avgLoad =
       deptItems.length > 0
-        ? Math.round(deptItems.reduce((acc, curr) => acc + (curr.utilization || 0), 0) / deptItems.length)
+        ? Math.round(
+            deptItems.reduce((acc, curr) => acc + (curr.utilization || 0), 0) / deptItems.length,
+          )
         : 65;
     return { ...dept, count: deptItems.length || 1, avgLoad };
   });
@@ -198,9 +200,7 @@ export function EquipmentBentoHero({
                 <span className="text-xs font-bold text-foreground">
                   {operationalPlusInUse} of {stats.total} Active Units
                 </span>
-                <p className="text-[11px] text-muted-foreground">
-                  Operational & Clinical Stream
-                </p>
+                <p className="text-[11px] text-muted-foreground">Operational & Clinical Stream</p>
               </div>
             </div>
 
@@ -246,9 +246,7 @@ export function EquipmentBentoHero({
         {/* Bottom Horizontal Quick Metrics */}
         <div className="mt-6 pt-4 border-t border-border/60 grid grid-cols-3 gap-2 text-center">
           <div className="px-2">
-            <div className="text-lg font-extrabold font-display text-foreground">
-              {stats.total}
-            </div>
+            <div className="text-lg font-extrabold font-display text-foreground">{stats.total}</div>
             <div className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">
               Total Assets
             </div>
@@ -298,7 +296,8 @@ export function EquipmentBentoHero({
               deltaColor: "text-primary",
             },
             warning: {
-              iconBg: "bg-warning/20 text-warning-foreground dark:bg-warning/30 dark:text-warning-foreground",
+              iconBg:
+                "bg-warning/20 text-warning-foreground dark:bg-warning/30 dark:text-warning-foreground",
               glowBorder: isSelected
                 ? "border-warning ring-2 ring-warning/30 shadow-clinical-sm bg-warning/5"
                 : "border-border/80 hover:border-warning/40 bg-card",
@@ -307,7 +306,8 @@ export function EquipmentBentoHero({
               deltaColor: "text-warning-foreground dark:text-amber-400",
             },
             destructive: {
-              iconBg: "bg-destructive/15 text-destructive dark:bg-destructive/25 dark:text-destructive",
+              iconBg:
+                "bg-destructive/15 text-destructive dark:bg-destructive/25 dark:text-destructive",
               glowBorder: isSelected
                 ? "border-destructive ring-2 ring-destructive/30 shadow-clinical-sm bg-destructive/5"
                 : "border-border/80 hover:border-destructive/40 bg-card",
@@ -356,7 +356,9 @@ export function EquipmentBentoHero({
                   >
                     {pod.count}
                   </motion.div>
-                  <span className={`text-xs font-semibold ${toneStyles.deltaColor} truncate max-w-[130px] text-right`}>
+                  <span
+                    className={`text-xs font-semibold ${toneStyles.deltaColor} truncate max-w-[130px] text-right`}
+                  >
                     {pod.delta}
                   </span>
                 </div>

@@ -4,13 +4,13 @@
  * Manages: Phantom detection, wallet preference, signing state, recent activity
  */
 
-import { useEffect, useState } from 'react';
-import { getUserWalletPreference, saveUserWalletPreference } from '@/routes/api.wallet-preference';
+import { useEffect, useState } from "react";
+import { getUserWalletPreference, saveUserWalletPreference } from "@/routes/api.wallet-preference";
 import {
   isPhantomInstalled,
   connectPhantom as clientConnectPhantom,
   disconnectPhantom as clientDisconnectPhantom,
-} from './hybrid-wallet.client';
+} from "./hybrid-wallet.client";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -22,7 +22,7 @@ export interface HybridWalletState {
   phantomNetwork?: string;
 
   // User preferences
-  walletMode: 'auto' | 'phantom' | 'embedded';
+  walletMode: "auto" | "phantom" | "embedded";
   hospitalId?: string;
 
   // Signing state
@@ -39,12 +39,12 @@ export interface HybridWalletState {
 export function useHybridWallet(hospitalId?: string) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [userPreference, setUserPreference] = useState<'phantom' | 'embedded' | 'auto'>('auto');
-  
+  const [userPreference, setUserPreference] = useState<"phantom" | "embedded" | "auto">("auto");
+
   const [state, setState] = useState<HybridWalletState>({
     phantomAvailable: false,
     phantomConnected: false,
-    walletMode: 'auto',
+    walletMode: "auto",
     isSigning: false,
     isListening: false,
   });
@@ -60,12 +60,12 @@ export function useHybridWallet(hospitalId?: string) {
           setUserPreference(pref.walletMode);
           setState((prev) => ({
             ...prev,
-            walletMode: pref.walletMode || 'auto',
+            walletMode: pref.walletMode || "auto",
             hospitalId,
           }));
         }
       } catch (err) {
-        console.warn('Failed to load wallet preference:', err);
+        console.warn("Failed to load wallet preference:", err);
         setError(err instanceof Error ? err.message : String(err));
       } finally {
         setLoading(false);
@@ -138,10 +138,10 @@ export function useHybridWallet(hospitalId?: string) {
       };
 
       try {
-        (window as any).solana.on('connect', handleConnect);
-        (window as any).solana.on('disconnect', handleDisconnect);
-        (window as any).solana.on('accountChanged', handleAccountChanged);
-        (window as any).solana.on('networkChanged', handleNetworkChanged);
+        (window as any).solana.on("connect", handleConnect);
+        (window as any).solana.on("disconnect", handleDisconnect);
+        (window as any).solana.on("accountChanged", handleAccountChanged);
+        (window as any).solana.on("networkChanged", handleNetworkChanged);
 
         setState((prev) => ({ ...prev, isListening: true }));
 
@@ -154,24 +154,27 @@ export function useHybridWallet(hospitalId?: string) {
           }));
         }
       } catch (err) {
-        console.warn('Failed to attach Phantom listeners:', err);
+        console.warn("Failed to attach Phantom listeners:", err);
       }
 
       // Cleanup
       return () => {
         try {
-          (window as any).solana.off('connect', handleConnect);
-          (window as any).solana.off('disconnect', handleDisconnect);
-          (window as any).solana.off('accountChanged', handleAccountChanged);
-          (window as any).solana.off('networkChanged', handleNetworkChanged);
-        } catch (_) {}
+          (window as any).solana.off("connect", handleConnect);
+          (window as any).solana.off("disconnect", handleDisconnect);
+          (window as any).solana.off("accountChanged", handleAccountChanged);
+          (window as any).solana.off("networkChanged", handleNetworkChanged);
+        } catch {
+          // The wallet extension can be removed or the page torn down before
+          // cleanup runs, in which case .off() throws. Nothing to recover.
+        }
       };
     }
   }, []);
 
   // ─── Save Wallet Preference ─────────────────────────────────────────────
 
-  const setWalletMode = async (mode: 'auto' | 'phantom' | 'embedded') => {
+  const setWalletMode = async (mode: "auto" | "phantom" | "embedded") => {
     try {
       setLoading(true);
       setError(null);
@@ -182,13 +185,13 @@ export function useHybridWallet(hospitalId?: string) {
         data: {
           walletMode: mode,
           phantomPublicKey:
-            mode === 'phantom' && state.phantomAddress ? state.phantomAddress : null,
-        }
+            mode === "phantom" && state.phantomAddress ? state.phantomAddress : null,
+        },
       });
 
       console.log(`💾 Wallet preference saved:`, mode);
     } catch (err) {
-      console.error('Failed to save wallet preference:', err);
+      console.error("Failed to save wallet preference:", err);
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
@@ -203,7 +206,7 @@ export function useHybridWallet(hospitalId?: string) {
       setLoading(true);
       await clientConnectPhantom();
     } catch (err) {
-      console.error('Failed to connect Phantom:', err);
+      console.error("Failed to connect Phantom:", err);
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
@@ -215,11 +218,11 @@ export function useHybridWallet(hospitalId?: string) {
       setError(null);
       setLoading(true);
       await clientDisconnectPhantom();
-      
-      const { disconnectPhantom: apiDisconnect } = await import('@/routes/api.wallet-preference');
+
+      const { disconnectPhantom: apiDisconnect } = await import("@/routes/api.wallet-preference");
       await apiDisconnect();
     } catch (err) {
-      console.error('Failed to disconnect Phantom:', err);
+      console.error("Failed to disconnect Phantom:", err);
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
@@ -246,42 +249,40 @@ export function useHybridWallet(hospitalId?: string) {
 
   // ─── Determine Active Wallet ────────────────────────────────────────────
 
-  const getActiveWallet = (): 'phantom' | 'embedded' => {
-    if (state.walletMode === 'phantom') {
-      if (state.phantomConnected) return 'phantom';
+  const getActiveWallet = (): "phantom" | "embedded" => {
+    if (state.walletMode === "phantom") {
+      if (state.phantomConnected) return "phantom";
       // Fallback if Phantom chosen but not connected
-      console.warn('Phantom chosen but not connected, falling back to embedded');
-      return 'embedded';
+      console.warn("Phantom chosen but not connected, falling back to embedded");
+      return "embedded";
     }
 
-    if (state.walletMode === 'embedded') {
-      return 'embedded';
+    if (state.walletMode === "embedded") {
+      return "embedded";
     }
 
     // Auto mode: prefer Phantom if connected
-    if (state.phantomConnected) return 'phantom';
-    return 'embedded';
+    if (state.phantomConnected) return "phantom";
+    return "embedded";
   };
 
   const effectiveWalletMode =
-    userPreference !== 'auto'
-      ? userPreference
-      : state.phantomAvailable
-        ? 'phantom'
-        : 'embedded';
+    userPreference !== "auto" ? userPreference : state.phantomAvailable ? "phantom" : "embedded";
 
   const getStatusMessage = (): string => {
-    if (loading) return 'Loading settings...';
-    if (userPreference === 'phantom') {
-      return state.phantomConnected ? 'Phantom connected and active.' : 'Phantom selected but offline.';
+    if (loading) return "Loading settings...";
+    if (userPreference === "phantom") {
+      return state.phantomConnected
+        ? "Phantom connected and active."
+        : "Phantom selected but offline.";
     }
-    if (userPreference === 'embedded') {
-      return 'Seamless embedded wallet active.';
+    if (userPreference === "embedded") {
+      return "Seamless embedded wallet active.";
     }
     // Auto mode
     return state.phantomAvailable
-      ? 'Auto-detect: Using Phantom wallet.'
-      : 'Auto-detect: Phantom not found, using embedded wallet.';
+      ? "Auto-detect: Using Phantom wallet."
+      : "Auto-detect: Phantom not found, using embedded wallet.";
   };
 
   return {
@@ -329,20 +330,20 @@ export function usePhantomDetection() {
 
   useEffect(() => {
     setIsDetected(isPhantomInstalled());
-    
-    const phantom = typeof window !== 'undefined' ? (window as any).solana : null;
+
+    const phantom = typeof window !== "undefined" ? (window as any).solana : null;
     setIsConnected(!!phantom && phantom.isConnected);
 
     if (phantom && phantom.on) {
       const handleConnect = () => setIsConnected(true);
       const handleDisconnect = () => setIsConnected(false);
 
-      phantom.on('connect', handleConnect);
-      phantom.on('disconnect', handleDisconnect);
+      phantom.on("connect", handleConnect);
+      phantom.on("disconnect", handleDisconnect);
 
       return () => {
-        phantom.off('connect', handleConnect);
-        phantom.off('disconnect', handleDisconnect);
+        phantom.off("connect", handleConnect);
+        phantom.off("disconnect", handleDisconnect);
       };
     }
   }, []);

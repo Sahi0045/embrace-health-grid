@@ -29,13 +29,17 @@ export function DonutChart({
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
   const activeData = data.filter((d) => d.value > 0);
-  const currentHovered = hoveredIndex !== null && activeData[hoveredIndex] ? activeData[hoveredIndex] : null;
+  const currentHovered =
+    hoveredIndex !== null && activeData[hoveredIndex] ? activeData[hoveredIndex] : null;
 
   const displayValue = currentHovered ? String(currentHovered.value) : centerLabel;
   const displaySublabel = currentHovered ? currentHovered.name : centerSublabel;
 
   return (
-    <div className="relative w-full flex items-center justify-center select-none" style={{ height }}>
+    <div
+      className="relative w-full flex items-center justify-center select-none"
+      style={{ height }}
+    >
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie

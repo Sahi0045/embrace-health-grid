@@ -1,11 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  AlertTriangle,
-  ShieldAlert,
-  Clock,
-  CheckCircle2,
-  ChevronRight,
-} from "lucide-react";
+import { AlertTriangle, ShieldAlert, Clock, CheckCircle2, ChevronRight } from "lucide-react";
 import { GlowCard } from "@/components/dashboard/GlowCard";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -47,7 +41,10 @@ export function InventoryAlertPanel({
 
   return (
     <div>
-      <GlowCard glowOnHover={false} className="p-5 md:p-6 border-destructive/30 bg-destructive/5 dark:bg-destructive/10 space-y-4">
+      <GlowCard
+        glowOnHover={false}
+        className="p-5 md:p-6 border-destructive/30 bg-destructive/5 dark:bg-destructive/10 space-y-4"
+      >
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-destructive/20 pb-3.5">
           <div className="flex items-center gap-3">
@@ -64,7 +61,8 @@ export function InventoryAlertPanel({
                 </span>
               </div>
               <p className="text-xs font-medium text-muted-foreground">
-                Action required: {criticalCount} critical thresholds breached, {warningCount} near-expiry rotations pending
+                Action required: {criticalCount} critical thresholds breached, {warningCount}{" "}
+                near-expiry rotations pending
               </p>
             </div>
           </div>

@@ -37,7 +37,8 @@ export function LabResultsTab({ results, onResultClick }: LabResultsTabProps) {
           res.critical_flag?.startsWith("critical") ||
           res.critical_flag === "panic";
 
-        const isAbnormal = res.status === "abnormal" || res.critical_flag === "low" || res.critical_flag === "high";
+        const isAbnormal =
+          res.status === "abnormal" || res.critical_flag === "low" || res.critical_flag === "high";
 
         return (
           <motion.div
@@ -159,9 +160,7 @@ export function LabResultsTab({ results, onResultClick }: LabResultsTabProps) {
                       {res.result_value || "—"}
                     </span>
                     {res.unit && (
-                      <span className="text-xs font-bold text-muted-foreground">
-                        {res.unit}
-                      </span>
+                      <span className="text-xs font-bold text-muted-foreground">{res.unit}</span>
                     )}
                   </div>
                 </div>

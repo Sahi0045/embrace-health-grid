@@ -20,12 +20,29 @@ interface DietaryRequirementsTabProps {
   onUpdateStatus: (requirementId: string, nextStatus: MealPlanStatus) => void;
 }
 
-const PLAN_STATUS_STYLES: Record<MealPlanStatus, { label: string; color: string; border: string }> = {
-  active: { label: "Active Plan", color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400", border: "border-emerald-500/20" },
-  pending: { label: "Pending Assessment", color: "bg-amber-500/10 text-amber-600 dark:text-amber-400", border: "border-amber-500/20" },
-  review: { label: "Clinical Review", color: "bg-sky-500/10 text-sky-600 dark:text-sky-400", border: "border-sky-500/20" },
-  suspended: { label: "Suspended", color: "bg-rose-500/10 text-rose-600 dark:text-rose-400", border: "border-rose-500/20" },
-};
+const PLAN_STATUS_STYLES: Record<MealPlanStatus, { label: string; color: string; border: string }> =
+  {
+    active: {
+      label: "Active Plan",
+      color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+      border: "border-emerald-500/20",
+    },
+    pending: {
+      label: "Pending Assessment",
+      color: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+      border: "border-amber-500/20",
+    },
+    review: {
+      label: "Clinical Review",
+      color: "bg-sky-500/10 text-sky-600 dark:text-sky-400",
+      border: "border-sky-500/20",
+    },
+    suspended: {
+      label: "Suspended",
+      color: "bg-rose-500/10 text-rose-600 dark:text-rose-400",
+      border: "border-rose-500/20",
+    },
+  };
 
 export function DietaryRequirementsTab({
   requirements,
@@ -128,7 +145,10 @@ export function DietaryRequirementsTab({
             {/* Footer: Prescribed by & Status Actions */}
             <div className="pt-3 border-t border-border/60 flex items-center justify-between text-xs">
               <div className="text-[11px] text-muted-foreground">
-                By: <span className="font-semibold text-foreground">{diet.prescribed_by || "Attending Dietitian"}</span>
+                By:{" "}
+                <span className="font-semibold text-foreground">
+                  {diet.prescribed_by || "Attending Dietitian"}
+                </span>
               </div>
 
               <div className="flex items-center gap-1">

@@ -3,23 +3,23 @@
  * Allows users to choose between Phantom and Embedded wallets
  */
 
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useHybridWallet, usePhantomDetection } from '@/lib/useHybridWallet';
-import { Wallet, Settings, CheckCircle, AlertCircle, Link as LinkIcon } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { useHybridWallet, usePhantomDetection } from "@/lib/useHybridWallet";
+import { Wallet, Settings, CheckCircle, AlertCircle, Link as LinkIcon } from "lucide-react";
 
 export function HybridWalletSettings() {
   const wallet = useHybridWallet();
   const phantom = usePhantomDetection();
   const [saving, setSaving] = useState(false);
 
-  const handleModeChange = async (mode: 'auto' | 'phantom' | 'embedded') => {
+  const handleModeChange = async (mode: "auto" | "phantom" | "embedded") => {
     try {
       setSaving(true);
       await wallet.setWalletMode(mode);
     } catch (error) {
-      console.error('Failed to save wallet preference:', error);
+      console.error("Failed to save wallet preference:", error);
     } finally {
       setSaving(false);
     }
@@ -45,18 +45,18 @@ export function HybridWalletSettings() {
           ) : (
             <>
               <p className="text-sm text-gray-600">
-                <strong>Wallet Mode:</strong>{' '}
-                {wallet.effectiveWalletMode === 'phantom' && (
+                <strong>Wallet Mode:</strong>{" "}
+                {wallet.effectiveWalletMode === "phantom" && (
                   <span className="text-green-600">🔗 Phantom</span>
                 )}
-                {wallet.effectiveWalletMode === 'embedded' && (
+                {wallet.effectiveWalletMode === "embedded" && (
                   <span className="text-blue-600">✓ Embedded (Seamless)</span>
                 )}
               </p>
 
               {phantom.isDetected && (
                 <p className="text-sm text-gray-600">
-                  <strong>Phantom:</strong>{' '}
+                  <strong>Phantom:</strong>{" "}
                   {phantom.isConnected ? (
                     <span className="text-green-600">✓ Connected</span>
                   ) : (
@@ -81,16 +81,25 @@ export function HybridWalletSettings() {
         </h3>
 
         {/* Auto-Detect Option */}
-        <label className="flex items-start gap-4 p-4 border-2 border-transparent rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+        <label
+          className="flex items-start gap-4 p-4 border-2 border-transparent rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
           style={{
-            borderColor: wallet.userPreference === 'auto' || (!wallet.userPreference && wallet.walletMode === 'auto') ? '#3b82f6' : '#e5e7eb',
-          }}>
+            borderColor:
+              wallet.userPreference === "auto" ||
+              (!wallet.userPreference && wallet.walletMode === "auto")
+                ? "#3b82f6"
+                : "#e5e7eb",
+          }}
+        >
           <input
             type="radio"
             name="wallet-mode"
             value="auto"
-            checked={wallet.userPreference === 'auto' || (!wallet.userPreference && wallet.walletMode === 'auto')}
-            onChange={() => handleModeChange('auto')}
+            checked={
+              wallet.userPreference === "auto" ||
+              (!wallet.userPreference && wallet.walletMode === "auto")
+            }
+            onChange={() => handleModeChange("auto")}
             disabled={saving || wallet.loading}
             className="mt-1 w-4 h-4 cursor-pointer"
           />
@@ -101,24 +110,26 @@ export function HybridWalletSettings() {
             </p>
             <div className="text-xs bg-blue-50 text-blue-700 p-2 rounded inline-block">
               {phantom.isDetected
-                ? 'Phantom detected. Will use Phantom for signing.'
-                : 'Phantom not detected. Will use embedded wallet.'}
+                ? "Phantom detected. Will use Phantom for signing."
+                : "Phantom not detected. Will use embedded wallet."}
             </div>
           </div>
         </label>
 
         {/* Phantom Option (only if detected) */}
         {phantom.isDetected && (
-          <label className="flex items-start gap-4 p-4 border-2 border-transparent rounded-lg cursor-pointer hover:bg-green-50 transition-colors"
+          <label
+            className="flex items-start gap-4 p-4 border-2 border-transparent rounded-lg cursor-pointer hover:bg-green-50 transition-colors"
             style={{
-              borderColor: wallet.userPreference === 'phantom' ? '#22c55e' : '#e5e7eb',
-            }}>
+              borderColor: wallet.userPreference === "phantom" ? "#22c55e" : "#e5e7eb",
+            }}
+          >
             <input
               type="radio"
               name="wallet-mode"
               value="phantom"
-              checked={wallet.userPreference === 'phantom'}
-              onChange={() => handleModeChange('phantom')}
+              checked={wallet.userPreference === "phantom"}
+              onChange={() => handleModeChange("phantom")}
               disabled={saving || wallet.loading}
               className="mt-1 w-4 h-4 cursor-pointer"
             />
@@ -132,8 +143,8 @@ export function HybridWalletSettings() {
                 )}
               </h4>
               <p className="text-sm text-gray-600 mb-2">
-                Sign transactions directly with your personal Phantom wallet. You control
-                everything and see exactly what you're signing.
+                Sign transactions directly with your personal Phantom wallet. You control everything
+                and see exactly what you're signing.
               </p>
               <div className="text-xs text-green-700 space-y-1">
                 <p>✓ Your private key never leaves your device</p>
@@ -145,16 +156,18 @@ export function HybridWalletSettings() {
         )}
 
         {/* Embedded Option */}
-        <label className="flex items-start gap-4 p-4 border-2 border-transparent rounded-lg cursor-pointer hover:bg-indigo-50 transition-colors"
+        <label
+          className="flex items-start gap-4 p-4 border-2 border-transparent rounded-lg cursor-pointer hover:bg-indigo-50 transition-colors"
           style={{
-            borderColor: wallet.userPreference === 'embedded' ? '#6366f1' : '#e5e7eb',
-          }}>
+            borderColor: wallet.userPreference === "embedded" ? "#6366f1" : "#e5e7eb",
+          }}
+        >
           <input
             type="radio"
             name="wallet-mode"
             value="embedded"
-            checked={wallet.userPreference === 'embedded'}
-            onChange={() => handleModeChange('embedded')}
+            checked={wallet.userPreference === "embedded"}
+            onChange={() => handleModeChange("embedded")}
             disabled={saving || wallet.loading}
             className="mt-1 w-4 h-4 cursor-pointer"
           />
@@ -185,12 +198,12 @@ export function HybridWalletSettings() {
             You'll see a popup asking to approve. Your private key stays safe on your device.
           </p>
           <p>
-            <strong>Embedded Mode:</strong> The hospital's wallet signs transactions on the
-            backend. You don't see blockchain details—it just works.
+            <strong>Embedded Mode:</strong> The hospital's wallet signs transactions on the backend.
+            You don't see blockchain details—it just works.
           </p>
           <p>
-            <strong>Both modes:</strong> Records are anchored to Solana blockchain for
-            immutability proof.
+            <strong>Both modes:</strong> Records are anchored to Solana blockchain for immutability
+            proof.
           </p>
         </div>
       </div>

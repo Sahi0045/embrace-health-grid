@@ -53,8 +53,8 @@ create policy user_wallet_prefs_admin on public.user_wallet_preferences
   for select to authenticated
   using (
     hospital_id in (
-      select hospital_id from public.hospital_staff 
-      where user_id = auth.uid() and role = 'admin'
+      select hospital_id from public.profiles
+       where id = (select auth.uid()) and role = 'admin'
     )
   );
 

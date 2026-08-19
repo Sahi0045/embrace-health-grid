@@ -58,8 +58,8 @@ export function AlertDetailDialog({
                   alert.severity === "critical"
                     ? "bg-destructive/15 text-destructive"
                     : alert.severity === "warning"
-                    ? "bg-warning/15 text-warning-foreground"
-                    : "bg-primary/15 text-primary"
+                      ? "bg-warning/15 text-warning-foreground"
+                      : "bg-primary/15 text-primary"
                 }`}
               >
                 <ShieldAlert className="h-5 w-5" />
@@ -91,8 +91,8 @@ export function AlertDetailDialog({
                     alert.severity === "critical"
                       ? "bg-destructive/15 text-destructive border-destructive/30"
                       : alert.severity === "warning"
-                      ? "bg-warning/20 text-warning-foreground border-warning/30"
-                      : "bg-primary/10 text-primary border-primary/20"
+                        ? "bg-warning/20 text-warning-foreground border-warning/30"
+                        : "bg-primary/10 text-primary border-primary/20"
                   }`}
                 >
                   {alert.severity} Priority
@@ -113,9 +113,7 @@ export function AlertDetailDialog({
               </div>
             </div>
 
-            <h4 className="font-display font-bold text-sm text-foreground pt-1">
-              {alert.title}
-            </h4>
+            <h4 className="font-display font-bold text-sm text-foreground pt-1">{alert.title}</h4>
             <p className="text-xs font-medium text-muted-foreground leading-relaxed">
               {alert.message}
             </p>
@@ -142,9 +140,7 @@ export function AlertDetailDialog({
                 <div className="text-[10px] font-extrabold uppercase text-muted-foreground">
                   Source Record Reference
                 </div>
-                <div className="font-mono text-xs font-bold text-foreground">
-                  {alert.source_id}
-                </div>
+                <div className="font-mono text-xs font-bold text-foreground">{alert.source_id}</div>
               </div>
 
               {alert.department && (
@@ -177,7 +173,10 @@ export function AlertDetailDialog({
               <div className="pt-2">
                 <div className="rounded-xl bg-background border border-border/80 p-3 font-mono text-[11px] text-muted-foreground space-y-1 overflow-x-auto">
                   {Object.entries(alert.metadata).map(([k, v]) => (
-                    <div key={k} className="flex items-center justify-between gap-4 py-0.5 border-b border-border/40 last:border-0">
+                    <div
+                      key={k}
+                      className="flex items-center justify-between gap-4 py-0.5 border-b border-border/40 last:border-0"
+                    >
                       <span className="font-bold text-foreground">{k}:</span>
                       <span className="text-primary">{String(v)}</span>
                     </div>
@@ -202,7 +201,9 @@ export function AlertDetailDialog({
                 <span>Navigate to Source Location</span>
                 <ArrowUpRight className="h-4 w-4" />
               </Button>
-            ) : <div />}
+            ) : (
+              <div />
+            )}
 
             <div className="flex items-center gap-2">
               {alert.status === "active" && (

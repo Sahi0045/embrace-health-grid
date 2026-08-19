@@ -1,16 +1,14 @@
-import {
-  Search,
-  ArrowUpDown,
-  Filter,
-  Package,
-  AlertTriangle,
-  Clock,
-  Layers,
-} from "lucide-react";
+import { Search, ArrowUpDown, Filter, Package, AlertTriangle, Clock, Layers } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import type { InventoryCategory, InventoryStatus } from "@/lib/types";
 
-export type InventoryStatusFilter = "all" | "normal" | "low_stock" | "critical" | "near_expiry" | "expired";
+export type InventoryStatusFilter =
+  | "all"
+  | "normal"
+  | "low_stock"
+  | "critical"
+  | "near_expiry"
+  | "expired";
 
 export interface InventoryFilterBarProps {
   searchQuery: string;

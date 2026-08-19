@@ -103,7 +103,9 @@ export function InventoryKpiBar({
                     type="button"
                     whileHover={{ x: 3 }}
                     transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                    onClick={() => onSelectCategory && onSelectCategory(isSelected ? "all" : cat.category_id)}
+                    onClick={() =>
+                      onSelectCategory && onSelectCategory(isSelected ? "all" : cat.category_id)
+                    }
                     className={`group w-full flex items-center justify-between p-2 rounded-xl border transition-all text-left cursor-pointer ${
                       isSelected
                         ? "bg-primary/10 border-primary text-primary shadow-xs ring-2 ring-primary/20"

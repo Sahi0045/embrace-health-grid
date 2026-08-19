@@ -22,11 +22,7 @@ const AVAILABLE_TAGS = [
   { id: "low_sodium", label: "💧 Low Sodium" },
 ];
 
-export function CreateMenuItemDialog({
-  open,
-  onOpenChange,
-  onSuccess,
-}: CreateMenuItemDialogProps) {
+export function CreateMenuItemDialog({ open, onOpenChange, onSuccess }: CreateMenuItemDialogProps) {
   const [name, setName] = useState("");
   const [category, setCategory] = useState<MealCategory>("lunch");
   const [availableFor, setAvailableFor] = useState<MealAvailability>("both");
@@ -39,7 +35,7 @@ export function CreateMenuItemDialog({
 
   const toggleTag = (tagId: string) => {
     setSelectedTags((prev) =>
-      prev.includes(tagId) ? prev.filter((t) => t !== tagId) : [...prev, tagId]
+      prev.includes(tagId) ? prev.filter((t) => t !== tagId) : [...prev, tagId],
     );
   };
 
@@ -106,8 +102,12 @@ export function CreateMenuItemDialog({
                 <Utensils className="h-5 w-5" />
               </div>
               <div>
-                <h3 className="text-base font-extrabold text-foreground">Add Cafeteria Menu Item</h3>
-                <p className="text-xs text-muted-foreground">Register a new meal in the nutritional system</p>
+                <h3 className="text-base font-extrabold text-foreground">
+                  Add Cafeteria Menu Item
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Register a new meal in the nutritional system
+                </p>
               </div>
             </div>
             <button
@@ -154,7 +154,9 @@ export function CreateMenuItemDialog({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-foreground mb-1.5">Availability</label>
+                <label className="block text-xs font-bold text-foreground mb-1.5">
+                  Availability
+                </label>
                 <select
                   value={availableFor}
                   onChange={(e) => setAvailableFor(e.target.value as MealAvailability)}
@@ -170,7 +172,9 @@ export function CreateMenuItemDialog({
             {/* Price & Calories */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-bold text-foreground mb-1.5">Price ($ USD)</label>
+                <label className="block text-xs font-bold text-foreground mb-1.5">
+                  Price ($ USD)
+                </label>
                 <input
                   type="number"
                   step="0.1"
@@ -182,7 +186,9 @@ export function CreateMenuItemDialog({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-foreground mb-1.5">Calories (kcal)</label>
+                <label className="block text-xs font-bold text-foreground mb-1.5">
+                  Calories (kcal)
+                </label>
                 <input
                   type="number"
                   value={calories}

@@ -32,17 +32,22 @@ create index if not exists emergency_broadcasts_code_idx     on public.emergency
 -- ─── 2. Row Level Security ───────────────────────────────────────────────────
 alter table public.emergency_broadcasts enable row level security;
 
+-- NOTE: 'nurse' is not a value of user_role, which is
+-- patient|doctor|staff|admin|super_admin. Listing it made Postgres reject these
+-- policies outright. Nursing staff are modelled as 'staff' (the Nurses tab on
+-- /admin/people filters staff), so 'staff' already covers them.
+
 create policy emergency_broadcasts_select on public.emergency_broadcasts
   for select to authenticated
   using (
-    private.current_user_role() in ('doctor', 'nurse', 'staff', 'admin', 'super_admin')
+    private.current_user_role() in ('doctor', 'staff', 'admin', 'super_admin')
     and (hospital_id is null or private.can_access_hospital(hospital_id))
   );
 
 create policy emergency_broadcasts_insert on public.emergency_broadcasts
   for insert to authenticated
   with check (
-    private.current_user_role() in ('doctor', 'nurse', 'staff', 'admin', 'super_admin')
+    private.current_user_role() in ('doctor', 'staff', 'admin', 'super_admin')
     and (hospital_id is null or private.can_access_hospital(hospital_id))
   );
 

@@ -23,21 +23,56 @@ interface MenuMealsTabProps {
   onToggleStatus: (menuItemId: string, nextStatus: "active" | "inactive") => void;
 }
 
-const CATEGORY_STYLES: Record<string, { bg: string; text: string; label: string; border: string }> = {
-  breakfast: { bg: "bg-amber-500/10", text: "text-amber-600 dark:text-amber-400", border: "border-amber-500/20", label: "Breakfast" },
-  lunch: { bg: "bg-blue-500/10", text: "text-blue-600 dark:text-blue-400", border: "border-blue-500/20", label: "Lunch" },
-  dinner: { bg: "bg-purple-500/10", text: "text-purple-600 dark:text-purple-400", border: "border-purple-500/20", label: "Dinner" },
-  snack: { bg: "bg-emerald-500/10", text: "text-emerald-600 dark:text-emerald-400", border: "border-emerald-500/20", label: "Snack" },
-  beverage: { bg: "bg-pink-500/10", text: "text-pink-600 dark:text-pink-400", border: "border-pink-500/20", label: "Beverage" },
-};
+const CATEGORY_STYLES: Record<string, { bg: string; text: string; label: string; border: string }> =
+  {
+    breakfast: {
+      bg: "bg-amber-500/10",
+      text: "text-amber-600 dark:text-amber-400",
+      border: "border-amber-500/20",
+      label: "Breakfast",
+    },
+    lunch: {
+      bg: "bg-blue-500/10",
+      text: "text-blue-600 dark:text-blue-400",
+      border: "border-blue-500/20",
+      label: "Lunch",
+    },
+    dinner: {
+      bg: "bg-purple-500/10",
+      text: "text-purple-600 dark:text-purple-400",
+      border: "border-purple-500/20",
+      label: "Dinner",
+    },
+    snack: {
+      bg: "bg-emerald-500/10",
+      text: "text-emerald-600 dark:text-emerald-400",
+      border: "border-emerald-500/20",
+      label: "Snack",
+    },
+    beverage: {
+      bg: "bg-pink-500/10",
+      text: "text-pink-600 dark:text-pink-400",
+      border: "border-pink-500/20",
+      label: "Beverage",
+    },
+  };
 
 const DIETARY_BADGES: Record<string, { label: string; color: string }> = {
   vegan: { label: "🌱 Vegan", color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" },
-  vegetarian: { label: "🥦 Vegetarian", color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" },
+  vegetarian: {
+    label: "🥦 Vegetarian",
+    color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+  },
   halal: { label: "☪️ Halal", color: "bg-teal-500/10 text-teal-600 border-teal-500/20" },
-  gluten_free: { label: "🌾 Gluten-Free", color: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
+  gluten_free: {
+    label: "🌾 Gluten-Free",
+    color: "bg-amber-500/10 text-amber-600 border-amber-500/20",
+  },
   kosher: { label: "✡️ Kosher", color: "bg-indigo-500/10 text-indigo-600 border-indigo-500/20" },
-  diabetic: { label: "🩸 Diabetic-Friendly", color: "bg-sky-500/10 text-sky-600 border-sky-500/20" },
+  diabetic: {
+    label: "🩸 Diabetic-Friendly",
+    color: "bg-sky-500/10 text-sky-600 border-sky-500/20",
+  },
   low_sodium: { label: "💧 Low Sodium", color: "bg-cyan-500/10 text-cyan-600 border-cyan-500/20" },
 };
 
@@ -67,14 +102,20 @@ export function MenuMealsTab({ items, onToggleStatus }: MenuMealsTabProps) {
             {/* Header: Category Badge + Status Toggle */}
             <div className="flex items-start justify-between gap-3 pb-3 border-b border-border/60">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border ${catStyle.bg} ${catStyle.text} ${catStyle.border}`}>
+                <span
+                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border ${catStyle.bg} ${catStyle.text} ${catStyle.border}`}
+                >
                   {catStyle.label}
                 </span>
 
                 {/* Available for badge */}
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-muted text-muted-foreground border border-border/50">
                   <Users className="h-3 w-3" />
-                  <span className="capitalize">{meal.available_for === "both" ? "Patient & Staff" : `${meal.available_for} only`}</span>
+                  <span className="capitalize">
+                    {meal.available_for === "both"
+                      ? "Patient & Staff"
+                      : `${meal.available_for} only`}
+                  </span>
                 </span>
               </div>
 
@@ -89,7 +130,9 @@ export function MenuMealsTab({ items, onToggleStatus }: MenuMealsTabProps) {
                 }`}
                 title="Click to toggle availability"
               >
-                <span className={`h-1.5 w-1.5 rounded-full ${isActive ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground"}`} />
+                <span
+                  className={`h-1.5 w-1.5 rounded-full ${isActive ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground"}`}
+                />
                 <span>{isActive ? "Active" : "Inactive"}</span>
               </button>
             </div>
@@ -109,7 +152,10 @@ export function MenuMealsTab({ items, onToggleStatus }: MenuMealsTabProps) {
               {meal.dietary_tags.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mt-3">
                   {meal.dietary_tags.map((tag) => {
-                    const badge = DIETARY_BADGES[tag] || { label: `#${tag}`, color: "bg-primary/10 text-primary border-primary/20" };
+                    const badge = DIETARY_BADGES[tag] || {
+                      label: `#${tag}`,
+                      color: "bg-primary/10 text-primary border-primary/20",
+                    };
                     return (
                       <span
                         key={tag}

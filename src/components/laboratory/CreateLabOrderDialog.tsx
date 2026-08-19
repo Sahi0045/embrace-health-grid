@@ -12,21 +12,41 @@ interface CreateLabOrderDialogProps {
 }
 
 const COMMON_TESTS = [
-  { name: "Complete Blood Count (CBC) with Diff", category: "hematology", specimen: "Whole Blood (EDTA)" },
-  { name: "Comprehensive Metabolic Panel (CMP)", category: "biochemistry", specimen: "Serum (SST)" },
-  { name: "High-Sensitivity Troponin-I & CK-MB", category: "biochemistry", specimen: "Serum (Heparin)" },
-  { name: "Arterial Blood Gas (ABG) & Lactate", category: "biochemistry", specimen: "Heparinized Blood" },
-  { name: "Blood Culture & Sensitivity", category: "microbiology", specimen: "Blood Culture Bottles" },
+  {
+    name: "Complete Blood Count (CBC) with Diff",
+    category: "hematology",
+    specimen: "Whole Blood (EDTA)",
+  },
+  {
+    name: "Comprehensive Metabolic Panel (CMP)",
+    category: "biochemistry",
+    specimen: "Serum (SST)",
+  },
+  {
+    name: "High-Sensitivity Troponin-I & CK-MB",
+    category: "biochemistry",
+    specimen: "Serum (Heparin)",
+  },
+  {
+    name: "Arterial Blood Gas (ABG) & Lactate",
+    category: "biochemistry",
+    specimen: "Heparinized Blood",
+  },
+  {
+    name: "Blood Culture & Sensitivity",
+    category: "microbiology",
+    specimen: "Blood Culture Bottles",
+  },
   { name: "Lipid Profile (Total, HDL, LDL, Trig)", category: "biochemistry", specimen: "Serum" },
   { name: "HbA1c Glycated Hemoglobin", category: "biochemistry", specimen: "Whole Blood" },
-  { name: "Coagulation Panel (PT/INR & APTT)", category: "hematology", specimen: "Sodium Citrate Tube" },
+  {
+    name: "Coagulation Panel (PT/INR & APTT)",
+    category: "hematology",
+    specimen: "Sodium Citrate Tube",
+  },
 ];
 
-export function CreateLabOrderDialog({
-  open,
-  onOpenChange,
-  onSuccess,
-}: CreateLabOrderDialogProps) {
+export function CreateLabOrderDialog({ open, onOpenChange, onSuccess }: CreateLabOrderDialogProps) {
   const [patientDid, setPatientDid] = useState("did:health:pat-001");
   const [patientName, setPatientName] = useState("Sarah Jenkins");
   const [patientMrn, setPatientMrn] = useState("MRN-88421");

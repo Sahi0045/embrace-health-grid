@@ -473,7 +473,7 @@ export async function adminLogAudit(
 
 export async function getHospitalInfrastructure() {
   const supabase = getAdminSupabase();
-  
+
   const [buildings, floors, wards, rooms, beds] = await Promise.all([
     supabase.from("buildings").select("*").order("building_name"),
     supabase.from("floors").select("*").order("building_id, floor_number"),
@@ -493,7 +493,7 @@ export async function getHospitalInfrastructure() {
 
 export async function getBedRoomStatistics() {
   const supabase = getAdminSupabase();
-  
+
   const [bedsResult, roomsResult] = await Promise.all([
     supabase.from("beds").select("status"),
     supabase.from("rooms").select("status"),

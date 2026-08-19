@@ -173,7 +173,8 @@ export function EquipmentFilterBar({
 
         {/* Results Counter */}
         <div className="text-xs font-medium text-muted-foreground shrink-0 self-end sm:self-auto">
-          Showing <span className="font-bold font-mono text-foreground">{totalFilteredCount}</span> units
+          Showing <span className="font-bold font-mono text-foreground">{totalFilteredCount}</span>{" "}
+          units
         </div>
       </div>
     </div>

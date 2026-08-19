@@ -89,42 +89,96 @@ ALTER TABLE public.lab_orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.lab_samples ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.radiology_orders ENABLE ROW LEVEL SECURITY;
 
--- Allow authenticated users to view lab orders/samples/radiology within hospital or own
-DROP POLICY IF EXISTS lab_orders_select ON public.lab_orders;
-CREATE POLICY lab_orders_select ON public.lab_orders
-  FOR SELECT USING (true);
+-- ─── Row Level Security ─────────────────────────────────────────────────────
+--
+-- These three tables hold PHI: what was ordered for whom, specimen chain of
+-- custody, and imaging findings. They were originally created with
+--   FOR SELECT USING (true) / WITH CHECK (true)
+-- on all three tables for select, insert AND update, which is no access control
+-- at all: any authenticated account could read, create and MODIFY any patient's
+-- lab and radiology orders in every hospital. The comment said "within hospital
+-- or own" but nothing implemented it.
+--
+-- They now follow exactly the same model as lab_results, which these tables
+-- reference and whose data they describe:
+--
+--   SELECT  the patient's own DIDs, or a clinician holding active consent
+--   INSERT  a doctor/staff holding active consent
+--   UPDATE  the same (a corrected result or a sample status change is normal care)
+--   DELETE  no policy — chain of custody must not be erasable
+--
+-- Deliberately NOT gated on private.can_access_hospital(). These are clinical
+-- records, so they follow the PATIENT and not the building: a patient referred
+-- from hospital A to hospital B must be able to grant B access to the labs A
+-- ordered. hospital_id on these tables is provenance only. This is the Stage 4
+-- PHI decision, and the guard at the end of this file now enforces it for these
+-- tables too.
+--
+-- Admin is intentionally absent: an administrator has no blanket PHI read, and
+-- break-glass remains the audited exception.
+--
+-- Split into one policy per visibility reason rather than a single OR'd
+-- condition, so that why a row was readable stays auditable.
 
-DROP POLICY IF EXISTS lab_orders_insert ON public.lab_orders;
-CREATE POLICY lab_orders_insert ON public.lab_orders
-  FOR INSERT WITH CHECK (true);
+do $$
+declare
+  t text;
+begin
+  foreach t in array array['lab_orders', 'lab_samples', 'radiology_orders']
+  loop
+    -- Replace the wide-open originals.
+    execute format('drop policy if exists %1$I_select on public.%1$I', t);
+    execute format('drop policy if exists %1$I_insert on public.%1$I', t);
+    execute format('drop policy if exists %1$I_update on public.%1$I', t);
 
-DROP POLICY IF EXISTS lab_orders_update ON public.lab_orders;
-CREATE POLICY lab_orders_update ON public.lab_orders
-  FOR UPDATE USING (true);
+    execute format($f$
+      drop policy if exists %1$I_select_own on public.%1$I;
+      create policy %1$I_select_own on public.%1$I
+        for select to authenticated
+        using (patient_did in (select private.current_user_dids()));
+    $f$, t);
 
-DROP POLICY IF EXISTS lab_samples_select ON public.lab_samples;
-CREATE POLICY lab_samples_select ON public.lab_samples
-  FOR SELECT USING (true);
+    execute format($f$
+      drop policy if exists %1$I_select_consented on public.%1$I;
+      create policy %1$I_select_consented on public.%1$I
+        for select to authenticated
+        using (private.has_active_consent(patient_did));
+    $f$, t);
 
-DROP POLICY IF EXISTS lab_samples_insert ON public.lab_samples;
-CREATE POLICY lab_samples_insert ON public.lab_samples
-  FOR INSERT WITH CHECK (true);
+    execute format($f$
+      drop policy if exists %1$I_insert_clinician on public.%1$I;
+      create policy %1$I_insert_clinician on public.%1$I
+        for insert to authenticated
+        with check (
+          private.current_user_role() in ('doctor', 'staff')
+          and private.has_active_consent(patient_did)
+        );
+    $f$, t);
 
-DROP POLICY IF EXISTS lab_samples_update ON public.lab_samples;
-CREATE POLICY lab_samples_update ON public.lab_samples
-  FOR UPDATE USING (true);
+    execute format($f$
+      drop policy if exists %1$I_update_clinician on public.%1$I;
+      create policy %1$I_update_clinician on public.%1$I
+        for update to authenticated
+        using (
+          private.current_user_role() in ('doctor', 'staff')
+          and private.has_active_consent(patient_did)
+        )
+        with check (
+          private.current_user_role() in ('doctor', 'staff')
+          and private.has_active_consent(patient_did)
+        );
+    $f$, t);
+  end loop;
+end $$;
 
-DROP POLICY IF EXISTS radiology_orders_select ON public.radiology_orders;
-CREATE POLICY radiology_orders_select ON public.radiology_orders
-  FOR SELECT USING (true);
+comment on table public.lab_orders is
+  'Lab test orders. PHI: readable by the patient or a clinician with active consent, never hospital-gated so referrals work. hospital_id is provenance only.';
 
-DROP POLICY IF EXISTS radiology_orders_insert ON public.radiology_orders;
-CREATE POLICY radiology_orders_insert ON public.radiology_orders
-  FOR INSERT WITH CHECK (true);
+comment on table public.lab_samples is
+  'Specimen chain of custody. PHI: same access model as lab_orders. No DELETE policy — custody history must survive.';
 
-DROP POLICY IF EXISTS radiology_orders_update ON public.radiology_orders;
-CREATE POLICY radiology_orders_update ON public.radiology_orders
-  FOR UPDATE USING (true);
+comment on table public.radiology_orders is
+  'Imaging orders and reports. PHI: same access model as lab_orders.';
 
 -- 7. Add to Realtime Publication
 DO $$
@@ -145,3 +199,28 @@ BEGIN
     NULL;
   END;
 END $$;
+
+-- ─── PHI guard ──────────────────────────────────────────────────────────────
+-- Mirrors the Stage 4 guard for the tables added here. If someone later
+-- hospital-gates one of these clinical SELECT policies, referrals silently break
+-- for lab and imaging data: a patient moving from hospital A to B could consent
+-- to B reading their labs and B would still see nothing. Fail the migration
+-- rather than ship that.
+do $$
+declare
+  offending text;
+begin
+  select string_agg(policyname, ', ')
+    into offending
+    from pg_policies
+   where schemaname = 'public'
+     and tablename in ('lab_orders', 'lab_samples', 'radiology_orders')
+     and cmd = 'SELECT'
+     and qual like '%can_access_hospital%';
+
+  if offending is not null then
+    raise exception
+      'Clinical SELECT policies must not be hospital-gated, or referrals break: %',
+      offending;
+  end if;
+end $$;

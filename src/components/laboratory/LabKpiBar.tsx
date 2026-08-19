@@ -59,7 +59,10 @@ export function LabKpiBar({
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-stretch">
       {/* 1. Left Bento Hero Card: Diagnostic Specimen Matrix & Discipline Allocation */}
       <div className="lg:col-span-7 flex flex-col">
-        <GlowCard accent="primary" className="p-6 md:p-7 flex flex-col justify-between h-full space-y-6">
+        <GlowCard
+          accent="primary"
+          className="p-6 md:p-7 flex flex-col justify-between h-full space-y-6"
+        >
           {/* Header */}
           <div className="flex items-center justify-between border-b border-border/60 pb-4">
             <div className="flex items-center gap-3">
@@ -173,7 +176,10 @@ export function LabKpiBar({
             </div>
 
             <div className="flex items-center gap-3 text-xs text-muted-foreground border-t sm:border-t-0 pt-2 sm:pt-0 border-border/50">
-              <span>Accessioned Today: <strong className="text-foreground">{stats.totalSamplesCollected} specimens</strong></span>
+              <span>
+                Accessioned Today:{" "}
+                <strong className="text-foreground">{stats.totalSamplesCollected} specimens</strong>
+              </span>
             </div>
           </div>
         </GlowCard>
@@ -288,7 +294,11 @@ export function LabKpiBar({
 
           {/* Sparkline */}
           <div className="relative z-10 pt-2 border-t border-border/40">
-            <Sparkline data={[14, 18, 22, 28, 32, stats.completedToday]} tone="success" height={32} />
+            <Sparkline
+              data={[14, 18, 22, 28, 32, stats.completedToday]}
+              tone="success"
+              height={32}
+            />
           </div>
         </motion.div>
 
@@ -304,7 +314,9 @@ export function LabKpiBar({
         >
           <div
             className={`absolute -top-10 -right-10 h-28 w-28 rounded-full blur-2xl pointer-events-none transition-all ${
-              stats.criticalResults > 0 ? "bg-destructive/20 group-hover:bg-destructive/30" : "bg-success/15"
+              stats.criticalResults > 0
+                ? "bg-destructive/20 group-hover:bg-destructive/30"
+                : "bg-success/15"
             }`}
           />
 

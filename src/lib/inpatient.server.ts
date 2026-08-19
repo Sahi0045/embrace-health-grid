@@ -375,7 +375,8 @@ function enrichEquipmentRecord(raw: any): any {
     manufacturer = manufacturer || "Hospital Engineering";
     model = model || "Standard Clinical Unit";
     serialNumber = serialNumber || `SN-${id.toUpperCase() || "EQ-9921"}`;
-    department = department || (cat ? cat.charAt(0).toUpperCase() + cat.slice(1) : "General Medicine");
+    department =
+      department || (cat ? cat.charAt(0).toUpperCase() + cat.slice(1) : "General Medicine");
     utilizationPct = utilizationPct ?? 50;
     lastServicedOn = lastServicedOn || "2026-07-01";
     nextServiceOn = nextServiceOn || "2026-10-01";
@@ -491,7 +492,7 @@ export const updateEquipmentStatus = createServerFn({ method: "POST" })
       location?: string;
       assignedWard?: string;
       utilizationPct?: number;
-    }) => data
+    }) => data,
   )
   .handler(async ({ data }) => {
     await requireSession();
@@ -535,7 +536,7 @@ export const recordEquipmentMaintenance = createServerFn({ method: "POST" })
       cost?: number;
       status?: string;
       notes?: string;
-    }) => data
+    }) => data,
   )
   .handler(async ({ data }) => {
     await requireSession();

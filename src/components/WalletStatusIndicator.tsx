@@ -4,17 +4,12 @@
  * Shows: Connection status, wallet type, network, last signing activity
  */
 
-import { useEffect, useState } from 'react';
-import { Badge } from '@/components/ui/badge';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { AlertCircle, CheckCircle2, Wallet, Zap, Shield } from 'lucide-react';
-import { SOLANA_CLIENT_CONFIG, getExplorerUrl } from '@/lib/solana-config.client';
-import { useHybridWallet } from '@/lib/useHybridWallet';
+import { useEffect, useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { AlertCircle, CheckCircle2, Wallet, Zap, Shield } from "lucide-react";
+import { SOLANA_CLIENT_CONFIG, getExplorerUrl } from "@/lib/solana-config.client";
+import { useHybridWallet } from "@/lib/useHybridWallet";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -25,7 +20,7 @@ export interface WalletStatusProps {
 }
 
 export interface WalletStatusData {
-  mode: 'phantom' | 'embedded' | 'loading' | 'error';
+  mode: "phantom" | "embedded" | "loading" | "error";
   network: string;
   isConnected: boolean;
   lastActivityTime?: string;
@@ -39,19 +34,20 @@ export function WalletStatusIndicator(props: WalletStatusProps) {
   const { compact = false, showNetwork = true, showLastActivity = false } = props;
 
   const [status, setStatus] = useState<WalletStatusData>({
-    mode: 'loading',
+    mode: "loading",
     network: SOLANA_CLIENT_CONFIG.network,
     isConnected: false,
   });
 
-  const { effectiveWalletMode, isPhantomConnected, phantomAddress, lastSigningTime } = useHybridWallet();
+  const { effectiveWalletMode, isPhantomConnected, phantomAddress, lastSigningTime } =
+    useHybridWallet();
 
   // Update status when wallet state changes
   useEffect(() => {
     setStatus({
       mode: effectiveWalletMode,
       network: SOLANA_CLIENT_CONFIG.network,
-      isConnected: effectiveWalletMode === 'phantom' ? isPhantomConnected : true,
+      isConnected: effectiveWalletMode === "phantom" ? isPhantomConnected : true,
       lastActivityTime: lastSigningTime?.toISOString(),
       phantomAddress,
       error: undefined,
@@ -66,35 +62,35 @@ export function WalletStatusIndicator(props: WalletStatusProps) {
         <Tooltip>
           <TooltipTrigger asChild>
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-900/50 border border-slate-700">
-              {status.mode === 'loading' && (
+              {status.mode === "loading" && (
                 <>
                   <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
                   <span className="text-xs text-slate-400">Loading...</span>
                 </>
               )}
 
-              {status.mode === 'phantom' && status.isConnected && (
+              {status.mode === "phantom" && status.isConnected && (
                 <>
                   <CheckCircle2 className="w-4 h-4 text-green-500" />
                   <span className="text-xs font-medium text-green-400">Phantom</span>
                 </>
               )}
 
-              {status.mode === 'phantom' && !status.isConnected && (
+              {status.mode === "phantom" && !status.isConnected && (
                 <>
                   <AlertCircle className="w-4 h-4 text-yellow-500" />
                   <span className="text-xs text-yellow-400">Phantom Offline</span>
                 </>
               )}
 
-              {status.mode === 'embedded' && (
+              {status.mode === "embedded" && (
                 <>
                   <Shield className="w-4 h-4 text-blue-500" />
                   <span className="text-xs font-medium text-blue-400">Embedded</span>
                 </>
               )}
 
-              {status.mode === 'error' && (
+              {status.mode === "error" && (
                 <>
                   <AlertCircle className="w-4 h-4 text-red-500" />
                   <span className="text-xs text-red-400">Error</span>
@@ -113,13 +109,11 @@ export function WalletStatusIndicator(props: WalletStatusProps) {
                   <span className="font-medium capitalize">{status.mode}</span>
                 </div>
 
-                {status.mode === 'phantom' && (
+                {status.mode === "phantom" && (
                   <>
                     <div className="flex justify-between gap-2">
                       <span className="text-slate-300">Connected:</span>
-                      <span className="font-medium">
-                        {status.isConnected ? '✓ Yes' : '✗ No'}
-                      </span>
+                      <span className="font-medium">{status.isConnected ? "✓ Yes" : "✗ No"}</span>
                     </div>
                     {status.phantomAddress && (
                       <div className="flex justify-between gap-2">
@@ -175,49 +169,43 @@ export function WalletStatusIndicator(props: WalletStatusProps) {
         {/* Mode and Connection */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            {status.mode === 'phantom' && (
-              <Wallet className="w-5 h-5 text-orange-500" />
-            )}
-            {status.mode === 'embedded' && (
-              <Shield className="w-5 h-5 text-blue-500" />
-            )}
-            {status.mode === 'loading' && (
+            {status.mode === "phantom" && <Wallet className="w-5 h-5 text-orange-500" />}
+            {status.mode === "embedded" && <Shield className="w-5 h-5 text-blue-500" />}
+            {status.mode === "loading" && (
               <div className="w-5 h-5 rounded-full border-2 border-amber-500 border-t-transparent animate-spin" />
             )}
-            {status.mode === 'error' && (
-              <AlertCircle className="w-5 h-5 text-red-500" />
-            )}
+            {status.mode === "error" && <AlertCircle className="w-5 h-5 text-red-500" />}
 
             <div>
               <div className="text-sm font-semibold capitalize text-slate-100">
-                {status.mode === 'phantom' ? 'Phantom Wallet' : 'Embedded Wallet'}
+                {status.mode === "phantom" ? "Phantom Wallet" : "Embedded Wallet"}
               </div>
               <div className="text-xs text-slate-400">
-                {status.mode === 'phantom' && status.isConnected
-                  ? 'Connected'
-                  : status.mode === 'phantom'
-                    ? 'Offline'
-                    : 'Hospital Backend'}
+                {status.mode === "phantom" && status.isConnected
+                  ? "Connected"
+                  : status.mode === "phantom"
+                    ? "Offline"
+                    : "Hospital Backend"}
               </div>
             </div>
           </div>
 
           {/* Status Badge */}
-          {status.mode === 'phantom' && status.isConnected && (
+          {status.mode === "phantom" && status.isConnected && (
             <Badge className="bg-green-500/20 text-green-400 border-green-500/50">
               <CheckCircle2 className="w-3 h-3 mr-1" />
               Ready
             </Badge>
           )}
 
-          {status.mode === 'phantom' && !status.isConnected && (
+          {status.mode === "phantom" && !status.isConnected && (
             <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/50">
               <AlertCircle className="w-3 h-3 mr-1" />
               Offline
             </Badge>
           )}
 
-          {status.mode === 'embedded' && (
+          {status.mode === "embedded" && (
             <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/50">
               <Shield className="w-3 h-3 mr-1" />
               Active
@@ -237,7 +225,7 @@ export function WalletStatusIndicator(props: WalletStatusProps) {
         )}
 
         {/* Phantom Details */}
-        {status.mode === 'phantom' && status.phantomAddress && (
+        {status.mode === "phantom" && status.phantomAddress && (
           <div className="text-xs py-2 border-t border-slate-700">
             <div className="text-slate-400 mb-1">Address:</div>
             <code className="block font-mono text-slate-300 break-all px-2 py-1 bg-slate-800/50 rounded">
@@ -270,9 +258,9 @@ export function WalletStatusIndicator(props: WalletStatusProps) {
       {/* Help Text */}
       <div className="text-xs text-slate-500 space-y-1">
         <p>
-          {status.mode === 'phantom'
-            ? '🔌 Using Phantom wallet for signing. Keep the extension connected.'
-            : '🏥 Using hospital backend wallet for signing. Transactions are automatically handled.'}
+          {status.mode === "phantom"
+            ? "🔌 Using Phantom wallet for signing. Keep the extension connected."
+            : "🏥 Using hospital backend wallet for signing. Transactions are automatically handled."}
         </p>
       </div>
     </div>

@@ -689,7 +689,14 @@ export function buildRoomAudit(
 }
 
 export function buildInventoryAudit(
-  caller: { userId: string | null; actorDid: string | null; actorName: string | null; actorRole: string | null; hospital: string | null; email: string | null },
+  caller: {
+    userId: string | null;
+    actorDid: string | null;
+    actorName: string | null;
+    actorRole: string | null;
+    hospital: string | null;
+    email: string | null;
+  },
   itemId: string,
   movementType: string,
   quantity: number,
@@ -698,26 +705,28 @@ export function buildInventoryAudit(
   extra: Record<string, unknown> = {},
 ): AuditEntry {
   return {
-    actorId:       caller.userId,
-    actorDid:      caller.actorDid,
-    actorName:     caller.actorName,
-    actorRole:     caller.actorRole,
+    actorId: caller.userId,
+    actorDid: caller.actorDid,
+    actorName: caller.actorName,
+    actorRole: caller.actorRole,
     actorHospital: caller.hospital,
-    actorEmail:    caller.email,
-    action:        `STOCK_${movementType}`,
-    outcome:       "success",
-    severity:      "info",
-    module:        "inventory",
-    entityId:      itemId,
-    entityType:    "inventory_item",
-    resource:      `Inventory Item ${itemId}`,
-    hospital:      caller.hospital,
-    location:      "Admin Portal → Inventory Dashboard",
-    prevValue:     { stock: prevStock },
-    newValue:      { stock: newStock, quantity, movementType, ...extra },
-    authStatus:    "authorized",
-    authPolicy:    "stock_movements_insert",
-    metadata:      { description: `Stock movement ${movementType} of ${quantity} units recorded (${prevStock} → ${newStock})`, ...extra },
+    actorEmail: caller.email,
+    action: `STOCK_${movementType}`,
+    outcome: "success",
+    severity: "info",
+    module: "inventory",
+    entityId: itemId,
+    entityType: "inventory_item",
+    resource: `Inventory Item ${itemId}`,
+    hospital: caller.hospital,
+    location: "Admin Portal → Inventory Dashboard",
+    prevValue: { stock: prevStock },
+    newValue: { stock: newStock, quantity, movementType, ...extra },
+    authStatus: "authorized",
+    authPolicy: "stock_movements_insert",
+    metadata: {
+      description: `Stock movement ${movementType} of ${quantity} units recorded (${prevStock} → ${newStock})`,
+      ...extra,
+    },
   };
 }
-

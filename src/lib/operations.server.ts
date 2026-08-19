@@ -48,8 +48,6 @@ import type {
   MealPlanStatus,
 } from "./types";
 
-
-
 async function requireSession() {
   const user = await getVerifiedUser();
   if (!user) throw new Error("Not authenticated");
@@ -1193,48 +1191,75 @@ export const getBedRoomStatistics = createServerFn({ method: "GET" }).handler(as
 
 // Live In-Memory State Cache (persists state across client calls if remote tables are being initialized)
 const _fallbackCategories: InventoryCategory[] = [
-  { category_id: "medications", name: "Medications & Drugs", description: "Pharmaceuticals, IV infusions, injectables and oral medications", color_code: "#3b82f6" },
-  { category_id: "medical_devices", name: "Medical Devices", description: "Diagnostic instruments, monitors, pumps and telemetry hardware", color_code: "#8b5cf6" },
-  { category_id: "ppe", name: "PPE & Infection Control", description: "Gloves, masks, gowns, shields, and biohazard protection supplies", color_code: "#10b981" },
-  { category_id: "surgical_supplies", name: "Surgical Supplies", description: "Sterile drapes, sutures, blades, scalpels and OR consumables", color_code: "#f59e0b" },
-  { category_id: "lab_reagents", name: "Lab Reagents & Assays", description: "Chemical diagnostic reagents, assay kits and specimen containers", color_code: "#ec4899" },
-  { category_id: "office_supplies", name: "Administrative & Office", description: "Hospital admission charts, barcode labels and desk supplies", color_code: "#6b7280" },
-  { category_id: "cleaning_products", name: "Sanitation & Disinfection", description: "Hospital-grade disinfectants, sterilizing solutions and biocides", color_code: "#06b6d4" },
+  {
+    category_id: "medications",
+    name: "Medications & Drugs",
+    description: "Pharmaceuticals, IV infusions, injectables and oral medications",
+    color_code: "#3b82f6",
+  },
+  {
+    category_id: "medical_devices",
+    name: "Medical Devices",
+    description: "Diagnostic instruments, monitors, pumps and telemetry hardware",
+    color_code: "#8b5cf6",
+  },
+  {
+    category_id: "ppe",
+    name: "PPE & Infection Control",
+    description: "Gloves, masks, gowns, shields, and biohazard protection supplies",
+    color_code: "#10b981",
+  },
+  {
+    category_id: "surgical_supplies",
+    name: "Surgical Supplies",
+    description: "Sterile drapes, sutures, blades, scalpels and OR consumables",
+    color_code: "#f59e0b",
+  },
+  {
+    category_id: "lab_reagents",
+    name: "Lab Reagents & Assays",
+    description: "Chemical diagnostic reagents, assay kits and specimen containers",
+    color_code: "#ec4899",
+  },
+  {
+    category_id: "office_supplies",
+    name: "Administrative & Office",
+    description: "Hospital admission charts, barcode labels and desk supplies",
+    color_code: "#6b7280",
+  },
+  {
+    category_id: "cleaning_products",
+    name: "Sanitation & Disinfection",
+    description: "Hospital-grade disinfectants, sterilizing solutions and biocides",
+    color_code: "#06b6d4",
+  },
 ];
 
-let _liveInventoryItems: InventoryItem[] = [
-  { item_id: "INV-MED-001", name: "Paracetamol IV Infusion 1000mg/100ml", sku: "MED-PCM-1000", category_id: "medications", current_stock: 340, reserved_stock: 45, unit: "vials", reorder_level: 80, reorder_qty: 200, unit_cost: 4.50, expiry_date: "2027-11-30", storage_location: "Pharmacy Cold Storage B2", supplier: "Fresenius Kabi", status: "normal" },
-  { item_id: "INV-MED-002", name: "Propofol 1% Injectable Emulsion 20ml", sku: "MED-PRO-0020", category_id: "medications", current_stock: 14, reserved_stock: 10, unit: "vials", reorder_level: 30, reorder_qty: 100, unit_cost: 18.20, expiry_date: "2026-09-02", storage_location: "OR Anesthesia Vault 01", supplier: "AstraZeneca", status: "critical" },
-  { item_id: "INV-MED-003", name: "Ceftriaxone Sodium 1g Powder for Injection", sku: "MED-CEF-0001", category_id: "medications", current_stock: 65, reserved_stock: 20, unit: "vials", reorder_level: 50, reorder_qty: 150, unit_cost: 6.75, expiry_date: "2027-04-15", storage_location: "Central Pharmacy Shelf A4", supplier: "Roche Pharma", status: "normal" },
-  { item_id: "INV-MED-004", name: "Normal Saline 0.9% 500ml IV Bags", sku: "MED-NSS-0500", category_id: "medications", current_stock: 520, reserved_stock: 80, unit: "bags", reorder_level: 120, reorder_qty: 400, unit_cost: 2.10, expiry_date: "2028-01-20", storage_location: "Central Warehouse Bay 1", supplier: "Baxter Healthcare", status: "normal" },
-  { item_id: "INV-MED-005", name: "Epinephrine 1mg/ml (1:1000) Ampoules", sku: "MED-EPI-0001", category_id: "medications", current_stock: 18, reserved_stock: 5, unit: "ampoules", reorder_level: 25, reorder_qty: 60, unit_cost: 8.40, expiry_date: "2026-08-30", storage_location: "Emergency Crash Cart Rack 3", supplier: "Pfizer Hospital", status: "low_stock" },
-  { item_id: "INV-DEV-001", name: "Adult Defibrillator Electrodes / Pads", sku: "DEV-DEF-PAD1", category_id: "medical_devices", current_stock: 22, reserved_stock: 4, unit: "pairs", reorder_level: 20, reorder_qty: 50, unit_cost: 45.00, expiry_date: "2026-08-28", storage_location: "ICU Equipment Room E1", supplier: "Philips Healthcare", status: "low_stock" },
-  { item_id: "INV-DEV-002", name: "Disposable SpO2 Sensor Cables (Adult)", sku: "DEV-SPO-AD01", category_id: "medical_devices", current_stock: 95, reserved_stock: 12, unit: "units", reorder_level: 30, reorder_qty: 100, unit_cost: 14.50, expiry_date: "2028-06-15", storage_location: "Biomedical Depot Shelf 2", supplier: "Masimo Corp", status: "normal" },
-  { item_id: "INV-DEV-003", name: "Continuous Syringe Infusion Pump Lines", sku: "DEV-PMP-SY01", category_id: "medical_devices", current_stock: 180, reserved_stock: 25, unit: "sets", reorder_level: 50, reorder_qty: 200, unit_cost: 7.80, expiry_date: "2027-10-10", storage_location: "Ward Storage C3", supplier: "B. Braun Medical", status: "normal" },
-  { item_id: "INV-PPE-001", name: "N95 Particulate Respirators (Box/20)", sku: "PPE-N95-BX20", category_id: "ppe", current_stock: 12, reserved_stock: 5, unit: "boxes", reorder_level: 25, reorder_qty: 80, unit_cost: 28.00, expiry_date: "2029-12-31", storage_location: "Infection Control Depot A1", supplier: "3M Healthcare", status: "critical" },
-  { item_id: "INV-PPE-002", name: "Nitrile Examination Gloves Size M (Box/100)", sku: "PPE-GLV-MD10", category_id: "ppe", current_stock: 280, reserved_stock: 40, unit: "boxes", reorder_level: 60, reorder_qty: 200, unit_cost: 9.50, expiry_date: "2028-08-18", storage_location: "Central Warehouse Bay 2", supplier: "Ansell Healthcare", status: "normal" },
-  { item_id: "INV-SUR-001", name: "Sterile Surgical Scalpels #10 (Box/10)", sku: "SUR-SCP-BX10", category_id: "surgical_supplies", current_stock: 35, reserved_stock: 8, unit: "boxes", reorder_level: 15, reorder_qty: 50, unit_cost: 16.50, expiry_date: "2028-03-22", storage_location: "OR Sterile Core Rack 4", supplier: "Swann-Morton", status: "normal" },
-  { item_id: "INV-SUR-002", name: "Vicryl 3-0 Absorbable Sutures (Box/36)", sku: "SUR-SUT-V300", category_id: "surgical_supplies", current_stock: 8, reserved_stock: 2, unit: "boxes", reorder_level: 15, reorder_qty: 40, unit_cost: 112.00, expiry_date: "2026-09-10", storage_location: "OR Sterile Core Rack 2", supplier: "Ethicon / J&J", status: "critical" },
-  { item_id: "INV-LAB-001", name: "Troponin I High-Sensitivity Assay Kit", sku: "LAB-TRP-HS01", category_id: "lab_reagents", current_stock: 6, reserved_stock: 2, unit: "kits", reorder_level: 10, reorder_qty: 25, unit_cost: 340.00, expiry_date: "2026-08-25", storage_location: "Clinical Lab Fridge L2", supplier: "Abbott Diagnostics", status: "critical" },
-  { item_id: "INV-CLN-001", name: "Hospital Surface Biocide Disinfectant 5L", sku: "CLN-BIO-005L", category_id: "cleaning_products", current_stock: 45, reserved_stock: 6, unit: "bottles", reorder_level: 15, reorder_qty: 50, unit_cost: 22.00, expiry_date: "2028-11-15", storage_location: "Housekeeping Depot G0", supplier: "Ecolab Healthcare", status: "normal" }
-];
+// ─── In-memory fallback for the inventory screens ────────────────────────────
+//
+// These three arrays used to ship 25 hardcoded rows: 14 inventory items, 6 stock
+// movements attributed to invented staff ("Lead Pharmacist Dr. Sarah Chen",
+// "Nurse Supervisor Elena Rostova") and 5 critical alerts asserting specific
+// stock levels and expiry dates ("Propofol 1% stock level is critical (14 vials
+// remaining)", "Troponin I Assay Kits expiring in 11 days").
+//
+// None of it was real. It reached users because getInventoryData() falls back to
+// these arrays when the database read throws, and inventory_items did not exist
+// on the deployed database, so the fallback was the ONLY path — /admin/inventory
+// on production was showing invented stock levels and actionable clinical alerts
+// for anaesthetics and emergency drugs. Staff could have acted on them.
+//
+// Now empty: an empty inventory screen is correct when there is no inventory.
+//
+// These remain module-level, which is itself wrong for a serverless deployment —
+// each function instance has its own memory, so anything written here is visible
+// only to whichever instance happens to serve the next request. They are a
+// last-resort buffer, not a store.
+const _liveInventoryItems: InventoryItem[] = [];
 
-let _liveStockMovements: StockMovement[] = [
-  { movement_id: "mov-001", item_id: "INV-MED-001", movement_type: "IN", quantity: 200, previous_stock: 140, new_stock: 340, reason: "Monthly replenishment batch #FKB-9821", performed_by_name: "Lead Pharmacist Dr. Sarah Chen", recorded_at: new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString() },
-  { movement_id: "mov-002", item_id: "INV-MED-002", movement_type: "OUT", quantity: 16, previous_stock: 30, new_stock: 14, reason: "Dispatched to OR Suite 3 & 4 emergency craniotomy", performed_by_name: "Anesthesia Tech Marcus Vance", recorded_at: new Date(Date.now() - 4 * 3600 * 1000).toISOString() },
-  { movement_id: "mov-003", item_id: "INV-PPE-001", movement_type: "OUT", quantity: 18, previous_stock: 30, new_stock: 12, reason: "Emergency isolation protocol ward transfer allocation", performed_by_name: "Nurse Supervisor Elena Rostova", recorded_at: new Date(Date.now() - 8 * 3600 * 1000).toISOString() },
-  { movement_id: "mov-004", item_id: "INV-LAB-001", movement_type: "OUT", quantity: 4, previous_stock: 10, new_stock: 6, reason: "Cardiac emergency triage batch testing cycle", performed_by_name: "Senior Biochemist David Miller", recorded_at: new Date(Date.now() - 24 * 3600 * 1000).toISOString() },
-  { movement_id: "mov-005", item_id: "INV-SUR-002", movement_type: "OUT", quantity: 7, previous_stock: 15, new_stock: 8, reason: "Scheduled general surgery room supply transfer", performed_by_name: "OR Sterile Supply Lead Robert King", recorded_at: new Date(Date.now() - 6 * 3600 * 1000).toISOString() },
-  { movement_id: "mov-006", item_id: "INV-DEV-001", movement_type: "ADJUSTMENT", quantity: -3, previous_stock: 25, new_stock: 22, reason: "Damaged package calibration disposal check", performed_by_name: "Biomed Inspector Jack Reynolds", recorded_at: new Date(Date.now() - 18 * 3600 * 1000).toISOString() }
-];
+const _liveStockMovements: StockMovement[] = [];
 
-let _liveInventoryAlerts: InventoryAlert[] = [
-  { alert_id: "alert-001", item_id: "INV-MED-002", alert_type: "critical", severity: "critical", message: "Propofol 1% stock level is critical (14 vials remaining vs reorder threshold 30). Near expiry in 19 days.", current_level: 14, threshold: 30, acknowledged: false, created_at: new Date(Date.now() - 3 * 3600 * 1000).toISOString() },
-  { alert_id: "alert-002", item_id: "INV-PPE-001", alert_type: "low_stock", severity: "critical", message: "N95 Respirators below minimum threshold (12 boxes remaining vs reorder threshold 25). Immediate replenishment requested.", current_level: 12, threshold: 25, acknowledged: false, created_at: new Date(Date.now() - 6 * 3600 * 1000).toISOString() },
-  { alert_id: "alert-003", item_id: "INV-LAB-001", alert_type: "near_expiry", severity: "critical", message: "Troponin I Assay Kits expiring in 11 days (2026-08-25). 6 kits remaining in Lab Fridge L2.", current_level: 6, threshold: 10, acknowledged: false, created_at: new Date(Date.now() - 12 * 3600 * 1000).toISOString() },
-  { alert_id: "alert-004", item_id: "INV-SUR-002", alert_type: "low_stock", severity: "warning", message: "Vicryl 3-0 Sutures at low stock (8 boxes remaining vs reorder threshold 15). Reorder PO pending.", current_level: 8, threshold: 15, acknowledged: false, created_at: new Date(Date.now() - 24 * 3600 * 1000).toISOString() },
-  { alert_id: "alert-005", item_id: "INV-DEV-001", alert_type: "near_expiry", severity: "warning", message: "Adult Defibrillator Electrodes expiring in 14 days (2026-08-28). Rotation or replacement required.", current_level: 22, threshold: 20, acknowledged: false, created_at: new Date(Date.now() - 18 * 3600 * 1000).toISOString() }
-];
+const _liveInventoryAlerts: InventoryAlert[] = [];
 
 /** Get all inventory items, categories, unacknowledged alerts, and aggregate KPI statistics */
 export const getInventoryData = createServerFn({ method: "GET" }).handler(async () => {
@@ -1252,10 +1277,7 @@ export const getInventoryData = createServerFn({ method: "GET" }).handler(async 
     if (catErr) throw catErr;
 
     // 2. Fetch inventory items
-    let itemQuery = supabase
-      .from("inventory_items")
-      .select("*")
-      .order("name");
+    let itemQuery = supabase.from("inventory_items").select("*").order("name");
 
     if (hospitalId) {
       itemQuery = itemQuery.eq("hospital_id", hospitalId);
@@ -1280,8 +1302,13 @@ export const getInventoryData = createServerFn({ method: "GET" }).handler(async 
 
     const allItems: any[] = items || [];
     const totalItems = allItems.length;
-    const lowStockCount = allItems.filter((i: any) => i.status === "low_stock" || i.status === "critical" || i.current_stock <= i.reorder_level).length;
-    const criticalCount = allItems.filter((i: any) => i.status === "critical" || i.current_stock === 0).length;
+    const lowStockCount = allItems.filter(
+      (i: any) =>
+        i.status === "low_stock" || i.status === "critical" || i.current_stock <= i.reorder_level,
+    ).length;
+    const criticalCount = allItems.filter(
+      (i: any) => i.status === "critical" || i.current_stock === 0,
+    ).length;
 
     const now = new Date();
     const thirtyDaysLater = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
@@ -1298,7 +1325,9 @@ export const getInventoryData = createServerFn({ method: "GET" }).handler(async 
 
     const categoryBreakdown: Record<string, number> = {};
     for (const cat of categories || []) {
-      categoryBreakdown[cat.category_id] = allItems.filter((i: any) => i.category_id === cat.category_id).length;
+      categoryBreakdown[cat.category_id] = allItems.filter(
+        (i: any) => i.category_id === cat.category_id,
+      ).length;
     }
 
     return {
@@ -1321,8 +1350,13 @@ export const getInventoryData = createServerFn({ method: "GET" }).handler(async 
     const now = new Date();
     const thirtyDaysLater = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
-    const lowStockCount = _liveInventoryItems.filter((i) => i.status === "low_stock" || i.status === "critical" || i.current_stock <= i.reorder_level).length;
-    const criticalCount = _liveInventoryItems.filter((i) => i.status === "critical" || i.current_stock === 0).length;
+    const lowStockCount = _liveInventoryItems.filter(
+      (i) =>
+        i.status === "low_stock" || i.status === "critical" || i.current_stock <= i.reorder_level,
+    ).length;
+    const criticalCount = _liveInventoryItems.filter(
+      (i) => i.status === "critical" || i.current_stock === 0,
+    ).length;
     const nearExpiryCount = _liveInventoryItems.filter((i) => {
       if (!i.expiry_date) return false;
       const exp = new Date(i.expiry_date);
@@ -1336,7 +1370,9 @@ export const getInventoryData = createServerFn({ method: "GET" }).handler(async 
 
     const categoryBreakdown: Record<string, number> = {};
     for (const cat of _fallbackCategories) {
-      categoryBreakdown[cat.category_id] = _liveInventoryItems.filter((i) => i.category_id === cat.category_id).length;
+      categoryBreakdown[cat.category_id] = _liveInventoryItems.filter(
+        (i) => i.category_id === cat.category_id,
+      ).length;
     }
 
     return {
@@ -1384,17 +1420,19 @@ export const getStockMovements = createServerFn({ method: "GET" })
 
 /** Record a stock movement (IN / OUT / ADJUSTMENT) and update inventory item stock */
 export const recordStockMovement = createServerFn({ method: "POST" })
-  .inputValidator((data: {
-    itemId: string;
-    movementType: "IN" | "OUT" | "ADJUSTMENT";
-    quantity: number;
-    reason?: string;
-  }) => {
-    if (!data?.itemId) throw new Error("itemId is required");
-    if (!data?.movementType) throw new Error("movementType is required");
-    if (typeof data?.quantity !== "number") throw new Error("quantity must be a number");
-    return data;
-  })
+  .inputValidator(
+    (data: {
+      itemId: string;
+      movementType: "IN" | "OUT" | "ADJUSTMENT";
+      quantity: number;
+      reason?: string;
+    }) => {
+      if (!data?.itemId) throw new Error("itemId is required");
+      if (!data?.movementType) throw new Error("movementType is required");
+      if (typeof data?.quantity !== "number") throw new Error("quantity must be a number");
+      return data;
+    },
+  )
   .handler(async ({ data }) => {
     const user = await requireSession();
     const { primaryDid, fullName, hospitalId } = await callerProfile();
@@ -1451,19 +1489,17 @@ export const recordStockMovement = createServerFn({ method: "POST" })
 
     // 2. Persist to Supabase if tables exist
     try {
-      await supabase
-        .from("stock_movements")
-        .insert({
-          item_id: data.itemId,
-          hospital_id: hospitalId || null,
-          movement_type: data.movementType,
-          quantity: data.quantity,
-          previous_stock: previousStock,
-          new_stock: newStock,
-          reason: data.reason || `Stock ${data.movementType} manual entry`,
-          performed_by: user.id,
-          performed_by_name: fullName || primaryDid || "Admin Clinician",
-        });
+      await supabase.from("stock_movements").insert({
+        item_id: data.itemId,
+        hospital_id: hospitalId || null,
+        movement_type: data.movementType,
+        quantity: data.quantity,
+        previous_stock: previousStock,
+        new_stock: newStock,
+        reason: data.reason || `Stock ${data.movementType} manual entry`,
+        performed_by: user.id,
+        performed_by_name: fullName || primaryDid || "Admin Clinician",
+      });
 
       await supabase
         .from("inventory_items")
@@ -1475,7 +1511,10 @@ export const recordStockMovement = createServerFn({ method: "POST" })
         })
         .eq("item_id", data.itemId);
     } catch (dbErr: any) {
-      console.warn("Supabase persistence notice (operating in live cache):", dbErr?.message || dbErr);
+      console.warn(
+        "Supabase persistence notice (operating in live cache):",
+        dbErr?.message || dbErr,
+      );
     }
 
     // 3. Audit trail
@@ -1506,17 +1545,19 @@ export const recordStockMovement = createServerFn({ method: "POST" })
 
 /** Update item reorder parameters and storage location */
 export const updateItemReorderSettings = createServerFn({ method: "POST" })
-  .inputValidator((data: {
-    itemId: string;
-    reorderLevel?: number;
-    reorderQty?: number;
-    storageLocation?: string;
-    supplier?: string;
-    unitCost?: number;
-  }) => {
-    if (!data?.itemId) throw new Error("itemId is required");
-    return data;
-  })
+  .inputValidator(
+    (data: {
+      itemId: string;
+      reorderLevel?: number;
+      reorderQty?: number;
+      storageLocation?: string;
+      supplier?: string;
+      unitCost?: number;
+    }) => {
+      if (!data?.itemId) throw new Error("itemId is required");
+      return data;
+    },
+  )
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();
@@ -1526,9 +1567,16 @@ export const updateItemReorderSettings = createServerFn({ method: "POST" })
     if (idx !== -1) {
       _liveInventoryItems[idx] = {
         ..._liveInventoryItems[idx],
-        reorder_level: data.reorderLevel !== undefined ? data.reorderLevel : _liveInventoryItems[idx].reorder_level,
-        reorder_qty: data.reorderQty !== undefined ? data.reorderQty : _liveInventoryItems[idx].reorder_qty,
-        storage_location: data.storageLocation !== undefined ? data.storageLocation : _liveInventoryItems[idx].storage_location,
+        reorder_level:
+          data.reorderLevel !== undefined
+            ? data.reorderLevel
+            : _liveInventoryItems[idx].reorder_level,
+        reorder_qty:
+          data.reorderQty !== undefined ? data.reorderQty : _liveInventoryItems[idx].reorder_qty,
+        storage_location:
+          data.storageLocation !== undefined
+            ? data.storageLocation
+            : _liveInventoryItems[idx].storage_location,
         supplier: data.supplier !== undefined ? data.supplier : _liveInventoryItems[idx].supplier,
         unit_cost: data.unitCost !== undefined ? data.unitCost : _liveInventoryItems[idx].unit_cost,
       };
@@ -1545,10 +1593,7 @@ export const updateItemReorderSettings = createServerFn({ method: "POST" })
       if (data.supplier !== undefined) updatePayload.supplier = data.supplier;
       if (data.unitCost !== undefined) updatePayload.unit_cost = data.unitCost;
 
-      await supabase
-        .from("inventory_items")
-        .update(updatePayload)
-        .eq("item_id", data.itemId);
+      await supabase.from("inventory_items").update(updatePayload).eq("item_id", data.itemId);
     } catch (err: any) {
       console.warn("Supabase persistence notice:", err?.message || err);
     }
@@ -1592,12 +1637,10 @@ export const acknowledgeInventoryAlert = createServerFn({ method: "POST" })
  * into a unified live stream.
  */
 export const getCentralAlerts = createServerFn({ method: "GET" })
-  .inputValidator((params?: {
-    category?: string;
-    severity?: string;
-    status?: string;
-    search?: string;
-  }) => params || {})
+  .inputValidator(
+    (params?: { category?: string; severity?: string; status?: string; search?: string }) =>
+      params || {},
+  )
   .handler(async ({ data }) => {
     const { hospitalId } = await callerProfile().catch(() => ({
       hospitalId: null,
@@ -1605,7 +1648,6 @@ export const getCentralAlerts = createServerFn({ method: "GET" })
       fullName: null,
     }));
     const supabase = getSupabaseServerClient();
-
 
     const alerts: CentralAlert[] = [];
 
@@ -1659,8 +1701,18 @@ export const getCentralAlerts = createServerFn({ method: "GET" })
           alerts.push({
             id: f.alert_id,
             category: "security",
-            severity: f.severity === "high" || f.severity === "critical" ? "critical" : f.severity === "medium" ? "warning" : "info",
-            status: f.status === "open" ? "active" : f.status === "investigating" ? "acknowledged" : "resolved",
+            severity:
+              f.severity === "high" || f.severity === "critical"
+                ? "critical"
+                : f.severity === "medium"
+                  ? "warning"
+                  : "info",
+            status:
+              f.status === "open"
+                ? "active"
+                : f.status === "investigating"
+                  ? "acknowledged"
+                  : "resolved",
             title: `Security & Compliance Anomaly: ${f.alert_type || "Access Anomaly"}`,
             message: f.message,
             source_table: "fraud_alerts",
@@ -1692,7 +1744,10 @@ export const getCentralAlerts = createServerFn({ method: "GET" })
       const { data: invAlerts, error } = await invQuery;
       if (!error && invAlerts) {
         for (const a of invAlerts) {
-          const cat: AlertCategory = a.alert_type === "near_expiry" || a.alert_type === "expired" ? "near_expiry" : "low_stock";
+          const cat: AlertCategory =
+            a.alert_type === "near_expiry" || a.alert_type === "expired"
+              ? "near_expiry"
+              : "low_stock";
           alerts.push({
             id: a.alert_id,
             category: cat,
@@ -1720,10 +1775,7 @@ export const getCentralAlerts = createServerFn({ method: "GET" })
 
     // 4. Equipment Failures & Overdue Calibration
     try {
-      let eqQuery = supabase
-        .from("equipment")
-        .select("*")
-        .in("status", ["offline", "maintenance"]);
+      let eqQuery = supabase.from("equipment").select("*").in("status", ["offline", "maintenance"]);
 
       if (hospitalId) {
         eqQuery = eqQuery.or(`hospital_id.eq.${hospitalId},hospital_id.is.null`);
@@ -1766,11 +1818,19 @@ export const getCentralAlerts = createServerFn({ method: "GET" })
       }
       const { data: bedsData } = await bedQuery;
       if (bedsData && bedsData.length > 0) {
-        const wardStats: Record<string, { total: number; occupied: number; wardName: string; building: string }> = {};
+        const wardStats: Record<
+          string,
+          { total: number; occupied: number; wardName: string; building: string }
+        > = {};
         for (const b of bedsData) {
           const wKey = b.ward_code || b.ward || "General";
           if (!wardStats[wKey]) {
-            wardStats[wKey] = { total: 0, occupied: 0, wardName: b.ward || wKey, building: b.building || "Main" };
+            wardStats[wKey] = {
+              total: 0,
+              occupied: 0,
+              wardName: b.ward || wKey,
+              building: b.building || "Main",
+            };
           }
           wardStats[wKey].total++;
           if (b.status === "occupied" || b.status === "reserved") {
@@ -1866,7 +1926,7 @@ export const getCentralAlerts = createServerFn({ method: "GET" })
           a.title.toLowerCase().includes(s) ||
           a.message.toLowerCase().includes(s) ||
           a.department?.toLowerCase().includes(s) ||
-          a.actor?.toLowerCase().includes(s)
+          a.actor?.toLowerCase().includes(s),
       );
     }
 
@@ -1902,7 +1962,9 @@ export const acknowledgeCentralAlert = createServerFn({ method: "POST" })
         .update({ status: "investigating" })
         .eq("alert_id", data.alertId);
     } else if (data.sourceTable === "inventory_alerts") {
-      const alertIdx = _liveInventoryAlerts.findIndex((a) => a.alert_id === data.alertId || a.item_id === data.alertId);
+      const alertIdx = _liveInventoryAlerts.findIndex(
+        (a) => a.alert_id === data.alertId || a.item_id === data.alertId,
+      );
       if (alertIdx !== -1) {
         _liveInventoryAlerts[alertIdx].acknowledged = true;
       }
@@ -1942,7 +2004,9 @@ export const resolveCentralAlert = createServerFn({ method: "POST" })
         .update({ status: "resolved", resolved_at: now })
         .eq("alert_id", data.alertId);
     } else if (data.sourceTable === "inventory_alerts") {
-      const alertIdx = _liveInventoryAlerts.findIndex((a) => a.alert_id === data.alertId || a.item_id === data.alertId);
+      const alertIdx = _liveInventoryAlerts.findIndex(
+        (a) => a.alert_id === data.alertId || a.item_id === data.alertId,
+      );
       if (alertIdx !== -1) {
         _liveInventoryAlerts[alertIdx].acknowledged = true;
       }
@@ -1955,18 +2019,20 @@ export const resolveCentralAlert = createServerFn({ method: "POST" })
  * Broadcasts an emergency code to the entire hospital grid.
  */
 export const broadcastEmergencyAlert = createServerFn({ method: "POST" })
-  .inputValidator((data: {
-    broadcastCode: EmergencyBroadcastCode;
-    title: string;
-    message: string;
-    location: string;
-    severity?: AlertSeverity;
-  }) => {
-    if (!data.title || !data.message || !data.location) {
-      throw new Error("Title, message, and location are required");
-    }
-    return data;
-  })
+  .inputValidator(
+    (data: {
+      broadcastCode: EmergencyBroadcastCode;
+      title: string;
+      message: string;
+      location: string;
+      severity?: AlertSeverity;
+    }) => {
+      if (!data.title || !data.message || !data.location) {
+        throw new Error("Title, message, and location are required");
+      }
+      return data;
+    },
+  )
   .handler(async ({ data }) => {
     const user = await requireSession();
     const { primaryDid, fullName, hospitalId } = await callerProfile();
@@ -2005,35 +2071,67 @@ export const broadcastEmergencyAlert = createServerFn({ method: "POST" })
 /**
  * Computes live alert statistics for KPI dashboard tiles.
  */
-export const getCentralAlertStats = createServerFn({ method: "GET" })
-  .handler(async (): Promise<CentralAlertStats> => {
-    const res = (await getCentralAlerts({ data: {} }).catch(() => ({ alerts: [], rawCount: 0 }))) as { alerts: CentralAlert[]; rawCount: number };
+export const getCentralAlertStats = createServerFn({ method: "GET" }).handler(
+  async (): Promise<CentralAlertStats> => {
+    const res = (await getCentralAlerts({ data: {} }).catch(() => ({
+      alerts: [],
+      rawCount: 0,
+    }))) as { alerts: CentralAlert[]; rawCount: number };
     const alerts: CentralAlert[] = res?.alerts || [];
 
     const stats: CentralAlertStats = {
       total: alerts.length,
       active: alerts.filter((a: CentralAlert) => a.status === "active").length,
-      critical: alerts.filter((a: CentralAlert) => a.severity === "critical" && a.status === "active").length,
-      warning: alerts.filter((a: CentralAlert) => a.severity === "warning" && a.status === "active").length,
-      info: alerts.filter((a: CentralAlert) => a.severity === "info" && a.status === "active").length,
+      critical: alerts.filter(
+        (a: CentralAlert) => a.severity === "critical" && a.status === "active",
+      ).length,
+      warning: alerts.filter((a: CentralAlert) => a.severity === "warning" && a.status === "active")
+        .length,
+      info: alerts.filter((a: CentralAlert) => a.severity === "info" && a.status === "active")
+        .length,
       acknowledged: alerts.filter((a: CentralAlert) => a.status === "acknowledged").length,
       resolvedToday: alerts.filter((a: CentralAlert) => a.status === "resolved").length,
     };
 
     return stats;
-  });
+  },
+);
 
 // ─── Laboratory & Diagnostics Management ────────────────────────────────────
 
 // In-memory synchronized state buffer (ensures high availability and zero downtime)
-let _liveLabOrders: LabOrderRecord[] = [];
-let _liveLabSamples: LabSampleRecord[] = [];
-let _liveLabResults: LabResultRecord[] = [];
-let _liveRadiologyOrders: RadiologyOrderRecord[] = [];
+const _liveLabOrders: LabOrderRecord[] = [];
+const _liveLabSamples: LabSampleRecord[] = [];
+const _liveLabResults: LabResultRecord[] = [];
+const _liveRadiologyOrders: RadiologyOrderRecord[] = [];
 
 /**
  * Fetch all Laboratory, Samples, Results, and Radiology datasets directly from Supabase.
  */
+/**
+ * Mean time from a lab order being placed to it being completed.
+ *
+ * This was reported as a hardcoded "38 min" in both the success and the fallback
+ * path, so the laboratory dashboard asserted a turnaround figure that was never
+ * measured, next to counts that were genuinely computed. Now derived from
+ * ordered_at -> completed_at on completed orders, and returns an explicit
+ * placeholder when there is nothing finished to measure rather than inventing one.
+ */
+function averageTurnaround(orders: LabOrderRecord[]): string {
+  const spans = orders
+    .filter((o) => o.status === "completed" && o.completed_at && o.ordered_at)
+    .map((o) => new Date(o.completed_at as string).getTime() - new Date(o.ordered_at).getTime())
+    .filter((ms) => Number.isFinite(ms) && ms >= 0);
+
+  if (spans.length === 0) return "—";
+
+  const avgMin = Math.round(spans.reduce((a, b) => a + b, 0) / spans.length / 60000);
+  if (avgMin < 60) return `${avgMin} min`;
+  const h = Math.floor(avgMin / 60);
+  const m = avgMin % 60;
+  return m === 0 ? `${h} h` : `${h} h ${m} min`;
+}
+
 export const getLaboratoryData = createServerFn({ method: "GET" }).handler(async () => {
   await requireSession();
   const supabase = getSupabaseServerClient();
@@ -2064,10 +2162,7 @@ export const getLaboratoryData = createServerFn({ method: "GET" }).handler(async
   }
 
   // 2. Fetch real equipment to link imaging scanners
-  const { data: dbEquipment } = await supabase
-    .from("equipment")
-    .select("*")
-    .limit(50);
+  const { data: dbEquipment } = await supabase.from("equipment").select("*").limit(50);
 
   const equipmentMap: Record<string, any> = {};
   for (const eq of dbEquipment || []) {
@@ -2076,22 +2171,34 @@ export const getLaboratoryData = createServerFn({ method: "GET" }).handler(async
 
   try {
     // 3. Query real lab_results from Supabase
-    let resultsQuery = supabase.from("lab_results").select("*").order("created_at", { ascending: false });
+    let resultsQuery = supabase
+      .from("lab_results")
+      .select("*")
+      .order("created_at", { ascending: false });
     if (hospitalId) resultsQuery = resultsQuery.eq("hospital_id", hospitalId);
     const { data: dbResults } = await resultsQuery;
 
     // 4. Query real lab_orders from Supabase
-    let ordersQuery = supabase.from("lab_orders").select("*").order("created_at", { ascending: false });
+    let ordersQuery = supabase
+      .from("lab_orders")
+      .select("*")
+      .order("created_at", { ascending: false });
     if (hospitalId) ordersQuery = ordersQuery.eq("hospital_id", hospitalId);
     const { data: dbOrders } = await ordersQuery;
 
     // 5. Query real lab_samples from Supabase
-    let samplesQuery = supabase.from("lab_samples").select("*").order("created_at", { ascending: false });
+    let samplesQuery = supabase
+      .from("lab_samples")
+      .select("*")
+      .order("created_at", { ascending: false });
     if (hospitalId) samplesQuery = samplesQuery.eq("hospital_id", hospitalId);
     const { data: dbSamples } = await samplesQuery;
 
     // 6. Query real radiology_orders from Supabase
-    let radQuery = supabase.from("radiology_orders").select("*").order("created_at", { ascending: false });
+    let radQuery = supabase
+      .from("radiology_orders")
+      .select("*")
+      .order("created_at", { ascending: false });
     if (hospitalId) radQuery = radQuery.eq("hospital_id", hospitalId);
     const { data: dbRadiology } = await radQuery;
 
@@ -2104,7 +2211,8 @@ export const getLaboratoryData = createServerFn({ method: "GET" }).handler(async
         order_id: r.order_id,
         patient_did: r.patient_did,
         patient_name: patient?.full_name || r.patient_name || "Registered Patient",
-        patient_mrn: r.patient_mrn || `MRN-${(r.patient_did || "").slice(-5).toUpperCase() || "88421"}`,
+        patient_mrn:
+          r.patient_mrn || `MRN-${(r.patient_did || "").slice(-5).toUpperCase() || "88421"}`,
         ordered_by: r.ordered_by,
         doctor_name: doctor?.full_name || r.doctor_name || "Attending Physician",
         test_name: r.test_name,
@@ -2130,7 +2238,8 @@ export const getLaboratoryData = createServerFn({ method: "GET" }).handler(async
         order_id: o.order_id,
         patient_did: o.patient_did,
         patient_name: patient?.full_name || o.patient_name || "Registered Patient",
-        patient_mrn: o.patient_mrn || `MRN-${(o.patient_did || "").slice(-5).toUpperCase() || "88421"}`,
+        patient_mrn:
+          o.patient_mrn || `MRN-${(o.patient_did || "").slice(-5).toUpperCase() || "88421"}`,
         ordered_by: o.ordered_by,
         doctor_name: doctor?.full_name || o.doctor_name || "Dr. Gregory Vance",
         hospital_id: o.hospital_id,
@@ -2156,7 +2265,8 @@ export const getLaboratoryData = createServerFn({ method: "GET" }).handler(async
         lab_id: s.lab_id,
         patient_did: s.patient_did,
         patient_name: patient?.full_name || s.patient_name || "Registered Patient",
-        patient_mrn: s.patient_mrn || `MRN-${(s.patient_did || "").slice(-5).toUpperCase() || "88421"}`,
+        patient_mrn:
+          s.patient_mrn || `MRN-${(s.patient_did || "").slice(-5).toUpperCase() || "88421"}`,
         hospital_id: s.hospital_id,
         sample_type: s.sample_type || "blood",
         barcode: s.barcode || `BC-${(s.sample_id || "").slice(-6)}`,
@@ -2182,7 +2292,8 @@ export const getLaboratoryData = createServerFn({ method: "GET" }).handler(async
         order_id: r.order_id,
         patient_did: r.patient_did,
         patient_name: patient?.full_name || r.patient_name || "Registered Patient",
-        patient_mrn: r.patient_mrn || `MRN-${(r.patient_did || "").slice(-5).toUpperCase() || "77319"}`,
+        patient_mrn:
+          r.patient_mrn || `MRN-${(r.patient_did || "").slice(-5).toUpperCase() || "77319"}`,
         ordered_by: r.ordered_by,
         doctor_name: doctor?.full_name || r.doctor_name || "Attending Physician",
         hospital_id: r.hospital_id,
@@ -2213,7 +2324,10 @@ export const getLaboratoryData = createServerFn({ method: "GET" }).handler(async
     const inProgress = orders.filter((o) => o.status === "in_progress").length;
     const completedToday = orders.filter((o) => o.status === "completed").length;
     const criticalResults = results.filter(
-      (r) => r.is_critical || r.status === "critical" || (r.critical_flag && r.critical_flag.startsWith("critical")),
+      (r) =>
+        r.is_critical ||
+        r.status === "critical" ||
+        (r.critical_flag && r.critical_flag.startsWith("critical")),
     ).length;
 
     const stats: LabDashboardStats = {
@@ -2221,9 +2335,11 @@ export const getLaboratoryData = createServerFn({ method: "GET" }).handler(async
       inProgress,
       completedToday,
       criticalResults,
-      avgTurnaroundTime: "38 min",
+      avgTurnaroundTime: averageTurnaround(orders),
       totalSamplesCollected: samples.length,
-      radiologyScansToday: radiology.filter((r) => r.status === "completed" || r.status === "in_progress").length,
+      radiologyScansToday: radiology.filter(
+        (r) => r.status === "completed" || r.status === "in_progress",
+      ).length,
     };
 
     return { orders, samples, results, radiology, stats };
@@ -2233,14 +2349,16 @@ export const getLaboratoryData = createServerFn({ method: "GET" }).handler(async
     const pendingTests = _liveLabOrders.filter((o) => o.status === "pending").length;
     const inProgress = _liveLabOrders.filter((o) => o.status === "in_progress").length;
     const completedToday = _liveLabOrders.filter((o) => o.status === "completed").length;
-    const criticalResults = _liveLabResults.filter((r) => r.is_critical || r.status === "critical").length;
+    const criticalResults = _liveLabResults.filter(
+      (r) => r.is_critical || r.status === "critical",
+    ).length;
 
     const stats: LabDashboardStats = {
       pendingTests,
       inProgress,
       completedToday,
       criticalResults,
-      avgTurnaroundTime: "38 min",
+      avgTurnaroundTime: averageTurnaround(_liveLabOrders),
       totalSamplesCollected: _liveLabSamples.length,
       radiologyScansToday: _liveRadiologyOrders.length,
     };
@@ -2255,15 +2373,16 @@ export const getLaboratoryData = createServerFn({ method: "GET" }).handler(async
   }
 });
 
-
 /**
  * Update Lab Order Status in Supabase.
  */
 export const updateLabOrderStatus = createServerFn({ method: "POST" })
-  .inputValidator((data: { orderId: string; status: "pending" | "in_progress" | "completed" | "cancelled" }) => {
-    if (!data?.orderId || !data?.status) throw new Error("orderId and status are required");
-    return data;
-  })
+  .inputValidator(
+    (data: { orderId: string; status: "pending" | "in_progress" | "completed" | "cancelled" }) => {
+      if (!data?.orderId || !data?.status) throw new Error("orderId and status are required");
+      return data;
+    },
+  )
   .handler(async ({ data }) => {
     const caller = await requireSession();
     const supabase = getSupabaseServerClient();
@@ -2276,13 +2395,17 @@ export const updateLabOrderStatus = createServerFn({ method: "POST" })
     }
 
     try {
-      const { error } = await supabase.from("lab_orders").update(updatePayload).eq("order_id", data.orderId);
+      const { error } = await supabase
+        .from("lab_orders")
+        .update(updatePayload)
+        .eq("order_id", data.orderId);
       if (error) throw error;
     } catch {
       const idx = _liveLabOrders.findIndex((o) => o.order_id === data.orderId);
       if (idx !== -1) {
         _liveLabOrders[idx].status = data.status;
-        if (data.status === "completed") _liveLabOrders[idx].completed_at = new Date().toISOString();
+        if (data.status === "completed")
+          _liveLabOrders[idx].completed_at = new Date().toISOString();
       }
     }
 
@@ -2318,10 +2441,16 @@ export const updateLabOrderStatus = createServerFn({ method: "POST" })
  * Update Sample Pipeline Collection Stage in Supabase.
  */
 export const updateSampleStatus = createServerFn({ method: "POST" })
-  .inputValidator((data: { sampleId: string; status: "collected" | "lab_received" | "processing" | "resulted" | "reported"; notes?: string }) => {
-    if (!data?.sampleId || !data?.status) throw new Error("sampleId and status are required");
-    return data;
-  })
+  .inputValidator(
+    (data: {
+      sampleId: string;
+      status: "collected" | "lab_received" | "processing" | "resulted" | "reported";
+      notes?: string;
+    }) => {
+      if (!data?.sampleId || !data?.status) throw new Error("sampleId and status are required");
+      return data;
+    },
+  )
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();
@@ -2336,7 +2465,10 @@ export const updateSampleStatus = createServerFn({ method: "POST" })
     if (data.status === "reported") updatePayload.reported_at = nowIso;
 
     try {
-      const { error } = await supabase.from("lab_samples").update(updatePayload).eq("sample_id", data.sampleId);
+      const { error } = await supabase
+        .from("lab_samples")
+        .update(updatePayload)
+        .eq("sample_id", data.sampleId);
       if (error) throw error;
     } catch {
       const idx = _liveLabSamples.findIndex((s) => s.sample_id === data.sampleId);
@@ -2381,10 +2513,17 @@ export const updateSampleStatus = createServerFn({ method: "POST" })
  * Update Radiology Order Status in Supabase.
  */
 export const updateRadiologyOrderStatus = createServerFn({ method: "POST" })
-  .inputValidator((data: { orderId: string; status: "scheduled" | "in_progress" | "completed" | "reported" | "cancelled"; reportText?: string; reportedBy?: string }) => {
-    if (!data?.orderId || !data?.status) throw new Error("orderId and status are required");
-    return data;
-  })
+  .inputValidator(
+    (data: {
+      orderId: string;
+      status: "scheduled" | "in_progress" | "completed" | "reported" | "cancelled";
+      reportText?: string;
+      reportedBy?: string;
+    }) => {
+      if (!data?.orderId || !data?.status) throw new Error("orderId and status are required");
+      return data;
+    },
+  )
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();
@@ -2401,7 +2540,10 @@ export const updateRadiologyOrderStatus = createServerFn({ method: "POST" })
     }
 
     try {
-      const { error } = await supabase.from("radiology_orders").update(updatePayload).eq("order_id", data.orderId);
+      const { error } = await supabase
+        .from("radiology_orders")
+        .update(updatePayload)
+        .eq("order_id", data.orderId);
       if (error) throw error;
     } catch {
       const idx = _liveRadiologyOrders.findIndex((r) => r.order_id === data.orderId);
@@ -2448,19 +2590,22 @@ export const updateRadiologyOrderStatus = createServerFn({ method: "POST" })
  * Direct Creation of Lab Order in Supabase.
  */
 export const orderLabTestDirect = createServerFn({ method: "POST" })
-  .inputValidator((data: {
-    patientDid: string;
-    patientName?: string;
-    patientMrn?: string;
-    testName: string;
-    testCategory: string;
-    priority: "stat" | "urgent" | "routine";
-    clinicalNotes?: string;
-    specimenType?: string;
-  }) => {
-    if (!data?.patientDid || !data?.testName) throw new Error("patientDid and testName are required");
-    return data;
-  })
+  .inputValidator(
+    (data: {
+      patientDid: string;
+      patientName?: string;
+      patientMrn?: string;
+      testName: string;
+      testCategory: string;
+      priority: "stat" | "urgent" | "routine";
+      clinicalNotes?: string;
+      specimenType?: string;
+    }) => {
+      if (!data?.patientDid || !data?.testName)
+        throw new Error("patientDid and testName are required");
+      return data;
+    },
+  )
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();
@@ -2495,7 +2640,9 @@ export const orderLabTestDirect = createServerFn({ method: "POST" })
       patient_name: data.patientName || "Registered Patient",
       patient_mrn: data.patientMrn || newOrder.patient_mrn,
       hospital_id: hospitalId || undefined,
-      sample_type: (data.specimenType || "blood").toLowerCase().includes("urine") ? "urine" : "blood",
+      sample_type: (data.specimenType || "blood").toLowerCase().includes("urine")
+        ? "urine"
+        : "blood",
       barcode: `BC-${Date.now().toString().slice(-7)}`,
       collection_status: "collected",
       collected_by: fullName || "Clinical Phlebotomist",
@@ -2568,25 +2715,27 @@ export const orderLabTestDirect = createServerFn({ method: "POST" })
  * Record or verify a Lab Result in Supabase.
  */
 export const recordLabResult = createServerFn({ method: "POST" })
-  .inputValidator((data: {
-    labId?: string;
-    orderId?: string;
-    patientDid: string;
-    patientName?: string;
-    patientMrn?: string;
-    testName: string;
-    category?: string;
-    resultValue: string;
-    unit: string;
-    referenceRange: string;
-    isCritical?: boolean;
-    criticalFlag?: "high" | "low" | "critical_high" | "critical_low" | "panic" | null;
-  }) => {
-    if (!data?.patientDid || !data?.testName || !data?.resultValue) {
-      throw new Error("patientDid, testName and resultValue are required");
-    }
-    return data;
-  })
+  .inputValidator(
+    (data: {
+      labId?: string;
+      orderId?: string;
+      patientDid: string;
+      patientName?: string;
+      patientMrn?: string;
+      testName: string;
+      category?: string;
+      resultValue: string;
+      unit: string;
+      referenceRange: string;
+      isCritical?: boolean;
+      criticalFlag?: "high" | "low" | "critical_high" | "critical_low" | "panic" | null;
+    }) => {
+      if (!data?.patientDid || !data?.testName || !data?.resultValue) {
+        throw new Error("patientDid, testName and resultValue are required");
+      }
+      return data;
+    },
+  )
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();
@@ -2669,14 +2818,12 @@ export const recordLabResult = createServerFn({ method: "POST" })
 // ─── Cafeteria, Kitchen Stock & Dietary Management ─────────────────────────
 
 // In-memory state buffers for fallback high-availability
-let _liveMenuItems: CafeteriaMenuItem[] = [];
-let _liveKitchenStock: KitchenStockItem[] = [];
-let _liveDietaryRequirements: DietaryRequirement[] = [];
-let _liveMealDeliveries: MealDeliveryRecord[] = [];
-let _liveCafeteriaVendors: CafeteriaVendor[] = [];
-let _liveFoodWastageLogs: FoodWastageLog[] = [];
-
-
+const _liveMenuItems: CafeteriaMenuItem[] = [];
+const _liveKitchenStock: KitchenStockItem[] = [];
+const _liveDietaryRequirements: DietaryRequirement[] = [];
+const _liveMealDeliveries: MealDeliveryRecord[] = [];
+const _liveCafeteriaVendors: CafeteriaVendor[] = [];
+const _liveFoodWastageLogs: FoodWastageLog[] = [];
 
 /**
  * Fetch all Cafeteria datasets: Menu, Stock, Dietary, Deliveries, Vendors, Wastage.
@@ -2700,32 +2847,50 @@ export const getCafeteriaData = createServerFn({ method: "GET" }).handler(async 
 
   try {
     // 1. Menu items
-    let menuQuery = supabase.from("cafeteria_menu_items").select("*").order("created_at", { ascending: false });
+    let menuQuery = supabase
+      .from("cafeteria_menu_items")
+      .select("*")
+      .order("created_at", { ascending: false });
     if (hospitalId) menuQuery = menuQuery.eq("hospital_id", hospitalId);
     const { data: dbMenu } = await menuQuery;
 
     // 2. Kitchen stock
-    let stockQuery = supabase.from("kitchen_stock").select("*").order("created_at", { ascending: false });
+    let stockQuery = supabase
+      .from("kitchen_stock")
+      .select("*")
+      .order("created_at", { ascending: false });
     if (hospitalId) stockQuery = stockQuery.eq("hospital_id", hospitalId);
     const { data: dbStock } = await stockQuery;
 
     // 3. Dietary requirements
-    let dietaryQuery = supabase.from("dietary_requirements").select("*").order("created_at", { ascending: false });
+    let dietaryQuery = supabase
+      .from("dietary_requirements")
+      .select("*")
+      .order("created_at", { ascending: false });
     if (hospitalId) dietaryQuery = dietaryQuery.eq("hospital_id", hospitalId);
     const { data: dbDietary } = await dietaryQuery;
 
     // 4. Meal deliveries
-    let deliveriesQuery = supabase.from("meal_deliveries").select("*").order("scheduled_at", { ascending: false });
+    let deliveriesQuery = supabase
+      .from("meal_deliveries")
+      .select("*")
+      .order("scheduled_at", { ascending: false });
     if (hospitalId) deliveriesQuery = deliveriesQuery.eq("hospital_id", hospitalId);
     const { data: dbDeliveries } = await deliveriesQuery;
 
     // 5. Vendors
-    let vendorsQuery = supabase.from("cafeteria_vendors").select("*").order("created_at", { ascending: false });
+    let vendorsQuery = supabase
+      .from("cafeteria_vendors")
+      .select("*")
+      .order("created_at", { ascending: false });
     if (hospitalId) vendorsQuery = vendorsQuery.eq("hospital_id", hospitalId);
     const { data: dbVendors } = await vendorsQuery;
 
     // 6. Food wastage
-    let wastageQuery = supabase.from("food_wastage_logs").select("*").order("date", { ascending: false });
+    let wastageQuery = supabase
+      .from("food_wastage_logs")
+      .select("*")
+      .order("date", { ascending: false });
     if (hospitalId) wastageQuery = wastageQuery.eq("hospital_id", hospitalId);
     const { data: dbWastage } = await wastageQuery;
 
@@ -2773,7 +2938,8 @@ export const getCafeteriaData = createServerFn({ method: "GET" }).handler(async 
         hospital_id: d.hospital_id,
         patient_did: d.patient_did,
         patient_name: patient?.full_name || d.patient_name || "Inpatient",
-        patient_mrn: d.patient_mrn || `MRN-${(d.patient_did || "").slice(-5).toUpperCase() || "55210"}`,
+        patient_mrn:
+          d.patient_mrn || `MRN-${(d.patient_did || "").slice(-5).toUpperCase() || "55210"}`,
         room_number: d.room_number || "Ward 3A",
         requirements: Array.isArray(d.requirements) ? d.requirements : [],
         allergies: Array.isArray(d.allergies) ? d.allergies : [],
@@ -2848,10 +3014,14 @@ export const getCafeteriaData = createServerFn({ method: "GET" }).handler(async 
 
     // KPI Metrics calculation
     const activeMenuItems = menu.filter((m) => m.status === "active").length;
-    const pendingDeliveries = deliveries.filter((d) => d.delivery_status === "preparing" || d.delivery_status === "dispatched").length;
+    const pendingDeliveries = deliveries.filter(
+      (d) => d.delivery_status === "preparing" || d.delivery_status === "dispatched",
+    ).length;
     const deliveredToday = deliveries.filter((d) => d.delivery_status === "delivered").length;
     const activeDietaryPlans = dietary.filter((d) => d.meal_plan_status === "active").length;
-    const lowKitchenStockCount = stock.filter((s) => s.status === "low_stock" || s.status === "expired" || s.quantity <= s.reorder_level).length;
+    const lowKitchenStockCount = stock.filter(
+      (s) => s.status === "low_stock" || s.status === "expired" || s.quantity <= s.reorder_level,
+    ).length;
     const todayStr = new Date().toISOString().split("T")[0];
     const todayWastageKg = wastage
       .filter((w) => w.date === todayStr)
@@ -2875,12 +3045,16 @@ export const getCafeteriaData = createServerFn({ method: "GET" }).handler(async 
 
     const stats: CafeteriaDashboardStats = {
       activeMenuItems: _liveMenuItems.filter((m) => m.status === "active").length,
-      pendingDeliveries: _liveMealDeliveries.filter((d) => d.delivery_status === "preparing" || d.delivery_status === "dispatched").length,
+      pendingDeliveries: _liveMealDeliveries.filter(
+        (d) => d.delivery_status === "preparing" || d.delivery_status === "dispatched",
+      ).length,
       deliveredToday: _liveMealDeliveries.filter((d) => d.delivery_status === "delivered").length,
-      activeDietaryPlans: _liveDietaryRequirements.filter((d) => d.meal_plan_status === "active").length,
+      activeDietaryPlans: _liveDietaryRequirements.filter((d) => d.meal_plan_status === "active")
+        .length,
       lowKitchenStockCount: _liveKitchenStock.filter((s) => s.status === "low_stock").length,
       todayWastageKg: 0,
-      activeVendorsCount: _liveCafeteriaVendors.filter((v) => v.contract_status === "active").length,
+      activeVendorsCount: _liveCafeteriaVendors.filter((v) => v.contract_status === "active")
+        .length,
       averageMealRating: 4.8,
     };
 
@@ -2900,19 +3074,21 @@ export const getCafeteriaData = createServerFn({ method: "GET" }).handler(async 
  * Create a new Menu Item in Cafeteria Catalog.
  */
 export const createMenuItem = createServerFn({ method: "POST" })
-  .inputValidator((data: {
-    name: string;
-    category: "breakfast" | "lunch" | "dinner" | "snack" | "beverage";
-    dietaryTags: string[];
-    availableFor: "patient" | "staff" | "both";
-    price: number;
-    calories: number;
-    description?: string;
-    allergens?: string[];
-  }) => {
-    if (!data?.name) throw new Error("Item name is required");
-    return data;
-  })
+  .inputValidator(
+    (data: {
+      name: string;
+      category: "breakfast" | "lunch" | "dinner" | "snack" | "beverage";
+      dietaryTags: string[];
+      availableFor: "patient" | "staff" | "both";
+      price: number;
+      calories: number;
+      description?: string;
+      allergens?: string[];
+    }) => {
+      if (!data?.name) throw new Error("Item name is required");
+      return data;
+    },
+  )
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();
@@ -3101,20 +3277,30 @@ export const updateDeliveryStatus = createServerFn({ method: "POST" })
  * Add an item to Kitchen Stock.
  */
 export const addKitchenStockItem = createServerFn({ method: "POST" })
-  .inputValidator((data: {
-    itemName: string;
-    category: "produce" | "dairy" | "meat" | "dry_goods" | "beverages" | "bakery" | "frozen" | string;
-    quantity: number;
-    unit: string;
-    reorderLevel: number;
-    unitCost: number;
-    expiryDate?: string;
-    supplier?: string;
-    storageLocation?: string;
-  }) => {
-    if (!data?.itemName) throw new Error("Item name is required");
-    return data;
-  })
+  .inputValidator(
+    (data: {
+      itemName: string;
+      category:
+        | "produce"
+        | "dairy"
+        | "meat"
+        | "dry_goods"
+        | "beverages"
+        | "bakery"
+        | "frozen"
+        | string;
+      quantity: number;
+      unit: string;
+      reorderLevel: number;
+      unitCost: number;
+      expiryDate?: string;
+      supplier?: string;
+      storageLocation?: string;
+    }) => {
+      if (!data?.itemName) throw new Error("Item name is required");
+      return data;
+    },
+  )
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();
@@ -3135,7 +3321,7 @@ export const addKitchenStockItem = createServerFn({ method: "POST" })
       expiry_date: data.expiryDate,
       supplier: data.supplier,
       storage_location: data.storageLocation || "Main Kitchen Pantry",
-      status: (data.quantity <= (data.reorderLevel || 10)) ? "low_stock" : "normal",
+      status: data.quantity <= (data.reorderLevel || 10) ? "low_stock" : "normal",
       last_restocked_at: nowIso,
       created_at: nowIso,
       updated_at: nowIso,
@@ -3191,18 +3377,20 @@ export const addKitchenStockItem = createServerFn({ method: "POST" })
  * Register a new Cafeteria Vendor.
  */
 export const createCafeteriaVendor = createServerFn({ method: "POST" })
-  .inputValidator((data: {
-    name: string;
-    contactPerson?: string;
-    contactEmail?: string;
-    contactPhone?: string;
-    suppliedCategories: string[];
-    contractExpiry?: string;
-    address?: string;
-  }) => {
-    if (!data?.name) throw new Error("Vendor name is required");
-    return data;
-  })
+  .inputValidator(
+    (data: {
+      name: string;
+      contactPerson?: string;
+      contactEmail?: string;
+      contactPhone?: string;
+      suppliedCategories: string[];
+      contractExpiry?: string;
+      address?: string;
+    }) => {
+      if (!data?.name) throw new Error("Vendor name is required");
+      return data;
+    },
+  )
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();
@@ -3329,18 +3517,21 @@ export const updateVendorContract = createServerFn({ method: "POST" })
  * Log daily Food Wastage Entry.
  */
 export const logFoodWastage = createServerFn({ method: "POST" })
-  .inputValidator((data: {
-    date?: string;
-    mealType: "breakfast" | "lunch" | "dinner" | "snack" | "prep_waste" | string;
-    itemName: string;
-    quantityWasted: number;
-    unit?: string;
-    costImpact?: number;
-    reason: "overproduction" | "spoilage" | "unconsumed_tray" | "expired_stock" | "damaged";
-  }) => {
-    if (!data?.itemName || !data?.quantityWasted) throw new Error("itemName and quantityWasted are required");
-    return data;
-  })
+  .inputValidator(
+    (data: {
+      date?: string;
+      mealType: "breakfast" | "lunch" | "dinner" | "snack" | "prep_waste" | string;
+      itemName: string;
+      quantityWasted: number;
+      unit?: string;
+      costImpact?: number;
+      reason: "overproduction" | "spoilage" | "unconsumed_tray" | "expired_stock" | "damaged";
+    }) => {
+      if (!data?.itemName || !data?.quantityWasted)
+        throw new Error("itemName and quantityWasted are required");
+      return data;
+    },
+  )
   .handler(async ({ data }) => {
     const user = await requireSession();
     const { fullName } = await callerProfile();
@@ -3400,7 +3591,11 @@ export const logFoodWastage = createServerFn({ method: "POST" })
       resource: `Wastage: ${newLog.quantity_wasted} ${newLog.unit} of ${newLog.item_name} (${newLog.reason})`,
       location: "Admin Portal → Cafeteria → Wastage",
       prevValue: null,
-      newValue: { item_name: newLog.item_name, quantity_wasted: newLog.quantity_wasted, cost_impact: newLog.cost_impact },
+      newValue: {
+        item_name: newLog.item_name,
+        quantity_wasted: newLog.quantity_wasted,
+        cost_impact: newLog.cost_impact,
+      },
       authStatus: "authorized",
       authPolicy: "food_wastage_logs_insert",
       metadata: { logId, mealType: newLog.meal_type, reason: newLog.reason },
@@ -3414,7 +3609,8 @@ export const logFoodWastage = createServerFn({ method: "POST" })
  */
 export const updateDietaryRequirementStatus = createServerFn({ method: "POST" })
   .inputValidator((data: { requirementId: string; status: MealPlanStatus }) => {
-    if (!data?.requirementId || !data?.status) throw new Error("requirementId and status are required");
+    if (!data?.requirementId || !data?.status)
+      throw new Error("requirementId and status are required");
     return data;
   })
   .handler(async ({ data }) => {
@@ -3428,7 +3624,9 @@ export const updateDietaryRequirementStatus = createServerFn({ method: "POST" })
         .update({ meal_plan_status: data.status, updated_at: nowIso })
         .eq("requirement_id", data.requirementId);
     } catch {
-      const idx = _liveDietaryRequirements.findIndex((d) => d.requirement_id === data.requirementId);
+      const idx = _liveDietaryRequirements.findIndex(
+        (d) => d.requirement_id === data.requirementId,
+      );
       if (idx !== -1) {
         _liveDietaryRequirements[idx].meal_plan_status = data.status;
         _liveDietaryRequirements[idx].updated_at = nowIso;

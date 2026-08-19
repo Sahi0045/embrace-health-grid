@@ -21,11 +21,7 @@ const CATEGORY_OPTIONS = [
   "Organic Supplies",
 ];
 
-export function CreateVendorDialog({
-  open,
-  onOpenChange,
-  onSuccess,
-}: CreateVendorDialogProps) {
+export function CreateVendorDialog({ open, onOpenChange, onSuccess }: CreateVendorDialogProps) {
   const [name, setName] = useState("");
   const [contactPerson, setContactPerson] = useState("");
   const [contactEmail, setContactEmail] = useState("");
@@ -37,7 +33,7 @@ export function CreateVendorDialog({
 
   const toggleCategory = (cat: string) => {
     setSelectedCategories((prev) =>
-      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
+      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat],
     );
   };
 
@@ -99,7 +95,9 @@ export function CreateVendorDialog({
               </div>
               <div>
                 <h3 className="text-base font-extrabold text-foreground">Register Food Vendor</h3>
-                <p className="text-xs text-muted-foreground">Add food & beverage suppliers to procurement</p>
+                <p className="text-xs text-muted-foreground">
+                  Add food & beverage suppliers to procurement
+                </p>
               </div>
             </div>
             <button
@@ -131,7 +129,9 @@ export function CreateVendorDialog({
             {/* Contact Person & Phone */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-bold text-foreground mb-1.5">Contact Person</label>
+                <label className="block text-xs font-bold text-foreground mb-1.5">
+                  Contact Person
+                </label>
                 <input
                   type="text"
                   value={contactPerson}
@@ -142,7 +142,9 @@ export function CreateVendorDialog({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-foreground mb-1.5">Contact Phone</label>
+                <label className="block text-xs font-bold text-foreground mb-1.5">
+                  Contact Phone
+                </label>
                 <input
                   type="text"
                   value={contactPhone}
@@ -156,7 +158,9 @@ export function CreateVendorDialog({
             {/* Email & Contract Expiry */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-bold text-foreground mb-1.5">Contact Email</label>
+                <label className="block text-xs font-bold text-foreground mb-1.5">
+                  Contact Email
+                </label>
                 <input
                   type="email"
                   value={contactEmail}
@@ -167,7 +171,9 @@ export function CreateVendorDialog({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-foreground mb-1.5">Contract Expiry Date</label>
+                <label className="block text-xs font-bold text-foreground mb-1.5">
+                  Contract Expiry Date
+                </label>
                 <input
                   type="date"
                   value={contractExpiry}
@@ -205,7 +211,9 @@ export function CreateVendorDialog({
 
             {/* Address */}
             <div>
-              <label className="block text-xs font-bold text-foreground mb-1.5">Facility / Warehouse Address</label>
+              <label className="block text-xs font-bold text-foreground mb-1.5">
+                Facility / Warehouse Address
+              </label>
               <input
                 type="text"
                 value={address}

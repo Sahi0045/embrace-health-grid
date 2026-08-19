@@ -21,11 +21,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import {
-  getStockMovements,
-  recordStockMovement,
-  updateItemReorderSettings,
-} from "@/lib/api";
+import { getStockMovements, recordStockMovement, updateItemReorderSettings } from "@/lib/api";
 import { StockMovementTimeline } from "./StockMovementTimeline";
 import type { InventoryItem, InventoryCategory, StockMovement } from "@/lib/types";
 
@@ -43,7 +39,7 @@ export function InventoryDetailPanel({
   onStockUpdated,
 }: InventoryDetailPanelProps) {
   const [activeTab, setActiveTab] = useState<"action" | "reorder" | "history">("action");
-  
+
   // Stock Movement Action Form State
   const [movementType, setMovementType] = useState<"IN" | "OUT" | "ADJUSTMENT">("IN");
   const [quantity, setQuantity] = useState<number>(10);
@@ -253,7 +249,7 @@ export function InventoryDetailPanel({
               className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-extrabold transition-all cursor-pointer ${
                 activeTab === "reorder"
                   ? "bg-primary text-primary-foreground shadow-xs"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
               }`}
             >
               <Save className="h-3.5 w-3.5" />
@@ -346,8 +342,8 @@ export function InventoryDetailPanel({
                     {movementType === "IN"
                       ? item.current_stock + quantity
                       : movementType === "OUT"
-                      ? Math.max(0, item.current_stock - quantity)
-                      : item.current_stock + quantity}{" "}
+                        ? Math.max(0, item.current_stock - quantity)
+                        : item.current_stock + quantity}{" "}
                     {item.unit}
                   </div>
                 </div>
@@ -421,9 +417,7 @@ export function InventoryDetailPanel({
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-muted-foreground">
-                    Unit Cost ($)
-                  </label>
+                  <label className="text-xs font-bold text-muted-foreground">Unit Cost ($)</label>
                   <Input
                     type="number"
                     step="0.01"

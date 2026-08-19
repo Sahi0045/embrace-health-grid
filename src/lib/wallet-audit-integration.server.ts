@@ -4,15 +4,14 @@
  * Ensures all blockchain signing operations are logged with complete context
  */
 
-import { getSupabaseServerClient, getVerifiedUser } from '@/lib/supabase.server';
-import { recordSigningEvent } from '@/routes/api.signing-events';
-import type { AuditEntry } from '@/lib/audit.server';
-
+import { getSupabaseServerClient, getVerifiedUser } from "@/lib/supabase.server";
+import { recordSigningEvent } from "@/routes/api.signing-events";
+import type { AuditEntry } from "@/lib/audit.server";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 export interface WalletSigningAuditEntry extends Partial<AuditEntry> {
-  signerType: 'phantom' | 'embedded';
+  signerType: "phantom" | "embedded";
   txId: string;
   userWallet?: string; // If Phantom: user's public key
   explorerUrl?: string;
@@ -22,7 +21,7 @@ export interface WalletAuditResult {
   auditTxId: string;
   signingEventId: string;
   txId: string;
-  walletUsed: 'phantom' | 'embedded';
+  walletUsed: "phantom" | "embedded";
   recorded: boolean;
 }
 
@@ -49,13 +48,13 @@ export interface WalletAuditResult {
  *   });
  */
 export async function recordWalletSigningAudit(
-  entry: WalletSigningAuditEntry
+  entry: WalletSigningAuditEntry,
 ): Promise<WalletAuditResult> {
   const db = getSupabaseServerClient();
   const user = await getVerifiedUser();
 
   if (!user) {
-    throw new Error('User not authenticated');
+    throw new Error("User not authenticated");
   }
 
   try {
@@ -72,8 +71,8 @@ export async function recordWalletSigningAudit(
       data: {
         signerType: entry.signerType,
         txId: entry.txId,
-        recordType: entry.entityType || entry.module || 'unknown',
-        recordHash: (entry.metadata?.recordHash as string) || 'unknown',
+        recordType: entry.entityType || entry.module || "unknown",
+        recordHash: (entry.metadata?.recordHash as string) || "unknown",
         hospitalId: entry.hospital as string,
         userWallet: entry.userWallet,
         metadata: {
@@ -85,7 +84,7 @@ export async function recordWalletSigningAudit(
           walletType: entry.signerType,
           severity: entry.severity,
         },
-      }
+      },
     });
 
     console.log(`✅ Signing event recorded: ${signingEventRecord.eventId}`);
@@ -135,7 +134,7 @@ export async function getRecordWalletAuditTrail(params: {
     timestamp: string;
     action: string;
     actor: string;
-    signerType?: 'phantom' | 'embedded';
+    signerType?: "phantom" | "embedded";
     txId?: string;
     explorerUrl?: string;
     status: string;
@@ -145,17 +144,17 @@ export async function getRecordWalletAuditTrail(params: {
   const user = await getVerifiedUser();
 
   if (!user) {
-    throw new Error('User not authenticated');
+    throw new Error("User not authenticated");
   }
 
   try {
     // Get signing events for this record
     const { data: signingEvents, error: sigError } = await db
-      .from('signing_events')
-      .select('*')
-      .eq('hospital_id', params.hospitalId)
-      .like('metadata->>entityId', params.entityId)
-      .order('created_at', { ascending: false });
+      .from("signing_events")
+      .select("*")
+      .eq("hospital_id", params.hospitalId)
+      .like("metadata->>entityId", params.entityId)
+      .order("created_at", { ascending: false });
 
     if (sigError) {
       throw new Error(`Failed to fetch signing events: ${sigError.message}`);
@@ -164,14 +163,14 @@ export async function getRecordWalletAuditTrail(params: {
     return (signingEvents || []).map((event: any) => ({
       timestamp: event.created_at,
       action: `${event.signer_type.toUpperCase()}_SIGNED`,
-      actor: event.user_wallet || 'Hospital Wallet',
+      actor: event.user_wallet || "Hospital Wallet",
       signerType: event.signer_type,
       txId: event.transaction_id,
-      explorerUrl: `https://explorer.solana.com/tx/${event.transaction_id}?cluster=${process.env.SOLANA_NETWORK || 'devnet'}`,
+      explorerUrl: `https://explorer.solana.com/tx/${event.transaction_id}?cluster=${process.env.SOLANA_NETWORK || "devnet"}`,
       status: event.status,
     }));
   } catch (error) {
-    console.error('Failed to get record wallet audit trail:', error);
+    console.error("Failed to get record wallet audit trail:", error);
     throw error;
   }
 }
@@ -190,7 +189,7 @@ export async function getUserWalletSigningActivity(params: {
   Array<{
     timestamp: string;
     recordType: string;
-    signerType: 'phantom' | 'embedded';
+    signerType: "phantom" | "embedded";
     txId: string;
     status: string;
     confirmed: boolean;
@@ -200,12 +199,12 @@ export async function getUserWalletSigningActivity(params: {
   const user = await getVerifiedUser();
 
   if (!user) {
-    throw new Error('User not authenticated');
+    throw new Error("User not authenticated");
   }
 
   // Verify user has access (admin or self)
-  if (user.id !== params.userId && user.role !== 'admin') {
-    throw new Error('Unauthorized: Cannot view other user activities');
+  if (user.id !== params.userId && user.role !== "admin") {
+    throw new Error("Unauthorized: Cannot view other user activities");
   }
 
   try {
@@ -213,11 +212,11 @@ export async function getUserWalletSigningActivity(params: {
     const offset = params.offset || 0;
 
     const { data, error } = await db
-      .from('signing_events')
-      .select('*')
-      .eq('user_id', params.userId)
-      .eq('hospital_id', params.hospitalId)
-      .order('created_at', { ascending: false })
+      .from("signing_events")
+      .select("*")
+      .eq("user_id", params.userId)
+      .eq("hospital_id", params.hospitalId)
+      .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1);
 
     if (error) {
@@ -233,7 +232,7 @@ export async function getUserWalletSigningActivity(params: {
       confirmed: event.confirmed,
     }));
   } catch (error) {
-    console.error('Failed to get user wallet signing activity:', error);
+    console.error("Failed to get user wallet signing activity:", error);
     throw error;
   }
 }
@@ -262,8 +261,8 @@ export async function generateWalletSigningComplianceReport(params: {
   const db = getSupabaseServerClient();
   const user = await getVerifiedUser();
 
-  if (!user || user.role !== 'admin') {
-    throw new Error('Unauthorized: Only admins can generate compliance reports');
+  if (!user || user.role !== "admin") {
+    throw new Error("Unauthorized: Only admins can generate compliance reports");
   }
 
   try {
@@ -272,11 +271,11 @@ export async function generateWalletSigningComplianceReport(params: {
 
     // Query signing events for the period
     const { data: events, error } = await db
-      .from('signing_events')
-      .select('*')
-      .eq('hospital_id', params.hospitalId)
-      .gte('created_at', params.startDate.toISOString())
-      .lte('created_at', params.endDate.toISOString());
+      .from("signing_events")
+      .select("*")
+      .eq("hospital_id", params.hospitalId)
+      .gte("created_at", params.startDate.toISOString())
+      .lte("created_at", params.endDate.toISOString());
 
     if (error) {
       throw new Error(`Failed to fetch events: ${error.message}`);
@@ -286,17 +285,19 @@ export async function generateWalletSigningComplianceReport(params: {
 
     // Calculate statistics
     const totalSignings = eventList.length;
-    const phantomSignings = eventList.filter((e: any) => e.signer_type === 'phantom').length;
-    const embeddedSignings = eventList.filter((e: any) => e.signer_type === 'embedded').length;
-    const failedSignings = eventList.filter((e: any) => e.status === 'failed').length;
+    const phantomSignings = eventList.filter((e: any) => e.signer_type === "phantom").length;
+    const embeddedSignings = eventList.filter((e: any) => e.signer_type === "embedded").length;
+    const failedSignings = eventList.filter((e: any) => e.status === "failed").length;
     const uniqueUsers = new Set(eventList.map((e: any) => e.user_id)).size;
     const uniqueWallets = new Set(eventList.map((e: any) => e.user_wallet)).size;
 
     const successRate =
-      totalSignings > 0 ? (((totalSignings - failedSignings) / totalSignings) * 100).toFixed(2) : '0';
+      totalSignings > 0
+        ? (((totalSignings - failedSignings) / totalSignings) * 100).toFixed(2)
+        : "0";
 
     const report = {
-      period: `${params.startDate.toISOString().split('T')[0]} to ${params.endDate.toISOString().split('T')[0]}`,
+      period: `${params.startDate.toISOString().split("T")[0]} to ${params.endDate.toISOString().split("T")[0]}`,
       totalSignings,
       phantomSignings,
       embeddedSignings,
@@ -311,7 +312,7 @@ export async function generateWalletSigningComplianceReport(params: {
 
     return report;
   } catch (error) {
-    console.error('Failed to generate compliance report:', error);
+    console.error("Failed to generate compliance report:", error);
     throw error;
   }
 }
@@ -328,7 +329,7 @@ export async function verifyWalletSigningChain(params: {
   hospitalId: string;
 }): Promise<{
   valid: boolean;
-  signerType?: 'phantom' | 'embedded';
+  signerType?: "phantom" | "embedded";
   txId?: string;
   confirmed?: boolean;
   timestamp?: string;
@@ -339,16 +340,16 @@ export async function verifyWalletSigningChain(params: {
   try {
     // Find the signing event for this record
     const { data: event, error } = await db
-      .from('signing_events')
-      .select('*')
-      .eq('hospital_id', params.hospitalId)
-      .like('metadata->>entityId', params.recordId)
+      .from("signing_events")
+      .select("*")
+      .eq("hospital_id", params.hospitalId)
+      .like("metadata->>entityId", params.recordId)
       .single();
 
-    if (error?.code === 'PGRST116') {
+    if (error?.code === "PGRST116") {
       return {
         valid: false,
-        reason: 'No signing event found for this record',
+        reason: "No signing event found for this record",
       };
     }
 
@@ -360,7 +361,7 @@ export async function verifyWalletSigningChain(params: {
     if (event.record_hash !== params.expectedHash) {
       return {
         valid: false,
-        reason: 'Record hash does not match signed hash',
+        reason: "Record hash does not match signed hash",
       };
     }
 
@@ -368,7 +369,7 @@ export async function verifyWalletSigningChain(params: {
     if (!event.confirmed) {
       return {
         valid: false,
-        reason: 'Signing not yet confirmed on blockchain',
+        reason: "Signing not yet confirmed on blockchain",
       };
     }
 
@@ -380,7 +381,7 @@ export async function verifyWalletSigningChain(params: {
       timestamp: event.confirmed_at,
     };
   } catch (error) {
-    console.error('Failed to verify signing chain:', error);
+    console.error("Failed to verify signing chain:", error);
     throw error;
   }
 }

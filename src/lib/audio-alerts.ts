@@ -67,7 +67,7 @@ function playWarningBeep(
   freq: number,
   startTime: number,
   duration: number,
-  gainLevel: number = 0.22
+  gainLevel: number = 0.22,
 ): void {
   const osc1 = ctx.createOscillator();
   const gain1 = ctx.createGain();
@@ -122,7 +122,7 @@ function playSirenChirp(
   endFreq: number,
   startTime: number,
   duration: number,
-  gainLevel: number = 0.24
+  gainLevel: number = 0.24,
 ): void {
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
@@ -152,7 +152,7 @@ function playSirenChirp(
  */
 export function playClinicalAlert(
   severity: "critical" | "warning" | "info" = "warning",
-  forcePlay: boolean = false
+  forcePlay: boolean = false,
 ): void {
   if (!isAudioAlertsEnabled()) return;
 

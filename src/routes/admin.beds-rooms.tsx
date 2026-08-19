@@ -40,7 +40,6 @@ import { StatusUpdateDialog } from "@/components/beds/StatusUpdateDialog";
 import { CreateEntityDialog } from "@/components/beds/CreateEntityDialog";
 import { useSpotlightTarget } from "@/hooks/use-spotlight";
 
-
 export const Route = createFileRoute("/admin/beds-rooms")({
   validateSearch: (search: Record<string, unknown>): { highlight?: string } => ({
     highlight: typeof search.highlight === "string" ? search.highlight : undefined,

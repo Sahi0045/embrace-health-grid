@@ -18,15 +18,14 @@ import type { LabOrderRecord } from "@/lib/types";
 
 interface TestQueueTabProps {
   orders: LabOrderRecord[];
-  onUpdateStatus: (orderId: string, status: "pending" | "in_progress" | "completed" | "cancelled") => void;
+  onUpdateStatus: (
+    orderId: string,
+    status: "pending" | "in_progress" | "completed" | "cancelled",
+  ) => void;
   onRecordResultClick: (order: LabOrderRecord) => void;
 }
 
-export function TestQueueTab({
-  orders,
-  onUpdateStatus,
-  onRecordResultClick,
-}: TestQueueTabProps) {
+export function TestQueueTab({ orders, onUpdateStatus, onRecordResultClick }: TestQueueTabProps) {
   if (orders.length === 0) {
     return (
       <EmptyState
@@ -104,7 +103,8 @@ export function TestQueueTab({
                   </h3>
                   {order.specimen_type && (
                     <p className="text-xs font-medium text-muted-foreground mt-0.5">
-                      Specimen: <span className="text-foreground font-semibold">{order.specimen_type}</span>
+                      Specimen:{" "}
+                      <span className="text-foreground font-semibold">{order.specimen_type}</span>
                     </p>
                   )}
                 </div>
@@ -123,7 +123,12 @@ export function TestQueueTab({
 
                   <div className="flex items-center gap-1.5">
                     <Stethoscope className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span>Ordered by: <strong className="text-foreground">{order.doctor_name || "Physician"}</strong></span>
+                    <span>
+                      Ordered by:{" "}
+                      <strong className="text-foreground">
+                        {order.doctor_name || "Physician"}
+                      </strong>
+                    </span>
                   </div>
                 </div>
 

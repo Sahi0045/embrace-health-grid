@@ -54,15 +54,22 @@ export function CafeteriaKpiBar({
   }));
 
   // Sparkline data for 7-day wastage trend
-  const wastageSparklineData = wastage.length >= 5
-    ? wastage.slice(0, 10).map((w) => w.quantity_wasted).reverse()
-    : [14.2, 12.8, 15.5, 11.2, 9.8, 8.4, stats.todayWastageKg || 7.2];
+  const wastageSparklineData =
+    wastage.length >= 5
+      ? wastage
+          .slice(0, 10)
+          .map((w) => w.quantity_wasted)
+          .reverse()
+      : [14.2, 12.8, 15.5, 11.2, 9.8, 8.4, stats.todayWastageKg || 7.2];
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-stretch">
       {/* 1. Left Bento Hero Deck: Menu Portfolio & Category Distribution (7 cols) */}
       <div className="lg:col-span-7 flex flex-col">
-        <GlowCard accent="primary" className="p-6 md:p-7 flex flex-col justify-between h-full space-y-6">
+        <GlowCard
+          accent="primary"
+          className="p-6 md:p-7 flex flex-col justify-between h-full space-y-6"
+        >
           {/* Header */}
           <div className="flex items-center justify-between border-b border-border/60 pb-4">
             <div className="flex items-center gap-3">
@@ -128,7 +135,10 @@ export function CafeteriaKpiBar({
                     }`}
                   >
                     <div className="flex items-center gap-2.5 min-w-0 flex-1 mr-2">
-                      <span className="h-2.5 w-2.5 rounded-full shrink-0 shadow-xs" style={{ backgroundColor: cat.color }} />
+                      <span
+                        className="h-2.5 w-2.5 rounded-full shrink-0 shadow-xs"
+                        style={{ backgroundColor: cat.color }}
+                      />
                       <span className="text-xs font-bold truncate group-hover:text-primary transition-colors">
                         {cat.name}
                       </span>
@@ -151,16 +161,28 @@ export function CafeteriaKpiBar({
           {/* Bottom highlight badges */}
           <div className="grid grid-cols-3 gap-2.5 pt-3 border-t border-border/60 text-center">
             <div className="p-2.5 rounded-xl bg-background/60 border border-border/60 shadow-clinical-xs">
-              <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Patient Plans</p>
-              <p className="text-sm font-black text-primary mt-0.5">{stats.activeDietaryPlans} Active</p>
+              <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
+                Patient Plans
+              </p>
+              <p className="text-sm font-black text-primary mt-0.5">
+                {stats.activeDietaryPlans} Active
+              </p>
             </div>
             <div className="p-2.5 rounded-xl bg-background/60 border border-border/60 shadow-clinical-xs">
-              <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Avg Rating</p>
-              <p className="text-sm font-black text-amber-500 mt-0.5">⭐ {stats.averageMealRating}</p>
+              <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
+                Avg Rating
+              </p>
+              <p className="text-sm font-black text-amber-500 mt-0.5">
+                ⭐ {stats.averageMealRating}
+              </p>
             </div>
             <div className="p-2.5 rounded-xl bg-background/60 border border-border/60 shadow-clinical-xs">
-              <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Active Vendors</p>
-              <p className="text-sm font-black text-emerald-500 mt-0.5">{stats.activeVendorsCount} Certified</p>
+              <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
+                Active Vendors
+              </p>
+              <p className="text-sm font-black text-emerald-500 mt-0.5">
+                {stats.activeVendorsCount} Certified
+              </p>
             </div>
           </div>
         </GlowCard>
@@ -169,9 +191,14 @@ export function CafeteriaKpiBar({
       {/* 2. Right Operational Metrics (5 cols: 2x2 grid) */}
       <div className="lg:col-span-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Metric 1: Pending Deliveries */}
-        <GlowCard accent={stats.pendingDeliveries > 0 ? "warning" : "primary"} className="p-5 md:p-6 flex flex-col justify-between h-full space-y-3">
+        <GlowCard
+          accent={stats.pendingDeliveries > 0 ? "warning" : "primary"}
+          className="p-5 md:p-6 flex flex-col justify-between h-full space-y-3"
+        >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Meal Dispatch</span>
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              Meal Dispatch
+            </span>
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/15 text-amber-500 shadow-xs border border-amber-500/20">
               <Truck className="h-4.5 w-4.5" />
             </div>
@@ -187,9 +214,14 @@ export function CafeteriaKpiBar({
         </GlowCard>
 
         {/* Metric 2: Dietary Care Compliance */}
-        <GlowCard accent="success" className="p-5 md:p-6 flex flex-col justify-between h-full space-y-3">
+        <GlowCard
+          accent="success"
+          className="p-5 md:p-6 flex flex-col justify-between h-full space-y-3"
+        >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Dietary Plans</span>
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              Dietary Plans
+            </span>
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-500 shadow-xs border border-emerald-500/20">
               <HeartPulse className="h-4.5 w-4.5" />
             </div>
@@ -205,9 +237,14 @@ export function CafeteriaKpiBar({
         </GlowCard>
 
         {/* Metric 3: Low Kitchen Stock Alerts */}
-        <GlowCard accent={stats.lowKitchenStockCount > 0 ? "destructive" : "none"} className="p-5 md:p-6 flex flex-col justify-between h-full space-y-3">
+        <GlowCard
+          accent={stats.lowKitchenStockCount > 0 ? "destructive" : "none"}
+          className="p-5 md:p-6 flex flex-col justify-between h-full space-y-3"
+        >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Kitchen Stock</span>
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              Kitchen Stock
+            </span>
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-500/15 text-rose-500 shadow-xs border border-rose-500/20">
               <ChefHat className="h-4.5 w-4.5" />
             </div>
@@ -218,23 +255,33 @@ export function CafeteriaKpiBar({
           </div>
           <div className="flex items-center justify-between pt-2.5 border-t border-border/50 text-xs">
             <span className="text-muted-foreground">Pantry status:</span>
-            <span className={`font-bold ${stats.lowKitchenStockCount > 0 ? "text-rose-500" : "text-emerald-500"}`}>
+            <span
+              className={`font-bold ${stats.lowKitchenStockCount > 0 ? "text-rose-500" : "text-emerald-500"}`}
+            >
               {stats.lowKitchenStockCount > 0 ? "Action Required" : "Optimal"}
             </span>
           </div>
         </GlowCard>
 
         {/* Metric 4: Daily Wastage & Reduction Sparkline */}
-        <GlowCard accent="primary" className="p-5 md:p-6 flex flex-col justify-between h-full space-y-3">
+        <GlowCard
+          accent="primary"
+          className="p-5 md:p-6 flex flex-col justify-between h-full space-y-3"
+        >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Food Wastage</span>
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              Food Wastage
+            </span>
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-500/15 text-purple-500 shadow-xs border border-purple-500/20">
               <TrendingDown className="h-4.5 w-4.5" />
             </div>
           </div>
           <div className="my-1 flex items-baseline justify-between">
             <div>
-              <div className="text-3xl font-black text-foreground">{stats.todayWastageKg} <span className="text-sm font-bold text-muted-foreground">kg</span></div>
+              <div className="text-3xl font-black text-foreground">
+                {stats.todayWastageKg}{" "}
+                <span className="text-sm font-bold text-muted-foreground">kg</span>
+              </div>
               <p className="text-xs text-muted-foreground mt-0.5">Recorded today</p>
             </div>
             <div className="w-20">

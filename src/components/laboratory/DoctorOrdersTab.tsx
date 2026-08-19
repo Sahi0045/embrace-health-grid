@@ -25,10 +25,7 @@ interface DoctorGroup {
   totalCount: number;
 }
 
-export function DoctorOrdersTab({
-  labOrders,
-  radiologyOrders,
-}: DoctorOrdersTabProps) {
+export function DoctorOrdersTab({ labOrders, radiologyOrders }: DoctorOrdersTabProps) {
   // Group orders by ordering physician
   const doctorGroups: Record<string, DoctorGroup> = {};
 
@@ -62,9 +59,7 @@ export function DoctorOrdersTab({
     doctorGroups[docName].totalCount++;
   }
 
-  const groupList = Object.values(doctorGroups).sort(
-    (a, b) => b.totalCount - a.totalCount,
-  );
+  const groupList = Object.values(doctorGroups).sort((a, b) => b.totalCount - a.totalCount);
 
   if (groupList.length === 0) {
     return (
@@ -96,9 +91,7 @@ export function DoctorOrdersTab({
                 <h3 className="font-display font-extrabold text-base text-foreground tracking-tight">
                   {group.doctorName}
                 </h3>
-                <p className="font-mono text-[10px] text-muted-foreground">
-                  {group.doctorDid}
-                </p>
+                <p className="font-mono text-[10px] text-muted-foreground">{group.doctorDid}</p>
               </div>
             </div>
 
@@ -134,9 +127,7 @@ export function DoctorOrdersTab({
                 </div>
 
                 <div>
-                  <h4 className="font-display font-bold text-xs text-foreground">
-                    {lo.test_name}
-                  </h4>
+                  <h4 className="font-display font-bold text-xs text-foreground">{lo.test_name}</h4>
                   <p className="text-[11px] text-muted-foreground">
                     Patient: <strong className="text-foreground">{lo.patient_name}</strong>
                   </p>
@@ -173,9 +164,7 @@ export function DoctorOrdersTab({
                 </div>
 
                 <div>
-                  <h4 className="font-display font-bold text-xs text-foreground">
-                    {ro.body_part}
-                  </h4>
+                  <h4 className="font-display font-bold text-xs text-foreground">{ro.body_part}</h4>
                   <p className="text-[11px] text-muted-foreground">
                     Patient: <strong className="text-foreground">{ro.patient_name}</strong>
                   </p>

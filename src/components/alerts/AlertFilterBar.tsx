@@ -73,16 +73,10 @@ export function AlertFilterBar({
   // Close dropdowns on click outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (
-        categoryDropdownRef.current &&
-        !categoryDropdownRef.current.contains(e.target as Node)
-      ) {
+      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(e.target as Node)) {
         setCategoryMenuOpen(false);
       }
-      if (
-        severityDropdownRef.current &&
-        !severityDropdownRef.current.contains(e.target as Node)
-      ) {
+      if (severityDropdownRef.current && !severityDropdownRef.current.contains(e.target as Node)) {
         setSeverityMenuOpen(false);
       }
     };
@@ -91,9 +85,7 @@ export function AlertFilterBar({
   }, []);
 
   const hasActiveRefinements =
-    selectedCategory !== "all" ||
-    selectedSeverity !== "all" ||
-    searchQuery.trim() !== "";
+    selectedCategory !== "all" || selectedSeverity !== "all" || searchQuery.trim() !== "";
 
   const handleResetRefinements = () => {
     onSearchChange("");
@@ -101,10 +93,8 @@ export function AlertFilterBar({
     onSeverityChange("all");
   };
 
-  const activeCategoryObj =
-    CATEGORIES.find((c) => c.id === selectedCategory) || CATEGORIES[0];
-  const activeSeverityObj =
-    SEVERITIES.find((s) => s.id === selectedSeverity) || SEVERITIES[0];
+  const activeCategoryObj = CATEGORIES.find((c) => c.id === selectedCategory) || CATEGORIES[0];
+  const activeSeverityObj = SEVERITIES.find((s) => s.id === selectedSeverity) || SEVERITIES[0];
 
   const CategoryIcon = activeCategoryObj.icon;
 
@@ -205,9 +195,13 @@ export function AlertFilterBar({
                   : "bg-background border-border/80 text-muted-foreground hover:text-foreground hover:bg-accent"
               }`}
             >
-              <CategoryIcon className={`h-3.5 w-3.5 ${selectedCategory !== "all" ? "text-primary-foreground" : "text-muted-foreground"}`} />
+              <CategoryIcon
+                className={`h-3.5 w-3.5 ${selectedCategory !== "all" ? "text-primary-foreground" : "text-muted-foreground"}`}
+              />
               <span>{activeCategoryObj.label}</span>
-              <ChevronDown className={`h-3.5 w-3.5 transition-transform ${categoryMenuOpen ? "rotate-180" : ""}`} />
+              <ChevronDown
+                className={`h-3.5 w-3.5 transition-transform ${categoryMenuOpen ? "rotate-180" : ""}`}
+              />
             </button>
 
             {categoryMenuOpen && (
@@ -234,7 +228,9 @@ export function AlertFilterBar({
                         }`}
                       >
                         <div className="flex items-center gap-2">
-                          <Icon className={`h-3.5 w-3.5 ${isCur ? "text-primary" : "text-muted-foreground"}`} />
+                          <Icon
+                            className={`h-3.5 w-3.5 ${isCur ? "text-primary" : "text-muted-foreground"}`}
+                          />
                           <span>{cat.label}</span>
                         </div>
                         {isCur && <Check className="h-3.5 w-3.5 text-primary" />}
@@ -262,7 +258,9 @@ export function AlertFilterBar({
             >
               <span className={`h-2 w-2 rounded-full ${activeSeverityObj.dotClass}`} />
               <span>{activeSeverityObj.label}</span>
-              <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${severityMenuOpen ? "rotate-180" : ""}`} />
+              <ChevronDown
+                className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${severityMenuOpen ? "rotate-180" : ""}`}
+              />
             </button>
 
             {severityMenuOpen && (

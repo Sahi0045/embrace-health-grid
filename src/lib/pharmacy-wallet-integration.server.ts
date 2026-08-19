@@ -4,11 +4,11 @@
  * Integrates dispensePrescriptionMedications with hybrid wallet router
  */
 
-import { getSupabaseServerClient, getVerifiedUser } from '@/lib/supabase.server';
-import { dispensePrescriptionMedications } from '@/lib/pharmacy.server';
-import { routeTransaction } from '@/routes/api.transaction-router';
-import { recordWalletSigningAudit } from '@/lib/wallet-audit-integration.server';
-import type { TransactionRouterResponse } from '@/routes/api.transaction-router';
+import { getSupabaseServerClient, getVerifiedUser } from "@/lib/supabase.server";
+import { dispensePrescriptionMedications } from "@/lib/pharmacy.server";
+import { routeTransaction } from "@/routes/api.transaction-router";
+import { recordWalletSigningAudit } from "@/lib/wallet-audit-integration.server";
+import type { TransactionRouterResponse } from "@/routes/api.transaction-router";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -24,7 +24,7 @@ export interface DispenseWithBlockchainParams {
   dispensedBy?: string;
   notes?: string;
   signWithBlockchain?: boolean; // Enable hybrid wallet signing
-  userPreferredWallet?: 'auto' | 'phantom' | 'embedded';
+  userPreferredWallet?: "auto" | "phantom" | "embedded";
   phantomAvailable?: boolean;
   phantomConnected?: boolean;
 }
@@ -40,7 +40,7 @@ export interface DispenseWithBlockchainResult {
   signingResult?: {
     txId: string;
     signature: string;
-    walletUsed: 'phantom' | 'embedded';
+    walletUsed: "phantom" | "embedded";
     confirmed: boolean;
     explorerUrl: string;
   };
@@ -65,23 +65,23 @@ export interface DispenseWithBlockchainResult {
  * Use case: High-security pharmacies that want immutable records on-chain
  */
 export async function dispensePrescriptionMedicationsWithBlockchain(
-  params: DispenseWithBlockchainParams
+  params: DispenseWithBlockchainParams,
 ): Promise<DispenseWithBlockchainResult> {
   const db = getSupabaseServerClient();
   const user = await getVerifiedUser();
 
   if (!user) {
-    throw new Error('User not authenticated');
+    throw new Error("User not authenticated");
   }
 
   const { data: profile } = await db
-    .from('profiles')
-    .select('hospital_id')
-    .eq('id', user.id)
+    .from("profiles")
+    .select("hospital_id")
+    .eq("id", user.id)
     .single();
 
   if (!profile) {
-    throw new Error('User profile not found');
+    throw new Error("User profile not found");
   }
 
   try {
@@ -89,7 +89,7 @@ export async function dispensePrescriptionMedicationsWithBlockchain(
     console.log(`   Prescription: ${params.prescriptionId}`);
     console.log(`   Patient: ${params.patientDid}`);
     console.log(`   Medications: ${params.medications.length}`);
-    console.log(`   Blockchain Signing: ${params.signWithBlockchain ? 'ENABLED' : 'disabled'}`);
+    console.log(`   Blockchain Signing: ${params.signWithBlockchain ? "ENABLED" : "disabled"}`);
 
     // ─── Step 1: Dispense Medications ────────────────────────────────────
 
@@ -132,7 +132,7 @@ export async function dispensePrescriptionMedicationsWithBlockchain(
           timestamp: new Date().toISOString(),
         };
 
-        const recordHash = Buffer.from(JSON.stringify(recordData)).toString('base64').slice(0, 64);
+        const recordHash = Buffer.from(JSON.stringify(recordData)).toString("base64").slice(0, 64);
 
         console.log(`   Record Hash: ${recordHash}`);
 
@@ -140,10 +140,10 @@ export async function dispensePrescriptionMedicationsWithBlockchain(
         signingResult = await routeTransaction({
           data: {
             patientDid: params.patientDid,
-            recordType: 'PRESCRIPTION_DISPENSED',
+            recordType: "PRESCRIPTION_DISPENSED",
             recordHash,
             hospitalId: profile.hospital_id,
-            userPreferredWallet: params.userPreferredWallet || 'auto',
+            userPreferredWallet: params.userPreferredWallet || "auto",
             phantomAvailable: params.phantomAvailable || false,
             phantomConnected: params.phantomConnected || false,
             allowFallback: true,
@@ -168,12 +168,12 @@ export async function dispensePrescriptionMedicationsWithBlockchain(
             // Standard audit fields
             actorId: user.id,
             actorName: params.dispensedBy || null,
-            action: 'PRESCRIPTION_DISPENSED_SIGNED',
-            outcome: 'success',
-            severity: 'info',
-            module: 'pharmacy',
+            action: "PRESCRIPTION_DISPENSED_SIGNED",
+            outcome: "success",
+            severity: "info",
+            module: "pharmacy",
             entityId: params.prescriptionId,
-            entityType: 'prescription_dispensing',
+            entityType: "prescription_dispensing",
             resource: `Prescription dispensed and signed: ${params.prescriptionId}`,
             hospital: profile.hospital_id,
             // Wallet-specific fields
@@ -198,7 +198,8 @@ export async function dispensePrescriptionMedicationsWithBlockchain(
       } catch (signingError) {
         console.error(`❌ Blockchain signing failed:`, signingError);
         // Return result with signing failure but successful dispensing
-        const errorMsg = signingError instanceof Error ? signingError.message : String(signingError);
+        const errorMsg =
+          signingError instanceof Error ? signingError.message : String(signingError);
 
         return {
           ok: true, // Dispensing succeeded even if signing failed
@@ -206,10 +207,7 @@ export async function dispensePrescriptionMedicationsWithBlockchain(
           patientDid: params.patientDid,
           dispensedCount: dispenseResult.dispensedCount,
           failedCount: dispenseResult.failedCount,
-          errors: [
-            ...(dispenseResult.errors || []),
-            `Blockchain signing failed: ${errorMsg}`,
-          ],
+          errors: [...(dispenseResult.errors || []), `Blockchain signing failed: ${errorMsg}`],
           blockchainSigningEnabled: true,
           message: `✅ Medications dispensed (${dispenseResult.dispensedCount}), but blockchain signing failed: ${errorMsg}`,
         };
@@ -229,7 +227,7 @@ export async function dispensePrescriptionMedicationsWithBlockchain(
       message: `✅ Dispensing complete (${dispenseResult.dispensedCount} medications)${
         signingResult
           ? ` and blockchain-signed with ${signingResult.walletUsed} wallet (${signingResult.totalDuration}ms)`
-          : ''
+          : ""
       }`,
     };
 
@@ -282,7 +280,7 @@ export function generateDispensingRecordHash(params: {
 
   // For now, use base64 of JSON (in production, use SHA256)
   const jsonStr = JSON.stringify(recordData);
-  const hash = Buffer.from(jsonStr).toString('base64').slice(0, 64);
+  const hash = Buffer.from(jsonStr).toString("base64").slice(0, 64);
 
   console.log(`📊 Generated dispensing record hash:`, {
     recordData,
@@ -305,7 +303,7 @@ export async function verifyDispensingBlockchainRecord(params: {
 }): Promise<{
   valid: boolean;
   confirmed: boolean;
-  signerType?: 'phantom' | 'embedded';
+  signerType?: "phantom" | "embedded";
   explorerUrl?: string;
   timestamp?: string;
   reason?: string;
@@ -315,13 +313,13 @@ export async function verifyDispensingBlockchainRecord(params: {
   try {
     // Look up the signing event
     const { data: signingEvent, error } = await db
-      .from('signing_events')
-      .select('*')
-      .eq('transaction_id', params.txId)
-      .eq('hospital_id', params.hospitalId)
+      .from("signing_events")
+      .select("*")
+      .eq("transaction_id", params.txId)
+      .eq("hospital_id", params.hospitalId)
       .single();
 
-    if (error?.code === 'PGRST116') {
+    if (error?.code === "PGRST116") {
       return {
         valid: false,
         confirmed: false,
@@ -339,7 +337,7 @@ export async function verifyDispensingBlockchainRecord(params: {
       return {
         valid: false,
         confirmed: false,
-        reason: 'Prescription ID mismatch in signing event metadata',
+        reason: "Prescription ID mismatch in signing event metadata",
       };
     }
 
@@ -347,15 +345,15 @@ export async function verifyDispensingBlockchainRecord(params: {
       valid: true,
       confirmed: signingEvent.confirmed,
       signerType: signingEvent.signer_type,
-      explorerUrl: `https://explorer.solana.com/tx/${params.txId}?cluster=${process.env.SOLANA_NETWORK || 'devnet'}`,
+      explorerUrl: `https://explorer.solana.com/tx/${params.txId}?cluster=${process.env.SOLANA_NETWORK || "devnet"}`,
       timestamp: signingEvent.confirmed_at,
     };
   } catch (error) {
-    console.error('Failed to verify dispensing blockchain record:', error);
+    console.error("Failed to verify dispensing blockchain record:", error);
     return {
       valid: false,
       confirmed: false,
-      reason: 'Verification failed',
+      reason: "Verification failed",
     };
   }
 }
@@ -377,7 +375,7 @@ export async function getDispensingAuditTrailWithBlockchain(params: {
   };
   blockchainProof?: {
     txId: string;
-    signerType: 'phantom' | 'embedded';
+    signerType: "phantom" | "embedded";
     confirmed: boolean;
     explorerUrl: string;
   };
@@ -393,31 +391,31 @@ export async function getDispensingAuditTrailWithBlockchain(params: {
   try {
     // Get stock movements for this prescription
     const { data: movements } = await db
-      .from('stock_movements')
-      .select('*')
-      .eq('prescription_id', params.prescriptionId)
-      .order('movement_timestamp', { ascending: true });
+      .from("stock_movements")
+      .select("*")
+      .eq("prescription_id", params.prescriptionId)
+      .order("movement_timestamp", { ascending: true });
 
     // Get signing events for this prescription
     const { data: signingEvents } = await db
-      .from('signing_events')
-      .select('*')
-      .like('metadata->>prescriptionId', params.prescriptionId)
-      .order('created_at', { ascending: true });
+      .from("signing_events")
+      .select("*")
+      .like("metadata->>prescriptionId", params.prescriptionId)
+      .order("created_at", { ascending: true });
 
     // Get audit events
     const { data: auditEvents } = await db
-      .from('audit_events')
-      .select('*')
-      .eq('entity_id', params.prescriptionId)
-      .like('action', '%DISPENSED%')
-      .order('timestamp', { ascending: true });
+      .from("audit_events")
+      .select("*")
+      .eq("entity_id", params.prescriptionId)
+      .like("action", "%DISPENSED%")
+      .order("timestamp", { ascending: true });
 
     const result: any = {
       dispensing: {
         prescriptionId: params.prescriptionId,
         timestamp: movements?.[0]?.movement_timestamp || new Date().toISOString(),
-        dispensedBy: movements?.[0]?.performed_by_name || 'Unknown',
+        dispensedBy: movements?.[0]?.performed_by_name || "Unknown",
         medicationCount: new Set(movements?.map((m) => m.item_id)).size || 0,
       },
       auditEvents: (auditEvents || []).map((e) => ({
@@ -435,13 +433,13 @@ export async function getDispensingAuditTrailWithBlockchain(params: {
         txId: signing.transaction_id,
         signerType: signing.signer_type,
         confirmed: signing.confirmed,
-        explorerUrl: `https://explorer.solana.com/tx/${signing.transaction_id}?cluster=${process.env.SOLANA_NETWORK || 'devnet'}`,
+        explorerUrl: `https://explorer.solana.com/tx/${signing.transaction_id}?cluster=${process.env.SOLANA_NETWORK || "devnet"}`,
       };
     }
 
     return result;
   } catch (error) {
-    console.error('Failed to get dispensing audit trail:', error);
+    console.error("Failed to get dispensing audit trail:", error);
     throw error;
   }
 }

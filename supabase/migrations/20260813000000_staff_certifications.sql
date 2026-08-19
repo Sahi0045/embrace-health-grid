@@ -15,7 +15,10 @@ create type certification_status as enum ('active', 'expired', 'revoked', 'pendi
 create table public.staff_certifications (
   cert_id          text primary key default ('CERT-' || upper(substring(gen_random_uuid()::text, 1, 8))),
   staff_did        text not null references public.dids(did) on delete cascade,
-  hospital_id      text not null,
+  -- uuid with a real foreign key, matching every other tenant-scoped table.
+  -- This was 'text not null' with no reference, which both allowed values that
+  -- match no hospital and made the scoping helper compare text to uuid.
+  hospital_id      uuid not null references public.hospitals(hospital_id) on delete cascade,
   
   -- Certification details
   cert_name        text not null,
@@ -75,7 +78,7 @@ create table public.certification_audit_log (
   performed_by_role text,
   
   -- Context
-  hospital_id    text,
+  hospital_id    uuid references public.hospitals(hospital_id) on delete set null,
   reason         text,                      -- Optional reason for change
   logged_at      timestamptz not null default now(),
   
@@ -92,7 +95,11 @@ comment on table public.certification_audit_log is
 
 -- ─── Helper function for hospital scoping ───────────────────────────────────
 -- Returns true if the certification belongs to the user's hospital
-create or replace function private.cert_in_user_hospital(cert_hospital_id text)
+-- Parameter is uuid: profiles.hospital_id is uuid, so a text parameter made this
+-- fail to create with 'operator does not exist: text = uuid'.
+-- NOTE: this duplicates private.can_access_hospital(uuid), which also allows a
+-- super_admin. Worth consolidating.
+create or replace function private.cert_in_user_hospital(cert_hospital_id uuid)
 returns boolean
 language sql
 stable

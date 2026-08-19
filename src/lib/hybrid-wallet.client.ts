@@ -1,12 +1,11 @@
 /**
  * Hybrid Wallet Client
  * Seamless integration of Phantom (user signing) + Embedded (backend signing) wallets
- * 
+ *
  * Usage:
  *   const { walletMode, isConnected } = useHybridWallet();
  *   const { txId } = await signAndAnchorTransaction(data);
  */
-
 
 import {
   Connection,
@@ -14,11 +13,11 @@ import {
   Transaction,
   TransactionMessage,
   VersionedTransaction,
-} from '@solana/web3.js';
+} from "@solana/web3.js";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-export type WalletMode = 'phantom' | 'embedded' | 'auto';
+export type WalletMode = "phantom" | "embedded" | "auto";
 
 export interface HybridWalletState {
   walletMode: WalletMode;
@@ -40,7 +39,7 @@ export interface TransactionPayload {
 
 export interface SigningResult {
   txId: string;
-  walletUsed: 'phantom' | 'embedded';
+  walletUsed: "phantom" | "embedded";
   signature: string;
   userWallet?: string; // If Phantom mode
   timestamp: Date;
@@ -54,7 +53,7 @@ export interface SigningResult {
  * Check if Phantom wallet is available
  */
 export function isPhantomInstalled(): boolean {
-  if (typeof window === 'undefined') return false;
+  if (typeof window === "undefined") return false;
   return !!(window as any).solana?.isPhantom;
 }
 
@@ -62,7 +61,7 @@ export function isPhantomInstalled(): boolean {
  * Get Phantom provider
  */
 function getPhantomProvider() {
-  if (typeof window === 'undefined') return null;
+  if (typeof window === "undefined") return null;
   const phantom = (window as any).solana;
   return phantom?.isPhantom ? phantom : null;
 }
@@ -74,15 +73,15 @@ function getPhantomProvider() {
 export async function connectPhantom(): Promise<{ publicKey: string }> {
   const phantom = getPhantomProvider();
   if (!phantom) {
-    throw new Error('Phantom wallet not found. Install from https://phantom.app');
+    throw new Error("Phantom wallet not found. Install from https://phantom.app");
   }
 
   try {
     const { publicKey } = await phantom.connect();
-    console.log('✅ Connected to Phantom:', publicKey.toBase58());
+    console.log("✅ Connected to Phantom:", publicKey.toBase58());
     return { publicKey: publicKey.toBase58() };
   } catch (error) {
-    console.error('❌ Failed to connect to Phantom:', error);
+    console.error("❌ Failed to connect to Phantom:", error);
     throw error;
   }
 }
@@ -94,7 +93,7 @@ export async function disconnectPhantom(): Promise<void> {
   const phantom = getPhantomProvider();
   if (phantom && phantom.disconnect) {
     await phantom.disconnect();
-    console.log('✅ Disconnected from Phantom');
+    console.log("✅ Disconnected from Phantom");
   }
 }
 
@@ -102,12 +101,10 @@ export async function disconnectPhantom(): Promise<void> {
  * Sign transaction with Phantom wallet
  * Sends to user's Phantom extension for approval
  */
-export async function signWithPhantom(
-  transactionData: TransactionPayload
-): Promise<SigningResult> {
+export async function signWithPhantom(transactionData: TransactionPayload): Promise<SigningResult> {
   const phantom = getPhantomProvider();
   if (!phantom) {
-    throw new Error('Phantom wallet not available');
+    throw new Error("Phantom wallet not available");
   }
 
   try {
@@ -123,10 +120,10 @@ export async function signWithPhantom(
 
     // Step 2: Build transaction
     const connection = new Connection(
-      process.env.REACT_APP_SOLANA_RPC_URL || 'https://api.devnet.solana.com'
+      process.env.REACT_APP_SOLANA_RPC_URL || "https://api.devnet.solana.com",
     );
 
-    const { blockhash } = await connection.getLatestBlockhash('confirmed');
+    const { blockhash } = await connection.getLatestBlockhash("confirmed");
 
     // Create transaction with instruction
     const message = new TransactionMessage({
@@ -144,9 +141,9 @@ export async function signWithPhantom(
           ],
           data: Buffer.concat([
             Buffer.from([1]), // Instruction discriminator
-            Buffer.from(transactionData.recordType.padEnd(32, '\0')),
-            Buffer.from(transactionData.recordHash, 'hex'),
-            Buffer.from(transactionData.patientDid.padEnd(64, '\0')),
+            Buffer.from(transactionData.recordType.padEnd(32, "\0")),
+            Buffer.from(transactionData.recordHash, "hex"),
+            Buffer.from(transactionData.patientDid.padEnd(64, "\0")),
           ]),
         },
       ],
@@ -158,7 +155,7 @@ export async function signWithPhantom(
     // This triggers the Phantom popup where user approves/denies
     const signedTx = await phantom.signTransaction(versionedTx);
 
-    console.log('✅ Transaction signed by Phantom');
+    console.log("✅ Transaction signed by Phantom");
 
     // Step 4: Send signed transaction to blockchain
     const txId = await connection.sendRawTransaction(signedTx.serialize(), {
@@ -169,7 +166,7 @@ export async function signWithPhantom(
     console.log(`📤 Transaction sent: ${txId}`);
 
     // Step 5: Wait for confirmation
-    const confirmation = await connection.confirmTransaction(txId, 'confirmed');
+    const confirmation = await connection.confirmTransaction(txId, "confirmed");
     if (confirmation.value.err) {
       throw new Error(`Transaction failed: ${confirmation.value.err}`);
     }
@@ -187,13 +184,13 @@ export async function signWithPhantom(
 
     return {
       txId,
-      walletUsed: 'phantom',
+      walletUsed: "phantom",
       signature: txId,
       userWallet: publicKey.toBase58(),
       timestamp: new Date(),
     };
   } catch (error) {
-    console.error('❌ Phantom signing failed:', error);
+    console.error("❌ Phantom signing failed:", error);
     throw error;
   }
 }
@@ -205,14 +202,14 @@ export async function signWithPhantom(
  * No user prompts, seamless experience
  */
 export async function signWithEmbedded(
-  transactionData: TransactionPayload
+  transactionData: TransactionPayload,
 ): Promise<SigningResult> {
   try {
     // Send to backend - backend uses hospital wallet to sign
-    const response = await fetch('/api/sign-and-anchor', {
-      method: 'POST',
+    const response = await fetch("/api/sign-and-anchor", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         patientDid: transactionData.patientDid,
@@ -234,12 +231,12 @@ export async function signWithEmbedded(
 
     return {
       txId,
-      walletUsed: 'embedded',
+      walletUsed: "embedded",
       signature,
       timestamp: new Date(),
     };
   } catch (error) {
-    console.error('❌ Embedded signing failed:', error);
+    console.error("❌ Embedded signing failed:", error);
     throw error;
   }
 }
@@ -248,7 +245,7 @@ export async function signWithEmbedded(
 
 /**
  * Sign and anchor transaction using hybrid wallet logic
- * 
+ *
  * Decision tree:
  * 1. Check user preference (manual override)
  * 2. Check if Phantom available and connected
@@ -257,29 +254,29 @@ export async function signWithEmbedded(
 export async function signAndAnchorTransaction(
   transactionData: TransactionPayload,
   options: {
-    forceMode?: 'phantom' | 'embedded';
+    forceMode?: "phantom" | "embedded";
     showProgress?: boolean;
-  } = {}
+  } = {},
 ): Promise<SigningResult> {
   try {
     // Determine which wallet to use
-    let walletMode: 'phantom' | 'embedded' = 'embedded';
+    let walletMode: "phantom" | "embedded" = "embedded";
 
     if (options.forceMode) {
       walletMode = options.forceMode;
     } else if (isPhantomInstalled() && getPhantomProvider()) {
       // Auto-detect Phantom
-      walletMode = 'phantom';
+      walletMode = "phantom";
     }
 
     console.log(`🔄 Signing with: ${walletMode}`);
 
     // Route to appropriate signer
-    if (walletMode === 'phantom') {
+    if (walletMode === "phantom") {
       try {
         return await signWithPhantom(transactionData);
       } catch (error) {
-        console.warn('Phantom signing failed, falling back to embedded:', error);
+        console.warn("Phantom signing failed, falling back to embedded:", error);
         // Fallback to embedded if Phantom fails
         return await signWithEmbedded(transactionData);
       }
@@ -287,7 +284,7 @@ export async function signAndAnchorTransaction(
       return await signWithEmbedded(transactionData);
     }
   } catch (error) {
-    console.error('❌ Transaction signing failed:', error);
+    console.error("❌ Transaction signing failed:", error);
     throw error;
   }
 }
@@ -299,37 +296,35 @@ export async function signAndAnchorTransaction(
  */
 export async function getUserWalletPreference(): Promise<WalletMode> {
   try {
-    const response = await fetch('/api/wallet-preference');
-    if (!response.ok) return 'auto';
+    const response = await fetch("/api/wallet-preference");
+    if (!response.ok) return "auto";
 
     const { walletMode } = await response.json();
     return walletMode as WalletMode;
   } catch (error) {
-    console.error('Failed to fetch wallet preference:', error);
-    return 'auto';
+    console.error("Failed to fetch wallet preference:", error);
+    return "auto";
   }
 }
 
 /**
  * Save user's wallet preference
  */
-export async function saveUserWalletPreference(
-  walletMode: WalletMode
-): Promise<void> {
+export async function saveUserWalletPreference(walletMode: WalletMode): Promise<void> {
   try {
-    const response = await fetch('/api/wallet-preference', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const response = await fetch("/api/wallet-preference", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ walletMode }),
     });
 
     if (!response.ok) {
-      throw new Error('Failed to save preference');
+      throw new Error("Failed to save preference");
     }
 
     console.log(`✅ Wallet preference saved: ${walletMode}`);
   } catch (error) {
-    console.error('Failed to save wallet preference:', error);
+    console.error("Failed to save wallet preference:", error);
     throw error;
   }
 }
@@ -347,11 +342,11 @@ async function savePhantomsigningEvent(params: {
   hospitalId: string;
 }): Promise<void> {
   try {
-    await fetch('/api/signing-events', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    await fetch("/api/signing-events", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        signerType: 'phantom',
+        signerType: "phantom",
         txId: params.txId,
         userWallet: params.userWallet,
         recordHash: params.recordHash,
@@ -360,7 +355,7 @@ async function savePhantomsigningEvent(params: {
       }),
     });
   } catch (error) {
-    console.warn('Failed to record signing event:', error);
+    console.warn("Failed to record signing event:", error);
     // Don't throw - transaction already sent, just audit logging failed
   }
 }
@@ -376,12 +371,12 @@ export async function getWalletStatus(): Promise<HybridWalletState> {
   const userPreference = await getUserWalletPreference();
 
   let walletMode: WalletMode;
-  if (userPreference !== 'auto') {
+  if (userPreference !== "auto") {
     walletMode = userPreference;
   } else if (isPhantomDetected) {
-    walletMode = 'phantom';
+    walletMode = "phantom";
   } else {
-    walletMode = 'embedded';
+    walletMode = "embedded";
   }
 
   return {
@@ -412,10 +407,10 @@ export function onPhantomAccountChange(callback: (publicKey: string | null) => v
     }
   };
 
-  phantom.on('accountChanged', handler);
+  phantom.on("accountChanged", handler);
 
   // Return unsubscribe function
-  return () => phantom.off('accountChanged', handler);
+  return () => phantom.off("accountChanged", handler);
 }
 
 /**
@@ -426,13 +421,13 @@ export function onPhantomNetworkChange(callback: (network: string) => void): () 
   if (!phantom) return () => {};
 
   const handler = (network: any) => {
-    callback(network?.chainId || 'unknown');
+    callback(network?.chainId || "unknown");
   };
 
-  phantom.on('networkChanged', handler);
+  phantom.on("networkChanged", handler);
 
   // Return unsubscribe function
-  return () => phantom.off('networkChanged', handler);
+  return () => phantom.off("networkChanged", handler);
 }
 
 // ─── Error Handling ─────────────────────────────────────────────────────────
@@ -441,21 +436,21 @@ export function onPhantomNetworkChange(callback: (network: string) => void): () 
  * User-friendly error messages
  */
 export function getWalletErrorMessage(error: any): string {
-  if (!error) return 'Unknown error';
+  if (!error) return "Unknown error";
 
   const message = error.message || String(error);
 
-  if (message.includes('User rejected')) {
-    return 'You cancelled the transaction in Phantom.';
+  if (message.includes("User rejected")) {
+    return "You cancelled the transaction in Phantom.";
   }
-  if (message.includes('Phantom')) {
-    return 'Phantom wallet error. Make sure Phantom is open and connected.';
+  if (message.includes("Phantom")) {
+    return "Phantom wallet error. Make sure Phantom is open and connected.";
   }
-  if (message.includes('network')) {
-    return 'Network error. Check your internet connection.';
+  if (message.includes("network")) {
+    return "Network error. Check your internet connection.";
   }
-  if (message.includes('Balance')) {
-    return 'Insufficient balance. The wallet needs SOL for gas fees.';
+  if (message.includes("Balance")) {
+    return "Insufficient balance. The wallet needs SOL for gas fees.";
   }
 
   return `Signing failed: ${message}`;

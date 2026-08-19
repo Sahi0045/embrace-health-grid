@@ -4,21 +4,21 @@
  * Handles transaction routing and error recovery
  */
 
-import { signAndAnchorWithEmbedded } from '@/routes/api.sign-and-anchor';
-import { recordSigningEvent } from '@/routes/api.signing-events';
-import type { SigningResult, TransactionPayload } from '@/lib/hybrid-wallet.client';
+import { signAndAnchorWithEmbedded } from "@/routes/api.sign-and-anchor";
+import { recordSigningEvent } from "@/routes/api.signing-events";
+import type { SigningResult, TransactionPayload } from "@/lib/hybrid-wallet.client";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 export interface HybridSigningOptions {
-  forceMode?: 'phantom' | 'embedded';
+  forceMode?: "phantom" | "embedded";
   withFallback?: boolean; // If Phantom fails, fallback to embedded?
   timeout?: number;
 }
 
 export interface SigningAttempt {
   attempt: number;
-  walletMode: 'phantom' | 'embedded';
+  walletMode: "phantom" | "embedded";
   startTime: number;
   endTime?: number;
   duration?: number;
@@ -32,7 +32,7 @@ export interface SigningAttempt {
 /**
  * Route transaction to appropriate signer (Phantom or Embedded)
  * This is called from the backend when client chooses embedded mode
- * 
+ *
  * Decision tree:
  * 1. If forceMode specified, use that
  * 2. If Phantom signing chosen and available, use Phantom
@@ -40,22 +40,22 @@ export interface SigningAttempt {
  */
 export async function routeTransactionSigner(
   transactionData: TransactionPayload,
-  options: HybridSigningOptions = {}
+  options: HybridSigningOptions = {},
 ): Promise<SigningResult> {
   const { forceMode, withFallback = true, timeout = 60000 } = options;
 
-  let signerMode: 'phantom' | 'embedded' = forceMode || 'embedded';
+  let signerMode: "phantom" | "embedded" = forceMode || "embedded";
   let lastError: Error | null = null;
 
   console.log(`\n🔀 === ROUTING TRANSACTION ===`);
-  console.log(`   Force Mode: ${forceMode || 'none'}`);
+  console.log(`   Force Mode: ${forceMode || "none"}`);
   console.log(`   Primary Signer: ${signerMode}`);
   console.log(`   Fallback Enabled: ${withFallback}`);
 
   try {
     // ─── Phantom Mode (if chosen) ────────────────────────────────────────
 
-    if (signerMode === 'phantom') {
+    if (signerMode === "phantom") {
       try {
         console.log(`\n⏳ Attempting Phantom signing...`);
 
@@ -63,19 +63,17 @@ export async function routeTransactionSigner(
         // This is just to indicate we're expecting Phantom to handle it
         // The actual Phantom integration is in hybrid-wallet.client.ts
 
-        console.log(
-          `ℹ️  Phantom signing: Client will handle via window.solana.signTransaction()`
-        );
+        console.log(`ℹ️  Phantom signing: Client will handle via window.solana.signTransaction()`);
         console.log(`⚠️  This should not reach server - client-side Phantom integration issue`);
 
-        throw new Error('Phantom signing should be handled on client-side');
+        throw new Error("Phantom signing should be handled on client-side");
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
         console.error(`❌ Phantom signing failed:`, lastError.message);
 
         if (withFallback) {
           console.log(`🔄 Falling back to embedded wallet...`);
-          signerMode = 'embedded';
+          signerMode = "embedded";
         } else {
           throw lastError;
         }
@@ -84,7 +82,7 @@ export async function routeTransactionSigner(
 
     // ─── Embedded Mode (primary or fallback) ─────────────────────────────
 
-    if (signerMode === 'embedded') {
+    if (signerMode === "embedded") {
       try {
         console.log(`\n⏳ Signing with embedded wallet (backend)...`);
 
@@ -97,7 +95,7 @@ export async function routeTransactionSigner(
             recordHash: transactionData.recordHash,
             hospitalId: transactionData.hospitalId,
             metadata: transactionData.metadata,
-          }
+          },
         });
 
         const duration = Date.now() - startTime;
@@ -107,7 +105,7 @@ export async function routeTransactionSigner(
 
         return {
           txId: result.txId,
-          walletUsed: 'embedded',
+          walletUsed: "embedded",
           signature: result.signature,
           timestamp: new Date(),
         };
@@ -118,7 +116,7 @@ export async function routeTransactionSigner(
       }
     }
 
-    throw new Error('No valid signer mode available');
+    throw new Error("No valid signer mode available");
   } catch (error) {
     console.error(`\n❌ === SIGNING FAILED ===`);
     console.error(`   Error: ${error instanceof Error ? error.message : String(error)}`);
@@ -135,7 +133,7 @@ export async function routeTransactionSigner(
  */
 export async function signTransactionWithRetry(
   transactionData: TransactionPayload,
-  options: HybridSigningOptions & { maxRetries?: number } = {}
+  options: HybridSigningOptions & { maxRetries?: number } = {},
 ): Promise<SigningResult> {
   const { maxRetries = 3, ...routerOptions } = options;
 
@@ -168,7 +166,7 @@ export async function signTransactionWithRetry(
 
       attempts.push({
         attempt,
-        walletMode: 'embedded',
+        walletMode: "embedded",
         startTime,
         endTime,
         duration: endTime - startTime,
@@ -201,14 +199,14 @@ export async function signTransactionWithRetry(
  */
 export async function getSigningRecommendation(
   hospitalId: string,
-  options: { phantomAvailable?: boolean } = {}
-): Promise<'phantom' | 'embedded'> {
+  options: { phantomAvailable?: boolean } = {},
+): Promise<"phantom" | "embedded"> {
   // For now, simple logic:
   // If Phantom available -> recommend Phantom
   // Otherwise -> recommend embedded
 
   if (options.phantomAvailable) {
-    return 'phantom';
+    return "phantom";
   }
 
   // Could add more sophisticated logic here:
@@ -217,7 +215,7 @@ export async function getSigningRecommendation(
   // - Check network conditions
   // - Check user preference
 
-  return 'embedded';
+  return "embedded";
 }
 
 // ─── Error Recovery ─────────────────────────────────────────────────────────
@@ -228,15 +226,15 @@ export async function getSigningRecommendation(
 export async function handleSigningError(
   error: Error,
   context: {
-    walletMode: 'phantom' | 'embedded';
+    walletMode: "phantom" | "embedded";
     transactionData: TransactionPayload;
     attempt: number;
-  }
+  },
 ): Promise<{
   isRecoverable: boolean;
   recommendation: string;
   shouldRetry: boolean;
-  suggestedWallet?: 'phantom' | 'embedded';
+  suggestedWallet?: "phantom" | "embedded";
 }> {
   const { walletMode, transactionData, attempt } = context;
 
@@ -246,75 +244,73 @@ export async function handleSigningError(
 
   // ─── Phantom Errors ──────────────────────────────────────────────────────
 
-  if (walletMode === 'phantom') {
-    if (errorMsg.includes('user rejected')) {
+  if (walletMode === "phantom") {
+    if (errorMsg.includes("user rejected")) {
       return {
         isRecoverable: false,
-        recommendation: 'User cancelled the transaction in Phantom',
+        recommendation: "User cancelled the transaction in Phantom",
         shouldRetry: false,
       };
     }
 
-    if (errorMsg.includes('connection')) {
+    if (errorMsg.includes("connection")) {
       return {
         isRecoverable: true,
-        recommendation: 'Phantom connection lost. Try again.',
+        recommendation: "Phantom connection lost. Try again.",
         shouldRetry: true,
-        suggestedWallet: 'embedded',
+        suggestedWallet: "embedded",
       };
     }
 
-    if (errorMsg.includes('balance')) {
+    if (errorMsg.includes("balance")) {
       return {
         isRecoverable: false,
-        recommendation: 'Insufficient balance in Phantom wallet for gas fees',
+        recommendation: "Insufficient balance in Phantom wallet for gas fees",
         shouldRetry: false,
-        suggestedWallet: 'embedded',
+        suggestedWallet: "embedded",
       };
     }
 
     // Default: fall back to embedded
     return {
       isRecoverable: true,
-      recommendation: 'Phantom signing failed. Falling back to embedded wallet.',
+      recommendation: "Phantom signing failed. Falling back to embedded wallet.",
       shouldRetry: true,
-      suggestedWallet: 'embedded',
+      suggestedWallet: "embedded",
     };
   }
 
   // ─── Embedded Errors ─────────────────────────────────────────────────────
 
-  if (walletMode === 'embedded') {
-    if (errorMsg.includes('hospital wallet')) {
+  if (walletMode === "embedded") {
+    if (errorMsg.includes("hospital wallet")) {
       return {
         isRecoverable: false,
-        recommendation:
-          'Hospital wallet not available. Contact administrator.',
+        recommendation: "Hospital wallet not available. Contact administrator.",
         shouldRetry: false,
       };
     }
 
-    if (errorMsg.includes('balance') || errorMsg.includes('insufficient')) {
+    if (errorMsg.includes("balance") || errorMsg.includes("insufficient")) {
       return {
         isRecoverable: false,
-        recommendation:
-          'Insufficient SOL balance in hospital wallet. Contact administrator.',
+        recommendation: "Insufficient SOL balance in hospital wallet. Contact administrator.",
         shouldRetry: false,
       };
     }
 
-    if (errorMsg.includes('network')) {
+    if (errorMsg.includes("network")) {
       return {
         isRecoverable: true,
-        recommendation: 'Network error. Retrying...',
+        recommendation: "Network error. Retrying...",
         shouldRetry: attempt < 3,
       };
     }
 
-    if (errorMsg.includes('timeout')) {
+    if (errorMsg.includes("timeout")) {
       return {
         isRecoverable: true,
-        recommendation: 'Transaction timeout. Retrying...',
+        recommendation: "Transaction timeout. Retrying...",
         shouldRetry: attempt < 3,
       };
     }
@@ -357,7 +353,7 @@ export function calculateSigningStats(attempts: SigningAttempt[]): SigningStatis
 
   const successful = attempts.filter((a) => a.success);
   const failed = attempts.filter((a) => !a.success);
-  const phantom = attempts.filter((a) => a.walletMode === 'phantom');
+  const phantom = attempts.filter((a) => a.walletMode === "phantom");
 
   const totalDuration = successful.reduce((sum, a) => sum + (a.duration || 0), 0);
   const avgDuration = successful.length > 0 ? totalDuration / successful.length : 0;

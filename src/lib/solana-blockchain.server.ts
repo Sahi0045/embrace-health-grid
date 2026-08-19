@@ -5,9 +5,9 @@ import {
   VersionedTransaction,
   SystemProgram,
   Keypair,
-} from '@solana/web3.js';
-import { getSupabaseServerClient } from './supabase.server';
-import { hospitalWalletService } from './embedded-wallet.server';
+} from "@solana/web3.js";
+import { getSupabaseServerClient } from "./supabase.server";
+import { hospitalWalletService } from "./embedded-wallet.server";
 
 /**
  * Solana Blockchain Service
@@ -16,15 +16,17 @@ import { hospitalWalletService } from './embedded-wallet.server';
 export class SolanaBlockchainService {
   private connection: Connection;
   private programId: PublicKey;
-  private network: 'devnet' | 'testnet' | 'mainnet';
+  private network: "devnet" | "testnet" | "mainnet";
 
   constructor() {
     this.connection = new Connection(
-      process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com',
-      'confirmed'
+      process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com",
+      "confirmed",
     );
-    this.programId = new PublicKey(process.env.HEALTH_GRID_PROGRAM_ID || '11111111111111111111111111111111');
-    this.network = (process.env.SOLANA_NETWORK || 'devnet') as any;
+    this.programId = new PublicKey(
+      process.env.HEALTH_GRID_PROGRAM_ID || "11111111111111111111111111111111",
+    );
+    this.network = (process.env.SOLANA_NETWORK || "devnet") as any;
   }
 
   /**
@@ -39,12 +41,11 @@ export class SolanaBlockchainService {
   }): Promise<string> {
     try {
       // Step 1: Get hospital wallet for signing
-      const hospitalKeypair = await hospitalWalletService.getHospitalKeypair(
-        params.hospitalId
-      );
+      const hospitalKeypair = await hospitalWalletService.getHospitalKeypair(params.hospitalId);
 
       // Step 2: Get latest blockhash
-      const { blockhash, lastValidBlockHeight } = await this.connection.getLatestBlockhash('confirmed');
+      const { blockhash, lastValidBlockHeight } =
+        await this.connection.getLatestBlockhash("confirmed");
 
       // Step 3: Build instruction
       const instruction = {
@@ -63,9 +64,9 @@ export class SolanaBlockchainService {
         ],
         data: Buffer.concat([
           Buffer.from([0]), // Instruction discriminator
-          Buffer.from(params.recordType.padEnd(32, '\0')),
-          Buffer.from(params.recordHash, 'hex'),
-          Buffer.from(params.patientDid.padEnd(64, '\0')),
+          Buffer.from(params.recordType.padEnd(32, "\0")),
+          Buffer.from(params.recordHash, "hex"),
+          Buffer.from(params.patientDid.padEnd(64, "\0")),
         ]),
       };
 
@@ -96,7 +97,7 @@ export class SolanaBlockchainService {
           blockhash,
           lastValidBlockHeight,
         },
-        'confirmed'
+        "confirmed",
       );
 
       if (confirmation.value.err) {
@@ -109,15 +110,15 @@ export class SolanaBlockchainService {
       const db = getSupabaseServerClient();
       const operationId = crypto.randomUUID();
 
-      await db.from('blockchain_operations').insert({
+      await db.from("blockchain_operations").insert({
         operation_id: operationId,
         hospital_id: params.hospitalId,
         wallet_id: crypto.randomUUID(),
-        operation_type: 'anchor_record',
+        operation_type: "anchor_record",
         solana_tx_id: txId,
         program_id: this.programId.toBase58(),
-        status: 'confirmed',
-        confirmation_status: 'confirmed',
+        status: "confirmed",
+        confirmation_status: "confirmed",
         confirmation_count: 32,
         slot: confirmation.context.slot,
         signature: txId,
@@ -129,7 +130,7 @@ export class SolanaBlockchainService {
 
       return txId;
     } catch (error) {
-      console.error('❌ Failed to anchor record:', error);
+      console.error("❌ Failed to anchor record:", error);
       throw error;
     }
   }
@@ -145,7 +146,7 @@ export class SolanaBlockchainService {
   }> {
     try {
       const tx = await this.connection.getTransaction(txId, {
-        commitment: 'confirmed',
+        commitment: "confirmed",
       });
 
       if (!tx) {
@@ -167,7 +168,7 @@ export class SolanaBlockchainService {
       }
 
       const commitment = await this.connection.getSignatureStatus(txId);
-      const isFinalized = commitment.value?.confirmationStatus === 'finalized';
+      const isFinalized = commitment.value?.confirmationStatus === "finalized";
 
       return {
         verified: isFinalized,
@@ -176,7 +177,7 @@ export class SolanaBlockchainService {
         explorerUrl: this.getExplorerUrl(txId),
       };
     } catch (error) {
-      console.error('Error verifying record:', error);
+      console.error("Error verifying record:", error);
       return {
         verified: false,
         slot: null,
@@ -194,7 +195,7 @@ export class SolanaBlockchainService {
       const pubkey = new PublicKey(publicKey);
       return await this.connection.getBalance(pubkey);
     } catch (error) {
-      console.error('Failed to get balance:', error);
+      console.error("Failed to get balance:", error);
       throw error;
     }
   }
@@ -207,15 +208,19 @@ export class SolanaBlockchainService {
       const pubkey = new PublicKey(publicKey);
       const lamports = amount * 1_000_000_000;
       const signature = await this.connection.requestAirdrop(pubkey, lamports);
-      const { blockhash, lastValidBlockHeight } = await this.connection.getLatestBlockhash('confirmed');
-      await this.connection.confirmTransaction({
-        signature,
-        blockhash,
-        lastValidBlockHeight,
-      }, 'confirmed');
+      const { blockhash, lastValidBlockHeight } =
+        await this.connection.getLatestBlockhash("confirmed");
+      await this.connection.confirmTransaction(
+        {
+          signature,
+          blockhash,
+          lastValidBlockHeight,
+        },
+        "confirmed",
+      );
       return signature;
     } catch (error) {
-      console.error('Failed to request airdrop:', error);
+      console.error("Failed to request airdrop:", error);
       throw error;
     }
   }
@@ -234,16 +239,12 @@ export class SolanaBlockchainService {
   async waitForConfirmation(
     txId: string,
     options: {
-      commitment?: 'processed' | 'confirmed' | 'finalized';
+      commitment?: "processed" | "confirmed" | "finalized";
       timeout?: number;
       maxRetries?: number;
-    } = {}
+    } = {},
   ): Promise<{ confirmed: boolean; slot: number }> {
-    const {
-      commitment = 'confirmed',
-      timeout = 60000,
-      maxRetries = 120,
-    } = options;
+    const { commitment = "confirmed", timeout = 60000, maxRetries = 120 } = options;
 
     const startTime = Date.now();
     let retries = 0;
@@ -264,15 +265,15 @@ export class SolanaBlockchainService {
       }
 
       retries++;
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
     }
 
     throw new Error(`Failed to confirm transaction after ${maxRetries} retries`);
   }
 
   private getExplorerUrl(txId: string): string {
-    const baseUrl = 'https://explorer.solana.com/tx';
-    const params = this.network === 'mainnet' ? '' : `?cluster=${this.network}`;
+    const baseUrl = "https://explorer.solana.com/tx";
+    const params = this.network === "mainnet" ? "" : `?cluster=${this.network}`;
     return `${baseUrl}/${txId}${params}`;
   }
 }

@@ -32,10 +32,7 @@ function getStageIndex(status: SampleCollectionStatus): number {
   return found === -1 ? 0 : found;
 }
 
-export function SampleTrackingTab({
-  samples,
-  onAdvanceStage,
-}: SampleTrackingTabProps) {
+export function SampleTrackingTab({ samples, onAdvanceStage }: SampleTrackingTabProps) {
   if (samples.length === 0) {
     return (
       <EmptyState
@@ -77,9 +74,17 @@ export function SampleTrackingTab({
                     </span>
                   </div>
                   <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                    <span>Barcode: <strong className="font-mono text-foreground">{sample.barcode || "N/A"}</strong></span>
+                    <span>
+                      Barcode:{" "}
+                      <strong className="font-mono text-foreground">
+                        {sample.barcode || "N/A"}
+                      </strong>
+                    </span>
                     <span>•</span>
-                    <span>Type: <strong className="uppercase text-foreground">{sample.sample_type}</strong></span>
+                    <span>
+                      Type:{" "}
+                      <strong className="uppercase text-foreground">{sample.sample_type}</strong>
+                    </span>
                   </div>
                 </div>
               </div>
@@ -170,7 +175,9 @@ export function SampleTrackingTab({
                   Storage Temp
                 </span>
                 <p className="font-semibold text-foreground">
-                  {sample.temperature_c ? `${sample.temperature_c}°C (Cold Chain)` : "Ambient (20°C)"}
+                  {sample.temperature_c
+                    ? `${sample.temperature_c}°C (Cold Chain)`
+                    : "Ambient (20°C)"}
                 </p>
               </div>
 

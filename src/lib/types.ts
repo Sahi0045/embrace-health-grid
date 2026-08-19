@@ -440,7 +440,6 @@ export type CentralAlert = {
   metadata?: Record<string, any>;
 };
 
-
 export type CentralAlertStats = {
   total: number;
   active: number;
@@ -453,7 +452,12 @@ export type CentralAlertStats = {
 
 export type LabOrderPriority = "stat" | "urgent" | "routine";
 export type LabOrderStatus = "pending" | "in_progress" | "completed" | "cancelled";
-export type SampleCollectionStatus = "collected" | "lab_received" | "processing" | "resulted" | "reported";
+export type SampleCollectionStatus =
+  | "collected"
+  | "lab_received"
+  | "processing"
+  | "resulted"
+  | "reported";
 
 export type LabOrderRecord = {
   order_id: string;
@@ -464,7 +468,14 @@ export type LabOrderRecord = {
   doctor_name?: string;
   hospital_id?: string;
   test_name: string;
-  test_category?: "hematology" | "biochemistry" | "microbiology" | "immunology" | "pathology" | "genetics" | string;
+  test_category?:
+    | "hematology"
+    | "biochemistry"
+    | "microbiology"
+    | "immunology"
+    | "pathology"
+    | "genetics"
+    | string;
   priority: LabOrderPriority;
   clinical_notes?: string;
   specimen_type?: string;
@@ -519,8 +530,20 @@ export type LabResultRecord = {
   created_at: string;
 };
 
-export type RadiologyModality = "mri" | "ct" | "xray" | "ultrasound" | "fluoroscopy" | "pet" | string;
-export type RadiologyOrderStatus = "scheduled" | "in_progress" | "completed" | "reported" | "cancelled";
+export type RadiologyModality =
+  | "mri"
+  | "ct"
+  | "xray"
+  | "ultrasound"
+  | "fluoroscopy"
+  | "pet"
+  | string;
+export type RadiologyOrderStatus =
+  | "scheduled"
+  | "in_progress"
+  | "completed"
+  | "reported"
+  | "cancelled";
 
 export type RadiologyOrderRecord = {
   order_id: string;
@@ -560,13 +583,26 @@ export type LabDashboardStats = {
 // ─── Cafeteria & Food Service Domain Types ─────────────────────────────────
 
 export type MealCategory = "breakfast" | "lunch" | "dinner" | "snack" | "beverage";
-export type DietaryTag = "vegan" | "halal" | "gluten_free" | "kosher" | "diabetic" | "low_sodium" | "vegetarian" | string;
+export type DietaryTag =
+  | "vegan"
+  | "halal"
+  | "gluten_free"
+  | "kosher"
+  | "diabetic"
+  | "low_sodium"
+  | "vegetarian"
+  | string;
 export type MealAvailability = "patient" | "staff" | "both";
 export type DeliveryStatus = "preparing" | "dispatched" | "delivered" | "cancelled";
 export type ContractStatus = "active" | "expired" | "pending" | "terminated";
 export type MealPlanStatus = "active" | "pending" | "review" | "suspended";
 export type KitchenStockStatus = "normal" | "low_stock" | "expired";
-export type FoodWastageReason = "overproduction" | "spoilage" | "unconsumed_tray" | "expired_stock" | "damaged";
+export type FoodWastageReason =
+  | "overproduction"
+  | "spoilage"
+  | "unconsumed_tray"
+  | "expired_stock"
+  | "damaged";
 
 export type CafeteriaMenuItem = {
   menu_item_id: string;

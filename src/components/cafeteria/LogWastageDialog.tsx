@@ -12,11 +12,7 @@ interface LogWastageDialogProps {
   onSuccess: () => void;
 }
 
-export function LogWastageDialog({
-  open,
-  onOpenChange,
-  onSuccess,
-}: LogWastageDialogProps) {
+export function LogWastageDialog({ open, onOpenChange, onSuccess }: LogWastageDialogProps) {
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [mealType, setMealType] = useState("lunch");
   const [itemName, setItemName] = useState("");
@@ -89,7 +85,9 @@ export function LogWastageDialog({
               </div>
               <div>
                 <h3 className="text-base font-extrabold text-foreground">Log Food Wastage</h3>
-                <p className="text-xs text-muted-foreground">Record prep scrap, unconsumed trays, or spoilage</p>
+                <p className="text-xs text-muted-foreground">
+                  Record prep scrap, unconsumed trays, or spoilage
+                </p>
               </div>
             </div>
             <button
@@ -117,7 +115,9 @@ export function LogWastageDialog({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-foreground mb-1.5">Meal Period</label>
+                <label className="block text-xs font-bold text-foreground mb-1.5">
+                  Meal Period
+                </label>
                 <select
                   value={mealType}
                   onChange={(e) => setMealType(e.target.value)}
@@ -150,7 +150,9 @@ export function LogWastageDialog({
             {/* Quantity & Unit */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-bold text-foreground mb-1.5">Quantity Wasted</label>
+                <label className="block text-xs font-bold text-foreground mb-1.5">
+                  Quantity Wasted
+                </label>
                 <input
                   type="number"
                   step="0.1"
@@ -180,7 +182,9 @@ export function LogWastageDialog({
             {/* Cost Impact & Reason */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-bold text-foreground mb-1.5">Cost Impact ($)</label>
+                <label className="block text-xs font-bold text-foreground mb-1.5">
+                  Cost Impact ($)
+                </label>
                 <input
                   type="number"
                   step="0.01"
@@ -191,7 +195,9 @@ export function LogWastageDialog({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-foreground mb-1.5">Primary Reason</label>
+                <label className="block text-xs font-bold text-foreground mb-1.5">
+                  Primary Reason
+                </label>
                 <select
                   value={reason}
                   onChange={(e) => setReason(e.target.value as FoodWastageReason)}

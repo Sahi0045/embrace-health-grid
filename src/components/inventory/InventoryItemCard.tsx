@@ -19,11 +19,7 @@ export interface InventoryItemCardProps {
   onSelect: (item: InventoryItem) => void;
 }
 
-export function InventoryItemCard({
-  item,
-  category,
-  onSelect,
-}: InventoryItemCardProps) {
+export function InventoryItemCard({ item, category, onSelect }: InventoryItemCardProps) {
   // Calculate availability
   const availableStock = Math.max(0, item.current_stock - item.reserved_stock);
   const stockPercentage = Math.min(
@@ -70,7 +66,6 @@ export function InventoryItemCard({
       onClick={() => onSelect(item)}
       className="group relative flex flex-col justify-between rounded-2xl border border-border/80 bg-card p-5 shadow-clinical-sm hover:border-primary/40 hover:shadow-clinical-md transition-all cursor-pointer overflow-hidden space-y-4"
     >
-
       {/* Top Row: Category Pill & Status Badge */}
       <div className="flex items-center justify-between gap-2">
         <span
@@ -133,8 +128,8 @@ export function InventoryItemCard({
                 isCritical
                   ? "text-destructive"
                   : isLowStock
-                  ? "text-warning-foreground"
-                  : "text-foreground"
+                    ? "text-warning-foreground"
+                    : "text-foreground"
               }`}
             >
               {item.current_stock}
@@ -145,15 +140,20 @@ export function InventoryItemCard({
           </div>
 
           <div className="text-[11px] font-medium text-muted-foreground">
-            Reorder at <span className="font-bold font-mono text-foreground">{item.reorder_level}</span>
+            Reorder at{" "}
+            <span className="font-bold font-mono text-foreground">{item.reorder_level}</span>
           </div>
         </div>
 
         <GradientProgress value={stockPercentage} tone={tone} height={6} />
 
         <div className="flex items-center justify-between text-[10px] font-semibold text-muted-foreground pt-0.5">
-          <span>Available: <strong className="text-foreground font-mono">{availableStock}</strong></span>
-          <span>Reserved: <strong className="text-foreground font-mono">{item.reserved_stock}</strong></span>
+          <span>
+            Available: <strong className="text-foreground font-mono">{availableStock}</strong>
+          </span>
+          <span>
+            Reserved: <strong className="text-foreground font-mono">{item.reserved_stock}</strong>
+          </span>
         </div>
       </div>
 

@@ -177,10 +177,7 @@ function CafeteriaManagementPage() {
   };
 
   // Handler: Advance Delivery Stage
-  const handleAdvanceDeliveryStage = async (
-    deliveryId: string,
-    nextStatus: DeliveryStatus,
-  ) => {
+  const handleAdvanceDeliveryStage = async (deliveryId: string, nextStatus: DeliveryStatus) => {
     try {
       await updateDeliveryStatus({ deliveryId, status: nextStatus });
       toast.success(`Meal delivery #${deliveryId} marked as ${nextStatus.toUpperCase()}`);
@@ -191,10 +188,7 @@ function CafeteriaManagementPage() {
   };
 
   // Handler: Update Vendor Status
-  const handleUpdateVendorStatus = async (
-    vendorId: string,
-    nextStatus: ContractStatus,
-  ) => {
+  const handleUpdateVendorStatus = async (vendorId: string, nextStatus: ContractStatus) => {
     try {
       await updateVendorContract({ vendorId, status: nextStatus });
       toast.success(`Vendor contract #${vendorId} updated to ${nextStatus.toUpperCase()}`);
@@ -205,10 +199,7 @@ function CafeteriaManagementPage() {
   };
 
   // Handler: Update Dietary Plan Status
-  const handleUpdateDietaryStatus = async (
-    requirementId: string,
-    nextStatus: MealPlanStatus,
-  ) => {
+  const handleUpdateDietaryStatus = async (requirementId: string, nextStatus: MealPlanStatus) => {
     try {
       await updateDietaryRequirementStatus({ requirementId, status: nextStatus });
       toast.success(`Patient meal plan updated to ${nextStatus.toUpperCase()}`);
@@ -230,8 +221,7 @@ function CafeteriaManagementPage() {
           item.category.toLowerCase().includes(q) ||
           item.dietary_tags.some((t) => t.toLowerCase().includes(q));
 
-        const matchesCategory =
-          categoryFilter === "all" || item.category === categoryFilter;
+        const matchesCategory = categoryFilter === "all" || item.category === categoryFilter;
 
         const matchesStatus =
           statusFilter === "all" ||
@@ -247,7 +237,8 @@ function CafeteriaManagementPage() {
         if (sortBy === "calories-desc") return b.calories - a.calories;
         if (sortBy === "price-asc") return a.price - b.price;
         if (sortBy === "price-desc") return b.price - a.price;
-        if (sortBy === "oldest") return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        if (sortBy === "oldest")
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
         return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       });
   }, [menu, searchQuery, categoryFilter, statusFilter, sortBy]);
@@ -263,13 +254,13 @@ function CafeteriaManagementPage() {
           item.supplier?.toLowerCase().includes(q) ||
           item.storage_location?.toLowerCase().includes(q);
 
-        const matchesCategory =
-          categoryFilter === "all" || item.category === categoryFilter;
+        const matchesCategory = categoryFilter === "all" || item.category === categoryFilter;
 
         const matchesStatus =
           statusFilter === "all" ||
           (statusFilter === "active" && item.status === "normal") ||
-          (statusFilter === "low_stock" && (item.status === "low_stock" || item.quantity <= item.reorder_level));
+          (statusFilter === "low_stock" &&
+            (item.status === "low_stock" || item.quantity <= item.reorder_level));
 
         return matchesSearch && matchesCategory && matchesStatus;
       })
@@ -291,8 +282,7 @@ function CafeteriaManagementPage() {
         item.room_number?.toLowerCase().includes(q) ||
         item.requirements.some((r) => r.toLowerCase().includes(q));
 
-      const matchesStatus =
-        categoryFilter === "all" || item.meal_plan_status === categoryFilter;
+      const matchesStatus = categoryFilter === "all" || item.meal_plan_status === categoryFilter;
 
       return matchesSearch && matchesStatus;
     });
@@ -308,8 +298,7 @@ function CafeteriaManagementPage() {
         item.room_number.toLowerCase().includes(q) ||
         item.menu_item_name.toLowerCase().includes(q);
 
-      const matchesStatus =
-        categoryFilter === "all" || item.delivery_status === categoryFilter;
+      const matchesStatus = categoryFilter === "all" || item.delivery_status === categoryFilter;
 
       return matchesSearch && matchesStatus;
     });
@@ -326,8 +315,7 @@ function CafeteriaManagementPage() {
         item.contact_email?.toLowerCase().includes(q) ||
         item.supplied_categories.some((c) => c.toLowerCase().includes(q));
 
-      const matchesStatus =
-        categoryFilter === "all" || item.contract_status === categoryFilter;
+      const matchesStatus = categoryFilter === "all" || item.contract_status === categoryFilter;
 
       return matchesSearch && matchesStatus;
     });
@@ -343,8 +331,7 @@ function CafeteriaManagementPage() {
         item.reason.toLowerCase().includes(q) ||
         item.meal_type.toLowerCase().includes(q);
 
-      const matchesReason =
-        categoryFilter === "all" || item.reason === categoryFilter;
+      const matchesReason = categoryFilter === "all" || item.reason === categoryFilter;
 
       return matchesSearch && matchesReason;
     });
@@ -426,7 +413,9 @@ function CafeteriaManagementPage() {
                 onClick={() => loadData(false)}
                 className="h-9 px-3 rounded-xl text-xs font-bold gap-1.5 hover:bg-accent cursor-pointer"
               >
-                <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin text-primary" : ""}`} />
+                <RefreshCw
+                  className={`h-3.5 w-3.5 ${loading ? "animate-spin text-primary" : ""}`}
+                />
                 <span>Refresh</span>
               </Button>
 
@@ -441,7 +430,6 @@ function CafeteriaManagementPage() {
             </div>
           }
         />
-
 
         <StaggerList className="space-y-6">
           {/* 2. Hero Bento Deck KPI Bar */}
@@ -566,10 +554,7 @@ function CafeteriaManagementPage() {
 
                 {/* Tab 1: Menu & Meals */}
                 <TabsContent value="menu" className="focus-visible:outline-none">
-                  <MenuMealsTab
-                    items={paginatedMenu}
-                    onToggleStatus={handleToggleMenuItemStatus}
-                  />
+                  <MenuMealsTab items={paginatedMenu} onToggleStatus={handleToggleMenuItemStatus} />
                 </TabsContent>
 
                 {/* Tab 2: Kitchen Stock */}

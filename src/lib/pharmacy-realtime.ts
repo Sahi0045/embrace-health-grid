@@ -40,7 +40,7 @@ export function subscribeToStockMovements(
         {
           event: "*", // INSERT, UPDATE, DELETE
           schema: "public",
-          table: "stock_movements",
+          table: "pharmacy_stock_movements",
           filter: `hospital_id=eq.${hospitalId}`,
         },
         (payload: any) => {

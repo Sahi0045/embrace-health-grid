@@ -14,8 +14,21 @@
 -- ============================================================================
 
 -- ─── Extended Status Enums ──────────────────────────────────────────────────
--- Drop and recreate bed_status to add new statuses
-drop type if exists bed_status cascade;
+-- Extend bed_status with new statuses.
+--
+-- This was "drop type if exists bed_status cascade" followed by a fresh create.
+-- CASCADE on a type drop removes every column that uses the type, so it silently
+-- destroyed public.beds.status together with the beds_occupancy_consistent check
+-- constraint — and every bed's occupancy value with it. The next statement then
+-- failed with 'column "status" does not exist', which is how it was caught; on a
+-- database with live bed data it would have deleted that data first. The comment
+-- below it claimed to "preserve existing data".
+--
+-- Rename-and-cast instead. This keeps the column, its data and its constraint,
+-- and avoids ALTER TYPE ... ADD VALUE, which cannot be used and then referenced
+-- inside the same transaction (SQLSTATE 55P04).
+alter type bed_status rename to bed_status_legacy;
+
 create type bed_status as enum (
   'available',
   'occupied',
@@ -25,6 +38,34 @@ create type bed_status as enum (
   'blocked',
   'emergency_reserved'
 );
+
+-- beds_occupancy_consistent compares status against literals, and after the
+-- rename those literals are bound to bed_status_legacy. Converting the column
+-- first would leave the constraint comparing the new type to the old one, which
+-- fails with 'operator does not exist: bed_status = bed_status_legacy'. Drop it,
+-- convert, then recreate it against the new type.
+alter table public.beds
+  drop constraint if exists beds_occupancy_consistent;
+
+-- Every legacy value is present in the new enum, so the text round-trip is total.
+alter table public.beds
+  alter column status drop default;
+
+alter table public.beds
+  alter column status type bed_status using (status::text::bed_status);
+
+alter table public.beds
+  alter column status set default 'available'::bed_status;
+
+-- Same invariant as before: an occupied bed must name its occupant, and a bed in
+-- any other state must not. Restated here because the constraint had to be
+-- dropped for the type conversion, not because the rule changed.
+alter table public.beds
+  add constraint beds_occupancy_consistent
+  check ((status = 'occupied' and patient_did is not null)
+      or (status <> 'occupied' and patient_did is null));
+
+drop type bed_status_legacy;
 
 -- Add room_status enum
 create type room_status as enum (
@@ -119,23 +160,20 @@ create index if not exists rooms_building_idx on public.rooms (building_id);
 
 -- ─── Update Beds Table ──────────────────────────────────────────────────────
 -- Add foreign keys to connect beds to rooms and wards
-alter table public.beds add column if not exists room_id uuid references public.rooms(room_id) on delete cascade;
+-- rooms.room_id is TEXT (20260804010000_operational_domains.sql), so this column
+-- must be text too. Declaring it uuid made Postgres reject the whole migration
+-- with 'foreign key constraint "beds_room_id_fkey" cannot be implemented',
+-- because a uuid column cannot reference a text key.
+alter table public.beds add column if not exists room_id text references public.rooms(room_id) on delete cascade;
 alter table public.beds add column if not exists ward_id uuid references public.wards(ward_id) on delete cascade;
 alter table public.beds add column if not exists building_id uuid references public.buildings(building_id) on delete cascade;
 alter table public.beds add column if not exists bed_number text;
 alter table public.beds add column if not exists bed_type text; -- Standard, ICU, Pediatric, etc.
 alter table public.beds add column if not exists created_at timestamptz not null default now();
 
--- Update bed status column to use new enum (preserve existing data)
-alter table public.beds alter column status type bed_status using (
-  case status::text
-    when 'available' then 'available'::bed_status
-    when 'occupied' then 'occupied'::bed_status
-    when 'cleaning' then 'cleaning'::bed_status
-    when 'maintenance' then 'maintenance'::bed_status
-    else 'available'::bed_status
-  end
-);
+-- beds.status was converted to the new bed_status above, alongside the enum
+-- rename, so no further cast is needed here. The previous statement at this point
+-- assumed the column had been dropped and recreated.
 
 -- Convert old ward text field to reference (later in a data migration)
 -- For now, keep the old 'ward' text column for backward compatibility
@@ -342,11 +380,16 @@ begin
   end if;
 
   -- Create buildings
+  -- A multi-row INSERT cannot use RETURNING ... INTO a scalar variable: PL/pgSQL
+  -- raises 'query returned more than one row'. Insert, then look each id up by its
+  -- unique code, which is what the surrounding code already does.
   insert into public.buildings (hospital_id, building_name, building_code, description, total_floors)
   values 
     (seed_hospital, 'Main Block', 'MB', 'Primary hospital building with emergency and outpatient services', 5),
-    (seed_hospital, 'Specialty Block', 'SB', 'Specialized departments and ICU', 3)
-  returning building_id into building1_id;
+    (seed_hospital, 'Specialty Block', 'SB', 'Specialized departments and ICU', 3);
+
+  select building_id into building1_id from public.buildings 
+  where hospital_id = seed_hospital and building_code = 'MB';
 
   select building_id into building2_id from public.buildings 
   where hospital_id = seed_hospital and building_code = 'SB';
@@ -356,8 +399,10 @@ begin
   values 
     (building1_id, seed_hospital, 1, 'Ground Floor', 'Emergency and OPD', 2),
     (building1_id, seed_hospital, 2, 'First Floor', 'General Ward', 3),
-    (building2_id, seed_hospital, 1, 'Ground Floor', 'ICU and Critical Care', 2)
-  returning floor_id into floor1_id;
+    (building2_id, seed_hospital, 1, 'Ground Floor', 'ICU and Critical Care', 2);
+
+  select floor_id into floor1_id from public.floors 
+  where building_id = building1_id and floor_number = 1;
 
   select floor_id into floor2_id from public.floors 
   where building_id = building1_id and floor_number = 2;
@@ -367,8 +412,10 @@ begin
   values 
     (floor1_id, building1_id, seed_hospital, 'Emergency Ward', 'ER-01', 'Emergency', 20, 5),
     (floor2_id, building1_id, seed_hospital, 'General Ward A', 'GW-A', 'General', 30, 10),
-    (floor2_id, building1_id, seed_hospital, 'General Ward B', 'GW-B', 'General', 25, 8)
-  returning ward_id into ward1_id;
+    (floor2_id, building1_id, seed_hospital, 'General Ward B', 'GW-B', 'General', 25, 8);
+
+  select ward_id into ward1_id from public.wards 
+  where ward_code = 'ER-01';
 
   select ward_id into ward2_id from public.wards 
   where ward_code = 'GW-A';

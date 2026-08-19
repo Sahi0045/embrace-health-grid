@@ -24,11 +24,7 @@ import {
   getCentralAlertStats,
 } from "@/lib/api";
 import { useTableRefresh } from "@/hooks/use-realtime";
-import {
-  playClinicalAlert,
-  isAudioAlertsEnabled,
-  setAudioAlertsEnabled,
-} from "@/lib/audio-alerts";
+import { playClinicalAlert, isAudioAlertsEnabled, setAudioAlertsEnabled } from "@/lib/audio-alerts";
 
 import type { CentralAlert, CentralAlertStats } from "@/lib/types";
 
@@ -120,45 +116,52 @@ function CentralAlertsPage() {
   const previousCriticalCount = useRef<number>(0);
   const previousActiveCount = useRef<number>(0);
 
-
   // Data Loading Callback
-  const loadData = useCallback(async (isBackground = false) => {
-    if (!isBackground) setLoading(true);
-    try {
-      const [alertsRes, statsRes] = await Promise.all([
-        getCentralAlerts({
-          category: selectedCategory,
-          severity: selectedSeverity,
-          status: selectedStatus,
-          search: searchQuery,
-        }),
-        getCentralAlertStats().catch(() => null),
-      ]);
+  const loadData = useCallback(
+    async (isBackground = false) => {
+      if (!isBackground) setLoading(true);
+      try {
+        const [alertsRes, statsRes] = await Promise.all([
+          getCentralAlerts({
+            category: selectedCategory,
+            severity: selectedSeverity,
+            status: selectedStatus,
+            search: searchQuery,
+          }),
+          getCentralAlertStats().catch(() => null),
+        ]);
 
-      const fetchedAlerts = alertsRes?.alerts || [];
-      setAlerts(fetchedAlerts);
+        const fetchedAlerts = alertsRes?.alerts || [];
+        setAlerts(fetchedAlerts);
 
-      if (statsRes) {
-        setStats(statsRes);
-        // Play appropriate clinical audio when new real-time alerts arrive
-        if (statsRes.critical > previousCriticalCount.current && previousCriticalCount.current !== 0) {
-          playClinicalAlert("critical");
-        } else if (statsRes.active > previousActiveCount.current && previousActiveCount.current !== 0) {
-          playClinicalAlert("warning");
+        if (statsRes) {
+          setStats(statsRes);
+          // Play appropriate clinical audio when new real-time alerts arrive
+          if (
+            statsRes.critical > previousCriticalCount.current &&
+            previousCriticalCount.current !== 0
+          ) {
+            playClinicalAlert("critical");
+          } else if (
+            statsRes.active > previousActiveCount.current &&
+            previousActiveCount.current !== 0
+          ) {
+            playClinicalAlert("warning");
+          }
+          previousCriticalCount.current = statsRes.critical;
+          previousActiveCount.current = statsRes.active;
         }
-        previousCriticalCount.current = statsRes.critical;
-        previousActiveCount.current = statsRes.active;
+      } catch (err: any) {
+        console.warn("Central alerts sync error:", err);
+        toast.error("Failed to sync hospital alert feed", {
+          description: err?.message,
+        });
+      } finally {
+        if (!isBackground) setLoading(false);
       }
-    } catch (err: any) {
-      console.warn("Central alerts sync error:", err);
-      toast.error("Failed to sync hospital alert feed", {
-        description: err?.message,
-      });
-    } finally {
-      if (!isBackground) setLoading(false);
-
-    }
-  }, [selectedCategory, selectedSeverity, selectedStatus, searchQuery]);
+    },
+    [selectedCategory, selectedSeverity, selectedStatus, searchQuery],
+  );
 
   useEffect(() => {
     loadData();
@@ -289,7 +292,6 @@ function CentralAlertsPage() {
           }
         />
 
-
         {/* Top Bento KPI Tiles */}
         <AlertKpiBar stats={stats} />
 
@@ -362,7 +364,6 @@ function CentralAlertsPage() {
               }
             />
           ) : (
-
             /* Staggered Vertical Stream Feed */
             <StaggerList className="space-y-4">
               {paginatedAlerts.map((alert) => (
@@ -427,7 +428,7 @@ function CentralAlertsPage() {
                     >
                       {p}
                     </button>
-                  )
+                  ),
                 )}
 
                 <Button

@@ -20,6 +20,26 @@
 
 -- ─── Enums ──────────────────────────────────────────────────────────────────
 
+-- ── Naming note ─────────────────────────────────────────────────────────────
+-- The pharmacy tables were originally called inventory_items and
+-- stock_movements. Those exact names are already taken by
+-- 20260815100000_inventory_management.sql, which creates a DIFFERENT, simpler
+-- shape (text item_id, name/sku, inline current_stock) for general clinical
+-- supplies and is used by /admin/inventory. This file models pharmacy stock with
+-- uuid keys, batch-level expiry tracking and separate stock_levels, and is used
+-- by /admin/pharmacy-inventory and /staff/pharmacy-inventory.
+--
+-- Two create-table statements for one name meant this migration could never be
+-- applied: 20260815 runs first and creates the table, then this file's bare
+-- "create table public.inventory_items" fails with "relation already exists".
+-- Their index names collided as well (pharmacy_items_hospital_idx in both).
+--
+-- Renamed to pharmacy_items / pharmacy_stock_movements, which also matches the
+-- routes that consume them. Consolidating the two overlapping inventory systems
+-- into one is a product decision and deliberately not attempted here.
+-- ────────────────────────────────────────────────────────────────────────────
+
+
 create type inventory_item_type as enum (
   'medicine',
   'consumable',
@@ -78,7 +98,7 @@ create index suppliers_active_idx on public.suppliers (hospital_id, is_active);
 
 -- ─── Inventory Items (Medicine Master Catalog) ───────────────────────────────
 
-create table public.inventory_items (
+create table public.pharmacy_items (
   item_id              uuid primary key default gen_random_uuid(),
   hospital_id          uuid not null references public.hospitals(hospital_id) on delete cascade,
   
@@ -108,17 +128,17 @@ create table public.inventory_items (
   constraint items_unit_cost_positive check (unit_cost is null or unit_cost > 0)
 );
 
-create index inventory_items_hospital_idx on public.inventory_items (hospital_id);
-create index inventory_items_status_idx on public.inventory_items (status);
-create index inventory_items_category_idx on public.inventory_items (category);
-create index inventory_items_code_idx on public.inventory_items (item_code);
+create index pharmacy_items_hospital_idx on public.pharmacy_items (hospital_id);
+create index pharmacy_items_status_idx on public.pharmacy_items (status);
+create index pharmacy_items_category_idx on public.pharmacy_items (category);
+create index pharmacy_items_code_idx on public.pharmacy_items (item_code);
 
 -- ─── Batches (Batch-Level Tracking) ─────────────────────────────────────────
 
 create table public.inventory_batches (
   batch_id         uuid primary key default gen_random_uuid(),
   hospital_id      uuid not null references public.hospitals(hospital_id) on delete cascade,
-  item_id          uuid not null references public.inventory_items(item_id) on delete cascade,
+  item_id          uuid not null references public.pharmacy_items(item_id) on delete cascade,
   supplier_id      uuid references public.suppliers(supplier_id) on delete set null,
   
   -- Batch Identity
@@ -163,14 +183,15 @@ create index batches_active_idx on public.inventory_batches (hospital_id, is_act
 create table public.stock_levels (
   stock_id         uuid primary key default gen_random_uuid(),
   hospital_id      uuid not null references public.hospitals(hospital_id) on delete cascade,
-  item_id          uuid not null references public.inventory_items(item_id) on delete cascade,
+  item_id          uuid not null references public.pharmacy_items(item_id) on delete cascade,
   
   -- Location (optional; if null, represents warehouse aggregate)
   storage_location text,
   building_id      uuid references public.buildings(building_id) on delete set null,
   floor_id         uuid references public.floors(floor_id) on delete set null,
   ward_id          uuid references public.wards(ward_id) on delete set null,
-  room_id          uuid references public.rooms(room_id) on delete set null,
+  -- rooms.room_id is text; a uuid column cannot reference it.
+  room_id          text references public.rooms(room_id) on delete set null,
   
   -- Quantities
   quantity_total   int not null default 0,   -- All stock including near-expiry
@@ -193,10 +214,10 @@ create index stock_levels_ward_idx on public.stock_levels (ward_id);
 
 -- ─── Stock Movements (Transaction History) ──────────────────────────────────
 
-create table public.stock_movements (
+create table public.pharmacy_stock_movements (
   movement_id      text primary key,
   hospital_id      uuid not null references public.hospitals(hospital_id) on delete cascade,
-  item_id          uuid not null references public.inventory_items(item_id) on delete cascade,
+  item_id          uuid not null references public.pharmacy_items(item_id) on delete cascade,
   batch_id         uuid references public.inventory_batches(batch_id) on delete set null,
   
   -- Movement Details
@@ -237,14 +258,14 @@ create table public.stock_movements (
   constraint movements_qty_positive check (quantity_moved > 0)
 );
 
-create index movements_hospital_idx on public.stock_movements (hospital_id);
-create index movements_item_idx on public.stock_movements (item_id);
-create index movements_batch_idx on public.stock_movements (batch_id);
-create index movements_type_idx on public.stock_movements (movement_type);
-create index movements_timestamp_idx on public.stock_movements (movement_timestamp desc);
-create index movements_prescription_idx on public.stock_movements (prescription_id);
-create index movements_patient_idx on public.stock_movements (patient_did);
-create index movements_actor_idx on public.stock_movements (performed_by_id);
+create index movements_hospital_idx on public.pharmacy_stock_movements (hospital_id);
+create index movements_item_idx on public.pharmacy_stock_movements (item_id);
+create index movements_batch_idx on public.pharmacy_stock_movements (batch_id);
+create index movements_type_idx on public.pharmacy_stock_movements (movement_type);
+create index movements_timestamp_idx on public.pharmacy_stock_movements (movement_timestamp desc);
+create index movements_prescription_idx on public.pharmacy_stock_movements (prescription_id);
+create index movements_patient_idx on public.pharmacy_stock_movements (patient_did);
+create index movements_actor_idx on public.pharmacy_stock_movements (performed_by_id);
 
 -- ─── Expiration Tracking ─────────────────────────────────────────────────────
 
@@ -252,7 +273,7 @@ create table public.expiration_alerts (
   alert_id         uuid primary key default gen_random_uuid(),
   hospital_id      uuid not null references public.hospitals(hospital_id) on delete cascade,
   batch_id         uuid not null references public.inventory_batches(batch_id) on delete cascade,
-  item_id          uuid not null references public.inventory_items(item_id) on delete cascade,
+  item_id          uuid not null references public.pharmacy_items(item_id) on delete cascade,
   
   -- Alert Details
   expiration_status expiration_status not null,
@@ -282,7 +303,7 @@ create index expiration_alerts_resolved_idx on public.expiration_alerts (is_reso
 create table public.low_stock_alerts (
   alert_id         uuid primary key default gen_random_uuid(),
   hospital_id      uuid not null references public.hospitals(hospital_id) on delete cascade,
-  item_id          uuid not null references public.inventory_items(item_id) on delete cascade,
+  item_id          uuid not null references public.pharmacy_items(item_id) on delete cascade,
   
   -- Alert Details
   current_quantity int not null,
@@ -351,10 +372,10 @@ create index purchase_orders_delivery_idx on public.purchase_orders (expected_de
 -- ─── Row-Level Security ─────────────────────────────────────────────────────
 
 alter table public.suppliers enable row level security;
-alter table public.inventory_items enable row level security;
+alter table public.pharmacy_items enable row level security;
 alter table public.inventory_batches enable row level security;
 alter table public.stock_levels enable row level security;
-alter table public.stock_movements enable row level security;
+alter table public.pharmacy_stock_movements enable row level security;
 alter table public.expiration_alerts enable row level security;
 alter table public.low_stock_alerts enable row level security;
 alter table public.purchase_orders enable row level security;
@@ -367,7 +388,7 @@ create policy suppliers_select_staff on public.suppliers
     and private.can_access_hospital(hospital_id)
   );
 
-create policy inventory_items_select_staff on public.inventory_items
+create policy pharmacy_items_select_staff on public.pharmacy_items
   for select to authenticated
   using (
     private.current_user_role() in ('doctor', 'staff', 'admin')
@@ -388,7 +409,7 @@ create policy stock_levels_select_staff on public.stock_levels
     and private.can_access_hospital(hospital_id)
   );
 
-create policy movements_select_staff on public.stock_movements
+create policy movements_select_staff on public.pharmacy_stock_movements
   for select to authenticated
   using (
     private.current_user_role() in ('doctor', 'staff', 'admin')
@@ -417,14 +438,14 @@ create policy purchase_orders_select_staff on public.purchase_orders
   );
 
 -- Pharmacy staff (staff, admin) can write inventory operations (not doctors)
-create policy inventory_items_insert_admin on public.inventory_items
+create policy pharmacy_items_insert_admin on public.pharmacy_items
   for insert to authenticated
   with check (
     private.current_user_role() in ('admin')
     and private.can_access_hospital(hospital_id)
   );
 
-create policy inventory_items_update_admin on public.inventory_items
+create policy pharmacy_items_update_admin on public.pharmacy_items
   for update to authenticated
   using (
     private.current_user_role() in ('admin')
@@ -453,7 +474,7 @@ create policy batches_update_staff on public.inventory_batches
     and private.can_access_hospital(hospital_id)
   );
 
-create policy movements_insert_staff on public.stock_movements
+create policy movements_insert_staff on public.pharmacy_stock_movements
   for insert to authenticated
   with check (
     private.current_user_role() in ('staff', 'doctor', 'admin')
@@ -484,7 +505,7 @@ DO $$
 DECLARE
   tbl text;
   tables text[] := ARRAY[
-    'inventory_items', 'stock_levels', 'stock_movements', 
+    'pharmacy_items', 'stock_levels', 'pharmacy_stock_movements', 
     'expiration_alerts', 'low_stock_alerts', 'purchase_orders'
   ];
 BEGIN
@@ -501,14 +522,14 @@ BEGIN
 END $$;
 
 alter table public.stock_levels replica identity full;
-alter table public.stock_movements replica identity full;
+alter table public.pharmacy_stock_movements replica identity full;
 alter table public.expiration_alerts replica identity full;
 alter table public.low_stock_alerts replica identity full;
 
 -- ─── Triggers for Audit Integration ─────────────────────────────────────────
 
 -- Auto-update updated_at on inventory items
-create or replace function public.touch_inventory_items_updated_at()
+create or replace function public.touch_pharmacy_items_updated_at()
 returns trigger
 language plpgsql
 as $$
@@ -518,10 +539,10 @@ begin
 end;
 $$;
 
-create trigger inventory_items_touch_updated_at
-  before update on public.inventory_items
+create trigger pharmacy_items_touch_updated_at
+  before update on public.pharmacy_items
   for each row
-  execute function public.touch_inventory_items_updated_at();
+  execute function public.touch_pharmacy_items_updated_at();
 
 -- Similar for batches, stock_levels, etc.
 create or replace function public.touch_batches_updated_at()
@@ -541,13 +562,20 @@ create trigger batches_touch_updated_at
 
 -- ─── Helper Functions ───────────────────────────────────────────────────────
 
+-- Backing sequence for generate_batch_number(). It was referenced but never
+-- created, so the function failed to compile with
+-- 'relation "batch_number_seq" does not exist'.
+create sequence if not exists public.batch_number_seq as bigint start 1;
+
+grant usage, select on sequence public.batch_number_seq to authenticated, service_role;
+
 -- Generate unique batch numbers
 create or replace function public.generate_batch_number(p_item_code text)
 returns text
 language sql
 as $$
   select p_item_code || '-' || to_char(now(), 'YYYY') || '-' || 
-         lpad((nextval('batch_number_seq')::text), 5, '0');
+         lpad((nextval('public.batch_number_seq')::text), 5, '0');
 $$;
 
 -- Check if batch is expired

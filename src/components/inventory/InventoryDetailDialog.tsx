@@ -21,11 +21,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import {
-  getStockMovements,
-  recordStockMovement,
-  updateItemReorderSettings,
-} from "@/lib/api";
+import { getStockMovements, recordStockMovement, updateItemReorderSettings } from "@/lib/api";
 import { StockMovementTimeline } from "./StockMovementTimeline";
 import type { InventoryItem, InventoryCategory, StockMovement } from "@/lib/types";
 
@@ -43,7 +39,7 @@ export function InventoryDetailDialog({
   onStockUpdated,
 }: InventoryDetailDialogProps) {
   const [activeTab, setActiveTab] = useState<"action" | "reorder" | "history">("action");
-  
+
   // Stock Movement Action Form State
   const [movementType, setMovementType] = useState<"IN" | "OUT" | "ADJUSTMENT">("IN");
   const [quantity, setQuantity] = useState<number>(10);
@@ -110,7 +106,9 @@ export function InventoryDetailDialog({
         reason: reason.trim() || `Manual stock ${movementType} recorded`,
       });
 
-      toast.success(`Successfully recorded ${movementType} transaction of ${quantity} ${item.unit}`);
+      toast.success(
+        `Successfully recorded ${movementType} transaction of ${quantity} ${item.unit}`,
+      );
       setReason("");
       onStockUpdated();
       await loadHistory(item.item_id);
@@ -353,8 +351,8 @@ export function InventoryDetailDialog({
                     {movementType === "IN"
                       ? item.current_stock + quantity
                       : movementType === "OUT"
-                      ? Math.max(0, item.current_stock - quantity)
-                      : item.current_stock + quantity}{" "}
+                        ? Math.max(0, item.current_stock - quantity)
+                        : item.current_stock + quantity}{" "}
                     {item.unit}
                   </div>
                 </div>
@@ -438,9 +436,7 @@ export function InventoryDetailDialog({
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-muted-foreground">
-                    Unit Cost ($)
-                  </label>
+                  <label className="text-xs font-bold text-muted-foreground">Unit Cost ($)</label>
                   <Input
                     type="number"
                     step="0.01"

@@ -4,9 +4,29 @@
  * Handles: Phantom detection, mode selection, error recovery, retries
  */
 
-import { createServerFn } from '@tanstack/react-start';
-import { getSupabaseServerClient, getVerifiedUser } from '@/lib/supabase.server';
-import { signAndAnchorWithEmbedded } from './api.sign-and-anchor';
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
+import { getSupabaseServerClient, getVerifiedUser } from "@/lib/supabase.server";
+import { signAndAnchorWithEmbedded } from "./api.sign-and-anchor";
+
+const nonEmptyString = z.string().trim().min(1);
+const transactionRouterSchema = z.object({
+  patientDid: nonEmptyString,
+  recordType: nonEmptyString,
+  recordHash: nonEmptyString,
+  hospitalId: nonEmptyString,
+  userPreferredWallet: z.enum(["auto", "phantom", "embedded"]).optional(),
+  phantomAvailable: z.boolean().optional(),
+  phantomConnected: z.boolean().optional(),
+  allowFallback: z.boolean().optional(),
+  maxRetries: z.number().int().min(1).max(5).optional(),
+  metadata: z.record(z.unknown()).optional(),
+});
+const preflightSchema = z.object({
+  hospitalId: nonEmptyString,
+  checkPhantom: z.boolean().optional(),
+  checkNetwork: z.boolean().optional(),
+});
 import {
   routeTransactionSigner,
   signTransactionWithRetry,
@@ -14,14 +34,14 @@ import {
   calculateSigningStats,
   type HybridSigningOptions,
   type SigningAttempt,
-} from '@/lib/hybrid-wallet-integration.server';
-import { recordSigningEvent } from './api.signing-events';
-import type { TransactionPayload, SigningResult } from '@/lib/hybrid-wallet.client';
+} from "@/lib/hybrid-wallet-integration.server";
+import { recordSigningEvent } from "./api.signing-events";
+import type { TransactionPayload, SigningResult } from "@/lib/hybrid-wallet.client";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 export interface TransactionRouterRequest extends TransactionPayload {
-  userPreferredWallet?: 'auto' | 'phantom' | 'embedded';
+  userPreferredWallet?: "auto" | "phantom" | "embedded";
   phantomAvailable?: boolean;
   phantomConnected?: boolean;
   allowFallback?: boolean; // If Phantom fails, fallback to embedded?
@@ -33,7 +53,7 @@ export interface TransactionRouterResponse {
   success: boolean;
   txId: string;
   signature: string;
-  walletUsed: 'phantom' | 'embedded';
+  walletUsed: "phantom" | "embedded";
   confirmed: boolean;
   explorerUrl: string;
   attemptCount: number;
@@ -43,7 +63,7 @@ export interface TransactionRouterResponse {
 
 export interface TransactionRouterError {
   error: string;
-  walletTried: 'phantom' | 'embedded';
+  walletTried: "phantom" | "embedded";
   isRecoverable: boolean;
   suggestedAction: string;
   attemptCount: number;
@@ -53,14 +73,14 @@ export interface TransactionRouterError {
 
 /**
  * POST /api/transaction-router
- * 
+ *
  * Smart router that:
  * 1. Determines which wallet to use (Phantom or Embedded)
  * 2. Routes to appropriate signer
  * 3. Handles errors with fallback logic
  * 4. Retries on transient failures
  * 5. Records complete audit trail
- * 
+ *
  * Decision Logic:
  * - User preference: If saved, respect it (unless not available)
  * - Phantom available: Try Phantom if user hasn't chosen embedded
@@ -68,49 +88,48 @@ export interface TransactionRouterError {
  * - Max retries: Retry transient failures (network, timeout)
  */
 export const routeTransaction = createServerFn({
-  method: 'POST',
+  method: "POST",
 })
-  .inputValidator((data: TransactionRouterRequest) => data)
+  .validator(transactionRouterSchema)
   .handler(async ({ data }) => {
     const db = getSupabaseServerClient();
     const user = await getVerifiedUser();
 
     if (!user) {
-      throw new Error('User not authenticated');
+      throw new Error("User not authenticated");
     }
 
     const { data: profile } = await db
-      .from('profiles')
-      .select('hospital_id')
-      .eq('id', user.id)
+      .from("profiles")
+      .select("hospital_id")
+      .eq("id", user.id)
       .single();
 
     if (!profile) {
-      throw new Error('User profile not found');
+      throw new Error("User profile not found");
     }
 
-    const request = data;
     const {
       patientDid,
       recordType,
       recordHash,
       hospitalId,
-      userPreferredWallet = 'auto',
+      userPreferredWallet = "auto",
       phantomAvailable = false,
       phantomConnected = false,
       allowFallback = true,
       maxRetries = 2,
       metadata = {},
-    } = request;
+    } = data;
 
     // ─── Validation ──────────────────────────────────────────────────────
 
     if (!patientDid || !recordType || !recordHash || !hospitalId) {
-      throw new Error('Missing required transaction data');
+      throw new Error("Missing required transaction data");
     }
 
     if (profile.hospital_id !== hospitalId) {
-      throw new Error('Unauthorized: User does not have access to this hospital');
+      throw new Error("Unauthorized: User does not have access to this hospital");
     }
 
     const startTime = Date.now();
@@ -139,14 +158,14 @@ export const routeTransaction = createServerFn({
       // ─── Step 2: Get User Preference from Database ──────────────────
 
       const { data: savedPref, error: prefError } = await db
-        .from('user_wallet_preferences')
-        .select('wallet_mode')
-        .eq('user_id', user.id)
-        .eq('hospital_id', hospitalId)
+        .from("user_wallet_preferences")
+        .select("wallet_mode")
+        .eq("user_id", user.id)
+        .eq("hospital_id", hospitalId)
         .single();
 
-      if (!prefError && savedPref?.wallet_mode !== 'auto') {
-        walletMode = savedPref.wallet_mode as 'phantom' | 'embedded';
+      if (!prefError && savedPref?.wallet_mode !== "auto") {
+        walletMode = savedPref.wallet_mode as "phantom" | "embedded";
         console.log(`   Database Preference: ${walletMode}`);
       }
 
@@ -174,7 +193,7 @@ export const routeTransaction = createServerFn({
             {
               forceMode: walletMode,
               withFallback: allowFallback,
-            }
+            },
           );
 
           const attemptEnd = Date.now();
@@ -200,16 +219,16 @@ export const routeTransaction = createServerFn({
                 recordType,
                 recordHash,
                 hospitalId,
-                userWallet: walletMode === 'phantom' ? undefined : user.id,
+                userWallet: walletMode === "phantom" ? undefined : user.id,
                 metadata: {
                   attempt,
                   duration: attempts[attempt - 1]?.duration || 0,
                   totalAttempts: attempt,
                 },
-              }
+              },
             });
           } catch (auditError) {
-            console.warn('Failed to record signing event:', auditError);
+            console.warn("Failed to record signing event:", auditError);
           }
 
           const totalDuration = Date.now() - startTime;
@@ -223,7 +242,7 @@ export const routeTransaction = createServerFn({
             explorerUrl: result.explorerUrl,
             attemptCount: attempt,
             totalDuration,
-            message: `✅ Transaction routed and signed with ${walletMode} wallet (${attempt} attempt${attempt > 1 ? 's' : ''}, ${totalDuration}ms)`,
+            message: `✅ Transaction routed and signed with ${walletMode} wallet (${attempt} attempt${attempt > 1 ? "s" : ""}, ${totalDuration}ms)`,
           } as TransactionRouterResponse;
         } catch (error) {
           const attemptEnd = Date.now();
@@ -260,9 +279,13 @@ export const routeTransaction = createServerFn({
           console.log(`   Recommendation: ${recovery.recommendation}`);
 
           // Fallback to embedded if Phantom fails and fallback enabled
-          if (walletMode === 'phantom' && recovery.suggestedWallet === 'embedded' && allowFallback) {
+          if (
+            walletMode === "phantom" &&
+            recovery.suggestedWallet === "embedded" &&
+            allowFallback
+          ) {
             console.log(`🔄 Switching to embedded wallet...`);
-            walletMode = 'embedded';
+            walletMode = "embedded";
             // Continue to next attempt with new wallet mode
           } else if (!recovery.shouldRetry || attempt === maxRetries) {
             // No more retries or shouldn't retry
@@ -283,7 +306,7 @@ export const routeTransaction = createServerFn({
       const stats = calculateSigningStats(attempts);
       console.error(`   Statistics:`, stats);
 
-      throw lastError || new Error('Transaction signing failed');
+      throw lastError || new Error("Transaction signing failed");
     } catch (error) {
       const totalDuration = Date.now() - startTime;
       const errorMsg = error instanceof Error ? error.message : String(error);
@@ -294,8 +317,8 @@ export const routeTransaction = createServerFn({
       try {
         await recordSigningEvent({
           data: {
-            signerType: 'embedded',
-            txId: 'failed',
+            signerType: "embedded",
+            txId: "failed",
             recordType,
             recordHash,
             hospitalId,
@@ -304,7 +327,7 @@ export const routeTransaction = createServerFn({
               attempts: attempts.length,
               totalDuration,
             },
-          }
+          },
         }).catch(() => {});
       } catch (_) {
         // Silently ignore audit logging failures
@@ -312,7 +335,7 @@ export const routeTransaction = createServerFn({
 
       throw {
         error: errorMsg,
-        walletTried: attempts[0]?.walletMode || 'embedded',
+        walletTried: attempts[0]?.walletMode || "embedded",
         isRecoverable: attempts.some((a) => a.success) === false,
         suggestedAction: `Try again later or switch wallet mode in settings. Attempts: ${attempts.length}, Duration: ${totalDuration}ms`,
         attemptCount: attempts.length,
@@ -331,7 +354,7 @@ async function determineWalletMode(params: {
   phantomConnected: boolean;
   hospitalId: string;
   userId: string;
-}): Promise<'phantom' | 'embedded'> {
+}): Promise<"phantom" | "embedded"> {
   const { userPreference, phantomAvailable, phantomConnected } = params;
 
   console.log(`\n📊 Determining wallet mode:`);
@@ -341,40 +364,40 @@ async function determineWalletMode(params: {
 
   // ─── Manual Override ────────────────────────────────────────────────
 
-  if (userPreference === 'phantom') {
+  if (userPreference === "phantom") {
     if (phantomAvailable && phantomConnected) {
       console.log(`   → User chose Phantom (available & connected)`);
-      return 'phantom';
+      return "phantom";
     } else {
       console.log(`   → User chose Phantom (NOT available, falling back to embedded)`);
-      return 'embedded';
+      return "embedded";
     }
   }
 
-  if (userPreference === 'embedded') {
+  if (userPreference === "embedded") {
     console.log(`   → User chose Embedded`);
-    return 'embedded';
+    return "embedded";
   }
 
   // ─── Auto-Detect ────────────────────────────────────────────────────
 
-  if (userPreference === 'auto') {
+  if (userPreference === "auto") {
     if (phantomAvailable && phantomConnected) {
       console.log(`   → Auto-detect: Phantom available (using Phantom)`);
-      return 'phantom';
+      return "phantom";
     } else if (phantomAvailable && !phantomConnected) {
       console.log(`   → Auto-detect: Phantom detected but not connected (using Embedded)`);
-      return 'embedded';
+      return "embedded";
     } else {
       console.log(`   → Auto-detect: Phantom not available (using Embedded)`);
-      return 'embedded';
+      return "embedded";
     }
   }
 
   // ─── Default ────────────────────────────────────────────────────────
 
   console.log(`   → Default: Using Embedded`);
-  return 'embedded';
+  return "embedded";
 }
 
 // ─── Pre-Flight Check ───────────────────────────────────────────────────────
@@ -385,25 +408,25 @@ async function determineWalletMode(params: {
  * Returns diagnostics: Phantom status, hospital wallet balance, network status
  */
 export const preflightCheck = createServerFn({
-  method: 'POST',
+  method: "POST",
 })
-  .inputValidator((data: { hospitalId: string; checkPhantom?: boolean; checkNetwork?: boolean }) => data)
+  .validator(preflightSchema)
   .handler(async ({ data }) => {
     const db = getSupabaseServerClient();
     const user = await getVerifiedUser();
 
     if (!user) {
-      throw new Error('User not authenticated');
+      throw new Error("User not authenticated");
     }
 
     const { data: profile } = await db
-      .from('profiles')
-      .select('hospital_id')
-      .eq('id', user.id)
+      .from("profiles")
+      .select("hospital_id")
+      .eq("id", user.id)
       .single();
 
     if (!profile) {
-      throw new Error('User profile not found');
+      throw new Error("User profile not found");
     }
 
     const { hospitalId, checkPhantom = true, checkNetwork = true } = data;
@@ -423,32 +446,32 @@ export const preflightCheck = createServerFn({
 
       if (profile.hospital_id === hospitalId) {
         const { data: pref } = await db
-          .from('user_wallet_preferences')
-          .select('wallet_mode, phantom_public_key')
-          .eq('user_id', user.id)
-          .eq('hospital_id', hospitalId)
+          .from("user_wallet_preferences")
+          .select("wallet_mode, phantom_public_key")
+          .eq("user_id", user.id)
+          .eq("hospital_id", hospitalId)
           .single();
 
         diagnostics.userPreference = {
-          walletMode: pref?.wallet_mode || 'auto',
+          walletMode: pref?.wallet_mode || "auto",
           phantomConnected: !!pref?.phantom_public_key,
         };
       }
 
       // ─── Check Hospital Wallet ────────────────────────────────────
 
-      if (user.role === 'admin') {
+      if (user.role === "admin") {
         try {
           const { data: wallet } = await db
-            .from('embedded_wallets')
-            .select('public_key, is_active')
-            .eq('hospital_id', hospitalId)
-            .eq('owner_type', 'hospital')
+            .from("embedded_wallets")
+            .select("public_key, is_active")
+            .eq("hospital_id", hospitalId)
+            .eq("owner_type", "hospital")
             .single();
 
           diagnostics.hospitalWallet = {
             available: !!wallet?.is_active,
-            address: wallet?.public_key?.slice(0, 8) + '...' || 'N/A',
+            address: wallet?.public_key?.slice(0, 8) + "..." || "N/A",
           };
         } catch (_) {
           diagnostics.hospitalWallet = { available: false };
@@ -458,8 +481,8 @@ export const preflightCheck = createServerFn({
       // ─── Check User Preferences ───────────────────────────────────
 
       diagnostics.checks = {
-        phantomCheck: checkPhantom ? 'enabled' : 'skipped',
-        networkCheck: checkNetwork ? 'enabled' : 'skipped',
+        phantomCheck: checkPhantom ? "enabled" : "skipped",
+        networkCheck: checkNetwork ? "enabled" : "skipped",
       };
 
       console.log(`✅ Preflight check complete:`, diagnostics);
@@ -469,7 +492,7 @@ export const preflightCheck = createServerFn({
         diagnostics,
       };
     } catch (error) {
-      console.error('Preflight check failed:', error);
+      console.error("Preflight check failed:", error);
       throw error;
     }
   });
@@ -481,45 +504,44 @@ export const preflightCheck = createServerFn({
  * Get hospital's transaction routing statistics (admin only)
  */
 export const getRoutingStats = createServerFn({
-  method: 'GET',
-})
-  .handler(async () => {
-    const db = getSupabaseServerClient();
-    const user = await getVerifiedUser();
+  method: "GET",
+}).handler(async () => {
+  const db = getSupabaseServerClient();
+  const user = await getVerifiedUser();
 
-    if (!user) {
-      throw new Error('User not authenticated');
-    }
+  if (!user) {
+    throw new Error("User not authenticated");
+  }
 
-    const { data: profile } = await db
-      .from('profiles')
-      .select('hospital_id, role')
-      .eq('id', user.id)
-      .single();
+  const { data: profile } = await db
+    .from("profiles")
+    .select("hospital_id, role")
+    .eq("id", user.id)
+    .single();
 
-    if (!profile || profile.role !== 'admin') {
-      throw new Error('Only admins can view routing statistics');
-    }
+  if (!profile || profile.role !== "admin") {
+    throw new Error("Only admins can view routing statistics");
+  }
 
-    try {
-      // Get signing stats from signing_events
-      const { data: stats } = await db.rpc('get_signing_stats', {
-        p_hospital_id: profile.hospital_id,
-      });
+  try {
+    // Get signing stats from signing_events
+    const { data: stats } = await db.rpc("get_signing_stats", {
+      p_hospital_id: profile.hospital_id,
+    });
 
-      return {
-        success: true,
-        routingStats: stats?.[0] || {
-          total_signings: 0,
-          phantom_signings: 0,
-          embedded_signings: 0,
-          failed_signings: 0,
-          confirmed_signings: 0,
-          success_rate: 0,
-        },
-      };
-    } catch (error) {
-      console.error('Failed to get routing stats:', error);
-      throw error;
-    }
-  });
+    return {
+      success: true,
+      routingStats: stats?.[0] || {
+        total_signings: 0,
+        phantom_signings: 0,
+        embedded_signings: 0,
+        failed_signings: 0,
+        confirmed_signings: 0,
+        success_rate: 0,
+      },
+    };
+  } catch (error) {
+    console.error("Failed to get routing stats:", error);
+    throw error;
+  }
+});

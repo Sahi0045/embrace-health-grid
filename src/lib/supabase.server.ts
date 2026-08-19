@@ -16,6 +16,7 @@
  * behalf of the signed-in user, not as an omnipotent admin.
  */
 
+import { createClient } from "@supabase/supabase-js";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { getCookies, setCookie, getRequest } from "@tanstack/react-start/server";
 import WebSocket from "ws";
@@ -59,6 +60,48 @@ function supabaseConfig(): { url: string; anonKey: string } {
   ).trim();
 
   return { url, anonKey };
+}
+
+/**
+ * Service-role Supabase client. Bypasses RLS entirely — no user, no cookies.
+ *
+ * Needed because some server work is deliberately unreachable with the
+ * request-scoped client. The clearest case is embedded_wallets: its
+ * encrypted_private_key column is not granted to `authenticated` at all, so
+ * getSupabaseServerClient() cannot read it no matter which row policy applies.
+ * That is the intended design — a policy permissive enough for the server would
+ * be equally permissive for a browser holding the same anon key.
+ *
+ * Rules for using this:
+ *   - never return rows fetched with it straight to a client
+ *   - always establish the caller's identity and hospital with the normal client
+ *     first, then use this only for the specific privileged read or write
+ *   - never import it into anything that runs in the browser
+ *
+ * Throws rather than falling back to the anon key: silently downgrading would
+ * turn a privileged read into a confusing empty result.
+ */
+export function getSupabaseServiceRoleClient() {
+  const { url } = supabaseConfig();
+
+  // Same trailing-newline hazard as the anon key: a pasted deployment secret can
+  // carry \n, which corrupts the Authorization header.
+  const serviceRoleKey = (
+    process.env.SUPABASE_SERVICE_ROLE_KEY ??
+    process.env.VITE_SUPABASE_SERVICE_ROLE_KEY ??
+    ""
+  ).trim();
+
+  if (!url || !serviceRoleKey) {
+    throw new Error(
+      "SUPABASE_SERVICE_ROLE_KEY is required for privileged server operations " +
+        "(for example reading embedded wallet key material) and is not set.",
+    );
+  }
+
+  return createClient(url, serviceRoleKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
 }
 
 /** Baseline cookie attributes applied to every auth cookie we set. */

@@ -18,7 +18,10 @@ import type { RadiologyOrderRecord, RadiologyModality } from "@/lib/types";
 
 interface RadiologyTabProps {
   orders: RadiologyOrderRecord[];
-  onUpdateStatus: (orderId: string, status: "scheduled" | "in_progress" | "completed" | "reported") => void;
+  onUpdateStatus: (
+    orderId: string,
+    status: "scheduled" | "in_progress" | "completed" | "reported",
+  ) => void;
 }
 
 const IMAGING_EQUIPMENT = [
@@ -195,7 +198,10 @@ export function RadiologyTab({ orders, onUpdateStatus }: RadiologyTabProps) {
                         {rad.body_part}
                       </h4>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        Indication: <span className="text-foreground font-semibold italic">{rad.clinical_indication}</span>
+                        Indication:{" "}
+                        <span className="text-foreground font-semibold italic">
+                          {rad.clinical_indication}
+                        </span>
                       </p>
                     </div>
 

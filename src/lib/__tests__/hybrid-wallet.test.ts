@@ -3,16 +3,16 @@
  * Unit tests for wallet detection, preference management, and error handling
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { renderHook, act, waitFor } from '@testing-library/react';
-import { useHybridWallet } from '@/lib/useHybridWallet';
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { renderHook, act, waitFor } from "@testing-library/react";
+import { useHybridWallet } from "@/lib/useHybridWallet";
 
 // ─── Mocks ──────────────────────────────────────────────────────────────────
 
 // Mock Phantom wallet
 const mockPhantomWallet = {
   isPhantom: true,
-  publicKey: { toString: () => 'test-phantom-address-1234567890' },
+  publicKey: { toString: () => "test-phantom-address-1234567890" },
   signTransaction: vi.fn(),
   signMessage: vi.fn(),
   connect: vi.fn(),
@@ -22,14 +22,14 @@ const mockPhantomWallet = {
 };
 
 // Mock API calls
-vi.mock('@/routes/api.wallet-preference', () => ({
+vi.mock("@/routes/api.wallet-preference", () => ({
   getUserWalletPreference: vi.fn(),
   saveUserWalletPreference: vi.fn(),
 }));
 
 // ─── Tests ──────────────────────────────────────────────────────────────────
 
-describe('useHybridWallet', () => {
+describe("useHybridWallet", () => {
   beforeEach(() => {
     // Reset all mocks
     vi.clearAllMocks();
@@ -38,8 +38,8 @@ describe('useHybridWallet', () => {
 
   // ─── Phantom Detection ───────────────────────────────────────────────
 
-  describe('Phantom Detection', () => {
-    it('detects Phantom wallet when available', () => {
+  describe("Phantom Detection", () => {
+    it("detects Phantom wallet when available", () => {
       window.solana = mockPhantomWallet;
 
       const { result } = renderHook(() => useHybridWallet());
@@ -47,7 +47,7 @@ describe('useHybridWallet', () => {
       expect(result.current.phantomAvailable).toBe(true);
     });
 
-    it('returns false when Phantom is not available', () => {
+    it("returns false when Phantom is not available", () => {
       delete (window as any).solana;
 
       const { result } = renderHook(() => useHybridWallet());
@@ -55,7 +55,7 @@ describe('useHybridWallet', () => {
       expect(result.current.phantomAvailable).toBe(false);
     });
 
-    it('detects Phantom connection state', () => {
+    it("detects Phantom connection state", () => {
       window.solana = mockPhantomWallet;
 
       const { result } = renderHook(() => useHybridWallet());
@@ -63,107 +63,107 @@ describe('useHybridWallet', () => {
       expect(result.current.isPhantomConnected).toBe(true);
     });
 
-    it('detects Phantom public key', () => {
+    it("detects Phantom public key", () => {
       window.solana = mockPhantomWallet;
 
       const { result } = renderHook(() => useHybridWallet());
 
-      expect(result.current.phantomAddress).toBe('test-phantom-address-1234567890');
+      expect(result.current.phantomAddress).toBe("test-phantom-address-1234567890");
     });
   });
 
   // ─── Wallet Mode Management ──────────────────────────────────────────
 
-  describe('Wallet Mode Management', () => {
-    it('defaults to auto mode', () => {
+  describe("Wallet Mode Management", () => {
+    it("defaults to auto mode", () => {
       const { result } = renderHook(() => useHybridWallet());
 
-      expect(result.current.walletMode).toBe('auto');
+      expect(result.current.walletMode).toBe("auto");
     });
 
-    it('allows changing to phantom mode', async () => {
+    it("allows changing to phantom mode", async () => {
       window.solana = mockPhantomWallet;
 
-      const { result } = renderHook(() => useHybridWallet('hospital-123'));
+      const { result } = renderHook(() => useHybridWallet("hospital-123"));
 
       await act(async () => {
-        await result.current.setWalletMode('phantom');
+        await result.current.setWalletMode("phantom");
       });
 
-      expect(result.current.walletMode).toBe('phantom');
+      expect(result.current.walletMode).toBe("phantom");
     });
 
-    it('allows changing to embedded mode', async () => {
-      const { result } = renderHook(() => useHybridWallet('hospital-123'));
+    it("allows changing to embedded mode", async () => {
+      const { result } = renderHook(() => useHybridWallet("hospital-123"));
 
       await act(async () => {
-        await result.current.setWalletMode('embedded');
+        await result.current.setWalletMode("embedded");
       });
 
-      expect(result.current.walletMode).toBe('embedded');
+      expect(result.current.walletMode).toBe("embedded");
     });
   });
 
   // ─── Active Wallet Determination ────────────────────────────────────
 
-  describe('Active Wallet Determination', () => {
-    it('returns embedded when Phantom not available and auto mode', () => {
+  describe("Active Wallet Determination", () => {
+    it("returns embedded when Phantom not available and auto mode", () => {
       delete (window as any).solana;
 
       const { result } = renderHook(() => useHybridWallet());
 
-      expect(result.current.getActiveWallet()).toBe('embedded');
+      expect(result.current.getActiveWallet()).toBe("embedded");
     });
 
-    it('returns phantom when available and auto mode', () => {
+    it("returns phantom when available and auto mode", () => {
       window.solana = mockPhantomWallet;
 
       const { result } = renderHook(() => useHybridWallet());
 
-      expect(result.current.getActiveWallet()).toBe('phantom');
+      expect(result.current.getActiveWallet()).toBe("phantom");
     });
 
-    it('returns phantom in phantom mode even if just connected', async () => {
+    it("returns phantom in phantom mode even if just connected", async () => {
       window.solana = mockPhantomWallet;
 
-      const { result } = renderHook(() => useHybridWallet('hospital-123'));
+      const { result } = renderHook(() => useHybridWallet("hospital-123"));
 
       await act(async () => {
-        await result.current.setWalletMode('phantom');
+        await result.current.setWalletMode("phantom");
       });
 
-      expect(result.current.getActiveWallet()).toBe('phantom');
+      expect(result.current.getActiveWallet()).toBe("phantom");
     });
 
-    it('returns embedded in embedded mode regardless of Phantom', () => {
+    it("returns embedded in embedded mode regardless of Phantom", () => {
       window.solana = mockPhantomWallet;
 
-      const { result } = renderHook(() => useHybridWallet('hospital-123'));
+      const { result } = renderHook(() => useHybridWallet("hospital-123"));
 
       act(() => {
-        result.current.setWalletMode('embedded');
+        result.current.setWalletMode("embedded");
       });
 
-      expect(result.current.getActiveWallet()).toBe('embedded');
+      expect(result.current.getActiveWallet()).toBe("embedded");
     });
 
-    it('falls back to embedded when Phantom mode selected but not connected', () => {
+    it("falls back to embedded when Phantom mode selected but not connected", () => {
       window.solana = { ...mockPhantomWallet, publicKey: undefined };
 
-      const { result } = renderHook(() => useHybridWallet('hospital-123'));
+      const { result } = renderHook(() => useHybridWallet("hospital-123"));
 
       act(() => {
-        result.current.setWalletMode('phantom');
+        result.current.setWalletMode("phantom");
       });
 
-      expect(result.current.getActiveWallet()).toBe('embedded');
+      expect(result.current.getActiveWallet()).toBe("embedded");
     });
   });
 
   // ─── Signing Activity Tracking ──────────────────────────────────────
 
-  describe('Signing Activity Tracking', () => {
-    it('records signing activity timestamp', () => {
+  describe("Signing Activity Tracking", () => {
+    it("records signing activity timestamp", () => {
       const { result } = renderHook(() => useHybridWallet());
 
       const beforeTime = new Date();
@@ -176,14 +176,12 @@ describe('useHybridWallet', () => {
 
       expect(result.current.lastSigningTime).toBeDefined();
       expect(result.current.lastSigningTime!.getTime()).toBeGreaterThanOrEqual(
-        beforeTime.getTime()
+        beforeTime.getTime(),
       );
-      expect(result.current.lastSigningTime!.getTime()).toBeLessThanOrEqual(
-        afterTime.getTime()
-      );
+      expect(result.current.lastSigningTime!.getTime()).toBeLessThanOrEqual(afterTime.getTime());
     });
 
-    it('marks signing as not in progress after recording', () => {
+    it("marks signing as not in progress after recording", () => {
       const { result } = renderHook(() => useHybridWallet());
 
       act(() => {
@@ -193,35 +191,35 @@ describe('useHybridWallet', () => {
       expect(result.current.isSigning).toBe(false);
     });
 
-    it('sets signing error', () => {
+    it("sets signing error", () => {
       const { result } = renderHook(() => useHybridWallet());
 
       act(() => {
-        result.current.setSigningError('Transaction failed');
+        result.current.setSigningError("Transaction failed");
       });
 
-      expect(result.current.signingError).toBe('Transaction failed');
+      expect(result.current.signingError).toBe("Transaction failed");
       expect(result.current.isSigning).toBe(false);
     });
   });
 
   // ─── Event Listening ────────────────────────────────────────────────
 
-  describe('Event Listening', () => {
-    it('sets up listeners when Phantom is available', () => {
+  describe("Event Listening", () => {
+    it("sets up listeners when Phantom is available", () => {
       const onMock = vi.fn();
       window.solana = { ...mockPhantomWallet, on: onMock };
 
       renderHook(() => useHybridWallet());
 
       // Should call on for each event
-      expect(onMock).toHaveBeenCalledWith('connect', expect.any(Function));
-      expect(onMock).toHaveBeenCalledWith('disconnect', expect.any(Function));
-      expect(onMock).toHaveBeenCalledWith('accountChanged', expect.any(Function));
-      expect(onMock).toHaveBeenCalledWith('networkChanged', expect.any(Function));
+      expect(onMock).toHaveBeenCalledWith("connect", expect.any(Function));
+      expect(onMock).toHaveBeenCalledWith("disconnect", expect.any(Function));
+      expect(onMock).toHaveBeenCalledWith("accountChanged", expect.any(Function));
+      expect(onMock).toHaveBeenCalledWith("networkChanged", expect.any(Function));
     });
 
-    it('cleans up listeners on unmount', () => {
+    it("cleans up listeners on unmount", () => {
       const offMock = vi.fn();
       window.solana = { ...mockPhantomWallet, off: offMock };
 
@@ -230,19 +228,19 @@ describe('useHybridWallet', () => {
       unmount();
 
       // Should call off for each event
-      expect(offMock).toHaveBeenCalledWith('connect', expect.any(Function));
-      expect(offMock).toHaveBeenCalledWith('disconnect', expect.any(Function));
+      expect(offMock).toHaveBeenCalledWith("connect", expect.any(Function));
+      expect(offMock).toHaveBeenCalledWith("disconnect", expect.any(Function));
     });
   });
 
   // ─── Connection State Changes ───────────────────────────────────────
 
-  describe('Connection State Changes', () => {
-    it('detects when Phantom connects', async () => {
+  describe("Connection State Changes", () => {
+    it("detects when Phantom connects", async () => {
       let connectHandler: any;
 
       const onMock = vi.fn((event, handler) => {
-        if (event === 'connect') connectHandler = handler;
+        if (event === "connect") connectHandler = handler;
       });
 
       window.solana = { ...mockPhantomWallet, on: onMock };
@@ -259,11 +257,11 @@ describe('useHybridWallet', () => {
       });
     });
 
-    it('detects when Phantom disconnects', async () => {
+    it("detects when Phantom disconnects", async () => {
       let disconnectHandler: any;
 
       const onMock = vi.fn((event, handler) => {
-        if (event === 'disconnect') disconnectHandler = handler;
+        if (event === "disconnect") disconnectHandler = handler;
       });
 
       window.solana = { ...mockPhantomWallet, on: onMock };
@@ -280,11 +278,11 @@ describe('useHybridWallet', () => {
       });
     });
 
-    it('detects account changes', async () => {
+    it("detects account changes", async () => {
       let accountChangeHandler: any;
 
       const onMock = vi.fn((event, handler) => {
-        if (event === 'accountChanged') accountChangeHandler = handler;
+        if (event === "accountChanged") accountChangeHandler = handler;
       });
 
       window.solana = { ...mockPhantomWallet, on: onMock };
@@ -292,7 +290,7 @@ describe('useHybridWallet', () => {
       const { result } = renderHook(() => useHybridWallet());
 
       const newPublicKey = {
-        toString: () => 'new-phantom-address-9999999999',
+        toString: () => "new-phantom-address-9999999999",
       };
 
       // Simulate account change
@@ -301,7 +299,7 @@ describe('useHybridWallet', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.phantomAddress).toBe('new-phantom-address-9999999999');
+        expect(result.current.phantomAddress).toBe("new-phantom-address-9999999999");
       });
     });
   });
@@ -309,34 +307,34 @@ describe('useHybridWallet', () => {
 
 // ─── Integration Scenario Tests ──────────────────────────────────────────
 
-describe('Hybrid Wallet Integration Scenarios', () => {
+describe("Hybrid Wallet Integration Scenarios", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     delete (window as any).solana;
   });
 
-  it('handles user switching from Phantom to Embedded', async () => {
+  it("handles user switching from Phantom to Embedded", async () => {
     window.solana = mockPhantomWallet;
 
-    const { result } = renderHook(() => useHybridWallet('hospital-123'));
+    const { result } = renderHook(() => useHybridWallet("hospital-123"));
 
-    expect(result.current.getActiveWallet()).toBe('phantom');
+    expect(result.current.getActiveWallet()).toBe("phantom");
 
     // User decides to use embedded instead
     await act(async () => {
-      await result.current.setWalletMode('embedded');
+      await result.current.setWalletMode("embedded");
     });
 
-    expect(result.current.walletMode).toBe('embedded');
-    expect(result.current.getActiveWallet()).toBe('embedded');
+    expect(result.current.walletMode).toBe("embedded");
+    expect(result.current.getActiveWallet()).toBe("embedded");
   });
 
-  it('handles Phantom becoming unavailable mid-session', async () => {
+  it("handles Phantom becoming unavailable mid-session", async () => {
     window.solana = mockPhantomWallet;
 
     const { result } = renderHook(() => useHybridWallet());
 
-    expect(result.current.getActiveWallet()).toBe('phantom');
+    expect(result.current.getActiveWallet()).toBe("phantom");
 
     // Phantom becomes unavailable (user closes extension)
     delete (window as any).solana;
@@ -345,18 +343,18 @@ describe('Hybrid Wallet Integration Scenarios', () => {
     expect(result.current.phantomAvailable).toBe(false);
   });
 
-  it('recovers when Phantom reconnects after disconnect', async () => {
+  it("recovers when Phantom reconnects after disconnect", async () => {
     let disconnectHandler: any;
     let connectHandler: any;
 
     const onMock = vi.fn((event, handler) => {
-      if (event === 'disconnect') disconnectHandler = handler;
-      if (event === 'connect') connectHandler = handler;
+      if (event === "disconnect") disconnectHandler = handler;
+      if (event === "connect") connectHandler = handler;
     });
 
     window.solana = { ...mockPhantomWallet, on: onMock };
 
-    const { result } = renderHook(() => useHybridWallet('hospital-123'));
+    const { result } = renderHook(() => useHybridWallet("hospital-123"));
 
     expect(result.current.isPhantomConnected).toBe(true);
 
@@ -382,24 +380,24 @@ describe('Hybrid Wallet Integration Scenarios', () => {
 
 // ─── Error Cases ────────────────────────────────────────────────────────
 
-describe('Error Handling', () => {
+describe("Error Handling", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     delete (window as any).solana;
   });
 
-  it('gracefully handles missing Phantom API', () => {
+  it("gracefully handles missing Phantom API", () => {
     window.solana = undefined;
 
     const { result } = renderHook(() => useHybridWallet());
 
     expect(result.current.phantomAvailable).toBe(false);
-    expect(result.current.getActiveWallet()).toBe('embedded');
+    expect(result.current.getActiveWallet()).toBe("embedded");
   });
 
-  it('handles failed listener attachment', () => {
+  it("handles failed listener attachment", () => {
     const onMock = vi.fn(() => {
-      throw new Error('Failed to attach listener');
+      throw new Error("Failed to attach listener");
     });
 
     window.solana = { ...mockPhantomWallet, on: onMock };
@@ -410,17 +408,17 @@ describe('Error Handling', () => {
     }).not.toThrow();
   });
 
-  it('handles Phantom mode when Phantom is not installed', async () => {
+  it("handles Phantom mode when Phantom is not installed", async () => {
     delete (window as any).solana;
 
-    const { result } = renderHook(() => useHybridWallet('hospital-123'));
+    const { result } = renderHook(() => useHybridWallet("hospital-123"));
 
     // User tries to select Phantom mode despite not having it
     await act(async () => {
-      await result.current.setWalletMode('phantom');
+      await result.current.setWalletMode("phantom");
     });
 
     // Should fall back to embedded
-    expect(result.current.getActiveWallet()).toBe('embedded');
+    expect(result.current.getActiveWallet()).toBe("embedded");
   });
 });

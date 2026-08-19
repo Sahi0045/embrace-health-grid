@@ -22,16 +22,29 @@ interface VendorsTabProps {
 }
 
 const CONTRACT_CONFIGS: Record<ContractStatus, { label: string; color: string; border: string }> = {
-  active: { label: "Active Contract", color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400", border: "border-emerald-500/20" },
-  pending: { label: "Pending Renewal", color: "bg-amber-500/10 text-amber-600 dark:text-amber-400", border: "border-amber-500/20" },
-  expired: { label: "Contract Expired", color: "bg-rose-500/10 text-rose-600 dark:text-rose-400", border: "border-rose-500/20" },
-  terminated: { label: "Terminated", color: "bg-muted text-muted-foreground", border: "border-border/60" },
+  active: {
+    label: "Active Contract",
+    color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+    border: "border-emerald-500/20",
+  },
+  pending: {
+    label: "Pending Renewal",
+    color: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+    border: "border-amber-500/20",
+  },
+  expired: {
+    label: "Contract Expired",
+    color: "bg-rose-500/10 text-rose-600 dark:text-rose-400",
+    border: "border-rose-500/20",
+  },
+  terminated: {
+    label: "Terminated",
+    color: "bg-muted text-muted-foreground",
+    border: "border-border/60",
+  },
 };
 
-export function VendorsTab({
-  vendors,
-  onUpdateStatus,
-}: VendorsTabProps) {
+export function VendorsTab({ vendors, onUpdateStatus }: VendorsTabProps) {
   if (vendors.length === 0) {
     return (
       <EmptyState
@@ -66,7 +79,8 @@ export function VendorsTab({
                 </div>
                 {vendor.contact_person && (
                   <p className="text-[11px] text-muted-foreground mt-0.5">
-                    Rep: <span className="font-semibold text-foreground">{vendor.contact_person}</span>
+                    Rep:{" "}
+                    <span className="font-semibold text-foreground">{vendor.contact_person}</span>
                   </p>
                 )}
               </div>

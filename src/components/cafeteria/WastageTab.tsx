@@ -21,11 +21,31 @@ interface WastageTabProps {
 }
 
 const REASON_CONFIGS: Record<string, { label: string; color: string; bg: string }> = {
-  overproduction: { label: "Overproduction", color: "#f59e0b", bg: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
-  spoilage: { label: "Spoilage", color: "#ef4444", bg: "bg-rose-500/10 text-rose-600 border-rose-500/20" },
-  unconsumed_tray: { label: "Unconsumed Tray", color: "#3b82f6", bg: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
-  expired_stock: { label: "Expired Stock", color: "#8b5cf6", bg: "bg-purple-500/10 text-purple-600 border-purple-500/20" },
-  damaged: { label: "Prep Damage", color: "#6b7280", bg: "bg-muted text-muted-foreground border-border/60" },
+  overproduction: {
+    label: "Overproduction",
+    color: "#f59e0b",
+    bg: "bg-amber-500/10 text-amber-600 border-amber-500/20",
+  },
+  spoilage: {
+    label: "Spoilage",
+    color: "#ef4444",
+    bg: "bg-rose-500/10 text-rose-600 border-rose-500/20",
+  },
+  unconsumed_tray: {
+    label: "Unconsumed Tray",
+    color: "#3b82f6",
+    bg: "bg-blue-500/10 text-blue-600 border-blue-500/20",
+  },
+  expired_stock: {
+    label: "Expired Stock",
+    color: "#8b5cf6",
+    bg: "bg-purple-500/10 text-purple-600 border-purple-500/20",
+  },
+  damaged: {
+    label: "Prep Damage",
+    color: "#6b7280",
+    bg: "bg-muted text-muted-foreground border-border/60",
+  },
 };
 
 export function WastageTab({ logs }: WastageTabProps) {
@@ -54,7 +74,10 @@ export function WastageTab({ logs }: WastageTabProps) {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-stretch">
         {/* Left Hero Card: Sustainability Target & Totals (7 cols) */}
         <div className="lg:col-span-7 flex flex-col">
-          <GlowCard accent="primary" className="p-5 sm:p-6 bg-card border border-border/80 rounded-2xl shadow-clinical-md flex flex-col justify-between h-full">
+          <GlowCard
+            accent="primary"
+            className="p-5 sm:p-6 bg-card border border-border/80 rounded-2xl shadow-clinical-md flex flex-col justify-between h-full"
+          >
             <div className="flex items-center justify-between pb-4 border-b border-border/60">
               <div className="flex items-center gap-3">
                 <div className="p-3 rounded-2xl bg-rose-500/10 text-rose-500 border border-rose-500/20 shadow-xs">
@@ -78,23 +101,31 @@ export function WastageTab({ logs }: WastageTabProps) {
             {/* Middle: Metrics Row */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 my-4">
               <div className="p-3 rounded-xl bg-background border border-border/60">
-                <p className="text-[10px] text-muted-foreground font-bold uppercase">Total Logged Weight</p>
+                <p className="text-[10px] text-muted-foreground font-bold uppercase">
+                  Total Logged Weight
+                </p>
                 <div className="text-xl font-black text-foreground mt-1">
-                  {Math.round(totalWastedKg * 10) / 10} <span className="text-xs text-muted-foreground font-bold">kg</span>
+                  {Math.round(totalWastedKg * 10) / 10}{" "}
+                  <span className="text-xs text-muted-foreground font-bold">kg</span>
                 </div>
               </div>
 
               <div className="p-3 rounded-xl bg-background border border-border/60">
-                <p className="text-[10px] text-muted-foreground font-bold uppercase">Estimated Cost Impact</p>
+                <p className="text-[10px] text-muted-foreground font-bold uppercase">
+                  Estimated Cost Impact
+                </p>
                 <div className="text-xl font-black text-rose-500 mt-1">
                   ${totalCostImpact.toFixed(2)}
                 </div>
               </div>
 
               <div className="p-3 rounded-xl bg-background border border-border/60 col-span-2 sm:col-span-1">
-                <p className="text-[10px] text-muted-foreground font-bold uppercase">Logs Recorded</p>
+                <p className="text-[10px] text-muted-foreground font-bold uppercase">
+                  Logs Recorded
+                </p>
                 <div className="text-xl font-black text-foreground mt-1">
-                  {logs.length} <span className="text-xs text-muted-foreground font-bold">entries</span>
+                  {logs.length}{" "}
+                  <span className="text-xs text-muted-foreground font-bold">entries</span>
                 </div>
               </div>
             </div>
@@ -102,8 +133,12 @@ export function WastageTab({ logs }: WastageTabProps) {
             {/* Sustainability Goal Progress Bar */}
             <div className="pt-3 border-t border-border/60 space-y-2">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-foreground">Zero-Waste Hospital Target Compliance</span>
-                <span className="font-extrabold text-emerald-500">{sustainabilityGoalPercent}% On Track</span>
+                <span className="font-bold text-foreground">
+                  Zero-Waste Hospital Target Compliance
+                </span>
+                <span className="font-extrabold text-emerald-500">
+                  {sustainabilityGoalPercent}% On Track
+                </span>
               </div>
               <GradientProgress value={sustainabilityGoalPercent} tone="success" height={10} />
             </div>
@@ -112,7 +147,10 @@ export function WastageTab({ logs }: WastageTabProps) {
 
         {/* Right Donut Chart: Wastage Breakdown by Reason (5 cols) */}
         <div className="lg:col-span-5 flex flex-col">
-          <GlowCard accent="none" className="p-5 sm:p-6 bg-card border border-border/80 rounded-2xl shadow-clinical-md flex flex-col justify-between h-full">
+          <GlowCard
+            accent="none"
+            className="p-5 sm:p-6 bg-card border border-border/80 rounded-2xl shadow-clinical-md flex flex-col justify-between h-full"
+          >
             <div className="flex items-center justify-between pb-3 border-b border-border/60">
               <h4 className="text-xs font-black uppercase tracking-wider text-muted-foreground">
                 Loss Factor Distribution
@@ -129,9 +167,15 @@ export function WastageTab({ logs }: WastageTabProps) {
                 const config = REASON_CONFIGS[reasonKey];
                 const amount = Math.round((reasonCounts[reasonKey] || 0) * 10) / 10;
                 return (
-                  <div key={reasonKey} className="flex items-center justify-between p-1.5 rounded-lg bg-background/60 text-[11px]">
+                  <div
+                    key={reasonKey}
+                    className="flex items-center justify-between p-1.5 rounded-lg bg-background/60 text-[11px]"
+                  >
                     <div className="flex items-center gap-1.5 truncate">
-                      <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: config.color }} />
+                      <span
+                        className="h-2 w-2 rounded-full shrink-0"
+                        style={{ backgroundColor: config.color }}
+                      />
                       <span className="truncate text-muted-foreground">{config.label}</span>
                     </div>
                     <span className="font-bold text-foreground ml-1">{amount}kg</span>
@@ -148,7 +192,9 @@ export function WastageTab({ logs }: WastageTabProps) {
         <div className="p-4 border-b border-border/60 flex items-center justify-between">
           <div>
             <h4 className="text-sm font-extrabold text-foreground">Daily Food Wastage Ledger</h4>
-            <p className="text-xs text-muted-foreground">Detailed logs recorded by kitchen supervisors</p>
+            <p className="text-xs text-muted-foreground">
+              Detailed logs recorded by kitchen supervisors
+            </p>
           </div>
           <span className="text-xs font-bold text-muted-foreground">{logs.length} Total Logs</span>
         </div>
@@ -193,13 +239,16 @@ export function WastageTab({ logs }: WastageTabProps) {
                         {log.item_name}
                       </td>
                       <td className="py-3 px-4 text-right font-black text-foreground whitespace-nowrap">
-                        {log.quantity_wasted} <span className="text-[10px] text-muted-foreground">{log.unit}</span>
+                        {log.quantity_wasted}{" "}
+                        <span className="text-[10px] text-muted-foreground">{log.unit}</span>
                       </td>
                       <td className="py-3 px-4 text-right font-black text-rose-500 whitespace-nowrap">
                         ${log.cost_impact.toFixed(2)}
                       </td>
                       <td className="py-3 px-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold border ${reasonConfig.bg}`}>
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold border ${reasonConfig.bg}`}
+                        >
                           {reasonConfig.label}
                         </span>
                       </td>

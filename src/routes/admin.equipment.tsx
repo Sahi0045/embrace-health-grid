@@ -25,10 +25,7 @@ import type { EquipmentRecord, EquipmentStatus } from "@/lib/types";
 
 export type EquipmentViewMode = "grid" | "department" | "radar";
 
-import {
-  EquipmentBentoHero,
-  EquipmentKpiStats,
-} from "@/components/equipment/EquipmentBentoHero";
+import { EquipmentBentoHero, EquipmentKpiStats } from "@/components/equipment/EquipmentBentoHero";
 import {
   EquipmentFilterBar,
   EquipmentStatusFilter,
@@ -97,7 +94,9 @@ function EquipmentManagementPage() {
   // If highlight param matches, auto-open drawer
   useEffect(() => {
     if (search.highlight && equipmentList.length > 0) {
-      const match = equipmentList.find((e) => e.id === search.highlight || `eq-alert-${e.id}` === search.highlight);
+      const match = equipmentList.find(
+        (e) => e.id === search.highlight || `eq-alert-${e.id}` === search.highlight,
+      );
       if (match) {
         setSelectedEquipment(match);
       }
@@ -198,14 +197,12 @@ function EquipmentManagementPage() {
           (eq.location && eq.location.toLowerCase().includes(q)) ||
           eq.did.toLowerCase().includes(q);
 
-        const matchesDept =
-          departmentFilter === "all" || eq.department === departmentFilter;
+        const matchesDept = departmentFilter === "all" || eq.department === departmentFilter;
 
         const matchesType =
           typeFilter === "all" || eq.type.toLowerCase() === typeFilter.toLowerCase();
 
-        const matchesStatus =
-          statusFilter === "all" || eq.status === statusFilter;
+        const matchesStatus = statusFilter === "all" || eq.status === statusFilter;
 
         return matchesSearch && matchesDept && matchesType && matchesStatus;
       })
@@ -439,7 +436,8 @@ function EquipmentManagementPage() {
                       <strong className="text-foreground">
                         {Math.min(currentPage * ITEMS_PER_PAGE, filteredEquipment.length)}
                       </strong>{" "}
-                      of <strong className="text-foreground">{filteredEquipment.length}</strong> equipment units
+                      of <strong className="text-foreground">{filteredEquipment.length}</strong>{" "}
+                      equipment units
                     </div>
 
                     <div className="flex items-center gap-1.5">

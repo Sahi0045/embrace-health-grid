@@ -51,7 +51,8 @@ export function CriticalResultBanner({
                 <span className="h-1.5 w-1.5 rounded-full bg-destructive animate-ping" />
               </div>
               <h3 className="font-display font-extrabold text-base text-foreground tracking-tight">
-                {criticalResults.length} Critical Laboratory Values Requiring Immediate Clinical Action
+                {criticalResults.length} Critical Laboratory Values Requiring Immediate Clinical
+                Action
               </h3>
             </div>
           </div>
@@ -80,7 +81,8 @@ export function CriticalResultBanner({
                 </div>
 
                 <p className="text-[11px] text-muted-foreground">
-                  Patient: <strong className="text-foreground">{item.patient_name}</strong> ({item.patient_mrn})
+                  Patient: <strong className="text-foreground">{item.patient_name}</strong> (
+                  {item.patient_mrn})
                 </p>
 
                 <div className="flex items-baseline gap-1.5">

@@ -149,7 +149,7 @@ export const createInventoryItem = createServerFn({ method: "POST" })
     }
 
     const { data: item, error } = await supabase
-      .from("inventory_items")
+      .from("pharmacy_items")
       .insert({
         hospital_id: profile.hospital_id,
         item_code: data.itemCode,
@@ -194,7 +194,7 @@ export const getInventoryItems = createServerFn({ method: "GET" })
     await requireSession();
     const supabase = getSupabaseServerClient();
 
-    let query = supabase.from("inventory_items").select("*").order("item_name");
+    let query = supabase.from("pharmacy_items").select("*").order("item_name");
 
     if (data.status) query = query.eq("status", data.status);
     if (data.category) query = query.eq("category", data.category);
@@ -225,7 +225,7 @@ export const getInventoryItem = createServerFn({ method: "GET" })
     const supabase = getSupabaseServerClient();
 
     const { data: item, error } = await supabase
-      .from("inventory_items")
+      .from("pharmacy_items")
       .select("*")
       .eq("item_id", data.itemId)
       .maybeSingle();
@@ -279,7 +279,7 @@ export const updateInventoryItem = createServerFn({ method: "POST" })
     }
 
     const { data: item, error } = await supabase
-      .from("inventory_items")
+      .from("pharmacy_items")
       .update(updates)
       .eq("item_id", data.itemId)
       .select()
@@ -409,7 +409,7 @@ export const getBatchDetails = createServerFn({ method: "GET" })
 
     // Get item details
     const { data: item } = await supabase
-      .from("inventory_items")
+      .from("pharmacy_items")
       .select("*")
       .eq("item_id", batch.item_id)
       .maybeSingle();
@@ -528,7 +528,7 @@ async function createStockMovement(
 
   // Create movement record
   const { data: movement, error: movementError } = await supabase
-    .from("stock_movements")
+    .from("pharmacy_stock_movements")
     .insert({
       movement_id: movementId,
       hospital_id: payload.hospitalId,
@@ -1432,7 +1432,7 @@ export const getBatchMovements = createServerFn({ method: "GET" })
     const supabase = getSupabaseServerClient();
 
     let query = supabase
-      .from("stock_movements")
+      .from("pharmacy_stock_movements")
       .select("*")
       .eq("batch_id", data.batchId)
       .order("movement_timestamp", { ascending: false });
@@ -1462,7 +1462,7 @@ export const getItemMovements = createServerFn({ method: "GET" })
     const supabase = getSupabaseServerClient();
 
     let query = supabase
-      .from("stock_movements")
+      .from("pharmacy_stock_movements")
       .select("*")
       .eq("item_id", data.itemId)
       .order("movement_timestamp", { ascending: false });
@@ -1495,7 +1495,7 @@ export const getMovement = createServerFn({ method: "GET" })
     const supabase = getSupabaseServerClient();
 
     const { data: movement, error } = await supabase
-      .from("stock_movements")
+      .from("pharmacy_stock_movements")
       .select("*")
       .eq("movement_id", data.movementId)
       .maybeSingle();
@@ -1906,7 +1906,7 @@ export const getPrescriptionWithInventory = createServerFn({ method: "GET" })
       for (const drug of prescription.drugs) {
         // Find inventory item matching drug
         const { data: items } = await supabase
-          .from("inventory_items")
+          .from("pharmacy_items")
           .select("*")
           .or(`item_name.ilike.%${drug.name}%,item_code.ilike.%${drug.name}%`)
           .limit(1);
@@ -2000,7 +2000,7 @@ export const getPendingDispensingPrescriptions = createServerFn({ method: "GET" 
       if (rx.drugs && Array.isArray(rx.drugs)) {
         for (const drug of rx.drugs) {
           const { data: items } = await supabase
-            .from("inventory_items")
+            .from("pharmacy_items")
             .select("*")
             .or(`item_name.ilike.%${drug.name}%,item_code.ilike.%${drug.name}%`)
             .limit(1);

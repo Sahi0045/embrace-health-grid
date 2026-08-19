@@ -2,7 +2,13 @@ import { Search, ArrowUpDown, Plus, Filter, Trash2, Building2, Utensils, X } fro
 import { Button } from "@/components/ui/button";
 
 export type CafeteriaTabType = "menu" | "stock" | "dietary" | "delivery" | "vendors" | "wastage";
-export type CafeteriaStatusFilter = "all" | "active" | "inactive" | "low_stock" | "pending" | "delivered";
+export type CafeteriaStatusFilter =
+  | "all"
+  | "active"
+  | "inactive"
+  | "low_stock"
+  | "pending"
+  | "delivered";
 
 interface CafeteriaFilterBarProps {
   searchQuery: string;

@@ -50,7 +50,9 @@ export function EquipmentDetailPanel({
   onClose,
   onEquipmentUpdated,
 }: EquipmentDetailPanelProps) {
-  const [activeTab, setActiveTab] = useState<"specs" | "calibration" | "maintenance" | "log-action">("specs");
+  const [activeTab, setActiveTab] = useState<
+    "specs" | "calibration" | "maintenance" | "log-action"
+  >("specs");
   const [logs, setLogs] = useState<MaintenanceLogEntry[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
 
@@ -62,7 +64,9 @@ export function EquipmentDetailPanel({
   const [updatingStatus, setUpdatingStatus] = useState(false);
 
   // Maintenance Log Form State
-  const [maintType, setMaintType] = useState<"preventive" | "corrective" | "calibration" | "routine_check">("preventive");
+  const [maintType, setMaintType] = useState<
+    "preventive" | "corrective" | "calibration" | "routine_check"
+  >("preventive");
   const [description, setDescription] = useState("");
   const [performedBy, setPerformedBy] = useState("");
   const [cost, setCost] = useState("");
@@ -160,10 +164,19 @@ export function EquipmentDetailPanel({
 
   const statusPillConfig = {
     operational: { label: "Operational", bg: "bg-success/15 text-success border-success/30" },
-    "in-use": { label: "In Active Use", bg: "bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border-cyan-500/30" },
-    maintenance: { label: "Under Maintenance", bg: "bg-warning/15 text-warning-foreground dark:text-amber-400 border-warning/30" },
+    "in-use": {
+      label: "In Active Use",
+      bg: "bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border-cyan-500/30",
+    },
+    maintenance: {
+      label: "Under Maintenance",
+      bg: "bg-warning/15 text-warning-foreground dark:text-amber-400 border-warning/30",
+    },
     offline: { label: "Offline", bg: "bg-destructive/15 text-destructive border-destructive/30" },
-  }[equipment.status] || { label: equipment.status, bg: "bg-muted text-muted-foreground border-border" };
+  }[equipment.status] || {
+    label: equipment.status,
+    bg: "bg-muted text-muted-foreground border-border",
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-foreground/40 backdrop-blur-md">
@@ -181,7 +194,9 @@ export function EquipmentDetailPanel({
               <span className="font-mono text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md">
                 {equipment.id}
               </span>
-              <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-extrabold uppercase ${statusPillConfig.bg}`}>
+              <span
+                className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-extrabold uppercase ${statusPillConfig.bg}`}
+              >
                 {statusPillConfig.label}
               </span>
               <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -266,19 +281,27 @@ export function EquipmentDetailPanel({
                   <div className="space-y-2 text-muted-foreground">
                     <div className="flex justify-between">
                       <span>Department:</span>
-                      <strong className="text-foreground font-semibold">{equipment.department}</strong>
+                      <strong className="text-foreground font-semibold">
+                        {equipment.department}
+                      </strong>
                     </div>
                     <div className="flex justify-between">
                       <span>Assigned Ward:</span>
-                      <strong className="text-foreground font-semibold">{equipment.assignedWard}</strong>
+                      <strong className="text-foreground font-semibold">
+                        {equipment.assignedWard}
+                      </strong>
                     </div>
                     <div className="flex justify-between">
                       <span>Floor Level:</span>
-                      <strong className="text-foreground font-semibold">Floor {equipment.floor}</strong>
+                      <strong className="text-foreground font-semibold">
+                        Floor {equipment.floor}
+                      </strong>
                     </div>
                     <div className="flex justify-between">
                       <span>Bay / Location:</span>
-                      <strong className="text-foreground font-semibold">{equipment.location}</strong>
+                      <strong className="text-foreground font-semibold">
+                        {equipment.location}
+                      </strong>
                     </div>
                   </div>
                 </div>
@@ -290,11 +313,15 @@ export function EquipmentDetailPanel({
                   <div className="space-y-2 text-muted-foreground">
                     <div className="flex justify-between">
                       <span>Serial Number:</span>
-                      <strong className="text-foreground font-mono font-semibold">{equipment.serial}</strong>
+                      <strong className="text-foreground font-mono font-semibold">
+                        {equipment.serial}
+                      </strong>
                     </div>
                     <div className="flex justify-between">
                       <span>Category:</span>
-                      <strong className="text-foreground font-semibold">{equipment.category}</strong>
+                      <strong className="text-foreground font-semibold">
+                        {equipment.category}
+                      </strong>
                     </div>
                     <div className="flex justify-between">
                       <span>Purchase Date:</span>
@@ -361,7 +388,9 @@ export function EquipmentDetailPanel({
                     </div>
                     <div className="flex justify-between py-1">
                       <span>Metrology Standard:</span>
-                      <strong className="text-foreground font-semibold">ISO 80601 / IEC 60601</strong>
+                      <strong className="text-foreground font-semibold">
+                        ISO 80601 / IEC 60601
+                      </strong>
                     </div>
                   </div>
                 </div>
@@ -386,7 +415,9 @@ export function EquipmentDetailPanel({
                     </div>
                     <div className="flex justify-between py-1">
                       <span>Authorized Vendor:</span>
-                      <strong className="text-foreground font-semibold">{equipment.manufacturer}</strong>
+                      <strong className="text-foreground font-semibold">
+                        {equipment.manufacturer}
+                      </strong>
                     </div>
                   </div>
                 </div>
@@ -397,9 +428,12 @@ export function EquipmentDetailPanel({
                 <div className="flex items-center gap-3">
                   <Calendar className="h-5 w-5 text-primary shrink-0" />
                   <div>
-                    <h5 className="text-xs font-bold text-foreground">Next Scheduled Preventive Overhaul</h5>
+                    <h5 className="text-xs font-bold text-foreground">
+                      Next Scheduled Preventive Overhaul
+                    </h5>
                     <p className="text-[11px] text-muted-foreground mt-0.5">
-                      Targeted for {equipment.nextMaintenance || "Q4 2026"} by Biomedical Engineering
+                      Targeted for {equipment.nextMaintenance || "Q4 2026"} by Biomedical
+                      Engineering
                     </p>
                   </div>
                 </div>
@@ -507,15 +541,15 @@ export function EquipmentDetailPanel({
                               utilization >= 80
                                 ? "bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30"
                                 : utilization >= 40
-                                ? "bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30"
-                                : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
+                                  ? "bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30"
+                                  : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
                             }`}
                           >
                             {utilization >= 80
                               ? "Critical Peak Demand"
                               : utilization >= 40
-                              ? "Nominal Clinical Load"
-                              : "Standby / Optimal Buffer"}
+                                ? "Nominal Clinical Load"
+                                : "Standby / Optimal Buffer"}
                           </span>
                         </div>
                       </div>

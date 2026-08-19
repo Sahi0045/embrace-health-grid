@@ -54,36 +54,95 @@ create policy signing_events_own_view on public.signing_events
   for select to authenticated
   using (user_id = auth.uid());
 
--- Admins can view all signing events for their hospital
+-- Admins can view all signing events for their hospital.
+-- 'auditor' is not a value of user_role (patient|doctor|staff|admin|super_admin),
+-- so listing it made Postgres reject this policy outright.
 create policy signing_events_admin_view on public.signing_events
   for select to authenticated
   using (
     hospital_id in (
-      select hospital_id from public.hospital_staff 
-      where user_id = auth.uid() and role in ('admin', 'auditor')
+      select hospital_id from public.profiles
+       where id = (select auth.uid()) and role = 'admin'
     )
   );
 
--- Anyone in hospital can view (for transparency)
+-- Clinical staff can view their hospital's signing events, for transparency over
+-- what was anchored on-chain.
+--
+-- This previously matched ANY profile in the hospital, which includes patients:
+-- every patient could read every signing event for the whole hospital. The rows
+-- are not raw PHI, but record_type ('prescription', 'diagnosis'), record_hash,
+-- timestamps and user attribution together reveal who had what kind of record
+-- signed and when. A patient's own events stay visible through
+-- signing_events_own_view below.
 create policy signing_events_hospital_view on public.signing_events
   for select to authenticated
   using (
-    hospital_id in (
-      select hospital_id from public.hospital_staff 
-      where user_id = auth.uid()
+    private.current_user_role() in ('doctor', 'staff', 'admin')
+    and hospital_id in (
+      select hospital_id from public.profiles
+       where id = (select auth.uid())
     )
   );
 
--- Backend can insert signing events
+-- Signing events are an audit trail, so a row must be attributable.
+--
+-- This was "with check (true)", which let any authenticated account write an
+-- arbitrary signing event: forged transaction ids, another user's id, another
+-- hospital. An audit log that anyone can write to proves nothing. A row may now
+-- only be inserted for the caller, in the caller's own hospital.
 create policy signing_events_insert on public.signing_events
   for insert to authenticated
-  with check (true);
+  with check (
+    user_id = (select auth.uid())
+    and hospital_id in (
+      select hospital_id from public.profiles
+       where id = (select auth.uid())
+    )
+  );
 
--- Backend can update confirmation status
+-- Confirmation status is updated once the chain reports the transaction.
+--
+-- This was "using (confirmed = false) with check (true)", which allowed any
+-- authenticated account to rewrite any unconfirmed event in ANY hospital,
+-- including its transaction_id, record_hash and user_id. Two changes:
+--
+--   * the row must belong to the caller's hospital, and must still be
+--     unconfirmed, so a confirmed event is immutable
+--   * only the confirmation columns are updatable at all, enforced with column
+--     privileges rather than trusting the policy, since RLS cannot restrict
+--     which columns an UPDATE touches
 create policy signing_events_update_confirmation on public.signing_events
   for update to authenticated
-  using (confirmed = false)
-  with check (true);
+  using (
+    confirmed = false
+    and hospital_id in (
+      select hospital_id from public.profiles
+       where id = (select auth.uid())
+    )
+  )
+  with check (
+    hospital_id in (
+      select hospital_id from public.profiles
+       where id = (select auth.uid())
+    )
+  );
+
+revoke update on public.signing_events from anon, authenticated;
+
+grant update (
+  confirmed,
+  confirmed_at,
+  confirmation_slot,
+  confirmation_count,
+  status,
+  error_message
+) on public.signing_events to authenticated;
+
+-- The immutable core of the audit record: what was signed, by whom, with which
+-- wallet. Never updatable by a client.
+comment on table public.signing_events is
+  'Audit trail of blockchain signing operations. transaction_id, record_hash, user_id and signer columns are insert-only for clients: only the confirmation columns carry an UPDATE grant. Rows are attributable by policy (user_id must be the caller).';
 
 -- ─── Audit Queries ──────────────────────────────────────────────────────
 

@@ -1,14 +1,5 @@
 import { useState } from "react";
-import {
-  X,
-  Siren,
-  AlertTriangle,
-  Flame,
-  Activity,
-  ShieldAlert,
-  Lock,
-  Radio,
-} from "lucide-react";
+import { X, Siren, AlertTriangle, Flame, Activity, ShieldAlert, Lock, Radio } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
@@ -188,9 +179,7 @@ export function BroadcastEmergencyDialog({
                     >
                       <Icon className="h-5 w-5 shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <div className="text-xs font-bold text-foreground">
-                          {item.title}
-                        </div>
+                        <div className="text-xs font-bold text-foreground">{item.title}</div>
                         <div className="text-[11px] text-muted-foreground truncate">
                           {item.desc}
                         </div>

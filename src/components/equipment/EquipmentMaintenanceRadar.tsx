@@ -42,9 +42,7 @@ export function EquipmentMaintenanceRadar({
     (e) => e.nextCalibration && e.nextCalibration !== "N/A",
   );
 
-  const warrantyActive = equipment.filter(
-    (e) => e.warrantyExpiry && e.warrantyExpiry !== "N/A",
-  );
+  const warrantyActive = equipment.filter((e) => e.warrantyExpiry && e.warrantyExpiry !== "N/A");
 
   return (
     <div className="space-y-6">
@@ -59,8 +57,9 @@ export function EquipmentMaintenanceRadar({
               Clinical Engineering Service Alert
             </h4>
             <p className="text-xs text-muted-foreground mt-0.5">
-              <strong className="text-foreground">{underMaintenance.length}</strong> units currently in workshop repair ·{" "}
-              <strong className="text-foreground">{dueSoon.length}</strong> units scheduled for preventive service within 30 days.
+              <strong className="text-foreground">{underMaintenance.length}</strong> units currently
+              in workshop repair · <strong className="text-foreground">{dueSoon.length}</strong>{" "}
+              units scheduled for preventive service within 30 days.
             </p>
           </div>
         </div>
@@ -103,9 +102,7 @@ export function EquipmentMaintenanceRadar({
                       {eq.status}
                     </span>
                   </div>
-                  <h4 className="text-xs font-bold text-foreground truncate">
-                    {eq.name}
-                  </h4>
+                  <h4 className="text-xs font-bold text-foreground truncate">{eq.name}</h4>
                   <div className="flex justify-between text-[11px] text-muted-foreground pt-1 border-t border-border/40">
                     <span>{eq.department}</span>
                     <span className="font-semibold text-foreground">{eq.location}</span>
@@ -152,9 +149,7 @@ export function EquipmentMaintenanceRadar({
                       {eq.nextMaintenance}
                     </span>
                   </div>
-                  <h4 className="text-xs font-bold text-foreground truncate">
-                    {eq.name}
-                  </h4>
+                  <h4 className="text-xs font-bold text-foreground truncate">{eq.name}</h4>
                   <div className="flex justify-between text-[11px] text-muted-foreground pt-1 border-t border-border/40">
                     <span>{eq.manufacturer}</span>
                     <span>{eq.assignedWard}</span>
@@ -195,9 +190,7 @@ export function EquipmentMaintenanceRadar({
                     Next: {eq.nextCalibration}
                   </span>
                 </div>
-                <h4 className="text-xs font-bold text-foreground truncate">
-                  {eq.name}
-                </h4>
+                <h4 className="text-xs font-bold text-foreground truncate">{eq.name}</h4>
                 <div className="flex justify-between text-[11px] text-muted-foreground pt-1 border-t border-border/40">
                   <span>ISO 80601 Certified</span>
                   <span>{eq.department}</span>

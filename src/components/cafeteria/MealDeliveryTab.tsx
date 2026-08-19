@@ -23,16 +23,29 @@ interface MealDeliveryTabProps {
 const STAGE_ORDER: DeliveryStatus[] = ["preparing", "dispatched", "delivered"];
 
 const STATUS_CONFIGS: Record<DeliveryStatus, { label: string; color: string; border: string }> = {
-  preparing: { label: "Kitchen Prep", color: "bg-amber-500/10 text-amber-600 dark:text-amber-400", border: "border-amber-500/20" },
-  dispatched: { label: "In Transit", color: "bg-sky-500/10 text-sky-600 dark:text-sky-400", border: "border-sky-500/20" },
-  delivered: { label: "Delivered", color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400", border: "border-emerald-500/20" },
-  cancelled: { label: "Cancelled", color: "bg-rose-500/10 text-rose-600 dark:text-rose-400", border: "border-rose-500/20" },
+  preparing: {
+    label: "Kitchen Prep",
+    color: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+    border: "border-amber-500/20",
+  },
+  dispatched: {
+    label: "In Transit",
+    color: "bg-sky-500/10 text-sky-600 dark:text-sky-400",
+    border: "border-sky-500/20",
+  },
+  delivered: {
+    label: "Delivered",
+    color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+    border: "border-emerald-500/20",
+  },
+  cancelled: {
+    label: "Cancelled",
+    color: "bg-rose-500/10 text-rose-600 dark:text-rose-400",
+    border: "border-rose-500/20",
+  },
 };
 
-export function MealDeliveryTab({
-  deliveries,
-  onAdvanceStage,
-}: MealDeliveryTabProps) {
+export function MealDeliveryTab({ deliveries, onAdvanceStage }: MealDeliveryTabProps) {
   if (deliveries.length === 0) {
     return (
       <EmptyState
@@ -54,7 +67,13 @@ export function MealDeliveryTab({
         return (
           <GlowCard
             key={delivery.delivery_id}
-            accent={delivery.delivery_status === "delivered" ? "success" : delivery.delivery_status === "dispatched" ? "primary" : "warning"}
+            accent={
+              delivery.delivery_status === "delivered"
+                ? "success"
+                : delivery.delivery_status === "dispatched"
+                  ? "primary"
+                  : "warning"
+            }
             className="p-4 sm:p-5 bg-card border border-border/80 rounded-2xl shadow-clinical-xs transition-all hover:border-primary/40"
           >
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -77,9 +96,7 @@ export function MealDeliveryTab({
                     </span>
                   </div>
 
-                  <p className="text-xs font-semibold text-foreground">
-                    {delivery.menu_item_name}
-                  </p>
+                  <p className="text-xs font-semibold text-foreground">{delivery.menu_item_name}</p>
 
                   {delivery.dietary_notes && (
                     <p className="text-[11px] text-muted-foreground italic">
@@ -102,8 +119,8 @@ export function MealDeliveryTab({
                           isCurrent
                             ? "bg-primary text-primary-foreground border-primary shadow-xs"
                             : isCompleted
-                            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
-                            : "bg-muted/40 text-muted-foreground/60 border-border/40"
+                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                              : "bg-muted/40 text-muted-foreground/60 border-border/40"
                         }`}
                       >
                         {isCompleted && !isCurrent ? (
@@ -127,11 +144,21 @@ export function MealDeliveryTab({
                 <div className="text-left lg:text-right text-[11px] text-muted-foreground">
                   <div className="flex items-center gap-1">
                     <Clock className="h-3 w-3" />
-                    <span>Scheduled: {new Date(delivery.scheduled_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    <span>
+                      Scheduled:{" "}
+                      {new Date(delivery.scheduled_at).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
                   </div>
                   {delivery.delivered_at && (
                     <p className="text-emerald-500 font-bold">
-                      Delivered: {new Date(delivery.delivered_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      Delivered:{" "}
+                      {new Date(delivery.delivered_at).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
                     </p>
                   )}
                 </div>

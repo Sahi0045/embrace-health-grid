@@ -41,7 +41,9 @@ export function KitchenStockTab({ stock }: KitchenStockTabProps) {
         const percent = Math.min(100, Math.round((item.quantity / maxExpected) * 100));
 
         // Format expiry
-        const isNearExpiry = item.expiry_date ? new Date(item.expiry_date).getTime() - Date.now() < 7 * 24 * 3600 * 1000 : false;
+        const isNearExpiry = item.expiry_date
+          ? new Date(item.expiry_date).getTime() - Date.now() < 7 * 24 * 3600 * 1000
+          : false;
 
         return (
           <GlowCard
@@ -72,8 +74,8 @@ export function KitchenStockTab({ stock }: KitchenStockTabProps) {
                   isExpired
                     ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20"
                     : isLowStock
-                    ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
-                    : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                      ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
+                      : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
                 }`}
               >
                 {isExpired ? (
@@ -98,7 +100,9 @@ export function KitchenStockTab({ stock }: KitchenStockTabProps) {
                 <span className="text-muted-foreground font-medium">Current Stock:</span>
                 <div className="text-right">
                   <span className="text-base font-black text-foreground">{item.quantity}</span>
-                  <span className="text-xs font-semibold text-muted-foreground ml-1">{item.unit}</span>
+                  <span className="text-xs font-semibold text-muted-foreground ml-1">
+                    {item.unit}
+                  </span>
                 </div>
               </div>
 
@@ -106,18 +110,16 @@ export function KitchenStockTab({ stock }: KitchenStockTabProps) {
               <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
                 <div
                   className={`h-full rounded-full transition-all ${
-                    isExpired
-                      ? "bg-rose-500"
-                      : isLowStock
-                      ? "bg-amber-500"
-                      : "bg-emerald-500"
+                    isExpired ? "bg-rose-500" : isLowStock ? "bg-amber-500" : "bg-emerald-500"
                   }`}
                   style={{ width: `${percent}%` }}
                 />
               </div>
 
               <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-0.5">
-                <span>Reorder Point: {item.reorder_level} {item.unit}</span>
+                <span>
+                  Reorder Point: {item.reorder_level} {item.unit}
+                </span>
                 <span>Unit Cost: ${item.unit_cost.toFixed(2)}</span>
               </div>
             </div>
@@ -126,7 +128,9 @@ export function KitchenStockTab({ stock }: KitchenStockTabProps) {
             <div className="pt-3 border-t border-border/60 flex items-center justify-between text-xs">
               <div className="flex items-center gap-1.5 text-muted-foreground truncate">
                 <Building2 className="h-3 w-3 shrink-0" />
-                <span className="truncate text-[11px] font-medium">{item.supplier || "Metro Wholesale Food"}</span>
+                <span className="truncate text-[11px] font-medium">
+                  {item.supplier || "Metro Wholesale Food"}
+                </span>
               </div>
 
               {item.expiry_date && (
