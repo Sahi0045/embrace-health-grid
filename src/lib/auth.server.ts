@@ -84,6 +84,11 @@ function toCurrentUser(profile: {
   primary_did: string | null;
   wallet_address?: string | null;
   hospital_id?: string | null;
+  phone?: string | null;
+  age?: number | null;
+  gender?: string | null;
+  blood_group?: string | null;
+  allergies?: string[] | null;
 }): CurrentUser {
   return {
     id: profile.id,
@@ -96,6 +101,12 @@ function toCurrentUser(profile: {
     // successful link — the address was in Postgres and simply never read back.
     walletAddress: profile.wallet_address ?? undefined,
     hospitalId: profile.hospital_id ?? undefined,
+    // Patient health fields
+    phone: profile.phone ?? undefined,
+    age: profile.age ?? undefined,
+    gender: profile.gender ?? undefined,
+    bloodGroup: profile.blood_group ?? undefined,
+    allergies: profile.allergies ?? undefined,
     // Aliases for legacy call sites.
     name: profile.full_name,
     did: profile.primary_did,
@@ -161,7 +172,7 @@ export const getCurrentUser = createServerFn({ method: "GET" }).handler(
     const supabase = getSupabaseServerClient();
     const { data: profile, error } = await supabase
       .from("profiles")
-      .select("id, email, full_name, role, primary_did, wallet_address, hospital_id")
+      .select("id, email, full_name, role, primary_did, wallet_address, hospital_id, phone, age, gender, blood_group, allergies")
       .eq("id", user.id)
       .single();
 

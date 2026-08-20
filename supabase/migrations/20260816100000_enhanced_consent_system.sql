@@ -474,16 +474,16 @@ CREATE INDEX IF NOT EXISTS consents_doctor_patient_active_idx
 UPDATE public.consents
 SET 
   status = 'requested',
-  requested_at = COALESCE(granted_at, created_at, now())
+  requested_at = granted_at
 WHERE status = 'pending'
   AND requested_at IS NULL;
 
 -- Update existing active consents to have proper timestamps
 UPDATE public.consents
 SET 
-  approved_at = COALESCE(granted_at, created_at),
-  access_started_at = COALESCE(granted_at, created_at),
-  requested_at = COALESCE(granted_at, created_at) - interval '1 hour'
+  approved_at = granted_at,
+  access_started_at = granted_at,
+  requested_at = granted_at - interval '1 hour'
 WHERE status = 'active'
   AND approved_at IS NULL;
 

@@ -262,55 +262,64 @@ export const getAppointments = createServerFn({ method: "GET" }).handler(async (
 
   const rows = data ?? [];
 
-  // The appointments table stores DIDs only, so a caller that renders a name had
-  // to resolve it itself — and none did, which is why confirming an appointment
-  // reported "Appointment with undefined confirmed."
-  //
-  // Resolve here, once, from the DID registry: dids is readable by any
-  // authenticated user and already carries owner_name, so this needs no extra
-  // privilege and no PHI is involved.
-  const dids = [
-    ...new Set(rows.flatMap((r) => [r.patient_did, r.doctor_did]).filter(Boolean)),
-  ] as string[];
+  // Resolve patient and doctor names from their respective sources:
+  // - Patient names come from profiles.full_name (single source of truth for patient identity)
+  // - Doctor names come from dids.owner_name (doctors don't have detailed profiles yet)
+  const patientDids = [...new Set(rows.map((r) => r.patient_did).filter(Boolean))] as string[];
+  const doctorDids = [...new Set(rows.map((r) => r.doctor_did).filter(Boolean))] as string[];
 
-  const names = new Map<string, string>();
+  const patientNames = new Map<string, string>();
+  const doctorNames = new Map<string, string>();
   const patientHealthInfo = new Map<string, any>();
   
-  if (dids.length) {
-    const { data: didRows } = await supabase.from("dids").select("did, owner_name").in("did", dids);
+  // Fetch patient data from profiles table (name + health info)
+  if (patientDids.length > 0) {
+    const { data: profileRows } = await supabase
+      .from("profiles")
+      .select("primary_did, full_name, phone, age, gender, blood_group, allergies")
+      .in("primary_did", patientDids);
+    
+    for (const p of profileRows ?? []) {
+      if (p.primary_did) {
+        patientNames.set(p.primary_did, p.full_name ?? "Unknown Patient");
+        patientHealthInfo.set(p.primary_did, {
+          phone: p.phone ?? null,
+          age: p.age ?? null,
+          gender: p.gender ?? null,
+          blood_group: p.blood_group ?? null,
+          allergies: p.allergies ?? [],
+        });
+      }
+    }
+  }
+  
+  // Fetch doctor names from dids table
+  if (doctorDids.length > 0) {
+    const { data: didRows } = await supabase
+      .from("dids")
+      .select("did, owner_name")
+      .in("did", doctorDids);
 
     for (const d of didRows ?? []) {
-      if (d.did && d.owner_name) names.set(d.did, d.owner_name);
-    }
-    
-    // Fetch patient health details from profiles table for patient DIDs
-    const patientDids = rows.map(r => r.patient_did).filter(Boolean);
-    if (patientDids.length > 0) {
-      const { data: profileRows } = await supabase
-        .from("profiles")
-        .select("primary_did, phone, age, gender, blood_group, allergies")
-        .in("primary_did", patientDids);
-      
-      for (const p of profileRows ?? []) {
-        if (p.primary_did) {
-          patientHealthInfo.set(p.primary_did, {
-            phone: p.phone ?? null,
-            age: p.age ?? null,
-            gender: p.gender ?? null,
-            blood_group: p.blood_group ?? null,
-            allergies: p.allergies ?? [],
-          });
-        }
-      }
+      if (d.did && d.owner_name) doctorNames.set(d.did, d.owner_name);
     }
   }
 
   const appointments = rows.map((r) => {
     const healthInfo = patientHealthInfo.get(r.patient_did) ?? {};
     return {
-      ...r,
-      patient_name: names.get(r.patient_did) ?? null,
-      doctor_name: names.get(r.doctor_did) ?? null,
+      apptId: r.appt_id,
+      patientDid: r.patient_did,
+      doctorDid: r.doctor_did,
+      slot: r.slot,
+      mode: r.mode,
+      specialty: r.specialty,
+      status: r.status,
+      reason: r.reason,
+      bookedAt: r.booked_at,
+      suggestedSlot: r.suggested_slot,
+      patient_name: patientNames.get(r.patient_did) ?? null,
+      doctor_name: doctorNames.get(r.doctor_did) ?? null,
       patient_phone: healthInfo.phone ?? null,
       patient_age: healthInfo.age ?? null,
       patient_gender: healthInfo.gender ?? null,
@@ -322,9 +331,150 @@ export const getAppointments = createServerFn({ method: "GET" }).handler(async (
   return { appointments };
 });
 
+// ─── Get Appointments by Patient ───────────────────────────────────────────
+export const getAppointmentsByPatient = createServerFn({ method: "GET" }).handler(async () => {
+  await requireSession();
+  const supabase = getSupabaseServerClient();
+  const patientDid = await callerPrimaryDid();
+
+  if (!patientDid) throw new Error("No DID associated with this account");
+
+  const { data, error } = await supabase
+    .from("appointments")
+    .select(
+      "appt_id, patient_did, doctor_did, slot, mode, specialty, status, reason, booked_at, suggested_slot",
+    )
+    .eq("patient_did", patientDid)
+    .order("booked_at", { ascending: false });
+
+  if (error) throw new Error(error.message);
+
+  const rows = data ?? [];
+  const doctorDids = [...new Set(rows.map((r) => r.doctor_did).filter(Boolean))] as string[];
+  const doctorNames = new Map<string, string>();
+
+  // Fetch doctor names from dids table
+  if (doctorDids.length) {
+    const { data: didRows } = await supabase.from("dids").select("did, owner_name").in("did", doctorDids);
+    for (const d of didRows ?? []) {
+      if (d.did && d.owner_name) doctorNames.set(d.did, d.owner_name);
+    }
+  }
+  
+  // Fetch patient's own name from profiles table for consistency
+  const { data: patientProfile } = await supabase
+    .from("profiles")
+    .select("full_name")
+    .eq("primary_did", patientDid)
+    .maybeSingle();
+  
+  const patientName = patientProfile?.full_name ?? null;
+
+  const appointments = rows.map((r) => ({
+    apptId: r.appt_id,
+    patientDid: r.patient_did,
+    doctorDid: r.doctor_did,
+    slot: r.slot,
+    mode: r.mode,
+    specialty: r.specialty,
+    status: r.status,
+    reason: r.reason,
+    bookedAt: r.booked_at,
+    suggestedSlot: r.suggested_slot,
+    patient_name: patientName,
+    doctor_name: doctorNames.get(r.doctor_did) ?? null,
+  }));
+
+  return { appointments };
+});
+
+// ─── Get Appointments by Doctor ────────────────────────────────────────────
+export const getAppointmentsByDoctor = createServerFn({ method: "GET" }).handler(async () => {
+  await requireSession();
+  const supabase = getSupabaseServerClient();
+  const doctorDid = await callerPrimaryDid();
+
+  if (!doctorDid) throw new Error("No DID associated with this account");
+
+  const { data, error } = await supabase
+    .from("appointments")
+    .select(
+      "appt_id, patient_did, doctor_did, slot, mode, specialty, status, reason, booked_at, suggested_slot",
+    )
+    .eq("doctor_did", doctorDid)
+    .order("booked_at", { ascending: false });
+
+  if (error) throw new Error(error.message);
+
+  const rows = data ?? [];
+  const patientDids = [...new Set(rows.map((r) => r.patient_did).filter(Boolean))] as string[];
+  const patientNames = new Map<string, string>();
+  const patientHealthInfo = new Map<string, any>();
+
+  // Fetch patient data from profiles table (name + health info) - single source of truth
+  if (patientDids.length) {
+    const { data: profileRows } = await supabase
+      .from("profiles")
+      .select("primary_did, full_name, phone, age, gender, blood_group, allergies")
+      .in("primary_did", patientDids);
+
+    for (const p of profileRows ?? []) {
+      if (p.primary_did) {
+        patientNames.set(p.primary_did, p.full_name ?? "Unknown Patient");
+        patientHealthInfo.set(p.primary_did, {
+          phone: p.phone ?? null,
+          age: p.age ?? null,
+          gender: p.gender ?? null,
+          blood_group: p.blood_group ?? null,
+          allergies: p.allergies ?? [],
+        });
+      }
+    }
+  }
+
+  const appointments = rows.map((r) => {
+    const healthInfo = patientHealthInfo.get(r.patient_did) ?? {};
+    const patientName = patientNames.get(r.patient_did) ?? null;
+    return {
+      apptId: r.appt_id,
+      patientDid: r.patient_did,
+      doctorDid: r.doctor_did,
+      slot: r.slot,
+      mode: r.mode,
+      specialty: r.specialty,
+      status: r.status,
+      reason: r.reason,
+      bookedAt: r.booked_at,
+      suggestedSlot: r.suggested_slot,
+      patientName,
+      patient_name: patientName,
+      doctorName: doctorDid ? patientNames.get(doctorDid) : null,
+      doctor_name: null, // Doctor viewing their own appointments doesn't need their name
+      patientPhone: healthInfo.phone ?? null,
+      patient_phone: healthInfo.phone ?? null,
+      patientAge: healthInfo.age ?? null,
+      patient_age: healthInfo.age ?? null,
+      patientGender: healthInfo.gender ?? null,
+      patient_gender: healthInfo.gender ?? null,
+      patientBloodGroup: healthInfo.blood_group ?? null,
+      patient_blood_group: healthInfo.blood_group ?? null,
+      patientAllergies: healthInfo.allergies ?? [],
+      patient_allergies: healthInfo.allergies ?? [],
+    };
+  });
+
+  return { appointments };
+});
+
 export const bookAppointment = createServerFn({ method: "POST" })
   .inputValidator(
-    (data: { doctorDid: string; slot: string; specialty?: string; mode?: string }) => {
+    (data: {
+      doctorDid: string;
+      slot: string;
+      specialty?: string;
+      mode?: string;
+      reason?: string;
+    }) => {
       if (!data?.doctorDid || !data?.slot) throw new Error("doctorDid and slot are required");
       return data;
     },
@@ -340,6 +490,7 @@ export const bookAppointment = createServerFn({ method: "POST" })
     if (!profile?.primary_did) throw new Error("No DID associated with this account");
 
     const apptId = `appt_${crypto.randomUUID().slice(0, 8)}`;
+    
     const { error } = await supabase.from("appointments").insert({
       appt_id: apptId,
       patient_did: profile.primary_did,
@@ -347,11 +498,42 @@ export const bookAppointment = createServerFn({ method: "POST" })
       slot: data.slot,
       mode: data.mode ?? "in-person",
       specialty: data.specialty ?? null,
+      reason: data.reason ?? null,
       status: "pending",
     });
 
     if (error) throw new Error(error.message);
     return { ok: true as const, apptId };
+  });
+
+/**
+ * Get all booked/confirmed slots for a specific doctor.
+ * Returns slots that are pending, confirmed, or suggested (not cancelled/rejected).
+ * Used to prevent double-booking.
+ */
+export const getBookedSlots = createServerFn({ method: "GET" })
+  .inputValidator((data: { doctorDid: string }) => {
+    if (!data?.doctorDid) throw new Error("doctorDid is required");
+    return data;
+  })
+  .handler(async ({ data }) => {
+    await requireSession();
+    const supabase = getSupabaseServerClient();
+
+    // Fetch all appointments for this doctor that occupy a time slot
+    // Exclude cancelled and rejected as those slots should be available again
+    const { data: appointments, error } = await supabase
+      .from("appointments")
+      .select("slot, status")
+      .eq("doctor_did", data.doctorDid)
+      .in("status", ["pending", "confirmed", "suggested", "rescheduled", "completed"])
+      .order("slot");
+
+    if (error) throw new Error(error.message);
+
+    // Return just the slot strings
+    const bookedSlots = (appointments ?? []).map((a) => a.slot).filter(Boolean);
+    return { bookedSlots };
   });
 
 // ─── Consents ───────────────────────────────────────────────────────────────
@@ -774,17 +956,67 @@ export const getProfiles = createServerFn({ method: "GET" }).handler(async () =>
  * escalation.
  */
 export const updateOwnProfile = createServerFn({ method: "POST" })
-  .inputValidator((data: { fullName?: string }) => data ?? {})
+  .inputValidator(
+    (data: {
+      fullName?: string;
+      name?: string;
+      phone?: string;
+      age?: number;
+      gender?: string;
+      bloodGroup?: string;
+      allergies?: string;
+    }) => data ?? {},
+  )
   .handler(async ({ data }) => {
     const user = await requireSession();
     const supabase = getSupabaseServerClient();
 
     const patch: Record<string, unknown> = {};
-    if (data.fullName) patch.full_name = data.fullName;
+    
+    // Handle name - accept both fullName and name
+    const newName = data.fullName || data.name;
+    if (newName) patch.full_name = newName;
+    
+    // Handle other profile fields
+    if (data.phone !== undefined) patch.phone = data.phone;
+    if (data.age !== undefined) patch.age = data.age;
+    if (data.gender !== undefined) patch.gender = data.gender;
+    if (data.bloodGroup !== undefined) patch.blood_group = data.bloodGroup;
+    
+    // Handle allergies - convert comma-separated string to array
+    if (data.allergies !== undefined) {
+      const allergiesArray = data.allergies
+        .split(",")
+        .map((a: string) => a.trim())
+        .filter((a: string) => a.length > 0);
+      patch.allergies = allergiesArray;
+    }
+    
     if (!Object.keys(patch).length) return { ok: true as const, changed: false };
 
+    // Update profiles table
     const { error } = await supabase.from("profiles").update(patch).eq("id", user.id);
     if (error) throw new Error(error.message);
+    
+    // If name changed, also update dids.owner_name for consistency
+    // This ensures appointment cards show the updated patient name
+    if (newName) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("primary_did")
+        .eq("id", user.id)
+        .maybeSingle();
+      
+      if (profile?.primary_did) {
+        // Update the DID registry to reflect the new name
+        // This is not an RLS violation: dids table allows users to update their own DID's owner_name
+        await supabase
+          .from("dids")
+          .update({ owner_name: newName })
+          .eq("did", profile.primary_did);
+      }
+    }
+    
     return { ok: true as const, changed: true };
   });
 

@@ -1000,6 +1000,16 @@ export async function bookAppointment(payload: {
   return { success: true as const, apptId: res.apptId };
 }
 
+/**
+ * Get all booked/confirmed slots for a specific doctor.
+ * Used to prevent double-booking by filtering out unavailable slots.
+ */
+export async function getBookedSlots(doctorDid: string) {
+  const { getBookedSlots: fn } = await import("./clinical.server");
+  const res = await fn({ data: { doctorDid } });
+  return { bookedSlots: res.bookedSlots };
+}
+
 export async function createMedicalRecord(
   patientDid: string,
   payload: {
@@ -1299,19 +1309,23 @@ export async function updateAppointmentStatus(
 }
 
 export async function getAppointmentsByPatient(_patientDid?: string) {
-  return await getAppointments();
+  const { getAppointmentsByPatient: fn } = await import("./clinical.server");
+  return await fn();
 }
 
 export async function getAppointmentsByDoctor(_doctorDid?: string) {
-  return await getAppointments();
+  const { getAppointmentsByDoctor: fn } = await import("./clinical.server");
+  return await fn();
 }
 
 export async function getDoctorAppointments(_doctorDid?: string) {
-  return await getAppointments();
+  const { getAppointmentsByDoctor: fn } = await import("./clinical.server");
+  return await fn();
 }
 
 export async function getDoctorAppointmentRequests(_doctorDid?: string) {
-  const res = await getAppointments();
+  const { getAppointmentsByDoctor: fn } = await import("./clinical.server");
+  const res = await fn();
   // The old endpoint returned only pending requests.
   return {
     ...res,
@@ -1320,9 +1334,31 @@ export async function getDoctorAppointmentRequests(_doctorDid?: string) {
   };
 }
 
-export async function updateProfile(data: { name?: string; [key: string]: unknown }) {
+export async function getAllAppointments() {
+  // Staff and admin can see all appointments
+  return await getAppointments();
+}
+
+export async function updateProfile(data: {
+  name?: string;
+  phone?: string;
+  age?: number;
+  gender?: string;
+  bloodGroup?: string;
+  allergies?: string;
+  [key: string]: unknown;
+}) {
   const { updateOwnProfile } = await import("./clinical.server");
-  await updateOwnProfile({ data: { fullName: data.name } });
+  await updateOwnProfile({
+    data: {
+      name: data.name,
+      phone: data.phone,
+      age: data.age,
+      gender: data.gender,
+      bloodGroup: data.bloodGroup,
+      allergies: data.allergies,
+    },
+  });
   const { getCurrentUser } = await import("./auth.server");
   const user = await getCurrentUser();
   return { success: true as const, user, patient: user };

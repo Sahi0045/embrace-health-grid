@@ -6,6 +6,7 @@ import {
   getStaffSchedule,
   createStaffRequest,
   getAppointmentsByDoctor,
+  getAllAppointments,
   updateAppointmentStatus,
 } from "@/lib/api";
 import { useCurrentUser } from "@/lib/auth-context";
@@ -260,6 +261,8 @@ interface ApptRequest {
   apptId: string;
   patientName: string;
   patientDid: string;
+  doctorName?: string;
+  doctorDid?: string;
   specialty: string;
   slot: string;
   mode: string;
@@ -268,6 +271,11 @@ interface ApptRequest {
   bookedAt: string;
   rejectionReason?: string;
   suggestedSlot?: string;
+  patientPhone?: string | null;
+  patientAge?: number | null;
+  patientGender?: string | null;
+  patientBloodGroup?: string | null;
+  patientAllergies?: string[];
 }
 
 function AppointmentRequestCard({
@@ -317,6 +325,11 @@ function AppointmentRequestCard({
               {appt.status.charAt(0).toUpperCase() + appt.status.slice(1)}
             </span>
           </div>
+          {appt.doctorName && (
+            <div className="mt-0.5 text-xs text-muted-foreground">
+              Doctor: <span className="font-medium text-foreground">{appt.doctorName}</span>
+            </div>
+          )}
           <div className="mt-1 text-xs text-muted-foreground">
             {appt.specialty} · {appt.mode === "tele" ? "Telehealth" : "In-Person"}
           </div>
@@ -558,16 +571,22 @@ function SchedulePage() {
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
 
   const loadDoctorAppointments = useCallback(() => {
+    const userRole = currentUser?.role || "";
     const doctorDid = currentUser?.did || "";
-    if (!doctorDid) return;
-    getAppointmentsByDoctor(doctorDid)
+    
+    // Staff and admin see all appointments, doctors see only their own
+    const fetchFunction = (userRole === "staff" || userRole === "admin") 
+      ? getAllAppointments() 
+      : doctorDid ? getAppointmentsByDoctor(doctorDid) : Promise.resolve({ appointments: [] });
+    
+    fetchFunction
       .then((res) => {
         const all = (res.appointments ?? []) as any[];
         setDoctorAppointments(all);
         setPendingRequests(all.filter((a: any) => a.status === "pending"));
       })
       .catch(() => {});
-  }, [currentUser?.did]);
+  }, [currentUser?.did, currentUser?.role]);
 
   useEffect(() => {
     loadDoctorAppointments();
@@ -633,11 +652,29 @@ function SchedulePage() {
   const appointmentsByDate = useMemo(() => {
     const map = new Map<string, any[]>();
     for (const a of doctorAppointments) {
-      const d = a.date ?? a.slot?.split(" · ")[0] ?? a.bookedAt?.split("T")[0] ?? "";
-      if (!d) continue;
-      const existing = map.get(d) || [];
+      let dateStr = "";
+      
+      // Try to extract date from slot field
+      // New format: "2026-08-20 · Wed · 10:00 AM"
+      // Old format: "Wed · 10:00 AM"
+      if (a.slot) {
+        const parts = a.slot.split(" · ");
+        // Check if first part looks like a date (YYYY-MM-DD)
+        if (parts[0] && /^\d{4}-\d{2}-\d{2}$/.test(parts[0].trim())) {
+          dateStr = parts[0].trim();
+        }
+      }
+      
+      // Fallback to booked_at date if no date in slot
+      if (!dateStr && a.bookedAt) {
+        dateStr = a.bookedAt.split("T")[0];
+      }
+      
+      if (!dateStr) continue;
+      
+      const existing = map.get(dateStr) || [];
       existing.push(a);
-      map.set(d, existing);
+      map.set(dateStr, existing);
     }
     return map;
   }, [doctorAppointments]);
@@ -666,6 +703,9 @@ function SchedulePage() {
         )
       : formatDateRange(weekRange.start, weekRange.end);
 
+  const userRole = currentUser?.role || "";
+  const isStaffOrAdmin = userRole === "staff" || userRole === "admin";
+  
   const handlePrev = () => setWeekOffset((o) => o - (view === "month" ? 4 : 1));
   const handleNext = () => setWeekOffset((o) => o + (view === "month" ? 4 : 1));
   const handleToday = () => setWeekOffset(0);
@@ -673,9 +713,13 @@ function SchedulePage() {
   return (
     <RouteGuard requiredRole="staff">
       <PageHeader
-        eyebrow="My Schedule"
+        eyebrow={isStaffOrAdmin ? "Staff Schedule" : "My Schedule"}
         title={navLabel}
-        description={`${currentUser?.name || "Doctor"} · ${currentUser?.department || "Department"} · Shift plan and appointments`}
+        description={
+          isStaffOrAdmin 
+            ? `${currentUser?.name || "Staff"} · ${currentUser?.department || "Department"} · All appointments and shifts`
+            : `${currentUser?.name || "Doctor"} · ${currentUser?.department || "Department"} · My shifts and appointments`
+        }
         actions={
           <div className="flex flex-wrap gap-2">
             <div className="flex rounded-lg border border-border overflow-hidden">
@@ -749,7 +793,9 @@ function SchedulePage() {
               <Bell
                 className={`h-5 w-5 ${pendingRequests.length > 0 ? "text-warning-foreground" : "text-primary"}`}
               />
-              <h2 className="text-sm font-bold text-foreground">Appointment Requests</h2>
+              <h2 className="text-sm font-bold text-foreground">
+                {isStaffOrAdmin ? "All Appointments" : "My Appointments"}
+              </h2>
               {pendingRequests.length > 0 && (
                 <span className="inline-flex items-center justify-center rounded-full bg-warning/20 px-2 py-0.5 text-[10px] font-bold text-yellow-700 dark:text-yellow-400">
                   {pendingRequests.length} pending
@@ -768,9 +814,13 @@ function SchedulePage() {
             {doctorAppointments.length === 0 ? (
               <div className="py-8 text-center">
                 <Stethoscope className="h-10 w-10 text-muted-foreground/40 mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">No appointment requests yet.</p>
+                <p className="text-sm text-muted-foreground">
+                  {isStaffOrAdmin ? "No appointments in the system yet." : "No appointment requests yet."}
+                </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Patients will appear here once they book with you.
+                  {isStaffOrAdmin 
+                    ? "Appointments from all doctors will appear here." 
+                    : "Patients will appear here once they book with you."}
                 </p>
               </div>
             ) : (
@@ -779,7 +829,7 @@ function SchedulePage() {
                 {pendingRequests.length > 0 && (
                   <div className="mb-4">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
-                      Awaiting Your Response
+                      {isStaffOrAdmin ? "Pending Appointments" : "Awaiting Your Response"}
                     </p>
                     <motion.div
                       variants={stagger}
@@ -930,9 +980,9 @@ function SchedulePage() {
                               />
                             );
                           })}
-                          {dayAppts.slice(0, 3).map((a: any, j: number) => (
+                          {dayAppts.slice(0, 3).map((a: any) => (
                             <div
-                              key={j}
+                              key={a.apptId || a.appt_id || `appt-${a.patientName}-${ds}`}
                               className={`h-1.5 w-3 rounded-full ${a.mode === "tele" ? "bg-chart-4" : "bg-primary"} opacity-70`}
                               title={a.patientName}
                             />

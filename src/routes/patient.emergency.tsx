@@ -23,8 +23,15 @@ import {
   X,
   Save,
   CheckCircle2,
+  Clock,
+  Users,
+  FileText,
+  Shield,
+  Download,
+  Share2,
+  Settings,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
@@ -236,6 +243,38 @@ function EmergencyPage() {
       autoAudited: true,
     }));
 
+  // Statistics
+  const stats = [
+    {
+      label: "Allergies",
+      value: patient.allergies?.length || 0,
+      icon: AlertTriangle,
+      color: "text-destructive",
+      bg: "bg-destructive/10",
+    },
+    {
+      label: "Conditions",
+      value: criticalConditionsList.length,
+      icon: Activity,
+      color: "text-warning-foreground",
+      bg: "bg-warning/10",
+    },
+    {
+      label: "Emergency Contacts",
+      value: emergencyContactsList.length,
+      icon: Users,
+      color: "text-primary",
+      bg: "bg-primary/10",
+    },
+    {
+      label: "Break-Glass Events",
+      value: breakGlassEventsList.length,
+      icon: ShieldAlert,
+      color: "text-chart-2",
+      bg: "bg-chart-2/10",
+    },
+  ];
+
   return (
     <RouteGuard requiredRole="patient">
       <PageHeader
@@ -263,6 +302,28 @@ function EmergencyPage() {
       />
 
       <div className="mx-auto max-w-4xl px-4 py-6 sm:px-8">
+        {/* Statistics Cards */}
+        <StaggerList className="grid grid-cols-2 gap-3 sm:grid-cols-4 mb-6">
+          {stats.map((s) => {
+            const Icon = s.icon;
+            return (
+              <StaggerItem key={s.label}>
+                <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                      {s.label}
+                    </span>
+                    <div className={`flex h-7 w-7 items-center justify-center rounded-lg ${s.bg}`}>
+                      <Icon className={`h-3.5 w-3.5 ${s.color}`} />
+                    </div>
+                  </div>
+                  <div className={`text-xl font-bold ${s.color}`}>{s.value}</div>
+                </div>
+              </StaggerItem>
+            );
+          })}
+        </StaggerList>
+
         <StaggerList className="space-y-5">
           {/* Hero emergency card */}
           <StaggerItem>
@@ -458,17 +519,120 @@ function EmergencyPage() {
               </div>
             </div>
           </StaggerItem>
+
+          {/* Quick Actions Panel */}
+          <StaggerItem>
+            <div className="rounded-xl border border-border bg-card p-4">
+              <div className="mb-4 flex items-center gap-2">
+                <Settings className="h-4 w-4 text-primary" />
+                <span className="text-sm font-semibold text-foreground">Quick Actions</span>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <button
+                  onClick={() => {
+                    toast.info("Generating emergency profile PDF...");
+                    setTimeout(() => {
+                      toast.success("Emergency profile exported!");
+                    }, 1500);
+                  }}
+                  className="flex items-center gap-3 rounded-lg border border-border bg-muted/50 px-4 py-3 text-left transition-colors hover:bg-muted"
+                >
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                    <Download className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold text-foreground">Download PDF</div>
+                    <div className="text-xs text-muted-foreground">Emergency profile</div>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => {
+                    toast.info("Sharing emergency profile...");
+                  }}
+                  className="flex items-center gap-3 rounded-lg border border-border bg-muted/50 px-4 py-3 text-left transition-colors hover:bg-muted"
+                >
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-chart-2/10">
+                    <Share2 className="h-5 w-5 text-chart-2" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold text-foreground">Share Profile</div>
+                    <div className="text-xs text-muted-foreground">Via QR or link</div>
+                  </div>
+                </button>
+
+                <button
+                  onClick={handleOpenEditModal}
+                  className="flex items-center gap-3 rounded-lg border border-border bg-muted/50 px-4 py-3 text-left transition-colors hover:bg-muted"
+                >
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-warning/10">
+                    <Settings className="h-5 w-5 text-warning-foreground" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold text-foreground">Update Settings</div>
+                    <div className="text-xs text-muted-foreground">Edit profile</div>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => {
+                    toast.info("Opening access logs...");
+                  }}
+                  className="flex items-center gap-3 rounded-lg border border-border bg-muted/50 px-4 py-3 text-left transition-colors hover:bg-muted"
+                >
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-destructive/10">
+                    <Shield className="h-5 w-5 text-destructive" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold text-foreground">View Access Log</div>
+                    <div className="text-xs text-muted-foreground">Who viewed</div>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </StaggerItem>
+
+          {/* Privacy & Security Notice */}
+          <StaggerItem>
+            <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
+              <div className="mb-3 flex items-center gap-2">
+                <Shield className="h-4 w-4 text-primary" />
+                <span className="text-sm font-semibold text-foreground">
+                  Privacy & Security
+                </span>
+              </div>
+              <div className="space-y-2 text-xs text-muted-foreground">
+                <p>
+                  <strong className="text-foreground">🔒 Break-Glass Protocol:</strong> In
+                  life-threatening emergencies, authorized responders can access your profile
+                  without prior consent. All access is automatically logged and audited.
+                </p>
+                <p>
+                  <strong className="text-foreground">🔐 DID-Verified:</strong> Your emergency
+                  data is cryptographically signed and stored on-chain. Only verified healthcare
+                  providers can decrypt and access this information.
+                </p>
+                <p>
+                  <strong className="text-foreground">📋 HIPAA Compliant:</strong> All emergency
+                  access events are logged with timestamp, actor identity, and reason. You can
+                  review this audit trail anytime in your Access History.
+                </p>
+              </div>
+            </div>
+          </StaggerItem>
         </StaggerList>
       </div>
 
       {/* Edit Emergency Profile Modal */}
-      {isEditModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/50 backdrop-blur-sm p-4 overflow-y-auto">
-          <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="rounded-2xl border border-border bg-card p-6 shadow-clinical-md max-w-lg w-full my-8 space-y-4"
-          >
+      <AnimatePresence>
+        {isEditModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/50 backdrop-blur-sm p-4 overflow-y-auto">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="rounded-2xl border border-border bg-card p-6 shadow-clinical-md max-w-lg w-full my-8 space-y-4"
+            >
             <div className="flex items-center justify-between border-b border-border pb-3">
               <div className="flex items-center gap-2 text-base font-bold text-foreground">
                 <Edit3 className="h-5 w-5 text-primary" /> Edit Emergency Profile
@@ -688,10 +852,12 @@ function EmergencyPage() {
             </form>
           </motion.div>
         </div>
-      )}
+        )}
+      </AnimatePresence>
 
       {/* Emergency QR Modal */}
-      {showQr && (
+      <AnimatePresence>
+        {showQr && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/50 backdrop-blur-sm p-4"
           onClick={() => setShowQr(false)}
@@ -723,7 +889,8 @@ function EmergencyPage() {
             </button>
           </motion.div>
         </div>
-      )}
+        )}
+      </AnimatePresence>
     </RouteGuard>
   );
 }

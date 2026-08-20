@@ -138,9 +138,15 @@ function AdminCertificationsManagementPage() {
       setCertifications(certsRes.certifications || []);
 
       // Filter to staff/doctor DIDs only
-      const staffDids = (didsRes.dids || []).filter(
+      const allDids = didsRes.dids || [];
+      const staffDids = allDids.filter(
         (d: any) => d.owner_type === "doctor" || d.owner_type === "staff",
       );
+      
+      console.log("All DIDs:", allDids.length);
+      console.log("Staff/Doctor DIDs:", staffDids.length);
+      console.log("Owner types found:", [...new Set(allDids.map((d: any) => d.owner_type))]);
+      
       setStaffDIDs(staffDids);
       setStats(statsRes.stats);
     } catch (err: any) {
@@ -331,7 +337,7 @@ function AdminCertificationsManagementPage() {
           </div>
           <h1 className="text-2xl font-bold text-foreground">Certifications & Qualifications</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Manage staff certifications linked to verified DIDs with comprehensive audit trails.
+            Verify and manage staff certifications using their DID. Verified credentials appear on doctor profiles.
           </p>
         </div>
         <div className="flex gap-2">
@@ -585,8 +591,8 @@ function AdminCertificationsManagementPage() {
             <DialogTitle>{isAddOpen ? "Add New Certification" : "Edit Certification"}</DialogTitle>
             <DialogDescription>
               {isAddOpen
-                ? "Create a new certification for a staff member. It will be linked to their verified DID."
-                : "Update certification details. All changes are logged in the audit trail."}
+                ? "Create a new certification for a staff member using their verified DID. Mark as verified once documents are confirmed."
+                : "Update certification details. Check 'Verified by admin' after confirming all documents and credentials."}
             </DialogDescription>
           </DialogHeader>
 
@@ -597,20 +603,39 @@ function AdminCertificationsManagementPage() {
                 <Label htmlFor="staffDid" className="text-sm font-semibold">
                   Staff Member *
                 </Label>
-                <select
-                  id="staffDid"
-                  value={form.staffDid}
-                  onChange={(e) => setForm({ ...form, staffDid: e.target.value })}
-                  className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm outline-none"
-                  required
-                >
-                  <option value="">Select staff member...</option>
-                  {staffDIDs.map((s) => (
-                    <option key={s.did} value={s.did}>
-                      {s.owner_name} ({s.owner_type}) - {s.did}
-                    </option>
-                  ))}
-                </select>
+                {staffDIDs.length === 0 ? (
+                  <div className="rounded-lg border-2 border-warning/30 bg-warning/5 p-4">
+                    <div className="flex items-start gap-2 text-sm">
+                      <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
+                      <div>
+                        <div className="font-semibold text-warning mb-1">No Staff or Doctor DIDs Found</div>
+                        <div className="text-xs text-muted-foreground mb-2">
+                          No DIDs with owner_type 'doctor' or 'staff' were found. Please ensure:
+                        </div>
+                        <ul className="text-xs text-muted-foreground space-y-1 ml-4 list-disc">
+                          <li>You have created DIDs for your doctors/staff members</li>
+                          <li>The DIDs have owner_type set to 'doctor' or 'staff' (not 'patient' or 'admin')</li>
+                          <li>You can check this in the DID management section</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <select
+                    id="staffDid"
+                    value={form.staffDid}
+                    onChange={(e) => setForm({ ...form, staffDid: e.target.value })}
+                    className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm outline-none"
+                    required
+                  >
+                    <option value="">Select staff member...</option>
+                    {staffDIDs.map((s) => (
+                      <option key={s.did} value={s.did}>
+                        {s.owner_name} ({s.owner_type}) - {s.did}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
             )}
 
@@ -740,18 +765,34 @@ function AdminCertificationsManagementPage() {
               </div>
             </div>
 
-            {/* Verified checkbox */}
-            <div className="flex items-center gap-2">
-              <input
-                id="verifiedByAdmin"
-                type="checkbox"
-                checked={form.verifiedByAdmin}
-                onChange={(e) => setForm({ ...form, verifiedByAdmin: e.target.checked })}
-                className="h-4 w-4 rounded border-input"
-              />
-              <Label htmlFor="verifiedByAdmin" className="text-sm cursor-pointer">
-                Mark as verified by admin
-              </Label>
+            {/* Verified checkbox - Enhanced */}
+            <div className="rounded-xl border-2 border-primary/30 bg-primary/5 p-4">
+              <div className="flex items-start gap-3">
+                <input
+                  id="verifiedByAdmin"
+                  type="checkbox"
+                  checked={form.verifiedByAdmin}
+                  onChange={(e) => setForm({ ...form, verifiedByAdmin: e.target.checked })}
+                  className="mt-1 h-5 w-5 rounded border-primary text-primary focus:ring-2 focus:ring-primary"
+                />
+                <div className="flex-1">
+                  <Label htmlFor="verifiedByAdmin" className="text-sm font-bold text-foreground cursor-pointer flex items-center gap-2">
+                    <Shield className="h-4 w-4 text-primary" />
+                    Admin Verification
+                  </Label>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Check this box to mark the certification as verified by hospital administration.
+                    Verified certifications will be prominently displayed on the staff member's profile
+                    and linked to their DID.
+                  </p>
+                  {form.verifiedByAdmin && (
+                    <div className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-success">
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      This certification will be marked as admin-verified
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Notes */}

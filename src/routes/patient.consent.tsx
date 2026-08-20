@@ -29,6 +29,7 @@ import {
   CheckCircle2,
   XCircle,
   RefreshCw,
+  AlertTriangle,
   FileText,
 } from "lucide-react";
 import { useCurrentUser } from "@/lib/auth-context";

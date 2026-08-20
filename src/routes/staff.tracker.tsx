@@ -3,7 +3,8 @@ import { useState, useEffect, useCallback } from "react";
 import { RouteGuard } from "@/components/RouteGuard";
 import { PageHeader } from "@/components/PageHeader";
 import { getLiveStaff, storeEvents } from "@/lib/live-store";
-import { dispatchPagerNotify, getAllDIDs, getDoctors, getDoctorLocationHistory } from "@/lib/api";
+import { dispatchPagerNotify, getAllDIDs, getDoctors, getDoctorLocationHistory, getRoomCheckinStatus } from "@/lib/api";
+import { useTableRefresh } from "@/hooks/use-realtime";
 import { MapPin, Search, Send, Activity, Building2, X, History } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -32,6 +33,7 @@ function DoctorLocatorPage() {
     try {
       let apiDocs: any[] = [];
       let didDocs: any[] = [];
+      let roomCheckins: any[] = [];
 
       try {
         const docRes = await getDoctors();
@@ -56,6 +58,22 @@ function DoctorLocatorPage() {
         // Fallback
       }
 
+      // Fetch actual room check-in status
+      try {
+        const checkinRes = await getRoomCheckinStatus();
+        roomCheckins = checkinRes.checkins || [];
+      } catch (e) {
+        console.warn("Could not fetch room check-in data:", e);
+      }
+
+      // Create a map of doctor DID -> room check-in data
+      const checkinMap = new Map<string, any>();
+      roomCheckins.forEach((checkin: any) => {
+        if (checkin.doctorDid) {
+          checkinMap.set(checkin.doctorDid, checkin);
+        }
+      });
+
       const mergedMap = new Map<string, any>();
 
       // 1. Process Admin-Issued DIDs strictly
@@ -67,10 +85,12 @@ function DoctorLocatorPage() {
             (a.email && d.ownerEmail && a.email.toLowerCase() === d.ownerEmail.toLowerCase()),
         );
 
-        const liveLocation =
-          apiMatch?.activeRoom && apiMatch.activeRoom !== "None"
-            ? apiMatch.activeRoom
-            : "Room 101 - Outpatient Clinic";
+        // Use actual room check-in data if available
+        const checkinData = checkinMap.get(d.did);
+        const isCheckedIn = checkinData && checkinData.lastAction === "checkin";
+        const liveLocation = isCheckedIn && checkinData.currentRoom
+          ? checkinData.currentRoom
+          : "Off Duty";
 
         mergedMap.set(d.did, {
           id: d.did,
@@ -82,12 +102,14 @@ function DoctorLocatorPage() {
           department: apiMatch?.department || d.extraFields?.department || "Cardiology OPD",
           specialty: apiMatch?.specialty || d.extraFields?.specialty || "General Medicine",
           currentLocation: liveLocation,
-          roomStatus: apiMatch?.roomStatus || (liveLocation !== "Off Duty" ? "enter" : "exit"),
+          roomStatus: isCheckedIn ? "enter" : "exit",
+          roomId: checkinData?.roomId || null,
+          checkedInAt: checkinData?.checkedInAt || null,
           beaconStrength: "-65 dBm",
-          lastSignal: apiMatch?.lastLocationChange
-            ? new Date(apiMatch.lastLocationChange).toLocaleTimeString()
+          lastSignal: checkinData?.updatedAt
+            ? new Date(checkinData.updatedAt).toLocaleTimeString()
             : new Date().toLocaleTimeString(),
-          onDuty: true,
+          onDuty: isCheckedIn,
           isOnChain: true,
           activeCredentials: d.credentials || [
             { id: `vc-${d.did.slice(-6)}`, type: "DID Verified Physician" },
@@ -99,8 +121,13 @@ function DoctorLocatorPage() {
       apiDocs.forEach((a: any) => {
         if (!a.did) return;
         if (!mergedMap.has(a.did)) {
-          const liveLocation =
-            a.activeRoom && a.activeRoom !== "None" ? a.activeRoom : "Room 101 - Outpatient Clinic";
+          // Use actual room check-in data if available
+          const checkinData = checkinMap.get(a.did);
+          const isCheckedIn = checkinData && checkinData.lastAction === "checkin";
+          const liveLocation = isCheckedIn && checkinData.currentRoom
+            ? checkinData.currentRoom
+            : "Off Duty";
+
           mergedMap.set(a.did, {
             id: a.did,
             did: a.did, // Strictly the Admin-issued W3C DID
@@ -110,14 +137,45 @@ function DoctorLocatorPage() {
             department: a.department || "Cardiology OPD",
             specialty: a.specialty || "General Medicine",
             currentLocation: liveLocation,
-            roomStatus: a.roomStatus || "enter",
+            roomStatus: isCheckedIn ? "enter" : "exit",
+            roomId: checkinData?.roomId || null,
+            checkedInAt: checkinData?.checkedInAt || null,
             beaconStrength: "-68 dBm",
-            lastSignal: a.lastLocationChange
-              ? new Date(a.lastLocationChange).toLocaleTimeString()
+            lastSignal: checkinData?.updatedAt
+              ? new Date(checkinData.updatedAt).toLocaleTimeString()
               : new Date().toLocaleTimeString(),
-            onDuty: true,
+            onDuty: isCheckedIn,
             isOnChain: true,
             activeCredentials: [{ id: `vc-${a.did.slice(-6)}`, type: "DID Verified Physician" }],
+          });
+        }
+      });
+
+      // 3. Add doctors that are checked in but not in DID/API lists
+      roomCheckins.forEach((checkin: any) => {
+        if (checkin.doctorDid && !mergedMap.has(checkin.doctorDid)) {
+          const isCheckedIn = checkin.lastAction === "checkin";
+          mergedMap.set(checkin.doctorDid, {
+            id: checkin.doctorDid,
+            did: checkin.doctorDid,
+            name: checkin.doctorName || "Dr. Clinician",
+            employeeId: `EMP-${checkin.doctorDid.slice(-4).toUpperCase()}`,
+            role: "Doctor",
+            department: "Clinical Services",
+            specialty: "General Medicine",
+            currentLocation: isCheckedIn && checkin.currentRoom ? checkin.currentRoom : "Off Duty",
+            roomStatus: isCheckedIn ? "enter" : "exit",
+            roomId: checkin.roomId || null,
+            checkedInAt: checkin.checkedInAt || null,
+            beaconStrength: "-65 dBm",
+            lastSignal: checkin.updatedAt
+              ? new Date(checkin.updatedAt).toLocaleTimeString()
+              : new Date().toLocaleTimeString(),
+            onDuty: isCheckedIn,
+            isOnChain: true,
+            activeCredentials: [
+              { id: `vc-${checkin.doctorDid.slice(-6)}`, type: "DID Verified Physician" },
+            ],
           });
         }
       });
@@ -133,11 +191,13 @@ function DoctorLocatorPage() {
           role: "Doctor",
           department: "Cardiology OPD",
           specialty: "Interventional Cardiology",
-          currentLocation: "Room 101 - Outpatient Clinic",
-          roomStatus: "enter",
+          currentLocation: "Off Duty",
+          roomStatus: "exit",
+          roomId: null,
+          checkedInAt: null,
           beaconStrength: "-65 dBm",
           lastSignal: new Date().toLocaleTimeString(),
-          onDuty: true,
+          onDuty: false,
           isOnChain: true,
           activeCredentials: [{ id: "vc-seed", type: "DID Verified Physician" }],
         });
@@ -158,44 +218,71 @@ function DoctorLocatorPage() {
         memberId?: string;
         did?: string;
         location: string;
+        roomId?: string | null;
         status?: string;
+        timestamp?: string;
       };
 
       const targetDid = detail.did || detail.memberId;
       if (targetDid) {
+        // Update the doctor's location and status in real-time
         setStaffList((prev) =>
-          prev.map((doc) =>
-            doc.did === targetDid || doc.id === targetDid
-              ? {
-                  ...doc,
-                  currentLocation: detail.location,
-                  roomStatus: detail.location !== "Off Duty" ? "enter" : "exit",
-                  lastSignal: new Date().toLocaleTimeString(),
-                }
-              : doc,
-          ),
+          prev.map((doc) => {
+            if (doc.did === targetDid || doc.id === targetDid) {
+              const isCheckingOut = detail.status === "exit" || detail.location === "Off Duty";
+              return {
+                ...doc,
+                currentLocation: detail.location,
+                roomId: detail.roomId || null,
+                roomStatus: isCheckingOut ? "exit" : "enter",
+                onDuty: !isCheckingOut,
+                lastSignal: new Date().toLocaleTimeString(),
+                checkedInAt: isCheckingOut ? null : new Date().toISOString(),
+              };
+            }
+            return doc;
+          }),
         );
+
+        // Update selected doctor if they're currently selected
+        setSelectedDoctor((prev) => {
+          if (prev && (prev.did === targetDid || prev.id === targetDid)) {
+            const isCheckingOut = detail.status === "exit" || detail.location === "Off Duty";
+            return {
+              ...prev,
+              currentLocation: detail.location,
+              roomId: detail.roomId || null,
+              roomStatus: isCheckingOut ? "exit" : "enter",
+              onDuty: !isCheckingOut,
+              lastSignal: new Date().toLocaleTimeString(),
+              checkedInAt: isCheckingOut ? null : new Date().toISOString(),
+            };
+          }
+          return prev;
+        });
       }
 
-      refreshDoctorLocations();
-
+      // Add to live event log
       setLiveEventsLog((prev) => [
         {
           id: `log_${Date.now()}_${Math.random()}`,
           time: new Date().toLocaleTimeString(),
-          event: `NFC Sensor Check-In → ${detail.location}`,
+          event: `${detail.status === "exit" ? "Checked Out" : "Checked In"} → ${detail.location}`,
         },
         ...prev.slice(0, 19),
       ]);
     };
 
     storeEvents.addEventListener("staff:location:update", locHandler);
-    const pollInterval = setInterval(refreshDoctorLocations, 3000);
+    const pollInterval = setInterval(refreshDoctorLocations, 15000); // Reduced frequency since we have live events
     return () => {
       storeEvents.removeEventListener("staff:location:update", locHandler);
       clearInterval(pollInterval);
     };
   }, [refreshDoctorLocations]);
+
+  // Realtime subscription for room check-ins table
+  useTableRefresh("room_checkins", refreshDoctorLocations);
 
   const handleFetchDoctorHistory = async (doc: any) => {
     setHistoryModalDoctor(doc);

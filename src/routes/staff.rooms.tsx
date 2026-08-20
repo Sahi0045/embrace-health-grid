@@ -15,6 +15,7 @@ import {
 } from "@/lib/api";
 import { useCurrentUser } from "@/lib/auth-context";
 import { useWallet } from "@solana/wallet-adapter-react";
+import { storeEvents } from "@/lib/live-store";
 import {
   Building2,
   Clock,
@@ -322,6 +323,28 @@ function StaffRoomsPage() {
           : `Checked out of ${r.results.length} room(s)`,
         { description: r.results.map((x: any) => x.roomName).join(", ") },
       );
+      
+      // Dispatch live event to update Doctor Locator in real-time
+      if (r.results.length > 0 && doctorDid) {
+        const primaryRoom = r.results[0];
+        const locationStr = action === "checkin" 
+          ? primaryRoom.roomName || `Room ${primaryRoom.roomId}`
+          : "Off Duty";
+        
+        storeEvents.dispatchEvent(
+          new CustomEvent("staff:location:update", {
+            detail: {
+              did: doctorDid,
+              memberId: doctorDid,
+              location: locationStr,
+              roomId: action === "checkin" ? primaryRoom.roomId : null,
+              status: action === "checkin" ? "enter" : "exit",
+              timestamp: new Date().toISOString(),
+            },
+          })
+        );
+      }
+      
       setSelectedRooms(new Set());
       await Promise.all([loadStatus(), loadHistory(), loadDaily()]);
     } catch (err: any) {

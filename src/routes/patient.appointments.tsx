@@ -10,6 +10,7 @@ import {
   getPrescriptions,
   getLabs,
   updateAppointmentStatus,
+  getBookedSlots,
 } from "@/lib/api";
 import { useCurrentUser } from "@/lib/auth-context";
 import {
@@ -170,8 +171,8 @@ function AppointmentsPage() {
   const appointments = useMemo(
     () =>
       (apptData?.appointments ?? []).map((a: any) => ({
-        id: a.apptId ?? a.id,
-        doctor: a.doctorName ?? "Doctor",
+        id: a.apptId ?? a.appt_id ?? a.id,
+        doctor: a.doctorName ?? a.doctor_name ?? "Doctor",
         specialty: a.specialty ?? "General Medicine",
         hospital: a.mode === "tele" ? "Telehealth Link" : "Embrace Health Grid",
         date: a.date ?? a.slot?.split(" · ")[0] ?? "—",
@@ -179,21 +180,29 @@ function AppointmentsPage() {
         status: a.status ?? "pending",
         mode: (a.mode ?? "in-person") as "in-person" | "tele",
         reason: a.reason ?? "",
-        suggestedSlot: a.suggestedSlot ?? null,
+        suggestedSlot: a.suggestedSlot ?? a.suggested_slot ?? null,
         notes: a.notes ?? "",
+        bookedAt: a.bookedAt ?? a.booked_at ?? null,
       })),
     [apptData],
   );
 
-  const active = appointments.filter((a) => !["cancelled", "rejected"].includes(a.status));
+  const upcoming = appointments.filter(
+    (a) =>
+      !["cancelled", "rejected"].includes(a.status) && new Date(a.date) >= new Date().setHours(0, 0, 0, 0)
+  );
+  const pending = appointments.filter((a) => a.status === "pending");
+  const confirmed = appointments.filter((a) => a.status === "confirmed");
   const past = appointments.filter(
     (a) =>
-      ["cancelled", "rejected", "confirmed"].includes(a.status) && new Date(a.date) < new Date(),
+      ["cancelled", "rejected", "completed"].includes(a.status) || new Date(a.date) < new Date().setHours(0, 0, 0, 0)
   );
+  const active = appointments.filter((a) => !["cancelled", "rejected", "completed"].includes(a.status));
 
   // ── search / filter ───────────────────────────────────────────────────────
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSpecialty, setSelectedSpecialty] = useState("All");
+  const [appointmentTab, setAppointmentTab] = useState<"upcoming" | "past">("upcoming");
 
   const filteredDoctors = useMemo(
     () =>
@@ -215,6 +224,8 @@ function AppointmentsPage() {
   const [reason, setReason] = useState("");
   const [grantConsent, setGrantConsent] = useState(true);
   const [booking, setBooking] = useState(false);
+  const [bookedSlots, setBookedSlots] = useState<string[]>([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
 
   // calendar pages (show 7 dates at a time)
   const [datePageStart, setDatePageStart] = useState(0);
@@ -236,12 +247,19 @@ function AppointmentsPage() {
     setSelectedSlot("");
     setReason("");
     setDatePageStart(0);
+    // Fetch booked slots for this doctor
+    setLoadingSlots(true);
+    getBookedSlots(doc.did)
+      .then((res) => setBookedSlots(res.bookedSlots))
+      .catch(() => setBookedSlots([]))
+      .finally(() => setLoadingSlots(false));
   };
 
   const confirmBooking = async () => {
     if (!selectedDoc || !selectedDate || !selectedSlot) return;
     setBooking(true);
-    const slotStr = `${new Date(selectedDate).toLocaleDateString("en-IN", { weekday: "short" })} · ${selectedSlot}`;
+    // Format: "2026-08-20 · Wed · 10:00 AM" - date first, then day name, then time
+    const slotStr = `${selectedDate} · ${new Date(selectedDate).toLocaleDateString("en-IN", { weekday: "short" })} · ${selectedSlot}`;
     try {
       await bookAppointment({
         patientDid: currentUser?.did ?? "did:hosp:unknown",
@@ -249,7 +267,6 @@ function AppointmentsPage() {
         doctorDid: selectedDoc.did,
         doctorName: selectedDoc.name,
         slot: slotStr,
-        date: selectedDate,
         mode: consultMode,
         specialty: selectedDoc.specialty,
         reason,
@@ -288,13 +305,14 @@ function AppointmentsPage() {
       return;
     }
     try {
+      const todayDate = new Date().toISOString().split("T")[0];
+      const todayDay = new Date().toLocaleDateString("en-IN", { weekday: "short" });
       await bookAppointment({
         patientDid: currentUser?.did ?? "did:hosp:unknown",
         patientName: currentUser?.name ?? "Patient",
         doctorDid: erDoc.did,
         doctorName: erDoc.name,
-        slot: "Immediate Triage Priority",
-        date: new Date().toISOString().split("T")[0],
+        slot: `${todayDate} · ${todayDay} · Immediate Triage`,
         mode: "in-person",
         specialty: "Emergency Medicine",
         reason: "Emergency triage",
@@ -426,119 +444,208 @@ function AppointmentsPage() {
               </div>
             )}
 
-            {/* Active Appointments */}
+            {/* My Appointments Section */}
             <div className="space-y-4">
-              <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-                <CalendarDays className="h-5 w-5 text-primary" />
-                My Appointments ({active.length})
-              </h2>
-              {active.length === 0 ? (
-                <EmptyState
-                  icon={CalendarDays}
-                  title="No active appointments"
-                  description="Book a consultation above."
-                />
-              ) : (
-                <StaggerList className="grid gap-4 sm:grid-cols-2">
-                  {active.map((a) => {
-                    const cfg = STATUS_CONFIG[a.status] ?? STATUS_CONFIG.pending;
-                    const Icon = cfg.icon;
-                    return (
-                      <StaggerItem key={a.id}>
-                        <div className="rounded-xl border border-border bg-card p-4 shadow-clinical space-y-3">
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <div className="font-semibold text-foreground">{a.doctor}</div>
-                              <div className="text-xs text-muted-foreground">{a.specialty}</div>
-                            </div>
-                            <span
-                              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${cfg.cls}`}
-                            >
-                              <Icon className="h-3 w-3" /> {cfg.label}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm">
-                            <Clock className="h-4 w-4 text-primary shrink-0" />
-                            <span className="font-semibold">{a.slot}</span>
-                          </div>
-                          {a.reason && (
-                            <p className="text-xs text-muted-foreground">Reason: {a.reason}</p>
-                          )}
-                          {a.status === "pending" && (
-                            <p className="text-xs text-warning-foreground bg-warning/10 rounded-lg px-3 py-2">
-                              ⏳ Waiting for the doctor to accept this request.
-                            </p>
-                          )}
-                          {a.status === "suggested" && a.suggestedSlot && (
-                            <p className="text-xs text-primary bg-primary/10 rounded-lg px-3 py-2">
-                              Doctor suggested a new time: <strong>{a.suggestedSlot}</strong>
-                            </p>
-                          )}
-                          {a.notes && (
-                            <p className="text-xs text-muted-foreground italic">"{a.notes}"</p>
-                          )}
-                          <div className="flex gap-2 pt-1 border-t border-border">
-                            {["pending", "confirmed"].includes(a.status) && (
-                              <button
-                                onClick={() => cancelAppt(a.id)}
-                                className="flex-1 rounded-lg border border-border py-2 text-xs font-semibold text-foreground hover:bg-muted"
-                              >
-                                Cancel
-                              </button>
-                            )}
-                            {a.status === "confirmed" && a.mode === "tele" && (
-                              <button className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-success text-success-foreground py-2 text-xs font-bold hover:bg-success/90">
-                                <Video className="h-3.5 w-3.5" /> Launch Telehealth
-                              </button>
-                            )}
-                            {a.status === "confirmed" && a.mode === "in-person" && (
-                              <Link
-                                to="/patient/qr"
-                                className="flex-1 inline-flex items-center justify-center gap-1 rounded-lg bg-primary py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
-                              >
-                                Check-in QR
-                              </Link>
-                            )}
-                          </div>
-                        </div>
-                      </StaggerItem>
-                    );
-                  })}
-                </StaggerList>
-              )}
-            </div>
-
-            {/* Past / Rejected */}
-            {past.length > 0 && (
-              <div className="space-y-2">
-                <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Past & Rejected
-                </div>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {past.map((a) => {
-                    const cfg = STATUS_CONFIG[a.status] ?? STATUS_CONFIG.cancelled;
-                    return (
-                      <div
-                        key={a.id}
-                        className="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-3"
-                      >
-                        <div>
-                          <div className="font-medium text-foreground">{a.doctor}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {a.slot} · {a.specialty}
-                          </div>
-                        </div>
-                        <span
-                          className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${cfg.cls}`}
-                        >
-                          {cfg.label}
-                        </span>
-                      </div>
-                    );
-                  })}
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+                  <CalendarDays className="h-5 w-5 text-primary" />
+                  My Appointments
+                </h2>
+                <div className="flex gap-1 rounded-lg border border-border bg-muted/40 p-0.5">
+                  <button
+                    onClick={() => setAppointmentTab("upcoming")}
+                    className={`rounded-md px-3 py-1 text-xs font-semibold transition-all ${
+                      appointmentTab === "upcoming"
+                        ? "bg-card text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Upcoming ({upcoming.length})
+                  </button>
+                  <button
+                    onClick={() => setAppointmentTab("past")}
+                    className={`rounded-md px-3 py-1 text-xs font-semibold transition-all ${
+                      appointmentTab === "past"
+                        ? "bg-card text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    History ({past.length})
+                  </button>
                 </div>
               </div>
-            )}
+
+              {/* Appointment Stats */}
+              {appointmentTab === "upcoming" && upcoming.length > 0 && (
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="rounded-lg border border-warning/30 bg-warning/10 px-3 py-2">
+                    <div className="text-xs text-muted-foreground">Pending Approval</div>
+                    <div className="text-lg font-bold text-warning-foreground">{pending.length}</div>
+                  </div>
+                  <div className="rounded-lg border border-success/30 bg-success/10 px-3 py-2">
+                    <div className="text-xs text-muted-foreground">Confirmed</div>
+                    <div className="text-lg font-bold text-success">{confirmed.length}</div>
+                  </div>
+                </div>
+              )}
+
+              {/* Upcoming Appointments */}
+              {appointmentTab === "upcoming" && (
+                <>
+                  {upcoming.length === 0 ? (
+                    <EmptyState
+                      icon={CalendarDays}
+                      title="No upcoming appointments"
+                      description="Book a consultation above to schedule your first appointment."
+                    />
+                  ) : (
+                    <StaggerList className="grid gap-4 sm:grid-cols-2">
+                      {upcoming.map((a) => {
+                        const cfg = STATUS_CONFIG[a.status] ?? STATUS_CONFIG.pending;
+                        const Icon = cfg.icon;
+                        return (
+                          <StaggerItem key={a.id}>
+                            <div className="rounded-xl border border-border bg-card p-4 shadow-clinical space-y-3">
+                              <div className="flex items-start justify-between">
+                                <div>
+                                  <div className="font-semibold text-foreground">{a.doctor}</div>
+                                  <div className="text-xs text-muted-foreground">{a.specialty}</div>
+                                </div>
+                                <span
+                                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${cfg.cls}`}
+                                >
+                                  <Icon className="h-3 w-3" /> {cfg.label}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm">
+                                <Clock className="h-4 w-4 text-primary shrink-0" />
+                                <span className="font-semibold">{a.slot}</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                {a.mode === "tele" ? (
+                                  <>
+                                    <Video className="h-3.5 w-3.5" />
+                                    <span>Telehealth</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <MapPin className="h-3.5 w-3.5" />
+                                    <span>In-Person</span>
+                                  </>
+                                )}
+                              </div>
+                              {a.reason && (
+                                <p className="text-xs text-muted-foreground bg-muted/50 rounded-lg px-3 py-2">
+                                  <strong>Reason:</strong> {a.reason}
+                                </p>
+                              )}
+                              {a.status === "pending" && (
+                                <p className="text-xs text-warning-foreground bg-warning/10 rounded-lg px-3 py-2 flex items-center gap-2">
+                                  <Clock className="h-3.5 w-3.5 shrink-0" />
+                                  Waiting for the doctor to accept this request.
+                                </p>
+                              )}
+                              {a.status === "confirmed" && (
+                                <p className="text-xs text-success bg-success/10 rounded-lg px-3 py-2 flex items-center gap-2">
+                                  <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                                  Confirmed! See you on {a.date}.
+                                </p>
+                              )}
+                              {a.status === "suggested" && a.suggestedSlot && (
+                                <p className="text-xs text-primary bg-primary/10 rounded-lg px-3 py-2">
+                                  <strong>New Time Suggested:</strong> {a.suggestedSlot}
+                                </p>
+                              )}
+                              {a.notes && (
+                                <p className="text-xs text-muted-foreground italic bg-muted/30 rounded-lg px-3 py-2">
+                                  <strong>Note from doctor:</strong> "{a.notes}"
+                                </p>
+                              )}
+                              <div className="flex gap-2 pt-1 border-t border-border">
+                                {["pending", "confirmed"].includes(a.status) && (
+                                  <button
+                                    onClick={() => cancelAppt(a.id)}
+                                    className="flex-1 rounded-lg border border-border py-2 text-xs font-semibold text-foreground hover:bg-muted transition-colors"
+                                  >
+                                    Cancel
+                                  </button>
+                                )}
+                                {a.status === "confirmed" && a.mode === "tele" && (
+                                  <button className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-success text-success-foreground py-2 text-xs font-bold hover:bg-success/90">
+                                    <Video className="h-3.5 w-3.5" /> Launch Telehealth
+                                  </button>
+                                )}
+                                {a.status === "confirmed" && a.mode === "in-person" && (
+                                  <Link
+                                    to="/patient/qr"
+                                    className="flex-1 inline-flex items-center justify-center gap-1 rounded-lg bg-primary py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
+                                  >
+                                    Check-in QR
+                                  </Link>
+                                )}
+                              </div>
+                            </div>
+                          </StaggerItem>
+                        );
+                      })}
+                    </StaggerList>
+                  )}
+                </>
+              )}
+
+              {/* Past Appointments */}
+              {appointmentTab === "past" && (
+                <>
+                  {past.length === 0 ? (
+                    <EmptyState
+                      icon={CalendarDays}
+                      title="No appointment history"
+                      description="Your past and cancelled appointments will appear here."
+                    />
+                  ) : (
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {past.map((a) => {
+                        const cfg = STATUS_CONFIG[a.status] ?? STATUS_CONFIG.cancelled;
+                        const Icon = cfg.icon;
+                        return (
+                          <div
+                            key={a.id}
+                            className="rounded-xl border border-border bg-card p-4 space-y-2"
+                          >
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <div className="font-medium text-foreground">{a.doctor}</div>
+                                <div className="text-xs text-muted-foreground">{a.specialty}</div>
+                              </div>
+                              <span
+                                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${cfg.cls}`}
+                              >
+                                <Icon className="h-3 w-3" /> {cfg.label}
+                              </span>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              <Clock className="h-3 w-3 inline mr-1" />
+                              {a.slot}
+                            </div>
+                            {a.mode === "tele" ? (
+                              <div className="text-xs text-muted-foreground">
+                                <Video className="h-3 w-3 inline mr-1" />
+                                Telehealth
+                              </div>
+                            ) : (
+                              <div className="text-xs text-muted-foreground">
+                                <MapPin className="h-3 w-3 inline mr-1" />
+                                In-Person
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
           </div>
 
           {/* ── Sidebar ──────────────────────────────────────────────────── */}
@@ -776,18 +883,52 @@ function AppointmentsPage() {
                   <div>
                     <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide block mb-1.5">
                       Available Time Slots
+                      {loadingSlots && (
+                        <span className="ml-2 text-[10px] font-normal text-primary">
+                          Checking availability...
+                        </span>
+                      )}
                     </label>
                     <div className="grid grid-cols-3 gap-2">
-                      {TIME_SLOTS.map((s) => (
-                        <button
-                          key={s}
-                          onClick={() => setSelectedSlot(s)}
-                          className={`p-2 rounded-lg border text-xs font-medium transition-all ${selectedSlot === s ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted text-foreground"}`}
-                        >
-                          {s}
-                        </button>
-                      ))}
+                      {TIME_SLOTS.map((timeSlot) => {
+                        // Check if this slot is already booked for the selected date
+                        // Booked slot format: "2026-08-20 · Wed · 10:00 AM"
+                        const dayName = new Date(selectedDate).toLocaleDateString("en-IN", {
+                          weekday: "short",
+                        });
+                        const fullSlotStr = `${selectedDate} · ${dayName} · ${timeSlot}`;
+                        const isBooked = bookedSlots.includes(fullSlotStr);
+
+                        return (
+                          <button
+                            key={timeSlot}
+                            onClick={() => !isBooked && setSelectedSlot(timeSlot)}
+                            disabled={isBooked}
+                            className={`p-2 rounded-lg border text-xs font-medium transition-all relative ${
+                              isBooked
+                                ? "bg-muted text-muted-foreground border-muted cursor-not-allowed opacity-50"
+                                : selectedSlot === timeSlot
+                                  ? "bg-primary text-primary-foreground border-primary"
+                                  : "border-border hover:bg-muted text-foreground"
+                            }`}
+                            title={isBooked ? "This slot is already booked" : ""}
+                          >
+                            {timeSlot}
+                            {isBooked && (
+                              <span className="absolute top-0.5 right-0.5 text-[8px] font-bold text-destructive">
+                                ✕
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
                     </div>
+                    {bookedSlots.length > 0 && (
+                      <p className="text-[10px] text-muted-foreground mt-2 flex items-center gap-1">
+                        <Info className="h-3 w-3 text-primary" />
+                        Slots marked with ✕ are already booked and unavailable.
+                      </p>
+                    )}
                   </div>
                 )}
 

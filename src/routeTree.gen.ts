@@ -30,6 +30,7 @@ import { Route as StaffProfileRouteImport } from './routes/staff.profile'
 import { Route as StaffPrescriptionsRouteImport } from './routes/staff.prescriptions'
 import { Route as StaffPharmacyInventoryRouteImport } from './routes/staff.pharmacy-inventory'
 import { Route as StaffPatientsRouteImport } from './routes/staff.patients'
+import { Route as StaffPatientRecordsRouteImport } from './routes/staff.patient-records'
 import { Route as StaffPatientMasterRouteImport } from './routes/staff.patient-master'
 import { Route as StaffLabsRouteImport } from './routes/staff.labs'
 import { Route as StaffEmergencyRouteImport } from './routes/staff.emergency'
@@ -186,6 +187,11 @@ const StaffPharmacyInventoryRoute = StaffPharmacyInventoryRouteImport.update({
 const StaffPatientsRoute = StaffPatientsRouteImport.update({
   id: '/staff/patients',
   path: '/staff/patients',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StaffPatientRecordsRoute = StaffPatientRecordsRouteImport.update({
+  id: '/staff/patient-records',
+  path: '/staff/patient-records',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StaffPatientMasterRoute = StaffPatientMasterRouteImport.update({
@@ -507,6 +513,7 @@ export interface FileRoutesByFullPath {
   '/staff/emergency': typeof StaffEmergencyRoute
   '/staff/labs': typeof StaffLabsRoute
   '/staff/patient-master': typeof StaffPatientMasterRoute
+  '/staff/patient-records': typeof StaffPatientRecordsRoute
   '/staff/patients': typeof StaffPatientsRoute
   '/staff/pharmacy-inventory': typeof StaffPharmacyInventoryRoute
   '/staff/prescriptions': typeof StaffPrescriptionsRoute
@@ -582,6 +589,7 @@ export interface FileRoutesByTo {
   '/staff/emergency': typeof StaffEmergencyRoute
   '/staff/labs': typeof StaffLabsRoute
   '/staff/patient-master': typeof StaffPatientMasterRoute
+  '/staff/patient-records': typeof StaffPatientRecordsRoute
   '/staff/patients': typeof StaffPatientsRoute
   '/staff/pharmacy-inventory': typeof StaffPharmacyInventoryRoute
   '/staff/prescriptions': typeof StaffPrescriptionsRoute
@@ -658,6 +666,7 @@ export interface FileRoutesById {
   '/staff/emergency': typeof StaffEmergencyRoute
   '/staff/labs': typeof StaffLabsRoute
   '/staff/patient-master': typeof StaffPatientMasterRoute
+  '/staff/patient-records': typeof StaffPatientRecordsRoute
   '/staff/patients': typeof StaffPatientsRoute
   '/staff/pharmacy-inventory': typeof StaffPharmacyInventoryRoute
   '/staff/prescriptions': typeof StaffPrescriptionsRoute
@@ -735,6 +744,7 @@ export interface FileRouteTypes {
     | '/staff/emergency'
     | '/staff/labs'
     | '/staff/patient-master'
+    | '/staff/patient-records'
     | '/staff/patients'
     | '/staff/pharmacy-inventory'
     | '/staff/prescriptions'
@@ -810,6 +820,7 @@ export interface FileRouteTypes {
     | '/staff/emergency'
     | '/staff/labs'
     | '/staff/patient-master'
+    | '/staff/patient-records'
     | '/staff/patients'
     | '/staff/pharmacy-inventory'
     | '/staff/prescriptions'
@@ -885,6 +896,7 @@ export interface FileRouteTypes {
     | '/staff/emergency'
     | '/staff/labs'
     | '/staff/patient-master'
+    | '/staff/patient-records'
     | '/staff/patients'
     | '/staff/pharmacy-inventory'
     | '/staff/prescriptions'
@@ -961,6 +973,7 @@ export interface RootRouteChildren {
   StaffEmergencyRoute: typeof StaffEmergencyRoute
   StaffLabsRoute: typeof StaffLabsRoute
   StaffPatientMasterRoute: typeof StaffPatientMasterRoute
+  StaffPatientRecordsRoute: typeof StaffPatientRecordsRoute
   StaffPatientsRoute: typeof StaffPatientsRoute
   StaffPharmacyInventoryRoute: typeof StaffPharmacyInventoryRoute
   StaffPrescriptionsRoute: typeof StaffPrescriptionsRoute
@@ -1126,6 +1139,13 @@ declare module '@tanstack/react-router' {
       path: '/staff/patients'
       fullPath: '/staff/patients'
       preLoaderRoute: typeof StaffPatientsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/staff/patient-records': {
+      id: '/staff/patient-records'
+      path: '/staff/patient-records'
+      fullPath: '/staff/patient-records'
+      preLoaderRoute: typeof StaffPatientRecordsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/staff/patient-master': {
@@ -1553,6 +1573,7 @@ const rootRouteChildren: RootRouteChildren = {
   StaffEmergencyRoute: StaffEmergencyRoute,
   StaffLabsRoute: StaffLabsRoute,
   StaffPatientMasterRoute: StaffPatientMasterRoute,
+  StaffPatientRecordsRoute: StaffPatientRecordsRoute,
   StaffPatientsRoute: StaffPatientsRoute,
   StaffPharmacyInventoryRoute: StaffPharmacyInventoryRoute,
   StaffPrescriptionsRoute: StaffPrescriptionsRoute,

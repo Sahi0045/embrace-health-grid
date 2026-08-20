@@ -217,8 +217,8 @@ function ActionModal({
                   <div className="flex-1 min-w-0">
                     <span className="text-[10px] font-bold text-destructive uppercase tracking-wide">Allergies:</span>
                     <div className="flex flex-wrap gap-1 mt-1">
-                      {appt.patientAllergies.map((allergy, idx) => (
-                        <span key={idx} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-destructive/15 text-destructive border border-destructive/25">
+                      {appt.patientAllergies.map((allergy) => (
+                        <span key={`allergy-${appt.apptId}-${allergy}`} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-destructive/15 text-destructive border border-destructive/25">
                           ⚠ {allergy}
                         </span>
                       ))}
@@ -430,8 +430,8 @@ function AppointmentCard({
                   <div className="flex-1 min-w-0">
                     <span className="text-[10px] font-semibold text-destructive uppercase tracking-wide">Allergies:</span>
                     <div className="flex flex-wrap gap-1 mt-1">
-                      {appt.patientAllergies.map((allergy, idx) => (
-                        <span key={idx} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-destructive/10 text-destructive border border-destructive/20">
+                      {appt.patientAllergies.map((allergy) => (
+                        <span key={`allergy-${appt.apptId}-${allergy}`} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-destructive/10 text-destructive border border-destructive/20">
                           ⚠ {allergy}
                         </span>
                       ))}
@@ -634,22 +634,25 @@ function StaffAppointmentsPage() {
         <div className="grid grid-cols-3 gap-3">
           {[
             {
+              id: "pending",
               label: "Pending",
               value: pendingCount,
               cls: "text-warning-foreground bg-warning/10 border-warning/30",
             },
             {
+              id: "confirmed",
               label: "Confirmed",
               value: confirmedCount,
               cls: "text-success bg-success/10 border-success/30",
             },
             {
+              id: "rejected",
               label: "Rejected",
               value: rejectedCount,
               cls: "text-destructive bg-destructive/10 border-destructive/30",
             },
           ].map((s) => (
-            <div key={s.label} className={`rounded-xl border p-3 text-center ${s.cls}`}>
+            <div key={s.id} className={`rounded-xl border p-3 text-center ${s.cls}`}>
               <div className="text-2xl font-bold">{s.value}</div>
               <div className="text-xs font-semibold mt-0.5">{s.label}</div>
             </div>

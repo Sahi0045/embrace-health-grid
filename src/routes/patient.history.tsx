@@ -23,9 +23,12 @@ import {
   Wifi,
   WifiOff,
   RefreshCw,
+  FileText,
+  Pill,
+  ShieldCheck,
 } from "lucide-react";
 import { useAudit } from "@/hooks/use-api";
-import { logAuditEvent } from "@/lib/api";
+import { logAuditEvent, getConsents } from "@/lib/api";
 import { toast } from "sonner";
 import { useCurrentUser } from "@/lib/auth-context";
 
@@ -62,12 +65,37 @@ function History() {
   const [query, setQuery] = useState("");
   const [actionFilter, setActionFilter] = useState<AccessAction | "all">("all");
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [consents, setConsents] = useState<any[]>([]);
+  const [loadingConsents, setLoadingConsents] = useState(true);
 
   const { data: auditData, online, loading: auditLoading, refetch } = useAudit(0);
 
   // Resolve the logged-in patient's identifiers for filtering
   const patientDid = currentUser?.primaryDid ?? "";
   const patientEmail = currentUser?.email ?? "";
+
+  // Fetch consent grants to show who has/had access
+  useEffect(() => {
+    const fetchConsents = async () => {
+      if (!patientDid) return;
+      
+      try {
+        setLoadingConsents(true);
+        const res = await getConsents();
+        // Filter to show consents for this patient
+        const patientConsents = (res.grants || []).filter(
+          (g: any) => g.patientDid === patientDid
+        );
+        setConsents(patientConsents);
+      } catch (err) {
+        console.error("Error fetching consents:", err);
+      } finally {
+        setLoadingConsents(false);
+      }
+    };
+
+    fetchConsents();
+  }, [patientDid]);
 
   // Map backend audit events → local format
   const auditEntries = (
@@ -249,6 +277,113 @@ function History() {
             Verify Chain
           </button>
         </motion.div>
+
+        {/* Active Access Section - Shows who currently has access via consents */}
+        {!loadingConsents && consents.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-xl border border-border bg-card p-6 shadow-sm"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="h-5 w-5 text-success" />
+                <h3 className="text-sm font-bold text-foreground">Active Access Grants</h3>
+              </div>
+              <span className="text-xs text-muted-foreground">
+                {consents.filter((c: any) => c.status === 'active').length} active
+              </span>
+            </div>
+
+            <div className="space-y-2">
+              {consents
+                .filter((c: any) => c.status === 'active' || c.status === 'approved')
+                .slice(0, 5)
+                .map((consent: any, index: number) => (
+                  <div
+                    key={consent.grantId || consent.id || index}
+                    className="flex items-center justify-between rounded-lg border border-success/20 bg-success/5 p-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-success/15">
+                        <User className="h-4 w-4 text-success" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-foreground">
+                          {consent.doctorName || consent.requesterName || "Doctor"}
+                        </div>
+                        <div className="text-xs text-muted-foreground font-mono">
+                          {consent.doctorDid || consent.requesterDid}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="text-xs text-muted-foreground">
+                        <div>Granted: {consent.approvedAt ? new Date(consent.approvedAt).toLocaleDateString() : 'Recent'}</div>
+                        {consent.expiresAt && (
+                          <div className="text-[10px]">
+                            Expires: {new Date(consent.expiresAt).toLocaleDateString()}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-semibold text-success">
+                        <CheckCircle2 className="h-3 w-3" />
+                        Active
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+              {consents.filter((c: any) => c.status !== 'active' && c.status !== 'approved').length > 0 && (
+                <details className="mt-2">
+                  <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
+                    Show expired/revoked consents ({consents.filter((c: any) => c.status !== 'active' && c.status !== 'approved').length})
+                  </summary>
+                  <div className="mt-2 space-y-2">
+                    {consents
+                      .filter((c: any) => c.status !== 'active' && c.status !== 'approved')
+                      .map((consent: any, index: number) => (
+                        <div
+                          key={consent.grantId || consent.id || `expired-${index}`}
+                          className="flex items-center justify-between rounded-lg border border-border bg-muted/30 p-3"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
+                              <User className="h-4 w-4 text-muted-foreground" />
+                            </div>
+                            <div>
+                              <div className="text-sm font-medium text-foreground">
+                                {consent.doctorName || consent.requesterName || "Doctor"}
+                              </div>
+                              <div className="text-xs text-muted-foreground font-mono">
+                                {consent.doctorDid || consent.requesterDid}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="text-xs text-muted-foreground">
+                              {consent.revokedAt && `Revoked: ${new Date(consent.revokedAt).toLocaleDateString()}`}
+                              {consent.expiresAt && !consent.revokedAt && `Expired: ${new Date(consent.expiresAt).toLocaleDateString()}`}
+                            </div>
+                            <div className="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                              {consent.status || 'Inactive'}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </details>
+              )}
+            </div>
+
+            <div className="mt-4 text-xs text-muted-foreground border-t border-border pt-3">
+              <FileText className="inline h-3 w-3 mr-1" />
+              Doctors with active grants can view your medical records and prescriptions.
+              <Pill className="inline h-3 w-3 mx-1" />
+              All access is logged below.
+            </div>
+          </motion.div>
+        )}
 
         {/* Filter bar */}
         <div className="flex flex-col gap-2 sm:flex-row">

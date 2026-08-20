@@ -138,7 +138,7 @@ create table if not exists public.prescription_items (
   created_at      timestamptz not null default now()
 );
 
-create index prescription_items_prescription_id_idx on public.prescription_items (prescription_id);
+create index if not exists prescription_items_prescription_id_idx on public.prescription_items (prescription_id);
 
 -- ─── medical_reports table ──────────────────────────────────────────────────
 -- Store medical reports with optional file attachments via Supabase Storage

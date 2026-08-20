@@ -1,854 +1,464 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
+import { RouteGuard } from "@/components/RouteGuard";
 import { PageHeader } from "@/components/PageHeader";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+import { StaggerList, StaggerItem } from "@/components/Motion";
+import { useState, useEffect } from "react";
 import {
-  Stethoscope,
+  User,
   Mail,
   Phone,
-  Calendar,
-  Shield,
-  LogOut,
-  Edit,
-  Award,
   Building2,
-  Wallet,
+  Award,
+  Shield,
+  Calendar,
   CheckCircle2,
   AlertTriangle,
-  Loader2,
+  Clock,
+  X,
+  FileText,
+  ExternalLink,
+  Briefcase,
+  MapPin,
+  IdCard,
 } from "lucide-react";
-import { RouteGuard } from "@/components/RouteGuard";
-import { useWallet } from "@solana/wallet-adapter-react";
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
-import { useCurrentUser } from "@/lib/auth-context";
-import {
-  updateProfile,
-  API_BASE_URL,
-  requestDID,
-  getDIDRequests,
-  requestWalletChallenge,
-  verifyAndLinkWallet,
-  getMe,
-  getCertificationsByStaffDid,
-} from "@/lib/api";
-import { useLiveStaff } from "@/hooks/use-api";
-import { getAllDIDs } from "@/lib/clinical.server";
-import { useTableRefresh } from "@/hooks/use-realtime";
 import { toast } from "sonner";
-import { useState, useEffect, useCallback } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { signOut } from "@/lib/auth.server";
+import { getCertificationsByStaffDid } from "@/lib/api";
+import { useCurrentUser } from "@/lib/auth-context";
+import { motion } from "framer-motion";
+import { useTableRefresh } from "@/hooks/use-realtime";
 
 export const Route = createFileRoute("/staff/profile")({
-  head: () => ({
-    meta: [
-      { title: "My Profile — Staff Portal" },
-      { name: "description", content: "View and manage your staff profile" },
-    ],
-  }),
-  component: StaffProfile,
+  head: () => ({ meta: [{ title: "My Profile — Staff Portal" }] }),
+  component: StaffProfilePage,
 });
 
-const staffData = {
-  name: "Dr. Ravi Menon",
-  did: "did:hosp:0xd103…99aa",
-  employeeId: "EMP-2847",
-  email: "ravi.menon@apollohospitals.com",
-  phone: "+91 98765 43210",
-  department: "Cardiology",
-  role: "Senior Cardiologist",
-  joinDate: "2018-03-15",
-  specializations: ["Interventional Cardiology", "Echocardiography", "Heart Failure Management"],
-  certifications: [
-    { name: "MD Cardiology", issuer: "AIIMS Delhi", year: "2015" },
-    { name: "FESC", issuer: "European Society of Cardiology", year: "2019" },
-    { name: "Advanced Cardiac Life Support", issuer: "American Heart Association", year: "2023" },
-  ],
+interface Certification {
+  cert_id: string;
+  staff_did: string;
+  hospital_id: string;
+  cert_name: string;
+  cert_type: string | null;
+  issuing_body: string;
+  issue_date: string | null;
+  expiry_date: string | null;
+  cert_number: string | null;
+  status: string;
+  document_url: string | null;
+  verification_url: string | null;
+  verified_by_admin: boolean;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+const STATUS_CONFIG = {
+  active: { label: "Active", color: "text-success", bg: "bg-success/10", icon: CheckCircle2 },
+  expired: { label: "Expired", color: "text-muted-foreground", bg: "bg-muted", icon: Clock },
+  revoked: { label: "Revoked", color: "text-destructive", bg: "bg-destructive/10", icon: X },
+  pending: {
+    label: "Pending Verification",
+    color: "text-warning",
+    bg: "bg-warning/10",
+    icon: AlertTriangle,
+  },
 };
 
-function StaffProfile() {
-  const { staff } = useLiveStaff();
-  const { user: currentUser, refresh: refreshUser } = useCurrentUser();
-  const { publicKey, connected, signMessage } = useWallet();
-  const [verifying, setVerifying] = useState(false);
-  const [adminDid, setAdminDid] = useState<string | null>(null);
-  const [didLoading, setDidLoading] = useState(true);
-  const [certifications, setCertifications] = useState<any[]>([]);
-  const [certificationsLoading, setCertificationsLoading] = useState(true);
+function StaffProfilePage() {
+  const { user: currentUser } = useCurrentUser();
+  const [certifications, setCertifications] = useState<Certification[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    total: 0,
+    active: 0,
+    verified: 0,
+    expiringSoon: 0,
+  });
 
+  const userDid = currentUser?.did || currentUser?.primaryDid || "";
+  const userName = currentUser?.name || "Staff Member";
   const userEmail = currentUser?.email || "";
-  const walletVerified = (currentUser as any)?.walletVerified === true;
+  const userRole = currentUser?.role || "staff";
+  const userPhone = currentUser?.phone || "+91 11-2345-6789";
 
-  const [requestingDid, setRequestingDid] = useState(false);
-  const [pendingReq, setPendingReq] = useState<any>(null);
-
-  // Refresh session from backend (picks up walletVerified)
-  const refreshSession = useCallback(async () => {
-    try {
-      const res = await getMe();
-      if (res.user) {
-        await refreshUser();
-      }
-    } catch {
-      /* silent */
-    }
-  }, []);
-
-  const checkPendingRequest = useCallback(async () => {
-    if (!userEmail) return;
-    try {
-      const res = await getDIDRequests();
-      if (res?.requests) {
-        const match = res.requests.find(
-          (r: any) =>
-            r.ownerEmail?.toLowerCase() === userEmail.toLowerCase() && r.status === "pending",
-        );
-        setPendingReq(match || null);
-      }
-    } catch {
-      /* ignore */
-    }
-  }, [userEmail]);
-
-  // ── Full wallet verification flow: challenge → signMessage → verify ──────
-  const handleVerifyWallet = async () => {
-    if (!publicKey || !signMessage) {
-      toast.error("Please connect your Phantom wallet first");
+  const loadCertifications = async () => {
+    if (!userDid) {
+      setLoading(false);
       return;
     }
-    setVerifying(true);
+
+    setLoading(true);
     try {
-      const address = publicKey.toBase58();
+      const res = await getCertificationsByStaffDid(userDid);
+      const certs = res.certifications || [];
+      setCertifications(certs);
 
-      // Step 1: get challenge message from backend
-      // Keep the whole challenge: the Edge Function verifies that the nonce and
-      // token were issued to THIS session, which is what binds the wallet to the
-      // account. Destructuring only `message` dropped them and every link attempt
-      // failed with "walletAddress, nonce and token are required".
-      const challenge = await requestWalletChallenge(address);
-      const message = challenge.message;
+      // Calculate stats
+      const now = new Date();
+      const twoMonthsFromNow = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000);
 
-      // Step 2: ask the wallet to sign it
-      toast.info("Please approve the signature request in your wallet…");
-      const msgBytes = new TextEncoder().encode(message);
-      const sigBytes = await signMessage(msgBytes);
-      const sigBase64 = Buffer.from(sigBytes).toString("base64");
-
-      // Step 3: send signature to backend — verifies ownership + links wallet
-      const res = await verifyAndLinkWallet(address, sigBase64, {
-        nonce: challenge.nonce,
-        expiresAt: challenge.expiresAt,
-        token: challenge.token,
+      setStats({
+        total: certs.length,
+        active: certs.filter((c: Certification) => c.status === "active").length,
+        verified: certs.filter((c: Certification) => c.verified_by_admin).length,
+        expiringSoon: certs.filter(
+          (c: Certification) =>
+            c.expiry_date && new Date(c.expiry_date) < twoMonthsFromNow && c.status === "active",
+        ).length,
       });
-      if (res.success && res.verified && res.user) {
-        await refreshUser();
-        toast.success("Wallet verified and linked!", {
-          description: `${address.slice(0, 8)}…${address.slice(-6)} is now permanently associated with your account.`,
-        });
-      }
     } catch (err: any) {
-      // "User rejected" from Phantom → friendly message
-      if (err.message?.includes("User rejected") || err.message?.includes("cancelled")) {
-        toast.error("Signature cancelled", {
-          description: "You must approve the signing request in your wallet to verify ownership.",
-        });
-      } else {
-        toast.error(err.message || "Wallet verification failed");
-      }
+      toast.error("Failed to load certifications", { description: err.message });
     } finally {
-      setVerifying(false);
+      setLoading(false);
     }
   };
-
-  const handleRequestDIDClick = async () => {
-    if (!walletVerified) {
-      toast.error("Verify your Solana wallet first before requesting a DID.");
-      return;
-    }
-    setRequestingDid(true);
-    try {
-      const res = await requestDID({
-        ownerName: currentUser?.name || staffData.name,
-        ownerType: currentUser?.role || "doctor",
-        department: currentUser?.department || staffData.department,
-      });
-      if (res.success) {
-        toast.success("DID Request Submitted to Admin!", {
-          description: "Hospital administrator has been notified to issue your official W3C DID.",
-        });
-        checkPendingRequest();
-      }
-    } catch (err: any) {
-      toast.error(err.message || "Failed to submit DID request");
-    } finally {
-      setRequestingDid(false);
-    }
-  };
-
-  useEffect(() => {
-    refreshSession();
-    async function fetchAdminDid() {
-      try {
-        const didRes = await getAllDIDs();
-        const dids = didRes.dids || [];
-        const match = dids.find(
-          (d: { did?: string; owner_name?: string }) =>
-            (d.owner_name &&
-              currentUser?.name &&
-              d.owner_name.toLowerCase() === currentUser.name.toLowerCase()) ||
-            (d.did && currentUser?.did && d.did === currentUser.did),
-        );
-        if (match?.did) {
-          setAdminDid(match.did);
-        } else if (currentUser?.did?.startsWith("did:hosp:")) {
-          setAdminDid(currentUser.did);
-        } else {
-          setAdminDid(null);
-        }
-      } catch {
-        setAdminDid(currentUser?.did?.startsWith("did:hosp:") ? currentUser.did : null);
-      } finally {
-        setDidLoading(false);
-      }
-    }
-    fetchAdminDid();
-    checkPendingRequest();
-  }, [userEmail, currentUser?.name, currentUser?.did, checkPendingRequest, refreshSession]);
-
-  // Load certifications from the database whenever the staff DID is known
-  const loadCertifications = useCallback(async () => {
-    const staffDid = adminDid || currentUser?.did;
-    if (!staffDid) {
-      setCertificationsLoading(false);
-      return;
-    }
-    setCertificationsLoading(true);
-    try {
-      const res = await getCertificationsByStaffDid(staffDid);
-      setCertifications(res.certifications || []);
-    } catch {
-      // Silently fallback — certifications table may not exist yet in dev
-      setCertifications([]);
-    } finally {
-      setCertificationsLoading(false);
-    }
-  }, [adminDid, currentUser?.did]);
 
   useEffect(() => {
     loadCertifications();
-  }, [loadCertifications]);
+  }, [userDid]);
 
-  // Re-fetch whenever admin updates the certifications table
+  // Real-time updates
   useTableRefresh("staff_certifications", loadCertifications);
-
-  const staffRecord = staff?.find((s: any) => s.email === userEmail) || {
-    name: currentUser?.name || staffData.name,
-    did: adminDid || currentUser?.did || "",
-    employeeId: currentUser?.employeeId || staffData.employeeId,
-    email: currentUser?.email || staffData.email,
-    phone: currentUser?.phone || staffData.phone,
-    department: currentUser?.department || staffData.department,
-    role: currentUser?.role || staffData.role,
-    joinDate: staffData.joinDate,
-    specializations: currentUser?.specializations || staffData.specializations,
-    certifications: staffData.certifications,
-  };
-
-  const name = currentUser?.name || staffRecord.name;
-  const role = currentUser?.role || staffRecord.role || "Staff";
-  const phone = currentUser?.phone || staffRecord.phone || "+91 98765 43210";
-  const department = currentUser?.department || staffRecord.department || "General Medicine";
-  const specializations =
-    currentUser?.specializations || (staffRecord as any).specializations || [];
-
-  const employeeId = currentUser?.employeeId || staffRecord.employeeId;
-
-  const [isEditOpen, setIsEditOpen] = useState(false);
-  const [editName, setEditName] = useState(name);
-  const [editPhone, setEditPhone] = useState(phone);
-  const [editDepartment, setEditDepartment] = useState(department);
-  const [editRole, setEditRole] = useState(role);
-  const [editSpecializations, setEditSpecializations] = useState(specializations.join(", "));
-  const [updating, setUpdating] = useState(false);
-
-  const handleUpdateProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setUpdating(true);
-    try {
-      const res = await updateProfile({
-        name: editName,
-        phone: editPhone,
-        department: editDepartment,
-        role: editRole,
-        specializations: editSpecializations,
-      });
-      if (res.success && res.user) {
-        await refreshUser();
-        toast.success("Profile updated successfully!");
-        setIsEditOpen(false);
-      }
-    } catch (err: any) {
-      toast.error(err.message || "Failed to update profile");
-    } finally {
-      setUpdating(false);
-    }
-  };
-
-  const handleLogout = () => {
-    // The session is an httpOnly cookie, so only the server can end it.
-    // Clearing localStorage left the user signed in.
-    void signOut().finally(() => {
-      window.location.href = "/login";
-    });
-  };
 
   return (
     <RouteGuard requiredRole="staff">
-      <div className="container mx-auto max-w-4xl px-4 py-6">
-        <PageHeader
-          title="My Profile"
-          description="View and manage your professional information"
-        />
+      <PageHeader
+        eyebrow="Staff Portal"
+        title="My Profile"
+        description="Your professional profile, credentials, and verified certifications"
+      />
 
-        <div className="mt-6 space-y-6">
-          <Card>
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-chart-2/10 text-chart-2">
-                    <Stethoscope className="h-8 w-8" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-2xl">{name}</CardTitle>
-                    <CardDescription className="mt-1">
-                      {role} • {employeeId}
-                    </CardDescription>
-                  </div>
+      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-8">
+        <StaggerList className="space-y-6">
+          {/* Profile Card */}
+          <StaggerItem>
+            <div className="rounded-2xl border border-border bg-gradient-to-br from-card to-card/50 p-6 shadow-clinical-md">
+              <div className="flex flex-col gap-6 md:flex-row md:items-start">
+                {/* Avatar */}
+                <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                  <User className="h-12 w-12" />
                 </div>
-                <Button variant="outline" size="sm" onClick={() => setIsEditOpen(true)}>
-                  <Edit className="mr-2 h-4 w-4" />
-                  Edit Profile
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-                    <Building2 className="h-5 w-5 text-muted-foreground" />
-                  </div>
+
+                {/* Info */}
+                <div className="flex-1 space-y-4">
                   <div>
-                    <div className="text-sm text-muted-foreground">Department</div>
-                    <div className="font-medium">{department}</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-                    <Calendar className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <div className="text-sm text-muted-foreground">Joined</div>
-                    <div className="font-medium">
-                      {new Date(staffData.joinDate).toLocaleDateString("en-US", {
-                        month: "short",
-                        year: "numeric",
-                      })}
+                    <h2 className="text-2xl font-bold text-foreground">{userName}</h2>
+                    <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+                      <Briefcase className="h-4 w-4" />
+                      <span className="capitalize font-medium">{userRole}</span>
+                      {currentUser?.department && (
+                        <>
+                          <span>·</span>
+                          <span>{currentUser.department}</span>
+                        </>
+                      )}
                     </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-                    <Mail className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <div className="text-sm text-muted-foreground">Email</div>
-                    <div className="font-medium text-sm">{staffRecord.email}</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-                    <Phone className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <div className="text-sm text-muted-foreground">Phone</div>
-                    <div className="font-medium">{phone}</div>
-                  </div>
-                </div>
-              </div>
 
-              <Separator />
-
-              <div>
-                <div className="mb-3 flex items-center gap-2 text-sm font-medium">
-                  <Award className="h-4 w-4 text-primary" />
-                  Specializations
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {specializations.length > 0 ? (
-                    specializations.map((spec: string) => (
-                      <Badge key={spec} variant="secondary">
-                        {spec}
-                      </Badge>
-                    ))
-                  ) : (
-                    <span className="text-xs text-muted-foreground">No specializations listed</span>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Shield className="h-5 w-5 text-primary" />
-                  <CardTitle>Professional Identity (DID)</CardTitle>
-                </div>
-                {adminDid ? (
-                  <Badge
-                    variant="outline"
-                    className="bg-success/15 text-success border-success/30 text-[10px] font-bold"
-                  >
-                    🟢 Admin-Issued DID
-                  </Badge>
-                ) : pendingReq ? (
-                  <Badge
-                    variant="outline"
-                    className="bg-amber-500/15 text-amber-500 border-amber-500/30 text-[10px] font-bold"
-                  >
-                    🟡 Request Pending Admin Review
-                  </Badge>
-                ) : (
-                  <Badge
-                    variant="outline"
-                    className="bg-destructive/15 text-destructive border-destructive/30 text-[10px] font-bold"
-                  >
-                    ⚠️ Not Issued
-                  </Badge>
-                )}
-              </div>
-              <CardDescription>
-                Your verified professional identity on the hospital DID registry
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-lg bg-muted p-4 font-mono text-sm font-medium">
-                {didLoading ? (
-                  <span className="text-muted-foreground text-xs font-sans">
-                    Checking DID Registry...
-                  </span>
-                ) : adminDid ? (
-                  <div>
-                    <div className="text-xs text-muted-foreground font-sans">Official W3C DID</div>
-                    <div className="mt-1 text-primary font-bold break-all">{adminDid}</div>
-                  </div>
-                ) : pendingReq ? (
-                  <div className="space-y-1 font-sans">
-                    <div className="text-amber-500 font-semibold text-sm">
-                      🟡 DID Request Pending Admin Approval
-                    </div>
-                    <p className="text-xs text-muted-foreground font-normal">
-                      Your request to issue an official W3C DID was submitted on{" "}
-                      <span className="font-semibold text-foreground">
-                        {new Date(pendingReq.requestedAt).toLocaleDateString()}
-                      </span>
-                      . Hospital admin will review and issue your DID shortly.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-3 font-sans">
-                    <div>
-                      <div className="text-destructive font-semibold text-sm">
-                        No Official DID Issued
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                        <Mail className="h-4 w-4 text-primary" />
                       </div>
-                      <p className="text-xs text-muted-foreground font-normal mt-0.5">
-                        An official W3C DID has not been issued for your staff account yet. Click
-                        below to submit a request to the hospital administrator to issue your
-                        official DID.
-                      </p>
-                    </div>
-                    <Button
-                      onClick={handleRequestDIDClick}
-                      disabled={requestingDid || !walletVerified}
-                      className="bg-primary text-primary-foreground text-xs font-bold px-4 py-2"
-                      title={!walletVerified ? "Verify your Solana wallet first" : undefined}
-                    >
-                      {requestingDid ? "Submitting Request..." : "Request Official DID from Admin"}
-                    </Button>
-                    {!walletVerified && (
-                      <div className="flex items-center gap-2 rounded-lg border border-warning/30 bg-warning/5 px-3 py-2 text-xs text-warning-foreground">
-                        <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-                        You must verify your Solana wallet before requesting a DID.
+                      <div>
+                        <div className="text-xs text-muted-foreground">Email</div>
+                        <div className="font-medium text-foreground">{userEmail}</div>
                       </div>
-                    )}
-                  </div>
-                )}
-              </div>
-              {adminDid && (
-                <div className="mt-4 text-xs text-muted-foreground">
-                  This DID verifies your clinician credentials and authorizes room check-ins &
-                  patient data access.
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    </div>
 
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <Wallet className="h-5 w-5 text-primary" />
-                  <CardTitle>Solana Wallet</CardTitle>
+                    <div className="flex items-center gap-2 text-sm">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                        <Phone className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <div className="text-xs text-muted-foreground">Phone</div>
+                        <div className="font-medium text-foreground">{userPhone}</div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-sm">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                        <Building2 className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <div className="text-xs text-muted-foreground">Hospital</div>
+                        <div className="font-medium text-foreground">
+                          {currentUser?.hospitalName || "Embrace Health Grid"}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-sm">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                        <IdCard className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <div className="text-xs text-muted-foreground">DID</div>
+                        <div className="font-mono text-xs font-medium text-foreground">
+                          {userDid.slice(0, 20)}...
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                {walletVerified ? (
-                  <Badge className="bg-success/15 text-success border border-success/30 text-[10px] font-bold flex items-center gap-1">
-                    <CheckCircle2 className="h-3 w-3" /> Ownership Verified
-                  </Badge>
-                ) : currentUser?.walletAddress ? (
-                  <Badge
-                    variant="outline"
-                    className="bg-warning/10 text-warning-foreground border-warning/30 text-[10px]"
-                  >
-                    Linked — Unverified
-                  </Badge>
-                ) : (
-                  <Badge variant="outline" className="text-[10px]">
-                    Not Linked
-                  </Badge>
-                )}
               </div>
-              <CardDescription>
-                Connect and verify one Solana wallet. Wallet verification is required before
-                requesting a DID.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Workflow steps */}
-              <div className="grid grid-cols-3 gap-2 text-center text-[10px]">
-                {[
-                  { step: "1", label: "Connect Wallet", done: connected },
-                  { step: "2", label: "Verify Ownership", done: walletVerified },
-                  { step: "3", label: "Request DID", done: !!adminDid },
-                ].map((s) => (
+            </div>
+          </StaggerItem>
+
+          {/* Certification Stats */}
+          <StaggerItem>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {[
+                {
+                  label: "Total Certifications",
+                  value: stats.total,
+                  icon: Award,
+                  color: "text-primary",
+                  bg: "bg-primary/10",
+                },
+                {
+                  label: "Active",
+                  value: stats.active,
+                  icon: CheckCircle2,
+                  color: "text-success",
+                  bg: "bg-success/10",
+                },
+                {
+                  label: "Admin Verified",
+                  value: stats.verified,
+                  icon: Shield,
+                  color: "text-chart-2",
+                  bg: "bg-chart-2/10",
+                },
+                {
+                  label: "Expiring Soon",
+                  value: stats.expiringSoon,
+                  icon: AlertTriangle,
+                  color: "text-warning",
+                  bg: "bg-warning/10",
+                },
+              ].map((stat) => {
+                const Icon = stat.icon;
+                return (
                   <div
-                    key={s.step}
-                    className={`rounded-lg border px-2 py-2 space-y-1 ${s.done ? "border-success/30 bg-success/5" : "border-border bg-muted/30"}`}
+                    key={stat.label}
+                    className="rounded-xl border border-border bg-card p-4 shadow-sm"
                   >
-                    <div
-                      className={`text-base font-black ${s.done ? "text-success" : "text-muted-foreground"}`}
-                    >
-                      {s.done ? "✓" : s.step}
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                        {stat.label}
+                      </span>
+                      <div className={`flex h-7 w-7 items-center justify-center rounded-lg ${stat.bg}`}>
+                        <Icon className={`h-3.5 w-3.5 ${stat.color}`} />
+                      </div>
                     </div>
-                    <div
-                      className={s.done ? "text-success font-semibold" : "text-muted-foreground"}
-                    >
-                      {s.label}
-                    </div>
+                    <div className={`text-xl font-bold ${stat.color}`}>{stat.value}</div>
                   </div>
-                ))}
+                );
+              })}
+            </div>
+          </StaggerItem>
+
+          {/* Certifications Section */}
+          <StaggerItem>
+            <div className="rounded-xl border border-border bg-card p-6 shadow-clinical">
+              <div className="mb-5 flex items-center justify-between border-b border-border pb-4">
+                <div>
+                  <h3 className="flex items-center gap-2 text-lg font-bold text-foreground">
+                    <Award className="h-5 w-5 text-primary" />
+                    My Certifications & Qualifications
+                  </h3>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Professional credentials verified by hospital administration
+                  </p>
+                </div>
+                <div className="rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
+                  {stats.total} Total
+                </div>
               </div>
 
-              {/* Linked address display */}
-              {currentUser?.walletAddress ? (
-                <div
-                  className={`rounded-lg border p-4 space-y-2 ${walletVerified ? "border-success/25 bg-success/5" : "border-warning/25 bg-warning/5"}`}
-                >
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                    <span
-                      className={`text-xs font-semibold uppercase tracking-wider ${walletVerified ? "text-success" : "text-warning-foreground"}`}
-                    >
-                      {walletVerified ? "Verified Wallet Address" : "Wallet Address (Unverified)"}
-                    </span>
-                  </div>
-                  <div className="font-mono text-xs text-foreground select-all break-all">
-                    {currentUser.walletAddress}
-                  </div>
-                  {connected && publicKey?.toBase58() !== currentUser.walletAddress && (
-                    <div className="flex items-center gap-2 text-xs text-destructive font-medium mt-1">
-                      <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-                      Connected wallet differs from linked address. Switch to your registered
-                      wallet.
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="rounded-lg border border-warning/20 bg-warning/5 p-4 text-xs text-muted-foreground">
-                  No wallet linked. Connect your Phantom wallet and verify ownership to continue.
-                </div>
-              )}
-
-              {/* Action buttons */}
-              <div className="flex flex-col sm:flex-row gap-3 pt-1">
-                <WalletMultiButton className="!bg-primary hover:!bg-primary/90 !rounded-lg !h-10 !text-sm !font-semibold !px-4" />
-                {connected && !walletVerified && (
-                  <Button
-                    onClick={handleVerifyWallet}
-                    disabled={verifying}
-                    className="h-10 text-sm font-semibold gap-2"
-                  >
-                    {verifying ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" /> Verifying…
-                      </>
-                    ) : (
-                      <>
-                        <Shield className="h-4 w-4" /> Verify & Link Wallet
-                      </>
-                    )}
-                  </Button>
-                )}
-                {walletVerified && (
-                  <div className="flex items-center gap-2 rounded-xl border border-success/30 bg-success/5 px-4 h-10 text-xs font-semibold text-success">
-                    <CheckCircle2 className="h-4 w-4" /> Wallet ownership confirmed
-                  </div>
-                )}
-              </div>
-
-              <p className="text-[11px] text-muted-foreground">
-                Each account may link only one wallet, and each wallet may belong to only one
-                account.
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Award className="h-5 w-5 text-primary" />
-                  <CardTitle>Certifications &amp; Qualifications</CardTitle>
-                </div>
-                {!certificationsLoading && (
-                  <Badge variant="outline" className="text-[10px]">
-                    {certifications.filter((c) => c.status === "active").length} active
-                  </Badge>
-                )}
-              </div>
-              <CardDescription>
-                Managed by hospital admin · Linked to your verified DID
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {certificationsLoading ? (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
-                  <Loader2 className="h-4 w-4 animate-spin" />
+              {loading ? (
+                <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
+                  <Clock className="mr-2 h-4 w-4 animate-spin" />
                   Loading certifications...
                 </div>
               ) : certifications.length === 0 ? (
-                <div className="rounded-lg border border-dashed border-border bg-muted/30 p-6 text-center">
-                  <Award className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
-                  <div className="text-sm font-medium text-foreground">
-                    No certifications on record
+                <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border p-12 text-center">
+                  <Award className="mb-3 h-12 w-12 text-muted-foreground/30" />
+                  <div className="text-sm font-semibold text-foreground">
+                    No certifications yet
                   </div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    Contact your hospital admin to add your qualifications.
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    Contact your administrator to add your professional certifications
                   </div>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {/* DID linkage indicator */}
-                  {adminDid && (
-                    <div className="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-primary">
-                      <Shield className="h-3.5 w-3.5 shrink-0" />
-                      <span>
-                        All certifications linked to your verified DID:{" "}
-                        <span className="font-mono">{adminDid.slice(0, 24)}…</span>
-                      </span>
-                    </div>
-                  )}
+                <div className="grid gap-4 lg:grid-cols-2">
                   {certifications.map((cert) => {
-                    const isActive = cert.status === "active";
-                    const isExpired = cert.status === "expired";
-                    const isRevoked = cert.status === "revoked";
+                    const statusConfig =
+                      STATUS_CONFIG[cert.status as keyof typeof STATUS_CONFIG] ||
+                      STATUS_CONFIG.active;
+                    const StatusIcon = statusConfig.icon;
                     const isExpiringSoon =
                       cert.expiry_date &&
-                      new Date(cert.expiry_date) < new Date(Date.now() + 60 * 24 * 60 * 60 * 1000);
+                      new Date(cert.expiry_date) <
+                        new Date(Date.now() + 60 * 24 * 60 * 60 * 1000);
+
                     return (
-                      <div
+                      <motion.div
                         key={cert.cert_id}
-                        className={`rounded-lg border p-3 transition-colors ${
-                          isRevoked
-                            ? "border-destructive/30 bg-destructive/5 opacity-60"
-                            : isExpired
-                              ? "border-border bg-muted/30 opacity-70"
-                              : "border-border bg-card"
-                        }`}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="rounded-xl border border-border bg-card p-4 shadow-sm hover:shadow-md transition-shadow"
                       >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex items-start gap-2 min-w-0">
-                            <CheckCircle2
-                              className={`h-4 w-4 mt-0.5 shrink-0 ${
-                                isActive ? "text-success" : "text-muted-foreground"
-                              }`}
-                            />
-                            <div className="min-w-0">
-                              <div className="text-sm font-medium text-foreground flex items-center gap-2 flex-wrap">
+                        {/* Header */}
+                        <div className="mb-3 flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                              <Award className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                              <div className="text-sm font-bold text-foreground">
                                 {cert.cert_name}
-                                {cert.verified_by_admin && (
-                                  <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-1.5 py-0.5 text-[10px] font-semibold">
-                                    <Shield className="h-2.5 w-2.5" />
-                                    Admin Verified
-                                  </span>
-                                )}
                               </div>
-                              <div className="text-xs text-muted-foreground mt-0.5">
+                              <div className="text-xs text-muted-foreground">
                                 {cert.issuing_body}
-                                {cert.cert_number && (
-                                  <span className="font-mono"> · {cert.cert_number}</span>
-                                )}
                               </div>
-                              {cert.cert_type && (
-                                <div className="text-[10px] text-muted-foreground mt-0.5 capitalize">
-                                  {cert.cert_type}
-                                </div>
-                              )}
-                              {/* Dates row */}
-                              <div className="flex items-center gap-3 mt-1 text-[10px] text-muted-foreground flex-wrap">
-                                {cert.issue_date && (
-                                  <span>
-                                    Issued:{" "}
-                                    <span className="font-medium text-foreground">
-                                      {new Date(cert.issue_date).toLocaleDateString("en-IN", {
-                                        month: "short",
-                                        year: "numeric",
-                                      })}
-                                    </span>
-                                  </span>
-                                )}
-                                {cert.expiry_date && (
-                                  <span
-                                    className={isExpiringSoon ? "text-warning font-semibold" : ""}
-                                  >
-                                    {isExpiringSoon ? "⚠️ " : ""}Expires:{" "}
-                                    <span className="font-medium">
-                                      {new Date(cert.expiry_date).toLocaleDateString("en-IN", {
-                                        month: "short",
-                                        year: "numeric",
-                                      })}
-                                    </span>
-                                  </span>
-                                )}
-                              </div>
-                              {cert.notes && (
-                                <div className="mt-1 text-[10px] italic text-muted-foreground">
-                                  {cert.notes}
-                                </div>
-                              )}
                             </div>
                           </div>
-                          {/* Status badge */}
-                          <Badge
-                            variant="outline"
-                            className={`shrink-0 text-[10px] font-bold capitalize ${
-                              isActive
-                                ? "bg-success/10 text-success border-success/30"
-                                : isRevoked
-                                  ? "bg-destructive/10 text-destructive border-destructive/30"
-                                  : "bg-muted text-muted-foreground"
-                            }`}
-                          >
-                            {cert.status}
-                          </Badge>
                         </div>
-                      </div>
+
+                        {/* Badges */}
+                        <div className="mb-3 flex flex-wrap gap-2">
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${statusConfig.color} ${statusConfig.bg}`}
+                          >
+                            <StatusIcon className="h-3 w-3" />
+                            {statusConfig.label}
+                          </span>
+                          {cert.verified_by_admin && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-bold text-success">
+                              <CheckCircle2 className="h-2.5 w-2.5" />
+                              Admin Verified
+                            </span>
+                          )}
+                          {cert.cert_type && (
+                            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                              {cert.cert_type}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Certificate Number */}
+                        {cert.cert_number && (
+                          <div className="mb-3 rounded-lg bg-muted/50 px-3 py-2 text-xs">
+                            <div className="text-[9px] font-bold uppercase text-muted-foreground">
+                              Certificate Number
+                            </div>
+                            <div className="font-mono font-medium text-foreground">
+                              {cert.cert_number}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Dates */}
+                        {(cert.issue_date || cert.expiry_date) && (
+                          <div className="mb-3 grid grid-cols-2 gap-2 text-xs">
+                            {cert.issue_date && (
+                              <div className="rounded-lg bg-muted/50 px-3 py-2">
+                                <div className="text-[9px] font-bold uppercase text-muted-foreground mb-0.5">
+                                  Issued
+                                </div>
+                                <div className="font-medium text-foreground">
+                                  {new Date(cert.issue_date).toLocaleDateString("en-IN")}
+                                </div>
+                              </div>
+                            )}
+                            {cert.expiry_date && (
+                              <div
+                                className={`rounded-lg px-3 py-2 ${isExpiringSoon ? "bg-warning/10 border border-warning/30" : "bg-muted/50"}`}
+                              >
+                                <div
+                                  className={`text-[9px] font-bold uppercase mb-0.5 ${isExpiringSoon ? "text-warning" : "text-muted-foreground"}`}
+                                >
+                                  {isExpiringSoon ? "⚠️ Expires Soon" : "Expires"}
+                                </div>
+                                <div
+                                  className={`font-medium ${isExpiringSoon ? "text-warning" : "text-foreground"}`}
+                                >
+                                  {new Date(cert.expiry_date).toLocaleDateString("en-IN")}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Notes */}
+                        {cert.notes && (
+                          <div className="mb-3 rounded-lg border border-border/50 bg-muted/30 px-3 py-2 text-xs">
+                            <div className="text-[9px] font-bold uppercase text-muted-foreground mb-1">
+                              Notes
+                            </div>
+                            <div className="text-muted-foreground">{cert.notes}</div>
+                          </div>
+                        )}
+
+                        {/* Links */}
+                        {(cert.document_url || cert.verification_url) && (
+                          <div className="flex flex-wrap gap-2 border-t border-border pt-3">
+                            {cert.document_url && (
+                              <a
+                                href={cert.document_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-xs font-medium text-primary hover:bg-primary/20 transition-colors"
+                              >
+                                <FileText className="h-3.5 w-3.5" />
+                                View Document
+                                <ExternalLink className="h-2.5 w-2.5" />
+                              </a>
+                            )}
+                            {cert.verification_url && (
+                              <a
+                                href={cert.verification_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-xs font-medium hover:bg-muted transition-colors"
+                              >
+                                <Shield className="h-3.5 w-3.5" />
+                                Verify Online
+                                <ExternalLink className="h-2.5 w-2.5" />
+                              </a>
+                            )}
+                          </div>
+                        )}
+                      </motion.div>
                     );
                   })}
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </StaggerItem>
 
-          <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Edit Profile</DialogTitle>
-                <DialogDescription>
-                  Update your professional and department details. Some parameters are synced
-                  on-chain.
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleUpdateProfile} className="space-y-4 py-4">
-                <div className="space-y-1">
-                  <Label htmlFor="name">Full Name</Label>
-                  <Input
-                    id="name"
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <Label htmlFor="role">Role / Title</Label>
-                    <Input
-                      id="role"
-                      value={editRole}
-                      onChange={(e) => setEditRole(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="dept">Department</Label>
-                    <Input
-                      id="dept"
-                      value={editDepartment}
-                      onChange={(e) => setEditDepartment(e.target.value)}
-                      required
-                    />
+          {/* Contact Admin Notice */}
+          {!loading && certifications.length === 0 && (
+            <StaggerItem>
+              <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
+                <div className="flex items-start gap-3">
+                  <Shield className="h-5 w-5 shrink-0 text-primary mt-0.5" />
+                  <div className="space-y-1 text-sm">
+                    <div className="font-semibold text-foreground">
+                      Need to add your certifications?
+                    </div>
+                    <div className="text-muted-foreground">
+                      Contact your hospital administrator to upload and verify your professional
+                      credentials. Once verified, they will appear here linked to your DID.
+                    </div>
                   </div>
                 </div>
-                <div className="space-y-1">
-                  <Label htmlFor="phone">Phone</Label>
-                  <Input
-                    id="phone"
-                    value={editPhone}
-                    onChange={(e) => setEditPhone(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="specializations">Specializations (comma separated)</Label>
-                  <Input
-                    id="specializations"
-                    placeholder="e.g. Cardiology, Echocardiography"
-                    value={editSpecializations}
-                    onChange={(e) => setEditSpecializations(e.target.value)}
-                  />
-                </div>
-                <DialogFooter className="pt-2">
-                  <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={updating}>
-                    {updating ? "Saving..." : "Save Changes"}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-
-          <div className="flex gap-3">
-            <Button variant="outline" className="flex-1" asChild>
-              <Link to="/staff">Back to Dashboard</Link>
-            </Button>
-            <Button variant="destructive" onClick={handleLogout}>
-              <LogOut className="mr-2 h-4 w-4" />
-              Logout
-            </Button>
-          </div>
-        </div>
+              </div>
+            </StaggerItem>
+          )}
+        </StaggerList>
       </div>
     </RouteGuard>
   );
