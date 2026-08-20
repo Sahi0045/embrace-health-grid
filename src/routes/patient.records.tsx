@@ -49,6 +49,7 @@ import {
   getPatientMedications,
   getPatientProcedures,
   getPatientLabResults,
+  getMedicalReports,
 } from "@/lib/api";
 import { useCurrentUser } from "@/lib/auth-context";
 
@@ -77,6 +78,7 @@ function MedicalRecords() {
   const [feedbackRating, setFeedbackRating] = useState(0);
   const [apiPrescriptions, setApiPrescriptions] = useState<any[]>([]);
   const [apiRecords, setApiRecords] = useState<any[]>([]);
+  const [apiMedicalReports, setApiMedicalReports] = useState<any[]>([]);
   const [apiHealthMetrics, setApiHealthMetrics] = useState<any[]>([]);
   const [apiPharmacyOrders, setApiPharmacyOrders] = useState<any[]>([]);
   const [apiRehabSessions, setApiRehabSessions] = useState<any[]>([]);
@@ -167,17 +169,19 @@ function MedicalRecords() {
     let mounted = true;
     const fetchData = async () => {
       try {
-        const [rxRes, recRes, hmRes, poRes, rsRes, fbRes] = await Promise.all([
+        const [rxRes, recRes, hmRes, poRes, rsRes, fbRes, mrRes] = await Promise.all([
           getPrescriptions(patientDid),
           getMedicalRecords(patientDid),
           getHealthMetrics(patientDid),
           getPharmacyOrders(patientDid),
           getRehabSessions(patientDid),
           getFeedbackList(patientDid),
+          getMedicalReports(patientDid).catch(() => ({ reports: [] })),
         ]);
         if (mounted) {
           setApiPrescriptions(rxRes.prescriptions || []);
           setApiRecords(recRes.records || []);
+          setApiMedicalReports(mrRes.reports || []);
           setApiHealthMetrics(hmRes.metrics || []);
           setApiPharmacyOrders(poRes.orders || []);
           setApiRehabSessions(rsRes.sessions || []);
@@ -201,12 +205,14 @@ function MedicalRecords() {
   const refreshClinical = useCallback(async () => {
     if (!patientDid) return;
     try {
-      const [rxRes, recRes] = await Promise.all([
+      const [rxRes, recRes, mrRes] = await Promise.all([
         getPrescriptions(patientDid),
         getMedicalRecords(patientDid),
+        getMedicalReports(patientDid).catch(() => ({ reports: [] })),
       ]);
       setApiPrescriptions(rxRes.prescriptions || []);
       setApiRecords(recRes.records || []);
+      setApiMedicalReports(mrRes.reports || []);
     } catch {
       /* leave the previous data in place on a transient failure */
     }
@@ -214,46 +220,89 @@ function MedicalRecords() {
 
   useTableRefresh("prescriptions", refreshClinical);
   useTableRefresh("medical_records", refreshClinical);
+  useTableRefresh("medical_reports", refreshClinical);
 
   const pharmacyOrders = apiPharmacyOrders;
   const healthMetrics = apiHealthMetrics;
   const rehabSessions = apiRehabSessions;
   const feedbackList = apiFeedbackList;
 
-  // Join each prescription with its linked medical report (matched by rxId)
+  // Join each prescription with its linked medical report.
+  // Check new medical_reports table first, then fall back to legacy medical_records.
   const consultations = apiPrescriptions
     .sort((a: any, b: any) => (b.signedAt || "").localeCompare(a.signedAt || ""))
-    .map((rx: any) => ({
-      // prescription fields
-      rxId: rx.rxId,
-      diagnosis: rx.diagnosis || "—",
-      chiefComplaint: rx.chiefComplaint || "",
-      symptoms: rx.symptoms || "",
-      doctor: rx.doctorName || rx.signedBy || "Doctor",
-      doctorDid: rx.doctorDid || "",
-      apptId: rx.apptId || "",
-      date: rx.signedAt || new Date().toISOString(),
-      status: rx.status || "active",
-      medicines: rx.drugs || [],
-      notes: rx.notes || "",
-      followUpDate: rx.followUpDate || "",
-      // linked medical report — matched by rxId
-      report: apiRecords.find((r: any) => r.rxId === rx.rxId) ?? null,
-    }));
+    .map((rx: any) => {
+      // Try new medical_reports table first (matched by appointmentId or rxId)
+      const newReport = apiMedicalReports.find(
+        (r: any) => r.appointmentId === rx.appointmentId || r.appointmentId === rx.apptId,
+      );
+      // Fall back to legacy medical_records table
+      const legacyReport = apiRecords.find((r: any) => r.rxId === rx.rxId);
+      const report = newReport
+        ? {
+            recordId: newReport.reportId,
+            title: newReport.title,
+            doctorName: newReport.signedBy,
+            doctorDid: newReport.doctorDid,
+            consultationSummary: newReport.summary,
+            clinicalNotes: newReport.findings,
+            testResults: null,
+            recommendedFollowUp: newReport.recommendations,
+            createdAt: newReport.createdAt,
+            fileUrl: newReport.fileUrl,
+          }
+        : legacyReport ?? null;
 
-  // Non-prescription records (no rxId link) go to the Reports tab
-  const displayDocuments = apiRecords
-    .filter((rec: any) => !rec.rxId)
-    .map((rec: any) => ({
-      id: rec.recordId,
-      title: rec.title,
-      type: rec.type,
-      date: rec.createdAt || new Date().toISOString(),
-      issuedBy: rec.doctorName || "Doctor",
-      fileSize: "N/A",
-      summary: rec.content,
-      isNew: true,
-    }));
+      return {
+        rxId: rx.rxId,
+        diagnosis: rx.diagnosis || "—",
+        chiefComplaint: rx.chiefComplaint || "",
+        symptoms: rx.symptoms || "",
+        doctor: rx.signedBy || rx.doctorName || "Doctor",
+        doctorDid: rx.doctorDid || "",
+        apptId: rx.appointmentId || rx.apptId || "",
+        date: rx.signedAt || rx.createdAt || new Date().toISOString(),
+        status: rx.status || "active",
+        medicines: rx.drugs || [],
+        notes: rx.notes || "",
+        followUpDate: rx.followUpDate || "",
+        report,
+      };
+    });
+
+  // Non-prescription medical reports go to the Reports tab
+  const displayDocuments = [
+    // New medical_reports not linked to any prescription
+    ...apiMedicalReports
+      .filter((r: any) => !r.appointmentId || !apiPrescriptions.some(
+        (rx: any) => rx.appointmentId === r.appointmentId,
+      ))
+      .map((r: any) => ({
+        id: r.reportId,
+        title: r.title,
+        type: r.reportType || "consultation",
+        date: r.createdAt || new Date().toISOString(),
+        issuedBy: r.signedBy || "Doctor",
+        fileSize: r.fileUrl ? "Available" : "N/A",
+        fileUrl: r.fileUrl,
+        summary: r.summary || r.findings,
+        isNew: true,
+      })),
+    // Legacy records with no rxId link
+    ...apiRecords
+      .filter((rec: any) => !rec.rxId)
+      .map((rec: any) => ({
+        id: rec.recordId,
+        title: rec.title,
+        type: rec.type,
+        date: rec.createdAt || new Date().toISOString(),
+        issuedBy: rec.doctorName || "Doctor",
+        fileSize: "N/A",
+        fileUrl: null,
+        summary: rec.content,
+        isNew: false,
+      })),
+  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   return (
     <RouteGuard requiredRole="patient">
@@ -670,14 +719,30 @@ function MedicalRecords() {
                             )}
                           </div>
                         </div>
-                        <Button variant="outline" size="sm" className="mt-3 w-full">
-                          <Download className="mr-1 h-3 w-3" />
-                          Download
-                        </Button>
+                        {doc.fileUrl ? (
+                          <a
+                            href={doc.fileUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs font-semibold text-primary hover:bg-primary/10 transition-colors"
+                          >
+                            <Download className="h-3.5 w-3.5" /> Download File
+                          </a>
+                        ) : (
+                          <Button variant="outline" size="sm" className="mt-3 w-full" disabled>
+                            <Download className="mr-1 h-3 w-3" />
+                            No file attached
+                          </Button>
+                        )}
                       </CardContent>
                     </Card>
                   );
                 })}
+                {!loading && displayDocuments.length === 0 && (
+                  <div className="col-span-3 rounded-xl border border-dashed border-border bg-card py-10 text-center text-sm text-muted-foreground">
+                    No standalone reports yet. Reports linked to prescriptions appear in the Prescriptions tab.
+                  </div>
+                )}
               </div>
             </TabsContent>
 

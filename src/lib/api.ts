@@ -220,14 +220,73 @@ export async function getPrescriptions(_did?: string) {
       rxId: p.rx_id,
       patientDid: p.patient_did,
       doctorDid: p.doctor_did,
+      appointmentId: p.appointment_id,
       drugs: p.drugs,
       diagnosis: p.diagnosis,
       notes: p.notes,
       status: p.status,
       signed: p.signed,
+      signedBy: p.signed_by,
       signedAt: p.signed_at,
       hash: p.content_hash,
       createdAt: p.created_at,
+      updatedAt: p.updated_at,
+    })),
+  };
+}
+
+export async function createPrescriptionWithItems(data: {
+  patientDid: string;
+  appointmentId?: string;
+  diagnosis: string;
+  notes?: string;
+  medicines: Array<{
+    name: string;
+    dosage: string;
+    frequency: string;
+    duration: string;
+    instructions?: string;
+  }>;
+}) {
+  const { createPrescription } = await import("./clinical.server");
+  return await createPrescription({ data });
+}
+
+export async function createReport(data: {
+  patientDid: string;
+  appointmentId?: string;
+  reportType: string;
+  title: string;
+  summary?: string;
+  findings?: string;
+  recommendations?: string;
+}) {
+  const { createMedicalReport } = await import("./clinical.server");
+  return await createMedicalReport({ data });
+}
+
+export async function getMedicalReports(patientDid?: string) {
+  const { getMedicalReports: fn } = await import("./clinical.server");
+  const res = await fn({ data: { patientDid } });
+  return {
+    reports: (res.reports ?? []).map((r: any) => ({
+      reportId: r.report_id,
+      patientDid: r.patient_did,
+      doctorDid: r.doctor_did,
+      appointmentId: r.appointment_id,
+      reportType: r.report_type,
+      title: r.title,
+      summary: r.summary,
+      findings: r.findings,
+      recommendations: r.recommendations,
+      filePath: r.file_path,
+      fileUrl: r.file_url,
+      status: r.status,
+      signed: r.signed,
+      signedBy: r.signed_by,
+      signedAt: r.signed_at,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
     })),
   };
 }

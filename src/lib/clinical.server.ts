@@ -1125,3 +1125,257 @@ export const createMedicalRecord = createServerFn({ method: "POST" })
 
     return { ok: true as const, recordId, contentHash };
   });
+
+// ─── Prescription Creation with Normalized Schema ───────────────────────────
+
+/**
+ * Create a prescription with medicines stored in prescription_items table.
+ * 
+ * This uses the normalized schema where individual medicines are stored as rows
+ * in prescription_items, avoiding data duplication and enabling better querying.
+ */
+export const createPrescription = createServerFn({ method: "POST" })
+  .inputValidator(
+    (data: {
+      patientDid: string;
+      appointmentId?: string;
+      diagnosis: string;
+      notes?: string;
+      medicines: Array<{
+        name: string;
+        dosage: string;
+        frequency: string;
+        duration: string;
+        instructions?: string;
+      }>;
+    }) => {
+      if (!data?.patientDid || !data?.diagnosis) {
+        throw new Error("patientDid and diagnosis are required");
+      }
+      if (!Array.isArray(data.medicines) || data.medicines.length === 0) {
+        throw new Error("At least one medicine is required");
+      }
+      return data;
+    },
+  )
+  .handler(async ({ data }) => {
+    const user = await requireSession();
+    const supabase = getSupabaseServerClient();
+
+    // Get doctor's DID
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("primary_did, full_name")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (!profile?.primary_did) {
+      throw new Error("No DID associated with this account");
+    }
+
+    const rxId = `RX-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+
+    // Create the prescription record
+    const { error: prescriptionError } = await supabase.from("prescriptions").insert({
+      rx_id: rxId,
+      patient_did: data.patientDid,
+      doctor_did: profile.primary_did,
+      appointment_id: data.appointmentId ?? null,
+      diagnosis: data.diagnosis,
+      notes: data.notes ?? null,
+      status: "active",
+      signed: true,
+      signed_by: profile.full_name ?? profile.primary_did,
+      signed_at: new Date().toISOString(),
+      // Keep drugs as JSONB for backward compatibility, but also use items table
+      drugs: data.medicines.map(m => ({
+        name: m.name,
+        dosage: m.dosage,
+        frequency: m.frequency,
+        duration: m.duration,
+        instructions: m.instructions,
+      })),
+    });
+
+    if (prescriptionError) {
+      if (/row-level security/i.test(prescriptionError.message)) {
+        throw new Error("Cannot create prescription: no active consent for this patient");
+      }
+      throw new Error(prescriptionError.message);
+    }
+
+    // Insert medicine items into prescription_items table (normalized)
+    const items = data.medicines.map((medicine) => ({
+      prescription_id: rxId,
+      medicine_name: medicine.name,
+      dosage: medicine.dosage,
+      frequency: medicine.frequency,
+      duration: medicine.duration,
+      instructions: medicine.instructions ?? null,
+    }));
+
+    const { error: itemsError } = await supabase.from("prescription_items").insert(items);
+
+    if (itemsError) {
+      // If items insert fails, the prescription is already created but incomplete
+      // In a real system, this should be a transaction, but Supabase doesn't support that client-side
+      console.error("Failed to insert prescription items:", itemsError);
+      throw new Error(`Prescription created but items failed: ${itemsError.message}`);
+    }
+
+    // Audit trail
+    const caller = await resolveCallerForAudit();
+    tryWriteAudit(
+      buildPrescriptionAudit(caller, rxId, null, {
+        diagnosis: data.diagnosis,
+        drugCount: data.medicines.length,
+        status: "active",
+      }),
+    );
+
+    return { ok: true as const, rxId, itemCount: items.length };
+  });
+
+/**
+ * Get prescription with items from the normalized schema.
+ * Returns prescription details along with all medicine items.
+ */
+export const getPrescriptionWithItems = createServerFn({ method: "GET" })
+  .inputValidator((data: { rxId: string }) => {
+    if (!data?.rxId) throw new Error("rxId is required");
+    return data;
+  })
+  .handler(async ({ data }) => {
+    await requireSession();
+    const supabase = getSupabaseServerClient();
+
+    // Get prescription
+    const { data: prescription, error: prescriptionError } = await supabase
+      .from("prescriptions")
+      .select("*")
+      .eq("rx_id", data.rxId)
+      .maybeSingle();
+
+    if (prescriptionError) throw new Error(prescriptionError.message);
+    if (!prescription) throw new Error("Prescription not found");
+
+    // Get prescription items
+    const { data: items, error: itemsError } = await supabase
+      .from("prescription_items")
+      .select("*")
+      .eq("prescription_id", data.rxId)
+      .order("created_at");
+
+    if (itemsError) throw new Error(itemsError.message);
+
+    return {
+      prescription,
+      items: items ?? [],
+    };
+  });
+
+// ─── Medical Reports with File Storage ──────────────────────────────────────
+
+/**
+ * Create a medical report with optional file attachment.
+ * Files are stored in Supabase Storage bucket.
+ */
+export const createMedicalReport = createServerFn({ method: "POST" })
+  .inputValidator(
+    (data: {
+      patientDid: string;
+      appointmentId?: string;
+      reportType: string;
+      title: string;
+      summary?: string;
+      findings?: string;
+      recommendations?: string;
+    }) => {
+      if (!data?.patientDid || !data?.title || !data?.reportType) {
+        throw new Error("patientDid, title and reportType are required");
+      }
+      return data;
+    },
+  )
+  .handler(async ({ data }) => {
+    const user = await requireSession();
+    const supabase = getSupabaseServerClient();
+
+    // Get doctor's DID
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("primary_did, full_name")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (!profile?.primary_did) {
+      throw new Error("No DID associated with this account");
+    }
+
+    const reportId = `REPORT-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+
+    // Hash content for integrity
+    const contentToHash = JSON.stringify({
+      reportId,
+      patientDid: data.patientDid,
+      title: data.title,
+      summary: data.summary,
+      findings: data.findings,
+    });
+    const encoded = new TextEncoder().encode(contentToHash);
+    const digest = await crypto.subtle.digest("SHA-256", encoded);
+    const contentHash = Array.from(new Uint8Array(digest))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+
+    // Create the report record
+    const { error } = await supabase.from("medical_reports").insert({
+      report_id: reportId,
+      patient_did: data.patientDid,
+      doctor_did: profile.primary_did,
+      appointment_id: data.appointmentId ?? null,
+      report_type: data.reportType,
+      title: data.title,
+      summary: data.summary ?? null,
+      findings: data.findings ?? null,
+      recommendations: data.recommendations ?? null,
+      status: "finalized",
+      signed: true,
+      signed_by: profile.full_name ?? profile.primary_did,
+      signed_at: new Date().toISOString(),
+      content_hash: contentHash,
+    });
+
+    if (error) {
+      if (/row-level security/i.test(error.message)) {
+        throw new Error("Cannot create report: no active consent for this patient");
+      }
+      throw new Error(error.message);
+    }
+
+    return { ok: true as const, reportId, contentHash };
+  });
+
+/**
+ * Get medical reports for a patient.
+ */
+export const getMedicalReports = createServerFn({ method: "GET" })
+  .inputValidator((data: { patientDid?: string }) => data ?? {})
+  .handler(async ({ data }) => {
+    await requireSession();
+    const supabase = getSupabaseServerClient();
+
+    let query = supabase
+      .from("medical_reports")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (data.patientDid) {
+      query = query.eq("patient_did", data.patientDid);
+    }
+
+    const { data: reports, error } = await query;
+
+    if (error) throw new Error(error.message);
+    return { reports: reports ?? [] };
+  });

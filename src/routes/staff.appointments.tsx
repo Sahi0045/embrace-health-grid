@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useTableRefresh } from "@/hooks/use-realtime";
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -536,9 +536,18 @@ function AppointmentCard({
             </>
           )}
           {appt.status === "confirmed" && (
-            <span className="flex items-center gap-1 text-xs text-success font-semibold">
-              <CheckCircle2 className="h-4 w-4" /> Confirmed
-            </span>
+            <>
+              <span className="flex items-center gap-1 text-xs text-success font-semibold">
+                <CheckCircle2 className="h-4 w-4" /> Confirmed
+              </span>
+              <Link
+                to="/staff/sign"
+                search={{ appointmentId: appt.apptId, patientDid: appt.patientDid }}
+                className="flex items-center gap-1.5 rounded-lg bg-primary border border-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary/90 transition-colors"
+              >
+                <MessageSquare className="h-3.5 w-3.5" /> Sign & Prescribe
+              </Link>
+            </>
           )}
         </div>
       </div>

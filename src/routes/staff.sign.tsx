@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useSearch } from "@tanstack/react-router";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHeader } from "@/components/PageHeader";
@@ -41,11 +41,17 @@ import {
   createMedicalRecord,
   getMyMedicalRecords,
   getPatientOnChainHistory,
+  createPrescriptionWithItems,
+  createReport,
 } from "@/lib/api";
 import { useCurrentUser } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/staff/sign")({
   head: () => ({ meta: [{ title: "Staff · Sign & Prescribe — Embrace Health Grid" }] }),
+  validateSearch: (search: Record<string, unknown>) => ({
+    appointmentId: (search.appointmentId as string) ?? "",
+    patientDid: (search.patientDid as string) ?? "",
+  }),
   component: SignPage,
 });
 
@@ -251,6 +257,9 @@ function DrugRow({
 // ─── Main page ────────────────────────────────────────────────────────────────
 function SignPage() {
   const { user: currentUser } = useCurrentUser();
+  const { appointmentId: urlApptId, patientDid: urlPatientDid } = useSearch({
+    from: "/staff/sign",
+  });
   // Identity comes from the server-verified session, not localStorage.
   const doctorDid = currentUser?.did ?? "";
   const doctorName = currentUser?.name ?? "Doctor";
@@ -269,7 +278,21 @@ function SignPage() {
         getMyPrescriptions(),
         getMyMedicalRecords(),
       ]);
-      if (pRes.status === "fulfilled") setPatients(pRes.value.patients ?? []);
+      if (pRes.status === "fulfilled") {
+        const pts = pRes.value.patients ?? [];
+        setPatients(pts);
+        // Auto-select patient from URL params (coming from appointments page)
+        if (urlPatientDid && !selectedPatient) {
+          const matched = pts.find((p: any) => p.patientDid === urlPatientDid);
+          if (matched) {
+            setSelectedPatient(matched);
+            const appt = urlApptId
+              ? (matched.appointments ?? []).find((a: any) => a.apptId === urlApptId)
+              : matched.latestAppt;
+            setSelectedApptId(appt?.apptId ?? urlApptId ?? "");
+          }
+        }
+      }
       if (rxRes.status === "fulfilled") setMyPrescriptions(rxRes.value.prescriptions ?? []);
       if (recRes.status === "fulfilled") setMyReports(recRes.value.records ?? []);
     } catch {
@@ -277,7 +300,7 @@ function SignPage() {
     } finally {
       setLoadingPts(false);
     }
-  }, []);
+  }, [urlPatientDid, urlApptId]);
 
   useEffect(() => {
     loadData();
@@ -451,11 +474,49 @@ function SignPage() {
     }
     setSigning(true);
     try {
-      // 1. Sign the prescription
+      const activeApptId = selectedApptId || selectedAppt?.apptId || urlApptId || "";
+
+      // 1. Save prescription with normalized items to Supabase
+      const prescriptionRes = await createPrescriptionWithItems({
+        patientDid: selectedPatient.patientDid,
+        appointmentId: activeApptId || undefined,
+        diagnosis,
+        notes: notes || undefined,
+        medicines: drugs
+          .filter((d) => d.name)
+          .map((d) => ({
+            name: d.name,
+            dosage: d.dosage,
+            frequency: d.frequency,
+            duration: d.duration,
+            instructions: d.instructions || undefined,
+          })),
+      });
+
+      const newRxId = prescriptionRes.rxId;
+
+      // 2. Save medical report to Supabase
+      const reportSummary =
+        consultationSummary ||
+        `Consultation for ${selectedPatient.patientName}. Chief complaint: ${chiefComplaint || "—"}. Diagnosis: ${diagnosis}.`;
+
+      await createReport({
+        patientDid: selectedPatient.patientDid,
+        appointmentId: activeApptId || undefined,
+        reportType: "consultation",
+        title: `Consultation Report — ${diagnosis}`,
+        summary: reportSummary,
+        findings: clinicalNotes
+          ? `Symptoms: ${symptoms || "—"}. ${clinicalNotes}`.trim()
+          : testResults || undefined,
+        recommendations: recommendedFollowUp || (followUpDate ? `Follow-up on ${new Date(followUpDate).toLocaleDateString("en-IN")}` : undefined),
+      }).catch(() => {/* report creation is best-effort */});
+
+      // 3. Also sign via legacy Edge Function for blockchain anchoring
       const res = (await signPrescription({
         patientDid: selectedPatient.patientDid,
         patientName: selectedPatient.patientName,
-        apptId: selectedApptId || selectedAppt?.apptId || "",
+        apptId: activeApptId,
         drugs: drugs.map((d) => ({
           name: d.name,
           dosage: d.dosage,
@@ -472,40 +533,28 @@ function SignPage() {
         signedBy: doctorName,
       })) as any;
 
-      const newRxId = res.rxId || res.rx?.rxId;
-      const newApptId = selectedApptId || selectedAppt?.apptId || "";
-
-      // 2. Auto-create the linked medical report
-      const summary =
-        consultationSummary ||
-        `Consultation for ${selectedPatient.patientName}. Chief complaint: ${chiefComplaint || "—"}. Diagnosis: ${diagnosis}.`;
+      // 4. Auto-create legacy medical record for backward compat
       await createMedicalRecord(selectedPatient.patientDid, {
         title: `Consultation Report — ${diagnosis}`,
         type: "prescription",
-        content: summary,
+        content: reportSummary,
         doctorDid,
         doctorName,
         rxId: newRxId,
-        apptId: newApptId,
-        consultationSummary: summary,
+        apptId: activeApptId,
+        consultationSummary: reportSummary,
         clinicalNotes:
           clinicalNotes || `Symptoms: ${symptoms || "—"}. ${notes ? `Notes: ${notes}` : ""}`.trim(),
         testResults: testResults || "",
         recommendedFollowUp:
           recommendedFollowUp ||
-          (followUpDate
-            ? `Follow-up on ${new Date(followUpDate).toLocaleDateString("en-IN")}`
-            : ""),
-      }).catch(() => {
-        /* report creation is best-effort */
-      });
+          (followUpDate ? `Follow-up on ${new Date(followUpDate).toLocaleDateString("en-IN")}` : ""),
+      }).catch(() => {/* report creation is best-effort */});
 
-      setSignedBlock(res);
-      await logAuditEvent(doctorName, `Prescription ${newRxId}`, "signed", "success", "info").catch(
-        () => {},
-      );
-      toast.success(`Prescription ${newRxId} signed`, {
-        description: `Medical report auto-created · ${new Date().toLocaleTimeString("en-IN")}`,
+      setSignedBlock({ ...res, rxId: newRxId });
+      await logAuditEvent(doctorName, `Prescription ${newRxId}`, "signed", "success", "info").catch(() => {});
+      toast.success(`Prescription ${newRxId} signed & saved`, {
+        description: `Medical report created · ${new Date().toLocaleTimeString("en-IN")}`,
       });
       setSigned(true);
       loadData();
