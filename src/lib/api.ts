@@ -864,10 +864,64 @@ export async function getConsents(_did?: string) {
     status: c.status,
     grantedAt: c.granted_at,
     expiry: c.expires_at,
+    requestedAt: c.requested_at,
+    approvedAt: c.approved_at,
+    accessStartedAt: c.access_started_at,
+    rejectedAt: c.rejected_at,
+    revokedAt: c.revoked_at,
+    reason: c.reason,
+    doctorName: c.doctor_name,
+    doctorSpecialty: c.doctor_specialty,
   }));
   return { consents, grants: consents, total: consents.length };
 }
 
+/**
+ * Doctor requests consent to access patient data.
+ * Creates a consent record with 'requested' status.
+ */
+export async function requestConsentAccess(data: {
+  patientDid: string;
+  resource: string;
+  reason?: string;
+}) {
+  const { requestConsent: fn } = await import("./clinical.server");
+  const res = await fn({ data });
+  return { success: true as const, grantId: res.grantId };
+}
+
+/**
+ * Patient approves a consent request.
+ * Sets status to 'active' and expires_at to exactly 1 hour from now.
+ */
+export async function approveConsentRequest(grantId: string) {
+  const { approveConsent: fn } = await import("./clinical.server");
+  await fn({ data: { grantId } });
+  return { success: true as const };
+}
+
+/**
+ * Patient rejects a consent request.
+ * Sets status to 'rejected'.
+ */
+export async function rejectConsentRequest(grantId: string) {
+  const { rejectConsent: fn } = await import("./clinical.server");
+  await fn({ data: { grantId } });
+  return { success: true as const };
+}
+
+/**
+ * Validate if the current user (doctor) has active consent to access patient data.
+ */
+export async function validateConsentAccess(patientDid: string, resource: string) {
+  const { validateConsentAccess: fn } = await import("./clinical.server");
+  const res = await fn({ data: { patientDid, resource } });
+  return { hasAccess: res.hasAccess };
+}
+
+/**
+ * @deprecated Use approveConsentRequest instead. Kept for backward compatibility.
+ */
 export async function grantConsent(
   arg1:
     | string

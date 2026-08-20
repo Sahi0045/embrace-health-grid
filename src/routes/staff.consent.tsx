@@ -23,7 +23,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { toast } from "sonner";
-import { getMyConsents, requestConsent, getMyPatients, API_BASE_URL } from "@/lib/api";
+import { getConsents, requestConsentAccess, getMyPatients, API_BASE_URL } from "@/lib/api";
 import { useCurrentUser } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/staff/consent")({
@@ -42,13 +42,6 @@ const RESOURCES = [
   "Emergency Records",
   "Full Health Profile",
 ];
-const EXPIRY_OPTIONS = [
-  { label: "24 hours", value: 1 },
-  { label: "48 hours", value: 2 },
-  { label: "7 days", value: 7 },
-  { label: "30 days", value: 30 },
-  { label: "90 days", value: 90 },
-];
 
 function StaffConsentPage() {
   const { user: currentUser } = useCurrentUser();
@@ -58,18 +51,42 @@ function StaffConsentPage() {
   const [tab, setTab] = useState<Tab>("active");
 
   // ── data ──────────────────────────────────────────────────────────────────
-  const [grants, setGrants] = useState<any[]>([]);
-  const [requests, setRequests] = useState<any[]>([]);
+  const [allConsents, setAllConsents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({ active: 0, pending: 0 });
+  const [stats, setStats] = useState({ active: 0, pending: 0, expired: 0, rejected: 0 });
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await getMyConsents();
-      setGrants(res.grants ?? []);
-      setRequests(res.requests ?? []);
-      setStats({ active: res.active ?? 0, pending: res.pending ?? 0 });
+      const res = await getConsents();
+      const consents = res.consents ?? [];
+      
+      // Map consents to include all lifecycle fields
+      const mapped = consents.map((c: any) => ({
+        grantId: c.grantId ?? c.grant_id,
+        patientDid: c.patientDid ?? c.patient_did,
+        patientName: c.patientName ?? "Patient",
+        doctorDid: c.doctorDid ?? c.doctor_did,
+        resource: c.resource,
+        status: c.status,
+        requestedAt: c.requestedAt ?? c.requested_at,
+        approvedAt: c.approvedAt ?? c.approved_at,
+        accessStartedAt: c.accessStartedAt ?? c.access_started_at,
+        expiresAt: c.expiry ?? c.expires_at,
+        revokedAt: c.revokedAt ?? c.revoked_at,
+        rejectedAt: c.rejectedAt ?? c.rejected_at,
+        reason: c.reason,
+      }));
+      
+      setAllConsents(mapped);
+      
+      // Calculate stats
+      const active = mapped.filter((c: any) => c.status === "active").length;
+      const pending = mapped.filter((c: any) => c.status === "requested").length;
+      const expired = mapped.filter((c: any) => c.status === "expired").length;
+      const rejected = mapped.filter((c: any) => c.status === "rejected").length;
+      
+      setStats({ active, pending, expired, rejected });
     } catch (err: any) {
       toast.error("Could not load consent data", { description: err.message });
     } finally {
@@ -129,7 +146,6 @@ function StaffConsentPage() {
   const [reqPatientDid, setReqPatientDid] = useState("");
   const [reqResource, setReqResource] = useState(RESOURCES[0]);
   const [reqReason, setReqReason] = useState("");
-  const [reqExpiryDays, setReqExpiryDays] = useState(7);
   const [submitting, setSubmitting] = useState(false);
 
   const loadPatients = useCallback(async () => {
@@ -165,21 +181,16 @@ function StaffConsentPage() {
     }
     setSubmitting(true);
     try {
-      const expiry = new Date(Date.now() + reqExpiryDays * 86400000).toISOString();
-      await requestConsent({
-        doctorDid,
-        doctorName,
+      await requestConsentAccess({
         patientDid: reqPatientDid,
         resource: reqResource,
         reason: reqReason.trim(),
-        expiry,
       });
       toast.success("Consent request sent to patient", {
-        description: `Patient will be notified to approve or deny access to ${reqResource}.`,
+        description: `Patient will receive your request. Access will be granted for 1 hour upon approval.`,
       });
       setReqPatientDid("");
       setReqReason("");
-      setReqExpiryDays(7);
       load();
       setTab("history");
     } catch (err: any) {
@@ -193,19 +204,18 @@ function StaffConsentPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   // ── derived lists ──────────────────────────────────────────────────────────
-  const activeGrants = grants.filter(
-    (g) => g.status === "active" && new Date(g.expiry) > new Date(),
+  const activeGrants = allConsents.filter(
+    (c) => c.status === "active" && (!c.expiresAt || new Date(c.expiresAt) > new Date()),
   );
-  const expiredGrants = grants.filter(
-    (g) => g.status === "revoked" || (g.status === "active" && new Date(g.expiry) <= new Date()),
+  const pendingReqs = allConsents.filter((c) => c.status === "requested");
+  const historyConsents = allConsents.filter(
+    (c) => c.status === "expired" || c.status === "revoked" || c.status === "rejected"
   );
-  const pendingReqs = requests.filter((r) => r.status === "pending");
-  const closedReqs = requests.filter((r) => r.status !== "pending");
 
   const TABS: { key: Tab; label: string; badge?: number }[] = [
     { key: "active", label: `Active Consents (${activeGrants.length})` },
     { key: "request", label: "Request Access", badge: pendingReqs.length },
-    { key: "history", label: `History (${expiredGrants.length + closedReqs.length})` },
+    { key: "history", label: `History (${historyConsents.length})` },
   ];
 
   return (
@@ -229,7 +239,7 @@ function StaffConsentPage() {
         {[
           { label: "Active Consents", value: stats.active, cls: "text-success" },
           { label: "Pending Requests", value: stats.pending, cls: "text-warning-foreground" },
-          { label: "Total Grants", value: grants.length, cls: "text-primary" },
+          { label: "Expired/Revoked", value: stats.expired + stats.rejected, cls: "text-muted-foreground" },
         ].map((s) => (
           <div
             key={s.label}
@@ -286,14 +296,14 @@ function StaffConsentPage() {
             ) : (
               <div className="space-y-3">
                 {activeGrants.map((g) => {
-                  const expiresAt = g.expiry ? new Date(g.expiry) : null;
-                  const daysLeft = expiresAt
-                    ? Math.ceil((expiresAt.getTime() - Date.now()) / 86400000)
-                    : null;
-                  const urgentExpiry = daysLeft !== null && daysLeft <= 2;
+                  const expiresAt = g.expiresAt ? new Date(g.expiresAt) : null;
+                  const remaining = expiresAt ? expiresAt.getTime() - Date.now() : null;
+                  const minutesLeft = remaining ? Math.floor(remaining / 60000) : null;
+                  const urgentExpiry = minutesLeft !== null && minutesLeft <= 15;
+                  
                   return (
                     <div
-                      key={g.grantId || g.id}
+                      key={g.grantId}
                       className="rounded-xl border border-success/30 bg-success/5 p-4 space-y-3"
                     >
                       <div className="flex items-start justify-between gap-3 flex-wrap">
@@ -327,26 +337,42 @@ function StaffConsentPage() {
                         </div>
                         <div className="rounded-lg bg-card border border-border px-3 py-2">
                           <div className="text-[9px] font-bold uppercase text-muted-foreground mb-0.5 flex items-center gap-1">
-                            <Clock className="h-3 w-3" /> Granted At
+                            <Clock className="h-3 w-3" /> Approved At
                           </div>
-                          <div className="font-medium text-foreground">
-                            {g.grantedAt ? new Date(g.grantedAt).toLocaleDateString("en-IN") : "—"}
+                          <div className="font-medium text-foreground text-[11px]">
+                            {g.approvedAt ? new Date(g.approvedAt).toLocaleString("en-IN", {
+                              month: "short",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            }) : "—"}
                           </div>
                         </div>
                         <div
-                          className={`rounded-lg border px-3 py-2 ${urgentExpiry ? "bg-warning/10 border-warning/30" : "bg-card border-border"}`}
+                          className={`rounded-lg border px-3 py-2 ${urgentExpiry ? "bg-warning/10 border-warning/30" : "bg-success/10 border-success/20"}`}
                         >
                           <div className="text-[9px] font-bold uppercase text-muted-foreground mb-0.5 flex items-center gap-1">
                             <CalendarDays className="h-3 w-3" /> Expires
                           </div>
                           <div
-                            className={`font-medium ${urgentExpiry ? "text-warning-foreground" : "text-foreground"}`}
+                            className={`font-medium text-[11px] ${urgentExpiry ? "text-warning-foreground" : "text-foreground"}`}
                           >
-                            {expiresAt ? expiresAt.toLocaleDateString("en-IN") : "—"}
-                            {daysLeft !== null && (
-                              <span className="text-[10px] text-muted-foreground ml-1">
-                                ({daysLeft}d left)
-                              </span>
+                            {expiresAt ? (
+                              <>
+                                {expiresAt.toLocaleString("en-IN", {
+                                  month: "short",
+                                  day: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                                {minutesLeft !== null && (
+                                  <div className={`text-[10px] mt-0.5 font-semibold ${urgentExpiry ? "text-warning-foreground" : "text-success"}`}>
+                                    {minutesLeft < 60 ? `${minutesLeft}m remaining` : `${Math.floor(minutesLeft / 60)}h ${minutesLeft % 60}m remaining`}
+                                  </div>
+                                )}
+                              </>
+                            ) : (
+                              "No expiry"
                             )}
                           </div>
                         </div>
@@ -373,7 +399,19 @@ function StaffConsentPage() {
         {/* ── Request Access tab ──────────────────────────────────────────── */}
         {tab === "request" && (
           <div className="space-y-6">
-            {/* Info banner */}
+            {/* Info banner - 1 hour access */}
+            <div className="flex items-start gap-3 rounded-xl border border-info/30 bg-info/5 px-4 py-3 text-xs">
+              <Clock className="h-4 w-4 shrink-0 mt-0.5 text-info" />
+              <div>
+                <div className="font-semibold text-foreground">1-Hour Access Window</div>
+                <div className="text-muted-foreground mt-0.5">
+                  When a patient approves your request, you will receive access to their medical information for
+                  <strong> exactly 1 hour</strong>. Access will automatically expire after that time. You can request access again if needed.
+                </div>
+              </div>
+            </div>
+
+            {/* Patient consent notice */}
             <div className="flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-xs text-primary">
               <Shield className="h-4 w-4 shrink-0 mt-0.5" />
               <div>
@@ -473,33 +511,15 @@ function StaffConsentPage() {
                 />
               </div>
 
-              {/* Expiry */}
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold text-foreground">
+              {/* Access Duration Notice */}
+              <div className="rounded-lg border border-info/30 bg-info/5 px-4 py-3">
+                <div className="flex items-center gap-2 text-xs font-semibold text-foreground mb-1">
+                  <Clock className="h-3.5 w-3.5 text-info" />
                   Access Duration
-                </label>
-                <div className="flex gap-2 flex-wrap">
-                  {EXPIRY_OPTIONS.map((o) => (
-                    <button
-                      type="button"
-                      key={o.value}
-                      onClick={() => setReqExpiryDays(o.value)}
-                      className={`rounded-full px-3 py-1 text-xs font-semibold border transition-all ${reqExpiryDays === o.value ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}
-                    >
-                      {o.label}
-                    </button>
-                  ))}
                 </div>
-                <div className="text-[11px] text-muted-foreground mt-1.5">
-                  Access will expire on{" "}
-                  <span className="font-medium text-foreground">
-                    {new Date(Date.now() + reqExpiryDays * 86400000).toLocaleDateString("en-IN", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })}
-                  </span>{" "}
-                  if approved.
+                <div className="text-xs text-muted-foreground">
+                  If approved, you will receive access for <strong className="text-foreground">exactly 1 hour</strong> from the moment of approval.
+                  Access will automatically expire after that time.
                 </div>
               </div>
 
@@ -514,7 +534,7 @@ function StaffConsentPage() {
                   </>
                 ) : (
                   <>
-                    <Plus className="h-4 w-4" /> Send Consent Request to Patient
+                    <Plus className="h-4 w-4" /> Send Consent Request (1 Hour Access)
                   </>
                 )}
               </button>
@@ -608,24 +628,21 @@ function StaffConsentPage() {
 // ─── History card sub-component ───────────────────────────────────────────────
 function ConsentHistoryCard({
   item,
-  kind,
   expandedId,
   setExpandedId,
 }: {
   item: any;
-  kind: "request" | "grant";
   expandedId: string | null;
   setExpandedId: (id: string | null) => void;
 }) {
-  const id = item.id || item.grantId;
+  const id = item.grantId;
   const isExp = expandedId === id;
 
   const status = item.status || "unknown";
   const statusCfg: Record<string, { cls: string; label: string }> = {
-    pending: { cls: "bg-warning/15 text-warning-foreground", label: "Pending" },
-    approved: { cls: "bg-success/15 text-success", label: "Approved" },
+    requested: { cls: "bg-warning/15 text-warning-foreground", label: "Pending" },
     active: { cls: "bg-success/15 text-success", label: "Active" },
-    denied: { cls: "bg-destructive/10 text-destructive", label: "Denied" },
+    rejected: { cls: "bg-destructive/10 text-destructive", label: "Rejected" },
     revoked: { cls: "bg-muted text-muted-foreground", label: "Revoked" },
     expired: { cls: "bg-muted text-muted-foreground", label: "Expired" },
   };
@@ -635,14 +652,16 @@ function ConsentHistoryCard({
   };
 
   return (
-    <div className="rounded-xl border border-border bg-card overflow-hidden mb-2">
+    <div className="rounded-xl border border-border bg-card overflow-hidden">
       <button className="w-full text-left p-4" onClick={() => setExpandedId(isExp ? null : id)}>
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
             <div
-              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${kind === "grant" ? "bg-success/10" : "bg-primary/10"}`}
+              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+                status === "active" ? "bg-success/10" : "bg-primary/10"
+              }`}
             >
-              {kind === "grant" ? (
+              {status === "active" ? (
                 <ShieldCheck className="h-4 w-4 text-success" />
               ) : (
                 <Bell className="h-4 w-4 text-primary" />
@@ -650,19 +669,13 @@ function ConsentHistoryCard({
             </div>
             <div>
               <div className="text-sm font-semibold text-foreground">
-                {kind === "grant"
-                  ? item.patientName || item.patientDid
-                  : `Request to ${item.patientDid?.slice(0, 20) || "Patient"}…`}
+                {item.patientName || item.patientDid}
               </div>
               <div className="text-xs text-muted-foreground">
                 {item.resource || "Medical Records"} ·{" "}
-                {kind === "request"
-                  ? item.requestedAt
-                    ? new Date(item.requestedAt).toLocaleDateString("en-IN")
-                    : "—"
-                  : item.grantedAt
-                    ? new Date(item.grantedAt).toLocaleDateString("en-IN")
-                    : "—"}
+                {item.requestedAt
+                  ? new Date(item.requestedAt).toLocaleDateString("en-IN")
+                  : "—"}
               </div>
             </div>
           </div>

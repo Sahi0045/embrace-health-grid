@@ -54,6 +54,7 @@ import { Route as PatientEmergencyRouteImport } from './routes/patient.emergency
 import { Route as PatientConsentRouteImport } from './routes/patient.consent'
 import { Route as PatientBillingRouteImport } from './routes/patient.billing'
 import { Route as PatientAppointmentsRouteImport } from './routes/patient.appointments'
+import { Route as PatientAccessHistoryRouteImport } from './routes/patient.access-history'
 import { Route as AdminProfileRouteImport } from './routes/admin.profile'
 import { Route as AdminPrescriptionsRouteImport } from './routes/admin.prescriptions'
 import { Route as AdminPoliciesRouteImport } from './routes/admin.policies'
@@ -307,6 +308,11 @@ const PatientAppointmentsRoute = PatientAppointmentsRouteImport.update({
   path: '/patient/appointments',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PatientAccessHistoryRoute = PatientAccessHistoryRouteImport.update({
+  id: '/patient/access-history',
+  path: '/patient/access-history',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminProfileRoute = AdminProfileRouteImport.update({
   id: '/admin/profile',
   path: '/admin/profile',
@@ -476,6 +482,7 @@ export interface FileRoutesByFullPath {
   '/admin/policies': typeof AdminPoliciesRoute
   '/admin/prescriptions': typeof AdminPrescriptionsRoute
   '/admin/profile': typeof AdminProfileRoute
+  '/patient/access-history': typeof PatientAccessHistoryRoute
   '/patient/appointments': typeof PatientAppointmentsRoute
   '/patient/billing': typeof PatientBillingRoute
   '/patient/consent': typeof PatientConsentRoute
@@ -550,6 +557,7 @@ export interface FileRoutesByTo {
   '/admin/policies': typeof AdminPoliciesRoute
   '/admin/prescriptions': typeof AdminPrescriptionsRoute
   '/admin/profile': typeof AdminProfileRoute
+  '/patient/access-history': typeof PatientAccessHistoryRoute
   '/patient/appointments': typeof PatientAppointmentsRoute
   '/patient/billing': typeof PatientBillingRoute
   '/patient/consent': typeof PatientConsentRoute
@@ -625,6 +633,7 @@ export interface FileRoutesById {
   '/admin/policies': typeof AdminPoliciesRoute
   '/admin/prescriptions': typeof AdminPrescriptionsRoute
   '/admin/profile': typeof AdminProfileRoute
+  '/patient/access-history': typeof PatientAccessHistoryRoute
   '/patient/appointments': typeof PatientAppointmentsRoute
   '/patient/billing': typeof PatientBillingRoute
   '/patient/consent': typeof PatientConsentRoute
@@ -701,6 +710,7 @@ export interface FileRouteTypes {
     | '/admin/policies'
     | '/admin/prescriptions'
     | '/admin/profile'
+    | '/patient/access-history'
     | '/patient/appointments'
     | '/patient/billing'
     | '/patient/consent'
@@ -775,6 +785,7 @@ export interface FileRouteTypes {
     | '/admin/policies'
     | '/admin/prescriptions'
     | '/admin/profile'
+    | '/patient/access-history'
     | '/patient/appointments'
     | '/patient/billing'
     | '/patient/consent'
@@ -849,6 +860,7 @@ export interface FileRouteTypes {
     | '/admin/policies'
     | '/admin/prescriptions'
     | '/admin/profile'
+    | '/patient/access-history'
     | '/patient/appointments'
     | '/patient/billing'
     | '/patient/consent'
@@ -924,6 +936,7 @@ export interface RootRouteChildren {
   AdminPoliciesRoute: typeof AdminPoliciesRoute
   AdminPrescriptionsRoute: typeof AdminPrescriptionsRoute
   AdminProfileRoute: typeof AdminProfileRoute
+  PatientAccessHistoryRoute: typeof PatientAccessHistoryRoute
   PatientAppointmentsRoute: typeof PatientAppointmentsRoute
   PatientBillingRoute: typeof PatientBillingRoute
   PatientConsentRoute: typeof PatientConsentRoute
@@ -1283,6 +1296,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PatientAppointmentsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/patient/access-history': {
+      id: '/patient/access-history'
+      path: '/patient/access-history'
+      fullPath: '/patient/access-history'
+      preLoaderRoute: typeof PatientAccessHistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/profile': {
       id: '/admin/profile'
       path: '/admin/profile'
@@ -1508,6 +1528,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminPoliciesRoute: AdminPoliciesRoute,
   AdminPrescriptionsRoute: AdminPrescriptionsRoute,
   AdminProfileRoute: AdminProfileRoute,
+  PatientAccessHistoryRoute: PatientAccessHistoryRoute,
   PatientAppointmentsRoute: PatientAppointmentsRoute,
   PatientBillingRoute: PatientBillingRoute,
   PatientConsentRoute: PatientConsentRoute,

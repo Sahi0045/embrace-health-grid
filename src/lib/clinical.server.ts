@@ -363,14 +363,121 @@ export const getConsents = createServerFn({ method: "GET" }).handler(async () =>
   const { data, error } = await supabase
     .from("consents")
     .select(
-      "grant_id, patient_did, doctor_did, resource, status, granted_at, expires_at, revoked_at",
+      "grant_id, patient_did, doctor_did, resource, status, granted_at, expires_at, revoked_at, requested_at, approved_at, access_started_at, rejected_at, reason, doctor_name, doctor_specialty",
     )
+    .order("requested_at", { ascending: false, nullsFirst: false })
     .order("granted_at", { ascending: false });
 
   if (error) throw new Error(error.message);
   return { consents: data ?? [] };
 });
 
+/**
+ * Doctor requests consent to access patient data.
+ * Creates a consent record with 'requested' status.
+ */
+export const requestConsent = createServerFn({ method: "POST" })
+  .inputValidator((data: {
+    patientDid: string;
+    resource: string;
+    reason?: string;
+  }) => {
+    if (!data?.patientDid || !data?.resource) {
+      throw new Error("patientDid and resource are required");
+    }
+    return data;
+  })
+  .handler(async ({ data }) => {
+    await requireSession();
+    const supabase = getSupabaseServerClient();
+
+    const doctorDid = await callerPrimaryDid();
+    if (!doctorDid) throw new Error("No DID associated with this account");
+
+    // Get doctor's profile for name and specialty
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("name, specialty")
+      .eq("primary_did", doctorDid)
+      .single();
+
+    const doctorName = profile?.name ?? "Doctor";
+    const doctorSpecialty = profile?.specialty ?? "Medical Specialist";
+
+    // Call database function to create consent request
+    const { data: result, error } = await supabase.rpc("request_consent", {
+      p_doctor_did: doctorDid,
+      p_doctor_name: doctorName,
+      p_doctor_specialty: doctorSpecialty,
+      p_patient_did: data.patientDid,
+      p_resource: data.resource,
+      p_reason: data.reason ?? "Medical care and treatment",
+    });
+
+    if (error) throw new Error(error.message);
+    return { ok: true as const, grantId: result };
+  });
+
+/**
+ * Patient approves a consent request.
+ * Sets status to 'active' and expires_at to exactly 1 hour from now.
+ */
+export const approveConsent = createServerFn({ method: "POST" })
+  .inputValidator((data: { grantId: string }) => {
+    if (!data?.grantId) throw new Error("grantId is required");
+    return data;
+  })
+  .handler(async ({ data }) => {
+    await requireSession();
+    const supabase = getSupabaseServerClient();
+
+    const patientDid = await callerPrimaryDid();
+    if (!patientDid) throw new Error("No DID associated with this account");
+
+    // Call database function to approve consent (sets 1-hour expiry automatically)
+    const { data: result, error } = await supabase.rpc("approve_consent", {
+      p_grant_id: data.grantId,
+      p_patient_did: patientDid,
+    });
+
+    if (error) throw new Error(error.message);
+    if (!result) throw new Error("Failed to approve consent");
+
+    return { ok: true as const };
+  });
+
+/**
+ * Patient rejects a consent request.
+ * Sets status to 'rejected'.
+ */
+export const rejectConsent = createServerFn({ method: "POST" })
+  .inputValidator((data: { grantId: string }) => {
+    if (!data?.grantId) throw new Error("grantId is required");
+    return data;
+  })
+  .handler(async ({ data }) => {
+    await requireSession();
+    const supabase = getSupabaseServerClient();
+
+    const patientDid = await callerPrimaryDid();
+    if (!patientDid) throw new Error("No DID associated with this account");
+
+    // Call database function to reject consent
+    const { data: result, error } = await supabase.rpc("reject_consent", {
+      p_grant_id: data.grantId,
+      p_patient_did: patientDid,
+    });
+
+    if (error) throw new Error(error.message);
+    if (!result) throw new Error("Failed to reject consent");
+
+    return { ok: true as const };
+  });
+
+/**
+ * @deprecated Use approveConsent instead. Kept for backward compatibility.
+ * Patient grants consent to a doctor.
+ */
 export const grantConsent = createServerFn({ method: "POST" })
   .inputValidator((data: { doctorDid: string; resource: string; expiresAt?: string }) => {
     if (!data?.doctorDid || !data?.resource) throw new Error("doctorDid and resource are required");
@@ -384,13 +491,19 @@ export const grantConsent = createServerFn({ method: "POST" })
     if (!profile?.primary_did) throw new Error("No DID associated with this account");
 
     const grantId = `consent_${crypto.randomUUID().slice(0, 8)}`;
+    
+    // Use 1-hour expiry if no expiry provided
+    const expiresAt = data.expiresAt ?? new Date(Date.now() + 60 * 60 * 1000).toISOString();
+    
     const { error } = await supabase.from("consents").insert({
       grant_id: grantId,
       patient_did: profile.primary_did,
       doctor_did: data.doctorDid,
       resource: data.resource,
       status: "active",
-      expires_at: data.expiresAt ?? null,
+      approved_at: new Date().toISOString(),
+      access_started_at: new Date().toISOString(),
+      expires_at: expiresAt,
     });
 
     if (error) throw new Error(error.message);
@@ -417,6 +530,36 @@ export const revokeConsent = createServerFn({ method: "POST" })
     if (!updated?.length) throw new Error("Consent not found, or you are not the grantor");
 
     return { ok: true as const };
+  });
+
+/**
+ * Validate if the current user (doctor) has active consent to access patient data.
+ * Returns the active consent if valid, null otherwise.
+ */
+export const validateConsentAccess = createServerFn({ method: "GET" })
+  .inputValidator((data: { patientDid: string; resource: string }) => {
+    if (!data?.patientDid || !data?.resource) {
+      throw new Error("patientDid and resource are required");
+    }
+    return data;
+  })
+  .handler(async ({ data }) => {
+    await requireSession();
+    const supabase = getSupabaseServerClient();
+
+    const doctorDid = await callerPrimaryDid();
+    if (!doctorDid) throw new Error("No DID associated with this account");
+
+    // Call database function to validate consent
+    const { data: result, error } = await supabase.rpc("validate_consent_access", {
+      p_doctor_did: doctorDid,
+      p_patient_did: data.patientDid,
+      p_resource: data.resource,
+    });
+
+    if (error) throw new Error(error.message);
+
+    return { hasAccess: result ?? false };
   });
 
 // ─── DIDs and credentials ───────────────────────────────────────────────────
