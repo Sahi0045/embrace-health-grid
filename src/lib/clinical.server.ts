@@ -274,19 +274,50 @@ export const getAppointments = createServerFn({ method: "GET" }).handler(async (
   ] as string[];
 
   const names = new Map<string, string>();
+  const patientHealthInfo = new Map<string, any>();
+  
   if (dids.length) {
     const { data: didRows } = await supabase.from("dids").select("did, owner_name").in("did", dids);
 
     for (const d of didRows ?? []) {
       if (d.did && d.owner_name) names.set(d.did, d.owner_name);
     }
+    
+    // Fetch patient health details from profiles table for patient DIDs
+    const patientDids = rows.map(r => r.patient_did).filter(Boolean);
+    if (patientDids.length > 0) {
+      const { data: profileRows } = await supabase
+        .from("profiles")
+        .select("primary_did, phone, age, gender, blood_group, allergies")
+        .in("primary_did", patientDids);
+      
+      for (const p of profileRows ?? []) {
+        if (p.primary_did) {
+          patientHealthInfo.set(p.primary_did, {
+            phone: p.phone ?? null,
+            age: p.age ?? null,
+            gender: p.gender ?? null,
+            blood_group: p.blood_group ?? null,
+            allergies: p.allergies ?? [],
+          });
+        }
+      }
+    }
   }
 
-  const appointments = rows.map((r) => ({
-    ...r,
-    patient_name: names.get(r.patient_did) ?? null,
-    doctor_name: names.get(r.doctor_did) ?? null,
-  }));
+  const appointments = rows.map((r) => {
+    const healthInfo = patientHealthInfo.get(r.patient_did) ?? {};
+    return {
+      ...r,
+      patient_name: names.get(r.patient_did) ?? null,
+      doctor_name: names.get(r.doctor_did) ?? null,
+      patient_phone: healthInfo.phone ?? null,
+      patient_age: healthInfo.age ?? null,
+      patient_gender: healthInfo.gender ?? null,
+      patient_blood_group: healthInfo.blood_group ?? null,
+      patient_allergies: healthInfo.allergies ?? [],
+    };
+  });
 
   return { appointments };
 });

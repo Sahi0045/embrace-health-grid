@@ -26,6 +26,9 @@ import {
   CalendarClock,
   Stethoscope,
   Info,
+  Phone,
+  Calendar,
+  Droplet,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -59,6 +62,12 @@ interface Appointment {
   bookedAt: string;
   updatedAt?: string;
   reviewedBy?: string;
+  // Patient health information
+  patientPhone?: string | null;
+  patientAge?: number | null;
+  patientGender?: string | null;
+  patientBloodGroup?: string | null;
+  patientAllergies?: string[];
 }
 
 const STATUS_META: Record<string, { label: string; cls: string; icon: React.ElementType }> = {
@@ -167,6 +176,59 @@ function ActionModal({
             </div>
           )}
         </div>
+
+        {/* Patient Health Information */}
+        {(appt.patientPhone || appt.patientAge || appt.patientGender || appt.patientBloodGroup || (appt.patientAllergies && appt.patientAllergies.length > 0)) && (
+          <div className="rounded-lg bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200/50 dark:border-blue-800/30 px-3 py-2 mb-4 space-y-2">
+            <div className="flex items-center gap-1.5 text-[10px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wide">
+              <Info className="h-3 w-3" />
+              <span>Patient Health Info</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              {appt.patientPhone && (
+                <div className="flex items-center gap-1.5">
+                  <Phone className="h-3 w-3 text-muted-foreground shrink-0" />
+                  <span className="text-foreground">{appt.patientPhone}</span>
+                </div>
+              )}
+              {appt.patientAge && (
+                <div className="flex items-center gap-1.5">
+                  <Calendar className="h-3 w-3 text-muted-foreground shrink-0" />
+                  <span className="text-foreground">{appt.patientAge} years</span>
+                </div>
+              )}
+              {appt.patientGender && (
+                <div className="flex items-center gap-1.5">
+                  <User className="h-3 w-3 text-muted-foreground shrink-0" />
+                  <span className="text-foreground capitalize">{appt.patientGender === 'M' ? 'Male' : appt.patientGender === 'F' ? 'Female' : 'Other'}</span>
+                </div>
+              )}
+              {appt.patientBloodGroup && (
+                <div className="flex items-center gap-1.5">
+                  <Droplet className="h-3 w-3 text-red-500 shrink-0" />
+                  <span className="text-foreground font-semibold">{appt.patientBloodGroup}</span>
+                </div>
+              )}
+            </div>
+            {appt.patientAllergies && appt.patientAllergies.length > 0 && (
+              <div className="pt-2 border-t border-blue-200/30 dark:border-blue-800/20">
+                <div className="flex items-start gap-1.5">
+                  <AlertCircle className="h-3.5 w-3.5 text-destructive shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[10px] font-bold text-destructive uppercase tracking-wide">Allergies:</span>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {appt.patientAllergies.map((allergy, idx) => (
+                        <span key={idx} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-destructive/15 text-destructive border border-destructive/25">
+                          ⚠ {allergy}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Action tabs */}
         <div className="grid grid-cols-3 gap-1.5 mb-4">
@@ -327,6 +389,59 @@ function AppointmentCard({
             <span>{appt.specialty}</span>
           </div>
         </div>
+
+        {/* Patient Health Information */}
+        {(appt.patientPhone || appt.patientAge || appt.patientGender || appt.patientBloodGroup || (appt.patientAllergies && appt.patientAllergies.length > 0)) && (
+          <div className="bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200/50 dark:border-blue-800/30 rounded-lg px-3 py-2 space-y-1.5">
+            <div className="flex items-center gap-1.5 text-[10px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wide">
+              <Info className="h-3 w-3" />
+              <span>Patient Information</span>
+            </div>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+              {appt.patientPhone && (
+                <div className="flex items-center gap-1.5">
+                  <Phone className="h-3 w-3 text-muted-foreground shrink-0" />
+                  <span className="text-foreground">{appt.patientPhone}</span>
+                </div>
+              )}
+              {appt.patientAge && (
+                <div className="flex items-center gap-1.5">
+                  <Calendar className="h-3 w-3 text-muted-foreground shrink-0" />
+                  <span className="text-foreground">{appt.patientAge} years</span>
+                </div>
+              )}
+              {appt.patientGender && (
+                <div className="flex items-center gap-1.5">
+                  <User className="h-3 w-3 text-muted-foreground shrink-0" />
+                  <span className="text-foreground capitalize">{appt.patientGender === 'M' ? 'Male' : appt.patientGender === 'F' ? 'Female' : 'Other'}</span>
+                </div>
+              )}
+              {appt.patientBloodGroup && (
+                <div className="flex items-center gap-1.5">
+                  <Droplet className="h-3 w-3 text-red-500 shrink-0" />
+                  <span className="text-foreground font-semibold">{appt.patientBloodGroup}</span>
+                </div>
+              )}
+            </div>
+            {appt.patientAllergies && appt.patientAllergies.length > 0 && (
+              <div className="pt-1 border-t border-blue-200/30 dark:border-blue-800/20">
+                <div className="flex items-start gap-1.5">
+                  <AlertCircle className="h-3 w-3 text-destructive shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[10px] font-semibold text-destructive uppercase tracking-wide">Allergies:</span>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {appt.patientAllergies.map((allergy, idx) => (
+                        <span key={idx} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-destructive/10 text-destructive border border-destructive/20">
+                          ⚠ {allergy}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Reason */}
         {appt.reason && (
