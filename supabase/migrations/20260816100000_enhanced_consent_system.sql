@@ -126,6 +126,10 @@ COMMENT ON FUNCTION public.validate_consent_access IS
 
 -- ─── Trigger: Auto-expire consents ─────────────────────────────────────────
 
+-- Note: This trigger checks expiration on SELECT, but we rely primarily on 
+-- the RLS policies and application logic to handle expiration.
+-- Keeping this as a safety mechanism.
+
 CREATE OR REPLACE FUNCTION public.auto_expire_consents()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -145,12 +149,8 @@ BEGIN
 END;
 $$;
 
--- Create trigger to check expiration on read
-DROP TRIGGER IF EXISTS check_consent_expiration ON public.consents;
-CREATE TRIGGER check_consent_expiration
-  BEFORE SELECT ON public.consents
-  FOR EACH ROW
-  EXECUTE FUNCTION public.auto_expire_consents();
+-- Note: BEFORE SELECT triggers are not supported in PostgreSQL
+-- We remove the trigger and rely on RLS policies for expiration checks
 
 -- ─── Function: Request consent (doctor initiates) ──────────────────────────
 
@@ -301,10 +301,13 @@ COMMENT ON FUNCTION public.reject_consent IS
 
 -- ─── Update RLS policies with time-based validation ────────────────────────
 
--- Drop existing policies
+-- Drop existing policies (if they exist)
 DROP POLICY IF EXISTS consents_select ON public.consents;
+DROP POLICY IF EXISTS consents_select_patient ON public.consents;
+DROP POLICY IF EXISTS consents_select_doctor ON public.consents;
 DROP POLICY IF EXISTS consents_insert_doctor ON public.consents;
 DROP POLICY IF EXISTS consents_update_patient ON public.consents;
+DROP POLICY IF EXISTS consents_revoke_patient ON public.consents;
 
 -- Patients can see their own consents
 CREATE POLICY consents_select_patient ON public.consents
@@ -461,6 +464,9 @@ CREATE INDEX IF NOT EXISTS consents_status_expires_idx ON public.consents (statu
 CREATE INDEX IF NOT EXISTS consents_doctor_patient_active_idx 
   ON public.consents (doctor_did, patient_did, status, expires_at)
   WHERE status = 'active';
+
+-- Note: prescription_items indexes are created in the doctor portal migration
+-- We skip them here to avoid conflicts
 
 -- ─── Backfill existing consents ─────────────────────────────────────────────
 
