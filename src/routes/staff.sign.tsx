@@ -280,10 +280,14 @@ function SignPage() {
       ]);
       if (pRes.status === "fulfilled") {
         const pts = pRes.value.patients ?? [];
-        setPatients(pts);
+        // Deduplicate patients by DID (keep first occurrence)
+        const uniquePts = Array.from(
+          new Map(pts.map((p: any) => [p.patientDid, p])).values()
+        );
+        setPatients(uniquePts);
         // Auto-select patient from URL params (coming from appointments page)
         if (urlPatientDid && !selectedPatient) {
-          const matched = pts.find((p: any) => p.patientDid === urlPatientDid);
+          const matched = uniquePts.find((p: any) => p.patientDid === urlPatientDid);
           if (matched) {
             setSelectedPatient(matched);
             const appt = urlApptId

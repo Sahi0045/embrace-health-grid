@@ -128,7 +128,6 @@ const staffNav: Item[] = [
   { title: "My Profile", url: "/staff/profile", icon: User },
   { title: "My Attendance", url: "/staff/attendance", icon: Clock },
   { title: "Verify Patient", url: "/staff/verify", icon: ScanLine },
-  { title: "Patients", url: "/staff/patients", icon: Users },
   { title: "Schedule", url: "/staff/schedule", icon: Calendar },
   { title: "Sign & Prescribe", url: "/staff/sign", icon: FileSignature },
   { title: "Prescriptions", url: "/staff/prescriptions", icon: Pill },

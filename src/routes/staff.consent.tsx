@@ -136,7 +136,12 @@ function StaffConsentPage() {
     setLoadingPts(true);
     try {
       const res = await getMyPatients();
-      setMyPatients(res.patients ?? []);
+      const patients = res.patients ?? [];
+      // Deduplicate patients by DID (keep first occurrence)
+      const uniquePatients = Array.from(
+        new Map(patients.map((p: any) => [p.patientDid, p])).values()
+      );
+      setMyPatients(uniquePatients);
     } catch {
       /* silent */
     } finally {
