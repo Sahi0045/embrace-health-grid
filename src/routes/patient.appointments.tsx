@@ -159,7 +159,10 @@ function AppointmentsPage() {
         did: d.did,
         name: d.name,
         specialty: d.specialty ?? "General Medicine",
-        hospital: d.hospital ?? "Embrace Health Grid · OPD Block",
+        // The real hospital this clinician practises at. Was a constant
+        // "Embrace Health Grid · OPD Block" for everyone, which hid the fact that
+        // the directory spans hospitals.
+        hospital: d.hospitalName ?? d.hospital ?? "Unaffiliated",
         status: (d.status ?? "Available") as "Available" | "Busy" | "Off Duty",
         rating: d.rating ?? 4.5,
       })),
@@ -173,7 +176,15 @@ function AppointmentsPage() {
         id: a.apptId ?? a.id,
         doctor: a.doctorName ?? "Doctor",
         specialty: a.specialty ?? "General Medicine",
-        hospital: a.mode === "tele" ? "Telehealth Link" : "Embrace Health Grid",
+        // Which hospital the appointment is actually at, rather than a fixed
+        // label. Telehealth still says so, but now names the hospital behind it.
+        hospital: a.hospitalName
+          ? a.mode === "tele"
+            ? `${a.hospitalName} · Telehealth`
+            : a.hospitalName
+          : a.mode === "tele"
+            ? "Telehealth Link"
+            : "—",
         date: a.date ?? a.slot?.split(" · ")[0] ?? "—",
         slot: a.slot ?? "—",
         status: a.status ?? "pending",

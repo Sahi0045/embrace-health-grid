@@ -30,21 +30,10 @@ const getApiBaseUrl = (): string => {
  */
 export const API_BASE_URL = getApiBaseUrl();
 
-async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const url = `${API_BASE_URL}${path}`;
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers || {}),
-    },
-  });
-  if (!res.ok) {
-    const errorText = await res.text().catch(() => res.statusText);
-    throw new Error(errorText || `API error ${res.status}`);
-  }
-  return res.json();
-}
+// The apiFetch() helper that used to live here is gone. It was the last path to
+// the decommissioned Express backend, kept alive by three consent helpers; the
+// comment above already claimed nothing issued HTTP requests to Express, which
+// only became true once those were ported. Removed so it cannot be reused.
 
 // ─── DIDs ─────────────────────────────────────────────────────────────────────
 
@@ -55,37 +44,102 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
 // denyConsentRequest are implemented as Supabase-native async functions
 // further down in this file. Only the doctor-portal-specific helpers live here.
 
-/** Doctor/Staff: fetch all consent grants + sent requests for the authenticated doctor */
-export const getMyConsents = () =>
-  apiFetch<{
-    grants: any[];
-    requests: any[];
-    totalGrants: number;
-    totalRequests: number;
-    active: number;
-    pending: number;
-  }>(`/consent/my`);
+/**
+ * Doctor/Staff: consent grants and requests involving the authenticated clinician.
+ *
+ * These three helpers were the last Express holdouts in the app: they issued HTTP
+ * calls to `${API_BASE_URL}/consent/*`, defaulting to http://localhost:3001, a
+ * server decommissioned during the Supabase migration. The fetches failed with
+ * ERR_CONNECTION_REFUSED, and because /staff/consent swallowed the error the page
+ * rendered "0 Active Consent" instead of reporting anything wrong.
+ *
+ * consents_select_involved already lets a clinician see rows where doctor_did is
+ * one of theirs, so the read needs no new privileges — only the right transport.
+ */
+export async function getMyConsents() {
+  const { getConsents: fn } = await import("./clinical.server");
+  const res = await fn();
+  const rows = res.consents ?? [];
 
-/** Doctor/Staff: fetch only consent requests sent by the authenticated doctor */
-export const getMyConsentRequests = () =>
-  apiFetch<{ requests: any[]; total: number }>(`/consent/requests/my`);
+  const map = (c: any) => ({
+    grantId: c.grant_id,
+    patientDid: c.patient_did,
+    doctorDid: c.doctor_did,
+    resource: c.resource,
+    status: c.status,
+    grantedAt: c.granted_at,
+    expiry: c.expires_at,
+    expiresAt: c.expires_at,
+    revokedAt: c.revoked_at,
+  });
 
-/** Doctor/Staff: send a consent request to a patient (Express-compatible shim) */
-export const requestConsent = (data: {
-  doctorDid: string;
+  // RLS returns rows where the caller is either party. A clinician's own DIDs are
+  // not exposed to the client, so split on status rather than trying to guess
+  // which side the caller is: an active row is a grant they hold, a pending row is
+  // a request awaiting the patient.
+  const grants = rows.filter((c: any) => c.status === "active").map(map);
+  const requests = rows.filter((c: any) => c.status === "pending").map(map);
+  const all = rows.map(map);
+
+  // "Active" must mean the same thing here as it does in the database, where
+  // private.has_active_consent() requires status = 'active' AND (expires_at is
+  // null OR expires_at > now()). Counting status alone reported grants that no
+  // longer open any records — the KPI said 5 while the tab listing them said 3.
+  // A null expiry means the grant does not expire.
+  const stillValid = (c: { expiry?: string | null }) =>
+    !c.expiry || new Date(c.expiry).getTime() > Date.now();
+  const activeGrants = grants.filter(stillValid);
+
+  return {
+    grants,
+    requests,
+    consents: all,
+    totalGrants: grants.length,
+    totalRequests: requests.length,
+    active: activeGrants.length,
+    pending: requests.length,
+  };
+}
+
+/** Doctor/Staff: only the pending requests awaiting a patient decision. */
+export async function getMyConsentRequests() {
+  const { requests } = await getMyConsents();
+  return { requests, total: requests.length };
+}
+
+/**
+ * Doctor/Staff: ask a patient for access.
+ *
+ * `doctorDid` is accepted for call-site compatibility but ignored — the server
+ * takes the requesting DID from the session, so a clinician cannot raise a
+ * request in someone else's name.
+ */
+export async function requestConsent(data: {
+  doctorDid?: string;
   doctorName?: string;
   patientDid: string;
   resource: string;
   reason?: string;
   expiry?: string;
-}) =>
-  apiFetch<{ success: boolean; requestId: string; request: any; txId: string }>(
-    `/consent/request`,
-    {
-      method: "POST",
-      body: JSON.stringify(data),
+  expiresAt?: string;
+}) {
+  const { requestConsentAccess } = await import("./clinical.server");
+  const res = await requestConsentAccess({
+    data: {
+      patientDid: data.patientDid,
+      resource: data.resource,
+      expiresAt: data.expiresAt ?? data.expiry,
     },
-  );
+  });
+  return { success: true as const, requestId: res.grantId, request: null, txId: "" };
+}
+
+/** Patient: approve a pending request in place, keeping one row per decision. */
+export async function approveConsentRequest(grantId: string, expiresAt?: string) {
+  const { approveConsentRequest: fn } = await import("./clinical.server");
+  await fn({ data: { grantId, expiresAt } });
+  return { success: true as const };
+}
 
 // ─── Audit Events ─────────────────────────────────────────────────────────────
 
@@ -419,21 +473,55 @@ export async function getLabResults(_did?: string) {
   };
 }
 
+/**
+ * Pending consent requests awaiting the patient's decision.
+ *
+ * Two things were wrong here. It returned EVERY consent row rather than only the
+ * pending ones, so active grants and revoked history showed up in the patient's
+ * "Requests" tab. And it exposed the row's identity as `grantId` while the
+ * consumer read `r.id ?? r.requestId`, so every request fell through to
+ * `String(Math.random())` — approve and deny then addressed a grant_id that does
+ * not exist and always failed.
+ *
+ * Doctor names are resolved from the DID registry, the same way appointment names
+ * are: `consents` stores DIDs only, and the UI previously substituted a
+ * hardcoded "Dr. Specialist" for every requester.
+ */
 export async function getConsentRequests(_did?: string) {
-  const { getConsents: fn } = await import("./clinical.server");
+  const { getConsents: fn, getAllDIDs: didsFn } = await import("./clinical.server");
   const res = await fn();
-  return {
-    requests: (res.consents ?? []).map((c: any) => ({
-      grantId: c.grant_id,
-      patientDid: c.patient_did,
-      doctorDid: c.doctor_did,
-      resource: c.resource,
-      status: c.status,
-      grantedAt: c.granted_at,
-      expiry: c.expires_at,
-      revokedAt: c.revoked_at,
-    })),
-  };
+
+  const pending = (res.consents ?? []).filter((c: any) => c.status === "pending");
+  if (pending.length === 0) return { requests: [], total: 0 };
+
+  let nameByDid: Record<string, string> = {};
+  try {
+    const didRes = await didsFn();
+    nameByDid = Object.fromEntries(
+      (didRes.dids ?? []).map((d: any) => [d.did, d.owner_name]).filter(([, n]) => Boolean(n)),
+    );
+  } catch {
+    // Name resolution is cosmetic; the request itself must still be actionable.
+  }
+
+  const requests = pending.map((c: any) => ({
+    // Both keys point at the real primary key so either consumer spelling works.
+    id: c.grant_id,
+    grantId: c.grant_id,
+    requestId: c.grant_id,
+    patientDid: c.patient_did,
+    doctorDid: c.doctor_did,
+    doctorName: nameByDid[c.doctor_did] ?? c.doctor_did,
+    resource: c.resource,
+    status: c.status,
+    requestedAt: c.granted_at,
+    grantedAt: c.granted_at,
+    expiry: c.expires_at,
+    expiresAt: c.expires_at,
+    revokedAt: c.revoked_at,
+  }));
+
+  return { requests, total: requests.length };
 }
 
 /**
@@ -853,8 +941,25 @@ export async function revokeConsent(grantId: string) {
 
 export async function getAppointments(_did?: string) {
   const { getAppointments: fn } = await import("./clinical.server");
+  const { getHospitalDirectory } = await import("./inpatient.server");
   const res = await fn();
+
+  // Resolve which hospital each appointment is at. The UI previously printed a
+  // constant "Embrace Health Grid" for every row, so a patient attending two
+  // different hospitals saw the same label on both.
+  let hospitalName: Record<string, string> = {};
+  try {
+    const hRes = await getHospitalDirectory();
+    hospitalName = Object.fromEntries(
+      (hRes.hospitals ?? []).map((h: any) => [h.hospital_id, h.name]),
+    );
+  } catch {
+    // Presentational only.
+  }
+
   const appointments: any[] = (res.appointments ?? []).map((a: any) => ({
+    hospitalId: a.hospital_id ?? null,
+    hospitalName: a.hospital_id ? (hospitalName[a.hospital_id] ?? null) : null,
     apptId: a.appt_id,
     patientDid: a.patient_did,
     doctorDid: a.doctor_did,
@@ -1207,23 +1312,61 @@ export async function getDoctorAppointmentRequests(_doctorDid?: string) {
   };
 }
 
-export async function updateProfile(data: { name?: string; [key: string]: unknown }) {
+/**
+ * Update the signed-in user's profile.
+ *
+ * Only `name` used to be forwarded; every other field the edit dialog collected
+ * was dropped on the floor here, which is why an edit reported success and then
+ * appeared to change nothing.
+ */
+export async function updateProfile(data: {
+  name?: string;
+  fullName?: string;
+  phone?: string;
+  age?: number | string;
+  gender?: string;
+  bloodGroup?: string;
+  allergies?: string[] | string;
+  [key: string]: unknown;
+}) {
   const { updateOwnProfile } = await import("./clinical.server");
-  await updateOwnProfile({ data: { fullName: data.name } });
+  await updateOwnProfile({
+    data: {
+      fullName: data.fullName ?? data.name,
+      phone: data.phone,
+      age: data.age,
+      gender: data.gender,
+      bloodGroup: data.bloodGroup,
+      allergies: data.allergies,
+    },
+  });
   const { getCurrentUser } = await import("./auth.server");
   const user = await getCurrentUser();
   return { success: true as const, user, patient: user };
 }
 
 /**
- * Emergency profile fields (blood group, allergies, conditions) are not yet
- * modelled as columns. The write is accepted so the UI flow completes, but
- * nothing is persisted beyond the name — see the TODO on CurrentUser.
+ * Emergency card fields: blood group and allergies.
+ *
+ * These are real columns on profiles now, so this persists. It previously
+ * accepted the write, discarded it with `void data`, and returned success — the
+ * emergency card silently never changed.
  */
-export async function updateEmergencyProfile(data: Record<string, unknown>) {
+export async function updateEmergencyProfile(data: {
+  bloodGroup?: string;
+  blood_group?: string;
+  allergies?: string[] | string;
+  [key: string]: unknown;
+}) {
+  const { updateOwnProfile } = await import("./clinical.server");
+  await updateOwnProfile({
+    data: {
+      bloodGroup: (data.bloodGroup ?? data.blood_group) as string | undefined,
+      allergies: data.allergies,
+    },
+  });
   const { getCurrentUser } = await import("./auth.server");
   const user = await getCurrentUser();
-  void data;
   return { success: true as const, patient: user, user };
 }
 
@@ -1691,15 +1834,35 @@ export async function updatePreferences(
   return { success: true as const };
 }
 
-/** Clinician directory, derived from dids rather than a duplicate table. */
+/**
+ * Clinician directory, derived from dids rather than a duplicate table.
+ *
+ * Each clinician is returned with the hospital they practise at, resolved to a
+ * name. The directory is cross-hospital by design so referrals work, which means
+ * a patient choosing a doctor was previously given no way to tell which hospital
+ * they were about to book.
+ */
 export async function getDoctors() {
-  const { getDoctors: fn } = await import("./inpatient.server");
+  const { getDoctors: fn, getHospitalDirectory } = await import("./inpatient.server");
   const res = await fn();
+
+  let hospitalName: Record<string, string> = {};
+  try {
+    const hRes = await getHospitalDirectory();
+    hospitalName = Object.fromEntries(
+      (hRes.hospitals ?? []).map((h: any) => [h.hospital_id, h.name]),
+    );
+  } catch {
+    // Names are presentational; the directory must still list clinicians.
+  }
+
   const doctors = (res.doctors ?? []).map((d: any) => ({
     did: d.did,
     name: d.owner_name,
     role: d.owner_type,
     status: d.status,
+    hospitalId: d.hospital_id ?? null,
+    hospitalName: d.hospital_id ? (hospitalName[d.hospital_id] ?? null) : null,
   }));
   return { doctors, total: doctors.length };
 }
@@ -1924,26 +2087,63 @@ export async function logAuditEvent(
  * Reuses the sign-credential Edge Function: a signed prescription is a
  * verifiable credential whose subject is the patient.
  */
+/**
+ * Sign a prescription and record it.
+ *
+ * This used to mint a PrescriptionVC and stop there, so nothing reached
+ * public.prescriptions and the patient portal — which reads that table — showed
+ * nothing after a successful signing. It also derived rxId from the caller's
+ * argument, and the sign form does not send one, so the id was the empty string
+ * and the linked medical report was written with rxId "".
+ *
+ * Now: mint the credential, then persist the prescription with the id the server
+ * generates. The credential is the proof; the row is the record.
+ */
 export async function signPrescription(
   arg1: string | { rxId?: string; patientDid?: string; [key: string]: unknown },
   patientDidArg?: string,
 ) {
-  const { signCredential } = await import("./clinical.server");
+  const { signCredential, createPrescription } = await import("./clinical.server");
 
   // Callers pass either (rxId, patientDid) or the whole prescription object.
-  const rxId = typeof arg1 === "string" ? arg1 : String(arg1.rxId ?? "");
+  const rxIdIn = typeof arg1 === "string" ? arg1 : String(arg1.rxId ?? "");
   const patientDid =
     typeof arg1 === "string" ? (patientDidArg ?? "") : String(arg1.patientDid ?? "");
-  const claims = typeof arg1 === "string" ? { rxId } : { ...arg1 };
+  const claims = typeof arg1 === "string" ? { rxId: rxIdIn } : { ...arg1 };
+
+  const obj = typeof arg1 === "string" ? {} : arg1;
+  const drugs = Array.isArray(obj.drugs) ? (obj.drugs as unknown[]) : [];
 
   const res: any = await signCredential({
     data: { subjectDid: patientDid, credentialType: "PrescriptionVC", claims },
   });
+
+  const signature: string | undefined = res.credential?.signature;
+
+  // Persist the prescription itself. Only possible when the caller supplied the
+  // drug list — the (rxId, patientDid) form is a re-sign of something that already
+  // exists, so there is nothing new to insert.
+  let rxId = rxIdIn;
+  if (drugs.length > 0) {
+    const saved = await createPrescription({
+      data: {
+        patientDid,
+        drugs,
+        diagnosis: typeof obj.diagnosis === "string" ? obj.diagnosis : undefined,
+        notes: typeof obj.notes === "string" ? obj.notes : undefined,
+        signedBy: typeof obj.signedBy === "string" ? obj.signedBy : undefined,
+        contentHash: signature,
+        rxId: rxIdIn || undefined,
+      },
+    });
+    rxId = saved.rxId;
+  }
+
   return {
     success: true as const,
     rxId,
     credential: res.credential,
-    signature: res.credential?.signature,
+    signature,
   };
 }
 

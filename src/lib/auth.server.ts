@@ -84,6 +84,11 @@ function toCurrentUser(profile: {
   primary_did: string | null;
   wallet_address?: string | null;
   hospital_id?: string | null;
+  phone?: string | null;
+  age?: number | null;
+  gender?: string | null;
+  blood_group?: string | null;
+  allergies?: string[] | null;
 }): CurrentUser {
   return {
     id: profile.id,
@@ -96,6 +101,16 @@ function toCurrentUser(profile: {
     // successful link — the address was in Postgres and simply never read back.
     walletAddress: profile.wallet_address ?? undefined,
     hospitalId: profile.hospital_id ?? undefined,
+    // Demographics. These were declared on CurrentUser but never mapped, so the
+    // profile page read currentUser?.phone / age / bloodGroup as undefined and
+    // fell through to hardcoded defaults ("+91 98765 43210", "O+", 30). An edit
+    // saved to Postgres and then appeared not to have changed anything — the same
+    // failure as walletAddress above.
+    phone: profile.phone ?? undefined,
+    age: profile.age ?? undefined,
+    gender: profile.gender ?? undefined,
+    bloodGroup: profile.blood_group ?? undefined,
+    allergies: profile.allergies ?? undefined,
     // Aliases for legacy call sites.
     name: profile.full_name,
     did: profile.primary_did,
@@ -129,7 +144,9 @@ export const signIn = createServerFn({ method: "POST" })
     // Load the profile from the database — never trust client-supplied role.
     const { data: profile, error: pErr } = await supabase
       .from("profiles")
-      .select("id, email, full_name, role, primary_did, wallet_address, hospital_id")
+      .select(
+        "id, email, full_name, role, primary_did, wallet_address, hospital_id, phone, age, gender, blood_group, allergies",
+      )
       .eq("id", result.user.id)
       .single();
 
@@ -161,7 +178,9 @@ export const getCurrentUser = createServerFn({ method: "GET" }).handler(
     const supabase = getSupabaseServerClient();
     const { data: profile, error } = await supabase
       .from("profiles")
-      .select("id, email, full_name, role, primary_did, wallet_address, hospital_id")
+      .select(
+        "id, email, full_name, role, primary_did, wallet_address, hospital_id, phone, age, gender, blood_group, allergies",
+      )
       .eq("id", user.id)
       .single();
 

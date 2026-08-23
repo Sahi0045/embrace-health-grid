@@ -153,6 +153,23 @@ function PatientProfile() {
   const [editAllergies, setEditAllergies] = useState(allergies.join(", "));
   const [updating, setUpdating] = useState(false);
 
+  // Reseed the form whenever the dialog opens.
+  //
+  // useState only uses its argument on first render, so these fields kept the
+  // values captured when the page first mounted. After a successful save the
+  // session refreshed and the page showed the new values, but reopening the
+  // dialog presented the old ones again — which reads as "the update did not
+  // stick".
+  useEffect(() => {
+    if (!isEditOpen) return;
+    setEditName(name);
+    setEditPhone(phone);
+    setEditAge(age);
+    setEditGender(gender);
+    setEditBloodGroup(bloodGroup);
+    setEditAllergies(allergies.join(", "));
+  }, [isEditOpen, name, phone, age, gender, bloodGroup, allergies]);
+
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setUpdating(true);

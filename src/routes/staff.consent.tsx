@@ -23,7 +23,8 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { toast } from "sonner";
-import { getMyConsents, requestConsent, getMyPatients, API_BASE_URL } from "@/lib/api";
+import { getMyConsents, requestConsent, getMyPatients } from "@/lib/api";
+import { useTableRefresh } from "@/hooks/use-realtime";
 import { useCurrentUser } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/staff/consent")({
@@ -81,47 +82,16 @@ function StaffConsentPage() {
     load();
   }, [load]);
 
-  // Real-time WebSocket
-  useEffect(() => {
-    const wsUrl = (API_BASE_URL || "http://localhost:3001").replace(/^http/, "ws");
-    let ws: WebSocket | null = null;
-    let retry: ReturnType<typeof setTimeout>;
-    let retryCount = 0;
-    const connect = () => {
-      if (retryCount > 3) return;
-      try {
-        ws = new WebSocket(wsUrl);
-        ws.onmessage = (e) => {
-          try {
-            const msg = JSON.parse(e.data);
-            if (["consent:granted", "consent:revoked", "consent:request"].includes(msg.event))
-              load();
-          } catch {
-            /* ignore */
-          }
-        };
-        ws.onerror = () => {
-          /* silent */
-        };
-        ws.onclose = () => {
-          retryCount++;
-          if (retryCount <= 3) {
-            retry = setTimeout(connect, 10000);
-          }
-        };
-      } catch {
-        /* no WS */
-      }
-    };
-    connect();
-    return () => {
-      retryCount = 99;
-      if (ws && (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN)) {
-        ws.close();
-      }
-      clearTimeout(retry);
-    };
-  }, [load]);
+  // Live updates come from Supabase Realtime, like every other screen.
+  //
+  // This used to open its own WebSocket to API_BASE_URL with a localhost:3001
+  // fallback — the Express backend, which was decommissioned. The socket could
+  // never connect, so consent changes never synced here and the browser console
+  // filled with ERR_CONNECTION_REFUSED on a 10s retry loop. The handler it was
+  // waiting on ("consent:granted" / "consent:revoked" / "consent:request") was
+  // served by a process that no longer exists.
+  useTableRefresh("consents", load);
+  useTableRefresh("staff_requests", load);
 
   // ── Request Access form ────────────────────────────────────────────────────
   const [myPatients, setMyPatients] = useState<any[]>([]);
@@ -188,11 +158,16 @@ function StaffConsentPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   // ── derived lists ──────────────────────────────────────────────────────────
-  const activeGrants = grants.filter(
-    (g) => g.status === "active" && new Date(g.expiry) > new Date(),
-  );
+  // A null/absent expiry means the grant does not expire. Comparing it directly
+  // read `new Date(null) > new Date()`, which is false because new Date(null) is
+  // the epoch — so open-ended grants were filed under History as though they had
+  // lapsed, and the KPI count disagreed with the tab count.
+  const hasLapsed = (expiry?: string | null) =>
+    Boolean(expiry) && new Date(expiry as string).getTime() <= Date.now();
+
+  const activeGrants = grants.filter((g) => g.status === "active" && !hasLapsed(g.expiry));
   const expiredGrants = grants.filter(
-    (g) => g.status === "revoked" || (g.status === "active" && new Date(g.expiry) <= new Date()),
+    (g) => g.status === "revoked" || (g.status === "active" && hasLapsed(g.expiry)),
   );
   const pendingReqs = requests.filter((r) => r.status === "pending");
   const closedReqs = requests.filter((r) => r.status !== "pending");

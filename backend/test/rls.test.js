@@ -29,6 +29,9 @@ const DIDS = {
   drjones: "did:hosp:0xSEEDD02",
 };
 
+/** Every DID Dr Smith controls, for asserting that a visible row is his own work. */
+const SMITH_DIDS = [DIDS.drsmith];
+
 /**
  * Sign in and return an anon-key client carrying that user's session.
  * Fresh client per user so sessions never bleed between assertions.
@@ -121,16 +124,42 @@ describe("Clinician access via consent", () => {
     assert.ok(data.length >= 2, `expected consented access, got ${data.length} rows`);
   });
 
-  it("Dr Smith CANNOT read Bob's records (consent EXPIRED)", async () => {
+  it("An expired consent grants nothing (Dr Jones -> Bob)", async () => {
     // consents row is status='active' but expires_at is in the past.
     // Proves expiry is enforced at query time, not by a cleanup job.
-    const { data, error } = await drsmith
+    //
+    // Asked as Dr JONES, not Dr Smith. Dr Smith is the author_did on every
+    // seeded record including Bob's, and medical_records_select_doctor lets the
+    // authoring clinician keep access to their own work — so asking Dr Smith
+    // could never isolate the consent rule. The previous version of this test
+    // did exactly that and reported a leak that was really authorship.
+    const { data, error } = await drjones
       .from("medical_records")
       .select("record_id")
       .eq("patient_did", DIDS.bob);
 
     assert.equal(error, null);
     assert.equal(data.length, 0, "LEAK: expired consent still granted access");
+  });
+
+  it("The authoring clinician retains access to what they wrote", async () => {
+    // The other side of the same rule, stated explicitly so it is a decision on
+    // record rather than an accident: authorship is an access path, independent
+    // of consent. Dr Smith authored Bob's record and holds only an EXPIRED
+    // consent from Bob, so anything he sees here comes from authorship alone.
+    const { data, error } = await drsmith
+      .from("medical_records")
+      .select("record_id, author_did")
+      .eq("patient_did", DIDS.bob);
+
+    assert.equal(error, null);
+    assert.ok(data.length > 0, "the author should still see their own record");
+    for (const row of data) {
+      assert.ok(
+        SMITH_DIDS.includes(row.author_did),
+        `visible row ${row.record_id} was not authored by Dr Smith — access came from somewhere else`,
+      );
+    }
   });
 
   it("Dr Jones CANNOT read Carol's records (consent REVOKED)", async () => {
@@ -143,8 +172,10 @@ describe("Clinician access via consent", () => {
     assert.equal(data.length, 0, "LEAK: revoked consent still granted access");
   });
 
-  it("Dr Smith CANNOT read Carol's records (no consent at all)", async () => {
-    const { data, error } = await drsmith
+  it("No consent at all grants nothing (Dr Jones -> Carol, non-author)", async () => {
+    // Same reasoning as the expired case: Dr Smith authored Carol's record too,
+    // so he is the wrong subject for a consent-only assertion.
+    const { data, error } = await drjones
       .from("medical_records")
       .select("record_id")
       .eq("patient_did", DIDS.carol);

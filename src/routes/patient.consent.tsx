@@ -15,6 +15,7 @@ import {
   denyConsentRequest,
   getPreferences,
   updatePreferences,
+  approveConsentRequest,
 } from "@/lib/api";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
@@ -42,6 +43,8 @@ export const Route = createFileRoute("/patient/consent")({
 
 interface ConsentRequest {
   id: string;
+  /** The consents.grant_id this request belongs to — what approve/deny address. */
+  grantId: string;
   doctorName: string;
   doctorDid: string;
   resource: string;
@@ -96,18 +99,24 @@ function Consent() {
       const data = await getConsentRequests(patientDid);
       const raw = (data.requests ?? []) as any[];
       setRequests(
+        // Identity comes straight from grant_id. The previous fallback chain ended
+        // in String(Math.random()), so approve and deny addressed a grant that did
+        // not exist. The doctor name is resolved from the DID registry server-side;
+        // it used to default to a hardcoded "Dr. Specialist" for every requester.
         raw.map((r: any) => ({
-          id: r.id ?? r.requestId ?? String(Math.random()),
-          doctorName: r.doctorName ?? r.requester ?? "Dr. Specialist",
-          doctorDid: r.doctorDid ?? r.requesterDid ?? "did:hosp:staff:unknown",
+          id: r.id ?? r.grantId,
+          grantId: r.grantId ?? r.id,
+          doctorName: r.doctorName ?? r.doctorDid ?? "Unknown clinician",
+          doctorDid: r.doctorDid ?? "",
           resource: r.resource ?? "Medical Records",
           reason: r.reason ?? "Patient care",
-          requestedAt: r.requestedAt ?? r.timestamp ?? new Date().toISOString(),
+          requestedAt: r.requestedAt ?? r.grantedAt ?? "",
           expiresAt: r.expiresAt ?? r.expiry ?? "",
         })),
       );
     } catch {
-      // Solana Devnet offline or endpoint not yet available — show empty gracefully
+      // This is a database read, not a chain call — the old comment here blamed
+      // "Solana Devnet offline". Show an empty list rather than breaking the page.
       setRequests([]);
     } finally {
       setReqLoading(false);
@@ -173,7 +182,10 @@ function Consent() {
   // ─── Approve / deny request handlers ────────────────────────────────────────
   const handleApproveRequest = async (req: ConsentRequest) => {
     try {
-      await grantConsent(patientDid, req.doctorDid, req.resource, req.expiresAt || undefined);
+      // Flip the existing pending row rather than inserting a second active one.
+      // grantConsent() inserts, which left the request pending forever and
+      // duplicated the grant.
+      await approveConsentRequest(req.grantId, req.expiresAt || undefined);
       toast.success(`Access granted to ${req.doctorName}`);
       fetchRequests();
       refetch();

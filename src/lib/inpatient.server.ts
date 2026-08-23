@@ -771,13 +771,37 @@ export const updateFraudAlertStatus = createServerFn({ method: "POST" })
  * table. A duplicated doctors table would drift out of step with the identity
  * records that actually govern access.
  */
+/**
+ * Hospital directory.
+ *
+ * hospitals_select_authenticated is intentionally readable by any signed-in user,
+ * including patients: choosing which hospital to attend requires seeing the list.
+ * Only public-facing columns are returned — nothing operational or financial.
+ */
+export const getHospitalDirectory = createServerFn({ method: "GET" }).handler(async () => {
+  await requireSession();
+  const supabase = getSupabaseServerClient();
+
+  const { data, error } = await supabase
+    .from("hospitals")
+    .select("hospital_id, name, slug, city, country, status, hospital_did")
+    .eq("status", "active")
+    .order("name");
+
+  if (error) throw new Error(error.message);
+  return { hospitals: data ?? [] };
+});
+
 export const getDoctors = createServerFn({ method: "GET" }).handler(async () => {
   await requireSession();
   const supabase = getSupabaseServerClient();
 
   const { data, error } = await supabase
     .from("dids")
-    .select("did, owner_name, owner_type, status")
+    // hospital_id so a patient can see WHICH hospital a clinician belongs to
+    // before booking. The clinician directory is cross-hospital by design, so
+    // without it every doctor looked like they came from the same place.
+    .select("did, owner_name, owner_type, status, hospital_id")
     .in("owner_type", ["doctor", "staff"])
     // A hospital's own DID is stored with owner_type 'staff' because user_role has
     // no organisation member, so without this the admin roster listed hospitals

@@ -254,7 +254,7 @@ export const getAppointments = createServerFn({ method: "GET" }).handler(async (
   const { data, error } = await supabase
     .from("appointments")
     .select(
-      "appt_id, patient_did, doctor_did, slot, mode, specialty, status, reason, booked_at, suggested_slot",
+      "appt_id, patient_did, doctor_did, slot, mode, specialty, status, reason, booked_at, suggested_slot, hospital_id",
     )
     .order("booked_at", { ascending: false });
 
@@ -308,6 +308,23 @@ export const bookAppointment = createServerFn({ method: "POST" })
 
     if (!profile?.primary_did) throw new Error("No DID associated with this account");
 
+    // Which hospital this appointment belongs to, taken from the clinician being
+    // booked. A doctor belongs to exactly one hospital (enforce_staff_hospital),
+    // so booking Dr X at Apollo is unambiguously an Apollo appointment — there is
+    // nothing for the patient to choose and nothing to spoof from the request.
+    //
+    // This was never stamped, so every appointment had hospital_id NULL: a
+    // hospital could not list its own appointments, and a patient's visit was not
+    // attributable to the hospital they actually attended.
+    //
+    // Provenance only, per the Stage 4 PHI decision — appointments_select_involved
+    // still governs access, so a referral keeps working across hospitals.
+    const { data: doctorDid } = await supabase
+      .from("dids")
+      .select("hospital_id")
+      .eq("did", data.doctorDid)
+      .maybeSingle();
+
     const apptId = `appt_${crypto.randomUUID().slice(0, 8)}`;
     const { error } = await supabase.from("appointments").insert({
       appt_id: apptId,
@@ -317,6 +334,7 @@ export const bookAppointment = createServerFn({ method: "POST" })
       mode: data.mode ?? "in-person",
       specialty: data.specialty ?? null,
       status: "pending",
+      hospital_id: doctorDid?.hospital_id ?? null,
     });
 
     if (error) throw new Error(error.message);
@@ -364,6 +382,105 @@ export const grantConsent = createServerFn({ method: "POST" })
 
     if (error) throw new Error(error.message);
     return { ok: true as const, grantId };
+  });
+
+/**
+ * Clinician asks a patient for access to a resource.
+ *
+ * Writes a pending row into `consents`. The clinician cannot create an active
+ * grant — consents_insert_clinician_request constrains status to 'pending' and
+ * requires doctor_did to be one of the caller's own DIDs, so this cannot be used
+ * to self-authorise or to request in a colleague's name.
+ *
+ * Replaces an Express POST to /consent/request against a server that no longer
+ * exists, which is why "Request Access" on /staff/consent silently did nothing.
+ */
+export const requestConsentAccess = createServerFn({ method: "POST" })
+  .inputValidator(
+    (data: { patientDid: string; resource: string; expiresAt?: string; reason?: string }) => {
+      if (!data?.patientDid || !data?.resource) {
+        throw new Error("patientDid and resource are required");
+      }
+      return data;
+    },
+  )
+  .handler(async ({ data }) => {
+    await requireSession();
+    const supabase = getSupabaseServerClient();
+
+    const doctorDid = await callerPrimaryDid();
+    if (!doctorDid) throw new Error("No DID associated with this account");
+    if (doctorDid === data.patientDid) {
+      // Also enforced by the consents_no_self_grant constraint.
+      throw new Error("Cannot request access to your own records");
+    }
+
+    const grantId = `req_${crypto.randomUUID().slice(0, 8)}`;
+    const { error } = await supabase.from("consents").insert({
+      grant_id: grantId,
+      patient_did: data.patientDid,
+      doctor_did: doctorDid,
+      resource: data.resource,
+      status: "pending",
+      expires_at: data.expiresAt ?? null,
+      // The request timeline. medical_records_select_doctor and
+      // prescriptions_select_doctor both require approved_at IS NOT NULL, so a
+      // request starts with it unset and only gains it on approval.
+      requested_at: new Date().toISOString(),
+      approved_at: null,
+      reason: data.reason ?? null,
+    });
+
+    if (error) throw new Error(error.message);
+    return { ok: true as const, grantId };
+  });
+
+/**
+ * Patient approves a pending request, in place.
+ *
+ * The approve path used to call grantConsent(), which INSERTS a fresh active row
+ * and left the pending one pending — so an approved request stayed in the
+ * patient's Requests tab forever and the grant was duplicated. Flipping the
+ * existing row keeps one record per decision and preserves its grant_id, which
+ * the audit trail references.
+ *
+ * Only the patient can do this: consents_update_patient restricts UPDATE to rows
+ * whose patient_did is one of the caller's DIDs, so a clinician cannot approve
+ * their own request.
+ */
+export const approveConsentRequest = createServerFn({ method: "POST" })
+  .inputValidator((data: { grantId: string; expiresAt?: string }) => {
+    if (!data?.grantId) throw new Error("grantId is required");
+    return data;
+  })
+  .handler(async ({ data }) => {
+    await requireSession();
+    const supabase = getSupabaseServerClient();
+
+    const now = new Date().toISOString();
+    const update: Record<string, unknown> = {
+      status: "active",
+      granted_at: now,
+      // Required by medical_records_select_doctor and prescriptions_select_doctor,
+      // which both test approved_at IS NOT NULL. Without it a consent would look
+      // active and still open no records.
+      approved_at: now,
+    };
+    if (data.expiresAt) update.expires_at = data.expiresAt;
+
+    const { data: updated, error } = await supabase
+      .from("consents")
+      .update(update)
+      .eq("grant_id", data.grantId)
+      .eq("status", "pending")
+      .select("grant_id");
+
+    if (error) throw new Error(error.message);
+    if (!updated?.length) {
+      throw new Error("Request not found, already decided, or you are not the patient");
+    }
+
+    return { ok: true as const, grantId: data.grantId };
   });
 
 export const revokeConsent = createServerFn({ method: "POST" })
@@ -599,16 +716,122 @@ export const getProfiles = createServerFn({ method: "GET" }).handler(async () =>
  * clause forbids changing `role`, so this cannot be used for privilege
  * escalation.
  */
+/**
+ * Update the signed-in user's own profile.
+ *
+ * This used to accept only `fullName` and silently drop everything else, so the
+ * profile dialog appeared to save but phone, age, gender, blood group and
+ * allergies were discarded — the reported "updates in the backend but not in the
+ * UI" was in fact "never written, and never read back either".
+ *
+ * Each field is applied only when present, so a partial update cannot blank the
+ * rest. Empty string clears a text field deliberately; undefined leaves it alone.
+ */
+/**
+ * Record a prescription.
+ *
+ * Signing a prescription used to only mint a PrescriptionVC through the
+ * sign-credential Edge Function; nothing was ever written to public.prescriptions.
+ * The doctor saw "signed successfully" and the patient portal, which reads that
+ * table, stayed empty — the credential existed but the prescription did not.
+ *
+ * doctor_did comes from the session, never the request, and
+ * prescriptions_insert_clinician additionally requires an active consent from the
+ * patient, so this cannot be used to write a prescription for someone the caller
+ * has no relationship with.
+ *
+ * There is deliberately no client UPDATE policy: a signed prescription is
+ * immutable, and a correction is a new row.
+ */
+export const createPrescription = createServerFn({ method: "POST" })
+  .inputValidator(
+    (data: {
+      patientDid: string;
+      drugs?: unknown[];
+      diagnosis?: string;
+      notes?: string;
+      signedBy?: string;
+      contentHash?: string;
+      rxId?: string;
+    }) => {
+      if (!data?.patientDid) throw new Error("patientDid is required");
+      if (!Array.isArray(data.drugs) || data.drugs.length === 0) {
+        throw new Error("At least one drug is required");
+      }
+      return data;
+    },
+  )
+  .handler(async ({ data }) => {
+    await requireSession();
+    const supabase = getSupabaseServerClient();
+
+    const doctorDid = await callerPrimaryDid();
+    if (!doctorDid) throw new Error("No DID associated with this account");
+
+    const rxId = data.rxId || `rx_${crypto.randomUUID().slice(0, 8)}`;
+
+    const { error } = await supabase.from("prescriptions").insert({
+      rx_id: rxId,
+      patient_did: data.patientDid,
+      doctor_did: doctorDid,
+      drugs: data.drugs,
+      diagnosis: data.diagnosis ?? null,
+      notes: data.notes ?? null,
+      status: "active",
+      signed: true,
+      signed_by: data.signedBy ?? doctorDid,
+      signed_at: new Date().toISOString(),
+      content_hash: data.contentHash ?? null,
+    });
+
+    if (error) throw new Error(error.message);
+    return { ok: true as const, rxId };
+  });
+
 export const updateOwnProfile = createServerFn({ method: "POST" })
-  .inputValidator((data: { fullName?: string }) => data ?? {})
+  .inputValidator(
+    (data: {
+      fullName?: string;
+      phone?: string;
+      age?: number | string | null;
+      gender?: string;
+      bloodGroup?: string;
+      allergies?: string[] | string;
+    }) => data ?? {},
+  )
   .handler(async ({ data }) => {
     const user = await requireSession();
     const supabase = getSupabaseServerClient();
 
     const patch: Record<string, unknown> = {};
-    if (data.fullName) patch.full_name = data.fullName;
+
+    if (data.fullName !== undefined) patch.full_name = data.fullName;
+    if (data.phone !== undefined) patch.phone = data.phone || null;
+    if (data.gender !== undefined) patch.gender = data.gender || null;
+    if (data.bloodGroup !== undefined) patch.blood_group = data.bloodGroup || null;
+
+    if (data.age !== undefined) {
+      // The form sends a string, and parseInt("") is NaN, which Postgres rejects
+      // for an int column.
+      const n = typeof data.age === "number" ? data.age : parseInt(String(data.age ?? ""), 10);
+      patch.age = Number.isFinite(n) ? n : null;
+    }
+
+    if (data.allergies !== undefined) {
+      // Accept either a real array or the comma-separated string the dialog uses.
+      const list = Array.isArray(data.allergies)
+        ? data.allergies
+        : String(data.allergies)
+            .split(",")
+            .map((a) => a.trim())
+            .filter(Boolean);
+      patch.allergies = list;
+    }
+
     if (!Object.keys(patch).length) return { ok: true as const, changed: false };
 
+    // RLS restricts this to the caller's own row; the id filter makes that
+    // explicit rather than relying on the policy alone.
     const { error } = await supabase.from("profiles").update(patch).eq("id", user.id);
     if (error) throw new Error(error.message);
     return { ok: true as const, changed: true };
