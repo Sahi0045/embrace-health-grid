@@ -1,8 +1,3 @@
-/**
- * API Client for embrace-health-grid backend
- * Connects directly to the REST server (http://localhost:3001)
- */
-
 const getApiBaseUrl = (): string => {
   const envUrl =
     typeof process !== "undefined" && process?.env ? process.env.VITE_API_BASE_URL : undefined;
@@ -419,40 +414,6 @@ export async function getAdmissionEvents(
 
 export async function getWardOccupancy() {
   const { getWardOccupancy: fn } = await import("./admissions.server");
-  return await fn();
-}
-
-// ─── Audit Trail ─────────────────────────────────────────────────────────────
-
-export async function getAuditTrail(
-  opts: {
-    module?: string;
-    entityId?: string;
-    actorId?: string;
-    severity?: string;
-    outcome?: string;
-    from?: string;
-    to?: string;
-    limit?: number;
-    offset?: number;
-  } = {},
-) {
-  const { getAuditTrail: fn } = await import("./audit.server");
-  return await fn({ data: opts });
-}
-
-export async function verifyAuditRecord(txId: string) {
-  const { verifyAuditRecord: fn } = await import("./audit.server");
-  return await fn({ data: { txId } });
-}
-
-export async function processAuditAnchorQueue(limit?: number) {
-  const { processAuditAnchorQueue: fn } = await import("./audit.server");
-  return await fn({ data: { limit } });
-}
-
-export async function getAuditStats() {
-  const { getAuditStats: fn } = await import("./audit.server");
   return await fn();
 }
 

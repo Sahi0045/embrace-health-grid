@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { RouteGuard } from "@/components/RouteGuard";
+import { PageHeader } from "@/components/PageHeader";
+import { StaggerList, StaggerItem } from "@/components/Motion";
 import {
   Activity,
   Search,
@@ -20,6 +22,7 @@ import {
   ChevronUp,
   Anchor,
   Loader2,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -27,7 +30,7 @@ import {
   verifyAuditRecord,
   processAuditAnchorQueue,
   getAuditStats,
-} from "@/lib/api";
+} from "@/lib/audit.server";
 import { useTableRefresh } from "@/hooks/use-realtime";
 import {
   Dialog,
@@ -41,7 +44,14 @@ import { Input } from "@/components/ui/input";
 
 export const Route = createFileRoute("/admin/audit")({
   head: () => ({
-    meta: [{ title: "Admin · Audit Trail — Embrace Health Grid" }],
+    meta: [
+      { title: "Audit Trail & Blockchain Proofs — Admin Console" },
+      {
+        name: "description",
+        content:
+          "Tamper-evident audit records with cryptographic SHA-256 integrity and Solana blockchain anchoring",
+      },
+    ],
   }),
   component: AdminAuditPageGuarded,
 });
@@ -113,7 +123,7 @@ function AdminAuditPage() {
     setLoading(true);
     try {
       const [eventsRes, statsRes] = await Promise.all([
-        getAuditTrail({ limit: 200 }),
+        getAuditTrail({ data: { limit: 200 } }),
         getAuditStats().catch(() => ({
           total: 0,
           failures: 0,
@@ -123,7 +133,7 @@ function AdminAuditPage() {
           pendingAnchors: 0,
         })),
       ]);
-      setEvents(eventsRes.events ?? []);
+      setEvents((eventsRes as any)?.events ?? []);
       setStats(statsRes);
     } catch (err: any) {
       toast.error("Could not load audit trail", { description: err.message });
@@ -168,8 +178,8 @@ function AdminAuditPage() {
     setVerifyLoading(true);
     setVerifyOpen(true);
     try {
-      const result = await verifyAuditRecord(event.tx_id);
-      setVerifyResult(result);
+      const result = await verifyAuditRecord({ data: { txId: event.tx_id } });
+      setVerifyResult(result as any);
     } catch (err: any) {
       toast.error("Verification failed", { description: err.message });
       setVerifyOpen(false);
@@ -182,11 +192,11 @@ function AdminAuditPage() {
   const handleAnchorPending = async () => {
     setAnchoring(true);
     try {
-      const res = await processAuditAnchorQueue(10);
+      const res = await processAuditAnchorQueue({ data: { limit: 10 } });
       toast.success(`Processed ${res.processed} events`, {
         description: `${res.anchored} anchored, ${res.failed} failed`,
       });
-      load(); // Refresh to show updated anchor statuses
+      load();
     } catch (err: any) {
       toast.error("Anchoring failed", { description: err.message });
     } finally {
@@ -205,6 +215,9 @@ function AdminAuditPage() {
       CERTIFICATION_DELETED: "Certification Deleted",
       BED_STATUS_CHANGED: "Bed Status Changed",
       ROOM_STATUS_CHANGED: "Room Status Changed",
+      STOCK_IN: "Stock Inward Recorded",
+      STOCK_OUT: "Stock Outward Dispatched",
+      STOCK_ADJUSTMENT: "Stock Audit Adjustment",
     };
     return (
       labels[action] ??
@@ -246,347 +259,387 @@ function AdminAuditPage() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between border-b border-border pb-4">
-        <div>
-          <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">
-            Admin Console
-          </div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Shield className="h-6 w-6 text-primary" />
-            Audit Trail & Blockchain Proofs
-          </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Tamper-evident audit records with blockchain anchoring. All sensitive data stays in the
-            database.
-          </p>
-        </div>
-        <div className="flex gap-2 shrink-0">
-          <button
-            onClick={load}
-            disabled={loading}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-border px-3 py-2 text-xs font-semibold hover:bg-muted disabled:opacity-50"
-          >
-            <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
-            Refresh
-          </button>
-          {stats?.pendingAnchors > 0 && (
-            <button
-              onClick={handleAnchorPending}
-              disabled={anchoring}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-600 disabled:opacity-50"
+    <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-8 pb-24">
+      {/* Page Header */}
+      <PageHeader
+        eyebrow="Compliance & Governance Audit"
+        title="Audit Trail & Blockchain Proofs"
+        description="Tamper-evident audit records with cryptographic SHA-256 integrity and Solana blockchain anchoring"
+        actions={
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={load}
+              disabled={loading}
+              variant="outline"
+              size="sm"
+              className="rounded-xl text-xs font-bold shadow-xs hover:bg-accent"
             >
-              <Anchor className={`h-3.5 w-3.5 ${anchoring ? "animate-spin" : ""}`} />
-              Anchor Pending ({stats.pendingAnchors})
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Stats */}
-      {stats && (
-        <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
-          {[
-            { label: "Total Events", value: stats.total, cls: "text-primary", icon: Activity },
-            { label: "Failures", value: stats.failures, cls: "text-destructive", icon: XCircle },
-            {
-              label: "Critical",
-              value: stats.critical,
-              cls: "text-destructive",
-              icon: AlertTriangle,
-            },
-            { label: "Unauthorized", value: stats.unauthorized, cls: "text-warning", icon: Shield },
-            { label: "Anchored", value: stats.anchored, cls: "text-success", icon: Anchor },
-            {
-              label: "Pending Anchors",
-              value: stats.pendingAnchors,
-              cls: "text-warning",
-              icon: Clock,
-            },
-          ].map((s) => {
-            const Icon = s.icon;
-            return (
-              <div
-                key={s.label}
-                className="rounded-xl border border-border bg-card p-3 shadow-clinical text-center"
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
+            {stats?.pendingAnchors > 0 && (
+              <Button
+                onClick={handleAnchorPending}
+                disabled={anchoring}
+                size="sm"
+                className="bg-amber-500 hover:bg-amber-600 text-white font-extrabold rounded-xl shadow-clinical-md text-xs"
               >
-                <div className={`text-2xl font-black ${s.cls} flex justify-center`}>{s.value}</div>
-                <div className="text-xs text-muted-foreground mt-0.5 flex items-center justify-center gap-1">
-                  <Icon className="h-3 w-3" />
-                  {s.label}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Filters */}
-      <div className="flex flex-wrap gap-2">
-        <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 flex-1 min-w-[250px]">
-          <Search className="h-4 w-4 text-muted-foreground shrink-0" />
-          <input
-            value={searchQ}
-            onChange={(e) => setSearchQ(e.target.value)}
-            placeholder="Search by actor, action, entity ID, location..."
-            className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
-          />
-        </div>
-        <select
-          value={moduleFilter}
-          onChange={(e) => setModuleFilter(e.target.value)}
-          className="rounded-xl border border-border bg-card px-3 py-2 text-xs font-semibold outline-none"
-        >
-          {modules.map((m) => (
-            <option key={m} value={m}>
-              Module: {m}
-            </option>
-          ))}
-        </select>
-        <select
-          value={outcomeFilter}
-          onChange={(e) => setOutcomeFilter(e.target.value)}
-          className="rounded-xl border border-border bg-card px-3 py-2 text-xs font-semibold outline-none"
-        >
-          {["All", "success", "failure", "unauthorized"].map((o) => (
-            <option key={o} value={o}>
-              Outcome: {o === "All" ? "All" : o.charAt(0).toUpperCase() + o.slice(1)}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* Events List */}
-      {loading ? (
-        <div className="flex justify-center py-12 text-sm text-muted-foreground gap-2">
-          <RefreshCw className="h-4 w-4 animate-spin" /> Loading audit trail…
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card p-12 text-center">
-          <Shield className="h-10 w-10 text-muted-foreground/30 mb-3" />
-          <div className="text-sm font-semibold text-foreground">No audit events found</div>
-          <div className="text-xs text-muted-foreground mt-1">
-            {searchQ || moduleFilter !== "All" || outcomeFilter !== "All"
-              ? "No events match your filters."
-              : "No audit events yet."}
+                <Anchor className={`h-4 w-4 mr-2 ${anchoring ? "animate-spin" : ""}`} />
+                Anchor Pending ({stats.pendingAnchors})
+              </Button>
+            )}
           </div>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {filtered.map((event) => {
-            const severityConfig = getSeverityConfig(event.severity);
-            const outcomeConfig = getOutcomeConfig(event.outcome);
-            const anchorConfig = getAnchorConfig(event.anchor_status);
-            const SeverityIcon = severityConfig.icon;
-            const OutcomeIcon = outcomeConfig.icon;
-            const AnchorIcon = anchorConfig.icon;
-            const isExp = expandedId === event.tx_id;
-            const hasChanges = event.prev_value || event.new_value;
+        }
+      />
 
-            return (
-              <div
-                key={event.tx_id}
-                className="rounded-xl border border-border bg-card shadow-clinical overflow-hidden"
+      <StaggerList className="space-y-6">
+        {/* KPI Bento Section */}
+        {stats && (
+          <StaggerItem>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+              {[
+                { label: "Total Events", value: stats.total, cls: "text-primary", icon: Activity },
+                { label: "Failures", value: stats.failures, cls: "text-destructive", icon: XCircle },
+                {
+                  label: "Critical",
+                  value: stats.critical,
+                  cls: "text-destructive",
+                  icon: AlertTriangle,
+                },
+                {
+                  label: "Unauthorized",
+                  value: stats.unauthorized,
+                  cls: "text-warning",
+                  icon: Shield,
+                },
+                { label: "Anchored", value: stats.anchored, cls: "text-success", icon: Anchor },
+                {
+                  label: "Pending Anchors",
+                  value: stats.pendingAnchors,
+                  cls: "text-warning",
+                  icon: Clock,
+                },
+              ].map((s) => {
+                const Icon = s.icon;
+                return (
+                  <div
+                    key={s.label}
+                    className="rounded-2xl border border-border/80 bg-card p-4 shadow-clinical-xs transition-all hover:shadow-clinical-sm text-center flex flex-col justify-between"
+                  >
+                    <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-center gap-1.5 mb-1">
+                      <Icon className="h-3.5 w-3.5" />
+                      <span>{s.label}</span>
+                    </div>
+                    <div className={`text-3xl font-display font-extrabold ${s.cls}`}>
+                      {s.value}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </StaggerItem>
+        )}
+
+        {/* Filters */}
+        <StaggerItem>
+          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 bg-card border border-border/80 p-3.5 rounded-2xl shadow-clinical-sm">
+            <div className="flex items-center gap-2 rounded-xl border border-border/80 bg-background px-3 py-1.5 flex-1 min-w-[250px]">
+              <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+              <input
+                value={searchQ}
+                onChange={(e) => setSearchQ(e.target.value)}
+                placeholder="Search actor, action, module, location, DID, tx..."
+                className="w-full bg-transparent text-xs font-medium text-foreground outline-none placeholder:text-muted-foreground"
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <select
+                value={moduleFilter}
+                onChange={(e) => setModuleFilter(e.target.value)}
+                className="bg-card border border-border/80 rounded-xl px-3 py-1.5 shadow-clinical-xs text-xs font-extrabold text-foreground h-9 focus:ring-2 focus:ring-primary/40"
               >
-                {/* Summary */}
-                <button
-                  className="w-full text-left p-4"
-                  onClick={() => setExpandedId(isExp ? null : event.tx_id)}
-                >
-                  <div className="flex items-start justify-between gap-3 flex-wrap">
-                    <div className="flex items-start gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-                        <SeverityIcon className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <div className="text-sm font-semibold text-foreground flex items-center gap-2 flex-wrap">
-                          {getActionLabel(event.action)}
-                          <span
-                            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${outcomeConfig.color} ${outcomeConfig.bg}`}
-                          >
-                            <OutcomeIcon className="h-3 w-3" />
-                            {event.outcome}
-                          </span>
-                          {event.what_module && (
-                            <span className="rounded-full bg-muted text-muted-foreground px-2 py-0.5 text-[10px] font-medium">
-                              {event.what_module}
+                {modules.map((m) => (
+                  <option key={m} value={m}>
+                    Module: {m}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={outcomeFilter}
+                onChange={(e) => setOutcomeFilter(e.target.value)}
+                className="bg-card border border-border/80 rounded-xl px-3 py-1.5 shadow-clinical-xs text-xs font-extrabold text-foreground h-9 focus:ring-2 focus:ring-primary/40"
+              >
+                {["All", "success", "failure", "unauthorized"].map((o) => (
+                  <option key={o} value={o}>
+                    Outcome: {o === "All" ? "All" : o.charAt(0).toUpperCase() + o.slice(1)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </StaggerItem>
+
+        {/* Events List */}
+        <StaggerItem>
+          {loading ? (
+            <div className="flex justify-center py-16 text-sm font-semibold text-muted-foreground gap-2">
+              <RefreshCw className="h-5 w-5 animate-spin text-primary" /> Loading audit trail…
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card p-16 text-center shadow-clinical-xs">
+              <Shield className="h-12 w-12 text-muted-foreground/30 mb-3" />
+              <div className="font-display font-extrabold text-base text-foreground">
+                No audit events found
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                {searchQ || moduleFilter !== "All" || outcomeFilter !== "All"
+                  ? "No events match the selected filters."
+                  : "No audit events recorded yet."}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {filtered.map((event) => {
+                const severityConfig = getSeverityConfig(event.severity);
+                const outcomeConfig = getOutcomeConfig(event.outcome);
+                const anchorConfig = getAnchorConfig(event.anchor_status);
+                const SeverityIcon = severityConfig.icon;
+                const OutcomeIcon = outcomeConfig.icon;
+                const AnchorIcon = anchorConfig.icon;
+                const isExp = expandedId === event.tx_id;
+                const hasChanges = event.prev_value || event.new_value;
+
+                return (
+                  <div
+                    key={event.tx_id}
+                    className="rounded-2xl border border-border/80 bg-card shadow-clinical-xs transition-all hover:shadow-clinical-sm overflow-hidden"
+                  >
+                    {/* Summary Row */}
+                    <button
+                      type="button"
+                      className="w-full text-left p-4.5 cursor-pointer hover:bg-muted/20 transition-colors"
+                      onClick={() => setExpandedId(isExp ? null : event.tx_id)}
+                    >
+                      <div className="flex items-start justify-between gap-3 flex-wrap">
+                        <div className="flex items-start gap-3.5">
+                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary shadow-xs">
+                            <SeverityIcon className="h-5 w-5" />
+                          </div>
+                          <div>
+                            <div className="font-display font-extrabold text-sm text-foreground flex items-center gap-2 flex-wrap">
+                              <span>{getActionLabel(event.action)}</span>
+                              <span
+                                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide ${outcomeConfig.color} ${outcomeConfig.bg}`}
+                              >
+                                <OutcomeIcon className="h-3 w-3" />
+                                {event.outcome}
+                              </span>
+                              {event.what_module && (
+                                <span className="rounded-full bg-muted/80 text-muted-foreground px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider border border-border/60">
+                                  {event.what_module}
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-xs font-semibold text-muted-foreground mt-1">
+                              {event.who_name ?? "System / Automated"} • {event.who_role ?? "—"}
+                              {event.where_location && ` • ${event.where_location}`}
+                            </div>
+                            <div className="flex items-center gap-3 mt-1.5 text-[10px] font-medium text-muted-foreground flex-wrap">
+                              <span className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                {new Date(event.logged_at).toLocaleString("en-IN")}
+                              </span>
+                              <span className="font-mono bg-muted/60 px-1.5 py-0.5 rounded text-[10px] font-bold">
+                                TX: {event.tx_id.slice(0, 8)}
+                              </span>
+                              {event.what_entity_id && (
+                                <span>Entity: {event.what_entity_id}</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          {hasChanges && (
+                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground bg-muted/80 border border-border/60 rounded-full px-2 py-0.5">
+                              State Diff
                             </span>
                           )}
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-0.5">
-                          {event.who_name ?? "Unknown actor"} • {event.who_role ?? "—"}
-                          {event.where_location && ` • ${event.where_location}`}
-                        </div>
-                        <div className="flex items-center gap-3 mt-1 text-[10px] text-muted-foreground flex-wrap">
-                          <span className="flex items-center gap-1">
-                            <Calendar className="h-3 w-3" />
-                            {new Date(event.logged_at).toLocaleString("en-IN")}
-                          </span>
-                          <span className="font-mono">{event.tx_id.slice(0, 8)}</span>
-                          {event.what_entity_id && <span>Entity: {event.what_entity_id}</span>}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      {hasChanges && (
-                        <span className="text-[10px] text-muted-foreground bg-muted rounded px-1.5 py-0.5">
-                          Changes
-                        </span>
-                      )}
-                      {event.record_hash && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleVerify(event);
-                          }}
-                          className="inline-flex items-center gap-1 rounded-lg border border-primary/30 bg-primary/10 px-2 py-1 text-[11px] font-medium text-primary hover:bg-primary/20"
-                        >
-                          <Shield className="h-3 w-3" />
-                          Verify
-                        </button>
-                      )}
-                      <div className={`inline-flex items-center gap-1 ${anchorConfig.color}`}>
-                        <AnchorIcon className="h-3.5 w-3.5" />
-                        <span className="text-[10px] font-medium">
-                          {event.anchor_status || "not anchored"}
-                        </span>
-                      </div>
-                      {isExp ? (
-                        <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                      ) : (
-                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                      )}
-                    </div>
-                  </div>
-                </button>
-
-                {/* Expanded Details */}
-                {isExp && (
-                  <div className="border-t border-border px-4 pb-4 pt-3 space-y-4">
-                    {/* Before/After Changes */}
-                    {(event.prev_value || event.new_value) && (
-                      <div className="space-y-2">
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-primary">
-                          Changes
-                        </div>
-                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                          {event.prev_value && (
-                            <div className="rounded-lg border border-border bg-muted/20 p-3">
-                              <div className="text-[9px] font-bold uppercase text-muted-foreground mb-1">
-                                Before
-                              </div>
-                              <pre className="text-[10px] text-foreground whitespace-pre-wrap">
-                                {JSON.stringify(event.prev_value, null, 2)}
-                              </pre>
-                            </div>
+                          {event.record_hash ? (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleVerify(event);
+                              }}
+                              className="inline-flex items-center gap-1.5 rounded-xl border border-primary/40 bg-primary/10 px-2.5 py-1 text-xs font-extrabold text-primary hover:bg-primary/20 transition-colors shadow-xs"
+                            >
+                              <Shield className="h-3.5 w-3.5" />
+                              Verify Proof
+                            </button>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 rounded-lg border border-border/60 bg-muted/40 px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
+                              Legacy Record
+                            </span>
                           )}
-                          {event.new_value && (
-                            <div className="rounded-lg border border-border bg-success/5 p-3">
-                              <div className="text-[9px] font-bold uppercase text-success mb-1">
-                                After
-                              </div>
-                              <pre className="text-[10px] text-foreground whitespace-pre-wrap">
-                                {JSON.stringify(event.new_value, null, 2)}
-                              </pre>
-                            </div>
+                          <div
+                            className={`inline-flex items-center gap-1 text-xs font-bold ${anchorConfig.color}`}
+                          >
+                            <AnchorIcon className="h-3.5 w-3.5" />
+                            <span className="text-[10px] font-extrabold uppercase tracking-wider">
+                              {event.anchor_status || "unanchored"}
+                            </span>
+                          </div>
+                          {isExp ? (
+                            <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
                           )}
                         </div>
                       </div>
-                    )}
+                    </button>
 
-                    {/* Metadata */}
-                    <div className="grid grid-cols-1 gap-2 text-xs sm:grid-cols-2">
-                      {[
-                        ["Transaction ID", event.tx_id],
-                        ["Actor DID", event.actor_did ?? "—"],
-                        ["Hospital ID", event.who_hospital_id ?? "—"],
-                        ["Entity Type", event.what_entity_type ?? "—"],
-                        ["Auth Status", event.auth_status ?? "—"],
-                        ["Auth Policy", event.auth_policy ?? "—"],
-                        [
-                          "Record Hash",
-                          event.record_hash ? `${event.record_hash.slice(0, 12)}...` : "—",
-                        ],
-                        ["Anchor ID", event.anchor_id ?? "—"],
-                      ].map(([k, v]) => (
-                        <div key={k} className="rounded-lg bg-muted/50 px-3 py-2">
-                          <div className="text-[9px] font-bold uppercase text-muted-foreground mb-0.5">
-                            {k}
+                    {/* Expanded Details */}
+                    {isExp && (
+                      <div className="border-t border-border/80 bg-muted/10 px-5 pb-5 pt-4 space-y-4">
+                        {/* Before/After Changes */}
+                        {(event.prev_value || event.new_value) && (
+                          <div className="space-y-2">
+                            <div className="text-[10px] font-extrabold uppercase tracking-wider text-primary">
+                              State Mutation (Pre/Post Values)
+                            </div>
+                            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                              {event.prev_value && (
+                                <div className="rounded-xl border border-border/80 bg-card p-3 shadow-clinical-xs">
+                                  <div className="text-[9px] font-extrabold uppercase tracking-wider text-muted-foreground mb-1.5">
+                                    Previous Value (Before)
+                                  </div>
+                                  <pre className="text-[10px] font-mono text-foreground whitespace-pre-wrap bg-muted/30 p-2 rounded-lg">
+                                    {JSON.stringify(event.prev_value, null, 2)}
+                                  </pre>
+                                </div>
+                              )}
+                              {event.new_value && (
+                                <div className="rounded-xl border border-success/30 bg-success/5 p-3 shadow-clinical-xs">
+                                  <div className="text-[9px] font-extrabold uppercase tracking-wider text-success mb-1.5">
+                                    New Value (After)
+                                  </div>
+                                  <pre className="text-[10px] font-mono text-foreground whitespace-pre-wrap bg-background/80 p-2 rounded-lg border border-success/20">
+                                    {JSON.stringify(event.new_value, null, 2)}
+                                  </pre>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          <div className="font-medium text-foreground font-mono text-[10px] truncate">
-                            {v}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                        )}
 
-                    {/* Legacy Metadata */}
-                    {event.metadata && Object.keys(event.metadata).length > 0 && (
-                      <div className="space-y-2">
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                          Legacy Metadata
+                        {/* Metadata Details Grid */}
+                        <div className="grid grid-cols-1 gap-2.5 text-xs sm:grid-cols-2 lg:grid-cols-4">
+                          {[
+                            ["Transaction ID", event.tx_id],
+                            ["Actor DID", event.actor_did ?? "—"],
+                            ["Hospital ID", event.who_hospital_id ?? "—"],
+                            ["Entity Type", event.what_entity_type ?? "—"],
+                            ["Auth Status", event.auth_status ?? "—"],
+                            ["Auth Policy", event.auth_policy ?? "—"],
+                            [
+                              "Record SHA-256 Hash",
+                              event.record_hash ? `${event.record_hash.slice(0, 16)}...` : "—",
+                            ],
+                            ["Anchor ID", event.anchor_id ?? "—"],
+                          ].map(([k, v]) => (
+                            <div
+                              key={k}
+                              className="rounded-xl bg-card border border-border/80 px-3 py-2 shadow-clinical-xs"
+                            >
+                              <div className="text-[9px] font-extrabold uppercase tracking-wider text-muted-foreground mb-0.5">
+                                {k}
+                              </div>
+                              <div className="font-mono text-[10px] font-bold text-foreground truncate">
+                                {v}
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                        <div className="rounded-lg border border-border bg-muted/20 p-3">
-                          <pre className="text-[10px] text-muted-foreground whitespace-pre-wrap">
-                            {JSON.stringify(event.metadata, null, 2)}
-                          </pre>
-                        </div>
+
+                        {/* Additional Structured Metadata */}
+                        {event.metadata && Object.keys(event.metadata).length > 0 && (
+                          <div className="space-y-1.5">
+                            <div className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">
+                              Execution Metadata
+                            </div>
+                            <div className="rounded-xl border border-border/80 bg-card p-3">
+                              <pre className="text-[10px] font-mono text-muted-foreground whitespace-pre-wrap">
+                                {JSON.stringify(event.metadata, null, 2)}
+                              </pre>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
+                );
+              })}
+            </div>
+          )}
+        </StaggerItem>
+      </StaggerList>
 
       {/* Verification Dialog */}
       <Dialog open={verifyOpen} onOpenChange={setVerifyOpen}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="w-full max-w-2xl rounded-2xl border border-border bg-card p-6 shadow-clinical-xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Blockchain Verification</DialogTitle>
+            <DialogTitle className="font-display font-extrabold text-lg text-foreground flex items-center gap-2">
+              <Shield className="h-5 w-5 text-primary" />
+              Cryptographic Proof Verification
+            </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-4 py-3">
             {verifyLoading ? (
-              <div className="flex items-center justify-center py-8 gap-2">
-                <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                <span className="text-sm text-muted-foreground">Verifying integrity...</span>
+              <div className="flex items-center justify-center py-10 gap-2">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                <span className="text-sm font-semibold text-muted-foreground">
+                  Recomputing SHA-256 hash & verifying on-chain integrity...
+                </span>
               </div>
             ) : verifyResult ? (
               <>
-                {/* Overall Status */}
+                {/* Overall Verification Status Banner */}
                 <div
-                  className={`flex items-center gap-3 p-4 rounded-lg border ${
+                  className={`flex items-center gap-3 p-4 rounded-xl border ${
                     verifyResult.verified
                       ? "bg-success/10 border-success/30 text-success"
                       : "bg-destructive/10 border-destructive/30 text-destructive"
                   }`}
                 >
                   {verifyResult.verified ? (
-                    <CheckCircle2 className="h-6 w-6" />
+                    <CheckCircle2 className="h-6 w-6 shrink-0" />
                   ) : (
-                    <XCircle className="h-6 w-6" />
+                    <XCircle className="h-6 w-6 shrink-0" />
                   )}
                   <div>
-                    <div className="font-semibold">
-                      {verifyResult.verified ? "Verified ✓" : "Verification Failed ✗"}
+                    <div className="font-display font-extrabold text-sm">
+                      {verifyResult.verified
+                        ? "Cryptographic Verification Succeeded ✓"
+                        : "Verification Failed ✗"}
                     </div>
-                    {verifyResult.reason && (
-                      <div className="text-xs mt-1">{verifyResult.reason}</div>
-                    )}
+                    <p className="text-xs mt-0.5 opacity-90">
+                      {verifyResult.reason ||
+                        "Database state matches the canonical SHA-256 digest."}
+                    </p>
                   </div>
                 </div>
 
-                {/* Details Grid */}
-                <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div className="rounded-lg bg-card border border-border p-3">
-                    <div className="text-[9px] font-bold uppercase text-muted-foreground mb-1">
-                      Database Integrity
+                {/* Details Bento Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                  <div className="rounded-xl bg-muted/30 border border-border/80 p-3 text-center">
+                    <div className="text-[9px] font-extrabold uppercase tracking-wider text-muted-foreground mb-1">
+                      DB Integrity
                     </div>
                     <div
-                      className={`font-semibold ${
+                      className={`font-display font-extrabold text-sm ${
                         verifyResult.dbIntegrity === "OK"
                           ? "text-success"
                           : verifyResult.dbIntegrity === "FAIL"
@@ -597,12 +650,12 @@ function AdminAuditPage() {
                       {verifyResult.dbIntegrity}
                     </div>
                   </div>
-                  <div className="rounded-lg bg-card border border-border p-3">
-                    <div className="text-[9px] font-bold uppercase text-muted-foreground mb-1">
-                      Blockchain Integrity
+                  <div className="rounded-xl bg-muted/30 border border-border/80 p-3 text-center">
+                    <div className="text-[9px] font-extrabold uppercase tracking-wider text-muted-foreground mb-1">
+                      Chain Integrity
                     </div>
                     <div
-                      className={`font-semibold ${
+                      className={`font-display font-extrabold text-sm ${
                         verifyResult.chainIntegrity === "OK"
                           ? "text-success"
                           : verifyResult.chainIntegrity === "FAIL"
@@ -613,43 +666,45 @@ function AdminAuditPage() {
                       {verifyResult.chainIntegrity}
                     </div>
                   </div>
-                  <div className="rounded-lg bg-card border border-border p-3">
-                    <div className="text-[9px] font-bold uppercase text-muted-foreground mb-1">
+                  <div className="rounded-xl bg-muted/30 border border-border/80 p-3 text-center">
+                    <div className="text-[9px] font-extrabold uppercase tracking-wider text-muted-foreground mb-1">
                       Anchor Status
                     </div>
-                    <div className="font-semibold text-foreground">
-                      {verifyResult.anchorStatus ?? "Not Anchored"}
+                    <div className="font-display font-extrabold text-sm text-foreground capitalize">
+                      {verifyResult.anchorStatus ?? "Pending"}
                     </div>
                   </div>
-                  <div className="rounded-lg bg-card border border-border p-3">
-                    <div className="text-[9px] font-bold uppercase text-muted-foreground mb-1">
-                      Slot
+                  <div className="rounded-xl bg-muted/30 border border-border/80 p-3 text-center">
+                    <div className="text-[9px] font-extrabold uppercase tracking-wider text-muted-foreground mb-1">
+                      Solana Slot
                     </div>
-                    <div className="font-semibold text-foreground">{verifyResult.slot ?? "—"}</div>
+                    <div className="font-mono text-xs font-extrabold text-foreground">
+                      {verifyResult.slot ?? "—"}
+                    </div>
                   </div>
                 </div>
 
-                {/* Hash Comparison */}
+                {/* SHA-256 Hashes Display */}
                 {verifyResult.storedHash && (
-                  <div className="space-y-2">
-                    <div className="text-[10px] font-bold uppercase tracking-wider text-primary">
-                      Hash Verification
+                  <div className="space-y-2 pt-2 border-t border-border/60">
+                    <div className="text-[10px] font-extrabold uppercase tracking-wider text-primary">
+                      SHA-256 Digest Verification
                     </div>
-                    <div className="space-y-1">
-                      <div className="rounded-lg bg-muted/50 p-2">
-                        <div className="text-[9px] font-bold uppercase text-muted-foreground">
-                          Stored Hash (DB)
+                    <div className="space-y-1.5">
+                      <div className="rounded-xl bg-muted/40 p-2.5 border border-border/60">
+                        <div className="text-[9px] font-extrabold uppercase tracking-wider text-muted-foreground mb-0.5">
+                          Database Stored Hash (Postgres)
                         </div>
-                        <div className="font-mono text-[10px] text-foreground break-all">
+                        <div className="font-mono text-[10px] font-bold text-foreground break-all">
                           {verifyResult.storedHash}
                         </div>
                       </div>
                       {verifyResult.chainHash && (
-                        <div className="rounded-lg bg-muted/50 p-2">
-                          <div className="text-[9px] font-bold uppercase text-muted-foreground">
-                            Chain Hash (Solana)
+                        <div className="rounded-xl bg-muted/40 p-2.5 border border-border/60">
+                          <div className="text-[9px] font-extrabold uppercase tracking-wider text-muted-foreground mb-0.5">
+                            On-Chain Hash (Solana Program State)
                           </div>
-                          <div className="font-mono text-[10px] text-foreground break-all">
+                          <div className="font-mono text-[10px] font-bold text-foreground break-all">
                             {verifyResult.chainHash}
                           </div>
                         </div>
@@ -660,23 +715,30 @@ function AdminAuditPage() {
 
                 {/* Solana Explorer Link */}
                 {verifyResult.explorerUrl && (
-                  <div className="pt-2 border-t border-border">
+                  <div className="pt-2 border-t border-border/60 flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground font-medium">
+                      Verifiable on public ledger
+                    </span>
                     <a
                       href={verifyResult.explorerUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 text-xs font-medium text-primary hover:text-primary/80"
+                      className="inline-flex items-center gap-1.5 text-xs font-extrabold text-primary hover:underline"
                     >
-                      <ExternalLink className="h-3 w-3" />
-                      View on Solana Explorer
+                      <ExternalLink className="h-3.5 w-3.5" />
+                      View on Solana Devnet Explorer
                     </a>
                   </div>
                 )}
               </>
             ) : null}
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setVerifyOpen(false)}>
+          <DialogFooter className="pt-2">
+            <Button
+              variant="outline"
+              onClick={() => setVerifyOpen(false)}
+              className="w-full sm:w-auto rounded-xl h-10 text-xs font-bold"
+            >
               Close
             </Button>
           </DialogFooter>

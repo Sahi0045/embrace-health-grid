@@ -19,7 +19,7 @@
 
 import { createServerFn } from "@tanstack/react-start";
 import { getSupabaseServerClient, getVerifiedUser } from "./supabase.server";
-import { resolveCallerForAudit, tryWriteAudit, buildPrescriptionAudit } from "./audit.server";
+import { resolveCallerForAudit, tryWriteAudit, buildPrescriptionAudit } from "./audit-helpers.server";
 
 /** Reject unauthenticated callers before touching the database. */
 /**

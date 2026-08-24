@@ -18,7 +18,7 @@ import {
   buildBedAudit,
   buildRoomAudit,
   buildInventoryAudit,
-} from "./audit.server";
+} from "./audit-helpers.server";
 import type {
   InventoryCategory,
   InventoryItem,
