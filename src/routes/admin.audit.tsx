@@ -98,6 +98,19 @@ interface VerifyResult {
   reason: string | null;
 }
 
+function formatJsonValue(val: unknown): string {
+  if (!val) return "";
+  if (typeof val === "string") {
+    try {
+      const parsed = JSON.parse(val);
+      return JSON.stringify(parsed, null, 2);
+    } catch {
+      return val;
+    }
+  }
+  return JSON.stringify(val, null, 2);
+}
+
 function AdminAuditPageGuarded() {
   return (
     <RouteGuard requiredRole="admin">
@@ -517,7 +530,7 @@ function AdminAuditPage() {
                                     Previous Value (Before)
                                   </div>
                                   <pre className="text-[10px] font-mono text-foreground whitespace-pre-wrap bg-muted/30 p-2 rounded-lg">
-                                    {JSON.stringify(event.prev_value, null, 2)}
+                                    {formatJsonValue(event.prev_value)}
                                   </pre>
                                 </div>
                               )}
@@ -527,7 +540,7 @@ function AdminAuditPage() {
                                     New Value (After)
                                   </div>
                                   <pre className="text-[10px] font-mono text-foreground whitespace-pre-wrap bg-background/80 p-2 rounded-lg border border-success/20">
-                                    {JSON.stringify(event.new_value, null, 2)}
+                                    {formatJsonValue(event.new_value)}
                                   </pre>
                                 </div>
                               )}
