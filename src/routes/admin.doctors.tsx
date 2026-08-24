@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { getProfiles } from "@/lib/clinical.server";
 import { getStaffSchedule, getAttendance } from "@/lib/operations.server";
 import { useTableRefresh } from "@/hooks/use-realtime";
+import { exportToCsv } from "@/lib/csv-export";
 
 import { StaffKpiBar, StaffKpiStats } from "@/components/staff/StaffKpiBar";
 import {
@@ -336,6 +337,38 @@ function StaffAvailabilityDashboard() {
     setViewMode("grid");
   };
 
+  const handleExportRoster = useCallback(() => {
+    if (!staffMembers || staffMembers.length === 0) {
+      toast.error("No staff roster data to export");
+      return;
+    }
+
+    const exported = exportToCsv(
+      `embrace-staff-roster-${new Date().toISOString().split("T")[0]}.csv`,
+      staffMembers,
+      [
+        { header: "Staff ID", accessor: "id" },
+        { header: "Primary DID", accessor: (s) => s.primaryDid || "N/A" },
+        { header: "Full Name", accessor: "fullName" },
+        { header: "Role", accessor: "role" },
+        { header: "Department", accessor: "department" },
+        { header: "Specialty", accessor: (s) => s.specialty || "General Medicine" },
+        { header: "Availability Status", accessor: "availability" },
+        { header: "Current Shift", accessor: (s) => s.currentShift?.shiftName || "Off Duty" },
+        { header: "Assigned Unit", accessor: (s) => s.currentShift?.unit || "Central" },
+        { header: "Contact Email", accessor: "email" },
+        { header: "Contact Phone", accessor: (s) => s.phone || "N/A" },
+        { header: "Active Patients", accessor: (s) => s.workload?.activePatients || 0 },
+      ],
+    );
+
+    if (exported) {
+      toast.success("Roster attendance exported and downloaded (CSV)", {
+        description: `${staffMembers.length} personnel records included in the export`,
+      });
+    }
+  }, [staffMembers]);
+
   return (
     <RouteGuard requiredRole="admin">
       <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-8 pb-24">
@@ -356,9 +389,9 @@ function StaffAvailabilityDashboard() {
                 Sync Telemetry
               </Button>
               <Button
-                onClick={() => toast.success("Roster attendance export generated (CSV)")}
+                onClick={handleExportRoster}
                 size="sm"
-                className="bg-gradient-to-r from-primary to-blue-600 text-primary-foreground font-extrabold rounded-xl shadow-clinical-md shadow-primary/25 text-xs"
+                className="bg-gradient-to-r from-primary to-blue-600 text-primary-foreground font-extrabold rounded-xl shadow-clinical-md shadow-primary/25 text-xs cursor-pointer"
               >
                 <FileSpreadsheet className="h-4 w-4 mr-2" />
                 Export Roster
