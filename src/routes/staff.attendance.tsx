@@ -285,8 +285,11 @@ function StaffAttendance() {
                 <ShieldCheck className="h-4 w-4 text-primary" />
                 <span>
                   Verified Staff Member:{" "}
-                  <strong className="font-semibold">{currentUser?.name}</strong> (
-                  {employeeId || "EMP-1002"})
+                  <strong className="font-semibold">{currentUser?.name}</strong>
+                  {/* No "EMP-1002" fallback: this line asserts an identity, and
+                      showing an invented staff number next to "Verified" makes
+                      the verification itself look untrustworthy. */}
+                  {employeeId ? ` (${employeeId})` : ""}
                 </span>
               </div>
               <Badge

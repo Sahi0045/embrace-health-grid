@@ -79,8 +79,12 @@ function PatientZkProofPage() {
     if (patientRecord && claims.length === 0) {
       const defaults = getDefaultClaims(patientRecord as unknown as Record<string, unknown>);
       // Default-disclose: bloodGroup, insuranceValid, hospitalPatient, vaccineStatus
-      const preDisclosed = ["bloodGroup", "insuranceValid", "hospitalPatient", "vaccineStatus"];
-      setClaims(defaults.map((c) => ({ ...c, disclosed: preDisclosed.includes(c.attribute) })));
+      // Nothing is disclosed by default. These four were pre-ticked, so a
+      // patient who pressed Generate without reading produced a proof asserting
+      // a blood group, an active insurance policy and three vaccinations —
+      // every one of which was a hardcoded literal. Selective disclosure is the
+      // entire point; the selection has to be the patient's.
+      setClaims(defaults.map((c) => ({ ...c, disclosed: false })));
     }
   }, [patientRecord]); // eslint-disable-line react-hooks/exhaustive-deps
 

@@ -160,7 +160,11 @@ function StaffRoomsPage() {
         })
         .catch(() => setDidVerified(false));
     } else {
-      setDoctorDid(`did:hosp:0x${email.split("@")[0].substring(0, 8)}`);
+      // Never synthesise a DID. This built one out of the email local-part
+      // (shubhamkush8090@… became did:hosp:0xshubhamk) and displayed it as the
+      // clinician's identity — a decentralised identifier that was never issued,
+      // resolves to nothing, and cannot be verified by anyone reading it.
+      setDoctorDid("");
       setDidVerified(false);
     }
   }, [currentUser]);
@@ -171,8 +175,13 @@ function StaffRoomsPage() {
     try {
       const r = await getRooms();
       setRawRooms(r.rooms ?? []);
-    } catch {
-      toast.error("Could not load room directory");
+    } catch (err: any) {
+      // An empty directory is not a failure. Only report one when the call
+      // actually threw, and say what went wrong rather than "could not load".
+      setRawRooms([]);
+      toast.error("Could not load room directory", {
+        description: err?.message ?? "The room directory request failed.",
+      });
     } finally {
       setLoadingRooms(false);
     }
@@ -682,7 +691,7 @@ function StaffRoomsPage() {
                   size="sm"
                   onClick={() => doAction("checkin")}
                   disabled={acting !== null}
-                  className="bg-gradient-to-r from-primary to-blue-600 hover:from-primary/95 hover:to-blue-600/95 text-primary-foreground text-xs font-extrabold gap-2 px-6 h-10 rounded-xl shadow-clinical-md shadow-primary/25 transition-all"
+                  className="bg-primary hover:from-primary/95 hover:to-primary/95 text-primary-foreground text-xs font-extrabold gap-2 px-6 h-10 rounded-xl shadow-clinical-md shadow-primary/25 transition-all"
                 >
                   {acting === "checkin" ? (
                     <Loader2 className="h-4 w-4 animate-spin" />

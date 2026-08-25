@@ -47,9 +47,12 @@ const COMMON_TESTS = [
 ];
 
 export function CreateLabOrderDialog({ open, onOpenChange, onSuccess }: CreateLabOrderDialogProps) {
-  const [patientDid, setPatientDid] = useState("did:health:pat-001");
-  const [patientName, setPatientName] = useState("Sarah Jenkins");
-  const [patientMrn, setPatientMrn] = useState("MRN-88421");
+  // Blank, not a demo patient. The form opened prefilled with "Sarah Jenkins",
+  // did:health:pat-001 and MRN-88421 — submitting without editing would file a
+  // lab order against a person who does not exist.
+  const [patientDid, setPatientDid] = useState("");
+  const [patientName, setPatientName] = useState("");
+  const [patientMrn, setPatientMrn] = useState("");
   const [selectedTest, setSelectedTest] = useState(COMMON_TESTS[0].name);
   const [testCategory, setTestCategory] = useState(COMMON_TESTS[0].category);
   const [specimenType, setSpecimenType] = useState(COMMON_TESTS[0].specimen);
@@ -68,6 +71,12 @@ export function CreateLabOrderDialog({ open, onOpenChange, onSuccess }: CreateLa
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!patientDid.trim()) {
+      // Now that the form no longer opens prefilled with a demo patient, a blank
+      // DID must be rejected rather than filed as an order against nobody.
+      toast.error("Enter the patient's DID");
+      return;
+    }
     if (!selectedTest.trim()) {
       toast.error("Please select a valid test");
       return;
@@ -251,8 +260,8 @@ export function CreateLabOrderDialog({ open, onOpenChange, onSuccess }: CreateLa
               </Button>
               <Button
                 type="submit"
-                disabled={submitting}
-                className="flex-1 rounded-xl h-10 bg-gradient-to-r from-primary to-blue-600 text-primary-foreground text-xs font-extrabold shadow-clinical-md shadow-primary/25"
+                disabled={submitting || !patientDid.trim()}
+                className="flex-1 rounded-xl h-10 bg-primary text-primary-foreground text-xs font-extrabold shadow-clinical-md shadow-primary/25"
               >
                 {submitting ? "Submitting..." : "Issue Requisition"}
               </Button>

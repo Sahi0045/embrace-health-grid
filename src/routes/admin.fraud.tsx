@@ -73,7 +73,11 @@ export const Route = createFileRoute("/admin/fraud")({
   component: FraudPageGuarded,
 });
 
-type Severity = "critical" | "high" | "medium" | "low";
+// Must match the alert_severity enum: ('info','warning','critical'). The UI
+// previously declared critical|high|medium|low, so sevConfig had no entry for a
+// `warning` or `info` alert; `sev.ring` on the undefined lookup threw and took
+// the whole fraud console down as soon as one non-critical alert existed.
+type Severity = "critical" | "warning" | "info";
 type Status = "open" | "investigating" | "resolved" | "dismissed";
 
 interface FraudAlert {
@@ -83,13 +87,16 @@ interface FraudAlert {
   type: string;
   message: string;
   actor: string;
-  actorRole: string;
-  location: string;
-  ip: string;
+  // Nullable because `fraud_alerts` has no column behind any of them. They were
+  // typed `string` and filled with constants, which is what let the constants
+  // reach the screen and the evidence CSV unchallenged.
+  actorRole: string | null;
+  location: string | null;
+  ip: string | null;
   at: string;
-  riskScore: number;
-  details: string;
-  affectedResource: string;
+  riskScore: number | null;
+  details: string | null;
+  affectedResource: string | null;
 }
 
 // Dynamic fraud alerts managed via backend API
@@ -101,19 +108,13 @@ const sevConfig: Record<Severity, { ring: string; bg: string; text: string; labe
     text: "text-destructive",
     label: "CRITICAL",
   },
-  high: {
-    ring: "border-orange-500/40",
-    bg: "bg-orange-500/6",
-    text: "text-orange-500",
-    label: "HIGH",
-  },
-  medium: {
+  warning: {
     ring: "border-warning/40",
     bg: "bg-warning/6",
     text: "text-warning-foreground",
-    label: "MEDIUM",
+    label: "WARNING",
   },
-  low: { ring: "border-border", bg: "bg-card", text: "text-muted-foreground", label: "LOW" },
+  info: { ring: "border-border", bg: "bg-card", text: "text-muted-foreground", label: "INFO" },
 };
 
 const statusConfig: Record<Status, { bg: string; text: string }> = {
@@ -123,14 +124,19 @@ const statusConfig: Record<Status, { bg: string; text: string }> = {
   dismissed: { bg: "bg-muted", text: "text-muted-foreground" },
 };
 
-function RiskBar({ score }: { score: number }) {
+function RiskBar({ score }: { score: number | null }) {
+  // A null score is "not scored", not zero and certainly not the 50 this used to
+  // substitute — a half-filled bar reads as a measured medium risk.
+  if (score == null) {
+    return <span className="text-xs font-medium text-muted-foreground">Not scored</span>;
+  }
   const color =
     score >= 80
       ? "bg-destructive"
       : score >= 60
-        ? "bg-orange-500"
+        ? "bg-warning"
         : score >= 40
-          ? "bg-yellow-500"
+          ? "bg-warning"
           : "bg-success";
   return (
     <div className="flex items-center gap-2">
@@ -143,7 +149,7 @@ function RiskBar({ score }: { score: number }) {
         />
       </div>
       <span
-        className={`text-xs font-semibold tabular-nums ${score >= 80 ? "text-destructive" : score >= 60 ? "text-orange-500" : "text-muted-foreground"}`}
+        className={`text-xs font-semibold tabular-nums ${score >= 80 ? "text-destructive" : score >= 60 ? "text-warning" : "text-muted-foreground"}`}
       >
         {score}
       </span>
@@ -207,12 +213,12 @@ function AlertCard({
         alert.type,
         alert.message,
         alert.actor,
-        alert.actorRole,
-        alert.location,
-        alert.ip,
+        alert.actorRole ?? "",
+        alert.location ?? "",
+        alert.ip ?? "",
         alert.at,
-        alert.riskScore,
-        alert.details,
+        alert.riskScore ?? "",
+        alert.details ?? "",
       ],
     ];
     const csvContent =
@@ -262,18 +268,22 @@ function AlertCard({
                 <User className="h-3 w-3" />
                 {alert.actor}
               </span>
-              <span className="flex items-center gap-1">
-                <MapPin className="h-3 w-3" />
-                {alert.location}
-              </span>
+              {alert.location && (
+                <span className="flex items-center gap-1">
+                  <MapPin className="h-3 w-3" />
+                  {alert.location}
+                </span>
+              )}
               <span className="flex items-center gap-1">
                 <Clock className="h-3 w-3" />
                 {alert.at}
               </span>
-              <span className="flex items-center gap-1">
-                <Wifi className="h-3 w-3" />
-                {alert.ip}
-              </span>
+              {alert.ip && (
+                <span className="flex items-center gap-1">
+                  <Wifi className="h-3 w-3" />
+                  {alert.ip}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -334,17 +344,23 @@ function AlertCard({
               <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Incident Details
               </div>
-              <p className="text-sm text-foreground">{alert.details}</p>
+              <p className="text-sm text-foreground">
+                {alert.details ?? "No further detail recorded for this alert."}
+              </p>
               <div className="grid grid-cols-2 gap-3 text-xs">
                 <div>
                   <span className="text-muted-foreground">Affected Resource:</span>
                   <br />
-                  <span className="font-medium text-foreground">{alert.affectedResource}</span>
+                  <span className="font-medium text-foreground">
+                    {alert.affectedResource ?? "Not recorded"}
+                  </span>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Actor Role:</span>
                   <br />
-                  <span className="font-medium text-foreground">{alert.actorRole}</span>
+                  <span className="font-medium text-foreground">
+                    {alert.actorRole ?? "Not recorded"}
+                  </span>
                 </div>
               </div>
               <div className="flex gap-2 pt-1">
@@ -402,18 +418,22 @@ function FraudPage() {
     }>
   ).map((a, i) => ({
     id: a.alertId ?? `alert_${i}`,
-    severity: (a.severity as Severity) ?? "medium",
+    severity: (a.severity as Severity) ?? "info",
     status: (a.status as Status) ?? "open",
     type: a.type ?? "Unknown",
     message: a.message ?? "",
     actor: a.actor ?? "System",
-    actorRole: "Security Monitor",
-    location: "Secure System",
-    ip: "—",
+    // fraud_alerts has no column for any of these. They used to be filled with
+    // plausible constants that were then displayed as the incident's real role,
+    // location, IP and affected resource — and exported into the evidence CSV.
+    actorRole: null,
+    location: null,
+    ip: null,
     at: a.detectedAt ? new Date(a.detectedAt).toLocaleString("en-IN") : "—",
-    riskScore: a.riskScore ?? 50,
-    details: "Alert received from secure registry compliance scanner.",
-    affectedResource: "System Registry",
+    // A null score rendered as a filled 50/100 risk bar.
+    riskScore: a.riskScore ?? null,
+    details: a.message ?? null,
+    affectedResource: null,
   }));
 
   const allAlerts = backendAlerts;
@@ -424,13 +444,15 @@ function FraudPage() {
   ).length;
   const investigatingAlerts = allAlerts.filter((a) => a.status === "investigating").length;
   const resolvedToday = allAlerts.filter((a) => a.status === "resolved").length;
-  const maxRiskScore = allAlerts.length > 0 ? Math.max(...allAlerts.map((a) => a.riskScore)) : 0;
+  // Only alerts that actually carry a score contribute; null means unscored.
+  const scored = allAlerts.map((a) => a.riskScore).filter((n): n is number => n != null);
+  const maxRiskScore = scored.length > 0 ? Math.max(...scored) : null;
 
   const riskMetrics = [
     {
       label: "Risk Score",
-      value: `${maxRiskScore}/100`,
-      delta: "Based on active anomalies",
+      value: maxRiskScore == null ? "—" : `${maxRiskScore}/100`,
+      delta: maxRiskScore == null ? "No scored alerts" : "Highest active anomaly score",
       icon: Brain,
       color: "text-destructive",
       bg: "bg-destructive/10",
@@ -523,27 +545,12 @@ function FraudPage() {
             >
               <RefreshCw className={`h-4 w-4 ${alertLoading ? "animate-spin" : ""}`} /> Refresh
             </button>
-            <button
-              onClick={() => {
-                toast.promise(
-                  raiseFraudAlert(
-                    "Admin Console",
-                    "Manual Test",
-                    "Simulated fraud event from console",
-                    "low",
-                    30,
-                  ).then(() => refetch()),
-                  {
-                    loading: "Raising simulation alert...",
-                    success: "Simulation alert raised and loaded!",
-                    error: "Failed to simulate alert.",
-                  },
-                );
-              }}
-              className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm font-medium hover:bg-muted"
-            >
-              <Zap className="h-4 w-4" /> Simulate Alert
-            </button>
+            {/* "Simulate Alert" was removed. It shipped in the production admin
+                console and wrote a REAL row into fraud_alerts ("Manual Test",
+                severity low, score 30), so the security queue an analyst triages
+                could be filled with fabricated incidents indistinguishable from
+                genuine ones. A test fixture does not belong behind a button on
+                the live fraud console. */}
             <button
               onClick={handleExportAllAlerts}
               className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
@@ -585,48 +592,19 @@ function FraudPage() {
           })}
         </motion.div>
 
-        {/* AI Risk Banner */}
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="flex items-start gap-4 rounded-xl border border-destructive/30 bg-destructive/5 p-4"
-        >
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-destructive/15">
-            <Brain className="h-5 w-5 text-destructive" />
-          </div>
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <div className="text-sm font-semibold text-foreground">ML Risk Engine Alert</div>
-              <span className="flex items-center gap-1 rounded-full bg-destructive/15 px-2 py-0.5 text-[10px] font-bold text-destructive">
-                <Zap className="h-2.5 w-2.5" /> HIGH RISK DAY
-              </span>
-            </div>
-            <div className="mt-1 text-xs text-muted-foreground">
-              Anomaly score is 76/100 — significantly above the 30-day baseline of 41. Two
-              credential replay patterns and one break-glass violation detected in the past 4 hours.
-              Recommend activating enhanced monitoring.
-            </div>
-          </div>
-          <button
-            onClick={() => {
-              setEnhancedMode(!enhancedMode);
-              toast.success(
-                enhancedMode
-                  ? "Enhanced Monitoring Mode deactivated"
-                  : "Enhanced Monitoring Mode activated",
-                {
-                  description: enhancedMode
-                    ? "MFA checks reverted to standard rules."
-                    : "MFA failure limits reduced, auto-lock enabled.",
-                },
-              );
-            }}
-            className={`shrink-0 rounded-md px-3 py-1.5 text-xs font-medium text-destructive-foreground transition-all hover:scale-105 active:scale-95 ${enhancedMode ? "bg-emerald-600 hover:bg-emerald-500" : "bg-destructive hover:bg-destructive/90"}`}
-          >
-            {enhancedMode ? "Enhanced Mode: Active" : "Activate Enhanced Mode"}
-          </button>
-        </motion.div>
+        {/* The "ML Risk Engine Alert / HIGH RISK DAY" banner that used to sit
+            here was static JSX: "Anomaly score is 76/100 — significantly above
+            the 30-day baseline of 41. Two credential replay patterns and one
+            break-glass violation detected in the past 4 hours." No anomaly
+            score, baseline or replay detection exists anywhere in this
+            codebase, and it rendered unconditionally — including over an empty
+            alert table. Its "Activate Enhanced Mode" button only toggled local
+            state and toasted "MFA failure limits reduced, auto-lock enabled"
+            while changing no policy at all.
+
+            Removed rather than reworded: a security console must not narrate
+            findings it did not make. The real alert counts are already shown in
+            the KPI row above. */}
 
         {/* Filters */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -804,27 +782,19 @@ function FraudPage() {
               {lockDid}
             </div>
             <div className="text-xs text-destructive font-semibold">
-              Warning: This action writes a revocation anchor to Solana and cannot be undone
-              directly from this console.
+              This console cannot lock an entity. No revocation path exists yet — DID suspension is
+              not implemented in identity-ops, and nothing here disables a wallet. To contain this
+              DID, revoke its credentials and consents directly and raise it with the platform
+              operator.
             </div>
           </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setLockDid(null)}>
-              Cancel
+              Close
             </Button>
-            <Button
-              variant="destructive"
-              onClick={async () => {
-                toast.promise(new Promise((resolve) => setTimeout(resolve, 1500)), {
-                  loading: "Publishing lock anchor on Solana...",
-                  success: "Entity locked! Solana anchor published, wallet disabled.",
-                  error: "Lock operation failed.",
-                });
-                setLockDid(null);
-              }}
-            >
-              Confirm Lock Anchor
+            <Button variant="destructive" disabled title="Not implemented">
+              Lock unavailable
             </Button>
           </DialogFooter>
         </DialogContent>

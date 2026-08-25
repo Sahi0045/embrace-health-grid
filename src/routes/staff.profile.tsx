@@ -60,23 +60,6 @@ export const Route = createFileRoute("/staff/profile")({
   component: StaffProfile,
 });
 
-const staffData = {
-  name: "Dr. Ravi Menon",
-  did: "did:hosp:0xd103…99aa",
-  employeeId: "EMP-2847",
-  email: "ravi.menon@apollohospitals.com",
-  phone: "+91 98765 43210",
-  department: "Cardiology",
-  role: "Senior Cardiologist",
-  joinDate: "2018-03-15",
-  specializations: ["Interventional Cardiology", "Echocardiography", "Heart Failure Management"],
-  certifications: [
-    { name: "MD Cardiology", issuer: "AIIMS Delhi", year: "2015" },
-    { name: "FESC", issuer: "European Society of Cardiology", year: "2019" },
-    { name: "Advanced Cardiac Life Support", issuer: "American Heart Association", year: "2023" },
-  ],
-};
-
 function StaffProfile() {
   const { staff } = useLiveStaff();
   const { user: currentUser, refresh: refreshUser } = useCurrentUser();
@@ -88,7 +71,22 @@ function StaffProfile() {
   const [certificationsLoading, setCertificationsLoading] = useState(true);
 
   const userEmail = currentUser?.email || "";
-  const walletVerified = (currentUser as any)?.walletVerified === true;
+  /**
+   * A linked wallet IS a verified wallet.
+   *
+   * This read `(currentUser as any)?.walletVerified === true` — but there is no
+   * `walletVerified` on CurrentUser and no `wallet_verified` column on profiles,
+   * so it was permanently `undefined`. The `as any` cast is what stopped
+   * TypeScript from saying so. The result: verification succeeded, the toast
+   * said "Wallet verified and linked!", and the card still read
+   * "Linked — Unverified" with the Verify button offered again, forever.
+   *
+   * The identity-ops `wallet-link` Edge Function writes wallet_address only
+   * after confirming the signing challenge was issued to this very session
+   * (it throws "Challenge does not belong to this session" otherwise), so there
+   * is no path that stores an unverified address. Presence is the proof.
+   */
+  const walletVerified = Boolean(currentUser?.walletAddress);
 
   const [requestingDid, setRequestingDid] = useState(false);
   const [pendingReq, setPendingReq] = useState<any>(null);
@@ -163,6 +161,15 @@ function StaffProfile() {
         toast.error("Signature cancelled", {
           description: "You must approve the signing request in your wallet to verify ownership.",
         });
+      } else if (err.code === "WALLET_ALREADY_LINKED") {
+        // The unique constraint is doing exactly what the copy under this card
+        // promises — one wallet, one account. Surfacing the raw Postgres text
+        // ("duplicate key value violates unique constraint …") tells the user
+        // nothing about what to do next.
+        toast.error("That wallet is already linked to another account", {
+          description:
+            "Each wallet may belong to only one account. Connect a different wallet in Phantom, or ask an administrator to unlink it from the existing account first.",
+        });
       } else {
         toast.error(err.message || "Wallet verification failed");
       }
@@ -176,12 +183,20 @@ function StaffProfile() {
       toast.error("Verify your Solana wallet first before requesting a DID.");
       return;
     }
+    // A DID is an identity credential. Falling back to the demo record here
+    // would submit the request under a fictional clinician's name and
+    // department, and the admin issuing it has no way to know. Refuse instead.
+    if (!currentUser?.name) {
+      toast.error("Add your full name to your profile before requesting a DID.");
+      return;
+    }
+
     setRequestingDid(true);
     try {
       const res = await requestDID({
-        ownerName: currentUser?.name || staffData.name,
-        ownerType: currentUser?.role || "doctor",
-        department: currentUser?.department || staffData.department,
+        ownerName: currentUser.name,
+        ownerType: currentUser.role || "doctor",
+        department: currentUser.department || "",
       });
       if (res.success) {
         toast.success("DID Request Submitted to Admin!", {
@@ -252,35 +267,67 @@ function StaffProfile() {
   // Re-fetch whenever admin updates the certifications table
   useTableRefresh("staff_certifications", loadCertifications);
 
+  /**
+   * Never fall back to `staffData`.
+   *
+   * That demo record is a fictional cardiologist, and falling back to it meant a
+   * real user with an incomplete profile was shown someone else's name, phone,
+   * department and specialisations — then, if they opened Edit and pressed Save
+   * without touching anything, wrote that stranger's details onto their own row.
+   * An empty field is honest; a plausible wrong one is not.
+   */
   const staffRecord = staff?.find((s: any) => s.email === userEmail) || {
-    name: currentUser?.name || staffData.name,
+    name: currentUser?.name ?? "",
     did: adminDid || currentUser?.did || "",
-    employeeId: currentUser?.employeeId || staffData.employeeId,
-    email: currentUser?.email || staffData.email,
-    phone: currentUser?.phone || staffData.phone,
-    department: currentUser?.department || staffData.department,
-    role: currentUser?.role || staffData.role,
-    joinDate: staffData.joinDate,
-    specializations: currentUser?.specializations || staffData.specializations,
-    certifications: staffData.certifications,
+    employeeId: currentUser?.employeeId ?? "",
+    email: currentUser?.email ?? "",
+    phone: currentUser?.phone ?? "",
+    department: currentUser?.department ?? "",
+    role: currentUser?.role ?? "",
+    joinDate: "",
+    specializations: currentUser?.specializations ?? [],
+    certifications: [] as { name: string; issuer: string; year: string }[],
   };
 
-  const name = currentUser?.name || staffRecord.name;
+  const name = currentUser?.name || staffRecord.name || "";
+  /** Authorization role (admin / doctor / staff) — displayed, never editable. */
   const role = currentUser?.role || staffRecord.role || "Staff";
-  const phone = currentUser?.phone || staffRecord.phone || "+91 98765 43210";
-  const department = currentUser?.department || staffRecord.department || "General Medicine";
+  /** Job title ("Senior Cardiologist"). Separate column, freely editable. */
+  const title = currentUser?.title ?? "";
+  const phone = currentUser?.phone || staffRecord.phone || "";
+  const department = currentUser?.department || staffRecord.department || "";
   const specializations =
     currentUser?.specializations || (staffRecord as any).specializations || [];
 
   const employeeId = currentUser?.employeeId || staffRecord.employeeId;
+  const joinDate = currentUser?.joinDate || staffRecord.joinDate || "";
 
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [editName, setEditName] = useState(name);
-  const [editPhone, setEditPhone] = useState(phone);
-  const [editDepartment, setEditDepartment] = useState(department);
-  const [editRole, setEditRole] = useState(role);
-  const [editSpecializations, setEditSpecializations] = useState(specializations.join(", "));
+  const [editName, setEditName] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editDepartment, setEditDepartment] = useState("");
+  const [editTitle, setEditTitle] = useState("");
+  const [editSpecializations, setEditSpecializations] = useState("");
   const [updating, setUpdating] = useState(false);
+
+  /**
+   * Seed the form when the dialog opens, not at first render.
+   *
+   * `useState(name)` reads its argument once, on the very first render — which
+   * happens before `currentUser` has resolved. The initial values were therefore
+   * captured from the demo record and never updated, which is why the header
+   * showed the real user while the dialog underneath it showed "Dr. Ravi Menon".
+   * Seeding on open also means Cancel-then-reopen discards a half-finished edit
+   * rather than resurrecting it.
+   */
+  useEffect(() => {
+    if (!isEditOpen) return;
+    setEditName(name);
+    setEditPhone(phone);
+    setEditDepartment(department);
+    setEditTitle(title);
+    setEditSpecializations(specializations.join(", "));
+  }, [isEditOpen, name, phone, department, title, specializations]);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -290,7 +337,9 @@ function StaffProfile() {
         name: editName,
         phone: editPhone,
         department: editDepartment,
-        role: editRole,
+        // `title`, not `role`: the auth role is not self-editable, and RLS
+        // (profiles_update_own) rejects a change to it regardless.
+        title: editTitle,
         specializations: editSpecializations,
       });
       if (res.success && res.user) {
@@ -330,9 +379,13 @@ function StaffProfile() {
                     <Stethoscope className="h-8 w-8" />
                   </div>
                   <div>
-                    <CardTitle className="text-2xl">{name}</CardTitle>
+                    <CardTitle className="text-2xl">{name || "Your profile"}</CardTitle>
                     <CardDescription className="mt-1">
-                      {role} • {employeeId}
+                      {/* Job title leads when set — it is what a colleague
+                          recognises. The sign-in role and staff number follow,
+                          and each is dropped when absent rather than rendered as
+                          a stray bullet. */}
+                      {[title, role, employeeId].filter(Boolean).join(" • ")}
                     </CardDescription>
                   </div>
                 </div>
@@ -360,10 +413,14 @@ function StaffProfile() {
                   <div>
                     <div className="text-sm text-muted-foreground">Joined</div>
                     <div className="font-medium">
-                      {new Date(staffData.joinDate).toLocaleDateString("en-US", {
-                        month: "short",
-                        year: "numeric",
-                      })}
+                      {/* Was reading staffData.joinDate — a hardcoded 2018 date
+                          shown to every user regardless of when they joined. */}
+                      {joinDate
+                        ? new Date(joinDate).toLocaleDateString("en-US", {
+                            month: "short",
+                            year: "numeric",
+                          })
+                        : "—"}
                     </div>
                   </div>
                 </div>
@@ -426,7 +483,7 @@ function StaffProfile() {
                 ) : pendingReq ? (
                   <Badge
                     variant="outline"
-                    className="bg-amber-500/15 text-amber-500 border-amber-500/30 text-[10px] font-bold"
+                    className="bg-warning/15 text-warning border-warning/30 text-[10px] font-bold"
                   >
                     🟡 Request Pending Admin Review
                   </Badge>
@@ -456,7 +513,7 @@ function StaffProfile() {
                   </div>
                 ) : pendingReq ? (
                   <div className="space-y-1 font-sans">
-                    <div className="text-amber-500 font-semibold text-sm">
+                    <div className="text-warning font-semibold text-sm">
                       🟡 DID Request Pending Admin Approval
                     </div>
                     <p className="text-xs text-muted-foreground font-normal">
@@ -775,8 +832,8 @@ function StaffProfile() {
               <DialogHeader>
                 <DialogTitle>Edit Profile</DialogTitle>
                 <DialogDescription>
-                  Update your professional and department details. Some parameters are synced
-                  on-chain.
+                  Update your professional details. Your sign-in role and DID are issued by your
+                  hospital and cannot be changed here.
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleUpdateProfile} className="space-y-4 py-4">
@@ -791,21 +848,21 @@ function StaffProfile() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <Label htmlFor="role">Role / Title</Label>
+                    <Label htmlFor="title">Job Title</Label>
                     <Input
-                      id="role"
-                      value={editRole}
-                      onChange={(e) => setEditRole(e.target.value)}
-                      required
+                      id="title"
+                      placeholder="e.g. Senior Cardiologist"
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
                     />
                   </div>
                   <div className="space-y-1">
                     <Label htmlFor="dept">Department</Label>
                     <Input
                       id="dept"
+                      placeholder="e.g. Cardiology"
                       value={editDepartment}
                       onChange={(e) => setEditDepartment(e.target.value)}
-                      required
                     />
                   </div>
                 </div>
@@ -813,9 +870,10 @@ function StaffProfile() {
                   <Label htmlFor="phone">Phone</Label>
                   <Input
                     id="phone"
+                    type="tel"
+                    placeholder="+91 98765 43210"
                     value={editPhone}
                     onChange={(e) => setEditPhone(e.target.value)}
-                    required
                   />
                 </div>
                 <div className="space-y-1">

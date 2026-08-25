@@ -125,7 +125,25 @@ export function useAdminBilling() {
     totalPaid: 0,
     bills: [] as any[],
     payments: [] as any[],
-    billSummary: { outstanding: 0, totalBilled: 0, totalPaid: 0, totalCharges: 0, balanceDue: 0 },
+    billSummary: {
+      outstanding: 0,
+      totalBilled: 0,
+      totalPaid: 0,
+      totalCharges: 0,
+      balanceDue: 0,
+      amountPaid: 0,
+      billNumber: null,
+      status: null,
+      fromDate: null,
+      toDate: null,
+      insuranceClaimed: null,
+      insurancePending: null,
+      patientResponsibility: null,
+      categoryTotals: null,
+    },
+    paymentRecords: [] as any[],
+    billItems: [] as any[],
+    dailyCharges: [] as any[],
   });
 }
 

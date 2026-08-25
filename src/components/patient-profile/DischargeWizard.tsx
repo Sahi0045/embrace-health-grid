@@ -45,9 +45,12 @@ export function DischargeWizard({
 }: DischargeWizardProps) {
   const [step, setStep] = useState(1);
   const [summaryNote, setSummaryNote] = useState("");
-  const [finalBillAmount, setFinalBillAmount] = useState<number>(
-    billing?.outstanding ? Number(billing.outstanding) : 250,
-  );
+  // Starts at zero, and is the ADDITIONAL charge raised at discharge — the
+  // server adds it to the running balance. It used to be prefilled with the
+  // patient's existing outstanding balance (or a literal 250 when there was
+  // none), so accepting the default doubled what the patient owed, or invoiced
+  // them 250 for nothing.
+  const [finalBillAmount, setFinalBillAmount] = useState<number>(0);
   const [followupDate, setFollowupDate] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -59,8 +62,7 @@ export function DischargeWizard({
       await dischargePatient({
         data: {
           admissionId: activeAdmission.admission_id,
-          dischargeSummary:
-            summaryNote || "Standard discharge completed. Patient in stable condition.",
+          dischargeSummary: summaryNote.trim(),
           finalBillAmount,
         },
       });
@@ -199,7 +201,7 @@ export function DischargeWizard({
 
                 <div className="space-y-2">
                   <label className="text-xs font-extrabold text-foreground block">
-                    Discharge Summary & Clinical Notes
+                    Discharge Summary & Clinical Notes <span className="text-destructive">*</span>
                   </label>
                   <Textarea
                     value={summaryNote}
@@ -242,7 +244,7 @@ export function DischargeWizard({
 
                 <div className="space-y-2">
                   <label className="text-xs font-extrabold text-foreground block">
-                    Final Discharge Bill Amount ($)
+                    Additional Discharge Charges (₹)
                   </label>
                   <Input
                     type="number"
@@ -251,7 +253,11 @@ export function DischargeWizard({
                     className="rounded-xl bg-background border border-border/80 text-xs h-10 font-bold"
                   />
                   <p className="text-[11px] text-muted-foreground">
-                    This amount will be billed to the patient's account upon discharge completion.
+                    Added to the patient's outstanding balance. Enter only charges raised at
+                    discharge — not the running total.
+                    {billing?.outstanding != null && (
+                      <> Current outstanding: ₹{Number(billing.outstanding).toLocaleString()}.</>
+                    )}
                   </p>
                 </div>
               </div>
@@ -312,7 +318,7 @@ export function DischargeWizard({
                     </li>
                     <li>Discharge summary recorded on immutable audit log.</li>
                     <li>
-                      Final bill of <strong>${finalBillAmount}</strong> processed.
+                      Additional charges of <strong>₹{finalBillAmount}</strong> posted.
                     </li>
                   </ul>
                 </div>
@@ -358,9 +364,10 @@ export function DischargeWizard({
               </Button>
             ) : (
               <Button
-                disabled={submitting}
+                disabled={submitting || !summaryNote.trim()}
+                title={!summaryNote.trim() ? "A discharge summary is required" : undefined}
                 onClick={handleConfirmDischarge}
-                className="bg-gradient-to-r from-primary to-blue-600 text-primary-foreground font-extrabold rounded-xl h-10 text-xs px-6 shadow-clinical-md shadow-primary/25"
+                className="bg-primary text-primary-foreground font-extrabold rounded-xl h-10 text-xs px-6 shadow-clinical-md shadow-primary/25"
               >
                 {submitting ? "Processing..." : "Complete & Execute Discharge"}
               </Button>

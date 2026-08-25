@@ -14,16 +14,8 @@ interface WardCardProps {
 const WARD_TYPE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
   ICU: { bg: "bg-destructive/10", text: "text-destructive", border: "border-destructive/20" },
   Emergency: { bg: "bg-warning/15", text: "text-warning-foreground", border: "border-warning/30" },
-  Pediatric: {
-    bg: "bg-cyan-500/10",
-    text: "text-cyan-600 dark:text-cyan-400",
-    border: "border-cyan-500/20",
-  },
-  Maternity: {
-    bg: "bg-purple-500/10",
-    text: "text-purple-600 dark:text-purple-400",
-    border: "border-purple-500/20",
-  },
+  Pediatric: { bg: "bg-chart-4/10", text: "text-chart-4", border: "border-chart-4/20" },
+  Maternity: { bg: "bg-chart-5/10", text: "text-chart-5", border: "border-chart-5/20" },
   General: { bg: "bg-primary/10", text: "text-primary", border: "border-primary/20" },
 };
 

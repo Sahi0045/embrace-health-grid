@@ -17,10 +17,10 @@ import type { EquipmentRecord, EquipmentStatus } from "@/lib/types";
 
 export interface EquipmentKpiStats {
   total: number;
-  operational: number;
+  available: number;
   inUse: number;
   maintenance: number;
-  offline: number;
+  retired: number;
   avgUtilization: number;
 }
 
@@ -39,7 +39,7 @@ export function EquipmentBentoHero({
   onSelectStatus,
   className = "",
 }: EquipmentBentoHeroProps) {
-  const operationalPlusInUse = stats.operational + stats.inUse;
+  const operationalPlusInUse = stats.available + stats.inUse;
   const readinessRate =
     stats.total > 0 ? Math.round((operationalPlusInUse / stats.total) * 100) : 0;
 
@@ -73,14 +73,14 @@ export function EquipmentBentoHero({
 
   const pods = [
     {
-      id: "operational",
+      id: "available",
       label: "Operational Standby",
-      count: stats.operational,
-      delta: stats.operational > 0 ? "Ready to Deploy" : "0 Standby",
+      count: stats.available,
+      delta: stats.available > 0 ? "Ready to Deploy" : "0 Standby",
       icon: CheckCircle2,
       tone: "success" as const,
-      sparkline: [2, 4, 3, 5, 4, stats.operational],
-      active: activeFilter === "operational",
+      sparkline: [2, 4, 3, 5, 4, stats.available],
+      active: activeFilter === "available",
     },
     {
       id: "in-use",
@@ -103,14 +103,14 @@ export function EquipmentBentoHero({
       active: activeFilter === "maintenance",
     },
     {
-      id: "offline",
+      id: "retired",
       label: "Offline Buffer",
-      count: stats.offline,
-      delta: stats.offline > 0 ? "Staged Storage" : "0 Offline",
+      count: stats.retired,
+      delta: stats.retired > 0 ? "Staged Storage" : "0 Offline",
       icon: XCircle,
       tone: "destructive" as const,
-      sparkline: [0, 1, 0, 1, 0, stats.offline],
-      active: activeFilter === "offline",
+      sparkline: [0, 1, 0, 1, 0, stats.retired],
+      active: activeFilter === "retired",
     },
   ];
 
@@ -213,9 +213,9 @@ export function EquipmentBentoHero({
 
               {deptMetrics.map((dept) => {
                 const getBarColor = (val: number) => {
-                  if (val >= 85) return "bg-rose-500";
-                  if (val >= 65) return "bg-blue-500";
-                  return "bg-emerald-500";
+                  if (val >= 85) return "bg-destructive";
+                  if (val >= 65) return "bg-primary";
+                  return "bg-success";
                 };
 
                 return (
@@ -252,7 +252,7 @@ export function EquipmentBentoHero({
             </div>
           </div>
           <div className="px-2 border-x border-border/60">
-            <div className="text-lg font-extrabold font-display text-cyan-600 dark:text-cyan-400">
+            <div className="text-lg font-extrabold font-display text-primary dark:text-primary">
               {stats.inUse}
             </div>
             <div className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">
@@ -260,7 +260,7 @@ export function EquipmentBentoHero({
             </div>
           </div>
           <div className="px-2">
-            <div className="text-lg font-extrabold font-display text-warning-foreground dark:text-amber-400">
+            <div className="text-lg font-extrabold font-display text-warning-foreground dark:text-warning">
               {stats.maintenance}
             </div>
             <div className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">
@@ -303,7 +303,7 @@ export function EquipmentBentoHero({
                 : "border-border/80 hover:border-warning/40 bg-card",
               accentDot: "bg-warning",
               sparkTone: "warning" as const,
-              deltaColor: "text-warning-foreground dark:text-amber-400",
+              deltaColor: "text-warning-foreground dark:text-warning",
             },
             destructive: {
               iconBg:

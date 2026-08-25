@@ -23,9 +23,9 @@ const FILTER_PILLS = [
   { id: "available", label: "Available", color: "bg-success" },
   { id: "occupied", label: "Occupied", color: "bg-primary" },
   { id: "reserved", label: "Reserved", color: "bg-warning" },
-  { id: "cleaning", label: "Cleaning", color: "bg-blue-500" },
-  { id: "maintenance", label: "Maintenance", color: "bg-amber-500" },
-  { id: "emergency_reserved", label: "Emergency", color: "bg-rose-500" },
+  { id: "cleaning", label: "Cleaning", color: "bg-primary" },
+  { id: "maintenance", label: "Maintenance", color: "bg-warning" },
+  { id: "emergency_reserved", label: "Emergency", color: "bg-destructive" },
 ];
 
 export const SpatialCommandBar = memo(function SpatialCommandBar({
@@ -77,7 +77,7 @@ export const SpatialCommandBar = memo(function SpatialCommandBar({
               onClick={() => onViewModeChange("wings")}
               className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-extrabold transition-all ${
                 viewMode === "wings"
-                  ? "bg-gradient-to-r from-primary to-blue-600 text-primary-foreground shadow-xs"
+                  ? "bg-primary text-primary-foreground shadow-xs"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
               }`}
               title="Spatial Wing Floorplan"
@@ -90,7 +90,7 @@ export const SpatialCommandBar = memo(function SpatialCommandBar({
               onClick={() => onViewModeChange("compact")}
               className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-extrabold transition-all ${
                 viewMode === "compact"
-                  ? "bg-gradient-to-r from-primary to-blue-600 text-primary-foreground shadow-xs"
+                  ? "bg-primary text-primary-foreground shadow-xs"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
               }`}
               title="Compact Matrix View"
@@ -163,7 +163,7 @@ export const SpatialCommandBar = memo(function SpatialCommandBar({
               onClick={() => onStatusFilterChange(pill.id)}
               className={`inline-flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-extrabold transition-all border ${
                 isSelected
-                  ? "bg-gradient-to-r from-primary to-blue-600 text-primary-foreground border-primary shadow-clinical-xs scale-[1.01]"
+                  ? "bg-primary text-primary-foreground border-primary shadow-clinical-xs scale-[1.01]"
                   : "border-border/80 bg-card text-muted-foreground hover:border-border hover:text-foreground hover:bg-muted/40 shadow-2xs"
               }`}
             >

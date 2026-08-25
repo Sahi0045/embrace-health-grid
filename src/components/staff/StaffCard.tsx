@@ -34,11 +34,14 @@ export interface StaffMember {
     confirmed: boolean;
     role: string;
   };
+  // Nullable: none of these are measured today. They were filled with constants
+  // (2 patients for anyone clocked in, capacity 8 or 10, 36 hours) and displayed
+  // as the figures an administrator judges overtime and fatigue by.
   workload: {
-    activePatients: number;
-    maxCapacity: number;
-    percentage: number;
-    hoursThisWeek: number;
+    activePatients: number | null;
+    maxCapacity: number | null;
+    percentage: number | null;
+    hoursThisWeek: number | null;
   };
   attendance?: {
     lastAction: "in" | "out";
@@ -71,8 +74,8 @@ export function StaffCard({ staff, onSelect }: StaffCardProps) {
     },
     oncall: {
       label: "On Call",
-      dotCls: "bg-rose-500 animate-pulse",
-      textCls: "text-rose-600 dark:text-rose-400",
+      dotCls: "bg-destructive animate-pulse",
+      textCls: "text-destructive dark:text-destructive",
       badgeCls: "border-destructive/30 bg-destructive/15 text-destructive",
       accent: "destructive" as const,
     },
@@ -104,12 +107,9 @@ export function StaffCard({ staff, onSelect }: StaffCardProps) {
   };
 
   // Workload tone
+  const pct = staff.workload.percentage;
   const workloadTone =
-    staff.workload.percentage > 85
-      ? "destructive"
-      : staff.workload.percentage > 60
-        ? "primary"
-        : "success";
+    pct == null ? "primary" : pct > 85 ? "destructive" : pct > 60 ? "primary" : "success";
 
   // Clean time formatting (e.g. 08:00:00 -> 08:00)
   const formatTime = (t?: string) => {
@@ -193,7 +193,7 @@ export function StaffCard({ staff, onSelect }: StaffCardProps) {
 
         <div>
           <div className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground flex items-center gap-1 mb-1">
-            <MapPin className="h-3 w-3 text-teal-500 shrink-0" /> Station
+            <MapPin className="h-3 w-3 text-success shrink-0" /> Station
           </div>
           <div
             className="text-xs font-semibold text-foreground truncate"
@@ -210,12 +210,15 @@ export function StaffCard({ staff, onSelect }: StaffCardProps) {
           <span className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
             <Activity className="h-3 w-3 text-primary" /> Patient Load
           </span>
+          {/* Caseload is not measured anywhere yet — it used to render a
+              hardcoded "2 / 8 (25%)" for anyone clocked in. */}
           <span className="font-mono text-[11px] font-bold text-foreground">
-            {staff.workload.activePatients} / {staff.workload.maxCapacity} (
-            {staff.workload.percentage}%)
+            {pct == null
+              ? "Not tracked"
+              : `${staff.workload.activePatients} / ${staff.workload.maxCapacity} (${pct}%)`}
           </span>
         </div>
-        <GradientProgress value={staff.workload.percentage} tone={workloadTone} height={6} />
+        {pct != null && <GradientProgress value={pct} tone={workloadTone} height={6} />}
       </div>
 
       {/* Bottom Footer Action */}

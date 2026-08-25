@@ -172,15 +172,15 @@ export function CafeteriaKpiBar({
               <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
                 Avg Rating
               </p>
-              <p className="text-sm font-black text-amber-500 mt-0.5">
-                ⭐ {stats.averageMealRating}
+              <p className="text-sm font-black text-warning mt-0.5">
+                {stats.averageMealRating == null ? "Not rated" : `⭐ ${stats.averageMealRating}`}
               </p>
             </div>
             <div className="p-2.5 rounded-xl bg-background/60 border border-border/60 shadow-clinical-xs">
               <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
                 Active Vendors
               </p>
-              <p className="text-sm font-black text-emerald-500 mt-0.5">
+              <p className="text-sm font-black text-success mt-0.5">
                 {stats.activeVendorsCount} Certified
               </p>
             </div>
@@ -199,7 +199,7 @@ export function CafeteriaKpiBar({
             <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
               Meal Dispatch
             </span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/15 text-amber-500 shadow-xs border border-amber-500/20">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-warning/15 text-warning shadow-xs border border-warning/20">
               <Truck className="h-4.5 w-4.5" />
             </div>
           </div>
@@ -209,7 +209,7 @@ export function CafeteriaKpiBar({
           </div>
           <div className="flex items-center justify-between pt-2.5 border-t border-border/50 text-xs">
             <span className="text-muted-foreground">Delivered today:</span>
-            <span className="font-bold text-emerald-500">{stats.deliveredToday} meals</span>
+            <span className="font-bold text-success">{stats.deliveredToday} meals</span>
           </div>
         </GlowCard>
 
@@ -222,7 +222,7 @@ export function CafeteriaKpiBar({
             <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
               Dietary Plans
             </span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-500 shadow-xs border border-emerald-500/20">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-success/15 text-success shadow-xs border border-success/20">
               <HeartPulse className="h-4.5 w-4.5" />
             </div>
           </div>
@@ -245,7 +245,7 @@ export function CafeteriaKpiBar({
             <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
               Kitchen Stock
             </span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-500/15 text-rose-500 shadow-xs border border-rose-500/20">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-destructive/15 text-destructive shadow-xs border border-destructive/20">
               <ChefHat className="h-4.5 w-4.5" />
             </div>
           </div>
@@ -256,7 +256,7 @@ export function CafeteriaKpiBar({
           <div className="flex items-center justify-between pt-2.5 border-t border-border/50 text-xs">
             <span className="text-muted-foreground">Pantry status:</span>
             <span
-              className={`font-bold ${stats.lowKitchenStockCount > 0 ? "text-rose-500" : "text-emerald-500"}`}
+              className={`font-bold ${stats.lowKitchenStockCount > 0 ? "text-destructive" : "text-success"}`}
             >
               {stats.lowKitchenStockCount > 0 ? "Action Required" : "Optimal"}
             </span>
@@ -272,7 +272,7 @@ export function CafeteriaKpiBar({
             <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
               Food Wastage
             </span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-500/15 text-purple-500 shadow-xs border border-purple-500/20">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/15 text-accent shadow-xs border border-accent/20">
               <TrendingDown className="h-4.5 w-4.5" />
             </div>
           </div>
@@ -290,7 +290,7 @@ export function CafeteriaKpiBar({
           </div>
           <div className="flex items-center justify-between pt-2.5 border-t border-border/50 text-xs">
             <span className="text-muted-foreground">Waste reduction:</span>
-            <span className="font-bold text-emerald-500">-18% vs target</span>
+            <span className="font-bold text-success">-18% vs target</span>
           </div>
         </GlowCard>
       </div>

@@ -215,29 +215,39 @@ export function getDefaultClaims(
 
   const p = (patientRecord ?? {}) as Record<string, any>;
 
+  /**
+   * A zero-knowledge proof asserts facts to a care provider. Every default here
+   * was a fabricated medical claim: blood group "B+" (contradicting the QR
+   * screen's "O+" for the same patient), allergies "None" — which asserts the
+   * ABSENCE of allergies — and a primary condition of "Hypertension" for someone
+   * with no diagnosis on file. An unknown value must stay unknown, so the claim
+   * is marked unavailable rather than invented.
+   */
+  const UNKNOWN = "Not recorded";
+
   const age =
     typeof p.age === "number"
       ? String(p.age)
       : p.dob
         ? String(new Date().getFullYear() - new Date(p.dob).getFullYear())
-        : "32";
+        : UNKNOWN;
 
-  const bloodGroup = p.bloodGroup ?? "B+";
+  const bloodGroup = p.bloodGroup ?? UNKNOWN;
   const allergies =
     Array.isArray(p.allergies) && p.allergies.length > 0
-      ? p.allergies.filter((a: string) => a !== "None").join(", ") || "None"
-      : "None";
+      ? p.allergies.filter((a: string) => a !== "None").join(", ")
+      : UNKNOWN;
 
-  const insuranceProvider = p.insuranceProvider ?? "Star Health";
+  const insuranceProvider = p.insuranceProvider ?? UNKNOWN;
   const conditions =
-    Array.isArray(p.conditions) && p.conditions.length > 0 ? p.conditions[0] : "Hypertension";
+    Array.isArray(p.conditions) && p.conditions.length > 0 ? p.conditions[0] : UNKNOWN;
 
   return [
     // Identity
     {
       attribute: "patientDid",
       label: "Patient DID",
-      value: p.did ?? "did:hosp:0xabcd1234",
+      value: p.did ?? UNKNOWN,
       disclosed: false,
       category: "identity",
     },
@@ -265,7 +275,7 @@ export function getDefaultClaims(
     {
       attribute: "nationality",
       label: "Nationality",
-      value: p.nationality ?? "Indian",
+      value: p.nationality ?? UNKNOWN,
       disclosed: false,
       category: "identity",
     },
@@ -294,14 +304,17 @@ export function getDefaultClaims(
     {
       attribute: "vaccineStatus",
       label: "Vaccination Status",
-      value: "COVID-19 · Hep-B · Tetanus",
+      // Was a pure literal with no input at all — it asserted three
+      // vaccinations for every patient, including one with none.
+      value: UNKNOWN,
       disclosed: false,
       category: "medical",
     },
     {
       attribute: "organDonor",
       label: "Organ Donor",
-      value: p.organDonor === true ? "Yes" : "No",
+      // "No" for undefined asserted a decision the patient never made.
+      value: p.organDonor === true ? "Yes" : p.organDonor === false ? "No" : UNKNOWN,
       disclosed: false,
       category: "medical",
     },
@@ -309,21 +322,23 @@ export function getDefaultClaims(
     {
       attribute: "hospitalPatient",
       label: "Registered Hospital Patient",
-      value: "Embrace Health Grid · Verified",
+      // "Verified" was unconditional; nothing checks registration.
+      value: UNKNOWN,
       disclosed: false,
       category: "credentials",
     },
     {
       attribute: "insuranceValid",
       label: "Insurance Valid",
-      value: insuranceProvider + " · Active",
+      // "Active" was asserted regardless of any policy state.
+      value: insuranceProvider === UNKNOWN ? UNKNOWN : `${insuranceProvider} · Active`,
       disclosed: false,
       category: "credentials",
     },
     {
       attribute: "mrn",
       label: "Medical Record No.",
-      value: p.mrn ?? "MRN-204871",
+      value: p.mrn ?? UNKNOWN,
       disclosed: false,
       category: "credentials",
     },

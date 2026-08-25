@@ -33,6 +33,66 @@ async function requireSession() {
   return user;
 }
 
+/**
+ * Authorize a read of one patient's aggregated record.
+ *
+ * Every function in this file takes a patientDid straight from the request body.
+ * That was the only gate: `requireSession()` proves you are SOMEONE, not that
+ * you may see THIS patient. The file header claimed "RLS enforced on all
+ * underlying queries" — true only after 20260826010000 gave the views
+ * `security_invoker = true`; before that they ran as owner and returned any
+ * patient's diagnosis, bed, billing and insurance to any signed-in caller.
+ *
+ * RLS is the real boundary and now works. This is the second layer: it fails
+ * closed with a clear error instead of silently returning a row stripped to
+ * whatever the caller happened to be allowed to see, which reads as "this
+ * patient has no records" rather than "you may not look".
+ *
+ * Allowed: the patient themselves; a clinician holding an active consent; an
+ * admin or super_admin. Deliberately mirrors the predicates the table policies
+ * already use, rather than inventing a second, looser rule.
+ */
+async function requirePatientAccess(patientDid: string) {
+  const user = await requireSession();
+  const supabase = getSupabaseServerClient();
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const role = profile?.role;
+  if (role === "admin" || role === "super_admin") return user;
+
+  // Is this one of the caller's own DIDs?
+  const { data: own } = await supabase
+    .from("dids")
+    .select("did")
+    .eq("owner_id", user.id)
+    .eq("did", patientDid)
+    .maybeSingle();
+  if (own) return user;
+
+  // Otherwise a clinician needs a live grant. `approved_at` is required because
+  // medical_records_select_doctor and prescriptions_select_doctor both test it —
+  // a consent that is active but unapproved opens no records, and this check
+  // must not be more permissive than the policies it fronts.
+  if (role === "doctor" || role === "staff") {
+    const { data: consent } = await supabase
+      .from("consents")
+      .select("grant_id")
+      .eq("patient_did", patientDid)
+      .eq("status", "active")
+      .not("approved_at", "is", null)
+      .limit(1)
+      .maybeSingle();
+    if (consent) return user;
+  }
+
+  throw new Error("You do not have access to this patient's records");
+}
+
 // ─── Get Patient Master Summary ─────────────────────────────────────────────
 
 export const getPatientMaster = createServerFn({ method: "GET" })
@@ -41,7 +101,7 @@ export const getPatientMaster = createServerFn({ method: "GET" })
     return data;
   })
   .handler(async ({ data }) => {
-    await requireSession();
+    await requirePatientAccess(data.patientDid);
     const supabase = getSupabaseServerClient();
 
     // Fetch from the patient_master view (RLS will enforce visibility)
@@ -145,7 +205,7 @@ export const getPatientCurrentLocation = createServerFn({ method: "GET" })
     return data;
   })
   .handler(async ({ data }) => {
-    await requireSession();
+    await requirePatientAccess(data.patientDid);
     const supabase = getSupabaseServerClient();
 
     const { data: location, error } = await supabase
@@ -207,7 +267,7 @@ export const getPatientAdmissionHistory = createServerFn({ method: "GET" })
     return { ...data, limit: data.limit ?? 50 };
   })
   .handler(async ({ data }) => {
-    await requireSession();
+    await requirePatientAccess(data.patientDid);
     const supabase = getSupabaseServerClient();
 
     const { data: admissions, error } = await supabase
@@ -246,7 +306,7 @@ export const getPatientTransferHistory = createServerFn({ method: "GET" })
     return { ...data, limit: data.limit ?? 100 };
   })
   .handler(async ({ data }) => {
-    await requireSession();
+    await requirePatientAccess(data.patientDid);
     const supabase = getSupabaseServerClient();
 
     const { data: events, error } = await supabase
@@ -287,7 +347,7 @@ export const getPatientMedicalRecords = createServerFn({ method: "GET" })
     return { ...data, limit: data.limit ?? 100 };
   })
   .handler(async ({ data }) => {
-    await requireSession();
+    await requirePatientAccess(data.patientDid);
     const supabase = getSupabaseServerClient();
 
     let query = supabase
@@ -324,7 +384,7 @@ export const getPatientMedications = createServerFn({ method: "GET" })
     return data;
   })
   .handler(async ({ data }) => {
-    await requireSession();
+    await requirePatientAccess(data.patientDid);
     const supabase = getSupabaseServerClient();
 
     let query = supabase
@@ -362,7 +422,7 @@ export const getPatientProcedures = createServerFn({ method: "GET" })
     return data;
   })
   .handler(async ({ data }) => {
-    await requireSession();
+    await requirePatientAccess(data.patientDid);
     const supabase = getSupabaseServerClient();
 
     let query = supabase
@@ -399,7 +459,7 @@ export const getPatientLabResults = createServerFn({ method: "GET" })
     return { ...data, limit: data.limit ?? 50 };
   })
   .handler(async ({ data }) => {
-    await requireSession();
+    await requirePatientAccess(data.patientDid);
     const supabase = getSupabaseServerClient();
 
     const { data: results, error } = await supabase
@@ -433,7 +493,7 @@ export const getPatientBilling = createServerFn({ method: "GET" })
     return data;
   })
   .handler(async ({ data }) => {
-    await requireSession();
+    await requirePatientAccess(data.patientDid);
     const supabase = getSupabaseServerClient();
 
     // Billing account summary
@@ -508,7 +568,7 @@ export const getPatientDischargeInfo = createServerFn({ method: "GET" })
     return data;
   })
   .handler(async ({ data }) => {
-    await requireSession();
+    await requirePatientAccess(data.patientDid);
     const supabase = getSupabaseServerClient();
 
     // Get most recent discharged admission

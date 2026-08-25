@@ -1,0 +1,277 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #0F7A62; text-decoration: none; }
+    a:hover { color: #0B5C4A; }
+    ::-webkit-scrollbar { width: 0; height: 0; }
+    .cap { font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #938C80; }
+    .nav { height: 40px; padding: 0 12px; border-radius: 5px; display: flex; align-items: center; gap: 11px; font-size: 13.5px; color: #635D53; cursor: pointer; }
+    .nav.on { background: #EDE8DE; color: #26221C; font-weight: 500; }
+    .card { background: #FDFBF7; border: 1px solid #E2DCD1; border-radius: 6px; }
+  </style>
+</helmet>
+
+<div style="width: 1440px; height: 900px; background: #F7F4EE; color: #26221C; display: flex; overflow: hidden;">
+
+  <div style="width: 248px; flex-shrink: 0; border-right: 1px solid #E2DCD1; background: #FBF8F2; display: flex; flex-direction: column; padding: 26px 16px 20px 16px; gap: 26px;">
+    <div style="display: flex; align-items: baseline; gap: 8px; padding: 0 12px;">
+      <span style="font-family: 'Newsreader', Georgia, serif; font-size: 17px; letter-spacing: 0.16em; text-transform: uppercase;">Embrace</span>
+      <span style="width: 5px; height: 5px; border-radius: 999px; background: {{accent}}; display: inline-block;"></span>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 3px;">
+      <div class="nav">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.2L12 3l9 7.2V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg>
+        Home
+      </div>
+      <div class="nav on">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{accent}}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h11l3.5 3.5V21H5z"></path><path d="M8.5 12h7M8.5 16h5"></path></svg>
+        Record
+      </div>
+      <div class="nav">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7.5 3v5.6c0 4.6-3.1 8.2-7.5 9.4-4.4-1.2-7.5-4.8-7.5-9.4V6z"></path></svg>
+        Access
+        <span style="margin-left: auto; background: #F5E7E0; color: #A8543A; font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 999px;">2</span>
+      </div>
+      <div class="nav">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="8.5" cy="12" r="4"></circle><path d="M12.5 12H21l-2 2.5M17 12v3"></path></svg>
+        Keys
+      </div>
+
+      <div style="height: 1px; background: #E2DCD1; margin: 13px 12px;"></div>
+
+      <div class="nav">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg>
+        Appointments
+      </div>
+      <div class="nav">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"></rect><path d="M3 10h18M7 14h4"></path></svg>
+        Insurance
+      </div>
+      <div class="nav">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 8.5c0 5-8.5 10.5-8.5 10.5S3.5 13.5 3.5 8.5a4.5 4.5 0 0 1 8.5-2.1 4.5 4.5 0 0 1 8.5 2.1z"></path></svg>
+        Emergency
+      </div>
+    </div>
+
+    <div style="margin-top: auto; display: flex; align-items: center; gap: 11px; padding: 11px 12px; border-radius: 6px; border: 1px solid #E2DCD1; background: #FDFBF7;">
+      <div style="width: 32px; height: 32px; border-radius: 999px; background: #26221C; color: #F7F4EE; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex-shrink: 0;">AS</div>
+      <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+        <span style="font-size: 12.5px; font-weight: 500;">Aarav Sharma</span>
+        <span style="font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; color: #938C80;">8f3a…c41d</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="flex-grow: 1; display: flex; flex-direction: column; overflow: hidden;">
+
+    <div style="height: 64px; flex-shrink: 0; border-bottom: 1px solid #E2DCD1; display: flex; align-items: center; justify-content: space-between; padding: 0 36px;">
+      <div style="display: flex; align-items: center; gap: 10px; width: 320px; height: 36px; border: 1px solid #E2DCD1; border-radius: 5px; padding: 0 12px; background: #FDFBF7;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#B0A99C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4-4"></path></svg>
+        <span style="font-size: 12.5px; color: #B0A99C;">Search your record</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 18px;">
+        <button style="height: 34px; padding: 0 14px; border: 1px solid #E2DCD1; border-radius: 5px; background: #FDFBF7; color: #635D53; font-family: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M8 11l4 4 4-4M4 20h16"></path></svg>
+          Export
+        </button>
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#635D53" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.7 21a2 2 0 0 1-3.4 0"></path></svg>
+      </div>
+    </div>
+
+    <div style="flex: 1; overflow: hidden; padding: 30px 36px; display: flex; flex-direction: column; gap: 20px;">
+
+      <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 30px;">
+        <div style="display: flex; flex-direction: column; gap: 5px;">
+          <h1 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 36px; font-weight: 400; line-height: 1.08; letter-spacing: -0.012em;">Record</h1>
+          <span style="font-size: 13px; color: #938C80;">47 entries · since March 2019 · every one verified against the on-chain root</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 11px; padding: 10px 15px; border-radius: 6px; background: #FDFBF7; border: 1px solid #E2DCD1;">
+          <svg width="26" height="26" viewBox="0 0 40 40" fill="none" style="flex-shrink: 0;">
+            <circle cx="20" cy="20" r="15" fill="{{accent}}"></circle>
+            <circle cx="20" cy="20" r="11.5" fill="none" stroke="#FDFBF7" stroke-width="0.9" stroke-dasharray="2 2.6" opacity="0.75"></circle>
+            <path d="M15.5 20.2l3.2 3.2 6-6.4" stroke="#FDFBF7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"></path>
+          </svg>
+          <div style="display: flex; flex-direction: column; gap: 2px;">
+            <span style="font-size: 12.5px; font-weight: 500;">Root verified</span>
+            <span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #938C80;">61fa…9b3c · slot 298,441,207</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 7px;">
+        <button onClick="{{ pickAll }}" style="{{ tabAll }}">All · 47</button>
+        <button onClick="{{ pickVis }}" style="{{ tabVis }}">Visits</button>
+        <button onClick="{{ pickLab }}" style="{{ tabLab }}">Labs</button>
+        <button onClick="{{ pickRx }}" style="{{ tabRx }}">Medications</button>
+        <button onClick="{{ pickVac }}" style="{{ tabVac }}">Vaccines</button>
+      </div>
+
+      <div style="display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 24px; flex: 1; overflow: hidden;">
+
+        <div class="card" style="padding: 2px 0; overflow: hidden;">
+          <sc-for list="{{ entries }}" as="e" hint-placeholder-count="10">
+            <div onClick="{{ e.pick }}" style="{{ e.rowStyle }}">
+              <span style="{{ e.tagStyle }}">{{ e.tag }}</span>
+              <div style="display: flex; flex-direction: column; gap: 2px; width: 250px; flex-shrink: 0;">
+                <span style="font-size: 13.5px; font-weight: 500;">{{ e.title }}</span>
+                <span style="font-size: 11.5px; color: #938C80;">{{ e.by }}</span>
+              </div>
+              <span style="flex-grow: 1; font-size: 12px; color: #938C80;">{{ e.summary }}</span>
+              <span style="font-size: 12px; color: #635D53; width: 62px; text-align: right; flex-shrink: 0;">{{ e.date }}</span>
+              <span style="font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; color: #B0A99C; width: 72px; text-align: right; flex-shrink: 0;">{{ e.hash }}</span>
+            </div>
+          </sc-for>
+        </div>
+
+        <div class="card" style="padding: 22px 24px; display: flex; flex-direction: column; gap: 20px; overflow: hidden;">
+
+          <div style="display: flex; flex-direction: column; gap: 9px;">
+            <div style="display: flex; align-items: center; gap: 9px;">
+              <span style="{{ sel.tagStyle }}">{{ sel.tag }}</span>
+              <span style="font-size: 11.5px; color: #938C80;">{{ sel.date }}</span>
+            </div>
+            <h2 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 25px; font-weight: 400; line-height: 1.15;">{{ sel.title }}</h2>
+            <span style="font-size: 12.5px; color: #635D53;">{{ sel.by }}</span>
+          </div>
+
+          <div style="height: 1px; background: #E8E2D7;"></div>
+
+          <div style="display: flex; flex-direction: column; gap: 11px;">
+            <span class="cap">Findings</span>
+            <sc-for list="{{ sel.rows }}" as="r" hint-placeholder-count="4">
+              <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding-bottom: 9px; border-bottom: 1px solid #F0EBE1;">
+                <span style="font-size: 12.5px; color: #635D53;">{{ r.k }}</span>
+                <span style="font-size: 13px; font-weight: 500; font-family: 'IBM Plex Mono', monospace;">{{ r.v }}</span>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="margin-top: auto; display: flex; flex-direction: column; gap: 11px;">
+            <span class="cap">Proof</span>
+            <div style="background: #26221C; border-radius: 6px; padding: 15px 16px; display: flex; flex-direction: column; gap: 9px;">
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span style="font-size: 10.5px; color: #938C80;">Entry hash</span>
+                <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #F2EDE4;">{{ sel.hash }}</span>
+              </div>
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span style="font-size: 10.5px; color: #938C80;">Merkle root</span>
+                <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #F2EDE4;">61fa…9b3c</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 7px; border-top: 1px solid #3D3830; padding-top: 9px;">
+                <span style="width: 5px; height: 5px; border-radius: 999px; background: {{accent}};"></span>
+                <span style="font-size: 11px; color: #C9C2B5;">Anchored · slot 298,441,207</span>
+              </div>
+            </div>
+            <button style="height: 40px; border: 1px solid #E2DCD1; border-radius: 5px; background: transparent; color: #635D53; font-family: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer;">Share this entry</button>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"accent":{"editor":"color","default":"#0F7A62","options":["#0F7A62","#A8543A","#3B5FA8","#6B4A8F"],"section":"Theme"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { kind: 'all', picked: 0 };
+  }
+
+  chip(on) {
+    var base = 'height: 34px; padding: 0 14px; border-radius: 999px; font-family: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer; ';
+    return on
+      ? base + 'border: 1px solid #26221C; background: #26221C; color: #F7F4EE;'
+      : base + 'border: 1px solid #E2DCD1; background: transparent; color: #635D53;';
+  }
+
+  renderVals() {
+    var self = this;
+    var tint = {
+      VIS: 'background: #E6E2D8; color: #26221C;',
+      LAB: 'background: #E3F0EA; color: #0F7A62;',
+      RX:  'background: #F5E7E0; color: #A8543A;',
+      VAC: 'background: #EDE8DE; color: #635D53;'
+    };
+    var tagBase = 'font-family: \'IBM Plex Mono\', monospace; font-size: 9px; font-weight: 500; letter-spacing: 0.06em; padding: 4px 6px; border-radius: 4px; width: 38px; text-align: center; flex-shrink: 0; ';
+
+    var all = [
+      { tag: 'LAB', title: 'Complete blood count',  by: 'Apollo Labs · Dr R. Kapoor', summary: 'Haemoglobin slightly low',      date: '24 Aug', hash: '8f3a…c41d', rows: [{k:'Haemoglobin',v:'12.1 g/dL'},{k:'WBC',v:'7.4 ×10⁹/L'},{k:'Platelets',v:'268 ×10⁹/L'},{k:'Reference',v:'13.0–17.0'}] },
+      { tag: 'VIS', title: 'Cardiology consult',    by: 'Dr Rhea Kapoor · Apollo',    summary: 'Follow-up in 6 weeks',          date: '24 Aug', hash: '2b91…7ee0', rows: [{k:'Blood pressure',v:'128/82'},{k:'Pulse',v:'74 bpm'},{k:'ECG',v:'Normal sinus'},{k:'Next review',v:'02 Sep'}] },
+      { tag: 'RX',  title: 'Amoxicillin 500mg',     by: 'Dr M. Pillai · 7 days',      summary: 'Three times daily, with food',  date: '22 Aug', hash: 'd44c…1a08', rows: [{k:'Dose',v:'500 mg'},{k:'Frequency',v:'8 hourly'},{k:'Duration',v:'7 days'},{k:'Dispensed',v:'21 of 21'}] },
+      { tag: 'VIS', title: 'Discharge · Ward B',    by: 'Apollo Chennai · 3 nights',  summary: 'Recovered, no complications',   date: '18 Aug', hash: 'a075…4d12', rows: [{k:'Admitted',v:'15 Aug'},{k:'Discharged',v:'18 Aug'},{k:'Bed',v:'B-214'},{k:'Follow-up',v:'24 Aug'}] },
+      { tag: 'LAB', title: 'Lipid profile',         by: 'Apollo Labs',                summary: 'LDL above target',              date: '17 Aug', hash: '5c30…be91', rows: [{k:'Total',v:'214 mg/dL'},{k:'LDL',v:'142 mg/dL'},{k:'HDL',v:'44 mg/dL'},{k:'Triglycerides',v:'168 mg/dL'}] },
+      { tag: 'VAC', title: 'Influenza · seasonal',  by: 'Apollo Chennai',             summary: 'Quadrivalent, left deltoid',    date: '02 Aug', hash: '9e11…33f4', rows: [{k:'Vaccine',v:'Quadrivalent'},{k:'Batch',v:'FLU-2418'},{k:'Site',v:'L deltoid'},{k:'Next due',v:'Aug 2027'}] },
+      { tag: 'RX',  title: 'Atorvastatin 10mg',     by: 'Dr R. Kapoor · ongoing',     summary: 'Nightly, review in 3 months',   date: '28 Jul', hash: '7ab2…0d6c', rows: [{k:'Dose',v:'10 mg'},{k:'Frequency',v:'Nightly'},{k:'Started',v:'28 Jul'},{k:'Review',v:'28 Oct'}] },
+      { tag: 'LAB', title: 'Chest CT · report',     by: 'Fortis Bengaluru',           summary: 'No acute abnormality',          date: '19 Jul', hash: 'c92e…40b7', rows: [{k:'Modality',v:'CT, contrast'},{k:'Findings',v:'Unremarkable'},{k:'Radiologist',v:'Dr S. Verma'},{k:'Images',v:'184'}] },
+      { tag: 'VAC', title: 'Tetanus booster',       by: 'Apollo Chennai',             summary: 'Ten year booster',              date: '11 May', hash: '1f47…88aa', rows: [{k:'Vaccine',v:'Td'},{k:'Batch',v:'TD-9071'},{k:'Site',v:'R deltoid'},{k:'Next due',v:'May 2036'}] },
+      { tag: 'VIS', title: 'Annual health check',   by: 'Dr M. Pillai · Apollo',      summary: 'All screens within range',      date: '03 Mar', hash: '73dc…2c15', rows: [{k:'BMI',v:'23.8'},{k:'Blood pressure',v:'122/78'},{k:'Glucose',v:'92 mg/dL'},{k:'Verdict',v:'Healthy'}] }
+    ];
+
+    var kind = this.state.kind;
+    var shown = kind === 'all' ? all : all.filter(function (e) { return e.tag === kind; });
+    if (!shown.length) shown = all;
+
+    var pickedIdx = this.state.picked < shown.length ? this.state.picked : 0;
+
+    var entries = shown.map(function (e, i) {
+      var on = i === pickedIdx;
+      var row = 'display: flex; align-items: center; gap: 14px; padding: 13px 18px; cursor: pointer; border-bottom: 1px solid #F0EBE1; ';
+      return {
+        tag: e.tag,
+        title: e.title,
+        by: e.by,
+        summary: e.summary,
+        date: e.date,
+        hash: e.hash,
+        tagStyle: tagBase + tint[e.tag],
+        rowStyle: on ? row + 'background: #F2EDE3; box-shadow: inset 3px 0 0 #26221C;' : row,
+        pick: function () { self.setState({ picked: i }); }
+      };
+    });
+
+    var s = shown[pickedIdx];
+
+    return {
+      accent: this.props.accent ?? '#0F7A62',
+      entries: entries,
+      sel: {
+        tag: s.tag,
+        tagStyle: tagBase + tint[s.tag],
+        title: s.title,
+        by: s.by,
+        date: s.date,
+        hash: s.hash,
+        rows: s.rows
+      },
+      tabAll: this.chip(kind === 'all'),
+      tabVis: this.chip(kind === 'VIS'),
+      tabLab: this.chip(kind === 'LAB'),
+      tabRx:  this.chip(kind === 'RX'),
+      tabVac: this.chip(kind === 'VAC'),
+      pickAll: () => this.setState({ kind: 'all', picked: 0 }),
+      pickVis: () => this.setState({ kind: 'VIS', picked: 0 }),
+      pickLab: () => this.setState({ kind: 'LAB', picked: 0 }),
+      pickRx:  () => this.setState({ kind: 'RX',  picked: 0 }),
+      pickVac: () => this.setState({ kind: 'VAC', picked: 0 })
+    };
+  }
+}
+</script>
+</body>
+</html>

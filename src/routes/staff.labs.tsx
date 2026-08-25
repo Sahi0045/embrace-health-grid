@@ -132,13 +132,18 @@ function LabsPage() {
   const displayOrders = ((labsData?.labs ?? []) as any[]).map((lab: any) => {
     const pt = (patientsList || []).find((p) => p.did === lab.patientDid);
     return {
-      id: lab.labId ?? lab.id ?? String(Math.random()),
-      patient: pt?.name ?? lab.patientName ?? lab.patientDid ?? "Unknown Patient",
-      mrn: pt?.mrn ?? lab.mrn ?? "—",
-      tests: lab.tests || [],
-      urgency: lab.priority || "routine",
+      // `String(Math.random())` as a React key remounts the row on every render.
+      id: lab.labId ?? lab.id ?? lab.patientDid,
+      patient: pt?.name ?? lab.patientDid ?? "Unknown Patient",
+      mrn: pt?.mrn ?? "—",
+      // getLabs returns a single `testName`, not a `tests` array — reading
+      // `lab.tests` meant every order card listed no tests at all.
+      tests: lab.tests ?? (lab.testName ? [lab.testName] : []),
+      urgency: lab.priority ?? "routine",
       status: lab.status || "pending",
-      ordered: lab.orderedAt ? new Date(lab.orderedAt).toLocaleString("en-IN") : "—",
+      // There is no `orderedAt`; `resultedAt` is when the lab reported back, so
+      // it is labelled as such rather than passed off as the order time.
+      resulted: lab.resultedAt ? new Date(lab.resultedAt).toLocaleString("en-IN") : "—",
     };
   });
 
@@ -227,7 +232,7 @@ function LabsPage() {
                           ))}
                         </div>
                         <div className="mt-2 text-[11px] text-muted-foreground">
-                          Ordered: {o.ordered}
+                          Resulted: {o.resulted}
                         </div>
                         {o.status === "completed" && (
                           <div className="mt-2 flex items-center gap-1.5">

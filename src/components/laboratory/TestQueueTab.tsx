@@ -56,7 +56,7 @@ export function TestQueueTab({ orders, onUpdateStatus, onRecordResultClick }: Te
           >
             {/* Ambient accent line for STAT items */}
             {isStat && (
-              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-destructive via-red-500 to-amber-500" />
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-destructive via-destructive to-warning" />
             )}
 
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">

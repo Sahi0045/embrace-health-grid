@@ -6,7 +6,7 @@ interface EquipmentCardProps {
 }
 
 const statusConfig = {
-  operational: {
+  available: {
     label: "Operational",
     icon: CheckCircle,
     className: "text-success",
@@ -24,8 +24,8 @@ const statusConfig = {
     className: "text-warning-foreground",
     badge: "bg-warning/10 text-warning-foreground",
   },
-  offline: {
-    label: "Offline",
+  retired: {
+    label: "Retired",
     icon: XCircle,
     className: "text-destructive",
     badge: "bg-destructive/10 text-destructive",

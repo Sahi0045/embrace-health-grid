@@ -12,6 +12,13 @@ lerna-debug.log*
 .env.*
 !.env.example
 
+# Generated secret material. .secrets-generated.json was committed in 18cd4b2
+# and reached origin/main with real JWT_SECRET / IDENTITY_SECRET / AUDIT_HMAC_KEY
+# / SETUP_KEY values; untracked here so it cannot happen again.
+.secrets-generated.json
+*.secrets.json
+secrets-*.json
+
 node_modules
 dist
 dist-ssr
@@ -39,3 +46,7 @@ dist-ssr
 # Vercel
 .vercel/
 
+
+# Generated Claude Design canvas payload (~2.3MB of editor code).
+# Regenerate from the .dc.html sources with the design seed helper.
+design/embrace-patient-portal.html

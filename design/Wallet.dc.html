@@ -1,0 +1,193 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #0F7A62; text-decoration: none; }
+    a:hover { color: #0B5C4A; }
+    ::-webkit-scrollbar { width: 0; height: 0; }
+    .cap { font-size: 10px; font-weight: 600; letter-spacing: 0.11em; text-transform: uppercase; color: #938C80; }
+    .sig { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid #E8E2D7; align-items: flex-start; }
+  </style>
+</helmet>
+
+<div style="width: 390px; height: 844px; background: #F7F4EE; color: #26221C; display: flex; flex-direction: column; overflow: hidden;">
+
+  <div style="display: flex; align-items: center; gap: 14px; padding: 18px 20px 10px 20px; flex-shrink: 0;">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#26221C" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg>
+    <span style="font-size: 13px; font-weight: 500; color: #635D53;">Back</span>
+  </div>
+
+  <div style="flex: 1; overflow: hidden; padding: 0 20px; display: flex; flex-direction: column; gap: 15px;">
+
+    <div style="display: flex; flex-direction: column; gap: 7px;">
+      <h1 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 32px; font-weight: 400; line-height: 1.1; letter-spacing: -0.01em;">Keys</h1>
+      <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #635D53; text-wrap: pretty;">Your signature is what makes a consent binding. Choose who holds the key.</p>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <div onClick="{{ pickManaged }}" style="{{ managedCard }}">
+        <div style="{{ managedRadio }}"><div style="{{ managedInner }}"></div></div>
+        <div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1;">
+          <span style="font-size: 14px; font-weight: 500;">Held for me</span>
+          <span style="font-size: 11.5px; color: #938C80; line-height: 1.4;">Embrace signs on your behalf. Nothing to install.</span>
+        </div>
+      </div>
+      <div onClick="{{ pickOwn }}" style="{{ ownCard }}">
+        <div style="{{ ownRadio }}"><div style="{{ ownInner }}"></div></div>
+        <div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1;">
+          <span style="font-size: 14px; font-weight: 500;">My own wallet</span>
+          <span style="font-size: 11.5px; color: #938C80; line-height: 1.4;">You approve every signature in Phantom.</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="background: #26221C; color: #F2EDE4; border-radius: 6px; padding: 16px 18px; display: flex; flex-direction: column; gap: 13px;">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <span style="font-size: 10px; font-weight: 600; letter-spacing: 0.11em; text-transform: uppercase; color: #938C80;">{{ keyLabel }}</span>
+        <span style="{{ statusChip }}">{{ statusText }}</span>
+      </div>
+      <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 13px; letter-spacing: 0.01em; line-height: 1.4; word-break: break-all;">{{ keyValue }}</span>
+      <div style="display: flex; gap: 8px; border-top: 1px solid #3D3830; padding-top: 13px;">
+        <button style="flex: 1; height: 40px; border: 1px solid #3D3830; border-radius: 5px; background: transparent; color: #F2EDE4; font-family: inherit; font-size: 12px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h8"></path></svg>
+          Copy
+        </button>
+        <button style="flex: 1; height: 40px; border: 1px solid #3D3830; border-radius: 5px; background: transparent; color: #F2EDE4; font-family: inherit; font-size: 12px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><path d="M14 14h3v3h-3z"></path></svg>
+          Show QR
+        </button>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px; overflow: hidden;">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <span class="cap">Recent signatures</span>
+        <span style="font-size: 11px; color: #938C80;">Last 30 days</span>
+      </div>
+
+      <div class="sig">
+        <span style="width: 6px; height: 6px; border-radius: 999px; background: {{accent}}; margin-top: 7px; flex-shrink: 0;"></span>
+        <div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1;">
+          <span style="font-size: 13.5px; font-weight: 500;">Consent granted to Dr Pillai</span>
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #B0A99C;">2b91…7ee0</span>
+        </div>
+        <span style="font-size: 11px; color: #938C80;">Mon</span>
+      </div>
+
+      <div class="sig">
+        <span style="width: 6px; height: 6px; border-radius: 999px; background: {{accent}}; margin-top: 7px; flex-shrink: 0;"></span>
+        <div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1;">
+          <span style="font-size: 13.5px; font-weight: 500;">Record root anchored</span>
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #B0A99C;">61fa…9b3c</span>
+        </div>
+        <span style="font-size: 11px; color: #938C80;">Sun</span>
+      </div>
+
+      <div class="sig">
+        <span style="width: 6px; height: 6px; border-radius: 999px; background: #A8543A; margin-top: 7px; flex-shrink: 0;"></span>
+        <div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1;">
+          <span style="font-size: 13.5px; font-weight: 500;">Access revoked · Dr Nair</span>
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #B0A99C;">c92e…40b7</span>
+        </div>
+        <span style="font-size: 11px; color: #938C80;">14 Aug</span>
+      </div>
+
+      <div class="sig" style="border-bottom: none;">
+        <span style="width: 6px; height: 6px; border-radius: 999px; background: {{accent}}; margin-top: 7px; flex-shrink: 0;"></span>
+        <div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1;">
+          <span style="font-size: 13.5px; font-weight: 500;">Discharge summary signed</span>
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #B0A99C;">a075…4d12</span>
+        </div>
+        <span style="font-size: 11px; color: #938C80;">18 Aug</span>
+      </div>
+
+    </div>
+
+  </div>
+
+  <div style="flex-shrink: 0; border-top: 1px solid #E2DCD1; background: #FDFBF7; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 9px 8px 22px 8px;">
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 6px 0;">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#938C80" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.2L12 3l9 7.2V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg>
+      <span style="font-size: 10px; color: #938C80;">Home</span>
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 6px 0;">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#938C80" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h11l3.5 3.5V21H5z"></path><path d="M8.5 12h7M8.5 16h5"></path></svg>
+      <span style="font-size: 10px; color: #938C80;">Record</span>
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 6px 0;">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#938C80" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7.5 3v5.6c0 4.6-3.1 8.2-7.5 9.4-4.4-1.2-7.5-4.8-7.5-9.4V6z"></path></svg>
+      <span style="font-size: 10px; color: #938C80;">Access</span>
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 6px 0;">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="{{accent}}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="8.5" cy="12" r="4"></circle><path d="M12.5 12H21l-2 2.5M17 12v3"></path></svg>
+      <span style="font-size: 10px; font-weight: 600; color: {{accent}};">Keys</span>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"accent":{"editor":"color","default":"#0F7A62","options":["#0F7A62","#A8543A","#3B5FA8","#6B4A8F"],"section":"Theme"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { mode: 'managed' };
+  }
+
+  card(on) {
+    var base = 'border-radius: 6px; padding: 13px 15px; display: flex; align-items: flex-start; gap: 12px; cursor: pointer; ';
+    return on
+      ? base + 'background: #FDFBF7; border: 1.5px solid #26221C;'
+      : base + 'background: transparent; border: 1px solid #E2DCD1;';
+  }
+
+  radio(on, accent) {
+    var base = 'width: 18px; height: 18px; border-radius: 999px; flex-shrink: 0; margin-top: 2px; display: flex; align-items: center; justify-content: center; ';
+    return on
+      ? base + 'border: 1.5px solid ' + accent + ';'
+      : base + 'border: 1.5px solid #C4BDB0;';
+  }
+
+  inner(on, accent) {
+    return on
+      ? 'width: 9px; height: 9px; border-radius: 999px; background: ' + accent + ';'
+      : 'width: 0; height: 0;';
+  }
+
+  renderVals() {
+    var accent = this.props.accent ?? '#0F7A62';
+    var managed = this.state.mode === 'managed';
+    var chip = 'font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 999px; ';
+
+    return {
+      accent: accent,
+      managedCard: this.card(managed),
+      ownCard: this.card(!managed),
+      managedRadio: this.radio(managed, accent),
+      ownRadio: this.radio(!managed, accent),
+      managedInner: this.inner(managed, accent),
+      ownInner: this.inner(!managed, accent),
+      pickManaged: () => this.setState({ mode: 'managed' }),
+      pickOwn: () => this.setState({ mode: 'own' }),
+
+      keyLabel: managed ? 'Decentralised identifier' : 'Connected wallet',
+      keyValue: managed ? 'did:health:pat:8f3a2c7e91b4d05a6f38c41d' : '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU',
+      statusText: managed ? 'Held by Embrace' : 'Phantom connected',
+      statusChip: managed
+        ? chip + 'background: #3D3830; color: #C9C2B5;'
+        : chip + 'background: ' + accent + '; color: #FDFBF7;'
+    };
+  }
+}
+</script>
+</body>
+</html>

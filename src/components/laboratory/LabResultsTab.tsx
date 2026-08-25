@@ -57,7 +57,7 @@ export function LabResultsTab({ results, onResultClick }: LabResultsTabProps) {
           >
             {/* Critical alert top indicator */}
             {isCritical && (
-              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-destructive via-red-500 to-amber-500 animate-pulse" />
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-destructive via-destructive to-warning animate-pulse" />
             )}
 
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">

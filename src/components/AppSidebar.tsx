@@ -89,33 +89,37 @@ type Item = { title: string; url: string; icon: React.ComponentType<{ className?
  *               different, so it is grouped rather than scattered
  *   Account     admin and money
  */
+/**
+ * Patient sidebar — what a patient reaches for repeatedly, and nothing else.
+ *
+ * This was sixteen entries across four groups. Every one is a real feature, so
+ * none were deleted: the ones a patient touches occasionally (Vaccines,
+ * Telemedicine, Inpatient Care, Credentials, Private Proofs, Billing,
+ * Insurance, Family Access, Visitors) now live on the home screen's quick-access
+ * grid, which already listed most of them. The sidebar keeps the daily set plus
+ * anything safety-critical.
+ *
+ * Emergency Info stays despite being rare: when it is needed it must be one tap,
+ * not three. Consent and Access History stay because controlling and auditing
+ * who reads your record is the point of this product, not a settings detail.
+ */
 const patientHealthNav: Item[] = [
   { title: "Home", url: "/patient", icon: Home },
   { title: "Medical Records", url: "/patient/records", icon: ClipboardList },
-  { title: "Vaccines", url: "/patient/vaccines", icon: Syringe },
   { title: "Emergency Info", url: "/patient/emergency", icon: Heart },
 ];
 
 const patientCareNav: Item[] = [
   { title: "Appointments", url: "/patient/appointments", icon: CalendarDays },
-  { title: "Telemedicine", url: "/patient/telemedicine", icon: Video },
-  { title: "Inpatient Care", url: "/patient/inpatient", icon: Activity },
 ];
 
 const patientIdentityNav: Item[] = [
-  { title: "My Credentials", url: "/patient/wallet", icon: Wallet },
   { title: "Consent", url: "/patient/consent", icon: ShieldCheck },
   { title: "Access History", url: "/patient/history", icon: History },
   { title: "My QR Code", url: "/patient/qr", icon: QrCode },
-  { title: "Private Proofs", url: "/patient/zkproof", icon: Fingerprint },
 ];
 
-const patientAccountNav: Item[] = [
-  { title: "My Profile", url: "/patient/profile", icon: User },
-  { title: "Billing", url: "/patient/billing", icon: Receipt },
-  { title: "Insurance", url: "/patient/insurance", icon: CreditCard },
-  { title: "Family Access", url: "/patient/family", icon: Users2 },
-];
+const patientAccountNav: Item[] = [{ title: "My Profile", url: "/patient/profile", icon: User }];
 
 const staffNav: Item[] = [
   { title: "Dashboard", url: "/staff", icon: LayoutDashboard },
@@ -268,7 +272,7 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border/50">
         <div className="flex items-center gap-2.5 px-2 py-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-clinical-sm">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/80 text-primary-foreground shadow-clinical-sm">
             <Hospital className="h-4 w-4" />
           </div>
           {!collapsed && (
@@ -320,14 +324,19 @@ export function AppSidebar() {
           )}
           <SidebarGroupContent>
             <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link to="/" className="flex items-center gap-2">
-                    <Settings className="h-4 w-4 shrink-0" />
-                    {!collapsed && <span>Demo home</span>}
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              {/* Demo home is a link out to the marketing landing page — useful
+                  when showing the system off, confusing inside a patient's own
+                  portal, so it is not offered to them. */}
+              {currentPortal !== "patient" && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <Link to="/" className="flex items-center gap-2">
+                      <Settings className="h-4 w-4 shrink-0" />
+                      {!collapsed && <span>Demo home</span>}
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
 
               {/*
                 Sign out lives here so it exists on every page for every role.

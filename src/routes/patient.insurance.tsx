@@ -6,7 +6,7 @@ import { InsuranceCard } from "@/components/insurance/InsuranceCard";
 import { ClaimsCard } from "@/components/insurance/ClaimsCard";
 import { useInsuranceClaims, useLivePatients } from "@/hooks/use-api";
 import { useCurrentUser } from "@/lib/auth-context";
-import { updateInsurancePolicy, createInsuranceClaim } from "@/lib/api";
+import { updateInsurancePolicy, createInsuranceClaim, getInsurancePolicy } from "@/lib/api";
 import {
   ShieldCheck,
   FileText,
@@ -49,13 +49,37 @@ function InsurancePage() {
   const [isPolicyModalOpen, setIsPolicyModalOpen] = useState(false);
   const [isClaimModalOpen, setIsClaimModalOpen] = useState(false);
 
-  // Policy Form State
-  const [provider, setProvider] = useState("Star Health & Allied Insurance");
-  const [policyNo, setPolicyNo] = useState("POL-2026-STAR-9942");
-  const [sumInsured, setSumInsured] = useState(1000000);
-  const [policyType, setPolicyType] = useState("Comprehensive Health Plan");
-  const [validFrom, setValidFrom] = useState("2025-04-01");
-  const [validTo, setValidTo] = useState("2026-03-31");
+  /**
+   * The real policy, from insurance_policies (RLS-scoped to the caller).
+   *
+   * This page never read it. It rendered hardcoded fallbacks — "Star Health &
+   * Allied Insurance", "POL-2026-STAR-9942", ₹10,00,000 — identical for every
+   * patient, including patients with no policy. The form was prefilled with the
+   * same literals, so pressing Save wrote a stranger's policy onto your record.
+   */
+  const [realPolicy, setRealPolicy] = useState<any | null>(null);
+
+  useEffect(() => {
+    getInsurancePolicy()
+      .then((r: any) => setRealPolicy(r?.policy ?? null))
+      .catch(() => setRealPolicy(null));
+  }, []);
+
+  // Policy Form State — empty until the real policy loads.
+  const [provider, setProvider] = useState("");
+  const [policyNo, setPolicyNo] = useState("");
+  const [sumInsured, setSumInsured] = useState(0);
+  const [policyType, setPolicyType] = useState("");
+  const [validFrom, setValidFrom] = useState("");
+  const [validTo, setValidTo] = useState("");
+
+  useEffect(() => {
+    if (!realPolicy) return;
+    setProvider(realPolicy.provider ?? "");
+    setPolicyNo(realPolicy.policyNumber ?? "");
+    setValidFrom(realPolicy.validFrom ?? "");
+    setValidTo(realPolicy.validTo ?? "");
+  }, [realPolicy]);
   const [isSavingPolicy, setIsSavingPolicy] = useState(false);
 
   // Claim Form State
@@ -81,11 +105,21 @@ function InsurancePage() {
     e.preventDefault();
     setIsSavingPolicy(true);
     try {
+      /**
+       * Field names must match what the server reads.
+       *
+       * This sent `insuranceProvider` / `insurancePolicyNo`, but
+       * updateInsurancePolicy (operations.server.ts) reads `data.provider` and
+       * `data.policyNumber`. Both resolved to undefined and were written as
+       * NULL — so saving your policy DELETED the provider and policy number
+       * that were already stored, while toasting success.
+       *
+       * `sumInsured` and `policyType` are not sent: insurance_policies has no
+       * column for either, so passing them only implied they were saved.
+       */
       const res = await updateInsurancePolicy({
-        insuranceProvider: provider,
-        insurancePolicyNo: policyNo,
-        sumInsured: Number(sumInsured),
-        policyType,
+        provider,
+        policyNumber: policyNo,
         validFrom,
         validTo,
       });
@@ -102,8 +136,12 @@ function InsurancePage() {
         };
         await refreshUser();
 
-        toast.success("Insurance Policy Updated On-Chain!", {
-          description: `${provider} (${policyNo}) linked to your health identity.`,
+        // Nothing in this path signs or anchors anything — updateInsurancePolicy
+        // is a plain Postgres upsert. Also flags the two fields that have no
+        // column and therefore cannot be stored.
+        toast.success("Insurance policy saved", {
+          description:
+            "Provider, policy number and validity dates updated. Sum insured and policy type cannot be stored yet.",
         });
         refetchPatients();
         setIsPolicyModalOpen(false);
@@ -159,18 +197,27 @@ function InsurancePage() {
     );
   }
 
-  const livePolicies = [
-    {
-      provider: patient.insuranceProvider || "Star Health & Allied Insurance",
-      policyNo: patient.insurancePolicyNo || "POL-2026-STAR-9942",
-      type: patient.policyType || "Comprehensive Health Plan",
-      sumInsured: patient.sumInsured || 1000000,
-      used: 145000,
-      validFrom: patient.validFrom || "2025-04-01",
-      validTo: patient.validTo || "2026-03-31",
-      status: "active" as const,
-    },
-  ];
+  /**
+   * One entry only when a policy actually exists. This was a one-element
+   * literal, so "Active Policies" read 1 for a patient with none, and `used`
+   * was hardcoded to 145000 — rendered as "₹1,45,000 used / 15% utilised" for
+   * everybody. Sum insured and policy type have no columns in
+   * insurance_policies, so they are not claimed here.
+   */
+  const livePolicies = realPolicy
+    ? [
+        {
+          provider: realPolicy.provider ?? "",
+          policyNo: realPolicy.policyNumber ?? "",
+          type: realPolicy.coverageType ?? "",
+          sumInsured: 0,
+          used: 0,
+          validFrom: realPolicy.validFrom ?? "",
+          validTo: realPolicy.validTo ?? "",
+          status: "active" as const,
+        },
+      ]
+    : [];
 
   const patientClaims = (claimsData?.claims ?? []).slice(0, 10);
   const activeClaims = patientClaims.filter(

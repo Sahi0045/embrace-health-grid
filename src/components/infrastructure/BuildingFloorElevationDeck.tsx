@@ -45,7 +45,7 @@ export const BuildingFloorElevationDeck = memo(function BuildingFloorElevationDe
                 onClick={() => onSelectBuilding(b.building_id)}
                 className={`flex-1 sm:flex-initial inline-flex items-center gap-2.5 rounded-xl px-3.5 sm:px-4 py-2.5 text-xs font-extrabold transition-all border ${
                   isSelected
-                    ? "bg-gradient-to-r from-primary to-blue-600 text-primary-foreground border-primary shadow-clinical-sm shadow-primary/20 scale-[1.01]"
+                    ? "bg-primary text-primary-foreground border-primary shadow-clinical-sm shadow-primary/20 scale-[1.01]"
                     : "border-transparent text-muted-foreground hover:border-border hover:bg-muted/40 hover:text-foreground"
                 }`}
               >
@@ -101,9 +101,7 @@ export const BuildingFloorElevationDeck = memo(function BuildingFloorElevationDe
               }`}
             >
               {/* Active Indicator Strip */}
-              {isSelected && (
-                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary to-blue-600" />
-              )}
+              {isSelected && <div className="absolute top-0 left-0 right-0 h-1 bg-primary" />}
 
               {/* Floor Level & Specialty Header */}
               <div className="flex items-start justify-between gap-2 w-full">

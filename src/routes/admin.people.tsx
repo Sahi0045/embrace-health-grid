@@ -81,11 +81,11 @@ function PeopleManagement() {
 
   const handleIssueDIDClick = (user: any) => {
     setSelectedUserForDID(user);
-    if (user.role === "patient") {
-      setDidDialogId(`MRN-${Math.floor(100000 + Math.random() * 900000)}`);
-    } else {
-      setDidDialogId(`EMP-${Math.floor(1000 + Math.random() * 9000)}`);
-    }
+    // Blank, not a random number. This used to prefill `MRN-${random}` /
+    // `EMP-${random}`, which the admin then confirmed as the identifier being
+    // issued — a number matching no wristband and no personnel record, and one
+    // that api.ts discarded anyway. It is now persisted, so it has to be real.
+    setDidDialogId("");
     setIsDidDialogOpen(true);
   };
 
@@ -98,8 +98,11 @@ function PeopleManagement() {
         didRole = "doctor";
       }
 
+      const id = didDialogId.trim();
       const extraFields =
-        didRole === "patient" ? { mrn: didDialogId } : { employeeId: didDialogId };
+        didRole === "patient"
+          ? { mrn: id || undefined, ownerId: selectedUserForDID.id }
+          : { employeeId: id || undefined, ownerId: selectedUserForDID.id };
 
       const res = await createDID(
         selectedUserForDID.name,

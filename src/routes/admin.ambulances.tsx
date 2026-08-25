@@ -133,7 +133,7 @@ function AmbulanceManagementPage() {
       maintenance: 0,
     };
     for (const a of ambulances) {
-      if (counts[a.status] !== undefined) {
+      if (a.status && counts[a.status] !== undefined) {
         counts[a.status]++;
       }
     }
@@ -164,7 +164,7 @@ function AmbulanceManagementPage() {
         const nameA = a.vehicleNo || a.registration || a.id;
         const nameB = b.vehicleNo || b.registration || b.id;
         if (sortBy === "vehicle-asc") return nameA.localeCompare(nameB);
-        if (sortBy === "status") return a.status.localeCompare(b.status);
+        if (sortBy === "status") return (a.status ?? "").localeCompare(b.status ?? "");
         if (sortBy === "type") return (a.type || "").localeCompare(b.type || "");
         return 0;
       });

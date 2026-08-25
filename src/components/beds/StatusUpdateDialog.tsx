@@ -138,7 +138,7 @@ export function StatusUpdateDialog({ dialog, onClose, onUpdate }: StatusUpdateDi
           <Button
             onClick={handleSubmit}
             disabled={updating}
-            className="flex-1 rounded-xl h-10 text-xs font-extrabold bg-gradient-to-r from-primary to-blue-600 text-primary-foreground shadow-clinical-md"
+            className="flex-1 rounded-xl h-10 text-xs font-extrabold bg-primary text-primary-foreground shadow-clinical-md"
           >
             {updating ? "Updating..." : "Update Status"}
           </Button>

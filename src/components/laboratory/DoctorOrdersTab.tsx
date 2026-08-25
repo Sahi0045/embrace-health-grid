@@ -148,7 +148,7 @@ export function DoctorOrdersTab({ labOrders, radiologyOrders }: DoctorOrdersTabP
                 className="rounded-xl border border-border/60 bg-background/60 p-3.5 space-y-2 hover:border-primary/40 transition-all"
               >
                 <div className="flex items-center justify-between">
-                  <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase bg-purple-500/15 text-purple-600 dark:text-purple-400 px-2 py-0.5 rounded-md">
+                  <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase bg-accent/15 text-accent dark:text-accent px-2 py-0.5 rounded-md">
                     <Camera className="h-3 w-3" />
                     Imaging: {ro.modality.toUpperCase()}
                   </span>
@@ -170,7 +170,7 @@ export function DoctorOrdersTab({ labOrders, radiologyOrders }: DoctorOrdersTabP
                   </p>
                 </div>
 
-                <p className="text-[11px] text-muted-foreground italic border-l-2 border-purple-500/30 pl-2">
+                <p className="text-[11px] text-muted-foreground italic border-l-2 border-accent/30 pl-2">
                   "{ro.clinical_indication}"
                 </p>
               </div>

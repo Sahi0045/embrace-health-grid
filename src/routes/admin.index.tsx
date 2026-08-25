@@ -124,9 +124,11 @@ function AdminDashboardPage() {
   const occupiedBeds = allBeds.filter((b: any) => b.status === "occupied" || b.occupied).length;
   const maintenanceBeds = allBeds.filter((b: any) => b.status === "maintenance").length;
   const reservedBeds = allBeds.filter((b: any) => b.status === "reserved").length;
-  const availableBeds =
-    allBeds.filter((b: any) => b.status === "available").length ||
-    Math.max(0, totalBeds - occupiedBeds - maintenanceBeds - reservedBeds);
+  // The `|| total - occupied - maintenance - reserved` fallback fired whenever
+  // zero beds were free — exactly when the number matters most — and the
+  // subtraction ignored the `cleaning`, `blocked` and `emergency_reserved`
+  // states. A full ward with 6 occupied and 4 cleaning reported "4 Free".
+  const availableBeds = allBeds.filter((b: any) => b.status === "available").length;
 
   const bedPieData = [
     { name: "Available", value: availableBeds, color: "var(--color-success, #22c55e)" },
@@ -138,7 +140,10 @@ function AdminDashboardPage() {
   const wardStats = (() => {
     const map = new Map<string, { total: number; occupied: number }>();
     allBeds.forEach((b: any) => {
-      const wardName = b.ward || "General Ward";
+      // Beds with no ward were bucketed into "General Ward", which silently
+      // inflated that ward's totals with unassigned beds and made its occupancy
+      // percentage wrong. Label them for what they are instead.
+      const wardName = b.ward || "Unassigned";
       const entry = map.get(wardName) || { total: 0, occupied: 0 };
       entry.total += 1;
       if (b.status === "occupied" || b.occupied) entry.occupied += 1;
@@ -171,10 +176,18 @@ function AdminDashboardPage() {
   const availableAmbulances = ambulances.filter((a: any) => a.status === "available").length;
 
   const equipment = equipmentQuery.data?.equipment || [];
-  const operationalEquipment = equipment.filter((e: any) => e.status === "operational").length;
+  // "operational" is not a member of the asset_status enum
+  // ('available','in-use','maintenance','retired'), so this matched nothing and
+  // "Assets Operational" read 0/N on a fully working hospital.
+  const operationalEquipment = equipment.filter(
+    (e: any) => e.status === "available" || e.status === "in-use",
+  ).length;
 
   const fraudAlerts = fraudAlertsQuery.data?.alerts || [];
   const auditEvents = auditQuery.data?.events || [];
+  const anchoredEvents = auditEvents.filter(
+    (e: any) => (e.anchorStatus ?? e.anchor_status) === "anchored",
+  ).length;
   const registeredDIDs = didsQuery.data?.dids || [];
   const issuedCredentials = credentialsQuery.data?.credentials || [];
 
@@ -311,10 +324,8 @@ function AdminDashboardPage() {
                   <KpiTile
                     label="Available Beds"
                     value={availableBeds}
-                    trend={{ value: "+8.4%", isPositive: true }}
                     icon={CheckCircle2}
                     tone="success"
-                    sparklineData={[3, 5, 4, 8, 7, 10, 9, 12, 11, 14]}
                   />
 
                   <KpiTile
@@ -323,7 +334,6 @@ function AdminDashboardPage() {
                     trend={{ value: `${attendanceRate}% On Duty`, isPositive: true }}
                     icon={UserCheck}
                     tone="success"
-                    sparklineData={[1, 2, 1, 3, 2, 4, 3, 5, 4, 6]}
                   />
 
                   <KpiTile
@@ -332,7 +342,6 @@ function AdminDashboardPage() {
                     trend={{ value: "Ready", isPositive: true }}
                     icon={Ambulance}
                     tone="success"
-                    sparklineData={[2, 2, 1, 3, 2, 2, 1, 3, 2, 2]}
                   />
 
                   <KpiTile
@@ -344,7 +353,6 @@ function AdminDashboardPage() {
                     }}
                     icon={ShieldAlert}
                     tone={fraudAlerts.length > 0 ? "destructive" : "success"}
-                    sparklineData={[0, 0, 1, 0, 0, 0, 0, 0, 0, 0]}
                   />
                 </div>
               </div>
@@ -394,7 +402,7 @@ function AdminDashboardPage() {
                           </div>
                         </div>
                         <div>
-                          <div className="text-2xl font-extrabold text-blue-600 dark:text-blue-400 font-display">
+                          <div className="text-2xl font-extrabold text-primary dark:text-primary font-display">
                             {checkedOutCount}
                           </div>
                           <div className="text-xs text-muted-foreground font-medium">
@@ -479,20 +487,26 @@ function AdminDashboardPage() {
                       {fraudAlerts.length === 0 ? (
                         <div className="space-y-4 flex-1 flex flex-col justify-between">
                           <div className="grid grid-cols-3 gap-4 py-3 text-center my-auto">
+                            {/* Was "100% Cryptographic Integrity" and "12ms
+                                Response Latency", both hardcoded. The first
+                                asserts every audit hash verifies — a claim this
+                                console never checked; the second measured
+                                nothing at all. Replaced with two figures the
+                                page already holds. */}
                             <div>
-                              <div className="text-2xl font-extrabold text-success font-display">
-                                100%
+                              <div className="text-2xl font-extrabold text-foreground font-display">
+                                {auditEvents.length}
                               </div>
                               <div className="text-xs text-muted-foreground font-medium">
-                                Cryptographic Integrity
+                                Audit Events
                               </div>
                             </div>
                             <div>
-                              <div className="text-2xl font-extrabold text-foreground font-display">
-                                12ms
+                              <div className="text-2xl font-extrabold text-success font-display">
+                                {anchoredEvents}
                               </div>
                               <div className="text-xs text-muted-foreground font-medium">
-                                Response Latency
+                                Anchored On-Chain
                               </div>
                             </div>
                             <div>
@@ -596,26 +610,33 @@ function AdminDashboardPage() {
                       ) : (
                         <div className="space-y-1 divide-y divide-border/60">
                           {auditEvents.slice(0, 4).map((evt: any, idx: number) => (
+                            // `evt.result` does not exist — getAuditEvents returns
+                            // `outcome`, whose values are success | failure |
+                            // unauthorized. So the ternaries never matched and
+                            // `{evt.result || "success"}` printed "success" for
+                            // every row: an UNAUTHORIZED PHI access attempt was
+                            // displayed with a green SUCCESS badge on the security
+                            // dashboard, which is the exact inverse of its meaning.
                             <ActivityItem
-                              key={evt.id || idx}
+                              key={evt.txId || evt.id || idx}
                               icon={Lock}
                               severity={
-                                evt.result === "denied" || evt.result === "error"
+                                evt.outcome === "unauthorized" || evt.outcome === "failure"
                                   ? "critical"
                                   : "success"
                               }
                               title={evt.action || "Data Access Event"}
-                              subtitle={`By ${evt.actor || evt.actorRole || "System"} — ${evt.category || "access"}`}
+                              subtitle={`By ${evt.actorName || evt.actor || evt.actorRole || "System"} — ${evt.resource || "access"}`}
                               badge={
                                 <Badge
                                   variant="outline"
                                   className={`text-[10px] font-mono uppercase ${
-                                    evt.result === "denied" || evt.result === "error"
+                                    evt.outcome === "unauthorized" || evt.outcome === "failure"
                                       ? "bg-destructive/10 text-destructive border-destructive/30"
                                       : "bg-success/10 text-success border-success/30"
                                   }`}
                                 >
-                                  {evt.result || "success"}
+                                  {evt.outcome ?? "unknown"}
                                 </Badge>
                               }
                               isLast={idx === Math.min(auditEvents.length, 4) - 1}
@@ -702,8 +723,11 @@ function AdminDashboardPage() {
                                       </span>
                                     </div>
                                     <div className="text-[11px] text-muted-foreground mt-0.5">
-                                      Driver: {amb.driver || "On Call"} · Loc:{" "}
-                                      {amb.location || "Station"}
+                                      {/* Dispatch reads this to decide where a
+                                          unit is. "Station" as a stand-in for
+                                          unknown sends someone to the wrong
+                                          place, so show the gap. */}
+                                      Driver: {amb.driver || "—"} · Loc: {amb.location || "Unknown"}
                                     </div>
                                   </div>
                                 </div>
@@ -720,33 +744,60 @@ function AdminDashboardPage() {
                           })
                         )}
 
-                        {/* Extra Equipment Asset Status Row */}
-                        <div className="flex items-center justify-between py-2 px-2.5 hover:bg-muted/40 rounded-lg transition-colors text-xs">
-                          <div className="flex items-center gap-3">
-                            <Wrench className="h-4 w-4 shrink-0 text-primary" />
-                            <div>
-                              <div className="flex items-center gap-2 font-mono font-bold text-foreground">
-                                <span>EQ-101</span>
-                                <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-muted text-muted-foreground">
-                                  VENTILATOR
+                        {/* Equipment rows — real assets, not a painted one.
+                            This was a hardcoded "EQ-101 · VENTILATOR · ICU Node
+                            #02 · Calibrated · Operational": a life-support device
+                            that does not exist, shown as ready, on the console an
+                            administrator uses to judge readiness. The equipment
+                            table is already loaded above for the counter. */}
+                        {equipment.slice(0, 2).map((eq: any, idx: number) => {
+                          const code = eq.asset_tag || eq.equipment_id || `EQ-${idx + 1}`;
+                          const kind = String(eq.category || eq.type || "EQUIPMENT").toUpperCase();
+                          const isOperational = eq.status === "available";
+                          return (
+                            <div
+                              key={eq.equipment_id || code}
+                              className="flex items-center justify-between py-2 px-2.5 hover:bg-muted/40 rounded-lg transition-colors text-xs"
+                            >
+                              <div className="flex items-center gap-3">
+                                <Wrench
+                                  className={`h-4 w-4 shrink-0 ${isOperational ? "text-success" : "text-warning"}`}
+                                />
+                                <div>
+                                  <div className="flex items-center gap-2 font-mono font-bold text-foreground">
+                                    <span>{code}</span>
+                                    <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-muted text-muted-foreground">
+                                      {kind}
+                                    </span>
+                                  </div>
+                                  <div className="text-[11px] text-muted-foreground mt-0.5">
+                                    {[eq.location, eq.status].filter(Boolean).join(" · ") || "—"}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1.5 text-xs font-semibold shrink-0 whitespace-nowrap">
+                                <span
+                                  className={`h-2 w-2 rounded-full ${isOperational ? "bg-success" : "bg-warning"}`}
+                                />
+                                <span className={isOperational ? "text-success" : "text-warning"}>
+                                  {isOperational ? "Operational" : (eq.status ?? "Unknown")}
                                 </span>
                               </div>
-                              <div className="text-[11px] text-muted-foreground mt-0.5">
-                                ICU Node #02 · Status: Calibrated
-                              </div>
                             </div>
-                          </div>
-                          <div className="flex items-center gap-1.5 text-xs font-semibold shrink-0 whitespace-nowrap">
-                            <span className="h-2 w-2 rounded-full bg-success" />
-                            <span className="text-success">Operational</span>
-                          </div>
-                        </div>
+                          );
+                        })}
                       </div>
 
                       {/* Equipment Readiness Progress Bar Footer */}
                       <div className="pt-2 border-t border-border/50 space-y-1.5">
+                        {/* Was hardcoded to 100%. An emergency-readiness figure
+                            that always reads "fully ready" is worse than none. */}
                         <GradientProgress
-                          value={100}
+                          value={
+                            equipment.length
+                              ? Math.round((operationalEquipment / equipment.length) * 100)
+                              : 0
+                          }
                           tone="cyan"
                           showLabel
                           label="Emergency Asset Readiness Rate"
@@ -790,7 +841,6 @@ function AdminDashboardPage() {
                       </p>
                     </GlowCard>
                   </Link>
-
 
                   <Link to="/audit-timeline" className="group">
                     <GlowCard className="p-5 space-y-3" accent="destructive">

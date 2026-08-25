@@ -295,7 +295,7 @@ function AdminAuditPage() {
                 onClick={handleAnchorPending}
                 disabled={anchoring}
                 size="sm"
-                className="bg-amber-500 hover:bg-amber-600 text-white font-extrabold rounded-xl shadow-clinical-md text-xs"
+                className="bg-warning hover:bg-warning/90 text-warning-foreground font-extrabold rounded-xl shadow-clinical-md text-xs"
               >
                 <Anchor className={`h-4 w-4 mr-2 ${anchoring ? "animate-spin" : ""}`} />
                 Anchor Pending ({stats.pendingAnchors})
@@ -312,7 +312,12 @@ function AdminAuditPage() {
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
               {[
                 { label: "Total Events", value: stats.total, cls: "text-primary", icon: Activity },
-                { label: "Failures", value: stats.failures, cls: "text-destructive", icon: XCircle },
+                {
+                  label: "Failures",
+                  value: stats.failures,
+                  cls: "text-destructive",
+                  icon: XCircle,
+                },
                 {
                   label: "Critical",
                   value: stats.critical,
@@ -343,9 +348,7 @@ function AdminAuditPage() {
                       <Icon className="h-3.5 w-3.5" />
                       <span>{s.label}</span>
                     </div>
-                    <div className={`text-3xl font-display font-extrabold ${s.cls}`}>
-                      {s.value}
-                    </div>
+                    <div className={`text-3xl font-display font-extrabold ${s.cls}`}>{s.value}</div>
                   </div>
                 );
               })}
@@ -467,9 +470,7 @@ function AdminAuditPage() {
                               <span className="font-mono bg-muted/60 px-1.5 py-0.5 rounded text-[10px] font-bold">
                                 TX: {event.tx_id.slice(0, 8)}
                               </span>
-                              {event.what_entity_id && (
-                                <span>Entity: {event.what_entity_id}</span>
-                              )}
+                              {event.what_entity_id && <span>Entity: {event.what_entity_id}</span>}
                             </div>
                           </div>
                         </div>

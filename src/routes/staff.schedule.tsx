@@ -113,7 +113,7 @@ const shiftConfig: Record<
     text: "text-warning-foreground",
     border: "border-warning/30",
     icon: Scissors,
-    accent: "bg-yellow-500",
+    accent: "bg-warning",
   },
   "On-call": {
     bg: "bg-destructive/8",
@@ -243,7 +243,7 @@ const APPT_STATUS_STYLES: Record<
 > = {
   pending: {
     bg: "bg-warning/10 border-warning/30",
-    text: "text-yellow-700 dark:text-yellow-400",
+    text: "text-warning dark:text-warning",
     icon: Clock,
   },
   confirmed: { bg: "bg-success/10 border-success/30", text: "text-success", icon: CheckCircle2 },
@@ -751,7 +751,7 @@ function SchedulePage() {
               />
               <h2 className="text-sm font-bold text-foreground">Appointment Requests</h2>
               {pendingRequests.length > 0 && (
-                <span className="inline-flex items-center justify-center rounded-full bg-warning/20 px-2 py-0.5 text-[10px] font-bold text-yellow-700 dark:text-yellow-400">
+                <span className="inline-flex items-center justify-center rounded-full bg-warning/20 px-2 py-0.5 text-[10px] font-bold text-warning dark:text-warning">
                   {pendingRequests.length} pending
                 </span>
               )}

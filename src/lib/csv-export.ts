@@ -17,7 +17,7 @@ function escapeCsvValue(val: unknown): string {
     return '""';
   }
   const str = String(val);
-  if (str.includes('"') || str.includes(',') || str.includes('\n') || str.includes('\r')) {
+  if (str.includes('"') || str.includes(",") || str.includes("\n") || str.includes("\r")) {
     return `"${str.replace(/"/g, '""')}"`;
   }
   return `"${str}"`;
@@ -30,11 +30,7 @@ function escapeCsvValue(val: unknown): string {
  * @param rows - Array of objects to export
  * @param columns - Array of column definitions with header and accessor
  */
-export function exportToCsv<T>(
-  filename: string,
-  rows: T[],
-  columns: ExportColumn<T>[],
-): boolean {
+export function exportToCsv<T>(filename: string, rows: T[], columns: ExportColumn<T>[]): boolean {
   if (!rows || rows.length === 0) {
     return false;
   }
@@ -46,10 +42,7 @@ export function exportToCsv<T>(
   const dataLines = rows.map((row) =>
     columns
       .map((col) => {
-        const val =
-          typeof col.accessor === "function"
-            ? col.accessor(row)
-            : row[col.accessor];
+        const val = typeof col.accessor === "function" ? col.accessor(row) : row[col.accessor];
         return escapeCsvValue(val);
       })
       .join(","),
@@ -62,10 +55,7 @@ export function exportToCsv<T>(
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.setAttribute("href", url);
-  link.setAttribute(
-    "download",
-    filename.endsWith(".csv") ? filename : `${filename}.csv`,
-  );
+  link.setAttribute("download", filename.endsWith(".csv") ? filename : `${filename}.csv`);
   link.style.visibility = "hidden";
   document.body.appendChild(link);
   link.click();

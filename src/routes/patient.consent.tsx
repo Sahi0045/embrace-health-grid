@@ -108,8 +108,9 @@ function Consent() {
           grantId: r.grantId ?? r.id,
           doctorName: r.doctorName ?? r.doctorDid ?? "Unknown clinician",
           doctorDid: r.doctorDid ?? "",
-          resource: r.resource ?? "Medical Records",
-          reason: r.reason ?? "Patient care",
+          resource: r.resource ?? "Unspecified scope",
+          // Same fabrication as above, on the screen where the patient decides.
+          reason: r.reason ?? "",
           requestedAt: r.requestedAt ?? r.grantedAt ?? "",
           expiresAt: r.expiresAt ?? r.expiry ?? "",
         })),
@@ -134,16 +135,25 @@ function Consent() {
 
   // ─── Active / granted consents from Solana ──────────────────────────────────
   const liveList = (consentsData?.consents ?? []).map((c: any) => ({
-    id: c.id ?? c.txId ?? String(Math.random()),
-    requester: c.requester ?? c.doctorName ?? c.doctorDid ?? "Doctor Specialist",
-    requesterRole: c.requesterRole ?? "Medical Specialist",
-    reason: c.reason ?? "Patient Care and Record Access",
-    grantedAt:
-      c.grantedAt ??
-      c.timestamp ??
-      new Date(Date.now() - 26 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-    expiresAt:
-      c.expiresAt ?? new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+    // getConsents() returns `grantId` — there is no `id` or `txId` on the
+    // payload, so this fell through to a random float. revokeConsent matches
+    // .eq("grant_id", id), which could never match: the patient could not
+    // withdraw a doctor's access at all. (patient.family.tsx reads c.grantId
+    // correctly, which is how the real shape was confirmed.) The random value
+    // also changed every render, remounting the whole list continuously.
+    id: c.grantId,
+    requester: c.requester ?? c.doctorName ?? c.doctorDid ?? "Unknown requester",
+    // `requesterRole` is not stored anywhere; "Medical Specialist" was invented
+    // for every requester. Blank until there is a real value to show.
+    requesterRole: c.requesterRole ?? "",
+    // The doctor's real justification now flows through (getConsents selects
+    // `reason`). Previously this always read "Patient Care and Record Access",
+    // so the patient decided against a fabricated reason.
+    reason: c.reason ?? "",
+    grantedAt: c.grantedAt ?? "",
+    // Was defaulting to exactly 4 days from today, so a grant with no expiry
+    // and a grant expiring next year both displayed "expires in 4 days".
+    expiresAt: c.expiresAt ?? c.expiry ?? "",
     status: (c.status === "granted" || c.status === "active"
       ? "active"
       : c.status === "requested" || c.status === "pending"
@@ -164,15 +174,32 @@ function Consent() {
     }
   };
 
+  /**
+   * Approve a pending grant shown in the Active tab.
+   *
+   * This used to call grantConsent(), which INSERTS a new row. Three things
+   * went wrong at once:
+   *   - the original pending row was never transitioned, so it stayed pending
+   *     forever and every press inserted another duplicate;
+   *   - it wrote resource "Patient Care and Record Access" (from a fabricated
+   *     `c.reason` default), which matches none of the resources the doctor
+   *     read policies accept, so the doctor still could not open records;
+   *   - it never set approved_at, which those policies also require.
+   *
+   * Meanwhile private.has_active_consent() checks only status and expiry — it
+   * ignores both resource and approved_at — so the row silently granted access
+   * across every table gated by that helper. The patient got less access than
+   * the UI promised in one direction and more in the other.
+   *
+   * Both tabs act on the same pending rows, so both now use the same path:
+   * transition the existing row, exactly as handleApproveRequest does.
+   */
   const handleApproveActive = async (id: string) => {
     try {
       const c = list.find((x: any) => x.id === id);
-      await grantConsent(
-        patientDid,
-        c?.requester ?? "did:hosp:0xd103… 99aa",
-        c?.reason ?? "General care",
-      );
-      toast.success(`Consent approved for ${c?.requester}`);
+      await approveConsentRequest(id, c?.expiresAt || undefined);
+      toast.success(`Access granted to ${c?.requester ?? "clinician"}`);
+      fetchRequests();
       refetch();
     } catch (err: any) {
       toast.error(`Failed to approve consent: ${err.message}`);

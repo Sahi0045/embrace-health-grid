@@ -50,7 +50,7 @@ const SEVERITIES: { id: string; label: string; dotClass: string }[] = [
   { id: "all", label: "All Priorities", dotClass: "bg-muted-foreground" },
   { id: "critical", label: "Critical Priority", dotClass: "bg-destructive animate-pulse" },
   { id: "warning", label: "Warning Notice", dotClass: "bg-warning" },
-  { id: "info", label: "Informational", dotClass: "bg-sky-500" },
+  { id: "info", label: "Informational", dotClass: "bg-primary" },
 ];
 
 export function AlertFilterBar({

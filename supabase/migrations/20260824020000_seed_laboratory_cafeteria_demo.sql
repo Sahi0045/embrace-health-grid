@@ -445,9 +445,14 @@ BEGIN
   )
   VALUES
     (
+      -- meal_type 'prep_waste' is valid, but REASON 'prep_waste' is not:
+      -- food_wastage_logs_reason_check allows overproduction | spoilage |
+      -- unconsumed_tray | expired_stock | damaged. The insert failed with
+      -- SQLSTATE 23514 and rolled the whole migration back, so this seed had
+      -- never run anywhere. 'damaged' is what the UI labels "Prep Damage".
       'wst-001', seed_hospital, CURRENT_DATE, 'prep_waste',
       'Butternut Squash Trimmings & Peels', 4.20, 'kg', 8.40,
-      'prep_waste', 'Sous Chef Marco Bellini', NOW() - INTERVAL '5 hours'
+      'damaged', 'Sous Chef Marco Bellini', NOW() - INTERVAL '5 hours'
     ),
     (
       'wst-002', seed_hospital, CURRENT_DATE, 'lunch',

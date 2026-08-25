@@ -28,44 +28,44 @@ export function HybridWalletSettings() {
   return (
     <div className="space-y-6 p-6 max-w-2xl">
       <div className="flex items-center gap-3 mb-6">
-        <Wallet className="w-6 h-6 text-blue-600" />
+        <Wallet className="w-6 h-6 text-primary" />
         <h2 className="text-2xl font-bold">Blockchain Wallet Settings</h2>
       </div>
 
       {/* Current Status */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border border-blue-200">
+      <div className="bg-primary/10 p-6 rounded-lg border border-primary/30">
         <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-          <CheckCircle className="w-5 h-5 text-green-600" />
+          <CheckCircle className="w-5 h-5 text-success" />
           Current Configuration
         </h3>
 
         <div className="space-y-2">
           {wallet.loading ? (
-            <p className="text-gray-600 animate-pulse">Loading wallet settings...</p>
+            <p className="text-muted-foreground animate-pulse">Loading wallet settings...</p>
           ) : (
             <>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-muted-foreground">
                 <strong>Wallet Mode:</strong>{" "}
                 {wallet.effectiveWalletMode === "phantom" && (
-                  <span className="text-green-600">🔗 Phantom</span>
+                  <span className="text-success">🔗 Phantom</span>
                 )}
                 {wallet.effectiveWalletMode === "embedded" && (
-                  <span className="text-blue-600">✓ Embedded (Seamless)</span>
+                  <span className="text-primary">✓ Embedded (Seamless)</span>
                 )}
               </p>
 
               {phantom.isDetected && (
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-muted-foreground">
                   <strong>Phantom:</strong>{" "}
                   {phantom.isConnected ? (
-                    <span className="text-green-600">✓ Connected</span>
+                    <span className="text-success">✓ Connected</span>
                   ) : (
-                    <span className="text-amber-600">⚠ Detected but not connected</span>
+                    <span className="text-warning">⚠ Detected but not connected</span>
                   )}
                 </p>
               )}
 
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-muted-foreground">
                 <strong>Status:</strong> {wallet.getStatusMessage()}
               </p>
             </>
@@ -82,7 +82,7 @@ export function HybridWalletSettings() {
 
         {/* Auto-Detect Option */}
         <label
-          className="flex items-start gap-4 p-4 border-2 border-transparent rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+          className="flex items-start gap-4 p-4 border-2 border-transparent rounded-lg cursor-pointer hover:bg-muted transition-colors"
           style={{
             borderColor:
               wallet.userPreference === "auto" ||
@@ -105,10 +105,10 @@ export function HybridWalletSettings() {
           />
           <div className="flex-1">
             <h4 className="font-semibold text-base mb-1">🔄 Auto-Detect (Recommended)</h4>
-            <p className="text-sm text-gray-600 mb-2">
+            <p className="text-sm text-muted-foreground mb-2">
               Automatically uses Phantom if installed, otherwise seamless embedded wallet.
             </p>
-            <div className="text-xs bg-blue-50 text-blue-700 p-2 rounded inline-block">
+            <div className="text-xs bg-primary/10 text-primary p-2 rounded inline-block">
               {phantom.isDetected
                 ? "Phantom detected. Will use Phantom for signing."
                 : "Phantom not detected. Will use embedded wallet."}
@@ -119,7 +119,7 @@ export function HybridWalletSettings() {
         {/* Phantom Option (only if detected) */}
         {phantom.isDetected && (
           <label
-            className="flex items-start gap-4 p-4 border-2 border-transparent rounded-lg cursor-pointer hover:bg-green-50 transition-colors"
+            className="flex items-start gap-4 p-4 border-2 border-transparent rounded-lg cursor-pointer hover:bg-success/10 transition-colors"
             style={{
               borderColor: wallet.userPreference === "phantom" ? "#22c55e" : "#e5e7eb",
             }}
@@ -137,16 +137,16 @@ export function HybridWalletSettings() {
               <h4 className="font-semibold text-base mb-1 flex items-center gap-2">
                 🔗 Phantom Wallet
                 {phantom.isConnected && (
-                  <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">
+                  <span className="text-xs bg-success/10 text-success px-2 py-0.5 rounded">
                     Connected
                   </span>
                 )}
               </h4>
-              <p className="text-sm text-gray-600 mb-2">
+              <p className="text-sm text-muted-foreground mb-2">
                 Sign transactions directly with your personal Phantom wallet. You control everything
                 and see exactly what you're signing.
               </p>
-              <div className="text-xs text-green-700 space-y-1">
+              <div className="text-xs text-success space-y-1">
                 <p>✓ Your private key never leaves your device</p>
                 <p>✓ You approve each transaction</p>
                 <p>✓ You pay gas fees</p>
@@ -157,7 +157,7 @@ export function HybridWalletSettings() {
 
         {/* Embedded Option */}
         <label
-          className="flex items-start gap-4 p-4 border-2 border-transparent rounded-lg cursor-pointer hover:bg-indigo-50 transition-colors"
+          className="flex items-start gap-4 p-4 border-2 border-transparent rounded-lg cursor-pointer hover:bg-primary/10 transition-colors"
           style={{
             borderColor: wallet.userPreference === "embedded" ? "#6366f1" : "#e5e7eb",
           }}
@@ -173,11 +173,11 @@ export function HybridWalletSettings() {
           />
           <div className="flex-1">
             <h4 className="font-semibold text-base mb-1">✓ Embedded Wallet (Seamless)</h4>
-            <p className="text-sm text-gray-600 mb-2">
+            <p className="text-sm text-muted-foreground mb-2">
               Transactions are signed automatically by the hospital's backend. No prompts, no
               blockchain knowledge needed.
             </p>
-            <div className="text-xs text-indigo-700 space-y-1">
+            <div className="text-xs text-primary space-y-1">
               <p>✓ No wallet installation required</p>
               <p>✓ Hospital pays gas fees</p>
               <p>✓ Seamless experience</p>
@@ -187,12 +187,12 @@ export function HybridWalletSettings() {
       </div>
 
       {/* How It Works */}
-      <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg">
-        <h4 className="font-semibold mb-3 flex items-center gap-2 text-amber-900">
+      <div className="bg-warning/10 border border-warning/30 p-4 rounded-lg">
+        <h4 className="font-semibold mb-3 flex items-center gap-2 text-warning">
           <AlertCircle className="w-5 h-5" />
           How It Works
         </h4>
-        <div className="space-y-2 text-sm text-amber-900">
+        <div className="space-y-2 text-sm text-warning">
           <p>
             <strong>Phantom Mode:</strong> Your transactions are signed by YOUR Phantom wallet.
             You'll see a popup asking to approve. Your private key stays safe on your device.
@@ -210,13 +210,13 @@ export function HybridWalletSettings() {
 
       {/* Connection Management */}
       {phantom.isDetected && (
-        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+        <div className="bg-muted p-4 rounded-lg border border-border">
           <h4 className="font-semibold mb-3">Phantom Connection</h4>
           {phantom.isConnected ? (
             <button
               onClick={() => wallet.disconnectPhantom()}
               disabled={saving}
-              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+              className="px-4 py-2 bg-destructive text-white rounded hover:bg-destructive disabled:opacity-50"
             >
               Disconnect Phantom
             </button>
@@ -224,7 +224,7 @@ export function HybridWalletSettings() {
             <button
               onClick={() => wallet.connectPhantom()}
               disabled={saving}
-              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
+              className="px-4 py-2 bg-success text-white rounded hover:bg-success disabled:opacity-50 flex items-center gap-2"
             >
               <LinkIcon className="w-4 h-4" />
               Connect Phantom
@@ -235,13 +235,13 @@ export function HybridWalletSettings() {
 
       {/* Error Message */}
       {wallet.error && (
-        <div className="bg-red-50 border border-red-200 p-4 rounded-lg text-sm text-red-700">
+        <div className="bg-destructive/10 border border-destructive/30 p-4 rounded-lg text-sm text-destructive">
           <strong>Error:</strong> {wallet.error}
         </div>
       )}
 
       {/* Info Links */}
-      <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+      <div className="bg-muted p-4 rounded-lg border border-border">
         <h4 className="font-semibold mb-3">Learn More</h4>
         <ul className="space-y-2 text-sm">
           <li>
@@ -249,7 +249,7 @@ export function HybridWalletSettings() {
               href="https://phantom.app"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-600 hover:underline"
+              className="text-primary hover:underline"
             >
               → Install Phantom Wallet
             </a>
@@ -259,7 +259,7 @@ export function HybridWalletSettings() {
               href="https://docs.phantom.app"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-600 hover:underline"
+              className="text-primary hover:underline"
             >
               → Phantom Documentation
             </a>
@@ -269,7 +269,7 @@ export function HybridWalletSettings() {
               href="https://docs.solana.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-600 hover:underline"
+              className="text-primary hover:underline"
             >
               → Solana Documentation
             </a>

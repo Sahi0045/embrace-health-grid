@@ -1,0 +1,164 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #0F7A62; text-decoration: none; }
+    a:hover { color: #0B5C4A; }
+    ::-webkit-scrollbar { width: 0; height: 0; }
+    .cap { font-size: 10px; font-weight: 600; letter-spacing: 0.11em; text-transform: uppercase; color: #938C80; }
+  </style>
+</helmet>
+
+<div style="width: 390px; height: 844px; background: #F7F4EE; color: #26221C; display: flex; flex-direction: column; overflow: hidden;">
+
+  <div style="display: flex; align-items: center; gap: 14px; padding: 18px 20px 10px 20px; flex-shrink: 0;">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#26221C" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg>
+    <span style="font-size: 13px; font-weight: 500; color: #635D53;">Back</span>
+  </div>
+
+  <div style="flex: 1; overflow: hidden; padding: 0 20px; display: flex; flex-direction: column; gap: 15px;">
+
+    <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 12px;">
+      <h1 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 32px; font-weight: 400; line-height: 1.1; letter-spacing: -0.01em;">Record</h1>
+      <span style="font-size: 12px; color: #938C80; padding-bottom: 5px;">47 entries · since 2019</span>
+    </div>
+
+    <div style="background: #FDFBF7; border: 1px solid #E2DCD1; border-radius: 6px; padding: 12px 14px; display: flex; align-items: center; gap: 12px;">
+      <svg width="26" height="26" viewBox="0 0 40 40" fill="none" style="flex-shrink: 0;">
+        <circle cx="20" cy="20" r="15" fill="{{accent}}"></circle>
+        <circle cx="20" cy="20" r="11.5" fill="none" stroke="#FDFBF7" stroke-width="0.9" stroke-dasharray="2 2.6" opacity="0.75"></circle>
+        <path d="M15.5 20.2l3.2 3.2 6-6.4" stroke="#FDFBF7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"></path>
+      </svg>
+      <div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1;">
+        <span style="font-size: 13px; font-weight: 500;">Every entry verified</span>
+        <span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #938C80;">root 61fa…9b3c · slot 298,441,207</span>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 6px;">
+      <button onClick="{{ pickAll }}" style="{{ tabAll }}">All</button>
+      <button onClick="{{ pickVis }}" style="{{ tabVis }}">Visits</button>
+      <button onClick="{{ pickLab }}" style="{{ tabLab }}">Labs</button>
+      <button onClick="{{ pickRx }}" style="{{ tabRx }}">Meds</button>
+      <button onClick="{{ pickVac }}" style="{{ tabVac }}">Vaccines</button>
+    </div>
+
+    <div style="display: flex; flex-direction: column; overflow: hidden;">
+      <sc-for list="{{ entries }}" as="e" hint-placeholder-count="8">
+        <div style="display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid #E8E2D7; align-items: flex-start;">
+          <span style="{{ e.tagStyle }}">{{ e.tag }}</span>
+          <div style="display: flex; flex-direction: column; gap: 3px; flex-grow: 1; min-width: 0;">
+            <span style="font-size: 14px; font-weight: 500; line-height: 1.25;">{{ e.title }}</span>
+            <span style="font-size: 11.5px; color: #938C80;">{{ e.by }}</span>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0;">
+            <span style="font-size: 11px; color: #635D53;">{{ e.date }}</span>
+            <span style="font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: #B0A99C;">{{ e.hash }}</span>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+
+  </div>
+
+  <div style="flex-shrink: 0; border-top: 1px solid #E2DCD1; background: #FDFBF7; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 9px 8px 22px 8px;">
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 6px 0;">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#938C80" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.2L12 3l9 7.2V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg>
+      <span style="font-size: 10px; color: #938C80;">Home</span>
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 6px 0;">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="{{accent}}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h11l3.5 3.5V21H5z"></path><path d="M8.5 12h7M8.5 16h5"></path></svg>
+      <span style="font-size: 10px; font-weight: 600; color: {{accent}};">Record</span>
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 6px 0;">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#938C80" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7.5 3v5.6c0 4.6-3.1 8.2-7.5 9.4-4.4-1.2-7.5-4.8-7.5-9.4V6z"></path></svg>
+      <span style="font-size: 10px; color: #938C80;">Access</span>
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 6px 0;">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#938C80" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="8.5" cy="12" r="4"></circle><path d="M12.5 12H21l-2 2.5M17 12v3"></path></svg>
+      <span style="font-size: 10px; color: #938C80;">Keys</span>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"accent":{"editor":"color","default":"#0F7A62","options":["#0F7A62","#A8543A","#3B5FA8","#6B4A8F"],"section":"Theme"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { kind: 'all' };
+  }
+
+  chip(on) {
+    var base = 'height: 32px; padding: 0 12px; border-radius: 999px; font-family: inherit; font-size: 12px; font-weight: 500; cursor: pointer; ';
+    return on
+      ? base + 'border: 1px solid #26221C; background: #26221C; color: #F7F4EE;'
+      : base + 'border: 1px solid #E2DCD1; background: transparent; color: #635D53;';
+  }
+
+  renderVals() {
+    var kind = this.state.kind;
+
+    var tint = {
+      VIS: 'background: #E6E2D8; color: #26221C;',
+      LAB: 'background: #E3F0EA; color: #0F7A62;',
+      RX:  'background: #F5E7E0; color: #A8543A;',
+      VAC: 'background: #EDE8DE; color: #635D53;'
+    };
+    var tagBase = 'font-family: \'IBM Plex Mono\', monospace; font-size: 9px; font-weight: 500; letter-spacing: 0.06em; padding: 4px 6px; border-radius: 4px; flex-shrink: 0; margin-top: 2px; width: 38px; text-align: center; ';
+
+    var all = [
+      { tag: 'LAB', title: 'Complete blood count',       by: 'Apollo Labs · Dr R. Kapoor',   date: '24 Aug', hash: '8f3a…c41d' },
+      { tag: 'VIS', title: 'Cardiology consult',          by: 'Dr Rhea Kapoor · Apollo',      date: '24 Aug', hash: '2b91…7ee0' },
+      { tag: 'RX',  title: 'Amoxicillin 500mg',           by: 'Dr M. Pillai · 7 days',        date: '22 Aug', hash: 'd44c…1a08' },
+      { tag: 'VIS', title: 'Discharge · Ward B',          by: 'Apollo Chennai · 3 nights',    date: '18 Aug', hash: 'a075…4d12' },
+      { tag: 'LAB', title: 'Lipid profile',               by: 'Apollo Labs',                  date: '17 Aug', hash: '5c30…be91' },
+      { tag: 'VAC', title: 'Influenza · seasonal',        by: 'Apollo Chennai',               date: '02 Aug', hash: '9e11…33f4' },
+      { tag: 'RX',  title: 'Atorvastatin 10mg',           by: 'Dr R. Kapoor · ongoing',       date: '28 Jul', hash: '7ab2…0d6c' },
+      { tag: 'LAB', title: 'Chest CT · report',           by: 'Fortis Bengaluru',             date: '19 Jul', hash: 'c92e…40b7' },
+      { tag: 'VAC', title: 'Tetanus booster',             by: 'Apollo Chennai',               date: '11 May', hash: '1f47…88aa' },
+      { tag: 'VIS', title: 'Annual health check',         by: 'Dr M. Pillai · Apollo',        date: '03 Mar', hash: '73dc…2c15' }
+    ];
+
+    var shown = kind === 'all' ? all : all.filter(function (e) { return e.tag === kind; });
+
+    var entries = shown.map(function (e) {
+      return {
+        tag: e.tag,
+        title: e.title,
+        by: e.by,
+        date: e.date,
+        hash: e.hash,
+        tagStyle: tagBase + tint[e.tag]
+      };
+    });
+
+    return {
+      accent: this.props.accent ?? '#0F7A62',
+      entries: entries,
+      tabAll: this.chip(kind === 'all'),
+      tabVis: this.chip(kind === 'VIS'),
+      tabLab: this.chip(kind === 'LAB'),
+      tabRx:  this.chip(kind === 'RX'),
+      tabVac: this.chip(kind === 'VAC'),
+      pickAll: () => this.setState({ kind: 'all' }),
+      pickVis: () => this.setState({ kind: 'VIS' }),
+      pickLab: () => this.setState({ kind: 'LAB' }),
+      pickRx:  () => this.setState({ kind: 'RX' }),
+      pickVac: () => this.setState({ kind: 'VAC' })
+    };
+  }
+}
+</script>
+</body>
+</html>

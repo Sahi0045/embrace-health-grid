@@ -70,7 +70,7 @@ export function StaffKpiBar({ stats, className = "" }: StaffKpiBarProps) {
                 </div>
               </div>
               <div className="px-3 text-center min-w-[70px]">
-                <div className="text-sm font-extrabold font-display text-teal-600 dark:text-teal-400">
+                <div className="text-sm font-extrabold font-display text-success dark:text-success">
                   {stats.nurseCount}
                 </div>
                 <div className="text-[9px] font-extrabold text-muted-foreground uppercase tracking-wider">

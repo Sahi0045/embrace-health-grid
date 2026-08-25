@@ -240,6 +240,16 @@ export const dischargePatient = createServerFn({ method: "POST" })
   .inputValidator(
     (data: { admissionId: string; dischargeSummary?: string; finalBillAmount?: number }) => {
       if (!data?.admissionId) throw new Error("admissionId is required");
+      // A discharge summary is a clinical assertion, so it must come from the
+      // clinician. The wizard used to substitute "Standard discharge completed.
+      // Patient in stable condition." for a blank field and write that into the
+      // record — a statement about the patient's condition that nobody made.
+      if (!data.dischargeSummary?.trim()) {
+        throw new Error("A discharge summary is required");
+      }
+      if (data.finalBillAmount !== undefined && data.finalBillAmount < 0) {
+        throw new Error("Final bill amount cannot be negative");
+      }
       return data;
     },
   )
@@ -270,11 +280,10 @@ export const dischargePatient = createServerFn({ method: "POST" })
       .update({
         status: "discharged",
         discharged_at: now,
-        diagnosis: data.dischargeSummary
-          ? (admission as any).diagnosis
-            ? `${(admission as any).diagnosis} | Discharge: ${data.dischargeSummary}`
-            : data.dischargeSummary
-          : (admission as any).diagnosis,
+        // The summary goes in its own column. It used to be appended onto
+        // `diagnosis` as "<diagnosis> | Discharge: <note>", which corrupted the
+        // admitting diagnosis irreversibly.
+        discharge_summary: data.dischargeSummary ?? null,
       })
       .eq("admission_id", data.admissionId);
 
@@ -324,14 +333,38 @@ export const dischargePatient = createServerFn({ method: "POST" })
         .maybeSingle();
 
       if (billingRow) {
-        await supabase
+        // Additive on purpose: finalBillAmount is the NEW charge raised at
+        // discharge, not the resulting balance. The wizard used to prefill this
+        // field with the patient's EXISTING outstanding balance, so every
+        // discharge doubled it — the client now starts at zero.
+        const { error: billErr } = await supabase
           .from("billing_accounts")
           .update({
             total_billed: Number(billingRow.total_billed) + data.finalBillAmount,
             outstanding: Number(billingRow.outstanding) + data.finalBillAmount,
             updated_at: now,
           })
-          .eq("patient_did", admission.patient_did);
+          .eq("patient_did", admission.patient_did)
+          .select("patient_did");
+
+        if (billErr) throw new Error(`Discharge billing failed: ${billErr.message}`);
+      } else {
+        // Previously the charge was silently dropped for any patient with no
+        // billing account, behind a "discharged successfully" toast. Open the
+        // account instead of losing the charge.
+        const { error: insErr } = await supabase.from("billing_accounts").insert({
+          patient_did: admission.patient_did,
+          total_billed: data.finalBillAmount,
+          outstanding: data.finalBillAmount,
+          total_paid: 0,
+          updated_at: now,
+        });
+
+        if (insErr) {
+          throw new Error(
+            `Discharge recorded, but the final bill of ${data.finalBillAmount} could not be posted: ${insErr.message}`,
+          );
+        }
       }
     }
 

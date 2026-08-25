@@ -198,6 +198,7 @@ Deno.serve(async (req) => {
         .eq("anchor_id", anchorId);
 
       await audit(db, {
+        caller,
         actor_id: caller.userId,
         actor_did: hospitalDid,
         resource: anchorId,
@@ -304,6 +305,7 @@ Deno.serve(async (req) => {
       throw new HttpError(500, `Anchored on-chain but could not update row: ${upErr.message}`);
 
     await audit(db, {
+      caller,
       actor_id: caller.userId,
       actor_did: subjectDid,
       resource: anchorId,
@@ -339,6 +341,7 @@ Deno.serve(async (req) => {
 
     if (caller) {
       await audit(db, {
+        caller,
         actor_id: caller.userId,
         resource: anchorId,
         action: "RECORD_ANCHOR_FAILED",

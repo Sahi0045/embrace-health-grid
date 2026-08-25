@@ -39,6 +39,7 @@ Deno.serve(async (req) => {
     if (caller.role !== "admin") {
       // Log the attempt: a non-admin probing break-glass is a signal worth keeping.
       await audit(db, {
+        caller,
         actor_id: caller.userId,
         action: "BREAK_GLASS_DENIED",
         outcome: "failure",
@@ -60,6 +61,7 @@ Deno.serve(async (req) => {
     // Audit BEFORE reading. If the read fails we still have a record of the
     // attempt; if we logged afterwards a crash could hide the access.
     await audit(db, {
+      caller,
       actor_id: caller.userId,
       actor_did: caller.dids[0] ?? null,
       resource: patientDid,

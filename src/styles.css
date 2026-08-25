@@ -6,20 +6,30 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Embrace Health Grid — Premium Clinical Design System
- * Deep medical blue. Inter + Plus Jakarta Sans typography.
- * All colors in oklch. Glassmorphism accents. Warm-neutral surfaces.
+ * Embrace Health Grid — The Archive Design System
+ *
+ * A health record is a document you own, not a dashboard you visit.
+ * Parchment ground, warm ink, Newsreader for voice, IBM Plex Sans for UI and
+ * IBM Plex Mono for anything cryptographic — so proof always looks like proof.
+ *
+ * Jade means a grant is live. Wax means something was signed or sealed; it is
+ * the second brand voice, never a warning. Alarm is reserved for genuine
+ * emergency and destructive confirmation.
+ *
+ * Colors are authored as hex to match the approved design exactly; oklch is
+ * retained only where a channel-independent alpha is needed.
  */
 
 @theme inline {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Newsreader", Georgia, "Times New Roman", serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: calc(var(--radius) - 1px);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-xl: calc(var(--radius) + 2px);
+  --radius-2xl: calc(var(--radius) + 6px);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -49,6 +59,7 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+  --color-chart-6: var(--chart-6);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -61,15 +72,17 @@
   --color-glass-bg: var(--glass-bg);
   --color-glass-border: var(--glass-border);
 
-  --shadow-clinical-sm: 0 1px 2px 0 oklch(0.2 0.04 240 / 0.03);
+  /* Warm ink shadows. The previous ramp was tuned to a blue ink and reads
+     muddy over parchment; these carry the same elevation in the paper's hue. */
+  --shadow-clinical-sm: 0 1px 2px 0 rgb(38 34 28 / 0.04);
   --shadow-clinical:
-    0 1px 3px 0 oklch(0.2 0.04 240 / 0.04), 0 2px 8px -1px oklch(0.2 0.04 240 / 0.06);
+    0 1px 3px 0 rgb(38 34 28 / 0.05), 0 2px 8px -1px rgb(38 34 28 / 0.06);
   --shadow-clinical-md:
-    0 4px 16px -2px oklch(0.2 0.04 240 / 0.08), 0 2px 6px -1px oklch(0.2 0.04 240 / 0.04);
+    0 4px 16px -2px rgb(38 34 28 / 0.08), 0 2px 6px -1px rgb(38 34 28 / 0.05);
   --shadow-clinical-lg:
-    0 8px 32px -4px oklch(0.2 0.04 240 / 0.12), 0 4px 12px -2px oklch(0.2 0.04 240 / 0.06);
+    0 8px 32px -4px rgb(38 34 28 / 0.12), 0 4px 12px -2px rgb(38 34 28 / 0.07);
   --shadow-clinical-xl:
-    0 16px 48px -8px oklch(0.2 0.04 240 / 0.16), 0 8px 24px -4px oklch(0.2 0.04 240 / 0.08);
+    0 16px 48px -8px rgb(38 34 28 / 0.16), 0 8px 24px -4px rgb(38 34 28 / 0.09);
 }
 
 /* Scrollbar hiding utilities */
@@ -84,109 +97,132 @@
 }
 
 :root {
-  --radius: 0.625rem;
+  --radius: 0.375rem;
 
-  --background: oklch(0.975 0.004 240);
-  --foreground: oklch(0.17 0.03 250);
+  --background: #f7f4ee;
+  --foreground: #26221c;
 
-  --card: oklch(0.99 0.002 240);
-  --card-foreground: oklch(0.17 0.03 250);
-  --popover: oklch(0.99 0.002 240);
-  --popover-foreground: oklch(0.17 0.03 250);
+  --card: #fdfbf7;
+  --card-foreground: #26221c;
+  --popover: #fdfbf7;
+  --popover-foreground: #26221c;
 
-  --primary: oklch(0.44 0.19 242);
-  --primary-foreground: oklch(0.985 0.005 240);
+  /* Jade — a grant is live, an action is affirmative. */
+  --primary: #0f7a62;
+  --primary-foreground: #fdfbf7;
 
-  --secondary: oklch(0.955 0.012 240);
-  --secondary-foreground: oklch(0.25 0.04 250);
-  --muted: oklch(0.96 0.01 240);
-  --muted-foreground: oklch(0.48 0.025 250);
-  --accent: oklch(0.52 0.14 195);
-  --accent-foreground: oklch(0.985 0.005 240);
+  --secondary: #ede8de;
+  --secondary-foreground: #26221c;
+  --muted: #ede8de;
+  --muted-foreground: #938c80;
 
-  --destructive: oklch(0.52 0.23 22);
-  --destructive-foreground: oklch(0.985 0.005 240);
-  --success: oklch(0.58 0.16 155);
-  --success-foreground: oklch(0.985 0.005 240);
-  --warning: oklch(0.7 0.17 75);
-  --warning-foreground: oklch(0.2 0.05 60);
+  /* Wax — signed, sealed, attested. Not a warning. */
+  --accent: #a8543a;
+  --accent-foreground: #fdfbf7;
 
-  --border: oklch(0.89 0.01 240);
-  --input: oklch(0.89 0.01 240);
-  --ring: oklch(0.44 0.19 242);
+  --destructive: #b3402b;
+  --destructive-foreground: #fdfbf7;
+  --success: #0f7a62;
+  --success-foreground: #fdfbf7;
+  --warning: #b07d2a;
+  /* Dark, not light. Unlike the other roles, warning is overwhelmingly used as
+     `bg-warning/10 text-warning-foreground` — text on a pale tint — so a light
+     foreground here renders ~90 badges across alerts, ambulance, insurance and
+     audit effectively invisible. Deep ochre also clears 4.5:1 on solid amber. */
+  --warning-foreground: #3a2a0d;
 
-  --chart-1: oklch(0.44 0.19 242);
-  --chart-2: oklch(0.58 0.16 155);
-  --chart-3: oklch(0.7 0.17 75);
-  --chart-4: oklch(0.55 0.2 290);
-  --chart-5: oklch(0.52 0.23 22);
+  --border: #e2dcd1;
+  --input: #e2dcd1;
+  --ring: #0f7a62;
 
-  --sidebar: oklch(0.98 0.004 240);
-  --sidebar-foreground: oklch(0.25 0.04 250);
-  --sidebar-primary: oklch(0.44 0.19 242);
-  --sidebar-primary-foreground: oklch(0.985 0.005 240);
-  --sidebar-accent: oklch(0.945 0.012 240);
-  --sidebar-accent-foreground: oklch(0.25 0.04 250);
-  --sidebar-border: oklch(0.89 0.01 240);
-  --sidebar-ring: oklch(0.44 0.19 242);
+  /* Categorical ramp. Not decoration: departments, entity kinds and chart series
+     need hues that stay TELLABLE APART, which semantic tokens cannot express —
+     collapsing ER, ICU and Theatre onto primary/warning would destroy meaning.
+     Six hues held at roughly one lightness and chroma so they read as one
+     family on parchment rather than six unrelated brand colours. */
+  --chart-1: #0f7a62; /* jade      — also --primary */
+  --chart-2: #a8543a; /* wax       — also --accent  */
+  --chart-3: #8a6b1e; /* ochre     */
+  --chart-4: #2f6e86; /* teal blue */
+  --chart-5: #7e4a72; /* plum      */
+  --chart-6: #55702f; /* olive     */
 
-  --glass-bg: oklch(1 0 0 / 70%);
-  --glass-border: oklch(1 0 0 / 20%);
+  --sidebar: #fbf8f2;
+  --sidebar-foreground: #635d53;
+  --sidebar-primary: #0f7a62;
+  --sidebar-primary-foreground: #fdfbf7;
+  --sidebar-accent: #ede8de;
+  --sidebar-accent-foreground: #26221c;
+  --sidebar-border: #e2dcd1;
+  --sidebar-ring: #0f7a62;
+
+  --glass-bg: rgb(253 251 247 / 72%);
+  --glass-border: rgb(226 220 209 / 60%);
 }
 
+/*
+ * Dark is the same archive read by lamplight: the ground goes to deep warm
+ * ink and the parchment moves to the type. Jade and wax are lifted for
+ * contrast rather than swapped for other hues, so the palette keeps meaning.
+ */
 .dark {
-  --background: oklch(0.12 0.02 250);
-  --foreground: oklch(0.96 0.005 240);
+  --background: #1a1713;
+  --foreground: #f2ede4;
 
-  --card: oklch(0.17 0.025 250);
-  --card-foreground: oklch(0.96 0.005 240);
-  --popover: oklch(0.17 0.025 250);
-  --popover-foreground: oklch(0.96 0.005 240);
+  --card: #221e19;
+  --card-foreground: #f2ede4;
+  --popover: #221e19;
+  --popover-foreground: #f2ede4;
 
-  --primary: oklch(0.75 0.15 245);
-  --primary-foreground: oklch(0.12 0.04 250);
+  --primary: #3fa88c;
+  --primary-foreground: #16130f;
 
-  --secondary: oklch(0.22 0.03 250);
-  --secondary-foreground: oklch(0.96 0.005 240);
-  --muted: oklch(0.22 0.03 250);
-  --muted-foreground: oklch(0.68 0.02 250);
-  --accent: oklch(0.65 0.15 195);
-  --accent-foreground: oklch(0.12 0.04 250);
+  --secondary: #2e2922;
+  --secondary-foreground: #f2ede4;
+  --muted: #2e2922;
+  --muted-foreground: #9a9184;
 
-  --destructive: oklch(0.68 0.22 22);
-  --destructive-foreground: oklch(0.985 0.005 240);
-  --success: oklch(0.72 0.16 155);
-  --success-foreground: oklch(0.12 0.02 250);
-  --warning: oklch(0.78 0.17 72);
-  --warning-foreground: oklch(0.2 0.05 60);
+  --accent: #d07e5e;
+  --accent-foreground: #16130f;
 
-  --border: oklch(1 0 0 / 7%);
-  --input: oklch(1 0 0 / 12%);
-  --ring: oklch(0.75 0.15 245);
+  --destructive: #d9634a;
+  --destructive-foreground: #16130f;
+  --success: #3fa88c;
+  --success-foreground: #16130f;
+  --warning: #d6a44e;
+  /* Stays dark in dark mode too, as the previous system did: the amber itself
+     is light in both themes, so dark text is what reads on it. */
+  --warning-foreground: #2a1f0a;
 
-  --chart-1: oklch(0.75 0.15 245);
-  --chart-2: oklch(0.72 0.16 155);
-  --chart-3: oklch(0.78 0.17 72);
-  --chart-4: oklch(0.7 0.18 290);
-  --chart-5: oklch(0.68 0.22 22);
+  --border: rgb(242 237 228 / 9%);
+  --input: rgb(242 237 228 / 14%);
+  --ring: #3fa88c;
 
-  --sidebar: oklch(0.15 0.025 250);
-  --sidebar-foreground: oklch(0.95 0.005 240);
-  --sidebar-primary: oklch(0.75 0.15 245);
-  --sidebar-primary-foreground: oklch(0.12 0.04 250);
-  --sidebar-accent: oklch(0.22 0.03 250);
-  --sidebar-accent-foreground: oklch(0.95 0.005 240);
-  --sidebar-border: oklch(1 0 0 / 7%);
-  --sidebar-ring: oklch(0.75 0.15 245);
+  /* Same six hues, lifted for a dark ground. */
+  --chart-1: #3fa88c; /* jade      */
+  --chart-2: #d07e5e; /* wax       */
+  --chart-3: #c09a3e; /* ochre     */
+  --chart-4: #5a9cb8; /* teal blue */
+  --chart-5: #b07aa4; /* plum      */
+  --chart-6: #85a45c; /* olive     */
 
-  --glass-bg: oklch(0.17 0.025 250 / 70%);
-  --glass-border: oklch(1 0 0 / 8%);
+  --sidebar: #1f1b16;
+  --sidebar-foreground: #c9c2b5;
+  --sidebar-primary: #3fa88c;
+  --sidebar-primary-foreground: #16130f;
+  --sidebar-accent: #2e2922;
+  --sidebar-accent-foreground: #f2ede4;
+  --sidebar-border: rgb(242 237 228 / 9%);
+  --sidebar-ring: #3fa88c;
 
-  --shadow-clinical-sm: 0 1px 2px 0 oklch(0 0 0 / 0.2);
-  --shadow-clinical: 0 1px 3px 0 oklch(0 0 0 / 0.25), 0 2px 8px -1px oklch(0 0 0 / 0.2);
-  --shadow-clinical-md: 0 4px 16px -2px oklch(0 0 0 / 0.3), 0 2px 6px -1px oklch(0 0 0 / 0.2);
-  --shadow-clinical-lg: 0 8px 32px -4px oklch(0 0 0 / 0.4), 0 4px 12px -2px oklch(0 0 0 / 0.25);
-  --shadow-clinical-xl: 0 16px 48px -8px oklch(0 0 0 / 0.5), 0 8px 24px -4px oklch(0 0 0 / 0.3);
+  --glass-bg: rgb(34 30 25 / 78%);
+  --glass-border: rgb(242 237 228 / 10%);
+
+  --shadow-clinical-sm: 0 1px 2px 0 rgb(0 0 0 / 0.25);
+  --shadow-clinical: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 2px 8px -1px rgb(0 0 0 / 0.24);
+  --shadow-clinical-md: 0 4px 16px -2px rgb(0 0 0 / 0.35), 0 2px 6px -1px rgb(0 0 0 / 0.24);
+  --shadow-clinical-lg: 0 8px 32px -4px rgb(0 0 0 / 0.45), 0 4px 12px -2px rgb(0 0 0 / 0.3);
+  --shadow-clinical-xl: 0 16px 48px -8px rgb(0 0 0 / 0.55), 0 8px 24px -4px rgb(0 0 0 / 0.35);
 }
 
 @layer base {
@@ -207,14 +243,21 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
   }
+  /* Newsreader is a serif with real optical presence; the old -0.02em tracking
+     was set for a geometric sans and closes it up too far. */
   h1,
   h2,
   h3,
   h4 {
-    letter-spacing: -0.02em;
-  }
-  h1 {
     font-family: var(--font-display);
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+  code,
+  pre,
+  kbd,
+  samp {
+    font-family: var(--font-mono);
   }
 }
 
@@ -226,6 +269,8 @@
   background-color: var(--color-background);
 }
 
+/* Kept deliberately faint. The archive reads as flat paper; this is a warm
+   lift at the top of the page, not the coloured glow the blue system used. */
 .ambient-page-bg::before {
   content: "";
   position: absolute;
@@ -237,8 +282,8 @@
   height: 480px;
   background: radial-gradient(
     ellipse 80% 50% at 50% -10%,
-    oklch(0.44 0.19 242 / 0.08),
-    oklch(0.52 0.14 195 / 0.04),
+    rgb(168 84 58 / 0.05),
+    rgb(15 122 98 / 0.025),
     transparent 80%
   );
   pointer-events: none;
@@ -248,39 +293,36 @@
 .dark .ambient-page-bg::before {
   background: radial-gradient(
     ellipse 80% 50% at 50% -10%,
-    oklch(0.75 0.15 245 / 0.12),
-    oklch(0.65 0.15 195 / 0.06),
+    rgb(208 126 94 / 0.08),
+    rgb(63 168 140 / 0.04),
     transparent 80%
   );
 }
 
-/* Liquid Glass 2026 Card Utility */
+/* Card surface. The gradient sheen and heavy blur belonged to the glass
+   system; paper does not reflect, so this is a flat raised surface. */
 .liquid-glass {
   background: var(--color-card);
-  background-image: linear-gradient(135deg, oklch(1 0 0 / 0.03) 0%, oklch(1 0 0 / 0.005) 100%);
-  backdrop-filter: blur(16px);
-  border: 1px solid oklch(0.89 0.01 240 / 0.8);
-  box-shadow: 0 4px 20px -2px oklch(0.2 0.04 240 / 0.05);
+  border: 1px solid rgb(226 220 209 / 0.9);
+  box-shadow: 0 1px 3px 0 rgb(38 34 28 / 0.05);
 }
 
 .dark .liquid-glass {
-  background: oklch(0.17 0.025 250 / 0.85);
-  background-image: linear-gradient(135deg, oklch(1 0 0 / 0.05) 0%, oklch(1 0 0 / 0.01) 100%);
-  backdrop-filter: blur(20px);
-  border: 1px solid oklch(1 0 0 / 0.12);
-  box-shadow: 0 8px 32px -4px oklch(0 0 0 / 0.4);
+  background: var(--color-card);
+  border: 1px solid rgb(242 237 228 / 0.1);
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.3);
 }
 
 .bento-card {
-  border-radius: 1.25rem;
-  border: 1px solid oklch(0.89 0.01 240 / 0.7);
-  box-shadow: 0 4px 20px -2px oklch(0.2 0.04 240 / 0.04);
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  border-radius: 0.375rem;
+  border: 1px solid rgb(226 220 209 / 0.9);
+  box-shadow: 0 1px 3px 0 rgb(38 34 28 / 0.04);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .dark .bento-card {
-  border: 1px solid oklch(1 0 0 / 0.1);
-  box-shadow: 0 8px 30px -4px oklch(0 0 0 / 0.35);
+  border: 1px solid rgb(242 237 228 / 0.1);
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.28);
 }
 
 /* Hover Glow Utility */
@@ -292,37 +334,38 @@
 }
 
 .glow-on-hover:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 12px 30px -8px oklch(0.44 0.19 242 / 0.18);
-  border-color: oklch(0.44 0.19 242 / 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px -8px rgb(38 34 28 / 0.18);
+  border-color: rgb(38 34 28 / 0.28);
 }
 
 .dark .glow-on-hover:hover {
-  box-shadow: 0 12px 36px -8px oklch(0.75 0.15 245 / 0.25);
-  border-color: oklch(0.75 0.15 245 / 0.45);
+  box-shadow: 0 8px 26px -8px rgb(0 0 0 / 0.45);
+  border-color: rgb(242 237 228 / 0.24);
 }
 
-/* ─── Precision Clinical Spotlight Animation (for Alert Deep-Linking) ─── */
+/* ─── Spotlight Animation (for Alert Deep-Linking) ───
+   Wax, not jade: this is "look here", and jade is reserved for a live grant. */
 @keyframes clinical-spotlight-pulse {
   0% {
     box-shadow:
-      0 0 0 0 oklch(0.44 0.19 242 / 0.7),
-      0 0 24px 4px oklch(0.44 0.19 242 / 0.45);
-    border-color: oklch(0.44 0.19 242);
+      0 0 0 0 rgb(168 84 58 / 0.7),
+      0 0 24px 4px rgb(168 84 58 / 0.45);
+    border-color: rgb(168 84 58);
     transform: scale(1.02);
   }
   30% {
     box-shadow:
-      0 0 0 8px oklch(0.44 0.19 242 / 0.25),
-      0 0 32px 8px oklch(0.44 0.19 242 / 0.35);
-    border-color: oklch(0.44 0.19 242);
+      0 0 0 8px rgb(168 84 58 / 0.25),
+      0 0 32px 8px rgb(168 84 58 / 0.35);
+    border-color: rgb(168 84 58);
     transform: scale(1.015);
   }
   60% {
     box-shadow:
-      0 0 0 14px oklch(0.44 0.19 242 / 0.1),
-      0 0 20px 2px oklch(0.44 0.19 242 / 0.2);
-    border-color: oklch(0.44 0.19 242 / 0.8);
+      0 0 0 14px rgb(168 84 58 / 0.1),
+      0 0 20px 2px rgb(168 84 58 / 0.2);
+    border-color: rgb(168 84 58 / 0.8);
     transform: scale(1.005);
   }
   100% {

@@ -20,6 +20,8 @@ import { createClient } from "@supabase/supabase-js";
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const ANON_KEY = process.env.SUPABASE_ANON_KEY;
 const PASSWORD = "SeedPassw0rd!dev";
+/** Cleanup only — never for assertions, which must go through RLS to prove anything. */
+const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const DIDS = {
   alice: "did:hosp:0xSEEDA01",
@@ -212,6 +214,76 @@ describe("Write protection", () => {
 
     assert.ok(error, "expected insert to be rejected");
     assert.match(error.message, /row-level security/i);
+  });
+
+  it("The consent state machine holds against a patient's own session", async () => {
+    // Self-contained: seeded consents are shared by other assertions and the
+    // guard makes revocation terminal, so a test that revoked one would
+    // permanently alter the fixture. Alice may insert a grant naming herself
+    // (consents_insert_patient), which gives us a row to destroy.
+    const id = `rls_test_${Date.now()}`;
+    const { error: insErr } = await alice.from("consents").insert({
+      grant_id: id,
+      patient_did: DIDS.alice,
+      doctor_did: DIDS.drsmith,
+      resource: "Medical Records",
+      status: "active",
+      approved_at: new Date().toISOString(),
+    });
+    assert.equal(insErr, null, "setup: Alice should be able to grant her own consent");
+
+    try {
+      // Legal transition — must still work. A guard that blocks everything is
+      // as broken as one that blocks nothing.
+      const { error: revErr } = await alice
+        .from("consents")
+        .update({ status: "revoked", revoked_at: new Date().toISOString() })
+        .eq("grant_id", id);
+      assert.equal(revErr, null, "REGRESSION: patient can no longer revoke their own consent");
+
+      // The core property: revoked is terminal. RLS alone permits this —
+      // consents_update_patient has no WITH CHECK on status, and a policy cannot
+      // see OLD. consents_guard_update is what stops it.
+      const { error: resErr } = await alice
+        .from("consents")
+        .update({ status: "active", approved_at: new Date().toISOString() })
+        .eq("grant_id", id);
+      assert.ok(resErr, "CONSENT BYPASS: a revoked grant was restored to active");
+      assert.match(resErr.message, /terminal/i);
+
+      const { data: after } = await alice
+        .from("consents")
+        .select("status")
+        .eq("grant_id", id)
+        .single();
+      assert.equal(after.status, "revoked", "CONSENT BYPASS: status is no longer revoked");
+
+      // Identity columns are immutable: rewriting doctor_did would repoint an
+      // audited decision at a different clinician while keeping its grant_id.
+      const { error: docErr } = await alice
+        .from("consents")
+        .update({ doctor_did: DIDS.drjones })
+        .eq("grant_id", id);
+      assert.ok(docErr, "CONSENT BYPASS: doctor_did was reassigned");
+      assert.match(docErr.message, /immutable/i);
+
+      // Caught by the restrictive policy's WITH CHECK rather than the trigger:
+      // patient_did must still be one of the caller's DIDs in the NEW row.
+      const { error: patErr } = await alice
+        .from("consents")
+        .update({ patient_did: DIDS.bob })
+        .eq("grant_id", id);
+      assert.ok(patErr, "CONSENT BYPASS: the consent row was handed to another patient");
+    } finally {
+      // service_role, because there is deliberately no DELETE policy on
+      // consents — revocation is a status change so the history survives.
+      if (SERVICE_KEY) {
+        await createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } })
+          .from("consents")
+          .delete()
+          .eq("grant_id", id);
+      }
+    }
   });
 
   it("A patient CANNOT escalate their own role to admin", async () => {

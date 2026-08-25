@@ -114,7 +114,7 @@ export function CreateVendorDialog({ open, onOpenChange, onSuccess }: CreateVend
             {/* Vendor Name */}
             <div>
               <label className="block text-xs font-bold text-foreground mb-1.5">
-                Vendor / Supplier Name <span className="text-rose-500">*</span>
+                Vendor / Supplier Name <span className="text-destructive">*</span>
               </label>
               <input
                 type="text"

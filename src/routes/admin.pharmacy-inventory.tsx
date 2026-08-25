@@ -53,8 +53,7 @@ export const Route = createFileRoute("/admin/pharmacy-inventory")({
       { title: "Pharmacy Inventory — Admin Console" },
       {
         name: "description",
-        content:
-          "Manage medicines, stock levels, suppliers, batch tracking, and expiry alerts",
+        content: "Manage medicines, stock levels, suppliers, batch tracking, and expiry alerts",
       },
     ],
   }),
@@ -87,14 +86,14 @@ function AdminPharmacyInventory() {
   });
 
   // Low-stock alerts
-  const { data: lowStockData } = useQuery({
+  const { data: lowStockData, isError: lowStockError } = useQuery({
     queryKey: ["low-stock-alerts", refreshInventory],
     queryFn: () => getLowStockItems({ data: { resolved: false, limit: 10 } }),
     enabled: activeTab === "overview" || activeTab === "alerts",
   });
 
   // Near-expiry items
-  const { data: nearExpiryData } = useQuery({
+  const { data: nearExpiryData, isError: nearExpiryError } = useQuery({
     queryKey: ["near-expiry-alerts", refreshInventory],
     queryFn: () =>
       getNearExpiryItems({ data: { status: "near_expiry", resolved: false, limit: 10 } }),
@@ -102,7 +101,7 @@ function AdminPharmacyInventory() {
   });
 
   // Expired stock
-  const { data: expiredData } = useQuery({
+  const { data: expiredData, isError: expiredError } = useQuery({
     queryKey: ["expired-stock", refreshInventory],
     queryFn: () => getExpiredStock({ data: { limit: 5 } }),
     enabled: activeTab === "alerts",
@@ -147,65 +146,85 @@ function AdminPharmacyInventory() {
 
   // ─── Render ─────────────────────────────────────────────────────────────
 
-  const lowStockCount = lowStockData?.alerts?.length || 0;
-  const nearExpiryCount = nearExpiryData?.alerts?.length || 0;
-  const expiredCount = expiredData?.alerts?.length || 0;
+  // null means the query FAILED, which is not the same as zero alerts. A
+  // pharmacy must never be told its shelves are fine because the query broke.
+  const lowStockCount = lowStockError ? null : (lowStockData?.alerts?.length ?? 0);
+  const nearExpiryCount = nearExpiryError ? null : (nearExpiryData?.alerts?.length ?? 0);
+  const expiredCount = expiredError ? null : (expiredData?.alerts?.length ?? 0);
 
   return (
     <RouteGuard requiredRole="admin">
-    <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-8 pb-24">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold text-foreground mb-2">Pharmacy Inventory Management</h1>
-        <p className="text-muted-foreground">Manage medicines, stock levels, suppliers, and alerts</p>
-      </div>
+      <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-8 pb-24">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-foreground mb-2">Pharmacy Inventory Management</h1>
+          <p className="text-muted-foreground">
+            Manage medicines, stock levels, suppliers, and alerts
+          </p>
+        </div>
 
-      {/* Alert Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        {/* Low Stock Alert */}
-        <Card className={lowStockCount > 0 ? "border-warning/30 bg-warning/10" : ""}>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium">
-              <TrendingDown className="w-4 h-4 text-warning" />
-              Low Stock Items
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-warning">{lowStockCount}</div>
-            <p className="text-xs text-muted-foreground mt-1">Items below reorder level</p>
-          </CardContent>
-        </Card>
+        {/* Alert Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          {/* Low Stock Alert */}
+          <Card
+            className={
+              lowStockCount != null && lowStockCount > 0 ? "border-warning/30 bg-warning/10" : ""
+            }
+          >
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                <TrendingDown className="w-4 h-4 text-warning" />
+                Low Stock Items
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-warning">{lowStockCount ?? "—"}</div>
+              <p className="text-xs text-muted-foreground mt-1">Items below reorder level</p>
+            </CardContent>
+          </Card>
 
-        {/* Near-Expiry Alert */}
-        <Card className={nearExpiryCount > 0 ? "border-orange-500/30 bg-orange-500/10" : ""}>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium">
-              <Clock className="w-4 h-4 text-orange-500" />
-              Near-Expiry Items
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-500">{nearExpiryCount}</div>
-            <p className="text-xs text-muted-foreground mt-1">Items within 30 days of expiry</p>
-          </CardContent>
-        </Card>
+          {/* Near-Expiry Alert */}
+          <Card
+            className={
+              nearExpiryCount != null && nearExpiryCount > 0
+                ? "border-warning/30 bg-warning/10"
+                : ""
+            }
+          >
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                <Clock className="w-4 h-4 text-warning" />
+                Near-Expiry Items
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-warning">{nearExpiryCount ?? "—"}</div>
+              <p className="text-xs text-muted-foreground mt-1">Items within 30 days of expiry</p>
+            </CardContent>
+          </Card>
 
-        {/* Expired Alert */}
-        <Card className={expiredCount > 0 ? "border-destructive/30 bg-destructive/10" : ""}>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium">
-              <AlertTriangle className="w-4 h-4 text-destructive" />
+          {/* Expired Alert */}
+          <Card
+            className={
+              expiredCount != null && expiredCount > 0
+                ? "border-destructive/30 bg-destructive/10"
+                : ""
+            }
+          >
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                <AlertTriangle className="w-4 h-4 text-destructive" />
                 Expired Stock
               </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-destructive">{expiredCount}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {expiredData?.totalQuantityExpired || 0} units total
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-destructive">{expiredCount ?? "—"}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {expiredData?.totalQuantityExpired || 0} units total
+              </p>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -234,7 +253,7 @@ function AdminPharmacyInventory() {
                       >
                         <div className="flex-1">
                           <p className="font-medium text-foreground">
-                            {alert.inventory_items?.item_name || "Unknown Item"}
+                            {alert.pharmacy_items?.item_name || "Unknown Item"}
                           </p>
                           <p className="text-sm text-muted-foreground">
                             Current: {alert.current_quantity} | Reorder: {alert.reorder_level}
@@ -267,17 +286,19 @@ function AdminPharmacyInventory() {
                       >
                         <div className="flex-1">
                           <p className="font-medium text-foreground">
-                            {alert.inventory_items?.item_name || "Unknown Item"}
+                            {alert.pharmacy_items?.item_name || "Unknown Item"}
                           </p>
                           <p className="text-sm text-muted-foreground">
                             Batch: {alert.inventory_batches?.batch_number}
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm font-medium text-orange-500">
+                          <p className="text-sm font-medium text-warning">
                             {alert.days_until_expiry} days
                           </p>
-                          <p className="text-xs text-muted-foreground">Qty: {alert.quantity_affected}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Qty: {alert.quantity_affected}
+                          </p>
                         </div>
                       </div>
                     ))}
@@ -333,12 +354,24 @@ function AdminPharmacyInventory() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b">
-                          <th className="text-left py-3 px-3 font-medium text-muted-foreground">Name</th>
-                          <th className="text-left py-3 px-3 font-medium text-muted-foreground">Code</th>
-                          <th className="text-left py-3 px-3 font-medium text-muted-foreground">Type</th>
-                          <th className="text-left py-3 px-3 font-medium text-muted-foreground">Unit</th>
-                          <th className="text-left py-3 px-3 font-medium text-muted-foreground">Reorder Level</th>
-                          <th className="text-left py-3 px-3 font-medium text-muted-foreground">Status</th>
+                          <th className="text-left py-3 px-3 font-medium text-muted-foreground">
+                            Name
+                          </th>
+                          <th className="text-left py-3 px-3 font-medium text-muted-foreground">
+                            Code
+                          </th>
+                          <th className="text-left py-3 px-3 font-medium text-muted-foreground">
+                            Type
+                          </th>
+                          <th className="text-left py-3 px-3 font-medium text-muted-foreground">
+                            Unit
+                          </th>
+                          <th className="text-left py-3 px-3 font-medium text-muted-foreground">
+                            Reorder Level
+                          </th>
+                          <th className="text-left py-3 px-3 font-medium text-muted-foreground">
+                            Status
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
@@ -362,7 +395,9 @@ function AdminPharmacyInventory() {
                     </table>
                   </div>
                 ) : (
-                  <div className="text-center py-8 text-muted-foreground">No inventory items found</div>
+                  <div className="text-center py-8 text-muted-foreground">
+                    No inventory items found
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -407,7 +442,7 @@ function AdminPharmacyInventory() {
                         >
                           <div className="flex-1">
                             <p className="font-medium text-foreground">
-                              {alert.inventory_items?.item_name}
+                              {alert.pharmacy_items?.item_name}
                             </p>
                             <p className="text-sm text-muted-foreground">
                               Current: {alert.current_quantity} | Threshold: {alert.reorder_level}
@@ -448,11 +483,11 @@ function AdminPharmacyInventory() {
                       {nearExpiryData.alerts.map((alert: any) => (
                         <div
                           key={alert.alert_id}
-                          className="flex items-center justify-between p-4 border rounded-lg bg-orange-500/10"
+                          className="flex items-center justify-between p-4 border rounded-lg bg-warning/10"
                         >
                           <div className="flex-1">
                             <p className="font-medium text-foreground">
-                              {alert.inventory_items?.item_name}
+                              {alert.pharmacy_items?.item_name}
                             </p>
                             <p className="text-sm text-muted-foreground">
                               Batch: {alert.inventory_batches?.batch_number} | Qty:{" "}
@@ -460,7 +495,7 @@ function AdminPharmacyInventory() {
                             </p>
                           </div>
                           <div className="text-right">
-                            <p className="font-medium text-orange-500">
+                            <p className="font-medium text-warning">
                               {alert.days_until_expiry} days
                             </p>
                             <p className="text-xs text-muted-foreground">to expiry</p>
@@ -492,7 +527,7 @@ function AdminPharmacyInventory() {
                         >
                           <div className="flex-1">
                             <p className="font-medium text-foreground">
-                              {alert.inventory_items?.item_name}
+                              {alert.pharmacy_items?.item_name}
                             </p>
                             <p className="text-sm text-muted-foreground">{alert.action_notes}</p>
                           </div>
@@ -505,7 +540,9 @@ function AdminPharmacyInventory() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-muted-foreground text-center py-6">No expired stock records</p>
+                    <p className="text-muted-foreground text-center py-6">
+                      No expired stock records
+                    </p>
                   )}
                 </CardContent>
               </Card>
@@ -535,7 +572,7 @@ function AdminPharmacyInventory() {
             </Card>
           </TabsContent>
         </Tabs>
-    </div>
+      </div>
     </RouteGuard>
   );
 }
@@ -781,7 +818,9 @@ function BatchesTable({ onRefresh }: { onRefresh: () => void }) {
               <td className="py-3 px-3 text-muted-foreground">{batch.item_id}</td>
               <td className="py-3 px-3">
                 <span className="font-medium">{batch.quantity_available}</span>
-                <span className="text-muted-foreground text-xs ml-1">/ {batch.quantity_received}</span>
+                <span className="text-muted-foreground text-xs ml-1">
+                  / {batch.quantity_received}
+                </span>
               </td>
               <td className="py-3 px-3">
                 {batch.expiry_date ? new Date(batch.expiry_date).toLocaleDateString() : "—"}

@@ -87,27 +87,27 @@ export function DutyRosterGrid({ staffList, schedules, onSelectStaff }: DutyRost
 
     if (r.includes("call") || r.includes("emergency")) {
       return {
-        bg: "bg-rose-500/15 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-500/30",
+        bg: "bg-destructive/15 text-destructive border-destructive/30",
         icon: PhoneCall,
         label: "On-Call",
       };
     }
     if (startHour >= 22 || startHour < 6 || r.includes("night")) {
       return {
-        bg: "bg-purple-500/15 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 border-purple-500/30",
+        bg: "bg-chart-5/15 text-chart-5 border-chart-5/30",
         icon: Moon,
         label: "Night",
       };
     }
     if (startHour >= 14 || r.includes("evening")) {
       return {
-        bg: "bg-amber-500/15 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30",
+        bg: "bg-chart-3/15 text-chart-3 border-chart-3/30",
         icon: Sunset,
         label: "Evening",
       };
     }
     return {
-      bg: "bg-blue-500/15 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30",
+      bg: "bg-chart-4/15 text-chart-4 border-chart-4/30",
       icon: Sun,
       label: "Morning",
     };
@@ -155,17 +155,17 @@ export function DutyRosterGrid({ staffList, schedules, onSelectStaff }: DutyRost
 
         {/* Shift Type Legend */}
         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5 text-[10px] font-bold">
-          <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400">
-            <span className="h-2 w-2 rounded-full bg-blue-500" /> Morning
+          <div className="flex items-center gap-1 text-chart-4">
+            <span className="h-2 w-2 rounded-full bg-chart-4" /> Morning
           </div>
-          <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
-            <span className="h-2 w-2 rounded-full bg-amber-500" /> Evening
+          <div className="flex items-center gap-1 text-chart-3">
+            <span className="h-2 w-2 rounded-full bg-chart-3" /> Evening
           </div>
-          <div className="flex items-center gap-1 text-purple-600 dark:text-purple-400">
-            <span className="h-2 w-2 rounded-full bg-purple-500" /> Night
+          <div className="flex items-center gap-1 text-chart-5">
+            <span className="h-2 w-2 rounded-full bg-chart-5" /> Night
           </div>
-          <div className="flex items-center gap-1 text-rose-600 dark:text-rose-400">
-            <span className="h-2 w-2 rounded-full bg-rose-500" /> On-Call
+          <div className="flex items-center gap-1 text-destructive">
+            <span className="h-2 w-2 rounded-full bg-destructive" /> On-Call
           </div>
           <div className="flex items-center gap-1 text-muted-foreground">
             <span className="h-2 w-2 rounded-full bg-muted" /> Off

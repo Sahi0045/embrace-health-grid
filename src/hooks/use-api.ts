@@ -19,6 +19,7 @@ import {
   getAppointmentsByPatient,
   getAppointmentsByDoctor,
   getDIDVerifiedDoctors,
+  getBookableDoctors,
   getVerifiedDoctors,
   getDoctorAppointmentRequests,
   getDoctorAppointments,
@@ -281,6 +282,21 @@ export function useDIDVerifiedDoctors() {
 }
 
 /** Hook: only doctors with an active DID — used in patient portal booking */
+/** Hook: clinicians at the signed-in patient's own hospital (booking list). */
+export function useBookableDoctors() {
+  return useApiData(
+    getBookableDoctors,
+    () => ({
+      doctors: [] as any[],
+      total: 0,
+      hospitalId: null as string | null,
+      hospitalName: null as string | null,
+    }),
+    "did:created",
+    [],
+  );
+}
+
 export function useVerifiedDoctors() {
   return useApiData(
     getVerifiedDoctors,

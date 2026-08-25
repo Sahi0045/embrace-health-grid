@@ -116,44 +116,44 @@ function InpatientCare() {
     restrictions: [],
     specialInstructions: "",
   };
-  const currentAdmission = inpatientData?.admission ?? {
-    admitted_at: new Date().toISOString(),
-    expected_discharge: null,
-    ward: "—",
-    room: "—",
-    bed: "—",
-    diagnosis: "—",
-    admitting_doctor: "—",
-    // Legacy field aliases kept for compatibility
-    admissionDate: new Date().toISOString(),
-    expectedDischargeDate: null,
-    primaryDiagnosis: "—",
-    admittingDoctor: "—",
-  };
+  /**
+   * No substitute admission.
+   *
+   * When there was no admission this manufactured one dated today with every
+   * field "—", and the card above it says "Currently Admitted" unconditionally.
+   * A patient who has never been admitted was told they were, on day 0, in
+   * ward "—". `isAdmitted` now drives what the page claims.
+   */
+  const currentAdmission = inpatientData?.admission ?? null;
+  const isAdmitted = Boolean(currentAdmission);
 
   // Normalise admission field names: DB columns (snake_case) vs legacy camelCase
-  const admDate = currentAdmission.admitted_at ?? currentAdmission.admissionDate;
-  const admExp = currentAdmission.expected_discharge ?? currentAdmission.expectedDischargeDate;
-  const admWard = currentAdmission.ward ?? "—";
-  const admRoom = currentAdmission.room ?? "—";
-  const admBed = currentAdmission.bed ?? "—";
-  const admDx = currentAdmission.diagnosis ?? currentAdmission.primaryDiagnosis ?? "—";
-  const admDoctor = currentAdmission.admitting_doctor ?? currentAdmission.admittingDoctor ?? "—";
+  const admDate = currentAdmission?.admitted_at ?? currentAdmission?.admissionDate ?? null;
+  const admExp =
+    currentAdmission?.expected_discharge ?? currentAdmission?.expectedDischargeDate ?? null;
+  const admWard = currentAdmission?.ward ?? "—";
+  const admRoom = currentAdmission?.room ?? "—";
+  const admBed = currentAdmission?.bed ?? "—";
+  const admDx = currentAdmission?.diagnosis ?? currentAdmission?.primaryDiagnosis ?? "—";
+  const admDoctor = currentAdmission?.admitting_doctor ?? currentAdmission?.admittingDoctor ?? "—";
 
-  const defaultVital = {
-    id: "v0",
-    heartRate: 72,
-    bloodPressure: { systolic: 120, diastolic: 80 },
-    oxygenSaturation: 98,
-    temperature: 36.6,
-    respiratoryRate: 16,
-    timestamp: "—",
-    recordedBy: "—",
-  };
+  /**
+   * No default vital signs.
+   *
+   * This object supplied HR 72, BP 120/80, SpO2 98, temp 36.6, RR 16 — textbook
+   * normal — whenever no reading was available. And a reading was NEVER
+   * available: api.ts returns `vitalSigns: []` unconditionally, and the live
+   * socket path listens for a "ws:message" event that nothing in the codebase
+   * dispatches. So every inpatient, including a deteriorating one, was shown
+   * perfect vitals flagged green.
+   *
+   * Absent readings must read as absent.
+   */
+  const defaultVital = null;
 
   const latestVitals = liveVitals
     ? {
-        ...(apiVitalSigns[0] || defaultVital),
+        ...(apiVitalSigns[0] ?? {}),
         heartRate: liveVitals.heartRate,
         bloodPressure: {
           systolic: parseInt(liveVitals.bp) || 120,
@@ -164,7 +164,7 @@ function InpatientCare() {
         respiratoryRate: liveVitals.respRate,
         timestamp: "Live telemetry (WS)",
       }
-    : apiVitalSigns[0] || defaultVital;
+    : (apiVitalSigns[0] ?? defaultVital);
 
   const activeMeds = medications.filter((m: any) => m.status === "active");
   const todayCheckups = dailyCheckups.filter(
@@ -184,11 +184,11 @@ function InpatientCare() {
         <div className="mt-6 space-y-6">
           {/* Hospital Bed Availability Overview */}
           {bedStats && (
-            <Card className="border-blue-500/30 bg-blue-500/5">
+            <Card className="border-primary/30 bg-primary/5">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Bed className="h-4 w-4 text-blue-600" />
+                    <Bed className="h-4 w-4 text-primary" />
                     <CardTitle className="text-sm">Hospital Bed Availability</CardTitle>
                   </div>
                   <Badge variant="outline" className="bg-background text-xs">
@@ -233,12 +233,12 @@ function InpatientCare() {
 
                   <div className="rounded-lg bg-card border border-border p-3">
                     <div className="flex items-center gap-2 mb-1">
-                      <Activity className="h-4 w-4 text-blue-600" />
+                      <Activity className="h-4 w-4 text-primary" />
                       <span className="text-xs font-semibold text-muted-foreground">
                         Cleaning/Maint.
                       </span>
                     </div>
-                    <div className="text-2xl font-bold text-blue-600">
+                    <div className="text-2xl font-bold text-primary">
                       {(bedStats.bedStats?.cleaning || 0) + (bedStats.bedStats?.maintenance || 0)}
                     </div>
                     <p className="text-[10px] text-muted-foreground">being prepared</p>
@@ -275,8 +275,8 @@ function InpatientCare() {
                   </div>
                 )}
 
-                <div className="mt-3 flex items-center gap-1.5 rounded-lg border border-blue-500/20 bg-blue-500/5 px-3 py-2 text-[11px] text-muted-foreground">
-                  <AlertCircle className="h-3.5 w-3.5 shrink-0 text-blue-600" />
+                <div className="mt-3 flex items-center gap-1.5 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-[11px] text-muted-foreground">
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0 text-primary" />
                   Bed availability updates in real-time. Contact admissions for specific room
                   requests.
                 </div>
@@ -290,15 +290,21 @@ function InpatientCare() {
             <Card className="border-primary/30 bg-primary/5 lg:col-span-2">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <Badge variant="default" className="bg-primary">
-                    Currently Admitted
+                  <Badge
+                    variant="default"
+                    className={isAdmitted ? "bg-primary" : "bg-muted text-muted-foreground"}
+                  >
+                    {isAdmitted ? "Currently Admitted" : "Not currently admitted"}
                   </Badge>
                   <span className="text-xs text-muted-foreground">
-                    Day{" "}
-                    {Math.ceil(
-                      (new Date().getTime() - new Date(admDate).getTime()) / (1000 * 60 * 60 * 24),
-                    )}{" "}
-                    of stay
+                    {/* new Date(null) is epoch, so with no admission this read
+                        "Day 20000 of stay". */}
+                    {admDate
+                      ? `Day ${Math.ceil(
+                          (new Date().getTime() - new Date(admDate).getTime()) /
+                            (1000 * 60 * 60 * 24),
+                        )} of stay`
+                      : "No active admission"}
                   </span>
                 </div>
               </CardHeader>
@@ -316,12 +322,21 @@ function InpatientCare() {
                   </div>
                   <div>
                     <div className="text-xs text-muted-foreground">Admitted</div>
-                    <div className="font-medium">{new Date(admDate).toLocaleDateString()}</div>
+                    {/* `new Date(null)` is the Unix epoch, so a patient with no
+                        admission was shown "Admitted 1/1/1970" as though it were
+                        a real date on their record. */}
+                    <div className="font-medium">
+                      {admDate ? new Date(admDate).toLocaleDateString() : "—"}
+                    </div>
                   </div>
                   <div>
                     <div className="text-xs text-muted-foreground">Expected Discharge</div>
                     <div className="font-medium">
-                      {admExp ? new Date(admExp).toLocaleDateString() : "TBD"}
+                      {admExp
+                        ? new Date(admExp).toLocaleDateString()
+                        : isAdmitted
+                          ? "Not set"
+                          : "—"}
                     </div>
                   </div>
                 </div>
@@ -344,7 +359,9 @@ function InpatientCare() {
                       </div>
                       <div>
                         <div className="text-xs text-muted-foreground">Heart Rate</div>
-                        <div className="text-lg font-semibold">{latestVitals.heartRate} bpm</div>
+                        <div className="text-lg font-semibold">
+                          {latestVitals ? `${latestVitals.heartRate} bpm` : "No reading"}
+                        </div>
                       </div>
                     </div>
                   </CardContent>
@@ -358,8 +375,9 @@ function InpatientCare() {
                       <div>
                         <div className="text-xs text-muted-foreground">BP</div>
                         <div className="text-lg font-semibold">
-                          {latestVitals.bloodPressure.systolic}/
-                          {latestVitals.bloodPressure.diastolic}
+                          {latestVitals
+                            ? `${latestVitals.bloodPressure.systolic}/${latestVitals.bloodPressure.diastolic}`
+                            : "No reading"}
                         </div>
                       </div>
                     </div>
@@ -519,44 +537,58 @@ function InpatientCare() {
                     <CardHeader className="pb-3">
                       <CardTitle className="text-sm">Latest Vital Signs</CardTitle>
                       <CardDescription className="text-xs">
-                        Recorded at {latestVitals.timestamp} by {latestVitals.recordedBy}
+                        {latestVitals
+                          ? `Recorded at ${latestVitals.timestamp} by ${latestVitals.recordedBy}`
+                          : "No vital signs have been recorded for this admission."}
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="grid gap-3 sm:grid-cols-2">
-                      <VitalRow
-                        icon={Thermometer}
-                        label="Temperature"
-                        value={`${latestVitals.temperature}°C`}
-                        normal={
-                          latestVitals.temperature >= 36.5 && latestVitals.temperature <= 37.5
-                        }
-                      />
-                      <VitalRow
-                        icon={Activity}
-                        label="Blood Pressure"
-                        value={`${latestVitals.bloodPressure.systolic}/${latestVitals.bloodPressure.diastolic} mmHg`}
-                        normal={latestVitals.bloodPressure.systolic < 140}
-                      />
-                      <VitalRow
-                        icon={Heart}
-                        label="Heart Rate"
-                        value={`${latestVitals.heartRate} bpm`}
-                        normal={latestVitals.heartRate >= 60 && latestVitals.heartRate <= 100}
-                      />
-                      <VitalRow
-                        icon={Activity}
-                        label="Respiratory Rate"
-                        value={`${latestVitals.respiratoryRate} /min`}
-                        normal={
-                          latestVitals.respiratoryRate >= 12 && latestVitals.respiratoryRate <= 20
-                        }
-                      />
-                      <VitalRow
-                        icon={Droplet}
-                        label="O₂ Saturation"
-                        value={`${latestVitals.oxygenSaturation}%`}
-                        normal={latestVitals.oxygenSaturation >= 95}
-                      />
+                      {/* Every VitalRow below dereferences latestVitals, which is
+                          null when nothing has been recorded. */}
+                      {!latestVitals && (
+                        <p className="text-xs text-muted-foreground sm:col-span-2">
+                          Vitals will appear here once a clinician records them.
+                        </p>
+                      )}
+                      {latestVitals && (
+                        <>
+                          <VitalRow
+                            icon={Thermometer}
+                            label="Temperature"
+                            value={`${latestVitals.temperature}°C`}
+                            normal={
+                              latestVitals.temperature >= 36.5 && latestVitals.temperature <= 37.5
+                            }
+                          />
+                          <VitalRow
+                            icon={Activity}
+                            label="Blood Pressure"
+                            value={`${latestVitals.bloodPressure.systolic}/${latestVitals.bloodPressure.diastolic} mmHg`}
+                            normal={latestVitals.bloodPressure.systolic < 140}
+                          />
+                          <VitalRow
+                            icon={Heart}
+                            label="Heart Rate"
+                            value={`${latestVitals.heartRate} bpm`}
+                            normal={latestVitals.heartRate >= 60 && latestVitals.heartRate <= 100}
+                          />
+                          <VitalRow
+                            icon={Activity}
+                            label="Respiratory Rate"
+                            value={`${latestVitals.respiratoryRate} /min`}
+                            normal={
+                              latestVitals.respiratoryRate >= 12 &&
+                              latestVitals.respiratoryRate <= 20
+                            }
+                          />
+                          <VitalRow
+                            icon={Droplet}
+                            label="O₂ Saturation"
+                            value={`${latestVitals.oxygenSaturation}%`}
+                            normal={latestVitals.oxygenSaturation >= 95}
+                          />
+                        </>
+                      )}
                     </CardContent>
                   </Card>
 
@@ -564,7 +596,8 @@ function InpatientCare() {
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between">
                         <CardTitle className="text-sm">Vitals History</CardTitle>
-                        <Button variant="ghost" size="sm" className="h-7 text-xs">
+                        <Button variant="ghost" size="sm" className="h-7 text-xs" disabled>
+                          {/* No onClick and no chart view exists. */}
                           View Chart
                         </Button>
                       </div>
@@ -659,25 +692,25 @@ function InpatientCare() {
                               {test.status}
                             </Badge>
                           </div>
+                          {/* getLabs() returns a SCALAR result — {resultValue,
+                              unit, referenceRange, resultedAt} — not an array of
+                              parameters, and `orderedDate` does not exist. So
+                              this rendered "Ordered: Invalid Date" and the
+                              results block never ran: the actual lab value was
+                              never displayed anywhere on this tab. */}
                           <div className="text-sm text-muted-foreground mt-1">
-                            Ordered: {new Date(test.orderedDate).toLocaleDateString()}
+                            {test.resultedAt
+                              ? `Resulted: ${new Date(test.resultedAt).toLocaleDateString()}`
+                              : "Awaiting result"}
                           </div>
-                          {test.results && (
-                            <div className="mt-2 space-y-1">
-                              {test.results.map((result: any, idx: number) => (
-                                <div
-                                  key={idx}
-                                  className="flex items-center justify-between text-sm"
-                                >
-                                  <span>{result.parameter}</span>
-                                  <span
-                                    className={result.flag ? "text-destructive font-medium" : ""}
-                                  >
-                                    {result.value} {result.unit}
-                                    {result.flag && ` (${result.flag})`}
-                                  </span>
-                                </div>
-                              ))}
+                          {test.resultValue != null && (
+                            <div className="mt-2 flex items-center justify-between text-sm">
+                              <span>{test.testName}</span>
+                              <span className="font-medium">
+                                {test.resultValue}
+                                {test.unit ? ` ${test.unit}` : ""}
+                                {test.referenceRange ? ` (ref ${test.referenceRange})` : ""}
+                              </span>
                             </div>
                           )}
                         </div>
@@ -733,8 +766,12 @@ function InpatientCare() {
                   <div className="text-sm text-muted-foreground mt-1">
                     Press the call button in your room or contact the nurse station
                   </div>
-                  <Button variant="destructive" size="sm" className="w-full mt-3">
-                    Call Nurse
+                  {/* No onClick — and the card above already tells the patient
+                      to press the physical call button. A dead red "Call Nurse"
+                      on an inpatient screen is the worst kind of dead button:
+                      someone in distress would press it and wait. */}
+                  <Button variant="destructive" size="sm" className="w-full mt-3" disabled>
+                    Call Nurse (use your bedside button)
                   </Button>
                 </CardContent>
               </Card>

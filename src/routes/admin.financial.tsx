@@ -131,22 +131,17 @@ function AdminFinancialPage() {
     }
   };
 
-  const handleRecordPayment = async (category: LiveTransaction["category"]) => {
-    if (!selectedPatient) return;
-    const amounts: Record<string, number> = {
-      consultation: 1500,
-      pharmacy: 3200,
-      lab: 2800,
-      room: 12000,
-      surgery: 65000,
-    };
-    await recordPayment({
-      amount: amounts[category] ?? 2000,
-      method: category,
-      patientDid: selectedPatient.did,
-    });
-    refresh();
-  };
+  // Payment recording is DISABLED here, deliberately.
+  //
+  // This handler posted a hardcoded price list (consultation 1500, pharmacy 3200,
+  // lab 2800, room 12000, surgery 65000) and passed `patientDid` to `payBill` —
+  // which documents that it IGNORES that argument and files the payment against
+  // `callerDid()`. So clicking "+ surgery" booked ₹65,000 against THE ADMIN'S own
+  // billing account, not the selected patient's, silently and with no error path.
+  //
+  // Two independent defects: an invented amount, and the wrong payer. Both need a
+  // real patient-scoped payment endpoint and an amount input, neither of which
+  // exists. Until then the control is gone rather than mischarging someone.
 
   const fmt = (v: number) => `₹${v.toLocaleString("en-IN")}`;
 
@@ -171,9 +166,9 @@ function AdminFinancialPage() {
     <RouteGuard requiredRole="admin">
       <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
         <PageHeader
-          eyebrow={`Admin Console — Last sync ${lastUpdate}`}
+          eyebrow="Admin Console"
           title="Financial Ledger & Identity Lookup"
-          description="Live database-backed payment records, DID-based patient resolution, and real-time revenue analytics."
+          description="Not connected to a data source. getLivePatients() and getLiveTransactions() are empty stubs left from the decommissioned admin SPA, so every figure below is 0 — that is a missing integration, not a measurement."
         />
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -341,8 +336,9 @@ function AdminFinancialPage() {
                       ).map((cat) => (
                         <button
                           key={cat}
-                          onClick={() => handleRecordPayment(cat)}
-                          className="rounded-lg border border-border bg-muted/40 px-3 py-1.5 text-xs font-semibold capitalize hover:bg-primary/10 hover:text-primary hover:border-primary/20 transition-colors"
+                          disabled
+                          title="Recording payments from this console is disabled — it billed the wrong account"
+                          className="rounded-lg border border-border bg-muted/40 px-3 py-1.5 text-xs font-semibold capitalize opacity-50 cursor-not-allowed"
                         >
                           + {cat}
                         </button>

@@ -231,7 +231,7 @@ export function RecordResultDialog({
               <Button
                 type="submit"
                 disabled={submitting}
-                className="flex-1 rounded-xl h-10 bg-gradient-to-r from-primary to-blue-600 text-primary-foreground text-xs font-extrabold shadow-clinical-md shadow-primary/25"
+                className="flex-1 rounded-xl h-10 bg-primary text-primary-foreground text-xs font-extrabold shadow-clinical-md shadow-primary/25"
               >
                 {submitting ? "Signing & Saving..." : "Sign & Record Result"}
               </Button>

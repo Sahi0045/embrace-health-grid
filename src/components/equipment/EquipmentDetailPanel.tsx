@@ -57,7 +57,7 @@ export function EquipmentDetailPanel({
   const [loadingLogs, setLoadingLogs] = useState(false);
 
   // Status & Location Update Form State
-  const [status, setStatus] = useState<EquipmentStatus>("operational");
+  const [status, setStatus] = useState<EquipmentStatus>("available");
   const [location, setLocation] = useState("");
   const [assignedWard, setAssignedWard] = useState("");
   const [utilization, setUtilization] = useState(0);
@@ -163,16 +163,16 @@ export function EquipmentDetailPanel({
   };
 
   const statusPillConfig = {
-    operational: { label: "Operational", bg: "bg-success/15 text-success border-success/30" },
+    available: { label: "Operational", bg: "bg-success/15 text-success border-success/30" },
     "in-use": {
       label: "In Active Use",
-      bg: "bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border-cyan-500/30",
+      bg: "bg-primary/15 text-primary dark:text-primary border-primary/30",
     },
     maintenance: {
       label: "Under Maintenance",
-      bg: "bg-warning/15 text-warning-foreground dark:text-amber-400 border-warning/30",
+      bg: "bg-warning/15 text-warning-foreground dark:text-warning border-warning/30",
     },
-    offline: { label: "Offline", bg: "bg-destructive/15 text-destructive border-destructive/30" },
+    retired: { label: "Retired", bg: "bg-destructive/15 text-destructive border-destructive/30" },
   }[equipment.status] || {
     label: equipment.status,
     bg: "bg-muted text-muted-foreground border-border",
@@ -368,7 +368,7 @@ export function EquipmentDetailPanel({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="rounded-2xl border border-border/80 bg-background/50 p-5 space-y-3">
                   <div className="flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-purple-500" />
+                    <Sparkles className="h-4 w-4 text-accent" />
                     <h4 className="text-xs font-extrabold uppercase tracking-wider text-foreground">
                       Calibration Schedule
                     </h4>
@@ -494,10 +494,10 @@ export function EquipmentDetailPanel({
                       onChange={(e) => setStatus(e.target.value as any)}
                       className="w-full bg-background border border-border/80 rounded-xl px-3 py-2 text-xs font-bold text-foreground focus:ring-2 focus:ring-primary/40 outline-none"
                     >
-                      <option value="operational">Operational (Available)</option>
+                      <option value="available">Available</option>
                       <option value="in-use">In Active Clinical Use</option>
                       <option value="maintenance">Under Maintenance / Service</option>
-                      <option value="offline">Offline / Standby Staged</option>
+                      <option value="retired">Retired / Decommissioned</option>
                     </select>
                   </div>
 
@@ -539,10 +539,10 @@ export function EquipmentDetailPanel({
                           <span
                             className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
                               utilization >= 80
-                                ? "bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30"
+                                ? "bg-destructive/15 text-destructive dark:text-destructive border border-destructive/30"
                                 : utilization >= 40
-                                  ? "bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30"
-                                  : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
+                                  ? "bg-primary/15 text-primary dark:text-primary border border-primary/30"
+                                  : "bg-success/15 text-success dark:text-success border border-success/30"
                             }`}
                           >
                             {utilization >= 80
@@ -709,7 +709,7 @@ export function EquipmentDetailPanel({
                     type="submit"
                     disabled={submittingLog}
                     size="sm"
-                    className="bg-gradient-to-r from-primary to-blue-600 text-primary-foreground font-extrabold rounded-xl shadow-clinical-md shadow-primary/25 text-xs h-9 px-4"
+                    className="bg-primary text-primary-foreground font-extrabold rounded-xl shadow-clinical-md shadow-primary/25 text-xs h-9 px-4"
                   >
                     {submittingLog ? "Submitting Log..." : "Commit Service Entry to Ledger"}
                   </Button>

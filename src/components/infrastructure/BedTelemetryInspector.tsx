@@ -54,13 +54,13 @@ const STATUS_ACTIONS = [
   {
     id: "cleaning",
     label: "Cleaning",
-    color: "text-blue-600 bg-blue-500/10 border-blue-200",
+    color: "text-primary bg-primary/10 border-primary/30",
     icon: Activity,
   },
   {
     id: "maintenance",
     label: "Maintenance",
-    color: "text-amber-600 bg-amber-500/10 border-amber-200",
+    color: "text-warning bg-warning/10 border-warning/30",
     icon: Wrench,
   },
   {
@@ -72,7 +72,7 @@ const STATUS_ACTIONS = [
   {
     id: "emergency_reserved",
     label: "Emergency",
-    color: "text-rose-600 bg-rose-500/10 border-rose-200",
+    color: "text-destructive bg-destructive/10 border-destructive/30",
     icon: Shield,
   },
 ];
@@ -190,16 +190,18 @@ export function BedTelemetryInspector({
             <div className="rounded-2xl border border-primary/30 bg-primary/5 p-5 space-y-4 shadow-clinical-sm">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3.5">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-blue-600 text-primary-foreground font-display font-extrabold text-xl shadow-sm">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground font-display font-extrabold text-xl shadow-sm">
                     {(bed.patient_name || "P")[0]}
                   </div>
                   <div>
                     <h3 className="font-display font-extrabold text-base text-foreground tracking-tight">
-                      {bed.patient_name || "Assigned Patient"}
+                      {bed.patient_name || "Patient name not recorded"}
                     </h3>
                     <div className="flex items-center gap-2 mt-1">
+                      {/* "MRN-RECORD" was a placeholder rendered in the slot where
+                          a real record number goes, on a clinical bed board. */}
                       <span className="inline-flex items-center rounded-md bg-background px-2 py-0.5 text-[10px] font-mono font-extrabold text-primary border border-border/60">
-                        {bed.patient_mrn || "MRN-RECORD"}
+                        {bed.patient_mrn || "No MRN"}
                       </span>
                       {bed.patient_condition && (
                         <span
@@ -207,7 +209,7 @@ export function BedTelemetryInspector({
                             bed.patient_condition === "Critical"
                               ? "bg-destructive/20 text-destructive border border-destructive/30"
                               : bed.patient_condition === "Recovery"
-                                ? "bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-300"
+                                ? "bg-primary/20 text-primary dark:text-primary border border-primary"
                                 : "bg-success/20 text-success border border-success/30"
                           }`}
                         >
@@ -221,7 +223,7 @@ export function BedTelemetryInspector({
                 <Button
                   size="sm"
                   onClick={handleOpenProfile}
-                  className="bg-gradient-to-r from-primary to-blue-600 text-primary-foreground font-extrabold rounded-xl shadow-clinical-md shadow-primary/25 text-xs h-9"
+                  className="bg-primary text-primary-foreground font-extrabold rounded-xl shadow-clinical-md shadow-primary/25 text-xs h-9"
                 >
                   <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
                   View Patient EHR
@@ -259,15 +261,15 @@ export function BedTelemetryInspector({
                     <span className="flex items-center gap-1.5">
                       <Activity className="h-3.5 w-3.5" /> Live Telemetry Feed
                     </span>
-                    <span className="text-emerald-500 flex items-center gap-1 font-bold">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />{" "}
+                    <span className="text-success flex items-center gap-1 font-bold">
+                      <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />{" "}
                       Continuous Monitoring
                     </span>
                   </div>
 
                   <div className="grid grid-cols-3 gap-3 text-center">
                     <div className="p-3 rounded-xl bg-background border border-border/60 shadow-2xs">
-                      <div className="text-base font-mono font-black text-rose-500 flex items-center justify-center gap-1">
+                      <div className="text-base font-mono font-black text-destructive flex items-center justify-center gap-1">
                         <Heart className="h-3.5 w-3.5 animate-pulse" /> {bed.vitals.hr}
                       </div>
                       <div className="text-[9px] font-extrabold text-muted-foreground uppercase mt-0.5">
@@ -285,7 +287,7 @@ export function BedTelemetryInspector({
                     </div>
 
                     <div className="p-3 rounded-xl bg-background border border-border/60 shadow-2xs">
-                      <div className="text-base font-mono font-black text-teal-600">
+                      <div className="text-base font-mono font-black text-success">
                         {bed.vitals.spo2}%
                       </div>
                       <div className="text-[9px] font-extrabold text-muted-foreground uppercase mt-0.5">
