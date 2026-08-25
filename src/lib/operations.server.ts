@@ -19,7 +19,7 @@ import {
   buildBedAudit,
   buildRoomAudit,
   buildInventoryAudit,
-} from "./audit-write.server";
+} from "./audit-helpers.server";
 import type {
   InventoryCategory,
   InventoryItem,
@@ -1057,13 +1057,13 @@ export const createBed = createServerFn({ method: "POST" })
   .inputValidator(
     (data: {
       roomId: string;
-      wardId: string;
-      buildingId: string;
+      wardId?: string;
+      buildingId?: string;
       bedNumber?: string;
       bedType?: string;
     }) => {
-      if (!data?.roomId || !data?.wardId || !data?.buildingId) {
-        throw new Error("Room ID, ward ID, and building ID are required");
+      if (!data?.roomId) {
+        throw new Error("Room ID is required");
       }
       return data;
     },
@@ -1073,23 +1073,63 @@ export const createBed = createServerFn({ method: "POST" })
     const supabase = getSupabaseServerClient();
     const hospitalId = await callerHospitalId();
 
+    // Resolve wardId, buildingId, and wardName if not provided
+    let resolvedWardId = data.wardId ?? null;
+    let resolvedBuildingId = data.buildingId ?? null;
+    let wardNameLegacy = "General Ward";
+
+    const { data: roomData } = await supabase
+      .from("rooms")
+      .select("ward_id, building_id, room_name")
+      .eq("room_id", data.roomId)
+      .maybeSingle();
+
+    if (roomData) {
+      resolvedWardId = resolvedWardId ?? roomData.ward_id;
+      resolvedBuildingId = resolvedBuildingId ?? roomData.building_id;
+    }
+
+    if (resolvedWardId) {
+      const { data: wardData } = await supabase
+        .from("wards")
+        .select("ward_name")
+        .eq("ward_id", resolvedWardId)
+        .maybeSingle();
+      if (wardData?.ward_name) {
+        wardNameLegacy = wardData.ward_name;
+      }
+    }
+
     const bedId = `bed-${crypto.randomUUID().slice(0, 8)}`;
     const { data: bed, error } = await supabase
       .from("beds")
       .insert({
         bed_id: bedId,
         room_id: data.roomId,
-        ward_id: data.wardId,
-        building_id: data.buildingId,
+        ward_id: resolvedWardId,
+        building_id: resolvedBuildingId,
         hospital_id: hospitalId,
         bed_number: data.bedNumber ?? null,
-        bed_type: data.bedType ?? null,
+        bed_type: data.bedType ?? "Standard",
+        ward_name_legacy: wardNameLegacy,
         status: "available",
       })
       .select()
       .single();
 
     if (error) throw new Error(error.message);
+
+    // Audit trail record
+    const caller = await resolveCallerForAudit();
+    await tryWriteAudit(
+      buildBedAudit(caller, bedId, "none", "available", {
+        actionType: "BED_CREATED",
+        bedNumber: data.bedNumber,
+        bedType: data.bedType,
+        roomId: data.roomId,
+      }),
+    );
+
     return { ok: true as const, bed };
   });
 

@@ -23,7 +23,11 @@ import {
   getSupabaseServiceRoleClient,
   getVerifiedUser,
 } from "./supabase.server";
-import { resolveCallerForAudit, tryWriteAudit, buildPrescriptionAudit } from "./audit-write.server";
+import {
+  resolveCallerForAudit,
+  tryWriteAudit,
+  buildPrescriptionAudit,
+} from "./audit-helpers.server";
 
 /** Reject unauthenticated callers before touching the database. */
 /**
@@ -1548,7 +1552,7 @@ export const unlinkOwnWallet = createServerFn({ method: "POST" }).handler(async 
 
   if (error) throw new Error(error.message);
 
-  const { tryWriteAudit } = await import("./audit-write.server");
+  const { tryWriteAudit } = await import("./audit-helpers.server");
   tryWriteAudit({
     actorId: user.id,
     // These were all null, so the row had no tenant — and under the

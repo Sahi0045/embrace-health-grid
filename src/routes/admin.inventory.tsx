@@ -18,6 +18,7 @@ import {
 import { toast } from "sonner";
 import { getInventoryData } from "@/lib/api";
 import { useTableRefresh } from "@/hooks/use-realtime";
+import { exportToCsv } from "@/lib/csv-export";
 import type { InventoryItem, InventoryCategory, InventoryAlert } from "@/lib/types";
 
 import { InventoryKpiBar, InventoryKpiStats } from "@/components/inventory/InventoryKpiBar";
@@ -30,67 +31,6 @@ import { InventoryItemCard } from "@/components/inventory/InventoryItemCard";
 import { InventoryDetailDialog } from "@/components/inventory/InventoryDetailDialog";
 
 import { useSpotlightTarget } from "@/hooks/use-spotlight";
-
-/**
- * Export the stock ledger currently on screen as a CSV.
- *
- * Replaces `onClick={() => toast.success("Stock valuation report generated
- * (CSV)")}` — the button reported a valuation report and produced no file. The
- * valuation column is computed here rather than claimed.
- */
-function exportLedgerCsv(rows: InventoryItem[]): { count: number; value: number } {
-  const headers = [
-    "Item",
-    "SKU",
-    "Category",
-    "Current stock",
-    "Reserved",
-    "Unit",
-    "Reorder level",
-    "Unit cost",
-    "Stock value",
-    "Expiry",
-    "Location",
-    "Supplier",
-    "Status",
-  ];
-  const cell = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
-  let total = 0;
-
-  const body = rows.map((r) => {
-    const value = (r.current_stock ?? 0) * (r.unit_cost ?? 0);
-    total += value;
-    return [
-      r.name,
-      r.sku,
-      r.category_id,
-      r.current_stock,
-      r.reserved_stock,
-      r.unit,
-      r.reorder_level,
-      r.unit_cost,
-      value.toFixed(2),
-      r.expiry_date ?? "",
-      r.storage_location ?? "",
-      r.supplier ?? "",
-      r.status,
-    ]
-      .map(cell)
-      .join(",");
-  });
-
-  const csv = [headers.map(cell).join(","), ...body].join("\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `stock-ledger-${new Date().toISOString().slice(0, 10)}.csv`;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
-  return { count: rows.length, value: total };
-}
 
 export const Route = createFileRoute("/admin/inventory")({
   validateSearch: (search: Record<string, unknown>): { highlight?: string } => ({
@@ -287,6 +227,51 @@ function InventoryDashboardPage() {
     return filteredItems.slice(start, start + ITEMS_PER_PAGE);
   }, [filteredItems, currentPage]);
 
+  const handleExportLedger = useCallback(() => {
+    if (!items || items.length === 0) {
+      toast.error("No inventory data to export");
+      return;
+    }
+
+    const exported = exportToCsv(
+      `embrace-inventory-ledger-${new Date().toISOString().split("T")[0]}.csv`,
+      items,
+      [
+        { header: "Item ID", accessor: "item_id" },
+        { header: "Product Name", accessor: "name" },
+        { header: "SKU / Code", accessor: "sku" },
+        { header: "Category", accessor: "category_id" },
+        { header: "Current Stock", accessor: "current_stock" },
+        { header: "Reserved Stock", accessor: "reserved_stock" },
+        {
+          header: "Available Stock",
+          accessor: (item) => item.current_stock - item.reserved_stock,
+        },
+        { header: "Unit", accessor: "unit" },
+        { header: "Unit Cost ($)", accessor: "unit_cost" },
+        {
+          header: "Total Valuation ($)",
+          accessor: (item) => (item.current_stock * item.unit_cost).toFixed(2),
+        },
+        { header: "Reorder Level", accessor: "reorder_level" },
+        { header: "Reorder Qty", accessor: "reorder_qty" },
+        {
+          header: "Storage Location",
+          accessor: (item) => item.storage_location || "Central Warehouse",
+        },
+        { header: "Supplier", accessor: (item) => item.supplier || "Standard Vendor" },
+        { header: "Expiry Date", accessor: (item) => item.expiry_date || "N/A" },
+        { header: "Status", accessor: "status" },
+      ],
+    );
+
+    if (exported) {
+      toast.success("Stock valuation report exported and downloaded (CSV)", {
+        description: `${items.length} SKUs included in the export file`,
+      });
+    }
+  }, [items]);
+
   return (
     <RouteGuard requiredRole="admin">
       <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-8 pb-24">
@@ -307,18 +292,9 @@ function InventoryDashboardPage() {
                 Sync Telemetry
               </Button>
               <Button
-                onClick={() => {
-                  if (filteredItems.length === 0) {
-                    toast.error("Nothing to export — no items match the current filters");
-                    return;
-                  }
-                  const { count, value } = exportLedgerCsv(filteredItems);
-                  toast.success(
-                    `Exported ${count} item${count === 1 ? "" : "s"} · valuation ₹${value.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`,
-                  );
-                }}
+                onClick={handleExportLedger}
                 size="sm"
-                className="bg-primary text-primary-foreground font-extrabold rounded-xl shadow-clinical-md shadow-primary/25 text-xs"
+                className="bg-primary text-primary-foreground font-extrabold rounded-xl shadow-clinical-md shadow-primary/25 text-xs cursor-pointer"
               >
                 <FileSpreadsheet className="h-4 w-4 mr-2" />
                 Export Ledger

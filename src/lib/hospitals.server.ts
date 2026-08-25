@@ -307,7 +307,7 @@ export const unlinkWallet = createServerFn({ method: "POST" })
 
     // Detaching a wallet severs the key that signs consents and anchors records,
     // so it is an identity event and belongs in the audit trail.
-    const { tryWriteAudit } = await import("./audit-write.server");
+    const { tryWriteAudit } = await import("./audit-helpers.server");
     tryWriteAudit({
       actorId: me.id,
       actorDid: me.primary_did ?? null,

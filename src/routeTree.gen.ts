@@ -9,9 +9,10 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as DidExplorerRouteImport } from './routes/did-explorer'
-import { Route as CredentialExplorerRouteImport } from './routes/credential-explorer'
 import { Route as AuditTimelineRouteImport } from './routes/audit-timeline'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SuperIndexRouteImport } from './routes/super.index'
@@ -72,7 +73,6 @@ import { Route as AdminEquipmentRouteImport } from './routes/admin.equipment'
 import { Route as AdminDoctorsRouteImport } from './routes/admin.doctors'
 import { Route as AdminDigitalTwinRouteImport } from './routes/admin.digital-twin'
 import { Route as AdminDidsRouteImport } from './routes/admin.dids'
-import { Route as AdminCredentialsRouteImport } from './routes/admin.credentials'
 import { Route as AdminCommandRouteImport } from './routes/admin.command'
 import { Route as AdminCertificationsMgmtRouteImport } from './routes/admin.certifications-mgmt'
 import { Route as AdminCafeteriaRouteImport } from './routes/admin.cafeteria'
@@ -82,19 +82,24 @@ import { Route as AdminAmbulancesRouteImport } from './routes/admin.ambulances'
 import { Route as AdminAlertsRouteImport } from './routes/admin.alerts'
 import { Route as AdminAdmissionsRouteImport } from './routes/admin.admissions'
 
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DidExplorerRoute = DidExplorerRouteImport.update({
   id: '/did-explorer',
   path: '/did-explorer',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CredentialExplorerRoute = CredentialExplorerRouteImport.update({
-  id: '/credential-explorer',
-  path: '/credential-explorer',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuditTimelineRoute = AuditTimelineRouteImport.update({
@@ -397,11 +402,6 @@ const AdminDidsRoute = AdminDidsRouteImport.update({
   path: '/admin/dids',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminCredentialsRoute = AdminCredentialsRouteImport.update({
-  id: '/admin/credentials',
-  path: '/admin/credentials',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AdminCommandRoute = AdminCommandRouteImport.update({
   id: '/admin/command',
   path: '/admin/command',
@@ -446,9 +446,10 @@ const AdminAdmissionsRoute = AdminAdmissionsRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/audit-timeline': typeof AuditTimelineRoute
-  '/credential-explorer': typeof CredentialExplorerRoute
   '/did-explorer': typeof DidExplorerRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/admin/admissions': typeof AdminAdmissionsRoute
   '/admin/alerts': typeof AdminAlertsRoute
   '/admin/ambulances': typeof AdminAmbulancesRoute
@@ -457,7 +458,6 @@ export interface FileRoutesByFullPath {
   '/admin/cafeteria': typeof AdminCafeteriaRoute
   '/admin/certifications-mgmt': typeof AdminCertificationsMgmtRoute
   '/admin/command': typeof AdminCommandRoute
-  '/admin/credentials': typeof AdminCredentialsRoute
   '/admin/dids': typeof AdminDidsRoute
   '/admin/digital-twin': typeof AdminDigitalTwinRoute
   '/admin/doctors': typeof AdminDoctorsRoute
@@ -520,9 +520,10 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/audit-timeline': typeof AuditTimelineRoute
-  '/credential-explorer': typeof CredentialExplorerRoute
   '/did-explorer': typeof DidExplorerRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/admin/admissions': typeof AdminAdmissionsRoute
   '/admin/alerts': typeof AdminAlertsRoute
   '/admin/ambulances': typeof AdminAmbulancesRoute
@@ -531,7 +532,6 @@ export interface FileRoutesByTo {
   '/admin/cafeteria': typeof AdminCafeteriaRoute
   '/admin/certifications-mgmt': typeof AdminCertificationsMgmtRoute
   '/admin/command': typeof AdminCommandRoute
-  '/admin/credentials': typeof AdminCredentialsRoute
   '/admin/dids': typeof AdminDidsRoute
   '/admin/digital-twin': typeof AdminDigitalTwinRoute
   '/admin/doctors': typeof AdminDoctorsRoute
@@ -595,9 +595,10 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/audit-timeline': typeof AuditTimelineRoute
-  '/credential-explorer': typeof CredentialExplorerRoute
   '/did-explorer': typeof DidExplorerRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/admin/admissions': typeof AdminAdmissionsRoute
   '/admin/alerts': typeof AdminAlertsRoute
   '/admin/ambulances': typeof AdminAmbulancesRoute
@@ -606,7 +607,6 @@ export interface FileRoutesById {
   '/admin/cafeteria': typeof AdminCafeteriaRoute
   '/admin/certifications-mgmt': typeof AdminCertificationsMgmtRoute
   '/admin/command': typeof AdminCommandRoute
-  '/admin/credentials': typeof AdminCredentialsRoute
   '/admin/dids': typeof AdminDidsRoute
   '/admin/digital-twin': typeof AdminDigitalTwinRoute
   '/admin/doctors': typeof AdminDoctorsRoute
@@ -671,9 +671,10 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/audit-timeline'
-    | '/credential-explorer'
     | '/did-explorer'
+    | '/forgot-password'
     | '/login'
+    | '/reset-password'
     | '/admin/admissions'
     | '/admin/alerts'
     | '/admin/ambulances'
@@ -682,7 +683,6 @@ export interface FileRouteTypes {
     | '/admin/cafeteria'
     | '/admin/certifications-mgmt'
     | '/admin/command'
-    | '/admin/credentials'
     | '/admin/dids'
     | '/admin/digital-twin'
     | '/admin/doctors'
@@ -745,9 +745,10 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/audit-timeline'
-    | '/credential-explorer'
     | '/did-explorer'
+    | '/forgot-password'
     | '/login'
+    | '/reset-password'
     | '/admin/admissions'
     | '/admin/alerts'
     | '/admin/ambulances'
@@ -756,7 +757,6 @@ export interface FileRouteTypes {
     | '/admin/cafeteria'
     | '/admin/certifications-mgmt'
     | '/admin/command'
-    | '/admin/credentials'
     | '/admin/dids'
     | '/admin/digital-twin'
     | '/admin/doctors'
@@ -819,9 +819,10 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/audit-timeline'
-    | '/credential-explorer'
     | '/did-explorer'
+    | '/forgot-password'
     | '/login'
+    | '/reset-password'
     | '/admin/admissions'
     | '/admin/alerts'
     | '/admin/ambulances'
@@ -830,7 +831,6 @@ export interface FileRouteTypes {
     | '/admin/cafeteria'
     | '/admin/certifications-mgmt'
     | '/admin/command'
-    | '/admin/credentials'
     | '/admin/dids'
     | '/admin/digital-twin'
     | '/admin/doctors'
@@ -894,9 +894,10 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuditTimelineRoute: typeof AuditTimelineRoute
-  CredentialExplorerRoute: typeof CredentialExplorerRoute
   DidExplorerRoute: typeof DidExplorerRoute
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   AdminAdmissionsRoute: typeof AdminAdmissionsRoute
   AdminAlertsRoute: typeof AdminAlertsRoute
   AdminAmbulancesRoute: typeof AdminAmbulancesRoute
@@ -905,7 +906,6 @@ export interface RootRouteChildren {
   AdminCafeteriaRoute: typeof AdminCafeteriaRoute
   AdminCertificationsMgmtRoute: typeof AdminCertificationsMgmtRoute
   AdminCommandRoute: typeof AdminCommandRoute
-  AdminCredentialsRoute: typeof AdminCredentialsRoute
   AdminDidsRoute: typeof AdminDidsRoute
   AdminDigitalTwinRoute: typeof AdminDigitalTwinRoute
   AdminDoctorsRoute: typeof AdminDoctorsRoute
@@ -968,6 +968,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -975,18 +982,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/did-explorer': {
       id: '/did-explorer'
       path: '/did-explorer'
       fullPath: '/did-explorer'
       preLoaderRoute: typeof DidExplorerRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/credential-explorer': {
-      id: '/credential-explorer'
-      path: '/credential-explorer'
-      fullPath: '/credential-explorer'
-      preLoaderRoute: typeof CredentialExplorerRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/audit-timeline': {
@@ -1409,13 +1416,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminDidsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/credentials': {
-      id: '/admin/credentials'
-      path: '/admin/credentials'
-      fullPath: '/admin/credentials'
-      preLoaderRoute: typeof AdminCredentialsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/admin/command': {
       id: '/admin/command'
       path: '/admin/command'
@@ -1478,9 +1478,10 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuditTimelineRoute: AuditTimelineRoute,
-  CredentialExplorerRoute: CredentialExplorerRoute,
   DidExplorerRoute: DidExplorerRoute,
+  ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   AdminAdmissionsRoute: AdminAdmissionsRoute,
   AdminAlertsRoute: AdminAlertsRoute,
   AdminAmbulancesRoute: AdminAmbulancesRoute,
@@ -1489,7 +1490,6 @@ const rootRouteChildren: RootRouteChildren = {
   AdminCafeteriaRoute: AdminCafeteriaRoute,
   AdminCertificationsMgmtRoute: AdminCertificationsMgmtRoute,
   AdminCommandRoute: AdminCommandRoute,
-  AdminCredentialsRoute: AdminCredentialsRoute,
   AdminDidsRoute: AdminDidsRoute,
   AdminDigitalTwinRoute: AdminDigitalTwinRoute,
   AdminDoctorsRoute: AdminDoctorsRoute,

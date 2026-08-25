@@ -20,7 +20,7 @@ on:
   pull_request:
     branches: [main]
   schedule:
-    - cron: "0 8 * * 1"   # Every Monday at 08:00 UTC
+    - cron: "0 8 * * 1" # Every Monday at 08:00 UTC
   workflow_dispatch:
 
 env:
@@ -92,7 +92,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # Full history required for baseline scanning
+          fetch-depth: 0 # Full history required for baseline scanning
 
       - name: Run gitleaks
         uses: gitleaks/gitleaks-action@v2
@@ -189,7 +189,7 @@ jobs:
           output: trivy-backend.sarif
           ignore-unfixed: true
           severity: "CRITICAL,HIGH"
-          exit-code: "0"   # Don't block — report only (change to "1" to block)
+          exit-code: "0" # Don't block — report only (change to "1" to block)
 
       - name: Upload Trivy SARIF to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v3
@@ -224,7 +224,7 @@ jobs:
           format: table
           ignore-unfixed: true
           severity: "CRITICAL,HIGH"
-          exit-code: "0"   # Nginx base images often have advisory HIGH — report only
+          exit-code: "0" # Nginx base images often have advisory HIGH — report only
 
   # ────────────────────────────────────────────────────────────────────────────
   #  5. License compliance check
@@ -297,7 +297,7 @@ jobs:
       - name: Run cargo audit
         working-directory: anchor-program
         run: cargo audit
-        continue-on-error: true  # Advisory — does not block merge
+        continue-on-error: true # Advisory — does not block merge
 
       - name: Run cargo audit (deny CRITICAL)
         working-directory: anchor-program

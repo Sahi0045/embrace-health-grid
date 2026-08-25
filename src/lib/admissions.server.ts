@@ -47,7 +47,7 @@
 
 import { createServerFn } from "@tanstack/react-start";
 import { getSupabaseServerClient, getVerifiedUser } from "./supabase.server";
-import { resolveCallerForAudit, tryWriteAudit, buildAdmissionAudit } from "./audit-write.server";
+import { resolveCallerForAudit, tryWriteAudit, buildAdmissionAudit } from "./audit-helpers.server";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 

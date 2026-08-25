@@ -90,7 +90,7 @@ export interface TransactionRouterError {
 export const routeTransaction = createServerFn({
   method: "POST",
 })
-  .validator(transactionRouterSchema)
+  .inputValidator((data: unknown) => transactionRouterSchema.parse(data))
   .handler(async ({ data }) => {
     const db = getSupabaseServerClient();
     const user = await getVerifiedUser();
@@ -410,7 +410,7 @@ async function determineWalletMode(params: {
 export const preflightCheck = createServerFn({
   method: "POST",
 })
-  .validator(preflightSchema)
+  .inputValidator((data: unknown) => preflightSchema.parse(data))
   .handler(async ({ data }) => {
     const db = getSupabaseServerClient();
     const user = await getVerifiedUser();

@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { getProfiles } from "@/lib/clinical.server";
 import { getStaffSchedule, getAttendance } from "@/lib/operations.server";
 import { useTableRefresh } from "@/hooks/use-realtime";
+import { exportToCsv } from "@/lib/csv-export";
 
 import { StaffKpiBar, StaffKpiStats } from "@/components/staff/StaffKpiBar";
 import {
@@ -33,63 +34,6 @@ import { StaffCard, StaffMember } from "@/components/staff/StaffCard";
 import { DutyRosterGrid, RosterShiftEntry } from "@/components/staff/DutyRosterGrid";
 import { DepartmentWorkloadMatrix } from "@/components/staff/DepartmentWorkloadMatrix";
 import { StaffDetailPanel } from "@/components/staff/StaffDetailPanel";
-
-/**
- * Export the roster the page is currently showing as a CSV.
- *
- * The button used to be `onClick={() => toast.success("Roster attendance export
- * generated (CSV)")}` — it announced a compliance/payroll export and produced no
- * file at all. This writes the rows actually on screen.
- */
-function exportRosterCsv(rows: StaffMember[]): number {
-  const headers = [
-    "Name",
-    "Employee ID",
-    "DID",
-    "Role",
-    "Department",
-    "Specialty",
-    "Email",
-    "Phone",
-    "Availability",
-    "Current shift",
-    "Shift confirmed",
-  ];
-  // Quote every field and double embedded quotes, so a name containing a comma
-  // cannot shift every later column.
-  const cell = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
-  const csv = [
-    headers.map(cell).join(","),
-    ...rows.map((r) =>
-      [
-        r.fullName,
-        r.employeeId,
-        r.primaryDid,
-        r.role,
-        r.department,
-        r.specialty,
-        r.email,
-        r.phone,
-        r.availability,
-        r.currentShift ? `${r.currentShift.shiftName} (${r.currentShift.unit})` : "",
-        r.currentShift ? (r.currentShift.confirmed ? "yes" : "no") : "",
-      ]
-        .map(cell)
-        .join(","),
-    ),
-  ].join("\n");
-
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `staff-roster-${new Date().toISOString().slice(0, 10)}.csv`;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
-  return rows.length;
-}
 
 export const Route = createFileRoute("/admin/doctors")({
   head: () => ({
@@ -414,6 +358,42 @@ function StaffAvailabilityDashboard() {
     setViewMode("grid");
   };
 
+  const handleExportRoster = useCallback(() => {
+    if (!staffMembers || staffMembers.length === 0) {
+      toast.error("No staff roster data to export");
+      return;
+    }
+
+    const exported = exportToCsv(
+      `embrace-staff-roster-${new Date().toISOString().split("T")[0]}.csv`,
+      staffMembers,
+      [
+        { header: "Staff ID", accessor: "id" },
+        { header: "Primary DID", accessor: (s) => s.primaryDid || "" },
+        { header: "Full Name", accessor: "fullName" },
+        { header: "Role", accessor: "role" },
+        { header: "Department", accessor: "department" },
+        // Blank, not "General Medicine" — an invented specialty in an exported
+        // roster is indistinguishable from a recorded one.
+        { header: "Specialty", accessor: (s) => s.specialty || "" },
+        { header: "Availability Status", accessor: "availability" },
+        { header: "Current Shift", accessor: (s) => s.currentShift?.shiftName || "" },
+        { header: "Assigned Unit", accessor: (s) => s.currentShift?.unit || "" },
+        { header: "Contact Email", accessor: "email" },
+        { header: "Contact Phone", accessor: (s) => s.phone || "" },
+        // Caseload is not measured; `|| 0` would export "0 patients" for
+        // "not tracked", which reads as a real figure.
+        { header: "Active Patients", accessor: (s) => s.workload?.activePatients ?? "" },
+      ],
+    );
+
+    if (exported) {
+      toast.success("Roster attendance exported and downloaded (CSV)", {
+        description: `${staffMembers.length} personnel records included in the export`,
+      });
+    }
+  }, [staffMembers]);
+
   return (
     <RouteGuard requiredRole="admin">
       <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-8 pb-24">
@@ -434,16 +414,9 @@ function StaffAvailabilityDashboard() {
                 Sync Telemetry
               </Button>
               <Button
-                onClick={() => {
-                  if (filteredStaff.length === 0) {
-                    toast.error("Nothing to export — no staff match the current filters");
-                    return;
-                  }
-                  const n = exportRosterCsv(filteredStaff);
-                  toast.success(`Exported ${n} staff record${n === 1 ? "" : "s"}`);
-                }}
+                onClick={handleExportRoster}
                 size="sm"
-                className="bg-primary text-primary-foreground font-extrabold rounded-xl shadow-clinical-md shadow-primary/25 text-xs"
+                className="bg-primary text-primary-foreground font-extrabold rounded-xl shadow-clinical-md shadow-primary/25 text-xs cursor-pointer"
               >
                 <FileSpreadsheet className="h-4 w-4 mr-2" />
                 Export Roster

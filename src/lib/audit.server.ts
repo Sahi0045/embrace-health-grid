@@ -1,72 +1,28 @@
 /**
- * Centralized Audit Trail & Blockchain Proof Server Functions
- * Embrace Health Grid
+ * Centralized Audit Trail & Blockchain Proof Server Functions — Embrace Health Grid
  *
- * This module is the SINGLE source of truth for writing audit records.
- * All other server functions (admissions, prescriptions, certifications,
- * bed management) call writeAuditRecord() from here rather than maintaining
- * their own audit logic.
- *
- * Architecture
- * ─────────────
- *
- *  Operational Event (admit patient, update prescription, etc.)
- *       │
- *       ▼
- *  writeAuditRecord()       ← this file
- *       │
- *       ├─ 1. Calls write_audit_record() Postgres function (security definer)
- *       │      Inserts rich audit row + computes SHA-256 hash in DB
- *       │      Enqueues row in audit_anchor_queue
- *       │
- *       └─ 2. (Async) processAuditAnchorQueue() called separately
- *                   Reads unprocessed queue rows
- *                   Calls anchor-record Edge Function (Solana)
- *                   Updates audit_events.anchor_status = 'anchored'
- *
- * Data Privacy
- * ─────────────
- * The SHA-256 hash covers ONLY non-PHI fields:
- *   action | outcome | who_role | what_module | entity_id | where_hospital | logged_at
- *
- * Sensitive data (prev_value, new_value, metadata) lives ONLY in Postgres.
- * Only the hash goes on-chain — never PHI.
- *
- * Verification
- * ─────────────
- *  verifyAuditRecord(txId) re-computes the hash server-side and compares to:
- *    1. The stored record_hash in audit_events (DB-level integrity)
- *    2. The on-chain anchor record_hash in solana_anchors (chain-level integrity)
- *
- * If both match → tamper-evident proof that the record is unchanged.
+ * Exposes RPC endpoints for querying, verifying, and batch-anchoring audit events.
+ * Runs on the app server via TanStack Start createServerFn.
  */
 
 import { createServerFn } from "@tanstack/react-start";
 import { getSupabaseServerClient, getVerifiedUser } from "./supabase.server";
-// The write path, the entry builders and the AuditEntry/AuditResult types moved
-// to ./audit-write.server.ts. They are plain functions, and a plain export stops
-// TanStack's client transform from stubbing this module — which left a
-// server-only import in the client bundle and broke every route that reached
-// here. See that file's header. Re-exported so existing importers keep working.
-import type { VerifyResult } from "./audit-write.server";
+import type { VerifyResult } from "./audit-helpers.server";
 
-/**
- * Local copy of the session guard. Deliberately NOT imported from
- * audit-write.server.ts: every export of this file must be a createServerFn, or
- * TanStack cannot stub the module for the client and the server-only import
- * leaks back into the browser bundle.
- */
+export type { AuditEntry, AuditResult, VerifyResult } from "./audit-helpers.server";
+
 async function requireSession() {
   const user = await getVerifiedUser();
   if (!user) throw new Error("Not authenticated");
   return user;
 }
-export type { AuditEntry, AuditResult, VerifyResult } from "./audit-write.server";
-// NOT re-exported from here. `export { fn } from "./audit-write.server"` is a
-// RUNTIME re-export, so it keeps that module — and its supabase.server import —
-// in this file's graph, which is the whole problem. Server callers import those
-// helpers from "./audit-write.server" directly.
 
+// ─── getAuditTrail (server function) ─────────────────────────────────────────
+
+/**
+ * Rich audit trail query — returns the full structured data.
+ * Admin sees all; staff/doctor sees own actions; patient sees own events.
+ */
 export const getAuditTrail = createServerFn({ method: "GET" })
   .inputValidator(
     (data: {
@@ -314,8 +270,12 @@ export const getAuditStats = createServerFn({ method: "GET" }).handler(async () 
     counted({ anchor_status: "pending" }),
   ]);
 
-  return { total, failures, critical, unauthorized, anchored, pendingAnchors: pending };
+  return {
+    total,
+    failures,
+    critical,
+    unauthorized,
+    anchored,
+    pendingAnchors: pending,
+  };
 });
-
-// ─── Pre-built audit helpers for each module ─────────────────────────────────
-// These build the correct AuditEntry structure so callers don't need to know

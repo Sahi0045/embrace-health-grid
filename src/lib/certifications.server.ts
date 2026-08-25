@@ -15,7 +15,7 @@ import {
   resolveCallerForAudit,
   tryWriteAudit,
   buildCertificationAudit,
-} from "./audit-write.server";
+} from "./audit-helpers.server";
 
 /** Reject unauthenticated callers */
 async function requireSession() {

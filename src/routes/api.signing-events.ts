@@ -64,7 +64,7 @@ export interface SigningEventResponse {
 export const recordSigningEvent = createServerFn({
   method: "POST",
 })
-  .validator(signingEventSchema)
+  .inputValidator((data: unknown) => signingEventSchema.parse(data))
   .handler(async ({ data }) => {
     const db = getSupabaseServerClient();
     const user = await getVerifiedUser();
@@ -151,7 +151,7 @@ export const recordSigningEvent = createServerFn({
 export const confirmSigningEvent = createServerFn({
   method: "POST",
 })
-  .validator(confirmationSchema)
+  .inputValidator((data: unknown) => confirmationSchema.parse(data))
   .handler(async ({ data }) => {
     const db = getSupabaseServerClient();
     const user = await getVerifiedUser();
@@ -212,7 +212,7 @@ export const confirmSigningEvent = createServerFn({
 export const failSigningEvent = createServerFn({
   method: "POST",
 })
-  .validator(failureSchema)
+  .inputValidator((data: unknown) => failureSchema.parse(data))
   .handler(async ({ data }) => {
     const db = getSupabaseServerClient();
     const user = await getVerifiedUser();
@@ -269,7 +269,7 @@ export const failSigningEvent = createServerFn({
 export const getSigningEvent = createServerFn({
   method: "GET",
 })
-  .validator(transactionIdSchema)
+  .inputValidator((data: unknown) => transactionIdSchema.parse(data))
   .handler(async ({ data }) => {
     const db = getSupabaseServerClient();
     const user = await getVerifiedUser();
@@ -338,7 +338,7 @@ export const getSigningEvent = createServerFn({
 export const getUserSigningHistory = createServerFn({
   method: "GET",
 })
-  .validator(historySchema)
+  .inputValidator((data: unknown) => historySchema.parse(data))
   .handler(async ({ data }) => {
     const db = getSupabaseServerClient();
     const user = await getVerifiedUser();
@@ -435,7 +435,7 @@ export const getHospitalSigningStats = createServerFn({
 export const getDailySigningVolume = createServerFn({
   method: "GET",
 })
-  .validator(dailyVolumeSchema)
+  .inputValidator((data: unknown) => dailyVolumeSchema.parse(data))
   .handler(async ({ data }) => {
     const db = getSupabaseServerClient();
     const user = await getVerifiedUser();
