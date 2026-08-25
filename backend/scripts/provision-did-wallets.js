@@ -10,6 +10,17 @@
  * re-run safely. DIDs with no hospital are skipped rather than guessed at,
  * because embedded_wallets.hospital_id is what every access policy scopes on.
  *
+ * WHO GETS AN EMBEDDED KEY
+ * ────────────────────────
+ * Patients, doctors, staff and hospital admins do — they are hospital users who
+ * should never have to install a wallet or hold a seed phrase.
+ *
+ * SUPER-ADMINS DELIBERATELY DO NOT. They belong to no hospital, so they are
+ * skipped by the same rule that protects every other key from being minted
+ * without a tenant to scope it. That is intentional, not an oversight: the
+ * platform operator is a small technical population and is the root of trust,
+ * so they use an EXTERNAL wallet whose key the platform never holds.
+ *
  * Run: node --env-file=.env scripts/provision-did-wallets.js [--commit]
  * Without --commit it reports what it would do and changes nothing.
  */

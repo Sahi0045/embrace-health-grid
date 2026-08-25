@@ -17,6 +17,7 @@ import {
   Lock,
 } from "lucide-react";
 import { RouteGuard } from "@/components/RouteGuard";
+import { DidKeypairCard } from "@/components/DidKeypairCard";
 import { signOut } from "@/lib/auth.server";
 import { useCurrentUser } from "@/lib/auth-context";
 import { getMyHospital } from "@/lib/hospitals.server";
@@ -262,6 +263,11 @@ function AdminProfile() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Administrators hold an embedded signing key like clinicians and
+              patients do. Only super-admins use an external wallet — they are
+              the platform operator, not a hospital user. */}
+          <DidKeypairCard />
 
           <Card>
             <CardHeader>

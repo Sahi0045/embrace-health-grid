@@ -323,6 +323,10 @@ export class DidWalletService {
     if (!didRow.hospital_id) {
       // embedded_wallets.hospital_id is NOT NULL, and a key with no tenant could
       // not be scoped by any policy. Better to refuse than to attribute it.
+      //
+      // This is also what keeps SUPER-ADMINS off embedded keys by design: they
+      // belong to no hospital, so they fall out here and use an external wallet
+      // instead. Patients, clinicians and hospital admins all get one.
       throw new Error(`DID ${did} belongs to no hospital, so no signing key can be issued`);
     }
 

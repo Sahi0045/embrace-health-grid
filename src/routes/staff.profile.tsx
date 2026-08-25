@@ -20,6 +20,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { RouteGuard } from "@/components/RouteGuard";
+import { DidKeypairCard } from "@/components/DidKeypairCard";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { useCurrentUser } from "@/lib/auth-context";
@@ -561,6 +562,10 @@ function StaffProfile() {
               )}
             </CardContent>
           </Card>
+
+          {/* Clinicians hold an embedded signing key, same as patients and
+              admins. Only super-admins use an external wallet. */}
+          <DidKeypairCard />
 
           <Card>
             <CardHeader>
