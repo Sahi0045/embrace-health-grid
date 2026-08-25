@@ -14,23 +14,17 @@ import {
   Edit,
   Award,
   Building2,
-  Wallet,
   CheckCircle2,
-  AlertTriangle,
   Loader2,
 } from "lucide-react";
 import { RouteGuard } from "@/components/RouteGuard";
 import { DidKeypairCard } from "@/components/DidKeypairCard";
-import { useWallet } from "@solana/wallet-adapter-react";
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { useCurrentUser } from "@/lib/auth-context";
 import {
   updateProfile,
   API_BASE_URL,
   requestDID,
-  getDIDRequests,
-  requestWalletChallenge,
-  verifyAndLinkWallet,
+  getStaffRequests,
   getMe,
   getCertificationsByStaffDid,
 } from "@/lib/api";
@@ -64,35 +58,17 @@ export const Route = createFileRoute("/staff/profile")({
 function StaffProfile() {
   const { staff } = useLiveStaff();
   const { user: currentUser, refresh: refreshUser } = useCurrentUser();
-  const { publicKey, connected, signMessage } = useWallet();
-  const [verifying, setVerifying] = useState(false);
   const [adminDid, setAdminDid] = useState<string | null>(null);
   const [didLoading, setDidLoading] = useState(true);
   const [certifications, setCertifications] = useState<any[]>([]);
   const [certificationsLoading, setCertificationsLoading] = useState(true);
 
   const userEmail = currentUser?.email || "";
-  /**
-   * A linked wallet IS a verified wallet.
-   *
-   * This read `(currentUser as any)?.walletVerified === true` — but there is no
-   * `walletVerified` on CurrentUser and no `wallet_verified` column on profiles,
-   * so it was permanently `undefined`. The `as any` cast is what stopped
-   * TypeScript from saying so. The result: verification succeeded, the toast
-   * said "Wallet verified and linked!", and the card still read
-   * "Linked — Unverified" with the Verify button offered again, forever.
-   *
-   * The identity-ops `wallet-link` Edge Function writes wallet_address only
-   * after confirming the signing challenge was issued to this very session
-   * (it throws "Challenge does not belong to this session" otherwise), so there
-   * is no path that stores an unverified address. Presence is the proof.
-   */
-  const walletVerified = Boolean(currentUser?.walletAddress);
 
   const [requestingDid, setRequestingDid] = useState(false);
   const [pendingReq, setPendingReq] = useState<any>(null);
 
-  // Refresh session from backend (picks up walletVerified)
+  // Refresh session from backend
   const refreshSession = useCallback(async () => {
     try {
       const res = await getMe();
@@ -105,85 +81,30 @@ function StaffProfile() {
   }, []);
 
   const checkPendingRequest = useCallback(async () => {
-    if (!userEmail) return;
     try {
-      const res = await getDIDRequests();
-      if (res?.requests) {
-        const match = res.requests.find(
-          (r: any) =>
-            r.ownerEmail?.toLowerCase() === userEmail.toLowerCase() && r.status === "pending",
-        );
-        setPendingReq(match || null);
-      }
+      // getStaffRequests, not getDIDRequests.
+      //
+      // getDIDRequests calls the identity-ops "list-did-requests" op, which is
+      // gated on caller.role === "admin" — so for the staff member whose profile
+      // this is, it threw 403 every time and the empty catch below swallowed it.
+      // It then matched on `ownerEmail`, which that mapper does not return
+      // either. Between the two, a pending DID request was never detected and
+      // the page kept offering "Request DID" to someone who already had one
+      // waiting.
+      //
+      // getStaffRequests is RLS-scoped to the caller's own rows, which is
+      // exactly the question being asked here.
+      const res = await getStaffRequests();
+      const match = (res?.requests ?? []).find(
+        (r: any) => r.type === "did-issuance" && r.status === "pending",
+      );
+      setPendingReq(match || null);
     } catch {
       /* ignore */
     }
-  }, [userEmail]);
-
-  // ── Full wallet verification flow: challenge → signMessage → verify ──────
-  const handleVerifyWallet = async () => {
-    if (!publicKey || !signMessage) {
-      toast.error("Please connect your Phantom wallet first");
-      return;
-    }
-    setVerifying(true);
-    try {
-      const address = publicKey.toBase58();
-
-      // Step 1: get challenge message from backend
-      // Keep the whole challenge: the Edge Function verifies that the nonce and
-      // token were issued to THIS session, which is what binds the wallet to the
-      // account. Destructuring only `message` dropped them and every link attempt
-      // failed with "walletAddress, nonce and token are required".
-      const challenge = await requestWalletChallenge(address);
-      const message = challenge.message;
-
-      // Step 2: ask the wallet to sign it
-      toast.info("Please approve the signature request in your wallet…");
-      const msgBytes = new TextEncoder().encode(message);
-      const sigBytes = await signMessage(msgBytes);
-      const sigBase64 = Buffer.from(sigBytes).toString("base64");
-
-      // Step 3: send signature to backend — verifies ownership + links wallet
-      const res = await verifyAndLinkWallet(address, sigBase64, {
-        nonce: challenge.nonce,
-        expiresAt: challenge.expiresAt,
-        token: challenge.token,
-      });
-      if (res.success && res.verified && res.user) {
-        await refreshUser();
-        toast.success("Wallet verified and linked!", {
-          description: `${address.slice(0, 8)}…${address.slice(-6)} is now permanently associated with your account.`,
-        });
-      }
-    } catch (err: any) {
-      // "User rejected" from Phantom → friendly message
-      if (err.message?.includes("User rejected") || err.message?.includes("cancelled")) {
-        toast.error("Signature cancelled", {
-          description: "You must approve the signing request in your wallet to verify ownership.",
-        });
-      } else if (err.code === "WALLET_ALREADY_LINKED") {
-        // The unique constraint is doing exactly what the copy under this card
-        // promises — one wallet, one account. Surfacing the raw Postgres text
-        // ("duplicate key value violates unique constraint …") tells the user
-        // nothing about what to do next.
-        toast.error("That wallet is already linked to another account", {
-          description:
-            "Each wallet may belong to only one account. Connect a different wallet in Phantom, or ask an administrator to unlink it from the existing account first.",
-        });
-      } else {
-        toast.error(err.message || "Wallet verification failed");
-      }
-    } finally {
-      setVerifying(false);
-    }
-  };
+  }, []);
 
   const handleRequestDIDClick = async () => {
-    if (!walletVerified) {
-      toast.error("Verify your Solana wallet first before requesting a DID.");
-      return;
-    }
     // A DID is an identity credential. Falling back to the demo record here
     // would submit the request under a fictional clinician's name and
     // department, and the admin issuing it has no way to know. Refuse instead.
@@ -539,18 +460,11 @@ function StaffProfile() {
                     </div>
                     <Button
                       onClick={handleRequestDIDClick}
-                      disabled={requestingDid || !walletVerified}
+                      disabled={requestingDid}
                       className="bg-primary text-primary-foreground text-xs font-bold px-4 py-2"
-                      title={!walletVerified ? "Verify your Solana wallet first" : undefined}
                     >
                       {requestingDid ? "Submitting Request..." : "Request Official DID from Admin"}
                     </Button>
-                    {!walletVerified && (
-                      <div className="flex items-center gap-2 rounded-lg border border-warning/30 bg-warning/5 px-3 py-2 text-xs text-warning-foreground">
-                        <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-                        You must verify your Solana wallet before requesting a DID.
-                      </div>
-                    )}
                   </div>
                 )}
               </div>
@@ -566,124 +480,6 @@ function StaffProfile() {
           {/* Clinicians hold an embedded signing key, same as patients and
               admins. Only super-admins use an external wallet. */}
           <DidKeypairCard />
-
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <Wallet className="h-5 w-5 text-primary" />
-                  <CardTitle>Solana Wallet</CardTitle>
-                </div>
-                {walletVerified ? (
-                  <Badge className="bg-success/15 text-success border border-success/30 text-[10px] font-bold flex items-center gap-1">
-                    <CheckCircle2 className="h-3 w-3" /> Ownership Verified
-                  </Badge>
-                ) : currentUser?.walletAddress ? (
-                  <Badge
-                    variant="outline"
-                    className="bg-warning/10 text-warning-foreground border-warning/30 text-[10px]"
-                  >
-                    Linked — Unverified
-                  </Badge>
-                ) : (
-                  <Badge variant="outline" className="text-[10px]">
-                    Not Linked
-                  </Badge>
-                )}
-              </div>
-              <CardDescription>
-                Connect and verify one Solana wallet. Wallet verification is required before
-                requesting a DID.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Workflow steps */}
-              <div className="grid grid-cols-3 gap-2 text-center text-[10px]">
-                {[
-                  { step: "1", label: "Connect Wallet", done: connected },
-                  { step: "2", label: "Verify Ownership", done: walletVerified },
-                  { step: "3", label: "Request DID", done: !!adminDid },
-                ].map((s) => (
-                  <div
-                    key={s.step}
-                    className={`rounded-lg border px-2 py-2 space-y-1 ${s.done ? "border-success/30 bg-success/5" : "border-border bg-muted/30"}`}
-                  >
-                    <div
-                      className={`text-base font-black ${s.done ? "text-success" : "text-muted-foreground"}`}
-                    >
-                      {s.done ? "✓" : s.step}
-                    </div>
-                    <div
-                      className={s.done ? "text-success font-semibold" : "text-muted-foreground"}
-                    >
-                      {s.label}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Linked address display */}
-              {currentUser?.walletAddress ? (
-                <div
-                  className={`rounded-lg border p-4 space-y-2 ${walletVerified ? "border-success/25 bg-success/5" : "border-warning/25 bg-warning/5"}`}
-                >
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                    <span
-                      className={`text-xs font-semibold uppercase tracking-wider ${walletVerified ? "text-success" : "text-warning-foreground"}`}
-                    >
-                      {walletVerified ? "Verified Wallet Address" : "Wallet Address (Unverified)"}
-                    </span>
-                  </div>
-                  <div className="font-mono text-xs text-foreground select-all break-all">
-                    {currentUser.walletAddress}
-                  </div>
-                  {connected && publicKey?.toBase58() !== currentUser.walletAddress && (
-                    <div className="flex items-center gap-2 text-xs text-destructive font-medium mt-1">
-                      <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-                      Connected wallet differs from linked address. Switch to your registered
-                      wallet.
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="rounded-lg border border-warning/20 bg-warning/5 p-4 text-xs text-muted-foreground">
-                  No wallet linked. Connect your Phantom wallet and verify ownership to continue.
-                </div>
-              )}
-
-              {/* Action buttons */}
-              <div className="flex flex-col sm:flex-row gap-3 pt-1">
-                <WalletMultiButton className="!bg-primary hover:!bg-primary/90 !rounded-lg !h-10 !text-sm !font-semibold !px-4" />
-                {connected && !walletVerified && (
-                  <Button
-                    onClick={handleVerifyWallet}
-                    disabled={verifying}
-                    className="h-10 text-sm font-semibold gap-2"
-                  >
-                    {verifying ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" /> Verifying…
-                      </>
-                    ) : (
-                      <>
-                        <Shield className="h-4 w-4" /> Verify & Link Wallet
-                      </>
-                    )}
-                  </Button>
-                )}
-                {walletVerified && (
-                  <div className="flex items-center gap-2 rounded-xl border border-success/30 bg-success/5 px-4 h-10 text-xs font-semibold text-success">
-                    <CheckCircle2 className="h-4 w-4" /> Wallet ownership confirmed
-                  </div>
-                )}
-              </div>
-
-              <p className="text-[11px] text-muted-foreground">
-                Each account may link only one wallet, and each wallet may belong to only one
-                account.
-              </p>
-            </CardContent>
-          </Card>
 
           <Card>
             <CardHeader>

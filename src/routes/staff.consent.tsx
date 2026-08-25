@@ -402,7 +402,9 @@ function StaffConsentPage() {
                     <option value="">Select a patient…</option>
                     {myPatients.map((p) => (
                       <option key={p.patientDid} value={p.patientDid}>
-                        {p.patientName} — {p.patientDid.slice(0, 24)}…
+                        {p.patientName
+                          ? `${p.patientName} — ${p.patientDid.slice(0, 24)}…`
+                          : `${p.patientDid.slice(0, 24)}…`}
                       </option>
                     ))}
                   </select>

@@ -4,8 +4,11 @@ import { motion } from "framer-motion";
 export type EmergencyAccessEvent = {
   id: string;
   actor: string;
-  actorRole: string;
-  reason: string;
+  // Nullable: who_role may be unset, and the justification lives in
+  // metadata.reason and may be absent. Both were typed required and filled with
+  // the constants "Clinical Staff" and "Emergency access".
+  actorRole: string | null;
+  reason: string | null;
   at: string;
   autoAudited: boolean;
 };
@@ -36,10 +39,16 @@ export function EmergencyAccessCard({ event }: EmergencyAccessCardProps) {
         <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
           <User className="h-3 w-3" />
           <span>{event.actor}</span>
-          <span>·</span>
-          <span>{event.actorRole}</span>
+          {event.actorRole && (
+            <>
+              <span>·</span>
+              <span>{event.actorRole}</span>
+            </>
+          )}
         </div>
-        <div className="mt-1 text-xs text-muted-foreground">{event.reason}</div>
+        <div className="mt-1 text-xs text-muted-foreground">
+          {event.reason ?? "No reason recorded"}
+        </div>
         <div className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
           <Clock className="h-3 w-3" />
           {event.at}

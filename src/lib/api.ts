@@ -79,12 +79,33 @@ export async function getMyConsents() {
   const res = await fn();
   const rows = res.consents ?? [];
 
+  // Resolve patient names. The consent screen falls back to the raw DID, so a
+  // clinician reviewing their grants read "did:hosp:0xSEEDA01" where the
+  // patient's name belongs. The directory is DID-registry data, not PHI.
+  let nameByDid = new Map<string, string>();
+  try {
+    const dir = await getPatientDirectory();
+    nameByDid = new Map(
+      (dir.patients ?? []).filter((p: any) => p.did && p.name).map((p: any) => [p.did, p.name]),
+    );
+  } catch {
+    // Names are presentational; the grants must still list without them.
+  }
+
   const map = (c: any) => ({
     grantId: c.grant_id,
     patientDid: c.patient_did,
+    patientName: nameByDid.get(c.patient_did) ?? null,
     doctorDid: c.doctor_did,
     resource: c.resource,
     status: c.status,
+    // getConsents already selects these; the mapper dropped them, so the
+    // request's stated justification never rendered and "Requested" showed "—"
+    // even though consents.requested_at is populated on every row.
+    reason: c.reason ?? null,
+    requestedAt: c.requested_at ?? null,
+    approvedAt: c.approved_at ?? null,
+    rejectedAt: c.rejected_at ?? null,
     grantedAt: c.granted_at,
     expiry: c.expires_at,
     expiresAt: c.expires_at,
@@ -147,6 +168,11 @@ export async function requestConsent(data: {
       patientDid: data.patientDid,
       resource: data.resource,
       expiresAt: data.expiresAt ?? data.expiry,
+      // The form makes this mandatory ("Provide a reason for access") and the
+      // server has always written it to consents.reason — this wrapper was the
+      // one place it was dropped, so every stored request had reason NULL and
+      // the patient approved access with no justification in front of them.
+      reason: data.reason,
     },
   });
   return { success: true as const, requestId: res.grantId, request: null, txId: "" };
@@ -284,9 +310,17 @@ export async function getMedicalRecords(_did?: string) {
   };
 }
 
-export async function getPrescriptions(_did?: string) {
-  const { getPrescriptions: fn } = await import("./clinical.server");
-  const res = await fn();
+export async function getPrescriptions(did?: string) {
+  const { getPrescriptions: fn, getPrescriptionsForPatient } = await import("./clinical.server");
+  // The DID was named `_did` and dropped, so the unfiltered query ran and every
+  // consumer got every prescription RLS allowed the caller to see. RLS lets a
+  // clinician see all their consented patients, so opening ONE patient's chart
+  // listed OTHER patients' prescriptions under that patient's name — verified
+  // as dr.smith: 4 rows across 2 distinct patients.
+  //
+  // Callers who pass no DID (the ledger and admin views) still get the full
+  // RLS-scoped set, which is what they want.
+  const res = did ? await getPrescriptionsForPatient({ data: { patientDid: did } }) : await fn();
   return {
     prescriptions: (res.prescriptions ?? []).map((p: any) => ({
       rxId: p.rx_id,
@@ -518,20 +552,12 @@ export async function getConsentRequests(_did?: string) {
  * shape the existing components consume.
  */
 export async function getLabs(_did?: string) {
-  const { getLabResults: fn } = await import("./clinical.server");
-  const res = await fn();
-  return {
-    labs: (res.labResults ?? []).map((l: any) => ({
-      labId: l.lab_id,
-      patientDid: l.patient_did,
-      testName: l.test_name,
-      resultValue: l.result_value,
-      unit: l.unit,
-      referenceRange: l.reference_range,
-      status: l.status,
-      resultedAt: l.resulted_at,
-    })),
-  };
+  // Delegates to getLabResults rather than repeating the mapping. This copy had
+  // drifted: it omitted `priority`, and the lab queue reads it as `urgency` —
+  // so a STAT order rendered with the routine badge. Two mappers over one table
+  // is how that drift happened, hence one mapper now.
+  const { labResults } = await getLabResults(_did);
+  return { labs: labResults };
 }
 
 // ─── Supabase-backed operational reads (task 11a migration) ─────────────────
@@ -564,9 +590,12 @@ export async function clockAttendance(payload: { action: "in" | "out"; location?
   };
 }
 
-export async function getStaffSchedule(_email?: string) {
+export async function getStaffSchedule(_email?: string, allStaff = false) {
   const { getStaffSchedule: fn } = await import("./operations.server");
-  const res = await fn();
+  // The email was never usable here — the server resolves the caller from the
+  // session, which is the only identity that can be trusted anyway. `allStaff`
+  // is the explicit opt-in for a ward-wide view.
+  const res = await fn({ data: { allStaff } });
   return {
     schedule: (res.schedule ?? []).map((s: any) => ({
       id: s.shift_id,
@@ -1032,6 +1061,11 @@ export async function getAppointments(_did?: string) {
     specialty: a.specialty,
     status: a.status,
     reason: a.reason,
+    // The clinician's note to the patient. On a rejected appointment this IS
+    // the rejection reason — staff.schedule.tsx renders `rejectionReason`, so
+    // expose it under both names rather than making the page re-derive it.
+    clinicianNote: a.clinician_note ?? null,
+    rejectionReason: a.status === "rejected" ? (a.clinician_note ?? null) : null,
     bookedAt: a.booked_at,
     // Several views show a date separately from the slot label.
     date: a.slot,
@@ -1108,6 +1142,7 @@ export async function getAuditEvents(
     entityType: e.what_entity_type ?? null,
     recordHash: e.record_hash ?? null,
     anchorStatus: e.anchor_status ?? null,
+    metadata: e.metadata ?? null,
   }));
   return { events, total: events.length, page: 1, size: events.length };
 }
@@ -1548,17 +1583,41 @@ export async function getAdminAttendanceSummary() {
 export async function getStaffRequests(_email?: string) {
   const { getStaffRequests: fn } = await import("./operations.server");
   const res = await fn();
-  const requests = (res.requests ?? []).map((r: any) => ({
-    id: r.request_id,
-    requestId: r.request_id,
-    staffId: r.staff_id,
-    type: r.request_type,
-    subject: r.subject,
-    details: r.details,
-    status: r.status,
-    createdAt: r.created_at,
-    resolvedAt: r.resolved_at,
-  }));
+  const requests = (res.requests ?? []).map((r: any) => {
+    // createStaffRequest stores the form payload as a JSON string in `details`
+    // — {requestType, leaveType, fromDate, toDate, reason}. This mapper passed
+    // it through opaquely, so the leave list, which renders leaveType/fromDate/
+    // toDate/reason, showed a blank type, "— – —" for the dates, "1 day" and no
+    // reason on requests that had all four.
+    let parsed: Record<string, any> = {};
+    if (typeof r.details === "string" && r.details.trim().startsWith("{")) {
+      try {
+        parsed = JSON.parse(r.details);
+      } catch {
+        // Not JSON — leave `details` as the raw string for callers that show it.
+      }
+    } else if (r.details && typeof r.details === "object") {
+      parsed = r.details;
+    }
+
+    return {
+      id: r.request_id,
+      requestId: r.request_id,
+      staffId: r.staff_id,
+      type: r.request_type,
+      subject: r.subject,
+      details: r.details,
+      status: r.status,
+      createdAt: r.created_at,
+      resolvedAt: r.resolved_at,
+      // Flattened from `details` so consumers do not each re-parse it.
+      requestType: parsed.requestType ?? r.request_type,
+      leaveType: parsed.leaveType ?? null,
+      fromDate: parsed.fromDate ?? null,
+      toDate: parsed.toDate ?? null,
+      reason: parsed.reason ?? null,
+    };
+  });
   return { requests, total: requests.length };
 }
 
@@ -1654,13 +1713,50 @@ export async function getPatientOnChainHistory(patientDid?: string) {
     status: a.status,
     signature: a.signature,
     slot: a.slot,
+    network: a.network ?? null,
     anchoredAt: a.anchored_at,
   }));
+
+  // `prescriptions` used to be the raw anchor rows. The signing screen renders
+  // them through a prescription template — diagnosis, drugs, chief complaint,
+  // signature status — and an anchor row carries none of that, so every field
+  // on that panel was blank and the signature always read "no_signature".
+  // Join each anchor to the prescription it anchors and attach the chain state
+  // as `verification`, which is the shape the panel actually reads.
+  const rxAnchors = anchors.filter((a) => a.recordType === "prescription");
+  let prescriptions: any[] = [];
+  if (rxAnchors.length) {
+    const { prescriptions: rows } = await getPrescriptions(patientDid);
+    const byId = new Map(rows.map((r: any) => [r.rxId, r]));
+    prescriptions = rxAnchors.map((a) => {
+      const rx = byId.get(a.recordId);
+      return {
+        ...(rx ?? { rxId: a.recordId }),
+        verification: {
+          signatureStatus: a.signature
+            ? "verified"
+            : a.status === "failed"
+              ? "failed"
+              : "pending_anchor",
+          anchorRecord: a.signature
+            ? {
+                anchorId: a.anchorId,
+                anchoredAt: a.anchoredAt,
+                signature: a.signature,
+                network: a.network ?? "devnet",
+              }
+            : null,
+          verifiedAt: a.signature ? a.anchoredAt : null,
+        },
+        blockchainMeta: { network: a.network ?? "devnet", status: a.status },
+      };
+    });
+  }
+
   return {
     anchors,
     history: anchors,
-    // Anchors for prescription records only — what the signing screen displays.
-    prescriptions: anchors.filter((a) => a.recordType === "prescription"),
+    prescriptions,
     total: anchors.length,
   };
 }
@@ -1669,9 +1765,29 @@ export async function getPatientOnChainHistory(patientDid?: string) {
 export async function getMyPatients() {
   const { getConsents: fn } = await import("./clinical.server");
   const res = await fn();
+
+  // Consumers render `patientName` — the consent request form shows
+  // "{patientName} — {did}" — but this mapper returned no name at all, so the
+  // dropdown read as a bare em dash followed by a DID prefix.
+  let nameByDid = new Map<string, string>();
+  try {
+    const dir = await getPatientDirectory();
+    nameByDid = new Map(
+      (dir.patients ?? []).filter((p: any) => p.did && p.name).map((p: any) => [p.did, p.name]),
+    );
+  } catch {
+    // Falls back to the DID, which is what the callers already do.
+  }
+
   const patients = (res.consents ?? [])
     .filter((c: any) => c.status === "active")
-    .map((c: any) => ({ did: c.patient_did, patientDid: c.patient_did, resource: c.resource }));
+    .map((c: any) => ({
+      did: c.patient_did,
+      patientDid: c.patient_did,
+      patientName: nameByDid.get(c.patient_did) ?? null,
+      name: nameByDid.get(c.patient_did) ?? null,
+      resource: c.resource,
+    }));
   return { patients, total: patients.length };
 }
 
@@ -1741,9 +1857,27 @@ export async function getVaccines(_did?: string): Promise<VaccinesResponse> {
   return { vaccines, total: vaccines.length };
 }
 
-export async function getInpatientData(_did?: string) {
+export async function getInpatientData(did?: string) {
   const { getInpatientData: fn } = await import("./inpatient.server");
   const d = await fn();
+
+  // Same defect as getPrescriptions above: the DID was named `_did` and
+  // discarded, and inpatient.server does an unfiltered selectAll. A clinician
+  // opening one patient's chart therefore saw every consented patient's
+  // medications, procedures, checkups and notes under that patient's name.
+  //
+  // Filtered here rather than server-side because the same server fn also backs
+  // ward-wide views that legitimately want everything; those pass no DID.
+  const onlyForPatient = <T extends { patient_did?: string | null }>(
+    rows: T[] | null | undefined,
+  ) => (did ? (rows ?? []).filter((r) => r.patient_did === did) : (rows ?? []));
+
+  d.procedures = onlyForPatient(d.procedures as any);
+  d.medications = onlyForPatient(d.medications as any);
+  d.dailyCheckups = onlyForPatient(d.dailyCheckups as any);
+  d.dietOrders = onlyForPatient(d.dietOrders as any);
+  d.rehabSessions = onlyForPatient(d.rehabSessions as any);
+  d.nursingNotes = onlyForPatient(d.nursingNotes as any);
   /**
    * Map snake_case rows to the camelCase the screens read.
    *

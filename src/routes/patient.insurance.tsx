@@ -92,12 +92,16 @@ function InsurancePage() {
   const [isFilingClaim, setIsFilingClaim] = useState(false);
 
   const handleOpenPolicyModal = () => {
-    setProvider(patient.insuranceProvider || "Star Health & Allied Insurance");
-    setPolicyNo(patient.insurancePolicyNo || "POL-2026-STAR-9942");
-    setSumInsured(patient.sumInsured || 1000000);
-    setPolicyType(patient.policyType || "Comprehensive Health Plan");
-    setValidFrom(patient.validFrom || "2025-04-01");
-    setValidTo(patient.validTo || "2026-03-31");
+    // Seed from the REAL policy, or leave blank. This used to prefill the same
+    // invented policy for every patient — including patients with none — so
+    // opening the dialog and saving wrote a stranger's cover onto their record.
+    // The effect above already loads realPolicy; this handler was overwriting it.
+    setProvider(realPolicy?.provider ?? "");
+    setPolicyNo(realPolicy?.policyNumber ?? "");
+    setSumInsured(realPolicy?.sumInsured ?? "");
+    setPolicyType(realPolicy?.coverageType ?? "");
+    setValidFrom(realPolicy?.validFrom ?? "");
+    setValidTo(realPolicy?.validTo ?? "");
     setIsPolicyModalOpen(true);
   };
 
@@ -157,10 +161,17 @@ function InsurancePage() {
     e.preventDefault();
     setIsFilingClaim(true);
     try {
+      if (!currentUser?.did) {
+        // `|| "did:hosp:0x4302bbea"` filed the claim against a hardcoded DID —
+        // a real, different person — whenever the session had no DID.
+        toast.error("Your account has no DID yet, so a claim cannot be filed");
+        return;
+      }
+
       const res = await createInsuranceClaim({
-        patientDid: currentUser?.did || "did:hosp:0x4302bbea",
-        provider: patient.insuranceProvider || "Star Health & Allied Insurance",
-        policyNo: patient.insurancePolicyNo || "POL-2026-STAR-9942",
+        patientDid: currentUser.did,
+        provider: realPolicy?.provider ?? "",
+        policyNo: realPolicy?.policyNumber ?? "",
         claimType,
         amount: Number(claimAmount),
         diagnosis: claimDiagnosis,

@@ -48,10 +48,29 @@ const labTests = [
   "ECG Interpretation",
 ];
 
+// Keyed on the values lab_results.status actually holds.
+//
+// This used to list only pending / in-progress / completed / cancelled, none of
+// which the table stores. Every row fell through to the `pending` fallback, so
+// all five live results — a critical cardiac troponin among them — displayed as
+// "Pending" on the lab queue.
 const statusConfig = {
   pending: { label: "Pending", icon: Clock, badge: "bg-muted text-muted-foreground" },
   "in-progress": { label: "In Progress", icon: FlaskConical, badge: "bg-primary/10 text-primary" },
   completed: { label: "Completed", icon: CheckCircle, badge: "bg-success/10 text-success" },
+  // Reported results.
+  normal: { label: "Normal", icon: CheckCircle, badge: "bg-success/10 text-success" },
+  final: { label: "Final", icon: CheckCircle, badge: "bg-success/10 text-success" },
+  abnormal: {
+    label: "Abnormal",
+    icon: AlertTriangle,
+    badge: "bg-warning/10 text-warning-foreground",
+  },
+  critical: {
+    label: "Critical",
+    icon: AlertTriangle,
+    badge: "bg-destructive/10 text-destructive",
+  },
   cancelled: {
     label: "Cancelled",
     icon: AlertTriangle,

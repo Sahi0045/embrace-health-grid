@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { RouteGuard } from "@/components/RouteGuard";
 import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,7 +53,6 @@ import {
   dispensePrescriptionMedications,
   getItemMovements,
 } from "@/lib/pharmacy.server";
-import { useTableRefresh } from "@/lib/hooks/useTableRefresh";
 
 export const Route = createFileRoute("/staff/pharmacy-inventory")({
   component: StaffPharmacyInventory,
@@ -63,40 +63,50 @@ function StaffPharmacyInventory() {
   const [searchTerm, setSearchTerm] = useState("");
 
   // Refresh triggers for real-time updates
-  const refreshInventory = useTableRefresh();
+  const queryClient = useQueryClient();
+  /**
+   * Force the pharmacy queries to refetch.
+   *
+   * This replaces `useTableRefresh()`, which returned a FUNCTION that callers put
+   * into their React Query keys. React Query hashes keys with JSON.stringify,
+   * which serialises a function to `null` — so the key was constant and nothing
+   * ever refetched. Dispensing, receiving and transferring all succeeded and the
+   * screen kept showing the old quantities until a full page reload.
+   */
+  const refreshInventory = () => queryClient.invalidateQueries();
 
   // ─── Queries ────────────────────────────────────────────────────────────
 
   // Pending prescriptions for dispensing
   const { data: prescriptionsData } = useQuery({
-    queryKey: ["pending-dispensing-rx", refreshInventory],
+    queryKey: ["pending-dispensing-rx"],
     queryFn: () => getPendingDispensingPrescriptions({ data: { limit: 20 } }),
     enabled: activeTab === "dispense",
   });
 
   // Inventory items
   const { data: inventoryData } = useQuery({
-    queryKey: ["inventory-items-staff", searchTerm, refreshInventory],
+    queryKey: ["inventory-items-staff", searchTerm],
     queryFn: () => getInventoryItems({ data: { search: searchTerm || undefined, limit: 100 } }),
     enabled: activeTab === "inventory",
   });
 
   // All batches
   const { data: batchesData } = useQuery({
-    queryKey: ["batches-staff", refreshInventory],
+    queryKey: ["batches-staff"],
     queryFn: () => getBatches({ data: { limit: 100 } }),
     enabled: activeTab === "receive" || activeTab === "inventory",
   });
 
   // Low-stock items
   const { data: lowStockData } = useQuery({
-    queryKey: ["low-stock-alerts-staff", refreshInventory],
+    queryKey: ["low-stock-alerts-staff"],
     queryFn: () => getLowStockItems({ data: { resolved: false, limit: 10 } }),
   });
 
   // Near-expiry items
   const { data: nearExpiryData } = useQuery({
-    queryKey: ["near-expiry-staff", refreshInventory],
+    queryKey: ["near-expiry-staff"],
     queryFn: () =>
       getNearExpiryItems({ data: { status: "near_expiry", resolved: false, limit: 10 } }),
   });
@@ -350,10 +360,24 @@ function DispenseCard({ prescription, onSuccess }: { prescription: any; onSucces
   const [isOpen, setIsOpen] = useState(false);
   const mutation = useMutation({
     mutationFn: dispensePrescriptionMedications,
-    onSuccess: () => {
+    onSuccess: (res: any) => {
       setIsOpen(false);
       onSuccess();
+      // A partial dispense used to close the dialog silently, so a pharmacist
+      // could hand over 2 of 3 medications believing all three were done.
+      const failed = res?.failedCount ?? 0;
+      if (failed > 0) {
+        toast.warning(`${res?.dispensedCount ?? 0} dispensed, ${failed} failed`, {
+          description: (res?.errors ?? []).join("; ") || "Check stock for the remaining items.",
+        });
+      } else {
+        toast.success(`Dispensed ${res?.dispensedCount ?? ""}`.trim());
+      }
     },
+    onError: (err: unknown) =>
+      toast.error("Dispense failed", {
+        description: err instanceof Error ? err.message : String(err),
+      }),
   });
 
   const handleDispense = async () => {
@@ -458,11 +482,20 @@ function ReceiveStockForm({ onSuccess }: { onSuccess: () => void }) {
   const [itemId, setItemId] = useState("");
   const [batchNumber, setBatchNumber] = useState("");
   const [quantity, setQuantity] = useState("");
-  const [expiryDate, setExpiryDate] = useState("");
 
   const { data: items } = useQuery({
     queryKey: ["items-receive"],
     queryFn: () => getInventoryItems({ data: { limit: 100 } }),
+  });
+
+  // Batches for the chosen item. The form previously held `batchNumber` state
+  // with NO input rendered for it, so it always submitted batchId: "" and
+  // addStock's validator threw "batchId is required" — every single time, with
+  // no onError to surface it. "Receive Stock" was a button that did nothing.
+  const { data: batches } = useQuery({
+    queryKey: ["batches-receive", itemId],
+    queryFn: () => getBatches({ data: { itemId, limit: 100 } }),
+    enabled: Boolean(itemId),
   });
 
   const mutation = useMutation({
@@ -471,13 +504,23 @@ function ReceiveStockForm({ onSuccess }: { onSuccess: () => void }) {
       setItemId("");
       setBatchNumber("");
       setQuantity("");
-      setExpiryDate("");
       onSuccess();
+      toast.success("Stock received");
     },
+    // Without this every failure was silent — the button simply stopped
+    // spinning and nothing changed.
+    onError: (err: unknown) =>
+      toast.error("Could not receive stock", {
+        description: err instanceof Error ? err.message : String(err),
+      }),
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!itemId || !batchNumber) {
+      toast.error("Choose an item and a batch");
+      return;
+    }
     mutation.mutate({
       data: {
         itemId,
@@ -507,6 +550,23 @@ function ReceiveStockForm({ onSuccess }: { onSuccess: () => void }) {
             {items?.items?.map((item: any) => (
               <SelectItem key={item.item_id} value={item.item_id}>
                 {item.item_name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div>
+        <label className="text-sm font-medium">Batch *</label>
+        <Select value={batchNumber} onValueChange={setBatchNumber} disabled={!itemId}>
+          <SelectTrigger>
+            <SelectValue placeholder={itemId ? "Select batch" : "Choose an item first"} />
+          </SelectTrigger>
+          <SelectContent>
+            {(batches?.batches ?? []).map((b: any) => (
+              <SelectItem key={b.batch_id} value={b.batch_id}>
+                {b.batch_number}
+                {b.expiry_date ? ` · expires ${b.expiry_date}` : ""} · {b.quantity_available} left
               </SelectItem>
             ))}
           </SelectContent>

@@ -268,7 +268,11 @@ export const getAppointments = createServerFn({ method: "GET" }).handler(async (
   const { data, error } = await supabase
     .from("appointments")
     .select(
-      "appt_id, patient_did, doctor_did, slot, mode, specialty, status, reason, booked_at, suggested_slot, hospital_id",
+      // clinician_note is where updateAppointmentStatus writes the clinician's
+      // note to the patient — including the rejection reason. It was never
+      // selected, so staff.schedule.tsx's "Rejection note" line had nothing to
+      // render on the rejected appointments that carry one.
+      "appt_id, patient_did, doctor_did, slot, mode, specialty, status, reason, booked_at, suggested_slot, clinician_note, hospital_id",
     )
     .order("booked_at", { ascending: false });
 
@@ -697,7 +701,11 @@ export const getAuditEvents = createServerFn({ method: "GET" }).handler(async ()
     // "System Actor" for every row and fabricated per-event hashes from the tx
     // id rather than displaying the real record_hash.
     .select(
-      "tx_id, actor_did, resource, action, outcome, severity, logged_at, who_name, who_role, what_entity_id, what_entity_type, record_hash, anchor_status",
+      // `metadata` carries the clinician's stated justification for a
+      // break-glass override (break-glass/index.ts:71 writes `{reason}`). It was
+      // never selected, so the ED substituted the constant "Emergency access"
+      // where the real reason belongs.
+      "tx_id, actor_did, resource, action, outcome, severity, logged_at, who_name, who_role, what_entity_id, what_entity_type, record_hash, anchor_status, metadata",
     )
     .order("logged_at", { ascending: false })
     .limit(200);
@@ -1177,14 +1185,38 @@ export const getPatientAnchorHistory = createServerFn({ method: "GET" })
     await requireSession();
     const supabase = getSupabaseServerClient();
 
+    // `network` was omitted from the select, so every consumer fell back to a
+    // hardcoded "Solana Devnet" label instead of reporting the anchor's own chain.
     let query = supabase
       .from("solana_anchors")
       .select(
-        "anchor_id, record_hash, record_type, record_id, status, signature, slot, anchored_at",
+        "anchor_id, record_hash, record_type, record_id, status, signature, slot, network, anchored_at",
       )
       .order("anchored_at", { ascending: false });
 
-    if (data.patientDid) query = query.eq("actor_did", data.patientDid);
+    if (data.patientDid) {
+      // actor_did is the DID that PERFORMED the anchoring — for a prescription
+      // that is the prescribing doctor, not the patient. Filtering it by the
+      // patient DID therefore matched nothing, and the on-chain history panel
+      // reported "no history found" for every patient who had one.
+      //
+      // The patient's anchors are the ones whose record_id is a record of
+      // theirs, so resolve the record ids first. Both reads go through the
+      // request-scoped client, so RLS still decides what the caller may see.
+      const [rxRes, recRes] = await Promise.all([
+        supabase.from("prescriptions").select("rx_id").eq("patient_did", data.patientDid),
+        supabase.from("medical_records").select("record_id").eq("patient_did", data.patientDid),
+      ]);
+
+      const recordIds = [
+        ...(rxRes.data ?? []).map((r: { rx_id: string }) => r.rx_id),
+        ...(recRes.data ?? []).map((r: { record_id: string }) => r.record_id),
+      ];
+
+      // No records means no anchors — return empty rather than an unfiltered read.
+      if (!recordIds.length) return { anchors: [] };
+      query = query.in("record_id", recordIds);
+    }
 
     const { data: anchors, error } = await query;
     if (error) throw new Error(error.message);

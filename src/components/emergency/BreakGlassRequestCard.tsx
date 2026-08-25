@@ -5,11 +5,15 @@ import { useState } from "react";
 export interface BreakGlassRequest {
   id: string;
   requestedBy: string;
-  requestorRole: string;
+  // Nullable: audit_events carries no MRN and no urgency, and the reason lives
+  // in metadata and may be absent. These were typed as required and filled with
+  // constants ("Clinical Staff", "—", "Emergency access", urgency "critical" on
+  // every row), which is what made a fabricated value the only possible render.
+  requestorRole: string | null;
   patientName: string;
-  patientMRN: string;
-  reason: string;
-  urgency: "critical" | "high" | "medium";
+  patientMRN: string | null;
+  reason: string | null;
+  urgency: "critical" | "high" | "medium" | null;
   requestedAt: string;
   status: "pending" | "approved" | "denied" | "expired";
   autoApproved?: boolean;
@@ -40,7 +44,9 @@ const statusConfig = {
 
 export function BreakGlassRequestCard({ request, onApprove, onDeny }: BreakGlassRequestCardProps) {
   const [localStatus, setLocalStatus] = useState(request.status);
-  const urg = urgencyConfig[request.urgency];
+  // Urgency is not recorded on an audit event. Render neutral rather than
+  // reinstating the "critical" that used to be hardcoded for every row.
+  const urg = request.urgency ? urgencyConfig[request.urgency] : null;
   const st = statusConfig[localStatus];
 
   const handleApprove = () => {
@@ -67,20 +73,22 @@ export function BreakGlassRequestCard({ request, onApprove, onDeny }: BreakGlass
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-semibold text-foreground">Break-Glass Request</span>
-            <span
-              className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${urg.badge}`}
-            >
-              <div className={`h-1.5 w-1.5 rounded-full ${urg.dot}`} />
-              {request.urgency}
-            </span>
+            {urg && (
+              <span
+                className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${urg.badge}`}
+              >
+                <div className={`h-1.5 w-1.5 rounded-full ${urg.dot}`} />
+                {request.urgency}
+              </span>
+            )}
             <span className={`text-[10px] font-semibold ${st.color}`}>{st.label}</span>
           </div>
 
           <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
             <div className="flex items-center gap-1.5">
               <User className="h-3 w-3 shrink-0" />
-              <span className="font-medium text-foreground">{request.requestedBy}</span> ·{" "}
-              {request.requestorRole}
+              <span className="font-medium text-foreground">{request.requestedBy}</span>
+              {request.requestorRole ? ` · ${request.requestorRole}` : ""}
             </div>
             <div className="flex items-center gap-1.5">
               <Clock className="h-3 w-3 shrink-0" />
@@ -89,10 +97,11 @@ export function BreakGlassRequestCard({ request, onApprove, onDeny }: BreakGlass
           </div>
 
           <div className="mt-2 rounded-lg bg-background/60 px-3 py-2 text-xs text-muted-foreground">
-            <span className="font-medium text-foreground">Patient:</span> {request.patientName} ·{" "}
-            {request.patientMRN}
+            <span className="font-medium text-foreground">Patient:</span> {request.patientName}
+            {request.patientMRN ? ` · ${request.patientMRN}` : ""}
             <br />
-            <span className="font-medium text-foreground">Reason:</span> {request.reason}
+            <span className="font-medium text-foreground">Reason:</span>{" "}
+            {request.reason ?? "No reason recorded"}
           </div>
 
           {request.autoApproved && (
