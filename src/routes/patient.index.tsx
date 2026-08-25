@@ -159,34 +159,22 @@ function PatientHome() {
         />
 
         <StaggerList className="mt-6 space-y-5">
-          {/* Solana Wallet Prompt Banner */}
-          {!currentUser?.walletAddress && (
-            <StaggerItem>
-              <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-5 shadow-clinical">
-                <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  <div className="flex items-start gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/20 text-primary">
-                      <Wallet className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-semibold text-foreground">
-                        Secure Your Digital Identity
-                      </h3>
-                      <p className="mt-1 text-xs text-muted-foreground leading-relaxed max-w-md">
-                        Link your Solana Wallet to sign consents and verify medical credentials
-                        immutably on-chain.
-                      </p>
-                    </div>
-                  </div>
-                  <Button asChild size="sm" className="shrink-0 shadow-clinical">
-                    <Link to="/patient/profile">
-                      Link Wallet <ChevronRight className="ml-1 h-3.5 w-3.5" />
-                    </Link>
-                  </Button>
-                </div>
-              </div>
-            </StaggerItem>
-          )}
+          {/* The "Secure Your Digital Identity — Link your Solana Wallet to sign
+              consents and verify medical credentials immutably on-chain" banner
+              was removed.
+
+              It pushed every patient toward installing a browser wallet, and
+              none of what it promised was true: consents are not signed with a
+              patient wallet, and anchoring is performed server-side by the
+              anchor-record Edge Function using a platform key. A linked
+              walletAddress drove nothing but a badge.
+
+              Since 20260826100000 each DID has a real server-held Ed25519 key,
+              so a patient's identity is backed by actual key material without
+              them installing anything — and without a seed phrase they could
+              lose, which is not an acceptable failure mode for a medical
+              record. Linking a wallet remains available on My Profile for
+              anyone who wants it; it is no longer solicited. */}
 
           {/* DID Card */}
           <StaggerItem>

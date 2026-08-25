@@ -436,7 +436,7 @@ function PatientProfile() {
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <Wallet className="h-5 w-5 text-primary" />
-                  <CardTitle>Solana Wallet</CardTitle>
+                  <CardTitle>Solana Wallet (optional)</CardTitle>
                 </div>
                 {walletVerified ? (
                   <Badge className="bg-success/15 text-success border border-success/30 text-[10px] font-bold flex items-center gap-1">
@@ -450,14 +450,23 @@ function PatientProfile() {
                     Linked — Unverified
                   </Badge>
                 ) : (
-                  <Badge variant="outline" className="text-[10px]">
-                    Not Linked
+                  // Neutral, not a warning. A patient with a DID and a
+                  // server-held signing key is fully verified; an unlinked
+                  // wallet is a declined optional extra, not a deficiency.
+                  <Badge variant="outline" className="text-[10px] text-muted-foreground">
+                    Not linked
                   </Badge>
                 )}
               </div>
               <CardDescription>
-                Connect and cryptographically verify one Solana wallet to enable blockchain
-                features.
+                {/* The old copy — "enable blockchain features" — implied the
+                    account was missing something. It is not: your identity is
+                    the DID your hospital issued, and its signing key is held
+                    securely on the server. Anchoring is performed server-side.
+                    Linking a personal wallet is only for patients who want to
+                    hold their own key. */}
+                Optional. Your records are already protected by your hospital-issued DID — linking a
+                personal wallet is only needed if you want to hold your own signing key.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
