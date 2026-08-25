@@ -15,7 +15,8 @@
     "supabase:check": "node --env-file=.env scripts/supabase-check.js",
     "test:onboard": "node --env-file=.env --test test/onboard.test.js",
     "test:tenancy": "node --env-file=.env --test test/tenancy.test.js",
-    "test:e2e-patient": "node --env-file=.env scripts/e2e-patient.mjs"
+    "test:e2e-patient": "node --env-file=.env scripts/e2e-patient.mjs",
+    "test:e2e-staff": "node --env-file=.env scripts/e2e-staff.mjs"
   },
   "dependencies": {
     "@solana/web3.js": "^1.98.4",
