@@ -284,9 +284,17 @@ export async function getMedicalRecords(_did?: string) {
   };
 }
 
-export async function getPrescriptions(_did?: string) {
-  const { getPrescriptions: fn } = await import("./clinical.server");
-  const res = await fn();
+export async function getPrescriptions(did?: string) {
+  const { getPrescriptions: fn, getPrescriptionsForPatient } = await import("./clinical.server");
+  // The DID was named `_did` and dropped, so the unfiltered query ran and every
+  // consumer got every prescription RLS allowed the caller to see. RLS lets a
+  // clinician see all their consented patients, so opening ONE patient's chart
+  // listed OTHER patients' prescriptions under that patient's name — verified
+  // as dr.smith: 4 rows across 2 distinct patients.
+  //
+  // Callers who pass no DID (the ledger and admin views) still get the full
+  // RLS-scoped set, which is what they want.
+  const res = did ? await getPrescriptionsForPatient({ data: { patientDid: did } }) : await fn();
   return {
     prescriptions: (res.prescriptions ?? []).map((p: any) => ({
       rxId: p.rx_id,
@@ -1741,9 +1749,27 @@ export async function getVaccines(_did?: string): Promise<VaccinesResponse> {
   return { vaccines, total: vaccines.length };
 }
 
-export async function getInpatientData(_did?: string) {
+export async function getInpatientData(did?: string) {
   const { getInpatientData: fn } = await import("./inpatient.server");
   const d = await fn();
+
+  // Same defect as getPrescriptions above: the DID was named `_did` and
+  // discarded, and inpatient.server does an unfiltered selectAll. A clinician
+  // opening one patient's chart therefore saw every consented patient's
+  // medications, procedures, checkups and notes under that patient's name.
+  //
+  // Filtered here rather than server-side because the same server fn also backs
+  // ward-wide views that legitimately want everything; those pass no DID.
+  const onlyForPatient = <T extends { patient_did?: string | null }>(
+    rows: T[] | null | undefined,
+  ) => (did ? (rows ?? []).filter((r) => r.patient_did === did) : (rows ?? []));
+
+  d.procedures = onlyForPatient(d.procedures as any);
+  d.medications = onlyForPatient(d.medications as any);
+  d.dailyCheckups = onlyForPatient(d.dailyCheckups as any);
+  d.dietOrders = onlyForPatient(d.dietOrders as any);
+  d.rehabSessions = onlyForPatient(d.rehabSessions as any);
+  d.nursingNotes = onlyForPatient(d.nursingNotes as any);
   /**
    * Map snake_case rows to the camelCase the screens read.
    *

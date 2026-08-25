@@ -162,20 +162,20 @@ function PatientProfile() {
   const rawCredentials = credentialsData?.credentials || [];
 
   const liveCredentials = rawCredentials.map((c: any) => ({
-    id: c.id || c.txId || String(Math.random()),
+    // `String(Math.random())` as a React key remounts the row every render.
+    id: c.id || c.txId || c.subjectDid,
     type: c.type || "Verifiable Credential",
-    issuer: c.issuer || "Embrace Health Consortium",
+    // Was defaulted to "Embrace Health Consortium", naming an issuer that may
+    // not have issued it.
+    issuer: c.issuer || null,
     status: (c.status === "revoked" ? "revoked" : "active") as "active" | "revoked",
   }));
 
-  const activeCreds =
-    liveCredentials.length > 0
-      ? liveCredentials.filter((c: any) => c.status === "active")
-      : [
-          { id: "c1", type: "Patient Identity", issuer: "Embrace Health Consortium" },
-          { id: "c2", type: "Health Insurance", issuer: "Star Health" },
-          { id: "c3", type: "Vaccination Record", issuer: "Govt. of India" },
-        ];
+  // A patient with no credentials used to be shown three invented ones —
+  // "Health Insurance · Star Health" and "Vaccination Record · Govt. of India"
+  // among them. Those are claims about coverage and immunisation status that
+  // nobody issued, on the patient's own identity page. Empty is the answer.
+  const activeCreds = liveCredentials.filter((c: any) => c.status === "active");
 
   const handleLogout = async () => {
     // Clears the httpOnly session cookie server-side.
@@ -354,20 +354,28 @@ function PatientProfile() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {activeCreds.map((cred: any) => (
-                  <div
-                    key={cred.id}
-                    className="flex items-center justify-between rounded-lg border border-border p-3"
-                  >
-                    <div>
-                      <div className="font-medium">{cred.type}</div>
-                      <div className="text-sm text-muted-foreground">Issued by {cred.issuer}</div>
+                {activeCreds.length === 0 ? (
+                  <p className="py-4 text-center text-sm text-muted-foreground">
+                    No credentials have been issued to you yet.
+                  </p>
+                ) : (
+                  activeCreds.map((cred: any) => (
+                    <div
+                      key={cred.id}
+                      className="flex items-center justify-between rounded-lg border border-border p-3"
+                    >
+                      <div>
+                        <div className="font-medium">{cred.type}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {cred.issuer ? `Issued by ${cred.issuer}` : "Issuer not recorded"}
+                        </div>
+                      </div>
+                      <Badge variant="outline" className="bg-success/10 text-success">
+                        Active
+                      </Badge>
                     </div>
-                    <Badge variant="outline" className="bg-success/10 text-success">
-                      Active
-                    </Badge>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>

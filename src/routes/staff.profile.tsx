@@ -96,7 +96,6 @@ function StaffProfile() {
     }
   }, [userEmail]);
 
-
   const handleRequestDIDClick = async () => {
     // A DID is an identity credential. Falling back to the demo record here
     // would submit the request under a fictional clinician's name and
