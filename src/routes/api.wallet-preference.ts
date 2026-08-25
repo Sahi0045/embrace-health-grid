@@ -84,7 +84,7 @@ export const getUserWalletPreference = createServerFn({
 export const saveUserWalletPreference = createServerFn({
   method: "POST",
 })
-  .validator(walletPreferenceSchema)
+  .inputValidator((data: unknown) => walletPreferenceSchema.parse(data))
   .handler(async ({ data }) => {
     const db = getSupabaseServerClient();
     const user = await getVerifiedUser();

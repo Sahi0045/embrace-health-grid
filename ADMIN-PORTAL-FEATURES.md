@@ -10,6 +10,7 @@
 ## Overview
 
 This document describes the two new features added to the Health Grid Admin Portal:
+
 1. **Doctor Availability Checking** - View doctor schedules and availability status
 2. **Prescription Management** - Modify prescription details for clinical oversight
 
@@ -18,24 +19,30 @@ This document describes the two new features added to the Health Grid Admin Port
 ## Feature 1: Doctor Availability Checking
 
 ### Location
+
 - **Route:** `/admin/doctors`
 - **Access:** Admin role required
 - **Navigation:** Admin Dashboard → "Doctor Availability" card
 
 ### Purpose
+
 Allows hospital administrators to check the availability of doctors across the hospital, view their schedules, and see their current status in real-time.
 
 ### Features
 
 #### Real-Time Availability Status
+
 The system automatically determines doctor availability based on current shifts:
+
 - **Available** (🟢 Green) - Currently in a scheduled shift with manageable patient load
 - **Busy** (🟠 Orange) - In a shift with high patient count (>5 patients)
 - **On Call** (🔴 Red) - Currently on emergency call duty
 - **Off Duty** (⚪ Gray) - Not scheduled for today
 
 #### Display Information
+
 For each doctor, the following information is shown:
+
 - Full name and role (Doctor/Staff)
 - Department and specialty
 - Email address
@@ -44,17 +51,20 @@ For each doctor, the following information is shown:
 - Upcoming shifts (next 5 shifts with date, time, role, and unit)
 
 #### Statistics Dashboard
+
 - **Total Doctors** - Count of all registered doctors
 - **Available Now** - Doctors currently available for consultations
 - **On Call** - Doctors on emergency call duty
 - **Busy** - Doctors currently with high patient load
 
 #### Filters & Search
+
 - **Search:** Filter by name, email, department, specialty, or DID
 - **Department Filter:** View doctors from specific departments
 - **Availability Filter:** Filter by current status (Available, Busy, Off Duty, On Call)
 
 #### Real-Time Updates
+
 - Automatically refreshes when:
   - `profiles` table changes (new doctors added)
   - `staff_schedule` table changes (shifts updated)
@@ -63,16 +73,19 @@ For each doctor, the following information is shown:
 ### Technical Implementation
 
 #### Frontend
+
 - **File:** `src/routes/admin.doctors.tsx`
 - **Components:** Doctor cards with expandable details, statistics cards, filter controls
 - **State Management:** React hooks for loading, filtering, and real-time updates
 
 #### Backend APIs
+
 - `getProfiles()` - Fetches all medical staff profiles
 - `getStaffSchedule()` - Fetches staff schedules from operations.server.ts
 - Uses existing RLS policies for security
 
 #### Database Tables
+
 - `profiles` - User profile information (name, email, role, DID)
 - `staff_schedule` - Shift schedules (date, time, role, unit, patient count)
 
@@ -81,16 +94,19 @@ For each doctor, the following information is shown:
 ## Feature 2: Prescription Management
 
 ### Location
+
 - **Route:** `/admin/prescriptions`
 - **Access:** Admin role required
 - **Navigation:** Admin Dashboard → "Prescription Management" card
 
 ### Purpose
+
 Enables hospital administrators to view and modify prescription details for clinical oversight and corrections while maintaining audit integrity.
 
 ### Features
 
 #### View Prescriptions
+
 - List all prescriptions across the hospital
 - View linked medical reports
 - Filter by doctor, patient, status
@@ -102,9 +118,11 @@ Enables hospital administrators to view and modify prescription details for clin
   - Number of prescribing doctors
 
 #### Edit Prescription Details
+
 Each prescription can be edited by clicking the "Edit" button:
 
 **Editable Fields:**
+
 - **Diagnosis** - Update the diagnosis text
 - **Status** - Change status (Active, Dispensed, Cancelled, Expired)
 - **Notes** - Add or modify additional notes
@@ -117,6 +135,7 @@ Each prescription can be edited by clicking the "Edit" button:
   - Instructions (special instructions)
 
 **Immutable Fields (Protected):**
+
 - Prescription ID (rx_id)
 - Patient DID
 - Doctor DID
@@ -125,12 +144,14 @@ Each prescription can be edited by clicking the "Edit" button:
 - Signed at timestamp
 
 #### Security & Audit Trail
+
 - Only administrators can modify prescriptions
 - All changes are logged with `updated_at` timestamp
 - Original prescription data is preserved for audit purposes
 - RLS policies enforce admin-only access
 
 #### Real-Time Updates
+
 - Automatically refreshes when:
   - `prescriptions` table changes
   - `medical_records` table changes
@@ -139,14 +160,16 @@ Each prescription can be edited by clicking the "Edit" button:
 ### Technical Implementation
 
 #### Frontend
+
 - **File:** `src/routes/admin.prescriptions.tsx`
 - **Components:** Prescription cards, edit dialog with form fields, medication management
 - **State Management:** Edit modal state, form validation, API integration
 
 #### Backend APIs
+
 - `getPrescriptions()` - Fetches all prescriptions (existing)
 - `updatePrescription(rxId, updates)` - Updates prescription details (new)
-  - **Parameters:** 
+  - **Parameters:**
     - `rxId` (required) - Prescription ID
     - `diagnosis` (optional) - New diagnosis
     - `notes` (optional) - Updated notes
@@ -154,6 +177,7 @@ Each prescription can be edited by clicking the "Edit" button:
     - `drugs` (optional) - Updated medications array
 
 #### Database
+
 - **Table:** `prescriptions`
 - **Migration:** `20260812000000_admin_prescription_update_policy.sql`
 - **RLS Policy:** `prescriptions_update_admin`
@@ -161,6 +185,7 @@ Each prescription can be edited by clicking the "Edit" button:
   - Protects immutable fields through application logic
 
 #### Server Function
+
 - **File:** `src/lib/clinical.server.ts`
 - **Function:** `updatePrescription`
 - **Validation:**
@@ -176,6 +201,7 @@ Each prescription can be edited by clicking the "Edit" button:
 ### Prerequisites
 
 1. **Database Migration:**
+
    ```bash
    # Apply the prescription update policy migration
    supabase db push
@@ -291,6 +317,7 @@ Each prescription can be edited by clicking the "Edit" button:
 ### Tables Modified/Used
 
 #### `profiles`
+
 ```sql
 - id (uuid, PK)
 - email (text)
@@ -302,6 +329,7 @@ Each prescription can be edited by clicking the "Edit" button:
 ```
 
 #### `staff_schedule`
+
 ```sql
 - shift_id (text, PK)
 - staff_id (uuid, FK to profiles)
@@ -316,6 +344,7 @@ Each prescription can be edited by clicking the "Edit" button:
 ```
 
 #### `prescriptions`
+
 ```sql
 - rx_id (text, PK)
 - patient_did (text, FK to dids)
@@ -350,11 +379,13 @@ create policy prescriptions_update_admin on public.prescriptions
 ### Doctor Availability APIs
 
 #### `getProfiles()`
+
 - **Source:** `src/lib/clinical.server.ts`
 - **Returns:** `{ profiles: Array<Profile> }`
 - **RLS:** Admin sees all, others see own profile
 
 #### `getStaffSchedule()`
+
 - **Source:** `src/lib/operations.server.ts`
 - **Returns:** `{ schedule: Array<Shift> }`
 - **RLS:** Returns schedules based on user permissions
@@ -362,11 +393,13 @@ create policy prescriptions_update_admin on public.prescriptions
 ### Prescription Management APIs
 
 #### `getPrescriptions()`
+
 - **Source:** `src/lib/clinical.server.ts`
 - **Returns:** `{ prescriptions: Array<Prescription> }`
 - **RLS:** Patient sees own, doctor sees authored, admin sees all with consents
 
 #### `updatePrescription(rxId, updates)`
+
 - **Source:** `src/lib/clinical.server.ts` (new)
 - **Parameters:**
   ```typescript
@@ -393,11 +426,13 @@ create policy prescriptions_update_admin on public.prescriptions
 ## Files Modified
 
 ### New Files
+
 1. `src/routes/admin.doctors.tsx` - Doctor availability page
 2. `supabase/migrations/20260812000000_admin_prescription_update_policy.sql` - RLS policy
 3. `ADMIN-PORTAL-FEATURES.md` - This documentation
 
 ### Modified Files
+
 1. `src/routes/admin.index.tsx` - Added navigation cards
 2. `src/routes/admin.prescriptions.tsx` - Added edit functionality
 3. `src/lib/clinical.server.ts` - Added updatePrescription server function
@@ -408,16 +443,19 @@ create policy prescriptions_update_admin on public.prescriptions
 ## Security Considerations
 
 ### Authorization
+
 - ✅ Both features require `role = 'admin'` via RouteGuard
 - ✅ RLS policies enforce server-side access control
 - ✅ updatePrescription validates admin role before allowing updates
 
 ### Audit Trail
+
 - ✅ All prescription updates logged with `updated_at` timestamp
 - ✅ Original immutable fields preserved (patient, doctor, rx_id)
 - ✅ Audit events table captures all admin actions
 
 ### Data Protection
+
 - ✅ PHI access controlled by RLS policies
 - ✅ No PHI exposed in URLs or logs
 - ✅ Doctor DIDs used for identification, not sensitive info
@@ -429,16 +467,19 @@ create policy prescriptions_update_admin on public.prescriptions
 ### Troubleshooting
 
 **Doctor availability shows "Off Duty" for all doctors:**
+
 - Check if `staff_schedule` table has data
 - Verify shift dates are current
 - Check shift start/end times align with current time
 
 **"Only administrators can update prescriptions" error:**
+
 - Verify user role is 'admin' in profiles table
 - Check migration was applied: `supabase db pull`
 - Verify RLS policy exists on prescriptions table
 
 **Real-time updates not working:**
+
 - Check Supabase Realtime is enabled for tables
 - Verify `useTableRefresh` hook is properly imported
 - Check browser console for WebSocket errors
@@ -471,6 +512,7 @@ create policy prescriptions_update_admin on public.prescriptions
 ## Support Contact
 
 For issues or questions regarding these features:
+
 - Technical Lead: System Administrator
 - Documentation: See inline code comments
 - Database: Supabase Admin Dashboard

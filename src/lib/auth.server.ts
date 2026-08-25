@@ -228,7 +228,7 @@ export function hasAccess(userRole: UserRole | null, required: UserRole): boolea
  * Always returns ok: true to prevent email enumeration.
  */
 export const requestPasswordReset = createServerFn({ method: "POST" })
-  .validator((data: { email: string }) => {
+  .inputValidator((data: { email: string }) => {
     if (!data?.email) throw new Error("Email is required");
     return data;
   })
@@ -261,7 +261,7 @@ export const requestPasswordReset = createServerFn({ method: "POST" })
  * Reset password using the code from the email link.
  */
 export const resetPassword = createServerFn({ method: "POST" })
-  .validator((data: { code: string; newPassword: string }) => {
+  .inputValidator((data: { code: string; newPassword: string }) => {
     if (!data?.code) throw new Error("Reset code is required");
     if (!data?.newPassword || data.newPassword.length < 8) {
       throw new Error("Password must be at least 8 characters");
