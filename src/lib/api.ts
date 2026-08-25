@@ -1069,6 +1069,11 @@ export async function getAppointments(_did?: string) {
     specialty: a.specialty,
     status: a.status,
     reason: a.reason,
+    // The clinician's note to the patient. On a rejected appointment this IS
+    // the rejection reason — staff.schedule.tsx renders `rejectionReason`, so
+    // expose it under both names rather than making the page re-derive it.
+    clinicianNote: a.clinician_note ?? null,
+    rejectionReason: a.status === "rejected" ? (a.clinician_note ?? null) : null,
     bookedAt: a.booked_at,
     // Several views show a date separately from the slot label.
     date: a.slot,
@@ -1586,17 +1591,41 @@ export async function getAdminAttendanceSummary() {
 export async function getStaffRequests(_email?: string) {
   const { getStaffRequests: fn } = await import("./operations.server");
   const res = await fn();
-  const requests = (res.requests ?? []).map((r: any) => ({
-    id: r.request_id,
-    requestId: r.request_id,
-    staffId: r.staff_id,
-    type: r.request_type,
-    subject: r.subject,
-    details: r.details,
-    status: r.status,
-    createdAt: r.created_at,
-    resolvedAt: r.resolved_at,
-  }));
+  const requests = (res.requests ?? []).map((r: any) => {
+    // createStaffRequest stores the form payload as a JSON string in `details`
+    // — {requestType, leaveType, fromDate, toDate, reason}. This mapper passed
+    // it through opaquely, so the leave list, which renders leaveType/fromDate/
+    // toDate/reason, showed a blank type, "— – —" for the dates, "1 day" and no
+    // reason on requests that had all four.
+    let parsed: Record<string, any> = {};
+    if (typeof r.details === "string" && r.details.trim().startsWith("{")) {
+      try {
+        parsed = JSON.parse(r.details);
+      } catch {
+        // Not JSON — leave `details` as the raw string for callers that show it.
+      }
+    } else if (r.details && typeof r.details === "object") {
+      parsed = r.details;
+    }
+
+    return {
+      id: r.request_id,
+      requestId: r.request_id,
+      staffId: r.staff_id,
+      type: r.request_type,
+      subject: r.subject,
+      details: r.details,
+      status: r.status,
+      createdAt: r.created_at,
+      resolvedAt: r.resolved_at,
+      // Flattened from `details` so consumers do not each re-parse it.
+      requestType: parsed.requestType ?? r.request_type,
+      leaveType: parsed.leaveType ?? null,
+      fromDate: parsed.fromDate ?? null,
+      toDate: parsed.toDate ?? null,
+      reason: parsed.reason ?? null,
+    };
+  });
   return { requests, total: requests.length };
 }
 

@@ -268,7 +268,11 @@ export const getAppointments = createServerFn({ method: "GET" }).handler(async (
   const { data, error } = await supabase
     .from("appointments")
     .select(
-      "appt_id, patient_did, doctor_did, slot, mode, specialty, status, reason, booked_at, suggested_slot, hospital_id",
+      // clinician_note is where updateAppointmentStatus writes the clinician's
+      // note to the patient — including the rejection reason. It was never
+      // selected, so staff.schedule.tsx's "Rejection note" line had nothing to
+      // render on the rejected appointments that carry one.
+      "appt_id, patient_did, doctor_did, slot, mode, specialty, status, reason, booked_at, suggested_slot, clinician_note, hospital_id",
     )
     .order("booked_at", { ascending: false });
 
