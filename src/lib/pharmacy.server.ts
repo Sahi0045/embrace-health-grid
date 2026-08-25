@@ -465,7 +465,7 @@ export const getAllStockLevels = createServerFn({ method: "GET" })
 
     let query = supabase
       .from("stock_levels")
-      .select("*, inventory_items(item_name, reorder_level)")
+      .select("*, pharmacy_items(item_name, reorder_level)")
       .order("updated_at", { ascending: false });
 
     if (data.location) query = query.eq("storage_location", data.location);
@@ -1238,7 +1238,7 @@ export const getLowStockItems = createServerFn({ method: "GET" })
       .from("low_stock_alerts")
       .select(
         `*,
-        inventory_items(item_id, item_name, item_code, unit_of_measure),
+        pharmacy_items(item_id, item_name, item_code, unit_of_measure),
         purchase_orders!order_id(order_id, status, expected_delivery_date)`,
       )
       .order("alert_raised_at", { ascending: false });
@@ -1280,7 +1280,7 @@ export const getNearExpiryItems = createServerFn({ method: "GET" })
       .from("expiration_alerts")
       .select(
         `*,
-        inventory_items(item_id, item_name, item_code),
+        pharmacy_items(item_id, item_name, item_code),
         inventory_batches(batch_number, quantity_available, storage_location)`,
       )
       .order("expiry_date", { ascending: true });
@@ -1329,7 +1329,7 @@ export const getExpiredStock = createServerFn({ method: "GET" })
       .from("expiration_alerts")
       .select(
         `*,
-        inventory_items(item_id, item_name, item_code),
+        pharmacy_items(item_id, item_name, item_code),
         inventory_batches(batch_number)`,
       )
       .eq("is_resolved", true)

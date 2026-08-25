@@ -77,14 +77,14 @@ function AdminPharmacyInventory() {
   });
 
   // Low-stock alerts
-  const { data: lowStockData } = useQuery({
+  const { data: lowStockData, isError: lowStockError } = useQuery({
     queryKey: ["low-stock-alerts", refreshInventory],
     queryFn: () => getLowStockItems({ data: { resolved: false, limit: 10 } }),
     enabled: activeTab === "overview" || activeTab === "alerts",
   });
 
   // Near-expiry items
-  const { data: nearExpiryData } = useQuery({
+  const { data: nearExpiryData, isError: nearExpiryError } = useQuery({
     queryKey: ["near-expiry-alerts", refreshInventory],
     queryFn: () =>
       getNearExpiryItems({ data: { status: "near_expiry", resolved: false, limit: 10 } }),
@@ -92,7 +92,7 @@ function AdminPharmacyInventory() {
   });
 
   // Expired stock
-  const { data: expiredData } = useQuery({
+  const { data: expiredData, isError: expiredError } = useQuery({
     queryKey: ["expired-stock", refreshInventory],
     queryFn: () => getExpiredStock({ data: { limit: 5 } }),
     enabled: activeTab === "alerts",
@@ -137,9 +137,16 @@ function AdminPharmacyInventory() {
 
   // ─── Render ─────────────────────────────────────────────────────────────
 
-  const lowStockCount = lowStockData?.alerts?.length || 0;
-  const nearExpiryCount = nearExpiryData?.alerts?.length || 0;
-  const expiredCount = expiredData?.alerts?.length || 0;
+  // null means the query FAILED, which is not the same as zero alerts. These
+  // three embeds targeted `inventory_items` while the alert tables FK to
+  // `pharmacy_items`, so every one of them errored with PGRST200 — and with no
+  // error branch the page rendered "0 Low Stock / 0 Near-Expiry / 0 Expired ·
+  // All items well-stocked". A pharmacy was told its shelves were fine because
+  // the query was broken.
+  const lowStockCount = lowStockError ? null : (lowStockData?.alerts?.length ?? 0);
+  const nearExpiryCount = nearExpiryError ? null : (nearExpiryData?.alerts?.length ?? 0);
+  const expiredCount = expiredError ? null : (expiredData?.alerts?.length ?? 0);
+  const alertsUnavailable = lowStockError || nearExpiryError || expiredError;
 
   return (
     <RouteGuard requiredRole="admin">
@@ -158,7 +165,11 @@ function AdminPharmacyInventory() {
           {/* Alert Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
             {/* Low Stock Alert */}
-            <Card className={lowStockCount > 0 ? "border-warning/30 bg-warning/10" : ""}>
+            <Card
+              className={
+                lowStockCount != null && lowStockCount > 0 ? "border-warning/30 bg-warning/10" : ""
+              }
+            >
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-sm font-medium">
                   <TrendingDown className="w-4 h-4 text-warning" />
@@ -166,13 +177,19 @@ function AdminPharmacyInventory() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-warning">{lowStockCount}</div>
+                <div className="text-2xl font-bold text-warning">{lowStockCount ?? "—"}</div>
                 <p className="text-xs text-warning mt-1">Items below reorder level</p>
               </CardContent>
             </Card>
 
             {/* Near-Expiry Alert */}
-            <Card className={nearExpiryCount > 0 ? "border-warning/30 bg-warning/10" : ""}>
+            <Card
+              className={
+                nearExpiryCount != null && nearExpiryCount > 0
+                  ? "border-warning/30 bg-warning/10"
+                  : ""
+              }
+            >
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-sm font-medium">
                   <Clock className="w-4 h-4 text-warning" />
@@ -180,13 +197,19 @@ function AdminPharmacyInventory() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-warning">{nearExpiryCount}</div>
+                <div className="text-2xl font-bold text-warning">{nearExpiryCount ?? "—"}</div>
                 <p className="text-xs text-warning mt-1">Items within 30 days of expiry</p>
               </CardContent>
             </Card>
 
             {/* Expired Alert */}
-            <Card className={expiredCount > 0 ? "border-destructive/30 bg-destructive/10" : ""}>
+            <Card
+              className={
+                expiredCount != null && expiredCount > 0
+                  ? "border-destructive/30 bg-destructive/10"
+                  : ""
+              }
+            >
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-sm font-medium">
                   <AlertTriangle className="w-4 h-4 text-destructive" />
@@ -194,7 +217,7 @@ function AdminPharmacyInventory() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-destructive">{expiredCount}</div>
+                <div className="text-2xl font-bold text-destructive">{expiredCount ?? "—"}</div>
                 <p className="text-xs text-destructive mt-1">
                   {expiredData?.totalQuantityExpired || 0} units total
                 </p>
@@ -229,7 +252,7 @@ function AdminPharmacyInventory() {
                         >
                           <div className="flex-1">
                             <p className="font-medium text-muted-foreground">
-                              {alert.inventory_items?.item_name || "Unknown Item"}
+                              {alert.pharmacy_items?.item_name || "Unknown Item"}
                             </p>
                             <p className="text-sm text-muted-foreground">
                               Current: {alert.current_quantity} | Reorder: {alert.reorder_level}
@@ -241,6 +264,12 @@ function AdminPharmacyInventory() {
                         </div>
                       ))}
                     </div>
+                  ) : lowStockError ? (
+                    // Never claim the shelves are fine when the query failed.
+                    <p className="text-destructive text-center py-6">
+                      Stock alerts could not be loaded. This is a fault, not an all-clear — check
+                      stock levels directly before relying on this page.
+                    </p>
                   ) : (
                     <p className="text-muted-foreground text-center py-6">All items well-stocked</p>
                   )}
@@ -262,7 +291,7 @@ function AdminPharmacyInventory() {
                         >
                           <div className="flex-1">
                             <p className="font-medium text-muted-foreground">
-                              {alert.inventory_items?.item_name || "Unknown Item"}
+                              {alert.pharmacy_items?.item_name || "Unknown Item"}
                             </p>
                             <p className="text-sm text-muted-foreground">
                               Batch: {alert.inventory_batches?.batch_number}
@@ -406,7 +435,7 @@ function AdminPharmacyInventory() {
                           >
                             <div className="flex-1">
                               <p className="font-medium text-muted-foreground">
-                                {alert.inventory_items?.item_name}
+                                {alert.pharmacy_items?.item_name}
                               </p>
                               <p className="text-sm text-muted-foreground">
                                 Current: {alert.current_quantity} | Threshold: {alert.reorder_level}
@@ -451,7 +480,7 @@ function AdminPharmacyInventory() {
                           >
                             <div className="flex-1">
                               <p className="font-medium text-muted-foreground">
-                                {alert.inventory_items?.item_name}
+                                {alert.pharmacy_items?.item_name}
                               </p>
                               <p className="text-sm text-muted-foreground">
                                 Batch: {alert.inventory_batches?.batch_number} | Qty:{" "}
@@ -491,7 +520,7 @@ function AdminPharmacyInventory() {
                           >
                             <div className="flex-1">
                               <p className="font-medium text-muted-foreground">
-                                {alert.inventory_items?.item_name}
+                                {alert.pharmacy_items?.item_name}
                               </p>
                               <p className="text-sm text-muted-foreground">{alert.action_notes}</p>
                             </div>

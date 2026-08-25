@@ -226,6 +226,30 @@ export async function tryWriteAudit(entry: AuditEntry): Promise<void> {
  */
 // the field names. Each function returns an AuditEntry ready for tryWriteAudit().
 
+/**
+ * Per-call overrides for the builders below.
+ *
+ * Every builder used to hardcode `outcome: "success"` and
+ * `authStatus: "authorized"`, and both are inside the hashed field set. The
+ * audit trail was therefore structurally incapable of recording a failure or a
+ * denied attempt: getAuditStats() always returned 0 for both, and the admin
+ * audit page displayed "0 Failures · 0 Unauthorized" as a compliance fact with
+ * an Outcome filter that could never select anything.
+ *
+ * `location` was likewise a fixed string naming the admin portal, but
+ * updateBedStatus is also reached from /admin/hospital-map and /staff/rooms —
+ * so the recorded origin of an action was wrong more often than right.
+ *
+ * Defaults keep every existing call site behaving as before; a caller on a
+ * failure path now has somewhere to say so.
+ */
+export interface AuditOverrides {
+  outcome?: AuditEntry["outcome"];
+  authStatus?: AuditEntry["authStatus"];
+  /** The surface the action came from. Null when the caller does not know. */
+  location?: string | null;
+}
+
 export function buildAdmissionAudit(
   caller: {
     userId: string | null;
@@ -241,6 +265,7 @@ export function buildAdmissionAudit(
   prev: Record<string, unknown> | null,
   next: Record<string, unknown>,
   extra: Record<string, unknown> = {},
+  overrides: AuditOverrides = {},
 ): AuditEntry {
   const labels: Record<string, string> = {
     PATIENT_ADMITTED: "Patient admitted to hospital",
@@ -268,6 +293,7 @@ export function buildAdmissionAudit(
     authStatus: "authorized",
     authPolicy: "admissions_insert_staff",
     metadata: { description: labels[action], patientDid, ...extra },
+    ...overrides,
   };
 }
 
@@ -283,6 +309,7 @@ export function buildPrescriptionAudit(
   rxId: string,
   prev: Record<string, unknown> | null,
   next: Record<string, unknown>,
+  overrides: AuditOverrides = {},
 ): AuditEntry {
   return {
     actorId: caller.userId,
@@ -305,6 +332,7 @@ export function buildPrescriptionAudit(
     authStatus: "authorized",
     authPolicy: "prescriptions_update_admin",
     metadata: { description: "Hospital admin modified prescription details" },
+    ...overrides,
   };
 }
 
@@ -322,6 +350,7 @@ export function buildCertificationAudit(
   staffDid: string,
   prev: Record<string, unknown> | null,
   next: Record<string, unknown> | null,
+  overrides: AuditOverrides = {},
 ): AuditEntry {
   const labels: Record<string, string> = {
     CERTIFICATION_CREATED: "New certification added for staff member",
@@ -349,6 +378,7 @@ export function buildCertificationAudit(
     authStatus: "authorized",
     authPolicy: "staff_certifications_insert_admin",
     metadata: { description: labels[action], staffDid },
+    ...overrides,
   };
 }
 
@@ -365,6 +395,7 @@ export function buildBedAudit(
   prevStatus: string,
   newStatus: string,
   extra: Record<string, unknown> = {},
+  overrides: AuditOverrides = {},
 ): AuditEntry {
   return {
     actorId: caller.userId,
@@ -387,6 +418,7 @@ export function buildBedAudit(
     authStatus: "authorized",
     authPolicy: "beds_update_staff",
     metadata: { description: `Bed status changed from ${prevStatus} to ${newStatus}`, ...extra },
+    ...overrides,
   };
 }
 
@@ -402,6 +434,7 @@ export function buildRoomAudit(
   roomId: string,
   prevStatus: string,
   newStatus: string,
+  overrides: AuditOverrides = {},
 ): AuditEntry {
   return {
     actorId: caller.userId,
@@ -424,6 +457,7 @@ export function buildRoomAudit(
     authStatus: "authorized",
     authPolicy: "rooms_update_staff",
     metadata: { description: `Room status changed from ${prevStatus} to ${newStatus}` },
+    ...overrides,
   };
 }
 
@@ -442,6 +476,7 @@ export function buildInventoryAudit(
   prevStock: number,
   newStock: number,
   extra: Record<string, unknown> = {},
+  overrides: AuditOverrides = {},
 ): AuditEntry {
   return {
     actorId: caller.userId,
@@ -467,5 +502,6 @@ export function buildInventoryAudit(
       description: `Stock movement ${movementType} of ${quantity} units recorded (${prevStock} → ${newStock})`,
       ...extra,
     },
+    ...overrides,
   };
 }

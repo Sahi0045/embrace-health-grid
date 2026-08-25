@@ -1576,7 +1576,30 @@ export const recordStockMovement = createServerFn({ method: "POST" })
       .eq("item_id", data.itemId)
       .select("item_id");
 
-    if (updErr) throw new Error(`Stock update failed: ${updErr.message}`);
+    if (updErr) {
+      // Record the FAILURE. Until the builders accepted an outcome override,
+      // every audit row said "success" regardless, so a rejected stock write —
+      // including one denied by RLS — left no trace distinguishable from a
+      // successful one.
+      const failCaller = await resolveCallerForAudit();
+      await tryWriteAudit(
+        buildInventoryAudit(
+          failCaller,
+          data.itemId,
+          data.movementType,
+          data.quantity,
+          previousStock,
+          previousStock,
+          { reason: data.reason, itemName: item.name ?? data.itemId, error: updErr.message },
+          {
+            outcome: /row-level security/i.test(updErr.message) ? "unauthorized" : "failure",
+            authStatus: /row-level security/i.test(updErr.message) ? "unauthorized" : "authorized",
+            location: null,
+          },
+        ),
+      );
+      throw new Error(`Stock update failed: ${updErr.message}`);
+    }
 
     // The ledger row is written only after the level actually changed, so a
     // movement record never claims an adjustment that did not happen.

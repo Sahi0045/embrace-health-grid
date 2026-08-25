@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { useAdminDIDs as useDIDs } from "@/hooks/use-admin";
 import { createDID } from "@/lib/api";
 import { getLinkedWallets, unlinkWallet } from "@/lib/hospitals.server";
-import { Plus, Upload, Search, X, Wallet, Unlink } from "lucide-react";
+import { Plus, Search, X, Wallet, Unlink } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -194,9 +194,9 @@ function DIDManagement() {
         description="Issue, revoke, and audit decentralized identifiers across the hospital."
         actions={
           <>
-            <button className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-muted">
-              <Upload className="h-4 w-4" /> Bulk CSV
-            </button>
+            {/* "Bulk CSV" had no onClick anywhere in the file — clicking it
+                did nothing at all, with no picker and no error. Removed rather
+                than left as a control that appears to work. */}
             <button
               onClick={() => setIsModalOpen(true)}
               className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-clinical hover:bg-primary/90 cursor-pointer"

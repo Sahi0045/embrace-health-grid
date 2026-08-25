@@ -34,6 +34,63 @@ import { DutyRosterGrid, RosterShiftEntry } from "@/components/staff/DutyRosterG
 import { DepartmentWorkloadMatrix } from "@/components/staff/DepartmentWorkloadMatrix";
 import { StaffDetailPanel } from "@/components/staff/StaffDetailPanel";
 
+/**
+ * Export the roster the page is currently showing as a CSV.
+ *
+ * The button used to be `onClick={() => toast.success("Roster attendance export
+ * generated (CSV)")}` — it announced a compliance/payroll export and produced no
+ * file at all. This writes the rows actually on screen.
+ */
+function exportRosterCsv(rows: StaffMember[]): number {
+  const headers = [
+    "Name",
+    "Employee ID",
+    "DID",
+    "Role",
+    "Department",
+    "Specialty",
+    "Email",
+    "Phone",
+    "Availability",
+    "Current shift",
+    "Shift confirmed",
+  ];
+  // Quote every field and double embedded quotes, so a name containing a comma
+  // cannot shift every later column.
+  const cell = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const csv = [
+    headers.map(cell).join(","),
+    ...rows.map((r) =>
+      [
+        r.fullName,
+        r.employeeId,
+        r.primaryDid,
+        r.role,
+        r.department,
+        r.specialty,
+        r.email,
+        r.phone,
+        r.availability,
+        r.currentShift ? `${r.currentShift.shiftName} (${r.currentShift.unit})` : "",
+        r.currentShift ? (r.currentShift.confirmed ? "yes" : "no") : "",
+      ]
+        .map(cell)
+        .join(","),
+    ),
+  ].join("\n");
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `staff-roster-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+  return rows.length;
+}
+
 export const Route = createFileRoute("/admin/doctors")({
   head: () => ({
     meta: [
@@ -356,7 +413,14 @@ function StaffAvailabilityDashboard() {
                 Sync Telemetry
               </Button>
               <Button
-                onClick={() => toast.success("Roster attendance export generated (CSV)")}
+                onClick={() => {
+                  if (filteredStaff.length === 0) {
+                    toast.error("Nothing to export — no staff match the current filters");
+                    return;
+                  }
+                  const n = exportRosterCsv(filteredStaff);
+                  toast.success(`Exported ${n} staff record${n === 1 ? "" : "s"}`);
+                }}
                 size="sm"
                 className="bg-primary text-primary-foreground font-extrabold rounded-xl shadow-clinical-md shadow-primary/25 text-xs"
               >

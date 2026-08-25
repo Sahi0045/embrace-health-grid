@@ -382,10 +382,39 @@ function LaboratoryDiagnosticsPage() {
             <StaggerItem>
               <CriticalResultBanner
                 criticalResults={criticalResults}
-                onNotifyTeam={(res) => {
-                  toast.success(`Clinical alert dispatched for ${res.patient_name}`, {
-                    description: `Doctor notified regarding panic ${res.test_name} value: ${res.result_value} ${res.unit}`,
-                  });
+                onNotifyTeam={async (res) => {
+                  // This used to toast "Clinical alert dispatched … Doctor
+                  // notified" with NO server call at all — for a panic lab value.
+                  // An admin would believe the treating clinician had been told
+                  // about a critical result when nothing had been sent anywhere.
+                  //
+                  // There is no notification channel in this system
+                  // (dispatchPagerNotify always returns delivered:false, no
+                  // provider is configured). So the escalation is recorded in the
+                  // audit trail — which is real and useful — and the message says
+                  // plainly that the clinician still has to be contacted.
+                  try {
+                    const { logAuditEvent } = await import("@/lib/api");
+                    await logAuditEvent({
+                      action: "CRITICAL_RESULT_ESCALATED",
+                      resource: res.lab_id ?? res.test_name,
+                      outcome: "success",
+                      severity: "critical",
+                      metadata: {
+                        testName: res.test_name,
+                        resultValue: res.result_value,
+                        unit: res.unit,
+                        patientDid: res.patient_did,
+                      },
+                    });
+                    toast.warning("Escalation recorded — contact the clinician directly", {
+                      description: `No paging channel is configured. Panic ${res.test_name} of ${res.result_value} ${res.unit} has been logged to the audit trail, but nobody has been notified automatically.`,
+                    });
+                  } catch (err) {
+                    toast.error("Could not record the escalation", {
+                      description: err instanceof Error ? err.message : String(err),
+                    });
+                  }
                 }}
               />
             </StaggerItem>
