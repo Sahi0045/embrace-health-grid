@@ -39,10 +39,16 @@ export function DepartmentWorkloadMatrix({
       Math.floor(totalStaff * 0.3);
     const onCall = deptStaff.filter((s) => s.availability === "oncall").length || 1;
 
-    const totalPatients =
-      deptStaff.reduce((sum, s) => sum + s.workload.activePatients, 0) || onDuty * 3;
-    const maxCapacity = totalStaff * 6;
-    const capacityPercentage = Math.min(100, Math.round((totalPatients / maxCapacity) * 100));
+    // `|| onDuty * 3` invented three patients per person on duty whenever the
+    // real sum was zero, and `totalStaff * 6` invented the denominator. Neither
+    // is recorded, so the heatmap now reports what it actually knows.
+    const totalPatients = deptStaff.reduce((sum, s) => sum + (s.workload.activePatients ?? 0), 0);
+    const anyTracked = deptStaff.some((s) => s.workload.activePatients != null);
+    const maxCapacity = deptStaff.reduce((sum, s) => sum + (s.workload.maxCapacity ?? 0), 0);
+    const capacityPercentage =
+      anyTracked && maxCapacity > 0
+        ? Math.min(100, Math.round((totalPatients / maxCapacity) * 100))
+        : null;
 
     return {
       name: deptName,
@@ -71,12 +77,10 @@ export function DepartmentWorkloadMatrix({
 
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
         {departmentStats.map((dept) => {
+          // null = caseload is not tracked, so no tone is asserted.
+          const pct = dept.capacityPercentage;
           const tone =
-            dept.capacityPercentage > 85
-              ? "destructive"
-              : dept.capacityPercentage > 65
-                ? "warning"
-                : "success";
+            pct == null ? "primary" : pct > 85 ? "destructive" : pct > 65 ? "warning" : "success";
 
           return (
             <GlowCard
@@ -103,7 +107,7 @@ export function DepartmentWorkloadMatrix({
 
                   <span
                     className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-extrabold shrink-0 ${
-                      dept.capacityPercentage > 85
+                      pct != null && pct > 85
                         ? "border-destructive/30 bg-destructive/15 text-destructive"
                         : "border-success/30 bg-success/15 text-success"
                     }`}
@@ -149,10 +153,10 @@ export function DepartmentWorkloadMatrix({
                       {dept.totalPatients}
                     </span>
                     <span className="font-mono text-[11px] font-bold text-foreground">
-                      {dept.capacityPercentage}%
+                      {pct == null ? "Not tracked" : `${pct}%`}
                     </span>
                   </div>
-                  <GradientProgress value={dept.capacityPercentage} tone={tone} height={6} />
+                  {pct != null && <GradientProgress value={pct} tone={tone} height={6} />}
                 </div>
               </div>
 

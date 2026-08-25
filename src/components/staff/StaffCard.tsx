@@ -34,11 +34,14 @@ export interface StaffMember {
     confirmed: boolean;
     role: string;
   };
+  // Nullable: none of these are measured today. They were filled with constants
+  // (2 patients for anyone clocked in, capacity 8 or 10, 36 hours) and displayed
+  // as the figures an administrator judges overtime and fatigue by.
   workload: {
-    activePatients: number;
-    maxCapacity: number;
-    percentage: number;
-    hoursThisWeek: number;
+    activePatients: number | null;
+    maxCapacity: number | null;
+    percentage: number | null;
+    hoursThisWeek: number | null;
   };
   attendance?: {
     lastAction: "in" | "out";
@@ -104,12 +107,9 @@ export function StaffCard({ staff, onSelect }: StaffCardProps) {
   };
 
   // Workload tone
+  const pct = staff.workload.percentage;
   const workloadTone =
-    staff.workload.percentage > 85
-      ? "destructive"
-      : staff.workload.percentage > 60
-        ? "primary"
-        : "success";
+    pct == null ? "primary" : pct > 85 ? "destructive" : pct > 60 ? "primary" : "success";
 
   // Clean time formatting (e.g. 08:00:00 -> 08:00)
   const formatTime = (t?: string) => {
@@ -210,12 +210,15 @@ export function StaffCard({ staff, onSelect }: StaffCardProps) {
           <span className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
             <Activity className="h-3 w-3 text-primary" /> Patient Load
           </span>
+          {/* Caseload is not measured anywhere yet — it used to render a
+              hardcoded "2 / 8 (25%)" for anyone clocked in. */}
           <span className="font-mono text-[11px] font-bold text-foreground">
-            {staff.workload.activePatients} / {staff.workload.maxCapacity} (
-            {staff.workload.percentage}%)
+            {pct == null
+              ? "Not tracked"
+              : `${staff.workload.activePatients} / ${staff.workload.maxCapacity} (${pct}%)`}
           </span>
         </div>
-        <GradientProgress value={staff.workload.percentage} tone={workloadTone} height={6} />
+        {pct != null && <GradientProgress value={pct} tone={workloadTone} height={6} />}
       </div>
 
       {/* Bottom Footer Action */}

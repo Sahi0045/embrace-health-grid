@@ -18,7 +18,11 @@
  */
 
 import { createServerFn } from "@tanstack/react-start";
-import { getSupabaseServerClient, getVerifiedUser } from "./supabase.server";
+import {
+  getSupabaseServerClient,
+  getSupabaseServiceRoleClient,
+  getVerifiedUser,
+} from "./supabase.server";
 import { resolveCallerForAudit, tryWriteAudit, buildPrescriptionAudit } from "./audit-write.server";
 
 /** Reject unauthenticated callers before touching the database. */
@@ -485,6 +489,51 @@ export const requestConsentAccess = createServerFn({ method: "POST" })
   });
 
 /**
+ * Sign a consent decision and attach the proof to the row.
+ *
+ * Runs AFTER the decision is committed, and never blocks it. An unsigned
+ * decision is still a valid decision; a revoke that failed because the key
+ * service was down would be a safety problem.
+ */
+async function attachConsentSignature(grantId: string, decision: string, decidedAt: string) {
+  try {
+    const supabase = getSupabaseServerClient();
+    const { data: row } = await supabase
+      .from("consents")
+      .select("grant_id, patient_did, doctor_did, resource")
+      .eq("grant_id", grantId)
+      .maybeSingle();
+    if (!row) return;
+
+    const { signConsentDecision } = await import("./consent-signing.server");
+    const signed = await signConsentDecision({
+      grantId: row.grant_id,
+      patientDid: row.patient_did,
+      doctorDid: row.doctor_did,
+      resource: row.resource,
+      decision,
+      decidedAt,
+    });
+    if (!signed) return;
+
+    // service_role: consents_update_patient would allow this, but the write must
+    // not depend on the caller still satisfying a policy that the trigger guard
+    // deliberately narrows after a terminal transition.
+    const db = getSupabaseServiceRoleClient();
+    await db
+      .from("consents")
+      .update({
+        patient_signature: signed.signature,
+        signed_payload: signed.payload,
+        signing_public_key: signed.publicKey,
+      })
+      .eq("grant_id", grantId);
+  } catch (err) {
+    console.warn(`Consent ${grantId} left unsigned:`, (err as Error).message);
+  }
+}
+
+/**
  * Patient approves a pending request, in place.
  *
  * The approve path used to call grantConsent(), which INSERTS a fresh active row
@@ -529,6 +578,7 @@ export const approveConsentRequest = createServerFn({ method: "POST" })
       throw new Error("Request not found, already decided, or you are not the patient");
     }
 
+    await attachConsentSignature(data.grantId, "approved", now);
     return { ok: true as const, grantId: data.grantId };
   });
 
@@ -542,15 +592,17 @@ export const revokeConsent = createServerFn({ method: "POST" })
     const supabase = getSupabaseServerClient();
 
     // consents_update_patient restricts this to grants the caller issued.
+    const revokedAt = new Date().toISOString();
     const { data: updated, error } = await supabase
       .from("consents")
-      .update({ status: "revoked", revoked_at: new Date().toISOString() })
+      .update({ status: "revoked", revoked_at: revokedAt })
       .eq("grant_id", data.grantId)
       .select("grant_id");
 
     if (error) throw new Error(error.message);
     if (!updated?.length) throw new Error("Consent not found, or you are not the grantor");
 
+    await attachConsentSignature(data.grantId, "revoked", revokedAt);
     return { ok: true as const };
   });
 
@@ -1038,18 +1090,21 @@ export const denyConsent = createServerFn({ method: "POST" })
     await requireSession();
     const supabase = getSupabaseServerClient();
 
+    const rejectedAt = new Date().toISOString();
     const { data: updated, error } = await supabase
       .from("consents")
       // Was writing `revoked`, so a request the patient REFUSED became
       // indistinguishable in the history from access they granted and later
       // withdrew. The enum has `rejected` and the table has `rejected_at`; both
       // existed and were unused.
-      .update({ status: "rejected", rejected_at: new Date().toISOString() })
+      .update({ status: "rejected", rejected_at: rejectedAt })
       .eq("grant_id", data.grantId)
       .select("grant_id");
 
     if (error) throw new Error(error.message);
     if (!updated?.length) throw new Error("Consent request not found, or you are not the grantor");
+
+    await attachConsentSignature(data.grantId, "rejected", rejectedAt);
     return { ok: true as const };
   });
 

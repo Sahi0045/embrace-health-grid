@@ -22,11 +22,8 @@ import {
 } from "lucide-react";
 import { useLivePatients, useCredentials } from "@/hooks/use-api";
 import { RouteGuard } from "@/components/RouteGuard";
-import { useWallet } from "@solana/wallet-adapter-react";
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { useCurrentUser } from "@/lib/auth-context";
 import { requestWalletChallenge, verifyAndLinkWallet, updateProfile, getMe } from "@/lib/api";
-import { unlinkOwnWallet } from "@/lib/clinical.server";
 import { toast } from "sonner";
 import { useState, useEffect, useCallback } from "react";
 import {
@@ -61,109 +58,10 @@ function PatientProfile() {
   const { patients } = useLivePatients();
   const { user: currentUser, refresh: refreshUser, signOut: signOutUser } = useCurrentUser();
   const navigate = useNavigate();
-  const { publicKey, connected, signMessage } = useWallet();
-  const [verifying, setVerifying] = useState(false);
 
-  /**
-   * A linked wallet IS a verified wallet.
-   *
-   * This read `(currentUser as any)?.walletVerified === true` — but there is no
-   * `walletVerified` on CurrentUser and no `wallet_verified` column on profiles,
-   * so it was permanently `undefined`. The `as any` cast is what stopped
-   * TypeScript from saying so. The result: verification succeeded, the toast
-   * said "Wallet verified and linked!", and the card still read
-   * "Linked — Unverified" with the Verify button offered again, forever.
-   *
-   * The identity-ops `wallet-link` Edge Function writes wallet_address only
-   * after confirming the signing challenge was issued to this very session
-   * (it throws "Challenge does not belong to this session" otherwise), so there
-   * is no path that stores an unverified address. Presence is the proof.
-   */
-  const walletVerified = Boolean(currentUser?.walletAddress);
-
-  const refreshSession = useCallback(async () => {
-    try {
-      const res = await getMe();
-      if (res.user) {
-        await refreshUser();
-      }
-    } catch {
-      /* silent */
-    }
-  }, []);
-
-  useEffect(() => {
-    refreshSession();
-  }, [refreshSession]);
-
-  // ── Full wallet verification flow ─────────────────────────────────────────
-  const handleVerifyWallet = async () => {
-    if (!publicKey || !signMessage) {
-      toast.error("Please connect your Phantom wallet first");
-      return;
-    }
-    setVerifying(true);
-    try {
-      const address = publicKey.toBase58();
-      // Keep the whole challenge: the Edge Function verifies that the nonce and
-      // token were issued to THIS session, which is what binds the wallet to the
-      // account. Destructuring only `message` dropped them and every link attempt
-      // failed with "walletAddress, nonce and token are required".
-      const challenge = await requestWalletChallenge(address);
-      const message = challenge.message;
-      toast.info("Please approve the signature request in your wallet…");
-      const msgBytes = new TextEncoder().encode(message);
-      const sigBytes = await signMessage(msgBytes);
-      const sigBase64 = Buffer.from(sigBytes).toString("base64");
-      const res = await verifyAndLinkWallet(address, sigBase64, {
-        nonce: challenge.nonce,
-        expiresAt: challenge.expiresAt,
-        token: challenge.token,
-      });
-      if (res.success && res.verified && res.user) {
-        await refreshUser();
-        toast.success("Wallet verified and linked!", {
-          description: `${address.slice(0, 8)}…${address.slice(-6)} is now tied to your account.`,
-        });
-      }
-    } catch (err: any) {
-      if (err.message?.includes("User rejected") || err.message?.includes("cancelled")) {
-        toast.error("Signature cancelled", {
-          description: "You must approve the signing request in your wallet.",
-        });
-      } else if (err.code === "WALLET_ALREADY_LINKED") {
-        toast.error("That wallet is already linked to another account", {
-          description:
-            "Each wallet may belong to only one account. Connect a different wallet in Phantom, or unlink it from the other account first.",
-        });
-      } else {
-        toast.error(err.message || "Wallet verification failed");
-      }
-    } finally {
-      setVerifying(false);
-    }
-  };
-
-  const [unlinkingWallet, setUnlinkingWallet] = useState(false);
-
-  const handleUnlinkOwnWallet = async () => {
-    setUnlinkingWallet(true);
-    try {
-      const res = (await unlinkOwnWallet()) as unknown as { changed: boolean; wallet?: string };
-      await refreshUser();
-      if (res.changed) {
-        toast.success("Wallet unlinked", {
-          description: "It is now free to link to another account.",
-        });
-      } else {
-        toast.info("No wallet was linked.");
-      }
-    } catch (err: any) {
-      toast.error(err?.message || "Could not unlink your wallet");
-    } finally {
-      setUnlinkingWallet(false);
-    }
-  };
+  /* Wallet linking, verification and unlinking were removed along with the
+     wallet card. Patients use the server-held signing key issued with their DID;
+     there is nothing for them to connect, verify or unlink. */
 
   const userEmail = currentUser?.email || "";
   // Matching p.id === "pat_001" pulled in a seeded demo patient for whoever was
@@ -431,134 +329,20 @@ function PatientProfile() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <Wallet className="h-5 w-5 text-primary" />
-                  <CardTitle>Solana Wallet (optional)</CardTitle>
-                </div>
-                {walletVerified ? (
-                  <Badge className="bg-success/15 text-success border border-success/30 text-[10px] font-bold flex items-center gap-1">
-                    <CheckCircle2 className="h-3 w-3" /> Ownership Verified
-                  </Badge>
-                ) : currentUser?.walletAddress ? (
-                  <Badge
-                    variant="outline"
-                    className="bg-warning/10 text-warning-foreground border-warning/30 text-[10px]"
-                  >
-                    Linked — Unverified
-                  </Badge>
-                ) : (
-                  // Neutral, not a warning. A patient with a DID and a
-                  // server-held signing key is fully verified; an unlinked
-                  // wallet is a declined optional extra, not a deficiency.
-                  <Badge variant="outline" className="text-[10px] text-muted-foreground">
-                    Not linked
-                  </Badge>
-                )}
-              </div>
-              <CardDescription>
-                {/* The old copy — "enable blockchain features" — implied the
-                    account was missing something. It is not: your identity is
-                    the DID your hospital issued, and its signing key is held
-                    securely on the server. Anchoring is performed server-side.
-                    Linking a personal wallet is only for patients who want to
-                    hold their own key. */}
-                Optional. Your records are already protected by your hospital-issued DID — linking a
-                personal wallet is only needed if you want to hold your own signing key.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Step indicators */}
-              <div className="grid grid-cols-2 gap-2 text-center text-[10px]">
-                {[
-                  { step: "1", label: "Connect Wallet", done: connected },
-                  { step: "2", label: "Verify Ownership", done: walletVerified },
-                ].map((s) => (
-                  <div
-                    key={s.step}
-                    className={`rounded-lg border px-2 py-2 space-y-1 ${s.done ? "border-success/30 bg-success/5" : "border-border bg-muted/30"}`}
-                  >
-                    <div
-                      className={`text-base font-black ${s.done ? "text-success" : "text-muted-foreground"}`}
-                    >
-                      {s.done ? "✓" : s.step}
-                    </div>
-                    <div
-                      className={s.done ? "text-success font-semibold" : "text-muted-foreground"}
-                    >
-                      {s.label}
-                    </div>
-                  </div>
-                ))}
-              </div>
+          {/* The Solana wallet card was removed.
+              Patients no longer link a personal wallet. Every DID is issued with
+              a server-held Ed25519 signing key (20260826100000), so consent
+              decisions are signed on the patient's behalf without them
+              installing an extension or holding a seed phrase — a seed phrase is
+              not an acceptable failure mode for a medical record.
 
-              {currentUser?.walletAddress ? (
-                <div
-                  className={`rounded-lg border p-4 space-y-2 ${walletVerified ? "border-success/25 bg-success/5" : "border-warning/25 bg-warning/5"}`}
-                >
-                  <span
-                    className={`text-xs font-semibold uppercase tracking-wider ${walletVerified ? "text-success" : "text-warning-foreground"}`}
-                  >
-                    {walletVerified ? "Verified Address" : "Address (Unverified)"}
-                  </span>
-                  <div className="font-mono text-xs text-foreground select-all break-all">
-                    {currentUser.walletAddress}
-                  </div>
-                  {connected && publicKey?.toBase58() !== currentUser.walletAddress && (
-                    <div className="flex items-center gap-2 text-xs text-destructive font-medium">
-                      <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-                      Connected wallet differs from linked address.
-                    </div>
-                  )}
-                  {/* One wallet, one account. Without a way to detach it, a
-                      wallet linked to the wrong account is stuck there and its
-                      owner can never link it anywhere else. */}
-                  <button
-                    onClick={handleUnlinkOwnWallet}
-                    disabled={unlinkingWallet}
-                    className="text-xs font-semibold text-destructive hover:underline disabled:opacity-50 cursor-pointer"
-                  >
-                    {unlinkingWallet ? "Unlinking…" : "Unlink this wallet"}
-                  </button>
-                </div>
-              ) : (
-                <div className="rounded-lg border border-warning/20 bg-warning/5 p-4 text-xs text-muted-foreground">
-                  No wallet linked yet. Connect your Phantom wallet below and verify ownership.
-                </div>
-              )}
-
-              <div className="flex flex-col sm:flex-row gap-3 pt-1">
-                <WalletMultiButton className="!bg-primary hover:!bg-primary/90 !rounded-lg !h-10 !text-sm !font-semibold !px-4" />
-                {connected && !walletVerified && (
-                  <Button
-                    onClick={handleVerifyWallet}
-                    disabled={verifying}
-                    className="h-10 text-sm font-semibold gap-2"
-                  >
-                    {verifying ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" /> Verifying…
-                      </>
-                    ) : (
-                      <>
-                        <Shield className="h-4 w-4" /> Verify & Link Wallet
-                      </>
-                    )}
-                  </Button>
-                )}
-                {walletVerified && (
-                  <div className="flex items-center gap-2 rounded-xl border border-success/30 bg-success/5 px-4 h-10 text-xs font-semibold text-success">
-                    <CheckCircle2 className="h-4 w-4" /> Wallet ownership confirmed
-                  </div>
-                )}
-              </div>
-              <p className="text-[11px] text-muted-foreground">
-                Each account may link only one wallet. Each wallet may belong to only one account.
-              </p>
-            </CardContent>
-          </Card>
+              The wallet linking flow was also inert: the address was verified
+              once and then only ever read back to render a badge. Anchoring is
+              performed server-side by the anchor-record Edge Function using the
+              platform key — verified on devnet, the fee payer is
+              BiHvsmTZtisyhSsRYZv4YdwxknMWV5noTs5GAkLasZ52, never the patient's
+              wallet. Nothing signed with a linked wallet, so removing it changes
+              no behaviour. */}
 
           <Card>
             <CardHeader>

@@ -1516,6 +1516,17 @@ export async function updateEmergencyProfile(data: {
   return { success: true as const, patient: user, user };
 }
 
+/**
+ * Check that a consent decision still matches what the patient signed.
+ *
+ * Returns { signed, valid, reason } — `signed:false` for decisions recorded
+ * before consent signing existed, which is not the same as an invalid one.
+ */
+export async function verifyConsentRecord(grantId: string) {
+  const { verifyConsent } = await import("./wallets.server");
+  return await verifyConsent({ data: { grantId } });
+}
+
 export async function denyConsentRequest(grantId: string) {
   const { denyConsent } = await import("./clinical.server");
   await denyConsent({ data: { grantId } });

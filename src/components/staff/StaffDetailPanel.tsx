@@ -244,15 +244,18 @@ export function StaffDetailPanel({
                         Active Inpatients Assigned
                       </span>
                       <span className="font-mono font-bold text-foreground">
-                        {staff.workload.activePatients} of {staff.workload.maxCapacity} (
-                        {staff.workload.percentage}%)
+                        {staff.workload.percentage == null
+                          ? "Not tracked"
+                          : `${staff.workload.activePatients} of ${staff.workload.maxCapacity} (${staff.workload.percentage}%)`}
                       </span>
                     </div>
-                    <GradientProgress
-                      value={staff.workload.percentage}
-                      tone={staff.workload.percentage > 85 ? "destructive" : "primary"}
-                      height={8}
-                    />
+                    {staff.workload.percentage != null && (
+                      <GradientProgress
+                        value={staff.workload.percentage}
+                        tone={staff.workload.percentage > 85 ? "destructive" : "primary"}
+                        height={8}
+                      />
+                    )}
                   </div>
 
                   <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border/60 text-center">

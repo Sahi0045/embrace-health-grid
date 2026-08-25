@@ -66,3 +66,34 @@ export const provisionDidWallet = createServerFn({ method: "POST" })
     const wallet = await didWalletService.getOrCreateWalletForDid(data.did);
     return { ok: true as const, did: data.did, publicKey: wallet.publicKey };
   });
+
+/**
+ * Verify the signature on one consent decision.
+ *
+ * Readable by either party to the consent — the patient whose key signed it and
+ * the clinician it grants access to both have a legitimate need to check that
+ * the record has not been altered.
+ */
+export const verifyConsent = createServerFn({ method: "GET" })
+  .inputValidator((data: { grantId: string }) => {
+    if (!data?.grantId) throw new Error("grantId is required");
+    return data;
+  })
+  .handler(async ({ data }) => {
+    const user = await getVerifiedUser();
+    if (!user) throw new Error("Not authenticated");
+
+    // RLS on consents already limits the caller to grants they are party to, so
+    // reading through the request-scoped client IS the authorization check.
+    const supabase = getSupabaseServerClient();
+    const { data: visible } = await supabase
+      .from("consents")
+      .select("grant_id")
+      .eq("grant_id", data.grantId)
+      .maybeSingle();
+
+    if (!visible) throw new Error("Consent not found, or you are not a party to it");
+
+    const { verifyConsentSignature } = await import("./consent-signing.server");
+    return await verifyConsentSignature(data.grantId);
+  });
