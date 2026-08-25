@@ -344,6 +344,10 @@ function SignPage() {
   const [expandedRxId, setExpandedRxId] = useState<string | null>(null);
 
   // ── on-chain prescription history ────────────────────────────────────────
+  // Whether the linked medical report actually got written. The success panel
+  // used to claim "Report Linked" unconditionally, including on the path where
+  // createMedicalRecord failed and the toast said so.
+  const [reportLinked, setReportLinked] = useState(false);
   const [onChainHistory, setOnChainHistory] = useState<any[]>([]);
   const [loadingOnChain, setLoadingOnChain] = useState(false);
   const [onChainLoaded, setOnChainLoaded] = useState(false);
@@ -374,6 +378,7 @@ function SignPage() {
     setRecommendedFollowUp("");
     setSigned(false);
     setSignedBlock(null);
+    setReportLinked(false);
     // clear on-chain panel
     setOnChainHistory([]);
     setOnChainLoaded(false);
@@ -500,6 +505,7 @@ function SignPage() {
       })
         .then(() => {
           reportCreated = true;
+          setReportLinked(true);
         })
         .catch(() => {
           // Report creation stays best-effort — the prescription is signed and
@@ -997,9 +1003,23 @@ function SignPage() {
                     <div className="text-xs text-muted-foreground">
                       Ed25519 · {new Date().toLocaleString("en-IN")}
                     </div>
+                    {/* This said "Anchored to Ledger · Report Linked" every time.
+                        Signing issues an Ed25519 verifiable credential and stores
+                        its signature as the prescription's content hash — no
+                        Solana anchor is created anywhere in this flow, and the
+                        linked report is best-effort and can fail. */}
                     <div className="inline-flex items-center gap-1.5 rounded-full bg-success/15 px-3 py-1 text-[11px] font-semibold text-success">
-                      <Wifi className="h-3 w-3" /> Anchored to Ledger · Report Linked
+                      <Wifi className="h-3 w-3" /> Signed with your DID key
                     </div>
+                    {reportLinked ? (
+                      <div className="text-[11px] font-medium text-success">
+                        Medical report linked
+                      </div>
+                    ) : (
+                      <div className="text-[11px] font-medium text-warning-foreground">
+                        Medical report was not created — add it manually
+                      </div>
+                    )}
                     <div className="flex gap-2 justify-center pt-2">
                       <button
                         onClick={resetForm}

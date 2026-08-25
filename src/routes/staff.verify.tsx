@@ -1317,7 +1317,7 @@ function NfcContactlessReader({ status, errorText }: NfcReaderProps) {
         )}
         {status === "verifying" && (
           <div className="flex flex-col gap-1">
-            <span className="text-sm font-semibold text-primary">Resolving DID on ledger...</span>
+            <span className="text-sm font-semibold text-primary">Resolving DID…</span>
             <span className="text-xs text-muted-foreground">Verifying signature details</span>
           </div>
         )}
@@ -1326,7 +1326,9 @@ function NfcContactlessReader({ status, errorText }: NfcReaderProps) {
             <span className="text-sm font-semibold text-success">
               Contactless Identity Verified
             </span>
-            <span className="text-xs text-muted-foreground">Access log recorded on blockchain</span>
+            {/* The success path calls logAuditEvent, which writes a row to
+                audit_events. Nothing here touches a chain. */}
+            <span className="text-xs text-muted-foreground">Access recorded in the audit log</span>
           </div>
         )}
         {status === "error" && (
