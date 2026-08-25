@@ -572,9 +572,12 @@ export async function clockAttendance(payload: { action: "in" | "out"; location?
   };
 }
 
-export async function getStaffSchedule(_email?: string) {
+export async function getStaffSchedule(_email?: string, allStaff = false) {
   const { getStaffSchedule: fn } = await import("./operations.server");
-  const res = await fn();
+  // The email was never usable here — the server resolves the caller from the
+  // session, which is the only identity that can be trusted anyway. `allStaff`
+  // is the explicit opt-in for a ward-wide view.
+  const res = await fn({ data: { allStaff } });
   return {
     schedule: (res.schedule ?? []).map((s: any) => ({
       id: s.shift_id,
@@ -1116,6 +1119,7 @@ export async function getAuditEvents(
     entityType: e.what_entity_type ?? null,
     recordHash: e.record_hash ?? null,
     anchorStatus: e.anchor_status ?? null,
+    metadata: e.metadata ?? null,
   }));
   return { events, total: events.length, page: 1, size: events.length };
 }

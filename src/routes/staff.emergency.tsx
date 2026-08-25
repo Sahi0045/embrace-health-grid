@@ -88,17 +88,32 @@ function StaffEmergencyPage() {
 
   const breakGlassAuditEvents: EmergencyAccessEvent[] = useMemo(() => {
     const events = auditData?.events ?? [];
-    return events
-      .filter((e: any) => e.action === "BREAK_GLASS" || e.action === "EMERGENCY_ACCESS")
-      .slice(0, 10)
-      .map((e: any) => ({
-        id: e.id ?? e.logId ?? String(Math.random()),
-        actor: e.actor ?? e.email ?? "Unknown",
-        actorRole: e.role ?? "Clinical Staff",
-        reason: e.reason ?? e.details ?? "Emergency access",
-        at: e.loggedAt ? new Date(e.loggedAt).toLocaleString() : "—",
-        autoAudited: true,
-      }));
+    return (
+      events
+        // The Edge Function writes BREAK_GLASS_ACCESS and BREAK_GLASS_DENIED
+        // (break-glass/index.ts:44,68). This filtered on exact equality with
+        // "BREAK_GLASS" / "EMERGENCY_ACCESS", which are never written — so 60
+        // denied and 30 granted emergency PHI overrides in the live trail all
+        // showed as zero on the ED board.
+        .filter((e: any) => typeof e.action === "string" && e.action.startsWith("BREAK_GLASS"))
+        .slice(0, 10)
+        .map((e: any) => ({
+          // `id`/`logId` do not exist on an audit event; the fallback meant a
+          // fresh React key every render, remounting each card.
+          id: e.txId,
+          actor: e.actorName ?? e.actor ?? "Unknown",
+          // Real column, previously the constant "Clinical Staff".
+          actorRole: e.actorRole ?? null,
+          // The clinician's stated justification, written to metadata.reason by
+          // the Edge Function. Was the constant "Emergency access".
+          reason: e.metadata?.reason ?? null,
+          at: e.loggedAt ? new Date(e.loggedAt).toLocaleString() : "—",
+          // Was hardcoded true, badging every row "Auto-Audited". These rows ARE
+          // the audit trail, so the claim is at least true here — but derive it
+          // rather than assert it.
+          autoAudited: Boolean(e.recordHash),
+        }))
+    );
   }, [auditData]);
 
   const [bgRequests, setBgRequests] = useState<BreakGlassRequest[]>([]);
@@ -106,25 +121,33 @@ function StaffEmergencyPage() {
   useMemo(() => {
     const events = auditData?.events ?? [];
     const pending: BreakGlassRequest[] = events
-      .filter(
-        (e: any) =>
-          (e.action === "BREAK_GLASS_REQUEST" || e.action === "BREAK_GLASS") &&
-          e.status !== "denied",
-      )
+      // Same name mismatch as above. `e.status` does not exist on an audit event
+      // either — the column is `outcome` — so the old `!== "denied"` guard
+      // excluded nothing and every historical override rendered as "pending",
+      // including ones already decided.
+      .filter((e: any) => typeof e.action === "string" && e.action.startsWith("BREAK_GLASS"))
       .slice(0, 10)
-      .map((e: any) => ({
-        id: e.id ?? e.logId ?? String(Math.random()),
-        requestedBy: e.actor ?? e.email ?? "Unknown",
-        requestorRole: e.role ?? "Clinical Staff",
-        patientName: e.resource ?? "Unknown Patient",
-        patientMRN: e.mrn ?? "—",
-        reason: e.reason ?? e.details ?? "Emergency override requested",
-        urgency: "critical" as const,
-        requestedAt: e.loggedAt ? new Date(e.loggedAt).toLocaleString() : "—",
-        status: (e.status ?? "pending") as "pending" | "approved" | "denied",
-        autoApproved: e.status === "approved",
-        approvedBy: e.approvedBy,
-      }));
+      .map((e: any) => {
+        const denied = e.action === "BREAK_GLASS_DENIED" || e.outcome === "unauthorized";
+        return {
+          id: e.txId,
+          requestedBy: e.actorName ?? e.actor ?? "Unknown",
+          requestorRole: e.actorRole ?? null,
+          // `e.resource` is a resource identifier, not a person. Show the subject
+          // the event actually names, and say so when there is none.
+          patientName: e.entityId ?? e.resource ?? "Unknown subject",
+          patientMRN: null,
+          reason: e.metadata?.reason ?? null,
+          // Urgency is not modelled on an audit event; it was hardcoded
+          // "critical" so every row shouted.
+          urgency: null,
+          requestedAt: e.loggedAt ? new Date(e.loggedAt).toLocaleString() : "—",
+          // Derived from what the Edge Function actually recorded.
+          status: (denied ? "denied" : "approved") as "pending" | "approved" | "denied",
+          autoApproved: !denied,
+          approvedBy: undefined,
+        };
+      });
     setBgRequests(pending);
   }, [auditData]);
 

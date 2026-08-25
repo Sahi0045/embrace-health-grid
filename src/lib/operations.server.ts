@@ -150,20 +150,33 @@ export const clockAttendance = createServerFn({ method: "POST" })
 
 // ─── Staff schedule ─────────────────────────────────────────────────────────
 
-export const getStaffSchedule = createServerFn({ method: "GET" }).handler(async () => {
-  await requireSession();
-  const supabase = getSupabaseServerClient();
+export const getStaffSchedule = createServerFn({ method: "GET" })
+  .inputValidator((data?: { allStaff?: boolean }) => data ?? {})
+  .handler(async ({ data }) => {
+    const user = await requireSession();
+    const supabase = getSupabaseServerClient();
 
-  const { data, error } = await supabase
-    .from("staff_schedule")
-    .select(
-      "shift_id, staff_id, shift_date, role, starts_at, ends_at, unit, patient_count, notes, confirmed",
-    )
-    .order("shift_date", { ascending: true });
+    // Scope to the caller unless a ward-wide view explicitly asks otherwise.
+    //
+    // This had no staff_id filter at all, and staff_schedule_select_staff grants
+    // any doctor/staff/admin every row in the hospital — so a page titled "My
+    // Schedule" listed colleagues' shifts, and the "Scheduled Hours", "On-Call"
+    // and "Days Off" tiles summed the whole department as if they were the
+    // clinician's own.
+    let query = supabase
+      .from("staff_schedule")
+      .select(
+        "shift_id, staff_id, shift_date, role, starts_at, ends_at, unit, patient_count, notes, confirmed",
+      )
+      .order("shift_date", { ascending: true });
 
-  if (error) throw new Error(error.message);
-  return { schedule: data ?? [] };
-});
+    if (!data?.allStaff) query = query.eq("staff_id", user.id);
+
+    const { data: rows, error } = await query;
+
+    if (error) throw new Error(error.message);
+    return { schedule: rows ?? [] };
+  });
 
 /** Confirm one's own shift. RLS prevents confirming someone else's. */
 export const confirmShift = createServerFn({ method: "POST" })

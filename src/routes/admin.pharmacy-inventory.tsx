@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { RouteGuard } from "@/components/RouteGuard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -45,7 +45,6 @@ import {
   createSupplier,
   createBatch,
 } from "@/lib/pharmacy.server";
-import { useTableRefresh } from "@/lib/hooks/useTableRefresh";
 
 export const Route = createFileRoute("/admin/pharmacy-inventory")({
   head: () => ({
@@ -67,14 +66,24 @@ function AdminPharmacyInventory() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
   // Refresh triggers for real-time updates
-  const refreshInventory = useTableRefresh();
-  const refreshMovements = useTableRefresh();
+  const queryClient = useQueryClient();
+  /**
+   * Force the pharmacy queries to refetch.
+   *
+   * This replaces `useTableRefresh()`, which returned a FUNCTION that callers put
+   * into their React Query keys. React Query hashes keys with JSON.stringify,
+   * which serialises a function to `null` — so the key was constant and nothing
+   * ever refetched. Dispensing, receiving and transferring all succeeded and the
+   * screen kept showing the old quantities until a full page reload.
+   */
+  const refreshInventory = () => queryClient.invalidateQueries();
+  const refreshMovements = refreshInventory;
 
   // ─── Queries ────────────────────────────────────────────────────────────
 
   // Inventory items
   const { data: inventoryData, isLoading: inventoryLoading } = useQuery({
-    queryKey: ["inventory-items", searchTerm, statusFilter, refreshInventory],
+    queryKey: ["inventory-items", searchTerm, statusFilter],
     queryFn: () =>
       getInventoryItems({
         data: {
@@ -87,14 +96,14 @@ function AdminPharmacyInventory() {
 
   // Low-stock alerts
   const { data: lowStockData, isError: lowStockError } = useQuery({
-    queryKey: ["low-stock-alerts", refreshInventory],
+    queryKey: ["low-stock-alerts"],
     queryFn: () => getLowStockItems({ data: { resolved: false, limit: 10 } }),
     enabled: activeTab === "overview" || activeTab === "alerts",
   });
 
   // Near-expiry items
   const { data: nearExpiryData, isError: nearExpiryError } = useQuery({
-    queryKey: ["near-expiry-alerts", refreshInventory],
+    queryKey: ["near-expiry-alerts"],
     queryFn: () =>
       getNearExpiryItems({ data: { status: "near_expiry", resolved: false, limit: 10 } }),
     enabled: activeTab === "overview" || activeTab === "alerts",
@@ -102,21 +111,21 @@ function AdminPharmacyInventory() {
 
   // Expired stock
   const { data: expiredData, isError: expiredError } = useQuery({
-    queryKey: ["expired-stock", refreshInventory],
+    queryKey: ["expired-stock"],
     queryFn: () => getExpiredStock({ data: { limit: 5 } }),
     enabled: activeTab === "alerts",
   });
 
   // Suppliers
   const { data: suppliersData } = useQuery({
-    queryKey: ["suppliers", refreshInventory],
+    queryKey: ["suppliers"],
     queryFn: () => getSuppliers({ data: { active: true } }),
     enabled: activeTab === "suppliers" || activeTab === "overview",
   });
 
   // Purchase orders
   const { data: purchaseOrdersData } = useQuery({
-    queryKey: ["purchase-orders", refreshInventory],
+    queryKey: ["purchase-orders"],
     queryFn: () => getPurchaseOrders({ data: { limit: 20 } }),
     enabled: activeTab === "purchase-orders",
   });

@@ -697,7 +697,11 @@ export const getAuditEvents = createServerFn({ method: "GET" }).handler(async ()
     // "System Actor" for every row and fabricated per-event hashes from the tx
     // id rather than displaying the real record_hash.
     .select(
-      "tx_id, actor_did, resource, action, outcome, severity, logged_at, who_name, who_role, what_entity_id, what_entity_type, record_hash, anchor_status",
+      // `metadata` carries the clinician's stated justification for a
+      // break-glass override (break-glass/index.ts:71 writes `{reason}`). It was
+      // never selected, so the ED substituted the constant "Emergency access"
+      // where the real reason belongs.
+      "tx_id, actor_did, resource, action, outcome, severity, logged_at, who_name, who_role, what_entity_id, what_entity_type, record_hash, anchor_status, metadata",
     )
     .order("logged_at", { ascending: false })
     .limit(200);

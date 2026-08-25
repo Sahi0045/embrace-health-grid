@@ -1978,8 +1978,8 @@ export const getPendingDispensingPrescriptions = createServerFn({ method: "GET" 
 
     let query = supabase
       .from("prescriptions")
-      .select("*, profiles(full_name)")
-      .eq("rx_status", "dispensed")
+      .select("*")
+      .eq("status", "active")
       .order("created_at", { ascending: false });
 
     if (data.patientDid) {
@@ -2007,11 +2007,14 @@ export const getPendingDispensingPrescriptions = createServerFn({ method: "GET" 
 
           if (items && items.length > 0) {
             const item = items[0];
+            // Ordered by expiry so the first row is the FEFO batch to draw from.
             const { data: batches } = await supabase
               .from("inventory_batches")
-              .select("quantity_available")
+              .select("batch_id, quantity_available, expiry_date")
               .eq("item_id", item.item_id)
-              .eq("is_active", true);
+              .eq("is_active", true)
+              .gt("quantity_available", 0)
+              .order("expiry_date", { ascending: true, nullsFirst: false });
 
             const available =
               batches?.reduce((sum, b) => sum + (b.quantity_available || 0), 0) || 0;
@@ -2024,6 +2027,11 @@ export const getPendingDispensingPrescriptions = createServerFn({ method: "GET" 
               quantity: needed,
               available,
               isAvailable,
+              // Required by dispensePrescriptionMedications. Absent before, so
+              // the route posted itemId/batchId undefined on every line and the
+              // dispense threw "All medications failed to dispense".
+              item_id: item.item_id,
+              batch_id: batches?.[0]?.batch_id ?? null,
             });
           } else {
             allMedsAvailable = false;
@@ -2032,6 +2040,8 @@ export const getPendingDispensingPrescriptions = createServerFn({ method: "GET" 
               quantity: drug.quantity || 1,
               available: 0,
               isAvailable: false,
+              item_id: null,
+              batch_id: null,
             });
           }
         }
@@ -2041,7 +2051,10 @@ export const getPendingDispensingPrescriptions = createServerFn({ method: "GET" 
         ...rx,
         medicationDetails: medDetails,
         allMedicationsAvailable: allMedsAvailable,
-        readyToDispense: allMedsAvailable && rx.rx_status === "dispensed",
+        // Was `allMedsAvailable && rx.rx_status === "dispensed"` — a column
+        // that does not exist, ANDed with a state that would mean the script had
+        // already been handed over.
+        readyToDispense: allMedsAvailable,
       });
     }
 
