@@ -28,6 +28,7 @@ import {
   errorResponse,
   HttpError,
 } from "../_shared/deps.ts";
+import { provisionDidWallet } from "../_shared/wallet.ts";
 
 /** HMAC-SHA256 over a canonical payload, using IDENTITY_SECRET. */
 async function hmacSign(canonical: string): Promise<string> {
@@ -256,16 +257,21 @@ Deno.serve(async (req) => {
           }
         }
 
+        // Mint the DID's signing key here, beside the DID itself. Doing it only
+        // in the Node caller left any direct invocation of this function with a
+        // `pk_<uuid>` placeholder and no key material.
+        const wallet = await provisionDidWallet(db, did);
+
         await audit(db, {
           caller,
           actor_id: caller.userId,
           resource: did,
           action: "DID_CREATED",
           outcome: "success",
-          metadata: { ownerType },
+          metadata: { ownerType, keyed: Boolean(wallet) },
         });
 
-        return json({ ok: true, did });
+        return json({ ok: true, did, publicKey: wallet?.publicKey ?? null });
       }
 
       case "did-request": {

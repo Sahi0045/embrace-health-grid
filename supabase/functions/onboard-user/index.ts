@@ -39,6 +39,7 @@ import {
   errorResponse,
   HttpError,
 } from "../_shared/deps.ts";
+import { provisionDidWallet } from "../_shared/wallet.ts";
 
 type Role = "patient" | "doctor" | "staff" | "admin";
 
@@ -228,6 +229,17 @@ Deno.serve(async (req) => {
     if (linkErr)
       throw new HttpError(500, `Could not link the DID to the profile: ${linkErr.message}`);
 
+    // Give the DID a real signing key straight away. Previously this happened
+    // only in the Node wrapper that calls this function, so any caller reaching
+    // onboard-user directly produced a DID carrying a `pk_<uuid>` placeholder
+    // and no key material at all.
+    //
+    // Non-fatal by design: the account, profile, DID and credential are all
+    // created by now, and a keyless DID is recoverable with
+    // backend/scripts/provision-did-wallets.js. Reported in the response so the
+    // caller is not left assuming a key exists.
+    const wallet = await provisionDidWallet(db, did);
+
     // ── 4. identity credential ──────────────────────────────────────────────
     const credentialId = `vc_${crypto.randomUUID()}`;
     const issuedAt = new Date().toISOString();
@@ -313,6 +325,11 @@ Deno.serve(async (req) => {
       signature,
       hospitalId: targetHospitalId,
       issuerDid,
+      // The DID's Solana public key. null means no signing key could be minted
+      // (no hospital on the DID, or MASTER_ENCRYPTION_KEY is not configured for
+      // this function) — the account is still usable, but say so rather than let
+      // the caller assume one exists.
+      publicKey: wallet?.publicKey ?? null,
     });
   } catch (err) {
     // ── Roll back partial state ─────────────────────────────────────────────
