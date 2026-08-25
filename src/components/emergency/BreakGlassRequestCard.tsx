@@ -1,7 +1,20 @@
 import { motion } from "framer-motion";
-import { ShieldAlert, User, Clock, AlertTriangle, CheckCircle, XCircle } from "lucide-react";
-import { useState } from "react";
+import { ShieldAlert, User, Clock, AlertTriangle } from "lucide-react";
 
+/**
+ * One break-glass event, as recorded.
+ *
+ * This is a REVIEW surface, not an approval queue. Break-glass has no request
+ * step: supabase/functions/break-glass either performs the access and writes
+ * BREAK_GLASS_ACCESS, or refuses it and writes BREAK_GLASS_DENIED. By the time
+ * a row reaches this card the PHI has already been read or already been
+ * withheld, and audit_events is append-only.
+ *
+ * The card used to carry Approve and Deny buttons that flipped local component
+ * state and nothing else. They could not have done more: nothing consults an
+ * approval before returning records, so a button that reads as authorising
+ * emergency PHI access while gating nothing is worse than no button.
+ */
 export interface BreakGlassRequest {
   id: string;
   requestedBy: string;
@@ -22,8 +35,6 @@ export interface BreakGlassRequest {
 
 interface BreakGlassRequestCardProps {
   request: BreakGlassRequest;
-  onApprove?: (id: string) => void;
-  onDeny?: (id: string) => void;
 }
 
 const urgencyConfig = {
@@ -35,35 +46,26 @@ const urgencyConfig = {
   medium: { badge: "bg-primary/10 text-primary border-primary/20", dot: "bg-primary" },
 };
 
+// Each label states what the event was, not what someone might still do about it.
 const statusConfig = {
-  pending: { label: "Awaiting Approval", color: "text-warning-foreground" },
-  approved: { label: "Approved", color: "text-success" },
-  denied: { label: "Denied", color: "text-destructive" },
+  pending: { label: "Recorded", color: "text-muted-foreground" },
+  approved: { label: "Access Granted", color: "text-success" },
+  denied: { label: "Access Refused", color: "text-destructive" },
   expired: { label: "Expired", color: "text-muted-foreground" },
 };
 
-export function BreakGlassRequestCard({ request, onApprove, onDeny }: BreakGlassRequestCardProps) {
-  const [localStatus, setLocalStatus] = useState(request.status);
+export function BreakGlassRequestCard({ request }: BreakGlassRequestCardProps) {
+  const status = request.status;
   // Urgency is not recorded on an audit event. Render neutral rather than
   // reinstating the "critical" that used to be hardcoded for every row.
   const urg = request.urgency ? urgencyConfig[request.urgency] : null;
-  const st = statusConfig[localStatus];
-
-  const handleApprove = () => {
-    setLocalStatus("approved");
-    onApprove?.(request.id);
-  };
-
-  const handleDeny = () => {
-    setLocalStatus("denied");
-    onDeny?.(request.id);
-  };
+  const st = statusConfig[status];
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`rounded-xl border p-4 ${localStatus === "approved" ? "border-success/30 bg-success/5" : localStatus === "denied" ? "border-border bg-muted/30" : "border-destructive/25 bg-destructive/5"}`}
+      className={`rounded-xl border p-4 ${status === "approved" ? "border-success/30 bg-success/5" : status === "denied" ? "border-border bg-muted/30" : "border-destructive/25 bg-destructive/5"}`}
     >
       <div className="flex items-start gap-3">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-destructive/15">
@@ -72,7 +74,7 @@ export function BreakGlassRequestCard({ request, onApprove, onDeny }: BreakGlass
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-semibold text-foreground">Break-Glass Request</span>
+            <span className="text-sm font-semibold text-foreground">Break-Glass Access</span>
             {urg && (
               <span
                 className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${urg.badge}`}
@@ -107,33 +109,12 @@ export function BreakGlassRequestCard({ request, onApprove, onDeny }: BreakGlass
           {request.autoApproved && (
             <div className="mt-2 flex items-center gap-1.5 text-[11px] text-warning-foreground">
               <AlertTriangle className="h-3 w-3" />
-              Auto-approved due to critical emergency — full audit generated
+              Granted without prior approval — this access is already recorded
             </div>
           )}
 
-          {request.approvedBy && localStatus === "approved" && (
+          {request.approvedBy && status === "approved" && (
             <div className="mt-1 text-[11px] text-success">Approved by {request.approvedBy}</div>
-          )}
-
-          {localStatus === "pending" && (onApprove || onDeny) && (
-            <div className="mt-3 flex gap-2">
-              {onApprove && (
-                <button
-                  onClick={handleApprove}
-                  className="flex items-center gap-1.5 rounded-lg bg-success/15 px-3 py-1.5 text-xs font-semibold text-success hover:bg-success/25 transition-colors"
-                >
-                  <CheckCircle className="h-3.5 w-3.5" /> Approve
-                </button>
-              )}
-              {onDeny && (
-                <button
-                  onClick={handleDeny}
-                  className="flex items-center gap-1.5 rounded-lg bg-muted px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
-                >
-                  <XCircle className="h-3.5 w-3.5" /> Deny
-                </button>
-              )}
-            </div>
           )}
         </div>
       </div>

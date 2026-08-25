@@ -175,7 +175,7 @@ function StaffEmergencyPage() {
       <PageHeader
         eyebrow="Staff Portal"
         title="Emergency Department"
-        description="Trauma queue, incoming ambulances, and emergency override requests"
+        description="Trauma queue, incoming ambulances, and emergency override records"
       />
 
       <div className="p-6 space-y-6">
@@ -302,29 +302,19 @@ function StaffEmergencyPage() {
         <div className="rounded-xl border border-border bg-card p-4 shadow-clinical">
           <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
             <ShieldAlert className="h-4 w-4 text-destructive" />
-            Emergency Override Requests ({bgRequests.length})
+            {/* Not a queue: break-glass performs the access and records it. By
+                the time a row appears here the PHI has already been read or
+                already been withheld. */}
+            Recent Emergency Overrides ({bgRequests.length})
           </div>
           {bgRequests.length === 0 ? (
             <div className="py-6 text-center text-sm text-muted-foreground">
-              No pending override requests
+              No emergency overrides recorded
             </div>
           ) : (
             <div className="space-y-3">
               {bgRequests.map((r) => (
-                <BreakGlassRequestCard
-                  key={r.id}
-                  request={r}
-                  onApprove={(id) =>
-                    setBgRequests((prev) =>
-                      prev.map((x) => (x.id === id ? { ...x, status: "approved" as const } : x)),
-                    )
-                  }
-                  onDeny={(id) =>
-                    setBgRequests((prev) =>
-                      prev.map((x) => (x.id === id ? { ...x, status: "denied" as const } : x)),
-                    )
-                  }
-                />
+                <BreakGlassRequestCard key={r.id} request={r} />
               ))}
             </div>
           )}
