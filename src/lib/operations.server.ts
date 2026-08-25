@@ -1371,11 +1371,6 @@ const _fallbackCategories: InventoryCategory[] = [
 // each function instance has its own memory, so anything written here is visible
 // only to whichever instance happens to serve the next request. They are a
 // last-resort buffer, not a store.
-const _liveInventoryItems: InventoryItem[] = [];
-
-const _liveStockMovements: StockMovement[] = [];
-
-const _liveInventoryAlerts: InventoryAlert[] = [];
 
 /** Get all inventory items, categories, unacknowledged alerts, and aggregate KPI statistics */
 export const getInventoryData = createServerFn({ method: "GET" }).handler(async () => {
@@ -1460,51 +1455,13 @@ export const getInventoryData = createServerFn({ method: "GET" }).handler(async 
         categoryBreakdown,
       },
     };
-  } catch {
-    // Return live in-memory synchronized dataset
-    const activeAlerts = _liveInventoryAlerts.filter((a) => !a.acknowledged);
-    const now = new Date();
-    const thirtyDaysLater = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-
-    const lowStockCount = _liveInventoryItems.filter(
-      (i) =>
-        i.status === "low_stock" || i.status === "critical" || i.current_stock <= i.reorder_level,
-    ).length;
-    const criticalCount = _liveInventoryItems.filter(
-      (i) => i.status === "critical" || i.current_stock === 0,
-    ).length;
-    const nearExpiryCount = _liveInventoryItems.filter((i) => {
-      if (!i.expiry_date) return false;
-      const exp = new Date(i.expiry_date);
-      return exp <= thirtyDaysLater;
-    }).length;
-
-    const totalStockValuation = _liveInventoryItems.reduce(
-      (sum, i) => sum + (Number(i.current_stock) || 0) * (Number(i.unit_cost) || 0),
-      0,
-    );
-
-    const categoryBreakdown: Record<string, number> = {};
-    for (const cat of _fallbackCategories) {
-      categoryBreakdown[cat.category_id] = _liveInventoryItems.filter(
-        (i) => i.category_id === cat.category_id,
-      ).length;
-    }
-
-    return {
-      categories: _fallbackCategories,
-      items: _liveInventoryItems,
-      alerts: activeAlerts,
-      stats: {
-        totalItems: _liveInventoryItems.length,
-        lowStockCount,
-        criticalCount,
-        nearExpiryCount,
-        reorderPendingCount: lowStockCount,
-        totalStockValuation,
-        categoryBreakdown,
-      },
-    };
+  } catch (err) {
+    // This used to swallow ANY database error and return a module-level
+    // in-memory dataset that is declared empty and never populated across
+    // requests. A broken inventory query therefore rendered as a healthy
+    // dashboard reading 0 items, 0 alerts and a zero stock valuation, with no
+    // indication anything had failed. Surface it instead.
+    throw err instanceof Error ? err : new Error(String(err));
   }
 });
 
@@ -1518,20 +1475,15 @@ export const getStockMovements = createServerFn({ method: "GET" })
     await requireSession();
     const supabase = getSupabaseServerClient();
 
-    try {
-      const { data: movements, error } = await supabase
-        .from("stock_movements")
-        .select("*")
-        .eq("item_id", data.itemId)
-        .order("recorded_at", { ascending: false })
-        .limit(50);
+    const { data: movements, error } = await supabase
+      .from("stock_movements")
+      .select("*")
+      .eq("item_id", data.itemId)
+      .order("recorded_at", { ascending: false })
+      .limit(50);
 
-      if (error) throw error;
-      return { movements: movements || [] };
-    } catch {
-      const matched = _liveStockMovements.filter((m) => m.item_id === data.itemId);
-      return { movements: matched };
-    }
+    if (error) throw new Error(error.message);
+    return { movements: movements ?? [] };
   });
 
 /** Record a stock movement (IN / OUT / ADJUSTMENT) and update inventory item stock */
@@ -1556,7 +1508,7 @@ export const recordStockMovement = createServerFn({ method: "POST" })
 
     // Read the CURRENT stock from the database.
     //
-    // This used to look the item up in `_liveInventoryItems`, a module-level
+    // This used to look the item up in a module-level in-memory array
     // array declared empty at the top of this file and never written to, so the
     // lookup always missed and `previousStock` fell back to a literal 10. The
     // new level was then written straight back to inventory_items — recording
@@ -1612,8 +1564,6 @@ export const recordStockMovement = createServerFn({ method: "POST" })
       performed_by_name: fullName || primaryDid || "Admin Clinician",
       recorded_at: new Date().toISOString(),
     };
-    _liveStockMovements.unshift(newMovement);
-
     // Persist. The previous version wrapped these in try/catch, but supabase-js
     // RETURNS `{error}` rather than throwing, so a rejected write never reached
     // the catch: the failure was invisible and the caller still got ok:true and
@@ -1715,40 +1665,28 @@ export const updateItemReorderSettings = createServerFn({ method: "POST" })
     await requireSession();
     const supabase = getSupabaseServerClient();
 
-    // 1. Update in-memory state
-    const idx = _liveInventoryItems.findIndex((i) => i.item_id === data.itemId);
-    if (idx !== -1) {
-      _liveInventoryItems[idx] = {
-        ..._liveInventoryItems[idx],
-        reorder_level:
-          data.reorderLevel !== undefined
-            ? data.reorderLevel
-            : _liveInventoryItems[idx].reorder_level,
-        reorder_qty:
-          data.reorderQty !== undefined ? data.reorderQty : _liveInventoryItems[idx].reorder_qty,
-        storage_location:
-          data.storageLocation !== undefined
-            ? data.storageLocation
-            : _liveInventoryItems[idx].storage_location,
-        supplier: data.supplier !== undefined ? data.supplier : _liveInventoryItems[idx].supplier,
-        unit_cost: data.unitCost !== undefined ? data.unitCost : _liveInventoryItems[idx].unit_cost,
-      };
-    }
+    // The database is the record. This used to mutate a module-level array
+    // first and then "persist to Supabase if table exists", logging any failure
+    // as a console warning and returning ok:true regardless — so a reorder level
+    // the pharmacy relies on could be reported as saved and not be.
+    const updatePayload: Record<string, any> = {
+      updated_at: new Date().toISOString(),
+    };
+    if (data.reorderLevel !== undefined) updatePayload.reorder_level = data.reorderLevel;
+    if (data.reorderQty !== undefined) updatePayload.reorder_qty = data.reorderQty;
+    if (data.storageLocation !== undefined) updatePayload.storage_location = data.storageLocation;
+    if (data.supplier !== undefined) updatePayload.supplier = data.supplier;
+    if (data.unitCost !== undefined) updatePayload.unit_cost = data.unitCost;
 
-    // 2. Persist to Supabase if table exists
-    try {
-      const updatePayload: Record<string, any> = {
-        updated_at: new Date().toISOString(),
-      };
-      if (data.reorderLevel !== undefined) updatePayload.reorder_level = data.reorderLevel;
-      if (data.reorderQty !== undefined) updatePayload.reorder_qty = data.reorderQty;
-      if (data.storageLocation !== undefined) updatePayload.storage_location = data.storageLocation;
-      if (data.supplier !== undefined) updatePayload.supplier = data.supplier;
-      if (data.unitCost !== undefined) updatePayload.unit_cost = data.unitCost;
+    const { data: updatedItem, error: itemErr } = await supabase
+      .from("inventory_items")
+      .update(updatePayload)
+      .eq("item_id", data.itemId)
+      .select("item_id");
 
-      await supabase.from("inventory_items").update(updatePayload).eq("item_id", data.itemId);
-    } catch (err: any) {
-      console.warn("Supabase persistence notice:", err?.message || err);
+    if (itemErr) throw new Error(itemErr.message);
+    if (!updatedItem?.length) {
+      throw new Error("Inventory item not found, or you do not have access to it");
     }
 
     return { ok: true as const, itemId: data.itemId };
@@ -1764,20 +1702,17 @@ export const acknowledgeInventoryAlert = createServerFn({ method: "POST" })
     await requireSession();
     const supabase = getSupabaseServerClient();
 
-    // 1. Update in-memory state
-    const alertIdx = _liveInventoryAlerts.findIndex((a) => a.alert_id === data.alertId);
-    if (alertIdx !== -1) {
-      _liveInventoryAlerts[alertIdx].acknowledged = true;
-    }
+    // An acknowledgement that is not persisted is not an acknowledgement: the
+    // alert reappears for the next person and the board says it was handled.
+    const { data: acked, error: ackErr } = await supabase
+      .from("inventory_alerts")
+      .update({ acknowledged: true })
+      .eq("alert_id", data.alertId)
+      .select("alert_id");
 
-    // 2. Persist to Supabase if table exists
-    try {
-      await supabase
-        .from("inventory_alerts")
-        .update({ acknowledged: true })
-        .eq("alert_id", data.alertId);
-    } catch (err: any) {
-      console.warn("Supabase alert acknowledgement notice:", err?.message || err);
+    if (ackErr) throw new Error(ackErr.message);
+    if (!acked?.length) {
+      throw new Error("Alert not found, or you do not have access to it");
     }
 
     return { ok: true as const, alertId: data.alertId };
@@ -2113,31 +2048,44 @@ export const acknowledgeCentralAlert = createServerFn({ method: "POST" })
     const supabase = getSupabaseServerClient();
     const now = new Date().toISOString();
 
+    // Same shape as resolveCentralAlert below: every branch writes to the
+    // database and confirms a row changed. None of them checked the returned
+    // error, an unknown sourceTable fell through writing nothing at all, and the
+    // inventory branch additionally touched a module-level array — each path
+    // still returning ok:true, so the board reported the alert acknowledged and
+    // it reappeared on the next refresh.
+    let updated: { length: number } | null = null;
+    let error: { message: string } | null = null;
+
     if (data.sourceTable === "emergency_broadcasts") {
-      await supabase
+      ({ data: updated, error } = await supabase
         .from("emergency_broadcasts")
         .update({
           status: "acknowledged",
           acknowledged_by: fullName || user.email,
           acknowledged_at: now,
         })
-        .eq("broadcast_id", data.alertId);
+        .eq("broadcast_id", data.alertId)
+        .select("broadcast_id"));
     } else if (data.sourceTable === "fraud_alerts") {
-      await supabase
+      ({ data: updated, error } = await supabase
         .from("fraud_alerts")
         .update({ status: "investigating" })
-        .eq("alert_id", data.alertId);
+        .eq("alert_id", data.alertId)
+        .select("alert_id"));
     } else if (data.sourceTable === "inventory_alerts") {
-      const alertIdx = _liveInventoryAlerts.findIndex(
-        (a) => a.alert_id === data.alertId || a.item_id === data.alertId,
-      );
-      if (alertIdx !== -1) {
-        _liveInventoryAlerts[alertIdx].acknowledged = true;
-      }
-      await supabase
+      ({ data: updated, error } = await supabase
         .from("inventory_alerts")
         .update({ acknowledged: true })
-        .eq("alert_id", data.alertId);
+        .eq("alert_id", data.alertId)
+        .select("alert_id"));
+    } else {
+      throw new Error(`Unknown alert source: ${data.sourceTable}`);
+    }
+
+    if (error) throw new Error(error.message);
+    if (!updated?.length) {
+      throw new Error("Alert not found, or you do not have permission to acknowledge it");
     }
 
     return { ok: true as const, alertId: data.alertId, acknowledgedAt: now };
@@ -2277,10 +2225,6 @@ export const getCentralAlertStats = createServerFn({ method: "GET" }).handler(
 // ─── Laboratory & Diagnostics Management ────────────────────────────────────
 
 // In-memory synchronized state buffer (ensures high availability and zero downtime)
-const _liveLabOrders: LabOrderRecord[] = [];
-const _liveLabSamples: LabSampleRecord[] = [];
-const _liveLabResults: LabResultRecord[] = [];
-const _liveRadiologyOrders: RadiologyOrderRecord[] = [];
 
 /**
  * Fetch all Laboratory, Samples, Results, and Radiology datasets directly from Supabase.
@@ -2496,10 +2440,9 @@ export const getLaboratoryData = createServerFn({ method: "GET" }).handler(async
       };
     });
 
-    // `mapped.length > 0 ? mapped : _live…` falls through to a module-level array
-    // that is declared empty and never populated across requests, so the branch
-    // only ever swapped a real empty result for a stale in-process one. Use what
-    // the database returned; empty is a real answer.
+    // A `mapped.length > 0 ? mapped : _live…` fallback here used to swap a real
+    // empty result for a stale in-process one. Use what the database returned;
+    // empty is a real answer.
     const orders = mappedOrders;
     const samples = mappedSamples;
     const results = mappedResults;
@@ -2633,21 +2576,15 @@ export const updateSampleStatus = createServerFn({ method: "POST" })
     if (data.status === "processing") updatePayload.processed_at = nowIso;
     if (data.status === "reported") updatePayload.reported_at = nowIso;
 
-    try {
-      const { error } = await supabase
-        .from("lab_samples")
-        .update(updatePayload)
-        .eq("sample_id", data.sampleId);
-      if (error) throw error;
-    } catch {
-      const idx = _liveLabSamples.findIndex((s) => s.sample_id === data.sampleId);
-      if (idx !== -1) {
-        _liveLabSamples[idx].collection_status = data.status;
-        if (data.notes) _liveLabSamples[idx].notes = data.notes;
-        if (data.status === "lab_received") _liveLabSamples[idx].received_at = nowIso;
-        if (data.status === "processing") _liveLabSamples[idx].processed_at = nowIso;
-        if (data.status === "reported") _liveLabSamples[idx].reported_at = nowIso;
-      }
+    const { data: updatedSample, error: sampleErr } = await supabase
+      .from("lab_samples")
+      .update(updatePayload)
+      .eq("sample_id", data.sampleId)
+      .select("sample_id");
+
+    if (sampleErr) throw new Error(sampleErr.message);
+    if (!updatedSample?.length) {
+      throw new Error("Sample not found, or you do not have access to it");
     }
 
     // Write audit record
@@ -2708,23 +2645,15 @@ export const updateRadiologyOrderStatus = createServerFn({ method: "POST" })
       if (data.reportedBy) updatePayload.reported_by = data.reportedBy;
     }
 
-    try {
-      const { error } = await supabase
-        .from("radiology_orders")
-        .update(updatePayload)
-        .eq("order_id", data.orderId);
-      if (error) throw error;
-    } catch {
-      const idx = _liveRadiologyOrders.findIndex((r) => r.order_id === data.orderId);
-      if (idx !== -1) {
-        _liveRadiologyOrders[idx].status = data.status;
-        if (data.status === "completed") _liveRadiologyOrders[idx].completed_at = nowIso;
-        if (data.reportText) {
-          _liveRadiologyOrders[idx].report_text = data.reportText;
-          _liveRadiologyOrders[idx].reported_at = nowIso;
-          if (data.reportedBy) _liveRadiologyOrders[idx].reported_by = data.reportedBy;
-        }
-      }
+    const { data: updatedOrder, error: radErr } = await supabase
+      .from("radiology_orders")
+      .update(updatePayload)
+      .eq("order_id", data.orderId)
+      .select("order_id");
+
+    if (radErr) throw new Error(radErr.message);
+    if (!updatedOrder?.length) {
+      throw new Error("Radiology order not found, or you do not have access to it");
     }
 
     // Write audit record
@@ -2823,36 +2752,35 @@ export const orderLabTestDirect = createServerFn({ method: "POST" })
       created_at: nowIso,
     };
 
-    try {
-      await supabase.from("lab_orders").insert({
-        order_id: newOrder.order_id,
-        patient_did: newOrder.patient_did,
-        ordered_by: newOrder.ordered_by,
-        hospital_id: newOrder.hospital_id,
-        test_name: newOrder.test_name,
-        test_category: newOrder.test_category,
-        priority: newOrder.priority,
-        clinical_notes: newOrder.clinical_notes,
-        specimen_type: newOrder.specimen_type,
-        status: newOrder.status,
-      });
+    const { error: orderErr } = await supabase.from("lab_orders").insert({
+      order_id: newOrder.order_id,
+      patient_did: newOrder.patient_did,
+      ordered_by: newOrder.ordered_by,
+      hospital_id: newOrder.hospital_id,
+      test_name: newOrder.test_name,
+      test_category: newOrder.test_category,
+      priority: newOrder.priority,
+      clinical_notes: newOrder.clinical_notes,
+      specimen_type: newOrder.specimen_type,
+      status: newOrder.status,
+    });
+    if (orderErr) throw new Error(orderErr.message);
 
-      await supabase.from("lab_samples").insert({
-        sample_id: newSample.sample_id,
-        order_id: newSample.order_id,
-        patient_did: newSample.patient_did,
-        hospital_id: newSample.hospital_id,
-        sample_type: newSample.sample_type,
-        barcode: newSample.barcode,
-        collection_status: newSample.collection_status,
-        collected_by: newSample.collected_by,
-        container_type: newSample.container_type,
-        notes: newSample.notes,
-      });
-    } catch {
-      _liveLabOrders.unshift(newOrder);
-      _liveLabSamples.unshift(newSample);
-    }
+    const { error: sampleInsertErr } = await supabase.from("lab_samples").insert({
+      sample_id: newSample.sample_id,
+      order_id: newSample.order_id,
+      patient_did: newSample.patient_did,
+      hospital_id: newSample.hospital_id,
+      sample_type: newSample.sample_type,
+      barcode: newSample.barcode,
+      collection_status: newSample.collection_status,
+      collected_by: newSample.collected_by,
+      container_type: newSample.container_type,
+      notes: newSample.notes,
+    });
+    if (sampleInsertErr) throw new Error(sampleInsertErr.message);
+    // Errors are returned, not thrown, so the old `catch` never fired on a
+    // failed insert — the order was silently dropped and reported as created.
 
     // Write audit record
     const auditCaller = await resolveCallerForAudit();
@@ -2935,29 +2863,30 @@ export const recordLabResult = createServerFn({ method: "POST" })
       created_at: nowIso,
     };
 
-    try {
-      await supabase.from("lab_results").insert({
-        lab_id: newResult.lab_id,
-        patient_did: newResult.patient_did,
-        test_name: newResult.test_name,
-        result_value: newResult.result_value,
-        unit: newResult.unit,
-        reference_range: newResult.reference_range,
-        status: newResult.status,
-        is_critical: newResult.is_critical,
-        critical_flag: newResult.critical_flag,
-        verified_by: newResult.verified_by,
-        resulted_at: newResult.resulted_at,
-      });
+    const { error: resultErr } = await supabase.from("lab_results").insert({
+      lab_id: newResult.lab_id,
+      patient_did: newResult.patient_did,
+      test_name: newResult.test_name,
+      result_value: newResult.result_value,
+      unit: newResult.unit,
+      reference_range: newResult.reference_range,
+      status: newResult.status,
+      is_critical: newResult.is_critical,
+      critical_flag: newResult.critical_flag,
+      verified_by: newResult.verified_by,
+      resulted_at: newResult.resulted_at,
+    });
+    // A lab result that fails to persist must not be reported as recorded. The
+    // old fallback pushed it onto a module-level array, so a clinician saw the
+    // result filed while the database held nothing.
+    if (resultErr) throw new Error(resultErr.message);
 
-      if (data.orderId) {
-        await supabase
-          .from("lab_orders")
-          .update({ status: "completed", completed_at: nowIso, lab_id: labId })
-          .eq("order_id", data.orderId);
-      }
-    } catch {
-      _liveLabResults.unshift(newResult);
+    if (data.orderId) {
+      const { error: orderUpdErr } = await supabase
+        .from("lab_orders")
+        .update({ status: "completed", completed_at: nowIso, lab_id: labId })
+        .eq("order_id", data.orderId);
+      if (orderUpdErr) throw new Error(orderUpdErr.message);
     }
 
     // Write audit record
@@ -2991,12 +2920,6 @@ export const recordLabResult = createServerFn({ method: "POST" })
 // ─── Cafeteria, Kitchen Stock & Dietary Management ─────────────────────────
 
 // In-memory state buffers for fallback high-availability
-const _liveMenuItems: CafeteriaMenuItem[] = [];
-const _liveKitchenStock: KitchenStockItem[] = [];
-const _liveDietaryRequirements: DietaryRequirement[] = [];
-const _liveMealDeliveries: MealDeliveryRecord[] = [];
-const _liveCafeteriaVendors: CafeteriaVendor[] = [];
-const _liveFoodWastageLogs: FoodWastageLog[] = [];
 
 /**
  * Fetch all Cafeteria datasets: Menu, Stock, Dietary, Deliveries, Vendors, Wastage.
@@ -3182,12 +3105,15 @@ export const getCafeteriaData = createServerFn({ method: "GET" }).handler(async 
       created_at: w.created_at,
     }));
 
-    const menu = mappedMenu.length > 0 ? mappedMenu : _liveMenuItems;
-    const stock = mappedStock.length > 0 ? mappedStock : _liveKitchenStock;
-    const dietary = mappedDietary.length > 0 ? mappedDietary : _liveDietaryRequirements;
-    const deliveries = mappedDeliveries.length > 0 ? mappedDeliveries : _liveMealDeliveries;
-    const vendors = mappedVendors.length > 0 ? mappedVendors : _liveCafeteriaVendors;
-    const wastage = mappedWastage.length > 0 ? mappedWastage : _liveFoodWastageLogs;
+    // A `mapped.length > 0 ? mapped : _live…` fallback here swapped a real empty
+    // result for a stale in-process one that a different serverless instance
+    // would not even hold. Empty is a real answer.
+    const menu = mappedMenu;
+    const stock = mappedStock;
+    const dietary = mappedDietary;
+    const deliveries = mappedDeliveries;
+    const vendors = mappedVendors;
+    const wastage = mappedWastage;
 
     // KPI Metrics calculation
     const activeMenuItems = menu.filter((m) => m.status === "active").length;
@@ -3270,23 +3196,20 @@ export const createMenuItem = createServerFn({ method: "POST" })
       updated_at: nowIso,
     };
 
-    try {
-      await supabase.from("cafeteria_menu_items").insert({
-        menu_item_id: newItem.menu_item_id,
-        hospital_id: newItem.hospital_id,
-        name: newItem.name,
-        category: newItem.category,
-        dietary_tags: newItem.dietary_tags,
-        available_for: newItem.available_for,
-        price: newItem.price,
-        calories: newItem.calories,
-        status: newItem.status,
-        description: newItem.description,
-        allergens: newItem.allergens,
-      });
-    } catch {
-      _liveMenuItems.unshift(newItem);
-    }
+    const { error: menuErr } = await supabase.from("cafeteria_menu_items").insert({
+      menu_item_id: newItem.menu_item_id,
+      hospital_id: newItem.hospital_id,
+      name: newItem.name,
+      category: newItem.category,
+      dietary_tags: newItem.dietary_tags,
+      available_for: newItem.available_for,
+      price: newItem.price,
+      calories: newItem.calories,
+      status: newItem.status,
+      description: newItem.description,
+      allergens: newItem.allergens,
+    });
+    if (menuErr) throw new Error(menuErr.message);
 
     const auditCaller = await resolveCallerForAudit();
     await tryWriteAudit({
@@ -3328,17 +3251,15 @@ export const updateMenuItemStatus = createServerFn({ method: "POST" })
     const supabase = getSupabaseServerClient();
     const nowIso = new Date().toISOString();
 
-    try {
-      await supabase
-        .from("cafeteria_menu_items")
-        .update({ status: data.status, updated_at: nowIso })
-        .eq("menu_item_id", data.menuItemId);
-    } catch {
-      const idx = _liveMenuItems.findIndex((m) => m.menu_item_id === data.menuItemId);
-      if (idx !== -1) {
-        _liveMenuItems[idx].status = data.status;
-        _liveMenuItems[idx].updated_at = nowIso;
-      }
+    const { data: updatedMenu, error: menuStatusErr } = await supabase
+      .from("cafeteria_menu_items")
+      .update({ status: data.status, updated_at: nowIso })
+      .eq("menu_item_id", data.menuItemId)
+      .select("menu_item_id");
+
+    if (menuStatusErr) throw new Error(menuStatusErr.message);
+    if (!updatedMenu?.length) {
+      throw new Error("Menu item not found, or you do not have access to it");
     }
 
     const auditCaller = await resolveCallerForAudit();
@@ -3389,18 +3310,15 @@ export const updateDeliveryStatus = createServerFn({ method: "POST" })
       updatePayload.delivered_at = nowIso;
     }
 
-    try {
-      await supabase
-        .from("meal_deliveries")
-        .update(updatePayload)
-        .eq("delivery_id", data.deliveryId);
-    } catch {
-      const idx = _liveMealDeliveries.findIndex((d) => d.delivery_id === data.deliveryId);
-      if (idx !== -1) {
-        _liveMealDeliveries[idx].delivery_status = data.status;
-        if (data.status === "delivered") _liveMealDeliveries[idx].delivered_at = nowIso;
-        _liveMealDeliveries[idx].updated_at = nowIso;
-      }
+    const { data: updatedDelivery, error: deliveryErr } = await supabase
+      .from("meal_deliveries")
+      .update(updatePayload)
+      .eq("delivery_id", data.deliveryId)
+      .select("delivery_id");
+
+    if (deliveryErr) throw new Error(deliveryErr.message);
+    if (!updatedDelivery?.length) {
+      throw new Error("Meal delivery not found, or you do not have access to it");
     }
 
     const auditCaller = await resolveCallerForAudit();
@@ -3484,24 +3402,21 @@ export const addKitchenStockItem = createServerFn({ method: "POST" })
       updated_at: nowIso,
     };
 
-    try {
-      await supabase.from("kitchen_stock").insert({
-        stock_id: newStock.stock_id,
-        hospital_id: newStock.hospital_id,
-        item_name: newStock.item_name,
-        category: newStock.category,
-        quantity: newStock.quantity,
-        unit: newStock.unit,
-        reorder_level: newStock.reorder_level,
-        unit_cost: newStock.unit_cost,
-        expiry_date: newStock.expiry_date,
-        supplier: newStock.supplier,
-        storage_location: newStock.storage_location,
-        status: newStock.status,
-      });
-    } catch {
-      _liveKitchenStock.unshift(newStock);
-    }
+    const { error: kitchenErr } = await supabase.from("kitchen_stock").insert({
+      stock_id: newStock.stock_id,
+      hospital_id: newStock.hospital_id,
+      item_name: newStock.item_name,
+      category: newStock.category,
+      quantity: newStock.quantity,
+      unit: newStock.unit,
+      reorder_level: newStock.reorder_level,
+      unit_cost: newStock.unit_cost,
+      expiry_date: newStock.expiry_date,
+      supplier: newStock.supplier,
+      storage_location: newStock.storage_location,
+      status: newStock.status,
+    });
+    if (kitchenErr) throw new Error(kitchenErr.message);
 
     const auditCaller = await resolveCallerForAudit();
     await tryWriteAudit({
@@ -3573,22 +3488,19 @@ export const createCafeteriaVendor = createServerFn({ method: "POST" })
       updated_at: nowIso,
     };
 
-    try {
-      await supabase.from("cafeteria_vendors").insert({
-        vendor_id: newVendor.vendor_id,
-        hospital_id: newVendor.hospital_id,
-        name: newVendor.name,
-        contact_person: newVendor.contact_person,
-        contact_email: newVendor.contact_email,
-        contact_phone: newVendor.contact_phone,
-        contract_status: newVendor.contract_status,
-        supplied_categories: newVendor.supplied_categories,
-        contract_expiry: newVendor.contract_expiry,
-        address: newVendor.address,
-      });
-    } catch {
-      _liveCafeteriaVendors.unshift(newVendor);
-    }
+    const { error: vendorErr } = await supabase.from("cafeteria_vendors").insert({
+      vendor_id: newVendor.vendor_id,
+      hospital_id: newVendor.hospital_id,
+      name: newVendor.name,
+      contact_person: newVendor.contact_person,
+      contact_email: newVendor.contact_email,
+      contact_phone: newVendor.contact_phone,
+      contract_status: newVendor.contract_status,
+      supplied_categories: newVendor.supplied_categories,
+      contract_expiry: newVendor.contract_expiry,
+      address: newVendor.address,
+    });
+    if (vendorErr) throw new Error(vendorErr.message);
 
     const auditCaller = await resolveCallerForAudit();
     await tryWriteAudit({
@@ -3630,17 +3542,15 @@ export const updateVendorContract = createServerFn({ method: "POST" })
     const supabase = getSupabaseServerClient();
     const nowIso = new Date().toISOString();
 
-    try {
-      await supabase
-        .from("cafeteria_vendors")
-        .update({ contract_status: data.status, updated_at: nowIso })
-        .eq("vendor_id", data.vendorId);
-    } catch {
-      const idx = _liveCafeteriaVendors.findIndex((v) => v.vendor_id === data.vendorId);
-      if (idx !== -1) {
-        _liveCafeteriaVendors[idx].contract_status = data.status;
-        _liveCafeteriaVendors[idx].updated_at = nowIso;
-      }
+    const { data: updatedVendor, error: vendorStatusErr } = await supabase
+      .from("cafeteria_vendors")
+      .update({ contract_status: data.status, updated_at: nowIso })
+      .eq("vendor_id", data.vendorId)
+      .select("vendor_id");
+
+    if (vendorStatusErr) throw new Error(vendorStatusErr.message);
+    if (!updatedVendor?.length) {
+      throw new Error("Vendor not found, or you do not have access to it");
     }
 
     const auditCaller = await resolveCallerForAudit();
@@ -3713,22 +3623,19 @@ export const logFoodWastage = createServerFn({ method: "POST" })
       created_at: nowIso,
     };
 
-    try {
-      await supabase.from("food_wastage_logs").insert({
-        log_id: newLog.log_id,
-        hospital_id: newLog.hospital_id,
-        date: newLog.date,
-        meal_type: newLog.meal_type,
-        item_name: newLog.item_name,
-        quantity_wasted: newLog.quantity_wasted,
-        unit: newLog.unit,
-        cost_impact: newLog.cost_impact,
-        reason: newLog.reason,
-        logged_by: newLog.logged_by,
-      });
-    } catch {
-      _liveFoodWastageLogs.unshift(newLog);
-    }
+    const { error: wastageErr } = await supabase.from("food_wastage_logs").insert({
+      log_id: newLog.log_id,
+      hospital_id: newLog.hospital_id,
+      date: newLog.date,
+      meal_type: newLog.meal_type,
+      item_name: newLog.item_name,
+      quantity_wasted: newLog.quantity_wasted,
+      unit: newLog.unit,
+      cost_impact: newLog.cost_impact,
+      reason: newLog.reason,
+      logged_by: newLog.logged_by,
+    });
+    if (wastageErr) throw new Error(wastageErr.message);
 
     const auditCaller = await resolveCallerForAudit();
     await tryWriteAudit({
@@ -3775,19 +3682,15 @@ export const updateDietaryRequirementStatus = createServerFn({ method: "POST" })
     const supabase = getSupabaseServerClient();
     const nowIso = new Date().toISOString();
 
-    try {
-      await supabase
-        .from("dietary_requirements")
-        .update({ meal_plan_status: data.status, updated_at: nowIso })
-        .eq("requirement_id", data.requirementId);
-    } catch {
-      const idx = _liveDietaryRequirements.findIndex(
-        (d) => d.requirement_id === data.requirementId,
-      );
-      if (idx !== -1) {
-        _liveDietaryRequirements[idx].meal_plan_status = data.status;
-        _liveDietaryRequirements[idx].updated_at = nowIso;
-      }
+    const { data: updatedDietary, error: dietaryErr } = await supabase
+      .from("dietary_requirements")
+      .update({ meal_plan_status: data.status, updated_at: nowIso })
+      .eq("requirement_id", data.requirementId)
+      .select("requirement_id");
+
+    if (dietaryErr) throw new Error(dietaryErr.message);
+    if (!updatedDietary?.length) {
+      throw new Error("Dietary requirement not found, or you do not have access to it");
     }
 
     const auditCaller = await resolveCallerForAudit();

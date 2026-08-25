@@ -24,7 +24,7 @@ import {
   updateProfile,
   API_BASE_URL,
   requestDID,
-  getDIDRequests,
+  getStaffRequests,
   getMe,
   getCertificationsByStaffDid,
 } from "@/lib/api";
@@ -81,20 +81,28 @@ function StaffProfile() {
   }, []);
 
   const checkPendingRequest = useCallback(async () => {
-    if (!userEmail) return;
     try {
-      const res = await getDIDRequests();
-      if (res?.requests) {
-        const match = res.requests.find(
-          (r: any) =>
-            r.ownerEmail?.toLowerCase() === userEmail.toLowerCase() && r.status === "pending",
-        );
-        setPendingReq(match || null);
-      }
+      // getStaffRequests, not getDIDRequests.
+      //
+      // getDIDRequests calls the identity-ops "list-did-requests" op, which is
+      // gated on caller.role === "admin" — so for the staff member whose profile
+      // this is, it threw 403 every time and the empty catch below swallowed it.
+      // It then matched on `ownerEmail`, which that mapper does not return
+      // either. Between the two, a pending DID request was never detected and
+      // the page kept offering "Request DID" to someone who already had one
+      // waiting.
+      //
+      // getStaffRequests is RLS-scoped to the caller's own rows, which is
+      // exactly the question being asked here.
+      const res = await getStaffRequests();
+      const match = (res?.requests ?? []).find(
+        (r: any) => r.type === "did-issuance" && r.status === "pending",
+      );
+      setPendingReq(match || null);
     } catch {
       /* ignore */
     }
-  }, [userEmail]);
+  }, []);
 
   const handleRequestDIDClick = async () => {
     // A DID is an identity credential. Falling back to the demo record here

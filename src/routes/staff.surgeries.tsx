@@ -120,12 +120,15 @@ function SurgeriesPage() {
                             <span className="font-medium text-foreground">{s.surgeon}</span>
                             <span className="text-muted-foreground">(Surgeon)</span>
                           </div>
-                          <div className="flex items-center gap-1.5">
-                            <User className="h-3 w-3 text-chart-2" />
-                            <span className="font-medium text-foreground">
-                              {s.anesthesiologist}
-                            </span>
-                          </div>
+                          {s.anesthesiologist && (
+                            <div className="flex items-center gap-1.5">
+                              <User className="h-3 w-3 text-chart-2" />
+                              <span className="font-medium text-foreground">
+                                {s.anesthesiologist}
+                              </span>
+                              <span className="text-muted-foreground">(Anaesthetist)</span>
+                            </div>
+                          )}
                           {(s.nurses || []).map((n: string) => (
                             <div key={n} className="flex items-center gap-1.5">
                               <User className="h-3 w-3 text-muted-foreground" />
@@ -134,22 +137,27 @@ function SurgeriesPage() {
                           ))}
                         </div>
                       </div>
-                      <div className="sm:col-span-2">
-                        <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1.5">
-                          Equipment
+                      {/* The surgeries table has no equipment column, so this
+                          heading sat above an empty list on every card. Rendered
+                          only when there is something to list. */}
+                      {(s.equipment || []).length > 0 && (
+                        <div className="sm:col-span-2">
+                          <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1.5">
+                            Equipment
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {(s.equipment || []).map((e: string) => (
+                              <span
+                                key={e}
+                                className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-[10px] font-medium text-foreground"
+                              >
+                                <Wrench className="h-2.5 w-2.5" />
+                                {e}
+                              </span>
+                            ))}
+                          </div>
                         </div>
-                        <div className="flex flex-wrap gap-1.5">
-                          {(s.equipment || []).map((e: string) => (
-                            <span
-                              key={e}
-                              className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-[10px] font-medium text-foreground"
-                            >
-                              <Wrench className="h-2.5 w-2.5" />
-                              {e}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
+                      )}
                     </div>
                   </motion.div>
                 </StaggerItem>
