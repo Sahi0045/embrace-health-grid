@@ -24,7 +24,7 @@ import { useLivePatients, useCredentials } from "@/hooks/use-api";
 import { RouteGuard } from "@/components/RouteGuard";
 import { DidKeypairCard } from "@/components/DidKeypairCard";
 import { useCurrentUser } from "@/lib/auth-context";
-import { requestWalletChallenge, verifyAndLinkWallet, updateProfile, getMe } from "@/lib/api";
+import { updateProfile, getMe } from "@/lib/api";
 import { toast } from "sonner";
 import { useState, useEffect, useCallback } from "react";
 import {

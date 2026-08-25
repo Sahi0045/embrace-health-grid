@@ -450,6 +450,7 @@ function SignPage() {
       return;
     }
     setSigning(true);
+    let reportCreated = false;
     try {
       // 1. Sign the prescription
       const res = (await signPrescription({
@@ -496,16 +497,24 @@ function SignPage() {
           (followUpDate
             ? `Follow-up on ${new Date(followUpDate).toLocaleDateString("en-IN")}`
             : ""),
-      }).catch(() => {
-        /* report creation is best-effort */
-      });
+      })
+        .then(() => {
+          reportCreated = true;
+        })
+        .catch(() => {
+          // Report creation stays best-effort — the prescription is signed and
+          // must not be rolled back for it — but the outcome is now tracked so
+          // the toast does not claim a report that was never written.
+        });
 
       setSignedBlock(res);
       await logAuditEvent(doctorName, `Prescription ${newRxId}`, "signed", "success", "info").catch(
         () => {},
       );
       toast.success(`Prescription ${newRxId} signed`, {
-        description: `Medical report auto-created · ${new Date().toLocaleTimeString("en-IN")}`,
+        description: reportCreated
+          ? `Medical report created · ${new Date().toLocaleTimeString("en-IN")}`
+          : "Prescription signed, but the medical report could not be created — create it manually.",
       });
       setSigned(true);
       loadData();

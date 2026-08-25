@@ -756,7 +756,7 @@ function PatientChartCards({ patientDid }: { patientDid: string }) {
                     )}
                   </div>
                   <div className="text-[10px] text-muted-foreground border-t border-border/40 pt-1.5 flex justify-between">
-                    <span>Issued By: {rx.signedBy || "Staff"}</span>
+                    <span>Issued By: {rx.signedBy || "Not recorded"}</span>
                     <span>
                       Date: {rx.signedAt ? new Date(rx.signedAt).toLocaleDateString("en-IN") : "—"}
                     </span>
@@ -824,7 +824,9 @@ function PatientChartCards({ patientDid }: { patientDid: string }) {
                 className="flex items-center justify-between rounded-lg border p-2 text-sm"
               >
                 <div>
-                  <span className="font-medium">{test.testName || test.type || "Lab Test"}</span>
+                  <span className="font-medium">
+                    {test.testName || test.type || test.checkupType || "Unnamed entry"}
+                  </span>
                   <span className="text-muted-foreground ml-2 text-xs">
                     {test.orderedDate || test.date}
                   </span>

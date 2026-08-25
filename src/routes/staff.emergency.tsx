@@ -68,12 +68,19 @@ function StaffEmergencyPage() {
         id: p.did || `er-${i}`,
         name: p.name || "Unknown Patient",
         mrn: p.mrn || "—",
-        condition: (p.conditions || []).join(", ") || "Under Assessment",
-        severity: hasSevereCondition(p.conditions) ? "critical" : "urgent",
+        // "Under Assessment" is a clinical state nobody assessed — it reads on
+        // an emergency board as a triage decision that was never made.
+        condition: (p.conditions || []).join(", ") || null,
+        // Severity is derived from `conditions`, which the live directory never
+        // populates, so this was always "urgent" and the Critical tile was
+        // permanently 0. Null until acuity has a real source.
+        severity: hasSevereCondition(p.conditions) ? "critical" : null,
         arrived: p.admitDate
           ? new Date(p.admitDate).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
           : "—",
-        bedNo: bed?.bedId || `ER-${String(i + 1).padStart(2, "0")}`,
+        // `ER-01`, `ER-02`… were synthesised from the loop index, so staff were
+        // told a patient was in a bay that does not exist.
+        bedNo: bed?.bedNumber ?? bed?.bedId ?? null,
         doctor: p.primaryDoctor || "—",
       };
     });
@@ -213,27 +220,36 @@ function StaffEmergencyPage() {
           ) : (
             <div className="space-y-2">
               {traumaQueue.map((p) => {
-                const cfg =
-                  severityConfig[p.severity as keyof typeof severityConfig] ??
-                  severityConfig.urgent;
+                // Falling back to `urgent` would restate the old guess. An
+                // unassessed patient gets neutral styling, not a triage colour.
+                const cfg = p.severity
+                  ? (severityConfig[p.severity as keyof typeof severityConfig] ??
+                    severityConfig.urgent)
+                  : null;
                 return (
                   <div
                     key={p.id}
                     className="flex items-center gap-3 rounded-lg border border-border px-3 py-3"
                   >
-                    <div className={`h-2.5 w-2.5 rounded-full shrink-0 ${cfg.dot}`} />
+                    <div
+                      className={`h-2.5 w-2.5 rounded-full shrink-0 ${cfg?.dot ?? "bg-muted-foreground"}`}
+                    />
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-foreground">{p.name}</div>
-                      <div className="text-xs text-muted-foreground">{p.condition}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {p.condition ?? "No condition recorded"}
+                      </div>
                     </div>
                     <div className="text-right shrink-0 space-y-0.5">
-                      <span
-                        className={`block rounded-full px-2 py-0.5 text-[10px] font-semibold ${cfg.badge}`}
-                      >
-                        {p.severity}
-                      </span>
+                      {p.severity && (
+                        <span
+                          className={`block rounded-full px-2 py-0.5 text-[10px] font-semibold ${cfg?.badge ?? ""}`}
+                        >
+                          {p.severity}
+                        </span>
+                      )}
                       <div className="text-[10px] text-muted-foreground">
-                        {p.bedNo} · {p.arrived}
+                        {p.bedNo ?? "No bed"} · {p.arrived}
                       </div>
                     </div>
                   </div>
