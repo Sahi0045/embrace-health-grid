@@ -79,12 +79,33 @@ export async function getMyConsents() {
   const res = await fn();
   const rows = res.consents ?? [];
 
+  // Resolve patient names. The consent screen falls back to the raw DID, so a
+  // clinician reviewing their grants read "did:hosp:0xSEEDA01" where the
+  // patient's name belongs. The directory is DID-registry data, not PHI.
+  let nameByDid = new Map<string, string>();
+  try {
+    const dir = await getPatientDirectory();
+    nameByDid = new Map(
+      (dir.patients ?? []).filter((p: any) => p.did && p.name).map((p: any) => [p.did, p.name]),
+    );
+  } catch {
+    // Names are presentational; the grants must still list without them.
+  }
+
   const map = (c: any) => ({
     grantId: c.grant_id,
     patientDid: c.patient_did,
+    patientName: nameByDid.get(c.patient_did) ?? null,
     doctorDid: c.doctor_did,
     resource: c.resource,
     status: c.status,
+    // getConsents already selects these; the mapper dropped them, so the
+    // request's stated justification never rendered and "Requested" showed "—"
+    // even though consents.requested_at is populated on every row.
+    reason: c.reason ?? null,
+    requestedAt: c.requested_at ?? null,
+    approvedAt: c.approved_at ?? null,
+    rejectedAt: c.rejected_at ?? null,
     grantedAt: c.granted_at,
     expiry: c.expires_at,
     expiresAt: c.expires_at,
@@ -147,6 +168,11 @@ export async function requestConsent(data: {
       patientDid: data.patientDid,
       resource: data.resource,
       expiresAt: data.expiresAt ?? data.expiry,
+      // The form makes this mandatory ("Provide a reason for access") and the
+      // server has always written it to consents.reason — this wrapper was the
+      // one place it was dropped, so every stored request had reason NULL and
+      // the patient approved access with no justification in front of them.
+      reason: data.reason,
     },
   });
   return { success: true as const, requestId: res.grantId, request: null, txId: "" };
@@ -1718,9 +1744,29 @@ export async function getPatientOnChainHistory(patientDid?: string) {
 export async function getMyPatients() {
   const { getConsents: fn } = await import("./clinical.server");
   const res = await fn();
+
+  // Consumers render `patientName` — the consent request form shows
+  // "{patientName} — {did}" — but this mapper returned no name at all, so the
+  // dropdown read as a bare em dash followed by a DID prefix.
+  let nameByDid = new Map<string, string>();
+  try {
+    const dir = await getPatientDirectory();
+    nameByDid = new Map(
+      (dir.patients ?? []).filter((p: any) => p.did && p.name).map((p: any) => [p.did, p.name]),
+    );
+  } catch {
+    // Falls back to the DID, which is what the callers already do.
+  }
+
   const patients = (res.consents ?? [])
     .filter((c: any) => c.status === "active")
-    .map((c: any) => ({ did: c.patient_did, patientDid: c.patient_did, resource: c.resource }));
+    .map((c: any) => ({
+      did: c.patient_did,
+      patientDid: c.patient_did,
+      patientName: nameByDid.get(c.patient_did) ?? null,
+      name: nameByDid.get(c.patient_did) ?? null,
+      resource: c.resource,
+    }));
   return { patients, total: patients.length };
 }
 
