@@ -1,7 +1,7 @@
 {
   "name": "embrace-health-backend",
   "version": "1.0.0",
-  "description": "Hospital REST API Backend — Full REST API + World State DB",
+  "description": "Hospital REST API Backend \u2014 Full REST API + World State DB",
   "type": "module",
   "main": "server.js",
   "scripts": {
@@ -14,7 +14,8 @@
     "gen:dek": "node -e \"console.log('DATA_ENCRYPTION_KEY=' + require('crypto').randomBytes(32).toString('hex'))\"",
     "supabase:check": "node --env-file=.env scripts/supabase-check.js",
     "test:onboard": "node --env-file=.env --test test/onboard.test.js",
-    "test:tenancy": "node --env-file=.env --test test/tenancy.test.js"
+    "test:tenancy": "node --env-file=.env --test test/tenancy.test.js",
+    "test:e2e-patient": "node --env-file=.env scripts/e2e-patient.mjs"
   },
   "dependencies": {
     "@solana/web3.js": "^1.98.4",

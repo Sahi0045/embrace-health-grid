@@ -101,6 +101,40 @@ function PatientProfile() {
   const phone = currentUser?.phone || patientRecord.phone || null;
   const allergies = currentUser?.allergies || patientRecord.allergies || [];
 
+  // The DID's keypair. Fetched once on load — the server only ever returns keys
+  // for DIDs it can prove this session owns, so there is nothing to gate here
+  // beyond being signed in. `showSecret` just controls whether the private half
+  // is on screen.
+  const [keypair, setKeypair] = useState<{
+    did: string;
+    publicKey: string;
+    secretKeyBase58: string;
+    secretKeyArray: number[];
+  } | null>(null);
+  const [showSecret, setShowSecret] = useState(false);
+  const [loadingKey, setLoadingKey] = useState(true);
+  const [keyError, setKeyError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { getMyKeypair } = await import("@/lib/api");
+        const kp = await getMyKeypair();
+        if (!cancelled) setKeypair(kp);
+      } catch (err) {
+        if (!cancelled) {
+          setKeyError(err instanceof Error ? err.message : "Could not load your signing key");
+        }
+      } finally {
+        if (!cancelled) setLoadingKey(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editName, setEditName] = useState(name);
   const [editPhone, setEditPhone] = useState(phone ?? "");
@@ -323,8 +357,79 @@ function PatientProfile() {
                   {currentUser?.did || patientRecord?.did || "Pending Admin Issuance"}
                 </div>
               </div>
+              {/* Your keys. The DID is your identity, so you hold both halves of
+                  its key — that is what "control over your health data" has to
+                  mean if it means anything. The private half is fetched only on
+                  request, only for DIDs the server can prove you own, and the
+                  export is written to the audit trail. */}
+              <div className="mt-4 rounded-lg border border-border bg-background/60 p-4">
+                <div className="text-sm text-muted-foreground">Public key</div>
+                <div className="mt-1 break-all font-mono text-xs font-medium">
+                  {keypair?.publicKey ?? "Loading…"}
+                </div>
+
+                <div className="mt-4 flex items-center justify-between gap-2">
+                  <div className="text-sm text-muted-foreground">Private key</div>
+                  <Button
+                    size="sm"
+                    variant={showSecret ? "outline" : "default"}
+                    disabled={loadingKey || !keypair}
+                    onClick={() => setShowSecret((v) => !v)}
+                  >
+                    {showSecret ? "Hide" : "Reveal"}
+                  </Button>
+                </div>
+
+                {showSecret && keypair?.secretKeyBase58 && (
+                  <div className="mt-2 space-y-2">
+                    <div className="break-all rounded-md border border-destructive/30 bg-destructive/5 p-2 font-mono text-xs">
+                      {keypair.secretKeyBase58}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          navigator.clipboard.writeText(keypair.secretKeyBase58);
+                          toast.success("Private key copied");
+                        }}
+                      >
+                        Copy
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          // The byte-array form is what solana-keygen and CLI
+                          // tooling read; base58 above is what Phantom imports.
+                          const blob = new Blob([JSON.stringify(keypair.secretKeyArray)], {
+                            type: "application/json",
+                          });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement("a");
+                          a.href = url;
+                          a.download = `${keypair.did.replace(/[:]/g, "_")}-keypair.json`;
+                          document.body.appendChild(a);
+                          a.click();
+                          a.remove();
+                          URL.revokeObjectURL(url);
+                        }}
+                      >
+                        Download keypair.json
+                      </Button>
+                    </div>
+                    <p className="text-[11px] text-destructive">
+                      Anyone holding this key can act as you. Store it somewhere only you can reach,
+                      and never paste it into a site or message.
+                    </p>
+                  </div>
+                )}
+
+                {keyError && <p className="mt-2 text-xs text-destructive">{keyError}</p>}
+              </div>
+
               <div className="mt-4 text-xs text-muted-foreground">
-                This DID is cryptographically secured and gives you control over your health data.
+                Import the private key into any Solana wallet to hold this identity yourself.
               </div>
             </CardContent>
           </Card>

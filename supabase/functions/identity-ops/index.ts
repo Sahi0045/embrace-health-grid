@@ -212,6 +212,37 @@ Deno.serve(async (req) => {
           );
         }
 
+        // The DID belongs to the SUBJECT's hospital, not the issuing admin's.
+        //
+        // This used to stamp caller.hospitalId unconditionally, so a KIMS admin
+        // issuing a DID for an Apollo clinician produced a DID attributed to
+        // KIMS while the person's profile said Apollo. Verified in production:
+        // 7 of 10 clinicians were mis-attributed that way, every one to KIMS.
+        // Because getBookableDoctors and the tenant policies scope on
+        // dids.hospital_id, those clinicians were invisible to their own
+        // hospital's patients and visible to a hospital they do not work at.
+        //
+        // Cross-tenant issuance is still refused — the check just moved from
+        // "stamp mine" to "prove it is mine", which is the property that was
+        // actually wanted.
+        let subjectHospitalId = caller.hospitalId;
+        if (ownerId) {
+          const { data: subject, error: subjErr } = await db
+            .from("profiles")
+            .select("hospital_id")
+            .eq("id", ownerId)
+            .maybeSingle();
+          if (subjErr) throw new HttpError(500, subjErr.message);
+          if (!subject) throw new HttpError(404, "No profile for that owner");
+          if (!subject.hospital_id) {
+            throw new HttpError(400, "That account is not linked to a hospital");
+          }
+          if (subject.hospital_id !== caller.hospitalId && caller.role !== "super_admin") {
+            throw new HttpError(403, "That account belongs to another hospital");
+          }
+          subjectHospitalId = subject.hospital_id;
+        }
+
         // Deterministic-looking but random suffix, matching the legacy format.
         const did = `did:hosp:0x${crypto.randomUUID().replace(/-/g, "").slice(0, 8)}`;
         const { error } = await db.from("dids").insert({
@@ -222,7 +253,7 @@ Deno.serve(async (req) => {
           public_key: publicKey ?? `pk_${crypto.randomUUID().slice(0, 12)}`,
           controller: "did:hosp:consortium:authority",
           status: "active",
-          hospital_id: caller.hospitalId,
+          hospital_id: subjectHospitalId,
         });
         if (error) throw new HttpError(500, error.message);
 

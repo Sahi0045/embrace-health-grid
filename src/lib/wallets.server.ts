@@ -97,3 +97,84 @@ export const verifyConsent = createServerFn({ method: "GET" })
     const { verifyConsentSignature } = await import("./consent-signing.server");
     return await verifyConsentSignature(data.grantId);
   });
+
+/**
+ * Return the signed-in user's OWN keypair — both halves.
+ *
+ * The DID is the person's identity, so they hold its key. That is the premise of
+ * the whole model, not a convenience: a record the patient cannot sign for is
+ * not a record they own.
+ *
+ * Authorization is ownership, deliberately NOT role. `profiles_select_staff`
+ * lets any doctor read most profile rows, so anything keyed on role would hand a
+ * clinician a patient's private key. The DID must be one of the caller's own,
+ * resolved from auth.uid() and never from the request.
+ *
+ * Every export is audited: it is the one operation that puts the private half in
+ * front of a human, so it needs to be visible in the trail afterwards.
+ */
+export const getMyKeypair = createServerFn({ method: "POST" })
+  .inputValidator((data?: { did?: string }) => data ?? {})
+  .handler(async ({ data }) => {
+    const user = await getVerifiedUser();
+    if (!user) throw new Error("Not authenticated");
+
+    const db = getSupabaseServiceRoleClient();
+
+    // Every DID this user controls. `owner_id` is the link, and it comes from
+    // the verified session — a `did` in the request body is only ever used to
+    // PICK from this list, never to widen it.
+    const { data: owned, error } = await db
+      .from("dids")
+      .select("did, owner_name, owner_type, hospital_id")
+      .eq("owner_id", user.id)
+      .eq("status", "active");
+
+    if (error) throw new Error(error.message);
+    if (!owned?.length) {
+      throw new Error("No DID is issued to this account yet");
+    }
+
+    const target = data?.did ? owned.find((d) => d.did === data.did) : owned[0];
+    if (!target) throw new Error("That DID does not belong to you");
+
+    const keypair = await didWalletService.exportKeypairForDid(target.did);
+    if (!keypair) {
+      throw new Error("No signing key has been provisioned for this DID yet");
+    }
+
+    const { tryWriteAudit, resolveCallerForAudit } = await import("./audit-helpers.server");
+    const caller = await resolveCallerForAudit();
+    // Mapped field by field: resolveCallerForAudit returns userId/email while
+    // AuditEntry wants actorId/actorEmail, so a spread would silently leave the
+    // actor unattributed on the one record that most needs an actor.
+    await tryWriteAudit({
+      actorId: caller.userId,
+      actorDid: caller.actorDid,
+      actorName: caller.actorName,
+      actorRole: caller.actorRole,
+      actorHospital: caller.hospital,
+      actorEmail: caller.email,
+      action: "PRIVATE_KEY_EXPORTED",
+      outcome: "success",
+      severity: "warning",
+      module: "identity",
+      entityId: target.did,
+      entityType: "did",
+      resource: `Signing key for ${target.did}`,
+      hospital: caller.hospital,
+      location: null,
+      prevValue: null,
+      newValue: null,
+      authStatus: "authorized",
+      authPolicy: "owner_only",
+      metadata: { did: target.did },
+    });
+
+    return {
+      did: target.did,
+      publicKey: keypair.publicKey,
+      secretKeyBase58: keypair.secretKeyBase58,
+      secretKeyArray: keypair.secretKeyArray,
+    };
+  });
