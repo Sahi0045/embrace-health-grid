@@ -647,10 +647,20 @@ export async function getRooms() {
   };
 }
 
-export async function getRoomCheckinStatus(_did?: string) {
+export async function getRoomCheckinStatus(did?: string) {
   const { getRoomCheckinStatus: fn } = await import("./operations.server");
   const res = await fn();
-  const rows = (res.checkins ?? []).map((c: any) => ({
+  // The DID was named `_did` and dropped, so every caller got the whole
+  // hospital's check-ins. staff.rooms renders the result under the CLINICIAN
+  // STATUS STRIP as "you are active in N rooms" and uses it to mark rooms as
+  // checked in on the grid — so a colleague's occupied room showed as the
+  // current user's, with the check-out button live on it.
+  //
+  // Callers that genuinely want everyone (the Doctor Locator) pass nothing.
+  const scoped = did
+    ? (res.checkins ?? []).filter((c: any) => c.doctor_did === did)
+    : (res.checkins ?? []);
+  const rows = scoped.map((c: any) => ({
     doctorDid: c.doctor_did,
     doctorName: c.doctor_name,
     status: c.status,
@@ -716,11 +726,17 @@ export async function getDailyRoomEvents(doctorDid?: string, date?: string) {
   return { events, merkleRoot, date: date ?? new Date().toISOString().slice(0, 10) };
 }
 
-export async function getVisitors(_did?: string) {
+export async function getVisitors(did?: string) {
   const { getVisitors: fn } = await import("./operations.server");
   const res = await fn();
+  // The DID was dropped, so a per-patient call returned every visitor RLS
+  // allowed. staff.visitors called this once per patient DID and flat-mapped
+  // the results, which duplicated the whole directory once per patient.
+  const scoped = did
+    ? (res.visitors ?? []).filter((v: any) => v.patient_did === did)
+    : (res.visitors ?? []);
   return {
-    visitors: (res.visitors ?? []).map((v: any) => ({
+    visitors: scoped.map((v: any) => ({
       id: v.visitor_id,
       patientDid: v.patient_did,
       visitorName: v.visitor_name,
@@ -1193,10 +1209,17 @@ export async function publishMerkleRoot(
   return await fn({ data: { subjectDid, periodDate, events } });
 }
 
-export async function getMerkleRootHistory(_did?: string) {
+export async function getMerkleRootHistory(did?: string) {
   const { getMerkleRoots: fn } = await import("./clinical.server");
   const res = await fn();
-  const roots: any[] = (res.roots ?? []).map((r: any) => ({
+  // The DID was dropped, so the verification-record panel on staff.rooms listed
+  // every clinician's published roots as if they were the signed-in doctor's —
+  // and the "already published today" check that guards re-publishing was
+  // reading someone else's row.
+  const scoped = did
+    ? (res.roots ?? []).filter((r: any) => r.subject_did === did)
+    : (res.roots ?? []);
+  const roots: any[] = scoped.map((r: any) => ({
     publishId: r.publish_id,
     doctorDid: r.subject_did,
     merkleRoot: r.root_hash,

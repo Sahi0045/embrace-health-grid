@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { PageHeader } from "@/components/PageHeader";
 import { RouteGuard } from "@/components/RouteGuard";
 import { StaggerList, StaggerItem } from "@/components/Motion";
-import { getNamespace, createVisitorRequest, logAuditEvent } from "@/lib/api";
+import { createVisitorRequest, logAuditEvent } from "@/lib/api";
 import { useLivePatients } from "@/hooks/use-api";
 import { toast } from "sonner";
 import {
@@ -62,19 +62,16 @@ function StaffVisitors() {
   const fetchAllVisitors = useCallback(async () => {
     setLoading(true);
     try {
-      const allDids = (patientsList || []).map((p) => p.did).filter(Boolean);
-      if (allDids.length === 0) {
-        const data = await getNamespace("visitors");
-        const list = (data.entries ?? []).map((entry: any) => entry.value) as Visitor[];
-        setVisitors(list);
-      } else {
-        const { getVisitors } = await import("@/lib/api");
-        const results = await Promise.all(
-          allDids.map((did) => getVisitors(did).catch(() => ({ visitors: [] }))),
-        );
-        const list = results.flatMap((r) => (r.visitors ?? []) as Visitor[]);
-        setVisitors(list);
-      }
+      // One unfiltered call. This used to fan out one request per patient DID
+      // and flat-map the results — and since getVisitors dropped its DID
+      // argument, each of those returned the SAME full list, so the directory
+      // rendered every visitor once per patient in the roster.
+      //
+      // RLS already scopes this read to what the caller may see, which is
+      // exactly the directory this page is for.
+      const { getVisitors } = await import("@/lib/api");
+      const res = await getVisitors();
+      setVisitors((res.visitors ?? []) as Visitor[]);
     } catch (err: any) {
       toast.error("Failed to load visitor directory", {
         description: err.message || "Error reading visitors.",
@@ -82,7 +79,7 @@ function StaffVisitors() {
     } finally {
       setLoading(false);
     }
-  }, [patientsList]);
+  }, []);
 
   useEffect(() => {
     fetchAllVisitors();
