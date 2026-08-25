@@ -3,6 +3,7 @@ import crypto from "crypto";
 // @noble/curves is already a dependency of @solana/web3.js and is the same
 // ed25519 implementation Solana verifies against — no new package needed.
 import { ed25519 } from "@noble/curves/ed25519";
+import bs58 from "bs58";
 import { getSupabaseServiceRoleClient } from "./supabase.server";
 
 // ─── Cryptography Helper Utilities ──────────────────────────────────────────
@@ -322,6 +323,10 @@ export class DidWalletService {
     if (!didRow.hospital_id) {
       // embedded_wallets.hospital_id is NOT NULL, and a key with no tenant could
       // not be scoped by any policy. Better to refuse than to attribute it.
+      //
+      // This is also what keeps SUPER-ADMINS off embedded keys by design: they
+      // belong to no hospital, so they fall out here and use an external wallet
+      // instead. Patients, clinicians and hospital admins all get one.
       throw new Error(`DID ${did} belongs to no hospital, so no signing key can be issued`);
     }
 
@@ -372,6 +377,44 @@ export class DidWalletService {
       isActive: true,
       createdAt: new Date(),
       updatedAt: new Date(),
+    };
+  }
+
+  /**
+   * Export a DID's full keypair.
+   *
+   * The subject owns this identity, so they must be able to hold both halves —
+   * that is the point of a DID-based record. This method performs NO
+   * authorization: the caller (wallets.server.ts) must have already proven the
+   * requester owns `did`, because everything this returns is the identity
+   * itself.
+   *
+   * Returned in both formats a wallet will accept: base58 is what Phantom and
+   * Solflare take on import, the byte array is what `solana-keygen` writes.
+   */
+  async exportKeypairForDid(did: string): Promise<{
+    publicKey: string;
+    secretKeyBase58: string;
+    secretKeyArray: number[];
+  } | null> {
+    const db = getSupabaseServiceRoleClient();
+    const { data, error } = await db
+      .from("embedded_wallets")
+      .select("encrypted_private_key, public_key")
+      .eq("owner_did", did)
+      .eq("is_active", true)
+      .maybeSingle();
+
+    if (error) throw new Error(error.message);
+    if (!data) return null;
+
+    const secret = decryptPrivateKey(data.encrypted_private_key);
+    const keypair = Keypair.fromSecretKey(secret);
+
+    return {
+      publicKey: data.public_key,
+      secretKeyBase58: bs58.encode(secret),
+      secretKeyArray: Array.from(secret),
     };
   }
 

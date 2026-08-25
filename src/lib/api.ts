@@ -1488,6 +1488,18 @@ export async function updateEmergencyProfile(data: {
  * Returns { signed, valid, reason } — `signed:false` for decisions recorded
  * before consent signing existed, which is not the same as an invalid one.
  */
+/**
+ * The signed-in user's own DID keypair — public and private.
+ *
+ * Owner-only: the server resolves which DIDs belong to auth.uid() and refuses
+ * anything else. The base58 secret imports into any Solana wallet, so the
+ * subject can hold the identity themselves rather than only through this app.
+ */
+export async function getMyKeypair(did?: string) {
+  const { getMyKeypair: fn } = await import("./wallets.server");
+  return await fn({ data: did ? { did } : {} });
+}
+
 export async function verifyConsentRecord(grantId: string) {
   const { verifyConsent } = await import("./wallets.server");
   return await verifyConsent({ data: { grantId } });

@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { useLivePatients, useCredentials } from "@/hooks/use-api";
 import { RouteGuard } from "@/components/RouteGuard";
+import { DidKeypairCard } from "@/components/DidKeypairCard";
 import { useCurrentUser } from "@/lib/auth-context";
 import { requestWalletChallenge, verifyAndLinkWallet, updateProfile, getMe } from "@/lib/api";
 import { toast } from "sonner";
@@ -324,10 +325,12 @@ function PatientProfile() {
                 </div>
               </div>
               <div className="mt-4 text-xs text-muted-foreground">
-                This DID is cryptographically secured and gives you control over your health data.
+                This DID is your identity. Its signing key is below.
               </div>
             </CardContent>
           </Card>
+
+          <DidKeypairCard />
 
           {/* The Solana wallet card was removed.
               Patients no longer link a personal wallet. Every DID is issued with
