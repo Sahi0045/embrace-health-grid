@@ -64,9 +64,15 @@ function StaffCommandCenter() {
   const liveAlerts: { id: string; msg: string; severity: string; time: string }[] = (
     fraudData?.alerts ?? []
   ).map((a: any) => ({
-    id: a.alertId ?? a.id ?? String(Math.random()),
-    msg: a.message ?? `${a.type ?? "Alert"} — ${a.affectedResource ?? "System"}`,
-    severity: a.riskScore >= 80 ? "critical" : "warning",
+    // String(Math.random()) as a React key remounts the row on every render.
+    id: a.alertId ?? a.id ?? `${a.type ?? "alert"}-${a.detectedAt ?? ""}`,
+    // `affectedResource` is not a field the mapper returns; `actor` is the one
+    // that identifies who triggered the alert.
+    msg: a.message ?? `${a.type ?? "Alert"} — ${a.actor ?? "System"}`,
+    // fraud_alerts carries its own severity. Re-deriving it from riskScore
+    // overrode what the detector recorded, and mapped everything below 80 to
+    // "warning" — including alerts the detector had marked critical.
+    severity: a.severity ?? (a.riskScore >= 80 ? "critical" : "warning"),
     time: a.detectedAt
       ? new Date(a.detectedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
       : "—",

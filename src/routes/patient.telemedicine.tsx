@@ -65,7 +65,8 @@ function TelemedicinePage() {
       (a: any) => a.patientDid === patientDid && (a.mode === "tele" || a.mode === "telemedicine"),
     )
     .map((a: any) => ({
-      id: a.apptId || a.id || String(Math.random()),
+      // A random key remounts the row on every render.
+      id: a.apptId || a.id || `${a.doctorDid ?? "appt"}-${a.slot ?? ""}`,
       doctor: a.doctorName || "Doctor",
       specialty: a.specialty || "Specialist",
       date: a.date || a.slot?.split(" · ")[0] || new Date().toISOString().split("T")[0],

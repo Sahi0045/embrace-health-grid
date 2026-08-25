@@ -29,7 +29,9 @@ function Wallet() {
   const rawCredentials = credentialsData?.credentials ?? [];
 
   const liveCredentials = rawCredentials.map((c: any) => ({
-    id: c.id ?? c.txId ?? String(Math.random()),
+    // A random key remounts the row on every render; the credential type
+    // plus its issue time identifies it when no id is present.
+    id: c.id ?? c.txId ?? `${c.type ?? "vc"}-${c.issuedAt ?? c.timestamp ?? ""}`,
     type: c.type ?? "Verifiable Credential",
     issuer: c.issuer ?? "Embrace Health Consortium",
     issuedAt: c.issuedAt ?? c.timestamp ?? "",

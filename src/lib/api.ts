@@ -552,20 +552,12 @@ export async function getConsentRequests(_did?: string) {
  * shape the existing components consume.
  */
 export async function getLabs(_did?: string) {
-  const { getLabResults: fn } = await import("./clinical.server");
-  const res = await fn();
-  return {
-    labs: (res.labResults ?? []).map((l: any) => ({
-      labId: l.lab_id,
-      patientDid: l.patient_did,
-      testName: l.test_name,
-      resultValue: l.result_value,
-      unit: l.unit,
-      referenceRange: l.reference_range,
-      status: l.status,
-      resultedAt: l.resulted_at,
-    })),
-  };
+  // Delegates to getLabResults rather than repeating the mapping. This copy had
+  // drifted: it omitted `priority`, and the lab queue reads it as `urgency` —
+  // so a STAT order rendered with the routine badge. Two mappers over one table
+  // is how that drift happened, hence one mapper now.
+  const { labResults } = await getLabResults(_did);
+  return { labs: labResults };
 }
 
 // ─── Supabase-backed operational reads (task 11a migration) ─────────────────

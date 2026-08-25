@@ -10,10 +10,11 @@ import {
   BreakGlassRequestCard,
   type BreakGlassRequest,
 } from "@/components/emergency/BreakGlassRequestCard";
-import { useAmbulances, useLivePatients, useAudit, useBeds } from "@/hooks/use-api";
+import { useAmbulances, useAudit, useBeds } from "@/hooks/use-api";
+import { getAllAdmissions } from "@/lib/api";
 import { AlertTriangle, Ambulance, ShieldAlert, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 
 export const Route = createFileRoute("/staff/emergency")({
   head: () => ({ meta: [{ title: "Emergency — Staff Portal" }] }),
@@ -34,57 +35,73 @@ function hasSevereCondition(conditions?: string[]): boolean {
 
 function StaffEmergencyPage() {
   const { data: ambulancesData } = useAmbulances();
-  const { patients: livePatients = [], loading: patientsLoading } = useLivePatients();
+  const [admissionsLoading, setAdmissionsLoading] = useState(true);
   const { data: bedsData } = useBeds();
   const { data: auditData, loading: auditLoading } = useAudit(0);
 
   const allAmbulances = ambulancesData?.ambulances ?? [];
-  const allBeds = bedsData?.beds ?? [];
+  const allBeds = useMemo(() => bedsData?.beds ?? [], [bedsData]);
   const incomingAmbulances = allAmbulances
     .filter((a: any) => a.status === "en-route" || a.status === "at-scene")
     .slice(0, 5);
 
-  const traumaQueue = useMemo(() => {
-    const emergencyBeds = allBeds.filter(
-      (b: any) =>
-        b.ward?.toLowerCase().includes("er") || b.ward?.toLowerCase().includes("emergency"),
-    );
-    const emergencyPatients = livePatients.filter((p) => {
-      const isInpatient = p.status === "inpatient";
-      const hasSevereCond = (p.conditions || []).some(
-        (c: string) =>
-          c.includes("Cardiac") ||
-          c.includes("Trauma") ||
-          c.includes("COPD") ||
-          c.includes("Fracture") ||
-          c.includes("Respiratory"),
-      );
-      return isInpatient || hasSevereCond;
-    });
+  // Currently admitted patients, from the admissions table.
+  //
+  // The queue used to be built from useLivePatients(), whose rows are the DID
+  // directory — {id, did, name, email, status} — and filtered on
+  // `p.status === "inpatient"` plus `p.conditions`. That status is the DID
+  // registry's ("active" on all 20 patient DIDs), and conditions is never
+  // populated at all, so the filter matched nothing and the emergency board was
+  // permanently empty while real admissions existed. admissions carries the
+  // admit time, ward, bed, admitting doctor and diagnosis this board needs.
+  const [admissions, setAdmissions] = useState<any[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    getAllAdmissions("admitted")
+      .then((res: any) => {
+        if (!cancelled) setAdmissions(res.admissions ?? []);
+      })
+      .catch(() => {
+        // An empty board is the honest state when admissions cannot be read.
+      })
+      .finally(() => {
+        if (!cancelled) setAdmissionsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-    return emergencyPatients.map((p, i) => {
-      const bed = emergencyBeds[i];
+  const traumaQueue = useMemo(() => {
+    const bedByPatient = new Map<string, any>(
+      allBeds.filter((b: any) => b.patientDid).map((b: any) => [b.patientDid as string, b]),
+    );
+
+    return admissions.map((a: any, i: number) => {
+      const bed = bedByPatient.get(a.patient_did);
+      const diagnosis: string | null = a.diagnosis ?? null;
       return {
-        id: p.did || `er-${i}`,
-        name: p.name || "Unknown Patient",
-        mrn: p.mrn || "—",
-        // "Under Assessment" is a clinical state nobody assessed — it reads on
-        // an emergency board as a triage decision that was never made.
-        condition: (p.conditions || []).join(", ") || null,
-        // Severity is derived from `conditions`, which the live directory never
-        // populates, so this was always "urgent" and the Critical tile was
-        // permanently 0. Null until acuity has a real source.
-        severity: hasSevereCondition(p.conditions) ? "critical" : null,
-        arrived: p.admitDate
-          ? new Date(p.admitDate).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+        id: a.admission_id || a.patient_did || `adm-${i}`,
+        name: a.patient_name || a.patient_did || "Unknown Patient",
+        mrn: "—",
+        // The admitting diagnosis. "Under Assessment" was a clinical state
+        // nobody assessed — on an emergency board that reads as a triage
+        // decision that was never made.
+        condition: diagnosis,
+        // Acuity is not recorded anywhere, so it stays null rather than being
+        // guessed from the diagnosis text.
+        severity: hasSevereCondition(diagnosis ? [diagnosis] : []) ? "critical" : null,
+        arrived: a.admitted_at
+          ? new Date(a.admitted_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
           : "—",
         // `ER-01`, `ER-02`… were synthesised from the loop index, so staff were
-        // told a patient was in a bay that does not exist.
-        bedNo: bed?.bedNumber ?? bed?.bedId ?? null,
-        doctor: p.primaryDoctor || "—",
+        // told a patient was in a bay that does not exist. This is the bed the
+        // patient is actually assigned to.
+        bedNo: a.bed ?? bed?.bedNumber ?? bed?.bedId ?? null,
+        doctor: a.admitting_doctor || "—",
       };
     });
-  }, [livePatients, allBeds]);
+  }, [admissions, allBeds]);
 
   const breakGlassAuditEvents: EmergencyAccessEvent[] = useMemo(() => {
     const events = auditData?.events ?? [];
@@ -151,7 +168,7 @@ function StaffEmergencyPage() {
     setBgRequests(pending);
   }, [auditData]);
 
-  const loading = patientsLoading || auditLoading;
+  const loading = admissionsLoading || auditLoading;
 
   return (
     <RouteGuard requiredRole="staff">
