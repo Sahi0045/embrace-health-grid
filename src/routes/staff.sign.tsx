@@ -1106,10 +1106,13 @@ function SignPage() {
                 {onChainHistory.map((rx) => {
                   const isExp = onChainExpandedId === rx.rxId;
                   const sigStatus = rx.verification?.signatureStatus ?? "no_signature";
+                  // A failed anchor is not the same as one that was never
+                  // attempted — showing both as "Unanchored" hid the failures.
+                  const sigBad = sigStatus === "hash_mismatch" || sigStatus === "failed";
                   const sigCls =
                     sigStatus === "verified"
                       ? "bg-success/15 text-success border-success/30"
-                      : sigStatus === "hash_mismatch"
+                      : sigBad
                         ? "bg-destructive/10 text-destructive border-destructive/20"
                         : "bg-muted text-muted-foreground border-border";
                   const sigLabel =
@@ -1117,11 +1120,15 @@ function SignPage() {
                       ? "Verified"
                       : sigStatus === "hash_mismatch"
                         ? "Hash Mismatch"
-                        : "Unanchored";
+                        : sigStatus === "failed"
+                          ? "Anchor Failed"
+                          : sigStatus === "pending_anchor"
+                            ? "Anchor Pending"
+                            : "Unanchored";
                   const sigIcon =
                     sigStatus === "verified" ? (
                       <ShieldCheck className="h-3 w-3" />
-                    ) : sigStatus === "hash_mismatch" ? (
+                    ) : sigBad ? (
                       <AlertTriangle className="h-3 w-3" />
                     ) : (
                       <Shield className="h-3 w-3" />
@@ -1311,7 +1318,7 @@ function SignPage() {
                                 <div className="font-medium text-foreground">
                                   {rx.verification?.anchorRecord?.network ||
                                     rx.blockchainMeta?.network ||
-                                    "solana-devnet"}
+                                    "Not recorded"}
                                 </div>
                               </div>
                             </div>

@@ -1666,13 +1666,50 @@ export async function getPatientOnChainHistory(patientDid?: string) {
     status: a.status,
     signature: a.signature,
     slot: a.slot,
+    network: a.network ?? null,
     anchoredAt: a.anchored_at,
   }));
+
+  // `prescriptions` used to be the raw anchor rows. The signing screen renders
+  // them through a prescription template — diagnosis, drugs, chief complaint,
+  // signature status — and an anchor row carries none of that, so every field
+  // on that panel was blank and the signature always read "no_signature".
+  // Join each anchor to the prescription it anchors and attach the chain state
+  // as `verification`, which is the shape the panel actually reads.
+  const rxAnchors = anchors.filter((a) => a.recordType === "prescription");
+  let prescriptions: any[] = [];
+  if (rxAnchors.length) {
+    const { prescriptions: rows } = await getPrescriptions(patientDid);
+    const byId = new Map(rows.map((r: any) => [r.rxId, r]));
+    prescriptions = rxAnchors.map((a) => {
+      const rx = byId.get(a.recordId);
+      return {
+        ...(rx ?? { rxId: a.recordId }),
+        verification: {
+          signatureStatus: a.signature
+            ? "verified"
+            : a.status === "failed"
+              ? "failed"
+              : "pending_anchor",
+          anchorRecord: a.signature
+            ? {
+                anchorId: a.anchorId,
+                anchoredAt: a.anchoredAt,
+                signature: a.signature,
+                network: a.network ?? "devnet",
+              }
+            : null,
+          verifiedAt: a.signature ? a.anchoredAt : null,
+        },
+        blockchainMeta: { network: a.network ?? "devnet", status: a.status },
+      };
+    });
+  }
+
   return {
     anchors,
     history: anchors,
-    // Anchors for prescription records only — what the signing screen displays.
-    prescriptions: anchors.filter((a) => a.recordType === "prescription"),
+    prescriptions,
     total: anchors.length,
   };
 }

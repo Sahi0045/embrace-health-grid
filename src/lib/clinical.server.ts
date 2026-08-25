@@ -1181,14 +1181,38 @@ export const getPatientAnchorHistory = createServerFn({ method: "GET" })
     await requireSession();
     const supabase = getSupabaseServerClient();
 
+    // `network` was omitted from the select, so every consumer fell back to a
+    // hardcoded "Solana Devnet" label instead of reporting the anchor's own chain.
     let query = supabase
       .from("solana_anchors")
       .select(
-        "anchor_id, record_hash, record_type, record_id, status, signature, slot, anchored_at",
+        "anchor_id, record_hash, record_type, record_id, status, signature, slot, network, anchored_at",
       )
       .order("anchored_at", { ascending: false });
 
-    if (data.patientDid) query = query.eq("actor_did", data.patientDid);
+    if (data.patientDid) {
+      // actor_did is the DID that PERFORMED the anchoring — for a prescription
+      // that is the prescribing doctor, not the patient. Filtering it by the
+      // patient DID therefore matched nothing, and the on-chain history panel
+      // reported "no history found" for every patient who had one.
+      //
+      // The patient's anchors are the ones whose record_id is a record of
+      // theirs, so resolve the record ids first. Both reads go through the
+      // request-scoped client, so RLS still decides what the caller may see.
+      const [rxRes, recRes] = await Promise.all([
+        supabase.from("prescriptions").select("rx_id").eq("patient_did", data.patientDid),
+        supabase.from("medical_records").select("record_id").eq("patient_did", data.patientDid),
+      ]);
+
+      const recordIds = [
+        ...(rxRes.data ?? []).map((r: { rx_id: string }) => r.rx_id),
+        ...(recRes.data ?? []).map((r: { record_id: string }) => r.record_id),
+      ];
+
+      // No records means no anchors — return empty rather than an unfiltered read.
+      if (!recordIds.length) return { anchors: [] };
+      query = query.in("record_id", recordIds);
+    }
 
     const { data: anchors, error } = await query;
     if (error) throw new Error(error.message);
