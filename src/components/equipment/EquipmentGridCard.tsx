@@ -56,7 +56,7 @@ export function EquipmentGridCard({ equipment, onSelect }: EquipmentGridCardProp
 
   // Status configuration
   const statusConfig = {
-    operational: {
+    available: {
       label: "Operational",
       icon: CheckCircle2,
       dotClass: "bg-success",
@@ -66,18 +66,18 @@ export function EquipmentGridCard({ equipment, onSelect }: EquipmentGridCardProp
     "in-use": {
       label: "In Active Use",
       icon: Activity,
-      dotClass: "bg-cyan-500 animate-pulse",
-      badgeClass: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/30",
+      dotClass: "bg-primary animate-pulse",
+      badgeClass: "bg-primary/10 text-primary dark:text-primary border-primary/30",
       tone: "cyan" as const,
     },
     maintenance: {
       label: "Maintenance",
       icon: AlertTriangle,
       dotClass: "bg-warning",
-      badgeClass: "bg-warning/10 text-warning-foreground dark:text-amber-400 border-warning/30",
+      badgeClass: "bg-warning/10 text-warning-foreground dark:text-warning border-warning/30",
       tone: "warning" as const,
     },
-    offline: {
+    retired: {
       label: "Offline / Staged",
       icon: XCircle,
       dotClass: "bg-destructive",

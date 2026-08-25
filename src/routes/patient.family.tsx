@@ -34,24 +34,24 @@ function FamilyPage() {
   const userEmail = currentUser?.email || "";
   const patient = patients?.find((p: any) => p.email === userEmail);
 
-  const lastName = patient ? patient.name.split(" ").slice(-1)[0] : "";
-  const familyFromPatients = patients
-    ? patients
-        .filter((p: any) => p.email !== userEmail && lastName && p.name.endsWith(lastName))
-        .map((p: any) => ({
-          id: p.id,
-          name: p.name,
-          relation: p.gender === "M" ? "Spouse/Relative" : "Spouse/Relative",
-          did: p.did,
-          role: "patient" as const,
-          accessLevel: "Full healthcare access",
-          permissions: ["View records", "Sign consents", "Emergency access"],
-          status:
-            p.status === "active" || p.status === "inpatient"
-              ? ("active" as const)
-              : ("inactive" as const),
-        }))
-    : [];
+  /**
+   * Surname matching is gone.
+   *
+   * This inferred "family" by finding other patients whose name ends with the
+   * same last name — which is not a relationship, and would have linked
+   * strangers who happen to share a surname while granting each of them a
+   * hardcoded "Full healthcare access" with "View records / Sign consents /
+   * Emergency access". None of those permissions corresponded to an actual
+   * consent or credential; they were decorative strings on a privacy screen.
+   *
+   * It also could never fire: for a patient the directory contains only
+   * themselves, and the filter excludes their own email.
+   *
+   * The one real relationship the system stores is the emergency contact
+   * (profiles.emergency_contact_*, added in 20260825020000), which is handled
+   * below. Anything beyond that needs a real family-link table.
+   */
+  const familyFromPatients: never[] = [];
 
   const emergencyMember = patient?.emergencyContact?.name
     ? (() => {
@@ -91,8 +91,22 @@ function FamilyPage() {
     return doc ? doc.name : did;
   };
 
+  /**
+   * Only live grants belong under "active access delegations".
+   *
+   * This filtered on patientDid alone, so revoked and expired consents were
+   * listed identically to active ones — each with a working Revoke button that
+   * re-revoked an already-revoked grant and reported success again — under an
+   * empty state that reads "No active access delegations".
+   */
   const patientConsents =
-    consentsData?.consents?.filter((c: any) => c.patientDid === patient?.did) || [];
+    consentsData?.consents?.filter(
+      (c: any) =>
+        c.patientDid === patient?.did &&
+        c.status === "active" &&
+        !c.revokedAt &&
+        (!c.expiry || new Date(c.expiry).getTime() > Date.now()),
+    ) || [];
 
   const delegationsList = patientConsents.map((c: any) => ({
     id: c.grantId,
@@ -113,7 +127,12 @@ function FamilyPage() {
   };
 
   const handleAddFamilyMember = () => {
-    toast.info("Update your Emergency Contact in the Profile tab to link family members.");
+    // Was "in the Profile tab" — the emergency contact lives on /patient/emergency,
+    // not /patient/profile, so the instruction pointed at the wrong page for a
+    // field that (until 20260825020000) had no column to save into anyway.
+    toast.info("Add an emergency contact to link a family member", {
+      description: "Emergency Info → Edit Profile → Emergency Contact.",
+    });
   };
 
   return (

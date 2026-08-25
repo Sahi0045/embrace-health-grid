@@ -24,23 +24,23 @@ const PLAN_STATUS_STYLES: Record<MealPlanStatus, { label: string; color: string;
   {
     active: {
       label: "Active Plan",
-      color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-      border: "border-emerald-500/20",
+      color: "bg-success/10 text-success dark:text-success",
+      border: "border-success/20",
     },
     pending: {
       label: "Pending Assessment",
-      color: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-      border: "border-amber-500/20",
+      color: "bg-warning/10 text-warning dark:text-warning",
+      border: "border-warning/20",
     },
     review: {
       label: "Clinical Review",
-      color: "bg-sky-500/10 text-sky-600 dark:text-sky-400",
-      border: "border-sky-500/20",
+      color: "bg-primary/10 text-primary dark:text-primary",
+      border: "border-primary/20",
     },
     suspended: {
       label: "Suspended",
-      color: "bg-rose-500/10 text-rose-600 dark:text-rose-400",
-      border: "border-rose-500/20",
+      color: "bg-destructive/10 text-destructive dark:text-destructive",
+      border: "border-destructive/20",
     },
   };
 
@@ -62,7 +62,7 @@ export function DietaryRequirementsTab({
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
       {requirements.map((diet) => {
         const statusConfig = PLAN_STATUS_STYLES[diet.meal_plan_status] || PLAN_STATUS_STYLES.active;
-        const hasAllergies = diet.allergies.length > 0;
+        const hasAllergies = (diet.allergies?.length ?? 0) > 0;
 
         return (
           <GlowCard
@@ -116,16 +116,16 @@ export function DietaryRequirementsTab({
 
               {/* Allergies Warning Flags */}
               {hasAllergies && (
-                <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20">
-                  <div className="flex items-center gap-1.5 text-xs font-extrabold text-rose-600 dark:text-rose-400">
+                <div className="p-2.5 rounded-xl bg-destructive/10 border border-destructive/20">
+                  <div className="flex items-center gap-1.5 text-xs font-extrabold text-destructive dark:text-destructive">
                     <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
                     <span>Clinical Allergens:</span>
                   </div>
                   <div className="flex flex-wrap gap-1 mt-1.5">
-                    {diet.allergies.map((allergy, idx) => (
+                    {(diet.allergies ?? []).map((allergy, idx) => (
                       <span
                         key={idx}
-                        className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-black bg-rose-600 text-white"
+                        className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-black bg-destructive text-white"
                       >
                         ⚠️ {allergy}
                       </span>
@@ -157,7 +157,7 @@ export function DietaryRequirementsTab({
                     size="sm"
                     variant="outline"
                     onClick={() => onUpdateStatus(diet.requirement_id, "active")}
-                    className="h-7 px-2 text-[10px] font-bold rounded-lg border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10 cursor-pointer"
+                    className="h-7 px-2 text-[10px] font-bold rounded-lg border-success/30 text-success hover:bg-success/10 cursor-pointer"
                   >
                     Activate
                   </Button>
@@ -167,7 +167,7 @@ export function DietaryRequirementsTab({
                     size="sm"
                     variant="outline"
                     onClick={() => onUpdateStatus(diet.requirement_id, "review")}
-                    className="h-7 px-2 text-[10px] font-bold rounded-lg border-sky-500/30 text-sky-600 hover:bg-sky-500/10 cursor-pointer"
+                    className="h-7 px-2 text-[10px] font-bold rounded-lg border-primary/30 text-primary hover:bg-primary/10 cursor-pointer"
                   >
                     Review
                   </Button>

@@ -9,7 +9,11 @@
  */
 
 import { createServerFn } from "@tanstack/react-start";
-import { getSupabaseServerClient, getVerifiedUser } from "./supabase.server";
+import {
+  getSupabaseServerClient,
+  getSupabaseServiceRoleClient,
+  getVerifiedUser,
+} from "./supabase.server";
 
 /**
  * Local rather than shared, matching the other *.server.ts modules: each keeps
@@ -205,4 +209,127 @@ export const setHospitalStatus = createServerFn({ method: "POST" })
       throw new Error("Hospital not found, or you are not permitted to change its status");
     }
     return { ok: true as const, status: updated[0].status };
+  });
+
+/**
+ * Linked wallets, for the admin identity console.
+ *
+ * `wallet_address` carries a UNIQUE constraint (profiles_wallet_address_key):
+ * one wallet, one account. That is the right rule, but it leaves no way out —
+ * a wallet stranded on a disused account blocks its owner from ever linking it
+ * again, and the app tells them to "unlink it from the other account first"
+ * without providing anywhere to do that. This pair of functions is that
+ * somewhere.
+ */
+export const getLinkedWallets = createServerFn({ method: "GET" }).handler(async () => {
+  const user = await requireSession();
+  const supabase = getSupabaseServerClient();
+
+  const { data: me } = await supabase
+    .from("profiles")
+    .select("role, hospital_id")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (me?.role !== "admin" && me?.role !== "super_admin") {
+    throw new Error("Only an administrator may view linked wallets");
+  }
+
+  // A super_admin spans tenants; an admin sees only their own hospital.
+  let query = supabase
+    .from("profiles")
+    .select("id, email, full_name, role, wallet_address, hospital_id")
+    .not("wallet_address", "is", null);
+
+  if (me.role === "admin") query = query.eq("hospital_id", me.hospital_id);
+
+  const { data, error } = await query.order("email", { ascending: true });
+  if (error) throw new Error(error.message);
+
+  return { wallets: data ?? [] };
+});
+
+/**
+ * Detach a wallet from an account so it can be linked elsewhere.
+ *
+ * Uses the service-role client for the write itself: profiles_update_own is
+ * row-scoped, so an admin cannot clear another user's column through the
+ * request client. The caller's role and tenant are established with the normal
+ * client FIRST, and the target is re-read and checked against the caller's
+ * hospital before anything is written — the service-role key is used only for
+ * the one field this function exists to clear.
+ */
+export const unlinkWallet = createServerFn({ method: "POST" })
+  .inputValidator((data: { profileId: string }) => {
+    if (!data?.profileId) throw new Error("profileId is required");
+    return data;
+  })
+  .handler(async ({ data }) => {
+    const user = await requireSession();
+    const supabase = getSupabaseServerClient();
+
+    const { data: me } = await supabase
+      .from("profiles")
+      .select("id, role, hospital_id, email, full_name, primary_did")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (me?.role !== "admin" && me?.role !== "super_admin") {
+      throw new Error("Only an administrator may unlink a wallet");
+    }
+
+    const admin = getSupabaseServiceRoleClient();
+
+    const { data: target } = await admin
+      .from("profiles")
+      .select("id, email, role, wallet_address, hospital_id")
+      .eq("id", data.profileId)
+      .maybeSingle();
+
+    if (!target) throw new Error("No such account");
+    if (!target.wallet_address) {
+      return { ok: true as const, changed: false, email: target.email };
+    }
+
+    // Tenant boundary: an admin may only act inside their own hospital.
+    if (me.role === "admin" && target.hospital_id !== me.hospital_id) {
+      throw new Error("That account belongs to a different hospital");
+    }
+
+    const freed = target.wallet_address;
+
+    const { error } = await admin
+      .from("profiles")
+      .update({ wallet_address: null })
+      .eq("id", data.profileId);
+
+    if (error) throw new Error(error.message);
+
+    // Detaching a wallet severs the key that signs consents and anchors records,
+    // so it is an identity event and belongs in the audit trail.
+    const { tryWriteAudit } = await import("./audit-write.server");
+    tryWriteAudit({
+      actorId: me.id,
+      actorDid: me.primary_did ?? null,
+      actorName: me.full_name ?? null,
+      actorRole: me.role,
+      actorHospital: me.hospital_id ?? null,
+      actorEmail: me.email ?? null,
+      action: "WALLET_UNLINKED",
+      outcome: "success",
+      severity: "warning",
+      module: "identity",
+      entityId: target.id,
+      entityType: "profile",
+      resource: `Wallet ${freed.slice(0, 4)}…${freed.slice(-4)} (${target.email})`,
+      hospital: target.hospital_id ?? null,
+      location: "Admin Portal → DID Management",
+      prevValue: { wallet_address: freed },
+      newValue: { wallet_address: null },
+      authStatus: "authorized",
+      authPolicy: "admin_or_super_admin",
+      metadata: { targetRole: target.role },
+    });
+
+    return { ok: true as const, changed: true, email: target.email, wallet: freed };
   });

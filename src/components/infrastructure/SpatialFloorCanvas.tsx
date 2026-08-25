@@ -67,19 +67,19 @@ const BED_THEME: Record<
     glow: "hover:shadow-[0_0_15px_rgba(245,158,11,0.12)]",
   },
   cleaning: {
-    bg: "bg-blue-500/5 hover:bg-blue-500/15 border-blue-400/30 hover:border-blue-400/60",
-    border: "border-blue-400/30",
-    text: "text-blue-600 dark:text-blue-400",
-    dot: "bg-blue-500",
+    bg: "bg-chart-4/5 hover:bg-chart-4/15 border-chart-4/30 hover:border-chart-4/60",
+    border: "border-chart-4/30",
+    text: "text-chart-4",
+    dot: "bg-chart-4",
     label: "Cleaning",
     icon: Activity,
     glow: "hover:shadow-[0_0_15px_rgba(59,130,246,0.12)]",
   },
   maintenance: {
-    bg: "bg-amber-500/5 hover:bg-amber-500/15 border-amber-400/30 hover:border-amber-400/60",
-    border: "border-amber-400/30",
-    text: "text-amber-600 dark:text-amber-400",
-    dot: "bg-amber-500",
+    bg: "bg-chart-3/5 hover:bg-chart-3/15 border-chart-3/30 hover:border-chart-3/60",
+    border: "border-chart-3/30",
+    text: "text-chart-3",
+    dot: "bg-chart-3",
     label: "Maint",
     icon: Wrench,
     glow: "hover:shadow-[0_0_15px_rgba(245,158,11,0.12)]",
@@ -94,10 +94,10 @@ const BED_THEME: Record<
     glow: "hover:shadow-[0_0_15px_rgba(239,68,68,0.12)]",
   },
   emergency_reserved: {
-    bg: "bg-rose-500/5 hover:bg-rose-500/15 border-rose-400/30 hover:border-rose-400/60 ring-1 ring-rose-400/20",
-    border: "border-rose-400/30",
-    text: "text-rose-600",
-    dot: "bg-rose-500",
+    bg: "bg-destructive/5 hover:bg-destructive/15 border-destructive/30 hover:border-destructive/60 ring-1 ring-destructive/20",
+    border: "border-destructive/30",
+    text: "text-destructive",
+    dot: "bg-destructive",
     label: "Emergency",
     icon: Shield,
     glow: "hover:shadow-[0_0_15px_rgba(244,63,94,0.12)]",
@@ -111,29 +111,29 @@ const ROOM_TYPE_STYLE: Record<string, { bg: string; text: string; label: string 
     label: "ICU Critical",
   },
   emergency: {
-    bg: "bg-rose-500/10 border-rose-500/30",
-    text: "text-rose-600",
+    bg: "bg-destructive/10 border-destructive/30",
+    text: "text-destructive",
     label: "Emergency Bay",
   },
   general: { bg: "bg-primary/10 border-primary/20", text: "text-primary", label: "General Care" },
   private: {
-    bg: "bg-indigo-500/10 border-indigo-500/20",
-    text: "text-indigo-600 dark:text-indigo-400",
+    bg: "bg-chart-5/10 border-chart-5/20",
+    text: "text-chart-5",
     label: "VIP Suite",
   },
   isolation: {
-    bg: "bg-amber-500/10 border-amber-500/30",
-    text: "text-amber-600",
+    bg: "bg-chart-3/10 border-chart-3/30",
+    text: "text-chart-3",
     label: "Isolation",
   },
   surgery: {
-    bg: "bg-teal-500/10 border-teal-500/30",
-    text: "text-teal-600",
+    bg: "bg-chart-6/10 border-chart-6/30",
+    text: "text-chart-6",
     label: "PACU Recovery",
   },
   recovery: {
-    bg: "bg-cyan-500/10 border-cyan-500/30",
-    text: "text-cyan-600",
+    bg: "bg-chart-2/10 border-chart-2/30",
+    text: "text-chart-2",
     label: "Day Recovery",
   },
 };
@@ -413,7 +413,7 @@ export const SpatialFloorCanvas = memo(function SpatialFloorCanvas({
                                         bed.patient_condition === "Critical"
                                           ? "bg-destructive/15 text-destructive border border-destructive/30"
                                           : bed.patient_condition === "Recovery"
-                                            ? "bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-300"
+                                            ? "bg-primary/15 text-primary border border-primary/30"
                                             : "bg-success/15 text-success border border-success/30"
                                       }`}
                                     >
@@ -430,13 +430,13 @@ export const SpatialFloorCanvas = memo(function SpatialFloorCanvas({
                                     }`}
                                   >
                                     <span className="flex items-center gap-1.5 text-primary shrink-0">
-                                      <Heart className="h-3 w-3 text-rose-500 animate-pulse" />
+                                      <Heart className="h-3 w-3 text-destructive animate-pulse" />
                                       {bed.vitals.hr} bpm
                                     </span>
                                     <span className="text-muted-foreground shrink-0">
                                       {bed.vitals.bp}
                                     </span>
-                                    <span className="text-teal-600 font-extrabold shrink-0">
+                                    <span className="text-success font-extrabold shrink-0">
                                       SpO2 {bed.vitals.spo2}%
                                     </span>
                                   </div>

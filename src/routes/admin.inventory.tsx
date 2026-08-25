@@ -248,7 +248,7 @@ function InventoryDashboardPage() {
               <Button
                 onClick={() => toast.success("Stock valuation report generated (CSV)")}
                 size="sm"
-                className="bg-gradient-to-r from-primary to-blue-600 text-primary-foreground font-extrabold rounded-xl shadow-clinical-md shadow-primary/25 text-xs"
+                className="bg-primary text-primary-foreground font-extrabold rounded-xl shadow-clinical-md shadow-primary/25 text-xs"
               >
                 <FileSpreadsheet className="h-4 w-4 mr-2" />
                 Export Ledger

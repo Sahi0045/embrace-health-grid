@@ -23,12 +23,26 @@ import { getAllPrescriptions, getSurgeries, signPrescription } from "@/lib/api";
 import { toast } from "sonner";
 import { useCurrentUser } from "@/lib/auth-context";
 
+/**
+ * ICU is a property of the WARD, not of the bed.
+ *
+ * These tiles used to filter `b.type === "icu"`. `beds` has no `type` column —
+ * `bed_type` describes the frame ("Electric"), not the level of care — so the
+ * filter matched nothing and every ICU occupancy figure read 0/0 regardless of
+ * how full the unit was.
+ */
+function isIcuBed(b: { ward?: string | null }) {
+  return (b.ward ?? "").toLowerCase().includes("icu");
+}
+
 export const Route = createFileRoute("/staff/command")({
   head: () => ({ meta: [{ title: "Command Center — Staff Portal" }] }),
   component: StaffCommandCenter,
 });
 
-function UrgencyDot({ urgency }: { urgency: string }) {
+function UrgencyDot({ urgency }: { urgency: string | null }) {
+  // null = not modelled. It renders neutral rather than as the "medium" the
+  // caller used to hardcode for every row.
   const cls =
     urgency === "high"
       ? "bg-destructive"
@@ -58,7 +72,7 @@ function StaffCommandCenter() {
       : "—",
   }));
 
-  const icuBeds = allBeds.filter((b: any) => b.type === "icu").slice(0, 8);
+  const icuBeds = allBeds.filter(isIcuBed).slice(0, 8);
   const criticalPatients = livePatients.filter((p) => {
     return (
       (p.conditions || []).some(
@@ -93,22 +107,29 @@ function StaffCommandCenter() {
   }, []);
 
   const handleSign = async (rxId: string) => {
-    try {
-      toast.promise(
-        (async () => {
-          await signPrescription({ rxId, staffDid });
-          fetchData();
-          return true;
-        })(),
-        {
-          loading: "Signing prescription using clinician credential...",
-          success: "Prescription signed and logged on ledger!",
-          error: "Failed to sign prescription",
-        },
-      );
-    } catch (err) {
-      console.error(err);
+    // signPrescription mints a credential whose SUBJECT is the patient, so it
+    // needs the patient's DID. This used to pass `{ rxId, staffDid }` only, so
+    // `patientDid` resolved to "" and signCredential threw
+    // "subjectDid and credentialType are required" — every "Sign now" click
+    // ended in "Failed to sign prescription" and the queue never drained.
+    const rx = prescriptions.find((p) => p.rxId === rxId);
+    if (!rx?.patientDid) {
+      toast.error("Cannot sign: this prescription has no patient DID on record");
+      return;
     }
+
+    toast.promise(
+      (async () => {
+        await signPrescription({ rxId, patientDid: rx.patientDid, staffDid });
+        fetchData();
+        return true;
+      })(),
+      {
+        loading: "Signing prescription using clinician credential...",
+        success: "Prescription signed and logged on ledger!",
+        error: (e) => `Failed to sign prescription: ${e instanceof Error ? e.message : e}`,
+      },
+    );
   };
 
   const pendingSignatures = prescriptions
@@ -116,10 +137,15 @@ function StaffCommandCenter() {
     .map((p) => ({
       id: p.rxId,
       type: "Prescription",
-      patient: p.patientName || "Unknown Patient",
-      requestedBy: p.clinicName || "OPD Desk",
-      urgency: "medium",
-      time: p.date ? p.date.split("T")[0] : "Today",
+      // getPrescriptions returns patientDid / doctorDid / createdAt. `patientName`,
+      // `clinicName` and `date` are not fields it returns and not columns that
+      // exist, so every pending signature displayed "Unknown Patient", "OPD Desk"
+      // and "Today" — three constants dressed as a work queue.
+      patient: p.patientDid ?? "Unknown patient",
+      requestedBy: p.doctorDid ?? "Unknown prescriber",
+      // Urgency is not modelled on prescriptions; it was the literal "medium".
+      urgency: null,
+      time: p.createdAt ? new Date(p.createdAt).toLocaleDateString() : "—",
     }));
 
   const todayProcedures = surgeries.map((s) => ({
@@ -264,7 +290,7 @@ function StaffCommandCenter() {
                 className={`flex h-14 flex-col items-center justify-center rounded-xl text-center text-[10px] font-semibold transition-colors ${b.status === "occupied" ? "bg-primary/10 text-primary" : b.status === "available" ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"}`}
               >
                 <Bed className="h-4 w-4 mb-0.5" />
-                {b.bedNo}
+                {b.bedNumber ?? b.bedId}
               </div>
             ))}
           </div>

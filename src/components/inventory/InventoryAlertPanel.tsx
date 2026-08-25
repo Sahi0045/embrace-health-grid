@@ -139,7 +139,7 @@ export function InventoryAlertPanel({
                       onClick={(e) => handleAcknowledge(alert.alert_id, e)}
                       className="rounded-xl h-7 px-2.5 text-[10px] font-bold shadow-xs hover:bg-accent cursor-pointer"
                     >
-                      <CheckCircle2 className="h-3 w-3 mr-1 text-emerald-500" />
+                      <CheckCircle2 className="h-3 w-3 mr-1 text-success" />
                       Dismiss
                     </Button>
                     <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />

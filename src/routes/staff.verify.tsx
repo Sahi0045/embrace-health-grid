@@ -36,6 +36,7 @@ import {
   Wifi,
   Loader2,
   Lock,
+  AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -127,7 +128,12 @@ function VerifyPatient() {
         await tree.build();
         const localRoot = tree.getRoot();
 
-        const PROGRAM_ID = new PublicKey("BxkLrjBYdb3nh2m9GCfpLXBWrAj3s9MqnRbwktLqSfN3");
+        // Same hardcoded-program bug as patient.records: this must match the
+        // program the server anchors against (VITE_SOLANA_PROGRAM_ID), or the
+        // PDA never resolves and on-chain verification silently always fails.
+        const programId = import.meta.env.VITE_SOLANA_PROGRAM_ID;
+        if (!programId) return;
+        const PROGRAM_ID = new PublicKey(programId);
         const [patientRootPda] = PublicKey.findProgramAddressSync(
           [Buffer.from("patient-root"), Buffer.from(scanResult.did)],
           PROGRAM_ID,
@@ -884,13 +890,20 @@ function VerifyPatient() {
                   <Field
                     label="Allergies"
                     value={
-                      displayPatient.allergies && displayPatient.allergies.length ? (
+                      displayPatient.allergies?.length ? (
                         <span className="inline-flex items-center gap-1 text-destructive">
                           <AlertTriangle className="h-3.5 w-3.5" />
                           {displayPatient.allergies.join(", ")}
                         </span>
+                      ) : displayPatient.allergies ? (
+                        // An empty ARRAY means somebody checked and found none.
+                        "None documented"
                       ) : (
-                        "None"
+                        // An ABSENT array means nobody has recorded anything.
+                        // Rendering that as "None" told the clinician the
+                        // patient has no allergies — the one default on this
+                        // screen that can hurt someone.
+                        "Not recorded"
                       )
                     }
                   />
@@ -913,7 +926,19 @@ function VerifyPatient() {
         </div>
       </div>
 
-      {/* ── ZK Proof Verification ── */}
+      {/* ── Verification detail ──
+          This panel used to render four green-ticked steps ("DID resolved on
+          Solana Devnet", "Merkle proof verified against ledger root", "Groth16
+          proof accepted"), a literal proof id, and the rows "Insurance Valid"
+          and "Vaccination Status: Complete". None of it was computed — there is
+          no ZK proof system in this codebase, and no insurance or immunisation
+          check runs anywhere in this flow. A clinician read those as verified
+          facts about the person in front of them.
+
+          What the flow ACTUALLY does is check an Ed25519 signature over the
+          identity payload, so that is what it now reports. Clinical attributes
+          are shown only when the record carries them, and "unknown" is shown as
+          unknown rather than resolved to a reassuring default. */}
       {verified && (
         <div className="mx-8 mb-6 rounded-xl border border-border bg-card shadow-clinical overflow-hidden">
           <button
@@ -922,7 +947,7 @@ function VerifyPatient() {
           >
             <span className="flex items-center gap-2">
               <Fingerprint className="h-4 w-4 text-primary" />
-              ZK Proof Verification
+              Verification detail
             </span>
             {zkpOpen ? (
               <ChevronUp className="h-4 w-4 text-muted-foreground" />
@@ -933,53 +958,55 @@ function VerifyPatient() {
 
           {zkpOpen && (
             <div className="border-t border-border px-6 pb-6 pt-4 space-y-5">
-              {/* Verification steps */}
               <ol className="space-y-3">
-                {[
-                  {
-                    title: "QR decoded — DID extracted",
-                    desc: "Patient DID parsed from QR payload using base58 encoding.",
-                  },
-                  {
-                    title: "DID resolved on Solana Devnet",
-                    desc: "DID document retrieved from Anchor program state.",
-                  },
-                  {
-                    title: "Merkle proof verified against ledger root",
-                    desc: "Inclusion proof validated against the latest block header hash.",
-                  },
-                  {
-                    title: "Selective disclosure validated — 3 of 7 attributes revealed",
-                    desc: "Groth16 proof accepted; remaining 4 attributes remain private.",
-                  },
-                ].map((step, i) => (
-                  <li key={i} className="flex items-start gap-3">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
-                    <div>
-                      <div className="text-sm font-medium text-foreground">{step.title}</div>
-                      <div className="text-xs text-muted-foreground">{step.desc}</div>
+                <li className="flex items-start gap-3">
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+                  <div>
+                    <div className="text-sm font-medium text-foreground">
+                      Identity payload signature verified
                     </div>
-                  </li>
-                ))}
+                    <div className="text-xs text-muted-foreground">
+                      Ed25519 signature over the DID, MRN and expiry checked against the issuing
+                      key.
+                    </div>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                  <div>
+                    <div className="text-sm font-medium text-foreground">
+                      Not checked: on-chain DID resolution
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      This verification is off-chain. It does not prove the DID is currently
+                      registered or unrevoked on Solana.
+                    </div>
+                  </div>
+                </li>
               </ol>
 
-              {/* Disclosed attributes */}
               <div>
                 <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Disclosed Attributes
+                  Attributes on file
                 </div>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-2">
                   {[
-                    { label: "Blood Group", value: displayPatient.bloodGroup },
                     {
-                      label: "Allergy Status",
-                      value:
-                        displayPatient.allergies && displayPatient.allergies.length === 0
-                          ? "None"
-                          : "Present",
+                      label: "Blood Group",
+                      value: displayPatient.bloodGroup || "Not recorded",
                     },
-                    { label: "Insurance Valid", value: "Valid" },
-                    { label: "Vaccination Status", value: "Complete" },
+                    {
+                      // Three states, not two. An absent allergy list means
+                      // nobody has recorded one — it does NOT mean "no
+                      // allergies", and on this screen that difference is the
+                      // difference between a safe and an unsafe assumption.
+                      label: "Allergies",
+                      value: !displayPatient.allergies
+                        ? "Not recorded"
+                        : displayPatient.allergies.length === 0
+                          ? "None documented"
+                          : displayPatient.allergies.join(", "),
+                    },
                   ].map((attr) => (
                     <div
                       key={attr.label}
@@ -994,15 +1021,9 @@ function VerifyPatient() {
                 </div>
               </div>
 
-              {/* Proof ID */}
-              <div className="flex items-center justify-between rounded-lg border border-border bg-muted/20 px-4 py-2.5">
-                <span className="text-xs text-muted-foreground">ZK Proof ID</span>
-                <span className="font-mono text-xs text-foreground">zkp:groth16:0x8f2a...c4b1</span>
-              </div>
-
-              {/* Privacy note */}
-              <p className="text-xs font-medium text-success">
-                ✓ Privacy preserved: Full medical record not accessed
+              <p className="text-xs font-medium text-muted-foreground">
+                Identity only. This check does not open the medical record, and does not verify
+                insurance or immunisation status.
               </p>
             </div>
           )}
@@ -1195,9 +1216,9 @@ function NfcContactlessReader({ status, errorText }: NfcReaderProps) {
               <Wifi className="h-5 w-5 text-primary/80" />
             </div>
 
-            <div className="w-9 h-7 rounded bg-gradient-to-br from-amber-300 via-yellow-400 to-amber-600 border border-amber-500/30 relative overflow-hidden shadow-inner self-start">
-              <div className="absolute inset-x-2 inset-y-1 border-r border-amber-900/10" />
-              <div className="absolute inset-x-1 inset-y-2 border-b border-amber-900/10" />
+            <div className="w-9 h-7 rounded bg-gradient-to-br from-warning via-warning to-warning border border-warning/30 relative overflow-hidden shadow-inner self-start">
+              <div className="absolute inset-x-2 inset-y-1 border-r border-warning/10" />
+              <div className="absolute inset-x-1 inset-y-2 border-b border-warning/10" />
             </div>
 
             <div className="flex justify-between items-end">
@@ -1222,9 +1243,9 @@ function NfcContactlessReader({ status, errorText }: NfcReaderProps) {
               transform: "rotateY(180deg)",
               transformStyle: "preserve-3d",
             }}
-            className="absolute inset-0 rounded-2xl bg-gradient-to-br from-zinc-950 to-zinc-900 border border-white/10 p-5 shadow-2xl flex flex-col justify-between overflow-hidden"
+            className="absolute inset-0 rounded-2xl bg-gradient-to-br from-muted-foreground to-muted-foreground border border-white/10 p-5 shadow-2xl flex flex-col justify-between overflow-hidden"
           >
-            <div className="absolute top-4 left-0 right-0 h-8 bg-zinc-800" />
+            <div className="absolute top-4 left-0 right-0 h-8 bg-card" />
 
             <div className="mt-10 flex flex-col gap-2 text-left">
               <div className="h-5 bg-white/5 border border-white/10 rounded px-2 flex items-center justify-end">
@@ -1247,7 +1268,7 @@ function NfcContactlessReader({ status, errorText }: NfcReaderProps) {
       </div>
 
       <div className="relative mt-2 w-44 h-12 flex justify-center items-center">
-        <div className="absolute inset-x-0 bottom-0 h-6 bg-zinc-900 rounded-full border border-border flex items-center justify-center shadow-lg">
+        <div className="absolute inset-x-0 bottom-0 h-6 bg-card rounded-full border border-border flex items-center justify-center shadow-lg">
           <div className="w-1/2 h-1 bg-primary/40 rounded-full blur-[1px] animate-pulse" />
         </div>
 

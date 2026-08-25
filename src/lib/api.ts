@@ -1,7 +1,25 @@
 /**
- * API Client for embrace-health-grid backend
- * Connects directly to the REST server (http://localhost:3001)
+ * API client — the boundary between route components and the server functions
+ * in `*.server.ts`.
+ *
+ * (The old header said this "connects directly to the REST server on :3001".
+ * That Express backend was decommissioned; everything here reaches Postgres
+ * through TanStack server functions with RLS applied.)
+ *
+ * Response shapes live in `./types/api`. DECLARE the return type on a function
+ * rather than letting it infer — inference widens to whatever the mapper
+ * happens to produce, which is precisely how the field-name drift that broke
+ * consent revoke, the vaccines page and the Rehab tab went unnoticed.
  */
+
+import type {
+  BillingResponse,
+  ConsentsResponse,
+  InsuranceClaimsResponse,
+  InsurancePolicyResponse,
+  RehabSessionsResponse,
+  VaccinesResponse,
+} from "./types/api";
 
 const getApiBaseUrl = (): string => {
   const envUrl =
@@ -279,8 +297,10 @@ export async function getPrescriptions(_did?: string) {
       notes: p.notes,
       status: p.status,
       signed: p.signed,
+      signedBy: p.signed_by ?? null,
       signedAt: p.signed_at,
       hash: p.content_hash,
+      apptId: p.appointment_id ?? null,
       createdAt: p.created_at,
     })),
   };
@@ -468,6 +488,9 @@ export async function getLabResults(_did?: string) {
       unit: l.unit,
       referenceRange: l.reference_range,
       status: l.status,
+      // The ordering clinician's urgency. Carried through so the queue can show
+      // a STAT order as STAT; it used to be dropped and re-invented as routine.
+      priority: l.priority,
       resultedAt: l.resulted_at,
     })),
   };
@@ -602,7 +625,13 @@ export async function getBeds() {
   const res = await fn();
   const rows = (res.beds ?? []).map((b: any) => ({
     bedId: b.bed_id,
+    // The bed label staff actually use at the bedside ("C204-A"). It was dropped
+    // here, so every consumer fell back to the opaque bed_id or invented one.
+    bedNumber: b.bed_number ?? null,
+    bedType: b.bed_type ?? null,
     ward: b.ward,
+    wardId: b.ward_id ?? null,
+    roomId: b.room_id ?? null,
     status: b.status,
     patientDid: b.patient_did,
     updatedAt: b.updated_at,
@@ -772,17 +801,33 @@ export async function verifyNFCCard(input: string | { payload?: unknown; cardId?
   return { ...res, verified: res.valid };
 }
 
-export async function getInsuranceClaims(_did?: string) {
+export async function getInsuranceClaims(_did?: string): Promise<InsuranceClaimsResponse> {
   const { getInsuranceClaims: fn } = await import("./operations.server");
   const res = await fn();
   return {
+    /**
+     * ClaimsCard reads claimNo / claimType / insuranceProvider / submittedDate /
+     * processedDate / remarks / approvedAmount. insurance_claims has none of
+     * those columns (claim_id, patient_did, amount, description, status,
+     * submitted_at, resolved_at), so every claim rendered with blank fields and
+     * an undefined React key. Aliased to what exists; the rest are explicitly
+     * null so the card can omit them rather than render empty labels.
+     */
     claims: (res.claims ?? []).map((c: any) => ({
       claimId: c.claim_id,
+      id: c.claim_id,
+      claimNo: c.claim_id,
       patientDid: c.patient_did,
       amount: c.amount,
       description: c.description,
+      remarks: c.description ?? null,
       status: c.status,
       submittedAt: c.submitted_at,
+      submittedDate: c.submitted_at,
+      processedDate: c.resolved_at ?? null,
+      claimType: null as string | null,
+      insuranceProvider: null as string | null,
+      approvedAmount: null as number | null,
     })),
   };
 }
@@ -796,7 +841,22 @@ export async function createInsuranceClaim(payload: {
   const { createInsuranceClaim: fn } = await import("./operations.server");
   // patientDid is accepted but ignored: the claim is always filed against the
   // caller's own DID, enforced by RLS.
-  const res = await fn({ data: { amount: payload.amount, description: payload.description } });
+  /**
+   * insurance_claims stores only amount and description, so the form's Claim
+   * Category, Diagnosis, Provider and Policy No have nowhere to go. Rather than
+   * discard them silently — the form collected four fields that vanished — fold
+   * them into the description so the information survives.
+   */
+  const extras = [
+    payload.claimType ? `Type: ${payload.claimType}` : null,
+    payload.claimDiagnosis ? `Diagnosis: ${payload.claimDiagnosis}` : null,
+    payload.provider ? `Provider: ${payload.provider}` : null,
+    payload.policyNo ? `Policy: ${payload.policyNo}` : null,
+  ].filter(Boolean);
+
+  const description = [payload.description, ...extras].filter(Boolean).join(" · ");
+
+  const res = await fn({ data: { amount: payload.amount, description } });
   return {
     success: true as const,
     claimId: res.claimId,
@@ -805,6 +865,34 @@ export async function createInsuranceClaim(payload: {
       amount: payload.amount,
       description: payload.description,
       status: "submitted",
+    },
+  };
+}
+
+/**
+ * The patient's real insurance policy.
+ *
+ * insurance_policies is scoped by RLS to the caller. The insurance page never
+ * called this — it displayed hardcoded fallbacks instead ("Star Health & Allied
+ * Insurance", "POL-2026-STAR-9942", ₹10,00,000 sum insured), identical for every
+ * patient, including patients with no policy at all.
+ */
+export async function getInsurancePolicy(): Promise<InsurancePolicyResponse> {
+  const { getInsurancePolicy: fn } = await import("./operations.server");
+  const { policy } = await fn();
+  if (!policy) return { policy: null };
+  const p = policy as any;
+  return {
+    policy: {
+      provider: p.provider ?? null,
+      policyNumber: p.policy_number ?? null,
+      groupNumber: p.group_number ?? null,
+      coverageType: p.coverage_type ?? null,
+      copay: p.copay ?? null,
+      deductible: p.deductible ?? null,
+      coveragePercentage: p.coverage_percentage ?? null,
+      validFrom: p.valid_from ?? null,
+      validTo: p.valid_to ?? null,
     },
   };
 }
@@ -882,7 +970,7 @@ export async function getCredentials(_holderDid?: string) {
   return { credentials, total: credentials.length };
 }
 
-export async function getConsents(_did?: string) {
+export async function getConsents(_did?: string): Promise<ConsentsResponse> {
   const { getConsents: fn } = await import("./clinical.server");
   const res = await fn();
   const consents: any[] = (res.consents ?? []).map((c: any) => ({
@@ -891,8 +979,13 @@ export async function getConsents(_did?: string) {
     doctorDid: c.doctor_did,
     resource: c.resource,
     status: c.status,
+    reason: c.reason ?? null,
     grantedAt: c.granted_at,
     expiry: c.expires_at,
+    expiresAt: c.expires_at,
+    requestedAt: c.requested_at ?? null,
+    approvedAt: c.approved_at ?? null,
+    revokedAt: c.revoked_at ?? null,
   }));
   return { consents, grants: consents, total: consents.length };
 }
@@ -985,10 +1078,23 @@ export async function bookAppointment(payload: {
   slot: string;
   specialty?: string;
   mode?: string;
+  /** Patient's stated symptoms. Persists to appointments.reason. */
+  reason?: string;
   [key: string]: unknown;
 }) {
   const { bookAppointment: fn } = await import("./clinical.server");
-  const res = await fn({ data: payload });
+  // Forward an explicit shape rather than the whole payload: the route also
+  // sends `date` and `consentGranted`, neither of which has a column, and
+  // passing them through implied they were being stored.
+  const res = await fn({
+    data: {
+      doctorDid: payload.doctorDid,
+      slot: payload.slot,
+      specialty: payload.specialty,
+      mode: payload.mode,
+      reason: payload.reason,
+    },
+  });
   return { success: true as const, apptId: res.apptId };
 }
 
@@ -1028,6 +1134,14 @@ export async function getAuditEvents(
     outcome: e.outcome,
     severity: e.severity,
     loggedAt: e.logged_at,
+    // Real values, previously unselected and substituted with constants or
+    // string manipulations of the tx id in the UI.
+    actorName: e.who_name ?? null,
+    actorRole: e.who_role ?? null,
+    entityId: e.what_entity_id ?? null,
+    entityType: e.what_entity_type ?? null,
+    recordHash: e.record_hash ?? null,
+    anchorStatus: e.anchor_status ?? null,
   }));
   return { events, total: events.length, page: 1, size: events.length };
 }
@@ -1266,14 +1380,18 @@ export async function orderLab(
   patientDid: string,
   _orderedBy?: string,
   testName?: string | string[],
-  _priority?: string,
+  priority?: string,
 ) {
   const { orderLabTest } = await import("./clinical.server");
   // Call sites pass either a single test name or a list.
   const name = Array.isArray(testName)
     ? testName.join(", ") || "Unspecified panel"
     : (testName ?? "Unspecified panel");
-  const res = await orderLabTest({ data: { patientDid, testName: name } });
+  // `priority` was named `_priority` and dropped here, so a STAT order was
+  // filed as routine and then displayed back as routine.
+  const res = await orderLabTest({
+    data: { patientDid, testName: name, priority: priority ?? "routine" },
+  });
   return { success: true as const, labId: res.labId };
 }
 
@@ -1319,6 +1437,15 @@ export async function getDoctorAppointmentRequests(_doctorDid?: string) {
  * was dropped on the floor here, which is why an edit reported success and then
  * appeared to change nothing.
  */
+/**
+ * This wrapper forwards an explicit field list, so anything not named here is
+ * dropped on the floor. That is what made the staff profile dialog report
+ * success while silently discarding Department, Role and Specializations —
+ * three of its five fields never reached the server function at all.
+ *
+ * `role` stays unforwarded on purpose: it is the authorization role, and RLS
+ * (profiles_update_own) rejects a self-change to it. Job title goes to `title`.
+ */
 export async function updateProfile(data: {
   name?: string;
   fullName?: string;
@@ -1327,6 +1454,10 @@ export async function updateProfile(data: {
   gender?: string;
   bloodGroup?: string;
   allergies?: string[] | string;
+  department?: string;
+  title?: string;
+  specializations?: string[] | string;
+  employeeId?: string;
   [key: string]: unknown;
 }) {
   const { updateOwnProfile } = await import("./clinical.server");
@@ -1338,6 +1469,10 @@ export async function updateProfile(data: {
       gender: data.gender,
       bloodGroup: data.bloodGroup,
       allergies: data.allergies,
+      department: data.department,
+      title: data.title,
+      specializations: data.specializations,
+      employeeId: data.employeeId,
     },
   });
   const { getCurrentUser } = await import("./auth.server");
@@ -1356,13 +1491,24 @@ export async function updateEmergencyProfile(data: {
   bloodGroup?: string;
   blood_group?: string;
   allergies?: string[] | string;
+  emergencyContact?: { name?: string; relation?: string; phone?: string } | null;
+  organDonor?: boolean | null;
+  conditions?: string[] | string;
   [key: string]: unknown;
 }) {
   const { updateOwnProfile } = await import("./clinical.server");
+  // Forwards all five fields now that 20260825020000 gives the other three
+  // columns. Previously only blood group and allergies could persist.
   await updateOwnProfile({
     data: {
       bloodGroup: (data.bloodGroup ?? data.blood_group) as string | undefined,
       allergies: data.allergies,
+      emergencyContact: data.emergencyContact as
+        | { name?: string; relation?: string; phone?: string }
+        | null
+        | undefined,
+      organDonor: data.organDonor as boolean | null | undefined,
+      conditions: data.conditions as string[] | string | undefined,
     },
   });
   const { getCurrentUser } = await import("./auth.server");
@@ -1562,7 +1708,7 @@ export async function getSurgeries() {
   return { surgeries, total: surgeries.length };
 }
 
-export async function getRehabSessions(_did?: string) {
+export async function getRehabSessions(_did?: string): Promise<RehabSessionsResponse> {
   const { getRehabSessions: fn } = await import("./inpatient.server");
   const res = await fn();
   const sessions = (res.sessions ?? []).map((r: any) => ({
@@ -1590,7 +1736,7 @@ export async function getPharmacyOrders(_did?: string) {
   return { orders, pharmacyOrders: orders, total: orders.length };
 }
 
-export async function getVaccines(_did?: string) {
+export async function getVaccines(_did?: string): Promise<VaccinesResponse> {
   const { getVaccines: fn } = await import("./inpatient.server");
   const res = await fn();
   const vaccines = (res.vaccines ?? []).map((v: any) => ({
@@ -1609,17 +1755,80 @@ export async function getVaccines(_did?: string) {
 export async function getInpatientData(_did?: string) {
   const { getInpatientData: fn } = await import("./inpatient.server");
   const d = await fn();
+  /**
+   * Map snake_case rows to the camelCase the screens read.
+   *
+   * selectAll() does `select("*")` and returned raw Postgres rows, while the
+   * inpatient page read camelCase — so `proc.scheduledDate` rendered "Invalid
+   * Date", `med.prescribedBy` rendered "Prescribed by: undefined",
+   * `note.nurse` rendered "undefined • Wound care", `checkup.date` never
+   * matched so "Today's Checkups" was always blank, and every React `key`
+   * (`.id`) was undefined. Mapping once here fixes all of them, and keeps the
+   * boundary honest for any future consumer.
+   */
+  const procedures = (d.procedures ?? []).map((r: any) => ({
+    ...r,
+    id: r.procedure_id,
+    scheduledDate: r.scheduled_for,
+    scheduledTime: r.scheduled_for,
+    completedAt: r.completed_at,
+    performedBy: r.performed_by,
+  }));
+
+  const medications = (d.medications ?? []).map((r: any) => ({
+    ...r,
+    id: r.medication_id,
+    startedOn: r.started_on,
+    prescribedBy: r.prescribed_by,
+    nextDose: r.next_dose_at,
+  }));
+
+  const nursingNotes = (d.nursingNotes ?? []).map((r: any) => ({
+    ...r,
+    id: r.note_id,
+    nurse: r.nurse_name,
+    timestamp: r.recorded_at,
+  }));
+
+  const dailyCheckups = (d.dailyCheckups ?? []).map((r: any) => ({
+    ...r,
+    id: r.checkup_id,
+    checkupType: r.checkup_type,
+    timestamp: r.checkup_at,
+    // The page compares against an ISO date string.
+    date: r.checkup_at ? String(r.checkup_at).split("T")[0] : null,
+    time: r.checkup_at
+      ? new Date(r.checkup_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+      : null,
+  }));
+
+  const dietOrders = (d.dietOrders ?? []).map((r: any) => ({
+    ...r,
+    id: r.diet_id,
+    type: r.diet_type,
+    startedOn: r.started_on,
+    orderedBy: r.ordered_by,
+    specialInstructions: r.special_instructions,
+  }));
+
+  const rehabSessions = (d.rehabSessions ?? []).map((r: any) => ({
+    ...r,
+    id: r.session_id,
+    sessionType: r.session_type,
+    date: r.session_date,
+  }));
+
   return {
     admission: d.admission,
-    procedures: d.procedures ?? [],
-    medications: d.medications ?? [],
-    nursingNotes: d.nursingNotes ?? [],
-    dailyCheckups: d.dailyCheckups ?? [],
-    dietOrders: d.dietOrders ?? [],
-    rehabSessions: d.rehabSessions ?? [],
+    procedures,
+    medications,
+    nursingNotes,
+    dailyCheckups,
+    dietOrders,
+    rehabSessions,
     // Legacy aliases the inpatient screens still read.
-    checkups: d.dailyCheckups ?? [],
-    dietOrder: (d.dietOrders ?? [])[0] ?? null,
+    checkups: dailyCheckups,
+    dietOrder: dietOrders[0] ?? null,
     // Vitals arrive via Realtime (useLiveVitals), not this snapshot.
     vitalSigns: [] as any[],
   };
@@ -1642,15 +1851,23 @@ export async function getFeedbackList(_did?: string) {
 export async function getAmbulances() {
   const { getAmbulances: fn } = await import("./inpatient.server");
   const res = await fn();
+  // These `|| "plausible constant"` fallbacks lived BELOW the route layer, so a
+  // route's own `?? "Unknown"` guard could never fire — api.ts had already
+  // substituted a real-looking value. Each one was a dispatch-relevant lie:
+  // an unknown location read as "Base Station" (a real place to send a crew to),
+  // an unset status read as "available" (dispatchable), an unclassified vehicle
+  // read as "als" (Advanced Life Support), and every single ambulance in the
+  // fleet reported the same crew, "EMT On-Duty", because `ambulances` has no
+  // paramedic column at all.
   const ambulances = (res.ambulances ?? []).map((a: any) => ({
     id: a.ambulance_id,
-    vehicleNo: a.registration || a.ambulance_id,
-    registration: a.registration || a.ambulance_id,
-    type: a.vehicle_type || "als",
-    status: a.status || "available",
-    location: a.current_location || "Base Station",
-    driver: a.driver_name || "Unassigned",
-    paramedic: "EMT On-Duty",
+    vehicleNo: a.registration ?? null,
+    registration: a.registration ?? null,
+    type: a.vehicle_type ?? null,
+    status: a.status ?? null,
+    location: a.current_location ?? null,
+    driver: a.driver_name ?? null,
+    paramedic: null,
     did: `did:hosp:ambulance:${a.ambulance_id}`,
     updatedAt: a.updated_at,
   }));
@@ -1673,22 +1890,28 @@ export async function getEquipment() {
   const equipment = (res.equipment ?? []).map((e: any) => ({
     id: e.equipment_id,
     name: e.name,
-    type: e.equipment_type || "general",
-    category: e.category || "General Medical",
-    manufacturer: e.manufacturer || "Hospital Engineering",
-    model: e.model || "Standard Unit",
-    serial: e.serial_number || e.equipment_id,
-    department: e.department || "General Facility",
-    floor: Number(e.floor_number ?? 1),
-    status: e.status || "operational",
-    lastMaintenance: e.last_serviced_on || "N/A",
-    nextMaintenance: e.next_service_on || "N/A",
+    // Same class of fabrication. `floor: Number(e.floor_number ?? 1)` sent a
+    // biomedical engineer to floor 1 for a device whose floor is unknown, and
+    // `status: e.status || "operational"` reported an unset device as working.
+    // The status fallback also asserted a value outside the asset_status enum
+    // ('available','in-use','maintenance','retired'), which is why the equipment
+    // KPI tiles matched nothing.
+    type: e.equipment_type ?? null,
+    category: e.category ?? null,
+    manufacturer: e.manufacturer ?? null,
+    model: e.model ?? null,
+    serial: e.serial_number ?? null,
+    department: e.department ?? null,
+    floor: e.floor_number ?? null,
+    status: e.status ?? null,
+    lastMaintenance: e.last_serviced_on ?? null,
+    nextMaintenance: e.next_service_on ?? null,
     warrantyExpiry: e.warranty_expiry,
     purchaseDate: e.purchase_date,
     utilization: Number(e.utilization_pct ?? 0),
     calibrationDate: e.calibration_date,
     nextCalibration: e.next_calibration,
-    assignedWard: e.assigned_ward || "Unassigned Ward",
+    assignedWard: e.assigned_ward ?? null,
     location: e.location || "Facility Depot",
     did: e.did || `did:hosp:equipment:${e.equipment_id}`,
     updatedAt: e.updated_at,
@@ -1757,7 +1980,7 @@ export async function getFraudAlerts() {
   return { alerts, total: alerts.length };
 }
 
-export async function getBilling(_did?: string) {
+export async function getBilling(_did?: string): Promise<BillingResponse> {
   const { getBilling: fn } = await import("./inpatient.server");
   const res = await fn();
   const acct: any = res.account ?? {};
@@ -1784,7 +2007,46 @@ export async function getBilling(_did?: string) {
       totalPaid: Number(acct.total_paid ?? 0),
       totalCharges: Number(acct.total_billed ?? 0),
       balanceDue: Number(acct.outstanding ?? 0),
+      /**
+       * The billing page reads `amountPaid`, not `totalPaid`, so "Amount Paid"
+       * displayed ₹0 even though the real figure was already being returned
+       * right above. Aliased rather than renamed, because the inpatient
+       * dashboard reads totalPaid.
+       */
+      amountPaid: Number(acct.total_paid ?? 0),
+      /**
+       * These are read by the page and have no source: billing_accounts has no
+       * insurance split, no bill number, no period and no status column. They
+       * were rendering as "Bill #" with nothing after it, an empty status badge,
+       * "Invalid Date – Invalid Date", and ₹0 figures presented as real splits.
+       * Returned as null so the UI can say "not available" instead of ₹0.
+       */
+      billNumber: null as string | null,
+      status: null as string | null,
+      fromDate: null as string | null,
+      toDate: null as string | null,
+      insuranceClaimed: null as number | null,
+      insurancePending: null as number | null,
+      patientResponsibility: null as number | null,
+      categoryTotals: null as Record<string, number> | null,
     },
+    /**
+     * The page reads `billItems`, `dailyCharges` and `paymentRecords`; the
+     * server returns `bills` and `payments`. Every one of the Daily, Itemized
+     * and Payment History tabs therefore rendered blank. `paymentRecords` is a
+     * real alias; the other two have no source and stay empty so the tabs can
+     * show an empty state rather than nothing at all.
+     */
+    paymentRecords: (res.payments ?? []).map((p: any) => ({
+      id: p.payment_id,
+      amount: Number(p.amount),
+      method: p.method,
+      status: p.status,
+      reference: p.reference,
+      date: p.created_at,
+    })),
+    billItems: [] as any[],
+    dailyCharges: [] as any[],
   };
 }
 
@@ -1879,6 +2141,46 @@ export async function getPatientDirectory() {
   return { patients, total: patients.length };
 }
 
+/**
+ * The booking directory: clinicians at the patient's OWN hospital.
+ *
+ * Distinct from getDoctors(), which is the cross-hospital referral directory and
+ * must stay that way. The patient appointments screen used getDoctors() and so
+ * offered every clinician on the platform regardless of tenant.
+ */
+export async function getBookableDoctors() {
+  const { getBookableDoctors: fn, getHospitalDirectory } = await import("./inpatient.server");
+  const res = await fn();
+
+  let hospitalName: Record<string, string> = {};
+  try {
+    const hRes = await getHospitalDirectory();
+    hospitalName = Object.fromEntries(
+      (hRes.hospitals ?? []).map((h: any) => [h.hospital_id, h.name]),
+    );
+  } catch {
+    // Names are presentational; the list must still render.
+  }
+
+  const doctors = (res.doctors ?? []).map((d: any) => ({
+    did: d.did,
+    name: d.owner_name,
+    role: d.owner_type,
+    status: d.status,
+    hospitalId: d.hospital_id ?? null,
+    hospitalName: d.hospital_id ? (hospitalName[d.hospital_id] ?? null) : null,
+  }));
+
+  return {
+    doctors,
+    total: doctors.length,
+    // null means the patient is not registered at any hospital, which the UI
+    // must distinguish from "your hospital has no clinicians yet".
+    hospitalId: res.hospitalId ?? null,
+    hospitalName: res.hospitalId ? (hospitalName[res.hospitalId] ?? null) : null,
+  };
+}
+
 export async function getVerifiedDoctors() {
   return await getDoctors();
 }
@@ -1950,7 +2252,27 @@ export async function verifyAndLinkWallet(
   // to this session, which is what actually binds the wallet to the account.
   const payload = typeof arg1 === "string" ? { walletAddress: arg1, ...(challenge ?? {}) } : arg1;
 
-  const res = await identity("wallet-link", payload as Record<string, unknown>);
+  let res;
+  try {
+    res = await identity("wallet-link", payload as Record<string, unknown>);
+  } catch (err: any) {
+    // One wallet, one account — enforced by profiles_wallet_address_key. The
+    // constraint is right, but the raw Postgres text ("duplicate key value
+    // violates unique constraint …") tells a user nothing, and it surfaced on
+    // every page that links a wallet. Translated here, at the one place both
+    // the patient and staff profiles call, so neither has to know the
+    // constraint's name.
+    const msg = String(err?.message ?? "");
+    if (msg.includes("profiles_wallet_address_key") || msg.includes("duplicate key value")) {
+      const conflict = new Error(
+        "That wallet is already linked to another account. Each wallet may belong to only one account — connect a different wallet in Phantom, or unlink it from the other account first.",
+      );
+      (conflict as any).code = "WALLET_ALREADY_LINKED";
+      throw conflict;
+    }
+    throw err;
+  }
+
   const { getCurrentUser } = await import("./auth.server");
   const user = await getCurrentUser();
   return {
@@ -1973,9 +2295,9 @@ export async function createDID(
         [key: string]: unknown;
       },
   ownerTypeArg?: string,
-  _publicKey?: string,
+  publicKey?: string,
   _email?: string,
-  _extraFields?: unknown,
+  extraFields?: { mrn?: string; employeeId?: string; ownerId?: string } | null,
 ) {
   // Legacy positional form: createDID(ownerName, ownerType).
   const ownerName = typeof arg1 === "string" ? arg1 : String(arg1.ownerName ?? arg1.owner ?? "");
@@ -1984,8 +2306,40 @@ export async function createDID(
       ? (ownerTypeArg ?? "patient")
       : String(arg1.ownerType ?? arg1.role ?? "patient");
 
-  const res = await identity("create-did", { ownerName, ownerType });
-  return { success: true as const, did: res.did };
+  // `extraFields` was named `_extraFields` and discarded. /admin/people fills it
+  // with the MRN (patients) or employee id (staff) shown in the "Issue DID"
+  // dialog, so the administrator confirmed a number that was then stored
+  // nowhere. Both are real columns on profiles; identity-ops writes them.
+  const obj = typeof arg1 === "string" ? {} : arg1;
+  const extras = extraFields ?? {};
+  const ownerId = extras.ownerId ?? (obj.ownerId as string | undefined);
+
+  const res = await identity("create-did", {
+    ownerName,
+    ownerType,
+    ownerId,
+    publicKey,
+    mrn: extras.mrn,
+    employeeId: extras.employeeId,
+  });
+
+  // Give the new DID a real signing key. identity-ops issues it with a
+  // `pk_<uuid>` placeholder because it runs in Deno and cannot reach the Node
+  // key service, so the key is provisioned here immediately afterwards.
+  //
+  // Non-fatal: the DID is already created and usable. A failure here leaves it on
+  // the placeholder, which `backend/scripts/provision-did-wallets.js` will pick
+  // up on its next run — better than failing an issuance that already succeeded.
+  let publicKeyIssued: string | null = null;
+  try {
+    const { provisionDidWallet } = await import("./wallets.server");
+    const w = await provisionDidWallet({ data: { did: res.did } });
+    publicKeyIssued = w.publicKey;
+  } catch (err) {
+    console.warn(`DID ${res.did} created without a signing key:`, (err as Error).message);
+  }
+
+  return { success: true as const, did: res.did, publicKey: publicKeyIssued };
 }
 
 export async function requestDID(

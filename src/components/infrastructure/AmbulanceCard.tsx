@@ -33,7 +33,11 @@ const typeLabels: Record<string, string> = {
 };
 
 export function AmbulanceCard({ ambulance }: AmbulanceCardProps) {
-  const cfg = statusConfig[ambulance.status];
+  // statusConfig[null] is undefined and every read below would throw.
+  const cfg = (ambulance.status && statusConfig[ambulance.status]) ?? {
+    ...statusConfig.available,
+    label: "Unknown",
+  };
 
   return (
     <div className="rounded-xl border border-border bg-card p-4 shadow-clinical">
@@ -43,8 +47,12 @@ export function AmbulanceCard({ ambulance }: AmbulanceCardProps) {
             <Ambulance className="h-5 w-5 text-destructive" />
           </div>
           <div>
-            <div className="text-sm font-semibold text-foreground">{ambulance.vehicleNo}</div>
-            <div className="text-[11px] text-muted-foreground">{typeLabels[ambulance.type]}</div>
+            <div className="text-sm font-semibold text-foreground">
+              {ambulance.vehicleNo ?? ambulance.id}
+            </div>
+            <div className="text-[11px] text-muted-foreground">
+              {(ambulance.type && typeLabels[ambulance.type]) ?? "Type not recorded"}
+            </div>
           </div>
         </div>
         <span

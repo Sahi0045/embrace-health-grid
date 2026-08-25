@@ -25,17 +25,20 @@ const BED_STATUS_STYLES: Record<string, { dot: string; bg: string; border: strin
       border: "border-warning/30",
       text: "text-warning-foreground",
     },
+    // `cleaning` takes the teal-blue chart hue so it stays distinguishable from
+    // `reserved` (warning) — collapsing both onto warning would make two
+    // different bed states look identical on the ward grid.
     cleaning: {
-      dot: "bg-blue-500",
-      bg: "bg-blue-500/10 hover:bg-blue-500/20",
-      border: "border-blue-200 dark:border-blue-800",
-      text: "text-blue-600 dark:text-blue-400",
+      dot: "bg-chart-4",
+      bg: "bg-chart-4/10 hover:bg-chart-4/20",
+      border: "border-chart-4/30",
+      text: "text-chart-4",
     },
     maintenance: {
-      dot: "bg-amber-500",
-      bg: "bg-amber-500/10 hover:bg-amber-500/20",
-      border: "border-amber-200 dark:border-amber-800",
-      text: "text-amber-600 dark:text-amber-400",
+      dot: "bg-chart-3",
+      bg: "bg-chart-3/10 hover:bg-chart-3/20",
+      border: "border-chart-3/30",
+      text: "text-chart-3",
     },
     blocked: {
       dot: "bg-destructive",
@@ -43,11 +46,13 @@ const BED_STATUS_STYLES: Record<string, { dot: string; bg: string; border: strin
       border: "border-destructive/30",
       text: "text-destructive",
     },
+    // Genuinely urgent, so it shares `destructive` with `blocked` but keeps the
+    // pulse to tell them apart.
     emergency_reserved: {
-      dot: "bg-red-600 animate-pulse",
-      bg: "bg-red-500/10 hover:bg-red-500/20",
-      border: "border-red-300 dark:border-red-800",
-      text: "text-red-600 dark:text-red-400",
+      dot: "bg-destructive animate-pulse",
+      bg: "bg-destructive/10 hover:bg-destructive/20",
+      border: "border-destructive/40",
+      text: "text-destructive",
     },
   };
 

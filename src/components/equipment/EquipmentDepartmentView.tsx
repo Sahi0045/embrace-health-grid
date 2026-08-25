@@ -112,10 +112,10 @@ export function EquipmentDepartmentView({
         const totalUtil = items.reduce((acc, curr) => acc + (curr.utilization || 0), 0);
         const avgUtil = Math.round(totalUtil / items.length);
 
-        const operationalCount = items.filter((e) => e.status === "operational").length;
+        const operationalCount = items.filter((e) => e.status === "available").length;
         const inUseCount = items.filter((e) => e.status === "in-use").length;
         const maintCount = items.filter((e) => e.status === "maintenance").length;
-        const offlineCount = items.filter((e) => e.status === "offline").length;
+        const offlineCount = items.filter((e) => e.status === "retired").length;
 
         return (
           <div
@@ -152,12 +152,12 @@ export function EquipmentDepartmentView({
                     <CheckCircle2 className="h-3.5 w-3.5" />
                     {operationalCount} Ready
                   </span>
-                  <span className="flex items-center gap-1 text-cyan-600 dark:text-cyan-400">
+                  <span className="flex items-center gap-1 text-primary dark:text-primary">
                     <Activity className="h-3.5 w-3.5" />
                     {inUseCount} Active
                   </span>
                   {maintCount > 0 && (
-                    <span className="flex items-center gap-1 text-warning-foreground dark:text-amber-400">
+                    <span className="flex items-center gap-1 text-warning-foreground dark:text-warning">
                       <AlertTriangle className="h-3.5 w-3.5" />
                       {maintCount} Service
                     </span>
@@ -183,11 +183,11 @@ export function EquipmentDepartmentView({
               {items.map((eq) => {
                 const statusTone =
                   {
-                    operational: "text-success bg-success/10 border-success/30",
-                    "in-use": "text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 border-cyan-500/30",
+                    available: "text-success bg-success/10 border-success/30",
+                    "in-use": "text-primary dark:text-primary bg-primary/10 border-primary/30",
                     maintenance:
-                      "text-warning-foreground dark:text-amber-400 bg-warning/10 border-warning/30",
-                    offline: "text-destructive bg-destructive/10 border-destructive/30",
+                      "text-warning-foreground dark:text-warning bg-warning/10 border-warning/30",
+                    retired: "text-destructive bg-destructive/10 border-destructive/30",
                   }[eq.status] || "text-muted-foreground bg-muted border-border";
 
                 return (

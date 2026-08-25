@@ -28,11 +28,11 @@ export function EquipmentMaintenanceRadar({
 
   // Categorize equipment by SLA & Maintenance Urgency
   const underMaintenance = equipment.filter(
-    (e) => e.status === "maintenance" || e.status === "offline",
+    (e) => e.status === "maintenance" || e.status === "retired",
   );
 
   const dueSoon = equipment.filter((e) => {
-    if (e.status === "maintenance" || e.status === "offline") return false;
+    if (e.status === "maintenance" || e.status === "retired") return false;
     if (!e.nextMaintenance || e.nextMaintenance === "N/A") return false;
     const due = new Date(e.nextMaintenance);
     return due <= thirtyDaysLater;
@@ -49,7 +49,7 @@ export function EquipmentMaintenanceRadar({
       {/* ─── Top Urgency Summary Banner ───────────────────────────────────── */}
       <div className="rounded-2xl border border-warning/30 bg-warning/5 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-warning/20 text-warning-foreground dark:text-amber-400">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-warning/20 text-warning-foreground dark:text-warning">
             <AlertTriangle className="h-5 w-5" />
           </div>
           <div>
@@ -76,7 +76,7 @@ export function EquipmentMaintenanceRadar({
                 In Workshop / Repair
               </h3>
             </div>
-            <span className="font-mono text-xs font-bold text-warning-foreground dark:text-amber-400 bg-warning/10 px-2 py-0.5 rounded-md">
+            <span className="font-mono text-xs font-bold text-warning-foreground dark:text-warning bg-warning/10 px-2 py-0.5 rounded-md">
               {underMaintenance.length}
             </span>
           </div>
@@ -98,7 +98,7 @@ export function EquipmentMaintenanceRadar({
                     <span className="font-mono text-[10px] font-bold text-muted-foreground">
                       {eq.id}
                     </span>
-                    <span className="inline-flex items-center rounded-full bg-warning/15 px-2 py-0.5 text-[9px] font-extrabold uppercase text-warning-foreground dark:text-amber-400">
+                    <span className="inline-flex items-center rounded-full bg-warning/15 px-2 py-0.5 text-[9px] font-extrabold uppercase text-warning-foreground dark:text-warning">
                       {eq.status}
                     </span>
                   </div>
@@ -164,12 +164,12 @@ export function EquipmentMaintenanceRadar({
         <div className="rounded-2xl border border-border/80 bg-card p-5 shadow-clinical-sm space-y-4">
           <div className="flex items-center justify-between border-b border-border/60 pb-3">
             <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-purple-500" />
+              <Sparkles className="h-4 w-4 text-accent" />
               <h3 className="font-display font-extrabold text-sm text-foreground">
                 ISO Calibration Ledger
               </h3>
             </div>
-            <span className="font-mono text-xs font-bold text-purple-600 dark:text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-md">
+            <span className="font-mono text-xs font-bold text-accent dark:text-accent bg-accent/10 px-2 py-0.5 rounded-md">
               {calibrationTrack.length}
             </span>
           </div>
@@ -180,13 +180,13 @@ export function EquipmentMaintenanceRadar({
                 key={eq.id}
                 whileHover={{ y: -2 }}
                 onClick={() => onSelectEquipment(eq)}
-                className="cursor-pointer p-3.5 rounded-xl border border-border/80 bg-background/60 hover:border-purple-500/40 hover:bg-card transition-all space-y-2"
+                className="cursor-pointer p-3.5 rounded-xl border border-border/80 bg-background/60 hover:border-accent/40 hover:bg-card transition-all space-y-2"
               >
                 <div className="flex justify-between items-start">
                   <span className="font-mono text-[10px] font-bold text-muted-foreground">
                     {eq.id}
                   </span>
-                  <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400">
+                  <span className="text-[10px] font-bold text-accent dark:text-accent">
                     Next: {eq.nextCalibration}
                   </span>
                 </div>

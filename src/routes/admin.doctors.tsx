@@ -140,10 +140,10 @@ function StaffAvailabilityDashboard() {
         shiftId: s.shift_id || s.id || `shift-${Math.random()}`,
         staffId: s.staff_id || s.staffId || "",
         shiftDate: s.shift_date || s.date || new Date().toISOString().split("T")[0],
-        role: s.role || "General Duty",
+        role: s.role || "",
         startsAt: s.starts_at || s.start || "08:00",
         endsAt: s.ends_at || s.end || "16:00",
-        unit: s.unit || "Main Wing",
+        unit: s.unit || "",
         patientCount: s.patient_count ?? s.patients,
         confirmed: s.confirmed ?? true,
         notes: s.notes,
@@ -358,7 +358,7 @@ function StaffAvailabilityDashboard() {
               <Button
                 onClick={() => toast.success("Roster attendance export generated (CSV)")}
                 size="sm"
-                className="bg-gradient-to-r from-primary to-blue-600 text-primary-foreground font-extrabold rounded-xl shadow-clinical-md shadow-primary/25 text-xs"
+                className="bg-primary text-primary-foreground font-extrabold rounded-xl shadow-clinical-md shadow-primary/25 text-xs"
               >
                 <FileSpreadsheet className="h-4 w-4 mr-2" />
                 Export Roster

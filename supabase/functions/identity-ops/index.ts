@@ -118,6 +118,7 @@ Deno.serve(async (req) => {
         const expected = await hmacSign(canonicalIdentity(payload));
         if (!timingSafeEqual(String(payload.sig), expected)) {
           await audit(db, {
+            caller,
             actor_id: caller.userId,
             resource: String(payload.did ?? ""),
             action: "IDENTITY_VERIFY_FAILED",
@@ -178,6 +179,7 @@ Deno.serve(async (req) => {
         if (error) throw new HttpError(500, error.message);
 
         await audit(db, {
+          caller,
           actor_id: caller.userId,
           resource: walletAddress,
           action: "WALLET_LINKED",
@@ -192,7 +194,7 @@ Deno.serve(async (req) => {
         if (!["staff", "admin"].includes(caller.role)) {
           throw new HttpError(403, "Only staff may issue DIDs");
         }
-        const { ownerName, ownerType, ownerId, publicKey } = body;
+        const { ownerName, ownerType, ownerId, publicKey, mrn, employeeId } = body;
         if (!ownerName || !ownerType) {
           throw new HttpError(400, "ownerName and ownerType are required");
         }
@@ -223,7 +225,39 @@ Deno.serve(async (req) => {
         });
         if (error) throw new HttpError(500, error.message);
 
+        // Link the DID to the person's profile, and record the identifier the
+        // administrator entered alongside it.
+        //
+        // /admin/people collects an MRN (patients) or employee id (staff) in the
+        // "Issue DID" dialog and displays it as the number being assigned, but
+        // api.ts named the parameter `_extraFields` and dropped it — so the
+        // number was shown, confirmed, and never stored anywhere. profiles.mrn
+        // and profiles.employee_id are real columns.
+        if (ownerId) {
+          const patch: Record<string, unknown> = { primary_did: did };
+          if (ownerType === "patient" && typeof mrn === "string" && mrn.trim()) {
+            patch.mrn = mrn.trim();
+          }
+          if (ownerType !== "patient" && typeof employeeId === "string" && employeeId.trim()) {
+            patch.employee_id = employeeId.trim();
+          }
+
+          const { error: linkErr } = await db.from("profiles").update(patch).eq("id", ownerId);
+          if (linkErr) {
+            // Roll the DID back rather than leave it orphaned from its owner.
+            await db.from("dids").delete().eq("did", did);
+            if (/profiles_hospital_mrn_key/.test(linkErr.message)) {
+              throw new HttpError(
+                409,
+                `Medical record number "${mrn}" is already in use at this hospital`,
+              );
+            }
+            throw new HttpError(500, `Could not link the DID to the profile: ${linkErr.message}`);
+          }
+        }
+
         await audit(db, {
+          caller,
           actor_id: caller.userId,
           resource: did,
           action: "DID_CREATED",
@@ -318,6 +352,7 @@ Deno.serve(async (req) => {
         }
 
         await audit(db, {
+          caller,
           actor_id: caller.userId,
           resource: requestId,
           action: approve ? "DID_REQUEST_APPROVED" : "DID_REQUEST_REJECTED",
@@ -336,6 +371,28 @@ Deno.serve(async (req) => {
         const { patientDid, cardType } = body;
         if (!patientDid) throw new HttpError(400, "patientDid is required");
 
+        // This handler runs on the service-role client, so RLS does NOT bound it
+        // — the role check above was the only gate. `create-did` already binds
+        // caller.hospitalId (see above); this did not, so an administrator at
+        // one hospital could mint an identity card for another hospital's
+        // patient. And the insert omitted hospital_id entirely, leaving every
+        // card issued here tenant-less and therefore invisible to the
+        // hospital-scoped read policy on nfc_cards.
+        if (!caller.hospitalId) {
+          throw new HttpError(403, "This account belongs to no hospital and cannot issue cards");
+        }
+
+        const { data: subject, error: subjErr } = await db
+          .from("dids")
+          .select("did, hospital_id")
+          .eq("did", patientDid)
+          .maybeSingle();
+        if (subjErr) throw new HttpError(500, subjErr.message);
+        if (!subject) throw new HttpError(404, "Unknown patient DID");
+        if (subject.hospital_id !== caller.hospitalId) {
+          throw new HttpError(403, "That patient belongs to another hospital");
+        }
+
         const cardId = `NFC-${crypto.randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase()}`;
         const { error } = await db.from("nfc_cards").insert({
           card_id: cardId,
@@ -343,10 +400,12 @@ Deno.serve(async (req) => {
           card_type: cardType ?? "patient",
           status: "active",
           issued_by: caller.userId,
+          hospital_id: caller.hospitalId,
         });
         if (error) throw new HttpError(500, error.message);
 
         await audit(db, {
+          caller,
           actor_id: caller.userId,
           resource: cardId,
           action: "NFC_CARD_ISSUED",
@@ -364,15 +423,24 @@ Deno.serve(async (req) => {
         const { cardId } = body;
         if (!cardId) throw new HttpError(400, "cardId is required");
 
+        // Same reasoning as issue-nfc: service-role bypasses RLS, so the tenant
+        // predicate has to be written here. Without it any admin could revoke
+        // any patient's card in any hospital, by id alone.
+        if (!caller.hospitalId) {
+          throw new HttpError(403, "This account belongs to no hospital and cannot revoke cards");
+        }
+
         const { data, error } = await db
           .from("nfc_cards")
           .update({ status: "revoked", revoked_at: new Date().toISOString() })
           .eq("card_id", cardId)
+          .eq("hospital_id", caller.hospitalId)
           .select("card_id");
         if (error) throw new HttpError(500, error.message);
-        if (!data?.length) throw new HttpError(404, "Card not found");
+        if (!data?.length) throw new HttpError(404, "Card not found in your hospital");
 
         await audit(db, {
+          caller,
           actor_id: caller.userId,
           resource: cardId,
           action: "NFC_CARD_REVOKED",
@@ -391,6 +459,7 @@ Deno.serve(async (req) => {
         if (!action) throw new HttpError(400, "action is required");
 
         await audit(db, {
+          caller,
           actor_id: caller.userId,
           actor_did: caller.dids[0] ?? null,
           resource: resource ?? null,

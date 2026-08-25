@@ -62,13 +62,13 @@ const IMAGING_EQUIPMENT = [
 function getModalityBadgeStyle(modality: RadiologyModality) {
   switch (modality.toLowerCase()) {
     case "mri":
-      return "bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30";
+      return "bg-accent/15 text-accent dark:text-accent border-accent/30";
     case "ct":
-      return "bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border-cyan-500/30";
+      return "bg-primary/15 text-primary dark:text-primary border-primary/30";
     case "xray":
-      return "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30";
+      return "bg-primary/15 text-primary dark:text-primary border-primary/30";
     case "ultrasound":
-      return "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30";
+      return "bg-success/15 text-success dark:text-success border-success/30";
     default:
       return "bg-primary/10 text-primary border-primary/20";
   }
@@ -117,7 +117,7 @@ export function RadiologyTab({ orders, onUpdateStatus }: RadiologyTabProps) {
                 </div>
                 <div className="h-1.5 w-full bg-muted/60 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-primary to-blue-600 rounded-full"
+                    className="h-full bg-primary rounded-full"
                     style={{ width: `${eq.utilization}%` }}
                   />
                 </div>
@@ -213,7 +213,7 @@ export function RadiologyTab({ orders, onUpdateStatus }: RadiologyTabProps) {
                       </span>
                       {rad.equipment_name && (
                         <span className="flex items-center gap-1 text-muted-foreground">
-                          <Zap className="h-3.5 w-3.5 text-amber-500" />
+                          <Zap className="h-3.5 w-3.5 text-warning" />
                           {rad.equipment_name} ({rad.equipment_room})
                         </span>
                       )}

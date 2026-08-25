@@ -203,7 +203,11 @@ export type AuditEvent = {
 };
 
 export type BedStatus = "available" | "occupied" | "maintenance" | "reserved";
-export type EquipmentStatus = "operational" | "in-use" | "maintenance" | "offline";
+// Must mirror the asset_status Postgres enum exactly. It previously read
+// "operational" | "in-use" | "maintenance" | "offline"; the enum is
+// available | in-use | maintenance | retired, so two of the four values could
+// never match a row and could never be written back.
+export type EquipmentStatus = "available" | "in-use" | "maintenance" | "retired";
 export type AmbulanceStatus = "available" | "en-route" | "at-scene" | "returning" | "maintenance";
 
 export type BedRecord = {
@@ -274,13 +278,18 @@ export type MaintenanceLogEntry = {
 
 export type AmbulanceRecord = {
   id: string;
-  vehicleNo: string;
-  registration?: string;
-  type: "als" | "bls" | "neonatal" | "air" | string;
-  driver: string;
-  paramedic?: string;
-  status: AmbulanceStatus;
-  location: string;
+  // Nullable because `ambulances` genuinely may not record them, and inventing a
+  // value here is a dispatch decision made by a mapper: "Base Station" is a real
+  // place to send a crew, "available" means dispatchable, and "als" claims
+  // Advanced Life Support capability the vehicle may not have. `paramedic` has
+  // no column at all — every vehicle reported the same crew.
+  vehicleNo: string | null;
+  registration?: string | null;
+  type: "als" | "bls" | "neonatal" | "air" | string | null;
+  driver: string | null;
+  paramedic?: string | null;
+  status: AmbulanceStatus | null;
+  location: string | null;
   destination?: string;
   patientName?: string;
   etaMinutes?: number;
@@ -698,7 +707,8 @@ export type FoodWastageLog = {
   unit: string;
   cost_impact: number;
   reason: FoodWastageReason;
-  logged_by: string;
+  /** null when the caller's name is unknown — was defaulted to "Kitchen Supervisor". */
+  logged_by: string | null;
   created_at: string;
 };
 
@@ -710,5 +720,6 @@ export type CafeteriaDashboardStats = {
   lowKitchenStockCount: number;
   todayWastageKg: number;
   activeVendorsCount: number;
-  averageMealRating: number;
+  /** null when no meal ratings are collected — nothing in the app records them yet. */
+  averageMealRating: number | null;
 };

@@ -135,7 +135,7 @@ export function CafeteriaFilterBar({
             <Button
               size="sm"
               onClick={onAddMenuItemClick}
-              className="h-9 px-3.5 rounded-xl bg-gradient-to-r from-primary to-blue-600 text-primary-foreground font-extrabold shadow-clinical-md shadow-primary/25 hover:shadow-clinical transition-all gap-1.5 cursor-pointer"
+              className="h-9 px-3.5 rounded-xl bg-primary text-primary-foreground font-extrabold shadow-clinical-md shadow-primary/25 hover:shadow-clinical transition-all gap-1.5 cursor-pointer"
             >
               <Plus className="h-4 w-4" />
               <span>Add Menu Item</span>
@@ -146,7 +146,7 @@ export function CafeteriaFilterBar({
             <Button
               size="sm"
               onClick={onLogWastageClick}
-              className="h-9 px-3.5 rounded-xl bg-rose-600 text-white font-extrabold shadow-clinical-md shadow-rose-600/25 hover:bg-rose-700 transition-all gap-1.5 cursor-pointer"
+              className="h-9 px-3.5 rounded-xl bg-destructive text-white font-extrabold shadow-clinical-md shadow-destructive/25 hover:bg-destructive transition-all gap-1.5 cursor-pointer"
             >
               <Trash2 className="h-4 w-4" />
               <span>Log Food Wastage</span>
@@ -157,7 +157,7 @@ export function CafeteriaFilterBar({
             <Button
               size="sm"
               onClick={onAddVendorClick}
-              className="h-9 px-3.5 rounded-xl bg-gradient-to-r from-primary to-blue-600 text-primary-foreground font-extrabold shadow-clinical-md shadow-primary/25 hover:shadow-clinical transition-all gap-1.5 cursor-pointer"
+              className="h-9 px-3.5 rounded-xl bg-primary text-primary-foreground font-extrabold shadow-clinical-md shadow-primary/25 hover:shadow-clinical transition-all gap-1.5 cursor-pointer"
             >
               <Building2 className="h-4 w-4" />
               <span>Add Vendor</span>
@@ -214,7 +214,7 @@ export function CafeteriaFilterBar({
               onClick={() => onStatusChange("active")}
               className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-extrabold transition-all cursor-pointer ${
                 statusFilter === "active"
-                  ? "bg-emerald-500 text-white border-emerald-500 shadow-xs"
+                  ? "bg-success text-white border-success shadow-xs"
                   : "border-border/80 text-muted-foreground hover:border-border bg-background"
               }`}
             >
@@ -224,7 +224,7 @@ export function CafeteriaFilterBar({
               onClick={() => onStatusChange("low_stock")}
               className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-extrabold transition-all cursor-pointer ${
                 statusFilter === "low_stock"
-                  ? "bg-rose-500 text-white border-rose-500 shadow-xs"
+                  ? "bg-destructive text-white border-destructive shadow-xs"
                   : "border-border/80 text-muted-foreground hover:border-border bg-background"
               }`}
             >

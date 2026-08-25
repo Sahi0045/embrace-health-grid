@@ -52,7 +52,7 @@ export function DIDCard({
           <span className="capitalize">{role} DID</span>
           <div className="flex items-center gap-1.5">
             <ShieldCheck className="h-3 w-3" />
-            <span className={status === "active" ? "text-green-200" : "text-red-300"}>
+            <span className={status === "active" ? "text-success" : "text-destructive"}>
               {status}
             </span>
           </div>

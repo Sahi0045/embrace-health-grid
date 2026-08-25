@@ -1,0 +1,190 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #0F7A62; text-decoration: none; }
+    a:hover { color: #0B5C4A; }
+    .cap { font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #938C80; }
+    .sw { display: flex; flex-direction: column; gap: 7px; }
+    .sw i { display: block; height: 52px; border-radius: 5px; border: 1px solid rgba(38,34,28,0.08); }
+    .sw b { font-size: 11.5px; font-weight: 500; display: block; }
+    .sw code { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #938C80; }
+    .rule { height: 1px; background: #E2DCD1; }
+    .btn { height: 40px; padding: 0 18px; border-radius: 5px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; border: none; }
+    .chip { font-size: 10px; font-weight: 500; padding: 4px 9px; border-radius: 999px; background: #EDE8DE; color: #635D53; }
+    .tag { font-family: 'IBM Plex Mono', monospace; font-size: 9px; font-weight: 500; letter-spacing: 0.06em; padding: 4px 6px; border-radius: 4px; width: 38px; text-align: center; }
+  </style>
+</helmet>
+
+<div style="width: 760px; min-height: 1000px; background: #F7F4EE; color: #26221C; padding: 40px 44px; display: flex; flex-direction: column; gap: 34px;">
+
+  <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 24px;">
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <div style="display: flex; align-items: baseline; gap: 8px;">
+        <span style="font-family: 'Newsreader', Georgia, serif; font-size: 15px; letter-spacing: 0.16em; text-transform: uppercase;">Embrace</span>
+        <span style="width: 5px; height: 5px; border-radius: 999px; background: #0F7A62; display: inline-block;"></span>
+      </div>
+      <h1 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 38px; font-weight: 400; line-height: 1.05; letter-spacing: -0.015em;">The archive system</h1>
+      <p style="margin: 0; max-width: 460px; font-size: 13.5px; line-height: 1.55; color: #635D53; text-wrap: pretty;">A health record is a document you own, not a dashboard you visit. Parchment ground, warm ink, an editorial serif for voice and a monospace for anything cryptographic — so proof always looks like proof.</p>
+    </div>
+    <svg width="60" height="60" viewBox="0 0 40 40" fill="none" style="flex-shrink: 0;">
+      <circle cx="20" cy="20" r="15" fill="#A8543A"></circle>
+      <circle cx="20" cy="20" r="11.5" fill="none" stroke="#F7F4EE" stroke-width="0.8" stroke-dasharray="2 2.6" opacity="0.75"></circle>
+      <path d="M15.5 20.2l3.2 3.2 6-6.4" stroke="#F7F4EE" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"></path>
+    </svg>
+  </div>
+
+  <div class="rule"></div>
+
+  <div style="display: flex; flex-direction: column; gap: 15px;">
+    <span class="cap">Palette</span>
+    <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px;">
+      <div class="sw"><i style="background: #F7F4EE;"></i><b>Paper</b><code>#F7F4EE</code></div>
+      <div class="sw"><i style="background: #FDFBF7;"></i><b>Raised</b><code>#FDFBF7</code></div>
+      <div class="sw"><i style="background: #26221C;"></i><b>Ink</b><code>#26221C</code></div>
+      <div class="sw"><i style="background: #635D53;"></i><b>Ink 2</b><code>#635D53</code></div>
+      <div class="sw"><i style="background: #938C80;"></i><b>Ink 3</b><code>#938C80</code></div>
+      <div class="sw"><i style="background: #E2DCD1;"></i><b>Rule</b><code>#E2DCD1</code></div>
+      <div class="sw"><i style="background: #0F7A62;"></i><b>Jade · live</b><code>#0F7A62</code></div>
+      <div class="sw"><i style="background: #E3F0EA;"></i><b>Jade soft</b><code>#E3F0EA</code></div>
+      <div class="sw"><i style="background: #A8543A;"></i><b>Wax · sealed</b><code>#A8543A</code></div>
+      <div class="sw"><i style="background: #F5E7E0;"></i><b>Wax soft</b><code>#F5E7E0</code></div>
+      <div class="sw"><i style="background: #B3402B;"></i><b>Alarm</b><code>#B3402B</code></div>
+      <div class="sw"><i style="background: #EDE8DE;"></i><b>Fill</b><code>#EDE8DE</code></div>
+    </div>
+    <p style="margin: 0; font-size: 12px; line-height: 1.5; color: #938C80; max-width: 620px;">Jade means a grant is live. Wax means something was signed or sealed — it is the brand's second voice, never a warning. Alarm is reserved for genuine emergency and destructive confirmation.</p>
+  </div>
+
+  <div class="rule"></div>
+
+  <div style="display: flex; flex-direction: column; gap: 16px;">
+    <span class="cap">Type</span>
+    <div style="display: grid; grid-template-columns: 132px minmax(0, 1fr); gap: 14px 22px; align-items: baseline;">
+      <code style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: #938C80;">Newsreader 32/1.1</code>
+      <span style="font-family: 'Newsreader', Georgia, serif; font-size: 32px; font-weight: 400; letter-spacing: -0.01em;">Access</span>
+
+      <code style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: #938C80;">Newsreader 19/1.2</code>
+      <span style="font-family: 'Newsreader', Georgia, serif; font-size: 19px; font-weight: 400;">Aarav Sharma</span>
+
+      <code style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: #938C80;">Plex Sans 15/1.4 · 500</code>
+      <span style="font-size: 15px; font-weight: 500;">Dr Rhea Kapoor</span>
+
+      <code style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: #938C80;">Plex Sans 13/1.5 · 400</code>
+      <span style="font-size: 13px; color: #635D53;">You decide who reads your record. Every grant is signed and revocable.</span>
+
+      <code style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: #938C80;">Plex Sans 11.5 · 400</code>
+      <span style="font-size: 11.5px; color: #938C80;">Cardiology · Apollo Chennai</span>
+
+      <code style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: #938C80;">Plex Sans 10 · 600 · .11em</code>
+      <span style="font-size: 10px; font-weight: 600; letter-spacing: 0.11em; text-transform: uppercase; color: #938C80;">Who can read your record</span>
+
+      <code style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: #938C80;">Plex Mono 11 · 400</code>
+      <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px;">did:health:pat:8f3a…c41d</span>
+    </div>
+  </div>
+
+  <div class="rule"></div>
+
+  <div style="display: flex; flex-direction: column; gap: 18px;">
+    <span class="cap">Components</span>
+
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 26px 34px;">
+
+      <div style="display: flex; flex-direction: column; gap: 11px;">
+        <span style="font-size: 11.5px; font-weight: 500; color: #635D53;">Buttons · 40px, 5px radius</span>
+        <div style="display: flex; gap: 9px; flex-wrap: wrap;">
+          <button class="btn" style="background: #0F7A62; color: #FDFBF7;">Approve</button>
+          <button class="btn" style="background: transparent; color: #635D53; border: 1px solid #E2DCD1;">Decline</button>
+          <button class="btn" style="background: #F5E7E0; color: #A8543A; border: 1px solid #E8D3CA;">Revoke</button>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 11px;">
+        <span style="font-size: 11.5px; font-weight: 500; color: #635D53;">Record kind marks</span>
+        <div style="display: flex; gap: 7px;">
+          <span class="tag" style="background: #E6E2D8; color: #26221C;">VIS</span>
+          <span class="tag" style="background: #E3F0EA; color: #0F7A62;">LAB</span>
+          <span class="tag" style="background: #F5E7E0; color: #A8543A;">RX</span>
+          <span class="tag" style="background: #EDE8DE; color: #635D53;">VAC</span>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 11px;">
+        <span style="font-size: 11.5px; font-weight: 500; color: #635D53;">Scope chips &amp; status</span>
+        <div style="display: flex; gap: 7px; flex-wrap: wrap; align-items: center;">
+          <span class="chip">Records</span>
+          <span class="chip">Labs</span>
+          <span class="chip" style="background: #E3F0EA; color: #0F7A62;">Live</span>
+          <span class="chip" style="background: #F5E7E0; color: #A8543A;">2 pending</span>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 11px;">
+        <span style="font-size: 11.5px; font-weight: 500; color: #635D53;">Segmented control · 34px</span>
+        <div style="display: flex; gap: 4px; background: #EDE8DE; border-radius: 6px; padding: 3px; max-width: 260px;">
+          <span style="flex: 1; height: 34px; border-radius: 4px; background: #FDFBF7; color: #26221C; font-size: 12px; font-weight: 500; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(38,34,28,0.07);">Active</span>
+          <span style="flex: 1; height: 34px; border-radius: 4px; color: #938C80; font-size: 12px; font-weight: 500; display: flex; align-items: center; justify-content: center;">Requests</span>
+          <span style="flex: 1; height: 34px; border-radius: 4px; color: #938C80; font-size: 12px; font-weight: 500; display: flex; align-items: center; justify-content: center;">History</span>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 11px;">
+        <span style="font-size: 11.5px; font-weight: 500; color: #635D53;">Grant card</span>
+        <div style="background: #FDFBF7; border: 1px solid #E2DCD1; border-radius: 6px; padding: 13px 14px; display: flex; flex-direction: column; gap: 11px;">
+          <div style="display: flex; align-items: flex-start; gap: 11px;">
+            <div style="width: 34px; height: 34px; border-radius: 999px; background: #0F7A62; color: #FDFBF7; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600;">RK</div>
+            <div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1;">
+              <span style="font-size: 14px; font-weight: 500;">Dr Rhea Kapoor</span>
+              <span style="font-size: 11.5px; color: #938C80;">Cardiology · Apollo Chennai</span>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; gap: 5px;"><span class="chip">Records</span><span class="chip">Labs</span></div>
+            <span style="font-size: 11px; color: #938C80;">Expires in 24 days</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 11px;">
+        <span style="font-size: 11.5px; font-weight: 500; color: #635D53;">Proof line · always monospace</span>
+        <div style="background: #26221C; border-radius: 6px; padding: 13px 14px; display: flex; flex-direction: column; gap: 6px;">
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #C9C2B5;">root 61fa…9b3c</span>
+          <div style="display: flex; align-items: center; gap: 7px;">
+            <span style="width: 5px; height: 5px; border-radius: 999px; background: #0F7A62;"></span>
+            <span style="font-size: 11px; color: #938C80;">Anchored on Solana · slot 298,441,207</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div style="display: flex; gap: 30px; padding-top: 4px;">
+      <div style="display: flex; flex-direction: column; gap: 3px;">
+        <span class="cap">Radius</span>
+        <span style="font-size: 12.5px; color: #635D53;">6px cards · 5px controls · 4px marks · pill chips</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 3px;">
+        <span class="cap">Rhythm</span>
+        <span style="font-size: 12.5px; color: #635D53;">20px gutter · 15–17px stack · 44px min target</span>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview":{"width":760,"height":1000}}'>
+class Component extends DCLogic {}
+</script>
+</body>
+</html>

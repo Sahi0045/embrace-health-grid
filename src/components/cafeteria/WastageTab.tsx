@@ -23,27 +23,27 @@ interface WastageTabProps {
 const REASON_CONFIGS: Record<string, { label: string; color: string; bg: string }> = {
   overproduction: {
     label: "Overproduction",
-    color: "#f59e0b",
-    bg: "bg-amber-500/10 text-amber-600 border-amber-500/20",
+    color: "var(--chart-3)",
+    bg: "bg-warning/10 text-warning-foreground border-warning/20",
   },
   spoilage: {
     label: "Spoilage",
-    color: "#ef4444",
-    bg: "bg-rose-500/10 text-rose-600 border-rose-500/20",
+    color: "var(--destructive)",
+    bg: "bg-destructive/10 text-destructive border-destructive/20",
   },
   unconsumed_tray: {
     label: "Unconsumed Tray",
-    color: "#3b82f6",
-    bg: "bg-blue-500/10 text-blue-600 border-blue-500/20",
+    color: "var(--chart-4)",
+    bg: "bg-chart-4/10 text-chart-4 border-chart-4/20",
   },
   expired_stock: {
     label: "Expired Stock",
-    color: "#8b5cf6",
-    bg: "bg-purple-500/10 text-purple-600 border-purple-500/20",
+    color: "var(--chart-5)",
+    bg: "bg-chart-5/10 text-chart-5 border-chart-5/20",
   },
   damaged: {
     label: "Prep Damage",
-    color: "#6b7280",
+    color: "var(--muted-foreground)",
     bg: "bg-muted text-muted-foreground border-border/60",
   },
 };
@@ -80,7 +80,7 @@ export function WastageTab({ logs }: WastageTabProps) {
           >
             <div className="flex items-center justify-between pb-4 border-b border-border/60">
               <div className="flex items-center gap-3">
-                <div className="p-3 rounded-2xl bg-rose-500/10 text-rose-500 border border-rose-500/20 shadow-xs">
+                <div className="p-3 rounded-2xl bg-destructive/10 text-destructive border border-destructive/20 shadow-xs">
                   <Trash2 className="h-6 w-6" />
                 </div>
                 <div>
@@ -93,7 +93,7 @@ export function WastageTab({ logs }: WastageTabProps) {
                 </div>
               </div>
 
-              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-black bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-black bg-success/10 text-success border border-success/20">
                 -18% MoM
               </span>
             </div>
@@ -114,7 +114,7 @@ export function WastageTab({ logs }: WastageTabProps) {
                 <p className="text-[10px] text-muted-foreground font-bold uppercase">
                   Estimated Cost Impact
                 </p>
-                <div className="text-xl font-black text-rose-500 mt-1">
+                <div className="text-xl font-black text-destructive mt-1">
                   ${totalCostImpact.toFixed(2)}
                 </div>
               </div>
@@ -136,7 +136,7 @@ export function WastageTab({ logs }: WastageTabProps) {
                 <span className="font-bold text-foreground">
                   Zero-Waste Hospital Target Compliance
                 </span>
-                <span className="font-extrabold text-emerald-500">
+                <span className="font-extrabold text-success">
                   {sustainabilityGoalPercent}% On Track
                 </span>
               </div>
@@ -242,7 +242,7 @@ export function WastageTab({ logs }: WastageTabProps) {
                         {log.quantity_wasted}{" "}
                         <span className="text-[10px] text-muted-foreground">{log.unit}</span>
                       </td>
-                      <td className="py-3 px-4 text-right font-black text-rose-500 whitespace-nowrap">
+                      <td className="py-3 px-4 text-right font-black text-destructive whitespace-nowrap">
                         ${log.cost_impact.toFixed(2)}
                       </td>
                       <td className="py-3 px-4 whitespace-nowrap">

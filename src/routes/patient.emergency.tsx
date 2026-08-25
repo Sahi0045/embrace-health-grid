@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { RouteGuard } from "@/components/RouteGuard";
+import { QrCode as QrCodeSvg } from "@/components/QrCode";
 import { PageHeader } from "@/components/PageHeader";
 import { StaggerList, StaggerItem } from "@/components/Motion";
 import {
@@ -33,25 +34,12 @@ export const Route = createFileRoute("/patient/emergency")({
   component: EmergencyPage,
 });
 
-function SeverityBadge({ severity }: { severity: string }) {
-  if (severity === "critical")
-    return (
-      <span className="rounded-full bg-destructive/15 px-2 py-0.5 text-[10px] font-semibold text-destructive">
-        Critical
-      </span>
-    );
-  if (severity === "managed")
-    return (
-      <span className="rounded-full bg-warning/15 px-2 py-0.5 text-[10px] font-semibold text-warning-foreground">
-        Managed
-      </span>
-    );
-  return (
-    <span className="rounded-full bg-success/10 px-2 py-0.5 text-[10px] font-semibold text-success">
-      Controlled
-    </span>
-  );
-}
+// SeverityBadge was removed. It took a `severity` derived from whether the
+// condition NAME contained "allergy" or "diabet", so every other condition —
+// asthma, epilepsy, heart failure — rendered a green "Controlled" pill. Nobody
+// assessed those as controlled: `profiles.conditions` is a text[] of names with
+// no severity column at all. A responder reading "Asthma · Controlled" on an
+// emergency card would be reading a guess made from a substring match.
 
 function EmergencyPage() {
   const { patients: patientsList, refetch: refetchPatients } = useLivePatients();
@@ -59,24 +47,41 @@ function EmergencyPage() {
   const { data: auditData } = useAudit();
   const { user: currentUser, refresh: refreshUser } = useCurrentUser();
   const userEmail = currentUser?.email || "";
-  const patient = patientsList?.find((p: any) => p.email === userEmail) ||
-    patientsList?.[0] || {
-      name: currentUser?.name || "Patient User",
-      mrn: currentUser?.mrn || "MRN-2026-001",
-      age: 28,
-      gender: "F" as const,
-      bloodGroup: "O+",
-      allergies: ["Penicillin", "Latex"],
-      did: currentUser?.did || "did:hosp:0x4302bbea",
-      primaryDoctor: "Dr. Sameer Khan",
-      conditions: ["Type 1 Diabetes", "Asthma"],
-      organDonor: true,
-      emergencyContact: {
-        name: "Vikram Sharma",
-        relation: "Spouse",
-        phone: "+91 98765 43210",
-      },
-    };
+  /**
+   * Build the emergency record from the signed-in profile, not the DID directory.
+   *
+   * Two bugs met here. The directory (live-store.ts loadPatients) maps only
+   * {id, did, name, email, status}, so every clinical field read off it was
+   * permanently undefined — and the fallbacks then supplied invented values:
+   * blood group "O+", age 28, gender Male, allergies Penicillin/Latex,
+   * conditions Type 1 Diabetes/Asthma, an emergency contact named Vikram
+   * Sharma. On the card a responder reads, that is fabricated clinical data.
+   *
+   * blood_group and allergies are REAL columns on profiles and are already
+   * mapped onto currentUser (auth.server.ts), so they are read from there.
+   * Everything else genuinely has no column anywhere yet; those stay undefined
+   * and the UI renders "not recorded" rather than inventing an answer.
+   *
+   * The `|| patientsList[0]` fallback is also gone: when the email lookup
+   * missed it silently displayed a DIFFERENT patient's emergency profile.
+   */
+  const directoryRow = patientsList?.find((p: any) => p.email === userEmail);
+  const patient = {
+    ...(directoryRow ?? {}),
+    name: currentUser?.name || directoryRow?.name || "",
+    did: currentUser?.primaryDid || currentUser?.did || directoryRow?.did || "",
+    mrn: currentUser?.mrn,
+    age: currentUser?.age,
+    gender: currentUser?.gender,
+    bloodGroup: currentUser?.bloodGroup,
+    allergies: currentUser?.allergies ?? [],
+    // Backed by real columns as of migration 20260825020000.
+    conditions: currentUser?.conditions ?? [],
+    organDonor: currentUser?.organDonor,
+    emergencyContact: currentUser?.emergencyContact,
+    // Still unmodelled: there is no primary-doctor column anywhere.
+    primaryDoctor: undefined as string | undefined,
+  };
   const [showQr, setShowQr] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
@@ -84,8 +89,8 @@ function EmergencyPage() {
   const [contactName, setContactName] = useState("");
   const [contactRelation, setContactRelation] = useState("Spouse");
   const [contactPhone, setContactPhone] = useState("");
-  const [bloodGroup, setBloodGroup] = useState("O+");
-  const [organDonor, setOrganDonor] = useState(false);
+  const [bloodGroup, setBloodGroup] = useState("");
+  const [organDonor, setOrganDonor] = useState<boolean | null>(null);
   const [allergies, setAllergies] = useState<string[]>([]);
   const [newAllergyInput, setNewAllergyInput] = useState("");
   const [conditions, setConditions] = useState<string[]>([]);
@@ -96,8 +101,11 @@ function EmergencyPage() {
     setContactName(patient.emergencyContact?.name || "");
     setContactRelation(patient.emergencyContact?.relation || "Spouse");
     setContactPhone(patient.emergencyContact?.phone || "");
-    setBloodGroup(patient.bloodGroup || "O+");
-    setOrganDonor(patient.organDonor ?? false);
+    // No "O+" prefill. Defaulting the field meant a patient who opened the
+    // dialog and pressed Save wrote a fabricated blood group into their own
+    // record — turning a display bug into stored clinical data.
+    setBloodGroup(patient.bloodGroup || "");
+    setOrganDonor(patient.organDonor ?? null);
     setAllergies(patient.allergies || []);
     setConditions(patient.conditions || []);
     setIsEditModalOpen(true);
@@ -135,34 +143,35 @@ function EmergencyPage() {
     e.preventDefault();
     setIsSaving(true);
     try {
-      const emergencyContactObj = {
-        name: contactName || "Emergency Contact",
-        relation: contactRelation || "Spouse",
-        phone: contactPhone || "+91 98765 43210",
-      };
-
+      /**
+       * Only blood group and allergies can be saved.
+       *
+       * updateEmergencyProfile (api.ts) forwards exactly those two to
+       * updateOwnProfile, and `profiles` has no column for organ-donor status,
+       * conditions or an emergency contact — so those three were being accepted
+       * from the user, dropped in transit, and reported as saved.
+       *
+       * Sending only what persists, and telling the user which parts did not.
+       */
       const res = await updateEmergencyProfile({
-        emergencyContact: emergencyContactObj,
         bloodGroup,
-        organDonor,
         allergies,
+        emergencyContact: { name: contactName, relation: contactRelation, phone: contactPhone },
+        organDonor,
         conditions,
       });
 
-      if (res.success && res.patient) {
-        const updatedUser = {
-          ...currentUser,
-          ...res.patient,
-          emergencyContact: emergencyContactObj,
-          bloodGroup,
-          organDonor,
-          allergies,
-          conditions,
-        };
+      if (res.success) {
         await refreshUser();
 
-        toast.success("Emergency Profile Updated On-Chain!", {
-          description: "Responders and hospital nodes now have your updated emergency records.",
+        // The old copy claimed "Updated On-Chain!" and "Responders and hospital
+        // nodes now have your updated emergency records". updateOwnProfile is a
+        // plain Postgres UPDATE — nothing is signed or anchored.
+        // All five fields persist now (20260825020000), so the "these were not
+        // saved" caveat is gone. Still not "on-chain": updateOwnProfile is a
+        // plain Postgres update — nothing is signed or anchored.
+        toast.success("Emergency details saved", {
+          description: "Responders will see this on your emergency card.",
         });
         refetchPatients();
         setIsEditModalOpen(false);
@@ -198,15 +207,10 @@ function EmergencyPage() {
 
   // Live Critical Conditions
   // Filter first: the column is nullable, so a null entry threw on toLowerCase.
-  const criticalConditionsList = patient.conditions
-    ? patient.conditions.filter(Boolean).map((cond: string) => ({
-        label: cond,
-        severity:
-          cond.toLowerCase().includes("allergy") || cond.toLowerCase().includes("diabet")
-            ? "critical"
-            : "controlled",
-        since: "Documented",
-      }))
+  // Just the names, which is all that is recorded. `since: "Documented"` was a
+  // constant standing in for a date the schema does not hold either.
+  const criticalConditionsList: string[] = patient.conditions
+    ? patient.conditions.filter(Boolean)
     : [];
 
   // Live Break Glass Events
@@ -266,12 +270,16 @@ function EmergencyPage() {
         <StaggerList className="space-y-5">
           {/* Hero emergency card */}
           <StaggerItem>
-            <motion.div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-destructive to-destructive/75 p-6 text-white shadow-clinical-md">
+            <motion.div className="relative overflow-hidden rounded-2xl bg-destructive/75 p-6 text-white shadow-clinical-md">
               <div className="pointer-events-none absolute -right-6 -top-6 h-28 w-28 rounded-full bg-white/10" />
               <div className="flex items-center justify-between text-xs opacity-80 mb-3">
                 <div className="flex items-center gap-2">
                   <AlertTriangle className="h-3.5 w-3.5" />
-                  Emergency Profile — DID Verified
+                  {/* Was the unconditional literal "Emergency Profile — DID
+                      Verified". No verification runs on this page and no
+                      verified flag exists on the profile, so it now reports
+                      only whether a DID is on file. */}
+                  {patient.did ? "Emergency Profile — DID on file" : "Emergency Profile"}
                 </div>
                 <button
                   onClick={handleOpenEditModal}
@@ -287,8 +295,15 @@ function EmergencyPage() {
                   </div>
                   <div className="text-lg font-bold">{patient.name}</div>
                   <div className="text-sm opacity-80">
-                    {patient.mrn} · Age {patient.age || 28} ·{" "}
-                    {patient.gender === "F" ? "Female" : "Male"}
+                    {/* Was `Age {patient.age || 28}` and a gender ternary whose
+                        else-branch printed "Male" for unknown — both invented. */}
+                    {[
+                      patient.mrn,
+                      patient.age ? `Age ${patient.age}` : null,
+                      patient.gender === "F" ? "Female" : patient.gender === "M" ? "Male" : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ") || "Details not recorded"}
                   </div>
                 </div>
                 <div>
@@ -296,8 +311,12 @@ function EmergencyPage() {
                     Blood Group
                   </div>
                   <div className="flex items-center gap-2">
-                    <Droplets className="h-5 w-5 text-red-200" />
-                    <span className="text-3xl font-bold">{patient.bloodGroup || "O+"}</span>
+                    <Droplets className="h-5 w-5 text-destructive" />
+                    {/* Never default a blood group. A responder cannot tell an
+                        assumed O+ from a recorded one. */}
+                    <span className="text-3xl font-bold">
+                      {patient.bloodGroup || "Not recorded"}
+                    </span>
                   </div>
                 </div>
                 <div>
@@ -305,8 +324,12 @@ function EmergencyPage() {
                     Organ Donor
                   </div>
                   <div className="flex items-center gap-1.5 text-lg font-bold">
-                    <Heart className="h-5 w-5 text-pink-300" />
-                    {patient.organDonor ? "Yes — Registered" : "No / Not Declared"}
+                    <Heart className="h-5 w-5 text-white/80" />
+                    {patient.organDonor == null
+                      ? "Not declared"
+                      : patient.organDonor
+                        ? "Yes — Registered"
+                        : "No"}
                   </div>
                 </div>
               </div>
@@ -362,20 +385,11 @@ function EmergencyPage() {
                   </button>
                 </div>
                 <div className="space-y-2">
-                  {criticalConditionsList.map(
-                    (c: { label: string; severity: string; since?: string }) => (
-                      <div
-                        key={c.label}
-                        className="flex items-center justify-between rounded-lg bg-muted px-3 py-2"
-                      >
-                        <div>
-                          <div className="text-sm font-medium text-foreground">{c.label}</div>
-                          <div className="text-[11px] text-muted-foreground">{c.since}</div>
-                        </div>
-                        <SeverityBadge severity={c.severity} />
-                      </div>
-                    ),
-                  )}
+                  {criticalConditionsList.map((cond: string) => (
+                    <div key={cond} className="rounded-lg bg-muted px-3 py-2">
+                      <div className="text-sm font-medium text-foreground">{cond}</div>
+                    </div>
+                  ))}
                   {criticalConditionsList.length === 0 && (
                     <div className="py-6 text-center text-sm text-muted-foreground">
                       No documented critical conditions
@@ -536,7 +550,7 @@ function EmergencyPage() {
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
                   <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
-                    <Droplets className="h-3.5 w-3.5 text-red-500" /> Blood Group
+                    <Droplets className="h-3.5 w-3.5 text-destructive" /> Blood Group
                   </label>
                   <select
                     value={bloodGroup}
@@ -553,17 +567,33 @@ function EmergencyPage() {
 
                 <div>
                   <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
-                    <Heart className="h-3.5 w-3.5 text-pink-500" /> Organ Donor Declaration
+                    <Heart className="h-3.5 w-3.5 text-accent" /> Organ Donor Declaration
                   </label>
-                  <label className="mt-1.5 flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-xs font-medium text-foreground cursor-pointer hover:bg-muted">
-                    <input
-                      type="checkbox"
-                      checked={organDonor}
-                      onChange={(e) => setOrganDonor(e.target.checked)}
-                      className="rounded border-border text-primary focus:ring-primary"
-                    />
-                    Registered Organ Donor
-                  </label>
+                  {/* Three options, not a checkbox: "not declared" is a real and
+                      different answer from "no", and the column is nullable for
+                      exactly that reason. */}
+                  <div className="mt-1.5 grid grid-cols-3 gap-1.5">
+                    {(
+                      [
+                        { value: true, label: "Yes" },
+                        { value: false, label: "No" },
+                        { value: null, label: "Not declared" },
+                      ] as const
+                    ).map((opt) => (
+                      <button
+                        key={String(opt.value)}
+                        type="button"
+                        onClick={() => setOrganDonor(opt.value)}
+                        className={`rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${
+                          organDonor === opt.value
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border bg-card text-foreground hover:bg-muted"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -706,13 +736,28 @@ function EmergencyPage() {
             <div className="text-xs text-muted-foreground mb-4">
               Scan to access emergency profile
             </div>
-            <div className="mx-auto flex h-48 w-48 items-center justify-center rounded-xl bg-muted">
-              <QrCode className="h-32 w-32 text-foreground/30" />
+            {/* Was the lucide <QrCode> decorative glyph — an icon of a QR code,
+                not a QR code. Under "Scan to access emergency profile" it was
+                unscannable, which on an emergency screen means a responder
+                holding a phone at a picture. QrCodeSvg renders a real one. */}
+            <div className="mx-auto flex w-48 items-center justify-center rounded-xl bg-card p-2">
+              <QrCodeSvg
+                value={JSON.stringify({
+                  did: patient.did,
+                  name: patient.name,
+                  bloodGroup: patient.bloodGroup || null,
+                  allergies: patient.allergies ?? [],
+                })}
+                size={176}
+              />
             </div>
             <div className="mt-4 rounded-lg bg-destructive/10 p-3">
               <div className="text-xs font-semibold text-destructive">{patient.name}</div>
               <div className="text-[11px] text-muted-foreground">
-                {patient.bloodGroup || "O+"} · {patient.allergies?.join(", ") || "No allergies"}
+                {patient.bloodGroup || "Blood group not recorded"} ·{" "}
+                {patient.allergies?.length
+                  ? patient.allergies.join(", ")
+                  : "Allergies not recorded"}
               </div>
             </div>
             <button

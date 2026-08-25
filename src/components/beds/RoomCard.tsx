@@ -55,16 +55,16 @@ const ROOM_STATUS_CONFIG: Record<
   },
   cleaning: {
     label: "Cleaning",
-    bg: "bg-blue-500/10",
-    text: "text-blue-600 dark:text-blue-400",
-    border: "border-blue-200",
+    bg: "bg-primary/10",
+    text: "text-primary dark:text-primary",
+    border: "border-primary/30",
     icon: Activity,
   },
   maintenance: {
     label: "Maintenance",
-    bg: "bg-amber-500/10",
-    text: "text-amber-600 dark:text-amber-400",
-    border: "border-amber-200",
+    bg: "bg-warning/10",
+    text: "text-warning dark:text-warning",
+    border: "border-warning/30",
     icon: Wrench,
   },
   blocked: {
@@ -76,9 +76,9 @@ const ROOM_STATUS_CONFIG: Record<
   },
   emergency_reserved: {
     label: "Emergency",
-    bg: "bg-red-600/10",
-    text: "text-red-600 dark:text-red-400",
-    border: "border-red-200",
+    bg: "bg-destructive/10",
+    text: "text-destructive dark:text-destructive",
+    border: "border-destructive/30",
     icon: Shield,
   },
 };

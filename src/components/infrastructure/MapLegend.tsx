@@ -8,10 +8,10 @@ const LEGEND_ITEMS = [
   { label: "Available", color: "bg-success", text: "text-success", icon: CheckCircle2 },
   { label: "Occupied", color: "bg-primary", text: "text-primary", icon: User },
   { label: "Reserved", color: "bg-warning", text: "text-warning-foreground", icon: Clock },
-  { label: "Cleaning", color: "bg-blue-500", text: "text-blue-500", icon: Activity },
-  { label: "Maintenance", color: "bg-amber-500", text: "text-amber-500", icon: Wrench },
+  { label: "Cleaning", color: "bg-primary", text: "text-primary", icon: Activity },
+  { label: "Maintenance", color: "bg-warning", text: "text-warning", icon: Wrench },
   { label: "Blocked", color: "bg-destructive", text: "text-destructive", icon: Ban },
-  { label: "Emergency", color: "bg-rose-500", text: "text-rose-500", icon: ShieldAlert },
+  { label: "Emergency", color: "bg-destructive", text: "text-destructive", icon: ShieldAlert },
 ];
 
 export function MapLegend({ className = "" }: MapLegendProps) {

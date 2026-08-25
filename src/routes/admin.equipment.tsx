@@ -146,20 +146,20 @@ function EquipmentManagementPage() {
   // KPI Calculations
   const kpiStats: EquipmentKpiStats = useMemo(() => {
     const total = equipmentList.length;
-    const operational = equipmentList.filter((e) => e.status === "operational").length;
+    const available = equipmentList.filter((e) => e.status === "available").length;
     const inUse = equipmentList.filter((e) => e.status === "in-use").length;
     const maintenance = equipmentList.filter((e) => e.status === "maintenance").length;
-    const offline = equipmentList.filter((e) => e.status === "offline").length;
+    const retired = equipmentList.filter((e) => e.status === "retired").length;
 
     const totalUtil = equipmentList.reduce((acc, curr) => acc + (curr.utilization || 0), 0);
     const avgUtilization = total > 0 ? Math.round(totalUtil / total) : 0;
 
     return {
       total,
-      operational,
+      available,
       inUse,
       maintenance,
-      offline,
+      retired,
       avgUtilization,
     };
   }, [equipmentList]);
@@ -168,10 +168,10 @@ function EquipmentManagementPage() {
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = {
       all: equipmentList.length,
-      operational: 0,
+      available: 0,
       "in-use": 0,
       maintenance: 0,
-      offline: 0,
+      retired: 0,
     };
     for (const e of equipmentList) {
       if (counts[e.status] !== undefined) {

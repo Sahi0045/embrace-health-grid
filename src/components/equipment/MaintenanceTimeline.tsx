@@ -55,7 +55,7 @@ export function MaintenanceTimeline({ logs, loading = false }: MaintenanceTimeli
         return {
           label: "Calibration Audit",
           icon: Sparkles,
-          iconBg: "bg-purple-500/15 text-purple-600 dark:text-purple-400",
+          iconBg: "bg-accent/15 text-accent dark:text-accent",
         };
       case "preventive":
         return {
@@ -67,7 +67,7 @@ export function MaintenanceTimeline({ logs, loading = false }: MaintenanceTimeli
         return {
           label: "Corrective Repair",
           icon: AlertTriangle,
-          iconBg: "bg-warning/15 text-warning-foreground dark:text-amber-400",
+          iconBg: "bg-warning/15 text-warning-foreground dark:text-warning",
         };
       default:
         return {

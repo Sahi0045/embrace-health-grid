@@ -16,17 +16,30 @@ export interface RoomCardProps {
   onToggle: (id: string) => void;
 }
 
+/**
+ * Department identity, drawn from the categorical ramp (--chart-1..6) rather
+ * than semantic tokens: these hues carry information, so collapsing them onto
+ * primary/warning would make ICU and Theatre indistinguishable.
+ *
+ * Hue assignment stays as close to the previous palette as the ramp allows
+ * (blue→teal blue, emerald→jade, purple→plum, amber→ochre) so anyone who has
+ * learned the wards by colour is not relearning from scratch. ER is the one
+ * exception and takes `destructive`: it is genuinely the urgent department, not
+ * merely another category.
+ *
+ * No `dark:` variants — the chart tokens already swap with the theme.
+ */
 const CATEGORY_COLORS: Record<string, string> = {
-  CARDIOLOGY: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30",
-  GENERAL: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
-  THEATRE: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30",
-  OPD: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30",
-  WARD: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
-  OT: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30",
-  ER: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30",
-  ICU: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30",
-  DIAG: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/30",
-  LAB: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/30",
+  CARDIOLOGY: "bg-chart-4/10 text-chart-4 border-chart-4/30",
+  OPD: "bg-chart-4/10 text-chart-4 border-chart-4/30",
+  GENERAL: "bg-chart-1/10 text-chart-1 border-chart-1/30",
+  WARD: "bg-chart-1/10 text-chart-1 border-chart-1/30",
+  THEATRE: "bg-chart-5/10 text-chart-5 border-chart-5/30",
+  OT: "bg-chart-5/10 text-chart-5 border-chart-5/30",
+  ICU: "bg-chart-3/10 text-chart-3 border-chart-3/30",
+  DIAG: "bg-chart-6/10 text-chart-6 border-chart-6/30",
+  LAB: "bg-chart-2/10 text-chart-2 border-chart-2/30",
+  ER: "bg-destructive/10 text-destructive border-destructive/30",
 };
 
 export function RoomCard({ room, isSelected, isCheckedIn, onToggle }: RoomCardProps) {

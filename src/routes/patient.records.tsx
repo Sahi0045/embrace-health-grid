@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { submitFeedback } from "@/lib/inpatient.server";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey, Transaction, Connection } from "@solana/web3.js";
 import { buildPatientAnchorTx } from "@/lib/clinical.server";
@@ -75,6 +76,28 @@ const docTypeIcon: Record<string, React.ComponentType<{ className?: string }>> =
 function MedicalRecords() {
   const { user: currentUser } = useCurrentUser();
   const [feedbackRating, setFeedbackRating] = useState(0);
+  const [feedbackText, setFeedbackText] = useState("");
+  const [submittingFeedback, setSubmittingFeedback] = useState(false);
+
+  const handleSubmitFeedback = async () => {
+    if (!feedbackRating) {
+      toast.error("Choose a rating first");
+      return;
+    }
+    setSubmittingFeedback(true);
+    try {
+      await submitFeedback({
+        data: { rating: feedbackRating, comments: feedbackText.trim() || undefined },
+      });
+      toast.success("Thank you — your feedback was recorded");
+      setFeedbackRating(0);
+      setFeedbackText("");
+    } catch (err: any) {
+      toast.error("Could not submit feedback", { description: err?.message });
+    } finally {
+      setSubmittingFeedback(false);
+    }
+  };
   const [apiPrescriptions, setApiPrescriptions] = useState<any[]>([]);
   const [apiRecords, setApiRecords] = useState<any[]>([]);
   const [apiHealthMetrics, setApiHealthMetrics] = useState<any[]>([]);
@@ -96,7 +119,20 @@ function MedicalRecords() {
   const fetchOnChainRoot = useCallback(async () => {
     if (!publicKey || !patientDid) return;
     try {
-      const PROGRAM_ID = new PublicKey("BxkLrjBYdb3nh2m9GCfpLXBWrAj3s9MqnRbwktLqSfN3");
+      /**
+       * Read the program id from config, not a literal.
+       *
+       * This was hardcoded to BxkLrjBYdb3nh2m9GCfpLXBWrAj3s9MqnRbwktLqSfN3
+       * while the anchoring transaction is built server-side against
+       * VITE_SOLANA_PROGRAM_ID (FuL2Ko8zMdej7QU8VtxoyTdmpuF1MsWLECCTVTztQ2iR).
+       * Different program means a different PDA, so getAccountInfo always
+       * missed: the panel read "On-Chain Merkle Root: Not Anchored" forever and
+       * the button never flipped to "Update On-Chain Root", even straight after
+       * a successful anchor.
+       */
+      const programId = import.meta.env.VITE_SOLANA_PROGRAM_ID;
+      if (!programId) return;
+      const PROGRAM_ID = new PublicKey(programId);
       const [patientRootPda] = PublicKey.findProgramAddressSync(
         [Buffer.from("patient-root"), Buffer.from(patientDid)],
         PROGRAM_ID,
@@ -229,14 +265,21 @@ function MedicalRecords() {
       diagnosis: rx.diagnosis || "—",
       chiefComplaint: rx.chiefComplaint || "",
       symptoms: rx.symptoms || "",
-      doctor: rx.doctorName || rx.signedBy || "Doctor",
+      // Was `|| "Doctor"`, so every prescription's prescriber read literally
+      // "Doctor". signed_by exists on the row and simply was not selected.
+      doctor: rx.doctorName || rx.signedBy || "",
       doctorDid: rx.doctorDid || "",
       apptId: rx.apptId || "",
-      date: rx.signedAt || new Date().toISOString(),
+      // Was defaulting to now, so an unsigned prescription showed today's date.
+      date: rx.signedAt || "",
       status: rx.status || "active",
       medicines: rx.drugs || [],
       notes: rx.notes || "",
       followUpDate: rx.followUpDate || "",
+      // Real values from the row — the signature flag and content hash were
+      // both mapped by the API and then ignored by this screen.
+      signed: Boolean(rx.signed),
+      hash: rx.hash ?? null,
       // linked medical report — matched by rxId
       report: apiRecords.find((r: any) => r.rxId === rx.rxId) ?? null,
     }));
@@ -618,13 +661,26 @@ function MedicalRecords() {
                       )}
 
                       {/* Digital signature status */}
-                      <div className="flex items-center gap-2 rounded-lg bg-success/5 border border-success/20 px-3 py-2 text-xs">
-                        <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
+                      {/* Was rendered unconditionally for every prescription.
+                          `signed` is mapped from the row and was never read. */}
+                      <div
+                        className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-xs ${
+                          cx.signed ? "bg-success/5 border-success/20" : "bg-muted/40 border-border"
+                        }`}
+                      >
+                        <CheckCircle2
+                          className={`h-4 w-4 shrink-0 ${cx.signed ? "text-success" : "text-muted-foreground"}`}
+                        />
                         <div>
-                          <span className="font-semibold text-success">Digitally Signed</span>
+                          <span
+                            className={`font-semibold ${cx.signed ? "text-success" : "text-muted-foreground"}`}
+                          >
+                            {cx.signed ? "Digitally Signed" : "Not signed"}
+                          </span>
                           <span className="text-muted-foreground">
-                            {" "}
-                            · DID + Ed25519 · {new Date(cx.date).toLocaleString("en-IN")}
+                            {cx.signed
+                              ? ` · DID + Ed25519 · ${new Date(cx.date).toLocaleString("en-IN")}`
+                              : " · no signature recorded"}
                           </span>
                         </div>
                       </div>
@@ -670,10 +726,10 @@ function MedicalRecords() {
                             )}
                           </div>
                         </div>
-                        <Button variant="outline" size="sm" className="mt-3 w-full">
-                          <Download className="mr-1 h-3 w-3" />
-                          Download
-                        </Button>
+                        {/* Removed a Download button with no onClick and no
+                            file behind it — medical_records stores no document
+                            reference, so there is nothing to download. It looked
+                            like a broken feature rather than an absent one. */}
                       </CardContent>
                     </Card>
                   );
@@ -821,11 +877,20 @@ function MedicalRecords() {
                     {order.status === "dispensed" && (
                       <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
                         <CheckCircle2 className="h-3 w-3 text-success" />
-                        Dispensed by {order.dispensedBy} at {order.dispensedAt}
+                        {/* dispensed_at exists on the row but was not mapped;
+                            there is no dispensed-by column at all, so this read
+                            "Dispensed by undefined at undefined". */}
+                        Dispensed{order.dispensedAt ? ` on ${order.dispensedAt}` : ""}
                       </div>
                     )}
+                    {/* Refill: had no onClick and there is no refill-request
+                        table, so clicking did nothing at all, not even error. */}
                     {order.status === "pending" && (
-                      <Button className="mt-3 w-full sm:w-auto">
+                      <Button
+                        className="mt-3 w-full sm:w-auto"
+                        disabled
+                        title="Refill requests are not available yet"
+                      >
                         <ShoppingBag className="mr-2 h-4 w-4" />
                         Request Refill
                       </Button>
@@ -844,7 +909,10 @@ function MedicalRecords() {
                       <div className="flex items-start justify-between">
                         <div>
                           <div className="font-medium capitalize">
-                            {session.type.replace(/-/g, " ")}
+                            {/* getRehabSessions returns `sessionType`; reading
+                                `type` threw on undefined and took the whole
+                                Rehab tab down on click. */}
+                            {(session.sessionType ?? session.type ?? "Session").replace(/-/g, " ")}
                           </div>
                           <div className="text-sm text-muted-foreground">{session.therapist}</div>
                         </div>
@@ -913,14 +981,20 @@ function MedicalRecords() {
                       </button>
                     ))}
                   </div>
+                  {/* The textarea had no value/onChange and the Button had no
+                      onClick, so clicking Submit did nothing at all — not even
+                      an error. submitFeedback() already existed and was never
+                      called from here; feedbackRating was captured and dropped. */}
                   <textarea
                     rows={3}
                     placeholder="Tell us about your experience..."
+                    value={feedbackText}
+                    onChange={(e) => setFeedbackText(e.target.value)}
                     className="w-full rounded-lg border border-border bg-card p-3 text-sm outline-none focus:ring-2 focus:ring-primary/30 resize-none"
                   />
-                  <Button>
+                  <Button onClick={handleSubmitFeedback} disabled={submittingFeedback}>
                     <MessageSquare className="mr-2 h-4 w-4" />
-                    Submit Feedback
+                    {submittingFeedback ? "Submitting…" : "Submit Feedback"}
                   </Button>
                 </CardContent>
               </Card>
@@ -1028,8 +1102,19 @@ function MedicalRecords() {
                             createdAt: selectedRxJson.report.createdAt,
                           }
                         : undefined,
-                      hash: `sha256:d8c0b56${selectedRxJson.rxId?.slice(-8)}`,
-                      blockchainMeta: { network: "solana-devnet", verified: true },
+                      /**
+                       * Was `sha256:d8c0b56${rxId.slice(-8)}` — a string built
+                       * by concatenation, displayed under the heading
+                       * "Cryptographic JSON Payload / Verifiable raw ledger
+                       * metadata", alongside a hardcoded `verified: true`.
+                       * prescriptions.content_hash is the real hash and was
+                       * already mapped; it was simply ignored.
+                       */
+                      hash: selectedRxJson.hash ?? null,
+                      blockchainMeta: {
+                        network: "solana-devnet",
+                        anchored: Boolean(selectedRxJson.hash),
+                      },
                     },
                     null,
                     2,

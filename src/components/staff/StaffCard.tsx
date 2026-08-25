@@ -71,8 +71,8 @@ export function StaffCard({ staff, onSelect }: StaffCardProps) {
     },
     oncall: {
       label: "On Call",
-      dotCls: "bg-rose-500 animate-pulse",
-      textCls: "text-rose-600 dark:text-rose-400",
+      dotCls: "bg-destructive animate-pulse",
+      textCls: "text-destructive dark:text-destructive",
       badgeCls: "border-destructive/30 bg-destructive/15 text-destructive",
       accent: "destructive" as const,
     },
@@ -193,7 +193,7 @@ export function StaffCard({ staff, onSelect }: StaffCardProps) {
 
         <div>
           <div className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground flex items-center gap-1 mb-1">
-            <MapPin className="h-3 w-3 text-teal-500 shrink-0" /> Station
+            <MapPin className="h-3 w-3 text-success shrink-0" /> Station
           </div>
           <div
             className="text-xs font-semibold text-foreground truncate"

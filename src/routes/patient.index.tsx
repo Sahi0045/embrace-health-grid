@@ -16,6 +16,8 @@ import {
   CreditCard,
   Video,
   Users2,
+  Receipt,
+  Fingerprint,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { RouteGuard } from "@/components/RouteGuard";
@@ -47,6 +49,12 @@ const quickActions: {
   { to: "/patient/insurance", label: "Insurance", icon: CreditCard },
   { to: "/patient/telemedicine", label: "Tele", icon: Video },
   { to: "/patient/visitors", label: "Visitors", icon: Users2 },
+  // Billing, Family Access and Private Proofs used to be reachable only from
+  // the sidebar. They are listed here so trimming the sidebar narrows what a
+  // patient has to scan without making three working features unreachable.
+  { to: "/patient/billing", label: "Billing", icon: Receipt },
+  { to: "/patient/family", label: "Family", icon: Users2 },
+  { to: "/patient/zkproof", label: "Proofs", icon: Fingerprint },
 ];
 
 function PatientHome() {
@@ -184,7 +192,7 @@ function PatientHome() {
           <StaggerItem>
             <motion.div
               whileTap={{ scale: 0.99 }}
-              className="rounded-2xl bg-gradient-to-br from-primary to-primary/80 p-5 text-primary-foreground shadow-clinical-md"
+              className="rounded-2xl bg-primary/80 p-5 text-primary-foreground shadow-clinical-md"
             >
               <div className="flex items-center justify-between text-xs opacity-80">
                 <span>Hospital DID</span>
@@ -192,10 +200,20 @@ function PatientHome() {
               </div>
               <div className="mt-2 font-mono text-sm">{patientRecord.did}</div>
               <div className="mt-4 flex items-end justify-between">
-                <div>
-                  <div className="text-[10px] uppercase tracking-wider opacity-70">MRN</div>
-                  <div className="text-sm font-medium">{patientRecord.mrn}</div>
-                </div>
+                {/* MRN is not modelled: `profiles` has no such column, so
+                    currentUser.mrn is always undefined. A previous pass correctly
+                    refused to invent a record number (see the comment above) but
+                    left the label behind, so the card showed "MRN" with an empty
+                    slot under it, which reads as a rendering failure rather than
+                    as missing data. Render the block only when there is one. */}
+                {patientRecord.mrn ? (
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wider opacity-70">MRN</div>
+                    <div className="text-sm font-medium">{patientRecord.mrn}</div>
+                  </div>
+                ) : (
+                  <span />
+                )}
                 <Link
                   to="/patient/qr"
                   className="inline-flex items-center gap-1 rounded-full bg-white/15 px-3 py-1.5 text-xs font-medium backdrop-blur hover:bg-white/25 transition-colors"

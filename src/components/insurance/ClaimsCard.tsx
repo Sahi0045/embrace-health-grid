@@ -6,6 +6,7 @@ interface ClaimsCardProps {
 }
 
 const statusConfig = {
+  submitted: { icon: Clock, badge: "bg-warning/10 text-warning-foreground" },
   pending: { icon: Clock, badge: "bg-warning/10 text-warning-foreground" },
   approved: { icon: CheckCircle, badge: "bg-success/10 text-success" },
   rejected: { icon: XCircle, badge: "bg-destructive/10 text-destructive" },
@@ -22,7 +23,13 @@ const typeLabels: Record<string, string> = {
 };
 
 export function ClaimsCard({ claim }: ClaimsCardProps) {
-  const cfg = statusConfig[claim.status];
+  // createInsuranceClaim inserts status "submitted" and the DB default is also
+  // "submitted", but statusConfig only had pending/approved/rejected/
+  // under-review/paid — so `cfg` was undefined and `cfg.icon` threw. Both the
+  // Overview and Claims tabs render this card, so filing a single claim broke
+  // the whole insurance page permanently. Fall back rather than crash on any
+  // status the UI has not been taught yet.
+  const cfg = statusConfig[claim.status] ?? statusConfig.pending;
   const Icon = cfg.icon;
 
   return (

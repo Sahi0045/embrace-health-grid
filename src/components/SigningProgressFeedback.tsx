@@ -109,16 +109,16 @@ export function SigningProgressFeedback(props: SigningProgressProps) {
           {/* Stage Indicator */}
           <div className="flex items-start gap-4">
             {state.stage === SigningStage.Error ? (
-              <AlertCircle className="w-8 h-8 text-red-500 flex-shrink-0 mt-1" />
+              <AlertCircle className="w-8 h-8 text-destructive flex-shrink-0 mt-1" />
             ) : state.stage === SigningStage.Complete ? (
-              <CheckCircle2 className="w-8 h-8 text-green-500 flex-shrink-0 mt-1" />
+              <CheckCircle2 className="w-8 h-8 text-success flex-shrink-0 mt-1" />
             ) : (
-              <Loader className="w-8 h-8 text-blue-500 flex-shrink-0 mt-1 animate-spin" />
+              <Loader className="w-8 h-8 text-primary flex-shrink-0 mt-1 animate-spin" />
             )}
 
             <div className="flex-1">
-              <h3 className="font-semibold text-slate-100">{info.label}</h3>
-              <p className="text-sm text-slate-400 mt-1">{info.description}</p>
+              <h3 className="font-semibold text-muted-foreground">{info.label}</h3>
+              <p className="text-sm text-muted-foreground mt-1">{info.description}</p>
             </div>
           </div>
 
@@ -126,12 +126,12 @@ export function SigningProgressFeedback(props: SigningProgressProps) {
           {state.stage !== SigningStage.Complete && state.stage !== SigningStage.Error && (
             <div className="space-y-2">
               <div className="flex justify-between text-xs">
-                <span className="text-slate-400">Progress</span>
-                <span className="text-slate-300">{Math.min(100, state.progress)}%</span>
+                <span className="text-muted-foreground">Progress</span>
+                <span className="text-muted-foreground">{Math.min(100, state.progress)}%</span>
               </div>
-              <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
+              <div className="w-full h-2 bg-card rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-blue-500 to-blue-400 transition-all"
+                  className="h-full bg-primary transition-all"
                   style={{ width: `${Math.min(100, state.progress)}%` }}
                 />
               </div>
@@ -141,17 +141,19 @@ export function SigningProgressFeedback(props: SigningProgressProps) {
           {/* Transaction Details */}
           {state.walletUsed && (
             <div className="space-y-2">
-              <div className="text-xs text-slate-400">Details</div>
-              <div className="space-y-2 p-3 bg-slate-900/50 rounded-lg border border-slate-700">
+              <div className="text-xs text-muted-foreground">Details</div>
+              <div className="space-y-2 p-3 bg-card/50 rounded-lg border border-border">
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-400">Wallet:</span>
-                  <span className="font-mono text-slate-300 capitalize">{state.walletUsed}</span>
+                  <span className="text-muted-foreground">Wallet:</span>
+                  <span className="font-mono text-muted-foreground capitalize">
+                    {state.walletUsed}
+                  </span>
                 </div>
 
                 {state.stage === SigningStage.Signing && (
                   <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">Status:</span>
-                    <span className="text-amber-400 font-medium flex items-center gap-1">
+                    <span className="text-muted-foreground">Status:</span>
+                    <span className="text-warning font-medium flex items-center gap-1">
                       <Zap className="w-3 h-3" />
                       Awaiting Approval
                     </span>
@@ -160,8 +162,8 @@ export function SigningProgressFeedback(props: SigningProgressProps) {
 
                 {state.txId && (
                   <div className="space-y-1">
-                    <div className="text-xs text-slate-400">Transaction ID:</div>
-                    <code className="text-xs font-mono text-slate-300 break-all">
+                    <div className="text-xs text-muted-foreground">Transaction ID:</div>
+                    <code className="text-xs font-mono text-muted-foreground break-all">
                       {state.txId.slice(0, 16)}...
                     </code>
                   </div>
@@ -172,14 +174,14 @@ export function SigningProgressFeedback(props: SigningProgressProps) {
 
           {/* Error Details */}
           {state.stage === SigningStage.Error && state.error && (
-            <div className="p-3 rounded-lg bg-red-950/30 border border-red-500/50">
-              <p className="text-sm text-red-300">{state.error}</p>
+            <div className="p-3 rounded-lg bg-destructive/30 border border-destructive/50">
+              <p className="text-sm text-destructive">{state.error}</p>
             </div>
           )}
 
           {/* Time Elapsed */}
           {state.stage !== SigningStage.Complete && state.stage !== SigningStage.Error && (
-            <div className="flex justify-between text-xs text-slate-500">
+            <div className="flex justify-between text-xs text-muted-foreground">
               <span>Elapsed: {formatTime(elapsedTime)}</span>
               {estimatedTime && <span>Estimated: {formatTime(estimatedTime)}</span>}
             </div>
@@ -187,15 +189,15 @@ export function SigningProgressFeedback(props: SigningProgressProps) {
 
           {/* Success Message */}
           {state.stage === SigningStage.Complete && state.txId && (
-            <div className="p-3 rounded-lg bg-green-950/30 border border-green-500/50">
-              <p className="text-sm text-green-300 mb-2">
+            <div className="p-3 rounded-lg bg-success/30 border border-success/50">
+              <p className="text-sm text-success mb-2">
                 ✓ Transaction successfully recorded on blockchain
               </p>
               <a
                 href={`https://explorer.solana.com/tx/${state.txId}?cluster=${process.env.REACT_APP_SOLANA_NETWORK || "devnet"}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs text-green-400 hover:text-green-300 underline break-all"
+                className="text-xs text-success hover:text-success underline break-all"
               >
                 View on Solana Explorer →
               </a>
@@ -204,16 +206,16 @@ export function SigningProgressFeedback(props: SigningProgressProps) {
         </div>
 
         {/* Footer */}
-        <div className="flex gap-3 pt-4 border-t border-slate-700">
+        <div className="flex gap-3 pt-4 border-t border-border">
           {state.stage === SigningStage.Complete || state.stage === SigningStage.Error ? (
             <button
               onClick={onClose}
-              className="flex-1 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors"
+              className="flex-1 px-4 py-2 rounded-lg bg-primary hover:bg-primary text-white text-sm font-medium transition-colors"
             >
               {state.stage === SigningStage.Error ? "Try Again" : "Done"}
             </button>
           ) : (
-            <div className="flex-1 px-4 py-2 text-center text-sm text-slate-400">
+            <div className="flex-1 px-4 py-2 text-center text-sm text-muted-foreground">
               Do not close this window...
             </div>
           )}

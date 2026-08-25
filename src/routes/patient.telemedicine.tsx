@@ -316,12 +316,12 @@ function TelemedicineCallModal({ call, onClose }: { call: any; onClose: () => vo
         initial={{ scale: 0.95, y: 20 }}
         animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.95, y: 20 }}
-        className="relative flex h-[80vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-slate-900 border border-slate-800 text-white shadow-2xl"
+        className="relative flex h-[80vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-card border border-border text-white shadow-2xl"
       >
         {/* Main Video Screen */}
-        <div className="relative flex-1 flex items-center justify-center bg-slate-950">
+        <div className="relative flex-1 flex items-center justify-center bg-card">
           {videoOff ? (
-            <div className="flex h-24 w-24 items-center justify-center rounded-full bg-slate-800 text-slate-400 text-2xl font-bold">
+            <div className="flex h-24 w-24 items-center justify-center rounded-full bg-card text-muted-foreground text-2xl font-bold">
               {call.doctor
                 ? call.doctor
                     .split(" ")
@@ -346,33 +346,33 @@ function TelemedicineCallModal({ call, onClose }: { call: any; onClose: () => vo
                 <div className="absolute -inset-4 rounded-full border border-primary/20 animate-ping opacity-40" />
               </div>
               <h3 className="mt-6 text-xl font-bold">{call.doctor}</h3>
-              <p className="text-sm text-slate-400 mt-1">{call.specialty} · Live Session</p>
+              <p className="text-sm text-muted-foreground mt-1">{call.specialty} · Live Session</p>
             </div>
           )}
 
           {/* Time Counter */}
           <div className="absolute top-4 left-4 flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 text-xs font-semibold tabular-nums text-white">
-            <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+            <span className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
             {formatTime(seconds)}
           </div>
 
           {/* Patient Self-View Window (Webcam preview) */}
-          <div className="absolute top-4 right-4 h-32 w-48 overflow-hidden rounded-xl border border-slate-700 bg-slate-900 shadow-lg flex items-center justify-center text-center">
+          <div className="absolute top-4 right-4 h-32 w-48 overflow-hidden rounded-xl border border-border bg-card shadow-lg flex items-center justify-center text-center">
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-xs text-slate-400 font-semibold">You (Patient)</span>
+              <span className="text-xs text-muted-foreground font-semibold">You (Patient)</span>
             </div>
             {/* Audio Indicator */}
             <div className="absolute bottom-2 left-2 flex gap-0.5">
               <div
-                className="h-2 w-0.5 bg-emerald-500 animate-bounce"
+                className="h-2 w-0.5 bg-success animate-bounce"
                 style={{ animationDelay: "0.1s" }}
               />
               <div
-                className="h-3 w-0.5 bg-emerald-500 animate-bounce"
+                className="h-3 w-0.5 bg-success animate-bounce"
                 style={{ animationDelay: "0.3s" }}
               />
               <div
-                className="h-1.5 w-0.5 bg-emerald-500 animate-bounce"
+                className="h-1.5 w-0.5 bg-success animate-bounce"
                 style={{ animationDelay: "0.5s" }}
               />
             </div>
@@ -380,13 +380,13 @@ function TelemedicineCallModal({ call, onClose }: { call: any; onClose: () => vo
         </div>
 
         {/* Controls Bar */}
-        <div className="flex h-20 items-center justify-center gap-4 bg-slate-950/80 px-6 border-t border-slate-800/60 backdrop-blur-sm">
+        <div className="flex h-20 items-center justify-center gap-4 bg-card/80 px-6 border-t border-border/60 backdrop-blur-sm">
           <button
             onClick={() => {
               setMuted(!muted);
               toast(muted ? "Microphone unmuted" : "Microphone muted");
             }}
-            className={`flex h-12 w-12 items-center justify-center rounded-full transition-all ${muted ? "bg-red-500 text-white" : "bg-slate-800 text-slate-200 hover:bg-slate-700"}`}
+            className={`flex h-12 w-12 items-center justify-center rounded-full transition-all ${muted ? "bg-destructive text-white" : "bg-card text-muted-foreground hover:bg-card"}`}
           >
             {muted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
           </button>
@@ -396,7 +396,7 @@ function TelemedicineCallModal({ call, onClose }: { call: any; onClose: () => vo
               setVideoOff(!videoOff);
               toast(videoOff ? "Camera turned on" : "Camera turned off");
             }}
-            className={`flex h-12 w-12 items-center justify-center rounded-full transition-all ${videoOff ? "bg-red-500 text-white" : "bg-slate-800 text-slate-200 hover:bg-slate-700"}`}
+            className={`flex h-12 w-12 items-center justify-center rounded-full transition-all ${videoOff ? "bg-destructive text-white" : "bg-card text-muted-foreground hover:bg-card"}`}
           >
             {videoOff ? <VideoOff className="h-5 w-5" /> : <Video className="h-5 w-5" />}
           </button>
@@ -405,14 +405,14 @@ function TelemedicineCallModal({ call, onClose }: { call: any; onClose: () => vo
             onClick={() => {
               toast.info("Volume adjusted");
             }}
-            className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-800 text-slate-200 hover:bg-slate-700 transition-all text-white"
+            className="flex h-12 w-12 items-center justify-center rounded-full bg-card text-muted-foreground hover:bg-card transition-all text-white"
           >
             <Volume2 className="h-5 w-5" />
           </button>
 
           <button
             onClick={onClose}
-            className="flex h-12 w-12 items-center justify-center rounded-full bg-red-600 text-white hover:bg-red-500 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-red-900/25"
+            className="flex h-12 w-12 items-center justify-center rounded-full bg-destructive text-white hover:bg-destructive hover:scale-105 active:scale-95 transition-all shadow-lg shadow-destructive/25"
           >
             <PhoneOff className="h-5 w-5" />
           </button>

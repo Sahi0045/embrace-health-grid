@@ -67,27 +67,37 @@ function DoctorLocatorPage() {
             (a.email && d.ownerEmail && a.email.toLowerCase() === d.ownerEmail.toLowerCase()),
         );
 
-        const liveLocation =
-          apiMatch?.activeRoom && apiMatch.activeRoom !== "None"
-            ? apiMatch.activeRoom
-            : "Room 101 - Outpatient Clinic";
+        /**
+         * Absence of a check-in is not presence.
+         *
+         * This defaulted to "Room 101 - Outpatient Clinic", so every clinician
+         * with no room scan appeared to be standing in Room 101 — and because
+         * roomStatus was derived from that, all of them read IN ROOM (ACTIVE),
+         * with lastSignal defaulted to now so the stale row looked live. On a
+         * screen whose whole job is telling you where a doctor physically is,
+         * during an emergency, that sends people to the wrong room.
+         */
+        const checkedIn = apiMatch?.activeRoom && apiMatch.activeRoom !== "None";
+        const liveLocation = checkedIn ? apiMatch.activeRoom : "Not checked in";
 
         mergedMap.set(d.did, {
           id: d.did,
           did: d.did, // Strictly the Admin-issued W3C DID
-          name: d.owner || apiMatch?.name || "Dr. Clinician",
-          employeeId:
-            d.employeeId || apiMatch?.employeeId || `EMP-${d.did.slice(-4).toUpperCase()}`,
+          name: d.owner || apiMatch?.name || "Unnamed clinician",
+          // No synthesised `EMP-<did slice>`: it looks like a hospital staff
+          // number and is not one.
+          employeeId: d.employeeId || apiMatch?.employeeId || "",
           role: d.ownerType === "staff" ? "Staff Nurse" : "Doctor",
-          department: apiMatch?.department || d.extraFields?.department || "Cardiology OPD",
-          specialty: apiMatch?.specialty || d.extraFields?.specialty || "General Medicine",
+          department: apiMatch?.department || d.extraFields?.department || "",
+          specialty: apiMatch?.specialty || d.extraFields?.specialty || "",
           currentLocation: liveLocation,
-          roomStatus: apiMatch?.roomStatus || (liveLocation !== "Off Duty" ? "enter" : "exit"),
-          beaconStrength: "-65 dBm",
+          roomStatus: apiMatch?.roomStatus || (checkedIn ? "enter" : "exit"),
+          // Only a real reading, never a constant dressed up as telemetry.
+          beaconStrength: apiMatch?.beaconStrength || "",
           lastSignal: apiMatch?.lastLocationChange
             ? new Date(apiMatch.lastLocationChange).toLocaleTimeString()
-            : new Date().toLocaleTimeString(),
-          onDuty: true,
+            : "",
+          onDuty: Boolean(checkedIn),
           isOnChain: true,
           activeCredentials: d.credentials || [
             { id: `vc-${d.did.slice(-6)}`, type: "DID Verified Physician" },
@@ -99,49 +109,33 @@ function DoctorLocatorPage() {
       apiDocs.forEach((a: any) => {
         if (!a.did) return;
         if (!mergedMap.has(a.did)) {
-          const liveLocation =
-            a.activeRoom && a.activeRoom !== "None" ? a.activeRoom : "Room 101 - Outpatient Clinic";
+          const liveCheckedIn = a.activeRoom && a.activeRoom !== "None";
+          const liveLocation = liveCheckedIn ? a.activeRoom : "Not checked in";
           mergedMap.set(a.did, {
             id: a.did,
             did: a.did, // Strictly the Admin-issued W3C DID
-            name: a.name || "Dr. Medical Specialist",
-            employeeId: a.employeeId || `EMP-${a.did.slice(-4).toUpperCase()}`,
+            name: a.name || "Unnamed clinician",
+            employeeId: a.employeeId || "",
             role: "Doctor",
-            department: a.department || "Cardiology OPD",
-            specialty: a.specialty || "General Medicine",
+            department: a.department || "",
+            specialty: a.specialty || "",
             currentLocation: liveLocation,
-            roomStatus: a.roomStatus || "enter",
-            beaconStrength: "-68 dBm",
+            roomStatus: a.roomStatus || (liveCheckedIn ? "enter" : "exit"),
+            beaconStrength: a.beaconStrength || "",
             lastSignal: a.lastLocationChange
               ? new Date(a.lastLocationChange).toLocaleTimeString()
               : new Date().toLocaleTimeString(),
-            onDuty: true,
+            onDuty: Boolean(liveCheckedIn),
             isOnChain: true,
             activeCredentials: [{ id: `vc-${a.did.slice(-6)}`, type: "DID Verified Physician" }],
           });
         }
       });
 
-      // Fallback if registry empty: seeded admin doctor
-      if (mergedMap.size === 0) {
-        const seedDid = "did:hosp:0x4302bbea";
-        mergedMap.set(seedDid, {
-          id: seedDid,
-          did: seedDid,
-          name: "Dr. Sameer Khan",
-          employeeId: "EMP-DOC-101",
-          role: "Doctor",
-          department: "Cardiology OPD",
-          specialty: "Interventional Cardiology",
-          currentLocation: "Room 101 - Outpatient Clinic",
-          roomStatus: "enter",
-          beaconStrength: "-65 dBm",
-          lastSignal: new Date().toLocaleTimeString(),
-          onDuty: true,
-          isOnChain: true,
-          activeCredentials: [{ id: "vc-seed", type: "DID Verified Physician" }],
-        });
-      }
+      // No seeded fallback. This screen tells staff where clinicians physically
+      // are; inventing "Dr. Sameer Khan" on duty in Room 101 when the registry
+      // is empty means someone can go looking for a person who does not exist.
+      // The list already renders an explicit empty state, so show that instead.
 
       setStaffList(Array.from(mergedMap.values()));
       setLastSyncTime(new Date().toLocaleTimeString());
@@ -212,13 +206,29 @@ function DoctorLocatorPage() {
   };
 
   const handlePage = async (member: any) => {
-    toast.success("Emergency Pager Dispatched!", {
-      description: `Sent alert to ${member.name} at ${member.currentLocation}`,
-    });
+    // The success toast used to fire BEFORE the await, and the return value was
+    // discarded. dispatchPagerNotify unconditionally returns
+    // { delivered: false, reason: "No pager provider is configured" } — there is
+    // no pager integration in this system — so in an emergency staff were told a
+    // clinician had been paged when nothing had been sent anywhere.
+    let result: Awaited<ReturnType<typeof dispatchPagerNotify>> | null = null;
     try {
-      await dispatchPagerNotify(member.did, member.name, member.currentLocation);
+      result = await dispatchPagerNotify(member.did, member.name, member.currentLocation);
     } catch (err: any) {
-      console.warn("Pager dispatch failed:", err.message);
+      toast.error("Pager request failed", { description: err.message });
+      return;
+    }
+
+    if (result?.delivered) {
+      toast.success("Emergency pager dispatched", {
+        description: `Sent to ${member.name}${member.currentLocation ? ` at ${member.currentLocation}` : ""}`,
+      });
+    } else {
+      toast.warning("Pager NOT delivered — request recorded only", {
+        description:
+          result?.reason ??
+          "No pager provider is configured. Contact this clinician by another means.",
+      });
     }
     setLiveEventsLog((prev) => [
       {
@@ -466,7 +476,10 @@ function DoctorLocatorPage() {
                       ["Current Room", selected.currentLocation],
                       [
                         "Room Status",
-                        selected.currentLocation !== "Off Duty" ? "Checked In" : "Checked Out",
+                        // Was comparing currentLocation against the string
+                        // "Off Duty"; onDuty is the actual boolean and does not
+                        // silently invert when the sentinel text changes.
+                        selected.onDuty ? "Checked In" : "Checked Out",
                       ],
                       ["Department", selected.department],
                       ["Employee ID", selected.employeeId],
@@ -475,7 +488,10 @@ function DoctorLocatorPage() {
                     ].map(([k, v]) => (
                       <div key={k} className="flex justify-between border-b border-border/40 pb-1">
                         <span className="text-muted-foreground">{k}:</span>
-                        <span className="font-semibold text-foreground">{v}</span>
+                        {/* An unset field reads as "—" rather than a blank gap,
+                            so "we don't know" is visibly different from a value
+                            that failed to render. */}
+                        <span className="font-semibold text-foreground">{v || "—"}</span>
                       </div>
                     ))}
                   </div>
@@ -565,7 +581,7 @@ function DoctorLocatorPage() {
                         className={`rounded-full px-2 py-0.5 text-[9px] font-extrabold uppercase ${
                           log.action === "enter"
                             ? "bg-success/15 text-success"
-                            : "bg-amber-500/15 text-amber-600"
+                            : "bg-warning/15 text-warning"
                         }`}
                       >
                         {log.action === "enter" ? "Checked In" : "Checked Out"}

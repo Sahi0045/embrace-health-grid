@@ -26,54 +26,54 @@ interface MenuMealsTabProps {
 const CATEGORY_STYLES: Record<string, { bg: string; text: string; label: string; border: string }> =
   {
     breakfast: {
-      bg: "bg-amber-500/10",
-      text: "text-amber-600 dark:text-amber-400",
-      border: "border-amber-500/20",
+      bg: "bg-chart-3/10",
+      text: "text-chart-3",
+      border: "border-chart-3/20",
       label: "Breakfast",
     },
     lunch: {
-      bg: "bg-blue-500/10",
-      text: "text-blue-600 dark:text-blue-400",
-      border: "border-blue-500/20",
+      bg: "bg-chart-4/10",
+      text: "text-chart-4",
+      border: "border-chart-4/20",
       label: "Lunch",
     },
     dinner: {
-      bg: "bg-purple-500/10",
-      text: "text-purple-600 dark:text-purple-400",
-      border: "border-purple-500/20",
+      bg: "bg-chart-5/10",
+      text: "text-chart-5",
+      border: "border-chart-5/20",
       label: "Dinner",
     },
     snack: {
-      bg: "bg-emerald-500/10",
-      text: "text-emerald-600 dark:text-emerald-400",
-      border: "border-emerald-500/20",
+      bg: "bg-chart-1/10",
+      text: "text-chart-1",
+      border: "border-chart-1/20",
       label: "Snack",
     },
     beverage: {
-      bg: "bg-pink-500/10",
-      text: "text-pink-600 dark:text-pink-400",
-      border: "border-pink-500/20",
+      bg: "bg-chart-2/10",
+      text: "text-chart-2",
+      border: "border-chart-2/20",
       label: "Beverage",
     },
   };
 
 const DIETARY_BADGES: Record<string, { label: string; color: string }> = {
-  vegan: { label: "🌱 Vegan", color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" },
+  vegan: { label: "🌱 Vegan", color: "bg-chart-1/10 text-chart-1 border-chart-1/20" },
   vegetarian: {
     label: "🥦 Vegetarian",
-    color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+    color: "bg-chart-1/10 text-chart-1 border-chart-1/20",
   },
-  halal: { label: "☪️ Halal", color: "bg-teal-500/10 text-teal-600 border-teal-500/20" },
+  halal: { label: "☪️ Halal", color: "bg-success/10 text-success border-success/20" },
   gluten_free: {
     label: "🌾 Gluten-Free",
-    color: "bg-amber-500/10 text-amber-600 border-amber-500/20",
+    color: "bg-chart-3/10 text-chart-3 border-chart-3/20",
   },
-  kosher: { label: "✡️ Kosher", color: "bg-indigo-500/10 text-indigo-600 border-indigo-500/20" },
+  kosher: { label: "✡️ Kosher", color: "bg-chart-5/10 text-chart-5 border-chart-5/20" },
   diabetic: {
     label: "🩸 Diabetic-Friendly",
-    color: "bg-sky-500/10 text-sky-600 border-sky-500/20",
+    color: "bg-primary/10 text-primary border-primary/20",
   },
-  low_sodium: { label: "💧 Low Sodium", color: "bg-cyan-500/10 text-cyan-600 border-cyan-500/20" },
+  low_sodium: { label: "💧 Low Sodium", color: "bg-chart-4/10 text-chart-4 border-chart-4/20" },
 };
 
 export function MenuMealsTab({ items, onToggleStatus }: MenuMealsTabProps) {
@@ -125,13 +125,13 @@ export function MenuMealsTab({ items, onToggleStatus }: MenuMealsTabProps) {
                 onClick={() => onToggleStatus(meal.menu_item_id, isActive ? "inactive" : "active")}
                 className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-extrabold transition-all cursor-pointer border ${
                   isActive
-                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20"
+                    ? "bg-chart-1/10 text-chart-1 border-chart-1/20 hover:bg-chart-1/20"
                     : "bg-muted text-muted-foreground border-border/60 hover:bg-muted/80"
                 }`}
                 title="Click to toggle availability"
               >
                 <span
-                  className={`h-1.5 w-1.5 rounded-full ${isActive ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground"}`}
+                  className={`h-1.5 w-1.5 rounded-full ${isActive ? "bg-success animate-pulse" : "bg-muted-foreground"}`}
                 />
                 <span>{isActive ? "Active" : "Inactive"}</span>
               </button>
@@ -173,13 +173,13 @@ export function MenuMealsTab({ items, onToggleStatus }: MenuMealsTabProps) {
             <div className="pt-3 border-t border-border/60 flex items-center justify-between text-xs">
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-1 text-muted-foreground">
-                  <Flame className="h-3.5 w-3.5 text-amber-500" />
+                  <Flame className="h-3.5 w-3.5 text-warning" />
                   <span className="font-bold text-foreground">{meal.calories}</span>
                   <span className="text-[10px]">kcal</span>
                 </div>
 
                 <div className="flex items-center gap-1 text-muted-foreground">
-                  <DollarSign className="h-3.5 w-3.5 text-emerald-500" />
+                  <DollarSign className="h-3.5 w-3.5 text-success" />
                   <span className="font-extrabold text-foreground">${meal.price.toFixed(2)}</span>
                 </div>
               </div>

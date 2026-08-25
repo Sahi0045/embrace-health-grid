@@ -18,11 +18,11 @@ export function GradientProgress({
   className = "",
 }: GradientProgressProps) {
   const fillGradient = {
-    primary: "from-blue-500 to-indigo-600 shadow-blue-500/30",
-    success: "from-emerald-400 to-teal-500 shadow-emerald-500/30",
-    warning: "from-amber-400 to-orange-500 shadow-amber-500/30",
-    destructive: "from-rose-500 to-red-600 shadow-rose-500/30",
-    cyan: "from-cyan-400 to-blue-500 shadow-cyan-500/30",
+    primary: "from-primary to-primary shadow-primary/30",
+    success: "from-success to-success shadow-success/30",
+    warning: "from-warning to-warning shadow-warning/30",
+    destructive: "from-destructive to-destructive shadow-destructive/30",
+    cyan: "from-primary to-primary shadow-primary/30",
   }[tone];
 
   const clamped = Math.min(100, Math.max(0, value || 0));

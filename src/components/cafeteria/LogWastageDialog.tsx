@@ -78,9 +78,9 @@ export function LogWastageDialog({ open, onOpenChange, onSuccess }: LogWastageDi
           className="relative w-full max-w-md bg-card border border-border/80 rounded-3xl shadow-clinical-xl overflow-hidden"
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-5 border-b border-border/60 bg-rose-500/5">
+          <div className="flex items-center justify-between p-5 border-b border-border/60 bg-destructive/5">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-2xl bg-rose-500/10 text-rose-500 border border-rose-500/20">
+              <div className="p-2.5 rounded-2xl bg-destructive/10 text-destructive border border-destructive/20">
                 <Trash2 className="h-5 w-5" />
               </div>
               <div>
@@ -135,7 +135,7 @@ export function LogWastageDialog({ open, onOpenChange, onSuccess }: LogWastageDi
             {/* Item Name */}
             <div>
               <label className="block text-xs font-bold text-foreground mb-1.5">
-                Item / Dish Name <span className="text-rose-500">*</span>
+                Item / Dish Name <span className="text-destructive">*</span>
               </label>
               <input
                 type="text"
@@ -227,7 +227,7 @@ export function LogWastageDialog({ open, onOpenChange, onSuccess }: LogWastageDi
                 type="submit"
                 size="sm"
                 disabled={submitting}
-                className="rounded-xl text-xs font-bold bg-rose-600 text-white hover:bg-rose-700 cursor-pointer shadow-xs"
+                className="rounded-xl text-xs font-bold bg-destructive text-white hover:bg-destructive cursor-pointer shadow-xs"
               >
                 {submitting ? "Logging..." : "Record Wastage"}
               </Button>

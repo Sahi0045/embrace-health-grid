@@ -353,7 +353,7 @@ function LaboratoryDiagnosticsPage() {
               <Button
                 size="sm"
                 onClick={() => setIsCreateOpen(true)}
-                className="h-9 px-3.5 rounded-xl bg-gradient-to-r from-primary to-blue-600 text-primary-foreground font-extrabold shadow-clinical-md shadow-primary/25 hover:shadow-clinical transition-all gap-1.5 cursor-pointer"
+                className="h-9 px-3.5 rounded-xl bg-primary text-primary-foreground font-extrabold shadow-clinical-md shadow-primary/25 hover:shadow-clinical transition-all gap-1.5 cursor-pointer"
               >
                 <Plus className="h-4 w-4" />
                 <span>New Lab Order</span>

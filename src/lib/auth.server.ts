@@ -59,7 +59,13 @@ export interface CurrentUser {
   walletAddress?: string;
   /** The caller's hospital, for views that show which tenant they administer. */
   hospitalId?: string;
+  /** Display name of that hospital. Undefined when the user belongs to none. */
+  hospitalName?: string;
   department?: string;
+  title?: string;
+  joinDate?: string;
+  emergencyContact?: { name: string; relation: string; phone: string };
+  organDonor?: boolean;
   age?: number;
   gender?: string;
   bloodGroup?: string;
@@ -84,11 +90,24 @@ function toCurrentUser(profile: {
   primary_did: string | null;
   wallet_address?: string | null;
   hospital_id?: string | null;
+  mrn?: string | null;
+  /** Embedded from the hospitals FK; null when the user belongs to no hospital. */
+  hospitals?: { name: string } | { name: string }[] | null;
   phone?: string | null;
   age?: number | null;
   gender?: string | null;
   blood_group?: string | null;
   allergies?: string[] | null;
+  department?: string | null;
+  title?: string | null;
+  specializations?: string[] | null;
+  employee_id?: string | null;
+  join_date?: string | null;
+  emergency_contact_name?: string | null;
+  emergency_contact_relation?: string | null;
+  emergency_contact_phone?: string | null;
+  organ_donor?: boolean | null;
+  conditions?: string[] | null;
 }): CurrentUser {
   return {
     id: profile.id,
@@ -101,6 +120,15 @@ function toCurrentUser(profile: {
     // successful link — the address was in Postgres and simply never read back.
     walletAddress: profile.wallet_address ?? undefined,
     hospitalId: profile.hospital_id ?? undefined,
+    // Declared on CurrentUser from the beginning and never mapped, so every
+    // consumer saw undefined and either rendered blank or synthesised one from
+    // the DID. Backed by a real column as of 20260826090000.
+    mrn: profile.mrn ?? undefined,
+    // PostgREST returns an embedded to-one as an object, but as an array when it
+    // cannot prove the relationship is unique — normalise both.
+    hospitalName:
+      (Array.isArray(profile.hospitals) ? profile.hospitals[0]?.name : profile.hospitals?.name) ??
+      undefined,
     // Demographics. These were declared on CurrentUser but never mapped, so the
     // profile page read currentUser?.phone / age / bloodGroup as undefined and
     // fell through to hardcoded defaults ("+91 98765 43210", "O+", 30). An edit
@@ -111,6 +139,24 @@ function toCurrentUser(profile: {
     gender: profile.gender ?? undefined,
     bloodGroup: profile.blood_group ?? undefined,
     allergies: profile.allergies ?? undefined,
+    // Staff profile fields. These were declared on CurrentUser with a TODO
+    // saying they were not modelled yet; migration 20260825000000 adds the
+    // columns, so they are read back here and the staff profile dialog no
+    // longer silently discards three of its five fields.
+    department: profile.department ?? undefined,
+    title: profile.title ?? undefined,
+    specializations: profile.specializations ?? undefined,
+    employeeId: profile.employee_id ?? undefined,
+    joinDate: profile.join_date ?? undefined,
+    emergencyContact: profile.emergency_contact_name
+      ? {
+          name: profile.emergency_contact_name,
+          relation: profile.emergency_contact_relation ?? "",
+          phone: profile.emergency_contact_phone ?? "",
+        }
+      : undefined,
+    organDonor: profile.organ_donor ?? undefined,
+    conditions: profile.conditions ?? undefined,
     // Aliases for legacy call sites.
     name: profile.full_name,
     did: profile.primary_did,
@@ -145,7 +191,10 @@ export const signIn = createServerFn({ method: "POST" })
     const { data: profile, error: pErr } = await supabase
       .from("profiles")
       .select(
-        "id, email, full_name, role, primary_did, wallet_address, hospital_id, phone, age, gender, blood_group, allergies",
+        // hospitals(name) so the UI can say WHERE a user is registered. It is the
+        // hospital that decides which clinicians they may book with, and the
+        // profile carried only the opaque hospital_id, so nothing could show it.
+        "id, email, full_name, role, primary_did, wallet_address, hospital_id, phone, age, gender, blood_group, allergies, department, title, specializations, employee_id, join_date, emergency_contact_name, emergency_contact_relation, emergency_contact_phone, organ_donor, conditions, mrn, hospitals(name)",
       )
       .eq("id", result.user.id)
       .single();
@@ -179,7 +228,10 @@ export const getCurrentUser = createServerFn({ method: "GET" }).handler(
     const { data: profile, error } = await supabase
       .from("profiles")
       .select(
-        "id, email, full_name, role, primary_did, wallet_address, hospital_id, phone, age, gender, blood_group, allergies",
+        // hospitals(name) so the UI can say WHERE a user is registered. It is the
+        // hospital that decides which clinicians they may book with, and the
+        // profile carried only the opaque hospital_id, so nothing could show it.
+        "id, email, full_name, role, primary_did, wallet_address, hospital_id, phone, age, gender, blood_group, allergies, department, title, specializations, employee_id, join_date, emergency_contact_name, emergency_contact_relation, emergency_contact_phone, organ_donor, conditions, mrn, hospitals(name)",
       )
       .eq("id", user.id)
       .single();

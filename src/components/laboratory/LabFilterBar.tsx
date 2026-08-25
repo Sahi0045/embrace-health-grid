@@ -93,7 +93,7 @@ export function LabFilterBar({
           <Button
             onClick={onNewOrderClick}
             size="sm"
-            className="h-9 px-3.5 rounded-xl bg-gradient-to-r from-primary to-blue-600 text-primary-foreground font-extrabold shadow-clinical-md shadow-primary/25 hover:shadow-clinical transition-all gap-1.5"
+            className="h-9 px-3.5 rounded-xl bg-primary text-primary-foreground font-extrabold shadow-clinical-md shadow-primary/25 hover:shadow-clinical transition-all gap-1.5"
           >
             <Plus className="h-4 w-4" />
             <span>Order Test</span>

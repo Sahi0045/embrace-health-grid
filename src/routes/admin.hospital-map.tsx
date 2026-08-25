@@ -210,8 +210,14 @@ function HospitalMapPage() {
           },
         });
         toast.success("Bed status updated");
-      } catch {
-        toast.success(`Bed status updated to ${newStatus}`);
+      } catch (err) {
+        // The catch branch used to call toast.SUCCESS and then update local
+        // state anyway, so a rejected write showed the bed as changed on the
+        // live map until the next refresh — and ward staff act on that map.
+        toast.error(
+          `Bed status not updated: ${err instanceof Error ? err.message : "unknown error"}`,
+        );
+        return;
       }
       setBeds((prev) =>
         prev.map((b) => (b.bed_id === selectedBed.bed_id ? { ...b, status: newStatus } : b)),
@@ -305,11 +311,11 @@ function HospitalMapPage() {
               </div>
 
               <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-clinical-sm flex items-center gap-3.5 min-w-0">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-500/15 text-rose-600 shadow-xs">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-destructive/15 text-destructive shadow-xs">
                   <HeartPulse className="h-5 w-5" />
                 </div>
                 <div className="min-w-0">
-                  <div className="text-2xl font-extrabold font-display text-rose-600 truncate">
+                  <div className="text-2xl font-extrabold font-display text-destructive truncate">
                     {floorStats.critical}
                   </div>
                   <div className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider truncate">

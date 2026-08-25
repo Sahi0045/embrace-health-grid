@@ -18,6 +18,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   Loader2,
+  Building2,
 } from "lucide-react";
 import { useLivePatients, useCredentials } from "@/hooks/use-api";
 import { RouteGuard } from "@/components/RouteGuard";
@@ -25,6 +26,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { useCurrentUser } from "@/lib/auth-context";
 import { requestWalletChallenge, verifyAndLinkWallet, updateProfile, getMe } from "@/lib/api";
+import { unlinkOwnWallet } from "@/lib/clinical.server";
 import { toast } from "sonner";
 import { useState, useEffect, useCallback } from "react";
 import {
@@ -62,7 +64,22 @@ function PatientProfile() {
   const { publicKey, connected, signMessage } = useWallet();
   const [verifying, setVerifying] = useState(false);
 
-  const walletVerified = (currentUser as any)?.walletVerified === true;
+  /**
+   * A linked wallet IS a verified wallet.
+   *
+   * This read `(currentUser as any)?.walletVerified === true` — but there is no
+   * `walletVerified` on CurrentUser and no `wallet_verified` column on profiles,
+   * so it was permanently `undefined`. The `as any` cast is what stopped
+   * TypeScript from saying so. The result: verification succeeded, the toast
+   * said "Wallet verified and linked!", and the card still read
+   * "Linked — Unverified" with the Verify button offered again, forever.
+   *
+   * The identity-ops `wallet-link` Edge Function writes wallet_address only
+   * after confirming the signing challenge was issued to this very session
+   * (it throws "Challenge does not belong to this session" otherwise), so there
+   * is no path that stores an unverified address. Presence is the proof.
+   */
+  const walletVerified = Boolean(currentUser?.walletAddress);
 
   const refreshSession = useCallback(async () => {
     try {
@@ -114,6 +131,11 @@ function PatientProfile() {
         toast.error("Signature cancelled", {
           description: "You must approve the signing request in your wallet.",
         });
+      } else if (err.code === "WALLET_ALREADY_LINKED") {
+        toast.error("That wallet is already linked to another account", {
+          description:
+            "Each wallet may belong to only one account. Connect a different wallet in Phantom, or unlink it from the other account first.",
+        });
       } else {
         toast.error(err.message || "Wallet verification failed");
       }
@@ -122,34 +144,71 @@ function PatientProfile() {
     }
   };
 
+  const [unlinkingWallet, setUnlinkingWallet] = useState(false);
+
+  const handleUnlinkOwnWallet = async () => {
+    setUnlinkingWallet(true);
+    try {
+      const res = (await unlinkOwnWallet()) as unknown as { changed: boolean; wallet?: string };
+      await refreshUser();
+      if (res.changed) {
+        toast.success("Wallet unlinked", {
+          description: "It is now free to link to another account.",
+        });
+      } else {
+        toast.info("No wallet was linked.");
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Could not unlink your wallet");
+    } finally {
+      setUnlinkingWallet(false);
+    }
+  };
+
   const userEmail = currentUser?.email || "";
   // Matching p.id === "pat_001" pulled in a seeded demo patient for whoever was
   // signed in, so one user could be shown another's name, MRN and allergies.
+  // The placeholder record is all-null. It used to seed age: 0, gender: "M",
+  // bloodGroup: "" and phone: "" — and because `??` only falls through on
+  // null/undefined, those empty-but-present values won the coalesce below and
+  // were rendered as the patient's real details: "0 years", "Male", a blank
+  // blood group. Absent has to be spelled `null` for the "Not recorded" branch
+  // to ever run.
   const patientRecord = patients?.find((p: any) => p.email === userEmail) || {
     name: currentUser?.fullName ?? "",
-    mrn: "",
+    mrn: null as string | null,
     did: currentUser?.primaryDid ?? "",
-    bloodGroup: "",
-    age: 0,
-    gender: "M" as const,
+    bloodGroup: null as string | null,
+    age: null as number | null,
+    gender: null as string | null,
     allergies: [] as string[],
-    phone: "",
+    phone: null as string | null,
   };
-  const mrn = currentUser?.mrn || patientRecord.mrn;
+  const mrn = currentUser?.mrn || patientRecord.mrn || null;
 
   const name = currentUser?.name || patientRecord.name;
-  const age = currentUser?.age || patientRecord.age || 30;
-  const gender = currentUser?.gender || patientRecord.gender || "M";
-  const bloodGroup = currentUser?.bloodGroup || patientRecord.bloodGroup || "O+";
-  const phone = currentUser?.phone || patientRecord.phone || "+91 98765 43210";
+  // These four columns are nullable and were being defaulted to 30 / "M" / "O+"
+  // and a placeholder phone number, then rendered as the patient's own details.
+  // Verified against production: this account has age, gender and phone all NULL
+  // and the profile displayed "30 years", "Male" and "+91 98765 43210".
+  //
+  // A fabricated blood group on a health record is a transfusion hazard, and a
+  // fabricated emergency phone number is one somebody may actually dial. Null
+  // renders as "Not recorded".
+  // `|| null` rather than `?? null`: a matched directory row can carry "" or 0
+  // for an unset field, and both must read as absent.
+  const age = currentUser?.age || patientRecord.age || null;
+  const gender = currentUser?.gender || patientRecord.gender || null;
+  const bloodGroup = currentUser?.bloodGroup || patientRecord.bloodGroup || null;
+  const phone = currentUser?.phone || patientRecord.phone || null;
   const allergies = currentUser?.allergies || patientRecord.allergies || [];
 
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editName, setEditName] = useState(name);
-  const [editPhone, setEditPhone] = useState(phone);
-  const [editAge, setEditAge] = useState(age);
-  const [editGender, setEditGender] = useState(gender);
-  const [editBloodGroup, setEditBloodGroup] = useState(bloodGroup);
+  const [editPhone, setEditPhone] = useState(phone ?? "");
+  const [editAge, setEditAge] = useState<number | "">(age ?? "");
+  const [editGender, setEditGender] = useState(gender ?? "");
+  const [editBloodGroup, setEditBloodGroup] = useState(bloodGroup ?? "");
   const [editAllergies, setEditAllergies] = useState(allergies.join(", "));
   const [updating, setUpdating] = useState(false);
 
@@ -163,10 +222,12 @@ function PatientProfile() {
   useEffect(() => {
     if (!isEditOpen) return;
     setEditName(name);
-    setEditPhone(phone);
-    setEditAge(age);
-    setEditGender(gender);
-    setEditBloodGroup(bloodGroup);
+    // Empty, not a fabricated default: an unrecorded field must open blank so
+    // saving the form does not commit a value nobody entered.
+    setEditPhone(phone ?? "");
+    setEditAge(age ?? "");
+    setEditGender(gender ?? "");
+    setEditBloodGroup(bloodGroup ?? "");
     setEditAllergies(allergies.join(", "));
   }, [isEditOpen, name, phone, age, gender, bloodGroup, allergies]);
 
@@ -174,12 +235,15 @@ function PatientProfile() {
     e.preventDefault();
     setUpdating(true);
     try {
+      // Blank means "still not recorded", so send undefined and let the server
+      // skip the column. `parseInt("")` is NaN, which used to be sent as the age.
+      const trimmed = (v: string) => (v.trim() === "" ? undefined : v.trim());
       const res = await updateProfile({
         name: editName,
-        phone: editPhone,
-        age: parseInt(String(editAge)),
-        gender: editGender,
-        bloodGroup: editBloodGroup,
+        phone: trimmed(editPhone),
+        age: editAge === "" ? undefined : Number(editAge),
+        gender: trimmed(editGender),
+        bloodGroup: trimmed(editBloodGroup),
         allergies: editAllergies,
       });
       if (res.success && res.user) {
@@ -236,7 +300,7 @@ function PatientProfile() {
                   <div>
                     <CardTitle className="text-2xl">{name}</CardTitle>
 
-                    <CardDescription className="mt-1">MRN: {mrn}</CardDescription>
+                    <CardDescription className="mt-1">MRN: {mrn ?? "Not assigned"}</CardDescription>
                   </div>
                 </div>
                 <Button variant="outline" size="sm" onClick={() => setIsEditOpen(true)}>
@@ -254,7 +318,13 @@ function PatientProfile() {
                   </div>
                   <div>
                     <div className="text-sm text-muted-foreground">Age</div>
-                    <div className="font-medium">{age} years</div>
+                    <div className="font-medium">
+                      {age == null ? (
+                        <span className="text-muted-foreground">Not recorded</span>
+                      ) : (
+                        `${age} years`
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -264,7 +334,17 @@ function PatientProfile() {
                   <div>
                     <div className="text-sm text-muted-foreground">Gender</div>
                     <div className="font-medium">
-                      {gender === "M" ? "Male" : gender === "F" ? "Female" : "Other"}
+                      {/* "Other" was also the fallback for an UNSET gender, so a
+                          patient who never answered was shown as having. */}
+                      {gender === "M" ? (
+                        "Male"
+                      ) : gender === "F" ? (
+                        "Female"
+                      ) : gender ? (
+                        gender
+                      ) : (
+                        <span className="text-muted-foreground">Not recorded</span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -274,7 +354,9 @@ function PatientProfile() {
                   </div>
                   <div>
                     <div className="text-sm text-muted-foreground">Blood Group</div>
-                    <div className="font-medium">{bloodGroup}</div>
+                    <div className="font-medium">
+                      {bloodGroup ?? <span className="text-muted-foreground">Not recorded</span>}
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -283,7 +365,27 @@ function PatientProfile() {
                   </div>
                   <div>
                     <div className="text-sm text-muted-foreground">Phone</div>
-                    <div className="font-medium">{phone}</div>
+                    <div className="font-medium">
+                      {phone ?? <span className="text-muted-foreground">Not recorded</span>}
+                    </div>
+                  </div>
+                </div>
+                {/* Which hospital this account belongs to. It governs who the
+                    patient may book an appointment with and which tenant holds
+                    their records, and it was not surfaced anywhere in the portal
+                    — so an empty doctor list looked like a fault rather than a
+                    consequence of the registration. */}
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
+                    <Building2 className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground">Registered hospital</div>
+                    <div className="font-medium">
+                      {currentUser?.hospitalName ?? (
+                        <span className="text-muted-foreground">Not linked to a hospital</span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -401,6 +503,16 @@ function PatientProfile() {
                       Connected wallet differs from linked address.
                     </div>
                   )}
+                  {/* One wallet, one account. Without a way to detach it, a
+                      wallet linked to the wrong account is stuck there and its
+                      owner can never link it anywhere else. */}
+                  <button
+                    onClick={handleUnlinkOwnWallet}
+                    disabled={unlinkingWallet}
+                    className="text-xs font-semibold text-destructive hover:underline disabled:opacity-50 cursor-pointer"
+                  >
+                    {unlinkingWallet ? "Unlinking…" : "Unlink this wallet"}
+                  </button>
                 </div>
               ) : (
                 <div className="rounded-lg border border-warning/20 bg-warning/5 p-4 text-xs text-muted-foreground">

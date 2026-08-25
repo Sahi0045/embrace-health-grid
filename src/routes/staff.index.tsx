@@ -1,7 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PageHeader, StatCard } from "@/components/PageHeader";
 import { StaggerList, StaggerItem } from "@/components/Motion";
-import { useLivePatients, useLiveStaff, useConsents, useAudit, useBeds } from "@/hooks/use-api";
+import {
+  useLivePatients,
+  useLiveStaff,
+  useConsents,
+  useAudit,
+  useBeds,
+  useAmbulances,
+} from "@/hooks/use-api";
 import {
   Users,
   Users2,
@@ -25,6 +32,18 @@ import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { useCurrentUser } from "@/lib/auth-context";
 import { signOut } from "@/lib/auth.server";
+
+/**
+ * ICU is a property of the WARD, not of the bed.
+ *
+ * These tiles used to filter `b.type === "icu"`. `beds` has no `type` column —
+ * `bed_type` describes the frame ("Electric"), not the level of care — so the
+ * filter matched nothing and every ICU occupancy figure read 0/0 regardless of
+ * how full the unit was.
+ */
+function isIcuBed(b: { ward?: string | null }) {
+  return (b.ward ?? "").toLowerCase().includes("icu");
+}
 
 export const Route = createFileRoute("/staff/")({
   head: () => ({ meta: [{ title: "Staff · Dashboard — Embrace Health Grid" }] }),
@@ -66,7 +85,7 @@ const quickLinks = [
     to: "/staff/visitors" as const,
     label: "Visitors",
     icon: Users2,
-    color: "text-amber-500 bg-amber-500/10",
+    color: "text-warning bg-warning/10",
   },
   {
     to: "/staff/emergency" as const,
@@ -82,6 +101,7 @@ function StaffDashboard() {
   const { staff: staffList } = useLiveStaff();
   const { data: consentsData } = useConsents();
   const { data: auditData } = useAudit();
+  const { data: ambulancesData } = useAmbulances();
   const { data: bedsData } = useBeds();
 
   // Identity comes from the session (Postgres), not browser storage. The old
@@ -140,12 +160,45 @@ function StaffDashboard() {
     consentsData?.consents?.filter((c: any) => c.status === "pending" || c.status === "requested")
       ?.length ?? 0;
 
-  const totalBeds = bedsData?.total ?? 20;
+  // These defaulted to 20 beds / 4 occupied ICU / 5 ICU while data was loading,
+  // so the dashboard briefly showed a fully-populated ward that does not exist.
+  // Zero is the honest answer before the query resolves.
+  const totalBeds = bedsData?.total ?? 0;
   const icuOccupied =
-    bedsData?.beds?.filter((b: any) => b.type === "icu" && b.status === "occupied")?.length ?? 4;
-  const icuTotal = bedsData?.beds?.filter((b: any) => b.type === "icu")?.length ?? 5;
-  const availableAmbs = 3;
+    bedsData?.beds?.filter((b: any) => isIcuBed(b) && b.status === "occupied")?.length ?? 0;
+  const icuTotal = bedsData?.beds?.filter(isIcuBed)?.length ?? 0;
+
+  /**
+   * Was `const availableAmbs = 3;` — a literal. It matched the row count in the
+   * database only by coincidence, and even then it was wrong: of the three
+   * ambulances only two are "available", and none belong to this user's
+   * hospital. useAmbulances() is RLS-scoped, so this now reports the units the
+   * caller can actually dispatch.
+   */
+  const availableAmbs = (ambulancesData?.ambulances ?? []).filter(
+    (a: any) => a.status === "available",
+  ).length;
   const recentActivities = auditData?.events ?? [];
+
+  /**
+   * Real count, from the audit trail staff.verify already writes.
+   *
+   * This card previously read `patients.length > 0 ? patients.length + 10 : 23`
+   * with a hardcoded "+4 vs. yesterday" — so it invented 23 verifications on an
+   * empty system, and inflated a real count by ten. Every scan logs a QR_VERIFY
+   * or NFC_VERIFY audit event, which is the honest source; the delta is dropped
+   * rather than faked, because yesterday's figure is not fetched here.
+   */
+  const verifiedToday = (() => {
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    return recentActivities.filter((e: any) => {
+      const action = String(e.action ?? "");
+      if (action !== "QR_VERIFY" && action !== "NFC_VERIFY") return false;
+      const at = e.loggedAt ?? e.logged_at;
+      return at ? new Date(at) >= startOfDay : false;
+    }).length;
+  })();
 
   return (
     <RouteGuard requiredRole="staff">
@@ -153,7 +206,7 @@ function StaffDashboard() {
         <PageHeader
           eyebrow="Staff portal"
           title={`Good morning, ${staffRecord?.name ?? userName}`}
-          description={`${staffRecord?.specialty || "Medical Specialist"} · Embrace Health Grid · Shift 08:00 – 16:00`}
+          description={[staffRecord?.specialty, "Embrace Health Grid"].filter(Boolean).join(" · ")}
           actions={
             <Link
               to="/staff/verify"
@@ -194,10 +247,10 @@ function StaffDashboard() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
               label="Patients verified today"
-              value={patients.length > 0 ? patients.length + 10 : 23}
-              delta="+4 vs. yesterday"
+              value={verifiedToday}
+              delta="QR & NFC scans"
               icon={CheckCircle2}
-              tone="success"
+              tone={verifiedToday > 0 ? "success" : "default"}
             />
             <StatCard
               label="Pending access requests"

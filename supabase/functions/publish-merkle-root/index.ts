@@ -113,6 +113,7 @@ Deno.serve(async (req) => {
     }
 
     await audit(db, {
+      caller,
       actor_id: caller.userId,
       actor_did: subjectDid,
       resource: publishId,

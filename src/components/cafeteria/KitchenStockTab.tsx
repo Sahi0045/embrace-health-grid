@@ -72,10 +72,10 @@ export function KitchenStockTab({ stock }: KitchenStockTabProps) {
               <span
                 className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold border ${
                   isExpired
-                    ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20"
+                    ? "bg-destructive/10 text-destructive dark:text-destructive border-destructive/20"
                     : isLowStock
-                      ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
-                      : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                      ? "bg-warning/10 text-warning dark:text-warning border-warning/20"
+                      : "bg-success/10 text-success dark:text-success border-success/20"
                 }`}
               >
                 {isExpired ? (
@@ -110,7 +110,7 @@ export function KitchenStockTab({ stock }: KitchenStockTabProps) {
               <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
                 <div
                   className={`h-full rounded-full transition-all ${
-                    isExpired ? "bg-rose-500" : isLowStock ? "bg-amber-500" : "bg-emerald-500"
+                    isExpired ? "bg-destructive" : isLowStock ? "bg-warning" : "bg-success"
                   }`}
                   style={{ width: `${percent}%` }}
                 />
@@ -136,7 +136,7 @@ export function KitchenStockTab({ stock }: KitchenStockTabProps) {
               {item.expiry_date && (
                 <div
                   className={`flex items-center gap-1 text-[11px] font-semibold ${
-                    isNearExpiry ? "text-rose-500 font-bold" : "text-muted-foreground"
+                    isNearExpiry ? "text-destructive font-bold" : "text-muted-foreground"
                   }`}
                   title="Stock Expiration Date"
                 >

@@ -132,7 +132,7 @@ export function DepartmentWorkloadMatrix({
                     </div>
                   </div>
                   <div>
-                    <div className="text-base font-extrabold font-display text-rose-600 dark:text-rose-400">
+                    <div className="text-base font-extrabold font-display text-destructive dark:text-destructive">
                       {dept.onCall}
                     </div>
                     <div className="text-[9px] font-extrabold text-muted-foreground uppercase">

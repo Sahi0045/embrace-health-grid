@@ -6,7 +6,7 @@
 
 import { getSupabaseServerClient, getVerifiedUser } from "@/lib/supabase.server";
 import { recordSigningEvent } from "@/routes/api.signing-events";
-import type { AuditEntry } from "@/lib/audit.server";
+import type { AuditEntry } from "@/lib/audit-write.server";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 

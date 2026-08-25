@@ -10,6 +10,7 @@
  * identifier.
  */
 
+import { z } from "zod";
 import { createServerFn } from "@tanstack/react-start";
 import { getSupabaseServerClient, getVerifiedUser } from "./supabase.server";
 import {
@@ -18,7 +19,7 @@ import {
   buildBedAudit,
   buildRoomAudit,
   buildInventoryAudit,
-} from "./audit.server";
+} from "./audit-write.server";
 import type {
   InventoryCategory,
   InventoryItem,
@@ -191,13 +192,33 @@ export const getBeds = createServerFn({ method: "GET" }).handler(async () => {
   await requireSession();
   const supabase = getSupabaseServerClient();
 
+  // `beds.ward` was renamed to `ward_name_legacy` by
+  // 20260807000000_hospital_infrastructure_hierarchy.sql, so this query failed
+  // with "column beds.ward does not exist" on EVERY call. useBeds swallowed the
+  // error into an empty fallback, which is why the ER board, the digital twin,
+  // the bed-shortage alerts and the ICU occupancy tiles all reported zero beds
+  // rather than an error — verified against the live database.
+  //
+  // ward_id/wards is the current model; ward_name_legacy is the pre-migration
+  // text and is still the only ward name on older rows. Both are selected and
+  // resolved below, so nothing depends on the backfill being complete.
   const { data, error } = await supabase
     .from("beds")
-    .select("bed_id, ward, status, patient_did, updated_at")
-    .order("ward", { ascending: true });
+    .select(
+      "bed_id, bed_number, bed_type, status, patient_did, updated_at, room_id, ward_id, ward_name_legacy, wards(ward_name)",
+    )
+    .order("ward_name_legacy", { ascending: true });
 
   if (error) throw new Error(error.message);
-  return { beds: data ?? [] };
+
+  return {
+    beds: (data ?? []).map((b: any) => ({
+      ...b,
+      // Consumers read `ward`; keep that name so the rename stays contained here.
+      ward: b.wards?.ward_name ?? b.ward_name_legacy ?? null,
+      wards: undefined,
+    })),
+  };
 });
 
 export const getRooms = createServerFn({ method: "GET" }).handler(async () => {
@@ -206,7 +227,11 @@ export const getRooms = createServerFn({ method: "GET" }).handler(async () => {
 
   const { data, error } = await supabase
     .from("rooms")
-    .select("room_id, room_name, category, floor")
+    // `category` is not a column on public.rooms — the query threw
+    // "column rooms.category does not exist" on every call, so the room
+    // directory was empty for every user, not just empty tenants. The real
+    // column is room_type; aliased so consumers reading `category` still work.
+    .select("room_id, room_name, category:room_type, floor, status, room_number")
     .order("room_name", { ascending: true });
 
   if (error) throw new Error(error.message);
@@ -443,28 +468,66 @@ export const getInsurancePolicy = createServerFn({ method: "GET" }).handler(asyn
   return { policy: data ?? null };
 });
 
+/**
+ * Update the caller's insurance policy.
+ *
+ * Two defects fixed here, and the second was the dangerous one.
+ *
+ *  1. `Record<string, unknown>` accepted anything, so a caller sending
+ *     `insuranceProvider` instead of `provider` type-checked fine and silently
+ *     wrote nothing. A closed schema rejects the typo instead. Validation is
+ *     runtime, not just compile-time, so it survives `as any`, a non-literal
+ *     call site, and any consumer not yet typed.
+ *
+ *  2. Every absent key became an explicit NULL in the upsert (`?? null`), so
+ *     ANY partial update wiped the columns it did not mention. The field-name
+ *     typo was only one way to trigger that — saving a policy while omitting
+ *     `groupNumber` would equally have erased it. The patch is now built by
+ *     omitting undefined keys, so a partial update is a partial update.
+ */
+const insurancePolicySchema = z
+  .object({
+    provider: z.string().optional(),
+    policyNumber: z.string().optional(),
+    groupNumber: z.string().optional(),
+    coverageType: z.string().optional(),
+    copay: z.number().optional(),
+    deductible: z.number().optional(),
+    coveragePercentage: z.number().optional(),
+    validFrom: z.string().optional(),
+    validTo: z.string().optional(),
+  })
+  .strict();
+
 export const updateInsurancePolicy = createServerFn({ method: "POST" })
-  .inputValidator((data: Record<string, unknown>) => data ?? {})
+  .inputValidator((data: unknown) => insurancePolicySchema.parse(data ?? {}))
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();
     const did = await callerDid();
 
-    const { error } = await supabase.from("insurance_policies").upsert(
-      {
-        patient_did: did,
-        provider: (data.provider as string) ?? null,
-        policy_number: (data.policyNumber as string) ?? null,
-        group_number: (data.groupNumber as string) ?? null,
-        coverage_type: (data.coverageType as string) ?? null,
-        copay: (data.copay as number) ?? null,
-        deductible: (data.deductible as number) ?? null,
-        coverage_percentage: (data.coveragePercentage as number) ?? null,
-        valid_from: (data.validFrom as string) ?? null,
-        valid_to: (data.validTo as string) ?? null,
-      },
-      { onConflict: "patient_did" },
-    );
+    const COLUMN: Record<string, string> = {
+      provider: "provider",
+      policyNumber: "policy_number",
+      groupNumber: "group_number",
+      coverageType: "coverage_type",
+      copay: "copay",
+      deductible: "deductible",
+      coveragePercentage: "coverage_percentage",
+      validFrom: "valid_from",
+      validTo: "valid_to",
+    };
+
+    const patch: Record<string, unknown> = { patient_did: did };
+    for (const [key, column] of Object.entries(COLUMN)) {
+      const value = (data as Record<string, unknown>)[key];
+      // Only write what the caller actually sent.
+      if (value !== undefined) patch[column] = value === "" ? null : value;
+    }
+
+    const { error } = await supabase
+      .from("insurance_policies")
+      .upsert(patch, { onConflict: "patient_did" });
 
     if (error) throw new Error(error.message);
     return { ok: true as const };
@@ -1438,11 +1501,30 @@ export const recordStockMovement = createServerFn({ method: "POST" })
     const { primaryDid, fullName, hospitalId } = await callerProfile();
     const supabase = getSupabaseServerClient();
 
-    // Find in memory or DB
-    const itemIndex = _liveInventoryItems.findIndex((i) => i.item_id === data.itemId);
-    const item = itemIndex !== -1 ? _liveInventoryItems[itemIndex] : null;
+    // Read the CURRENT stock from the database.
+    //
+    // This used to look the item up in `_liveInventoryItems`, a module-level
+    // array declared empty at the top of this file and never written to, so the
+    // lookup always missed and `previousStock` fell back to a literal 10. The
+    // new level was then written straight back to inventory_items — recording
+    // "OUT 5" against a drug with 500 units in stock SET IT TO 5 and flagged it
+    // critical, while the movement row and its hashed audit record both claimed
+    // the level had gone 10 -> 5. Real stock was destroyed by an invented
+    // baseline, and the audit trail corroborated the invention.
+    const { data: item, error: itemErr } = await supabase
+      .from("inventory_items")
+      .select("item_id, name, current_stock, reorder_level")
+      .eq("item_id", data.itemId)
+      .maybeSingle();
 
-    const previousStock = item ? item.current_stock : 10;
+    if (itemErr) throw new Error(`Could not read stock level: ${itemErr.message}`);
+    if (!item) {
+      // Fail rather than invent a starting point. An item the caller cannot see
+      // (or that does not exist) must not be conjured into existence at 10.
+      throw new Error(`Inventory item ${data.itemId} not found`);
+    }
+
+    const previousStock = item.current_stock ?? 0;
     let newStock = previousStock;
 
     if (data.movementType === "IN") {
@@ -1453,7 +1535,9 @@ export const recordStockMovement = createServerFn({ method: "POST" })
       newStock = Math.max(0, previousStock + data.quantity);
     }
 
-    const reorderThreshold = item?.reorder_level || 15;
+    // `|| 15` invented a threshold for any item whose reorder level is 0 or
+    // null, which then decided whether the item was flagged critical.
+    const reorderThreshold = item.reorder_level ?? 0;
     let newStatus: InventoryItem["status"] = "normal";
     if (newStock === 0 || newStock <= Math.floor(reorderThreshold / 2)) {
       newStatus = "critical";
@@ -1461,16 +1545,6 @@ export const recordStockMovement = createServerFn({ method: "POST" })
       newStatus = "low_stock";
     } else {
       newStatus = "normal";
-    }
-
-    // 1. Update in-memory state
-    if (itemIndex !== -1) {
-      _liveInventoryItems[itemIndex] = {
-        ..._liveInventoryItems[itemIndex],
-        current_stock: newStock,
-        status: newStatus,
-        last_movement_at: new Date().toISOString(),
-      };
     }
 
     const newMovement: StockMovement = {
@@ -1487,35 +1561,38 @@ export const recordStockMovement = createServerFn({ method: "POST" })
     };
     _liveStockMovements.unshift(newMovement);
 
-    // 2. Persist to Supabase if tables exist
-    try {
-      await supabase.from("stock_movements").insert({
-        item_id: data.itemId,
-        hospital_id: hospitalId || null,
-        movement_type: data.movementType,
-        quantity: data.quantity,
-        previous_stock: previousStock,
-        new_stock: newStock,
-        reason: data.reason || `Stock ${data.movementType} manual entry`,
-        performed_by: user.id,
-        performed_by_name: fullName || primaryDid || "Admin Clinician",
-      });
+    // Persist. The previous version wrapped these in try/catch, but supabase-js
+    // RETURNS `{error}` rather than throwing, so a rejected write never reached
+    // the catch: the failure was invisible and the caller still got ok:true and
+    // a success toast while stock was unchanged.
+    const { error: updErr } = await supabase
+      .from("inventory_items")
+      .update({
+        current_stock: newStock,
+        status: newStatus,
+        last_movement_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("item_id", data.itemId)
+      .select("item_id");
 
-      await supabase
-        .from("inventory_items")
-        .update({
-          current_stock: newStock,
-          status: newStatus,
-          last_movement_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("item_id", data.itemId);
-    } catch (dbErr: any) {
-      console.warn(
-        "Supabase persistence notice (operating in live cache):",
-        dbErr?.message || dbErr,
-      );
-    }
+    if (updErr) throw new Error(`Stock update failed: ${updErr.message}`);
+
+    // The ledger row is written only after the level actually changed, so a
+    // movement record never claims an adjustment that did not happen.
+    const { error: movErr } = await supabase.from("stock_movements").insert({
+      item_id: data.itemId,
+      hospital_id: hospitalId || null,
+      movement_type: data.movementType,
+      quantity: data.quantity,
+      previous_stock: previousStock,
+      new_stock: newStock,
+      reason: data.reason || `Stock ${data.movementType} manual entry`,
+      performed_by: user.id,
+      performed_by_name: fullName || primaryDid || "Admin Clinician",
+    });
+
+    if (movErr) throw new Error(`Stock movement could not be recorded: ${movErr.message}`);
 
     // 3. Audit trail
     const caller = await resolveCallerForAudit();
@@ -1529,7 +1606,7 @@ export const recordStockMovement = createServerFn({ method: "POST" })
         newStock,
         {
           reason: data.reason,
-          itemName: item?.name || data.itemId,
+          itemName: item.name ?? data.itemId,
         },
       ),
     );
@@ -1775,7 +1852,11 @@ export const getCentralAlerts = createServerFn({ method: "GET" })
 
     // 4. Equipment Failures & Overdue Calibration
     try {
-      let eqQuery = supabase.from("equipment").select("*").in("status", ["offline", "maintenance"]);
+      // "offline" is not a member of asset_status
+      // ('available','in-use','maintenance','retired'), so this query failed with
+      // 22P02 on every call. `if (!eqErr)` swallowed it, which is why
+      // equipment-failure alerts never appeared in the Central Alert Center.
+      let eqQuery = supabase.from("equipment").select("*").in("status", ["retired", "maintenance"]);
 
       if (hospitalId) {
         eqQuery = eqQuery.or(`hospital_id.eq.${hospitalId},hospital_id.is.null`);
@@ -1784,23 +1865,38 @@ export const getCentralAlerts = createServerFn({ method: "GET" })
       const { data: eqList, error: eqErr } = await eqQuery;
       if (!eqErr && eqList) {
         for (const eq of eqList) {
+          // The old version also read eq.id, eq.floor, eq.utilization, eq.type
+          // and eq.serial, none of which are columns on `equipment` — the real
+          // names are equipment_id, floor_number, utilization_pct,
+          // equipment_type and serial_number. Every alert therefore carried an
+          // undefined id and an invented "Floor N/A ... 0%" body.
           alerts.push({
-            id: `eq-alert-${eq.id}`,
+            id: `eq-alert-${eq.equipment_id}`,
             category: "equipment_failure",
-            severity: eq.status === "offline" ? "critical" : "warning",
+            severity: eq.status === "retired" ? "critical" : "warning",
             status: "active",
-            title: `Biomedical Equipment ${eq.status === "offline" ? "Offline" : "Under Maintenance"}: ${eq.name}`,
-            message: `Unit model ${eq.model || eq.type} in ${eq.department || "Clinical Unit"} (Floor ${eq.floor || "N/A"}) is currently ${eq.status}. Utilization is at ${eq.utilization ?? 0}%.`,
+            title: `Biomedical Equipment ${eq.status === "retired" ? "Retired" : "Under Maintenance"}: ${eq.name}`,
+            message: [
+              eq.model ?? eq.equipment_type ?? "Unit",
+              eq.department ? `in ${eq.department}` : null,
+              eq.floor_number != null ? `(Floor ${eq.floor_number})` : null,
+              `is currently ${eq.status}.`,
+              eq.utilization_pct != null ? `Utilization ${eq.utilization_pct}%.` : null,
+            ]
+              .filter(Boolean)
+              .join(" "),
             source_table: "equipment",
-            source_id: eq.id,
+            source_id: eq.equipment_id,
             target_url: "/admin/equipment",
-            highlight_id: eq.id,
+            highlight_id: eq.equipment_id,
             department: eq.department,
-            created_at: eq.updated_at || new Date(Date.now() - 4 * 3600 * 1000).toISOString(),
+            // An alert with no timestamp used to be backdated four hours, which
+            // then drove the feed's sort order.
+            created_at: eq.updated_at ?? null,
             metadata: {
-              serial: eq.serial,
+              serial: eq.serial_number,
               model: eq.model,
-              type: eq.type,
+              type: eq.equipment_type,
               nextMaintenance: eq.next_maintenance,
             },
           });
@@ -1812,7 +1908,13 @@ export const getCentralAlerts = createServerFn({ method: "GET" })
 
     // 5. High Ward Utilization / Bed Shortage Alert
     try {
-      let bedQuery = supabase.from("beds").select("id, status, ward_code, ward, building, floor");
+      // `beds` has none of id, ward_code, ward, building or floor — `ward` was
+      // renamed to ward_name_legacy in 20260807000000 and the rest never
+      // existed. The query errored, bedsData came back null, and the whole
+      // block was skipped: BED SHORTAGE ALERTS NEVER FIRED, at any occupancy.
+      let bedQuery = supabase
+        .from("beds")
+        .select("bed_id, status, ward_id, ward_name_legacy, wards(ward_name)");
       if (hospitalId) {
         bedQuery = bedQuery.or(`hospital_id.eq.${hospitalId},hospital_id.is.null`);
       }
@@ -1823,13 +1925,16 @@ export const getCentralAlerts = createServerFn({ method: "GET" })
           { total: number; occupied: number; wardName: string; building: string }
         > = {};
         for (const b of bedsData) {
-          const wKey = b.ward_code || b.ward || "General";
+          const wardName = (b as any).wards?.ward_name ?? b.ward_name_legacy ?? null;
+          // Beds with no ward at all are grouped separately rather than folded
+          // into a "General" ward that does not exist.
+          const wKey = b.ward_id ?? wardName ?? "unassigned";
           if (!wardStats[wKey]) {
             wardStats[wKey] = {
               total: 0,
               occupied: 0,
-              wardName: b.ward || wKey,
-              building: b.building || "Main",
+              wardName: wardName ?? "Unassigned beds",
+              building: "",
             };
           }
           wardStats[wKey].total++;
@@ -1847,13 +1952,15 @@ export const getCentralAlerts = createServerFn({ method: "GET" })
               severity: occRate >= 95 ? "critical" : "warning",
               status: "active",
               title: `Bed Shortage Warning: ${stat.wardName} (${Math.round(occRate)}% Occupied)`,
-              message: `High census in ${stat.wardName} (${stat.building}). ${stat.occupied} of ${stat.total} beds currently filled. Immediate bed turnover protocol advised.`,
+              message: `High census in ${stat.wardName}. ${stat.occupied} of ${stat.total} beds currently filled. Immediate bed turnover protocol advised.`,
               source_table: "beds",
               source_id: wKey,
               target_url: "/admin/beds-rooms",
               highlight_id: wKey,
               department: stat.wardName,
-              created_at: new Date(Date.now() - 2 * 3600 * 1000).toISOString(),
+              // This is computed now, so it carries now — not a fabricated
+              // "2 hours ago" that then drove the feed's sort order.
+              created_at: new Date().toISOString(),
               metadata: {
                 occupancy_rate: Math.round(occRate),
                 total_beds: stat.total,
@@ -1867,33 +1974,16 @@ export const getCentralAlerts = createServerFn({ method: "GET" })
       console.warn("Bed shortage calculation notice:", err);
     }
 
-    // 6. Ambulance Fleet Alerts (low fuel/battery or critical transit)
-    try {
-      const { data: ambList } = await supabase.from("ambulances").select("*");
-      if (ambList && ambList.length > 0) {
-        for (const amb of ambList) {
-          const fuel = amb.fuel_level ?? amb.fuelLevel;
-          if (fuel !== undefined && fuel < 20) {
-            alerts.push({
-              id: `amb-fuel-${amb.id}`,
-              category: "ambulance",
-              severity: fuel < 10 ? "critical" : "warning",
-              status: "active",
-              title: `Emergency Fleet Telemetry: ${amb.vehicle_no || amb.vehicleNo} Low Fuel`,
-              message: `Ambulance ${amb.vehicle_no || amb.vehicleNo} reporting ${fuel}% fuel remaining. Currently ${amb.status} near ${amb.location}.`,
-              source_table: "ambulances",
-              source_id: amb.id,
-              target_url: "/admin/ambulances",
-              highlight_id: amb.id,
-              created_at: amb.updated_at || new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-              metadata: { fuelLevel: fuel, driver: amb.driver, location: amb.location },
-            });
-          }
-        }
-      }
-    } catch (err) {
-      console.warn("Ambulance alerts notice:", err);
-    }
+    // 6. Ambulance fleet alerts — REMOVED.
+    //
+    // This block read amb.fuel_level, amb.id and amb.vehicle_no. `ambulances`
+    // has none of them: no fuel telemetry is modelled anywhere in this schema,
+    // and the primary key is ambulance_id. `fuel` was therefore always
+    // undefined, the `fuel < 20` branch never ran, and the category was dead
+    // code that only looked like fleet monitoring.
+    //
+    // Restore it when fuel telemetry actually exists, reading ambulance_id and
+    // registration.
 
     // 7. Sort by Severity Rank (critical -> warning -> info) then Newest First
     const severityRank: Record<AlertSeverity, number> = {
@@ -1990,26 +2080,39 @@ export const resolveCentralAlert = createServerFn({ method: "POST" })
     const supabase = getSupabaseServerClient();
     const now = new Date().toISOString();
 
+    // Every branch now writes to the database and confirms a row changed. The
+    // inventory branch previously touched only `_liveInventoryAlerts`, a
+    // module-level array that is always empty, and still returned ok:true — so
+    // the console toasted "Alert Resolved — Cleared incident" and the
+    // supply-chain alert reappeared on the next refresh.
+    let updated: { length: number } | null = null;
+    let error: { message: string } | null = null;
+
     if (data.sourceTable === "emergency_broadcasts") {
-      await supabase
+      ({ data: updated, error } = await supabase
         .from("emergency_broadcasts")
-        .update({
-          status: "resolved",
-          resolved_at: now,
-        })
-        .eq("broadcast_id", data.alertId);
+        .update({ status: "resolved", resolved_at: now })
+        .eq("broadcast_id", data.alertId)
+        .select("broadcast_id"));
     } else if (data.sourceTable === "fraud_alerts") {
-      await supabase
+      ({ data: updated, error } = await supabase
         .from("fraud_alerts")
         .update({ status: "resolved", resolved_at: now })
-        .eq("alert_id", data.alertId);
+        .eq("alert_id", data.alertId)
+        .select("alert_id"));
     } else if (data.sourceTable === "inventory_alerts") {
-      const alertIdx = _liveInventoryAlerts.findIndex(
-        (a) => a.alert_id === data.alertId || a.item_id === data.alertId,
-      );
-      if (alertIdx !== -1) {
-        _liveInventoryAlerts[alertIdx].acknowledged = true;
-      }
+      ({ data: updated, error } = await supabase
+        .from("inventory_alerts")
+        .update({ acknowledged: true })
+        .eq("alert_id", data.alertId)
+        .select("alert_id"));
+    } else {
+      throw new Error(`Unknown alert source: ${data.sourceTable}`);
+    }
+
+    if (error) throw new Error(error.message);
+    if (!updated?.length) {
+      throw new Error("Alert not found, or you do not have permission to resolve it");
     }
 
     return { ok: true as const, alertId: data.alertId, resolvedAt: now };
@@ -2046,7 +2149,7 @@ export const broadcastEmergencyAlert = createServerFn({ method: "POST" })
       message: data.message,
       location: data.location,
       initiator_did: primaryDid || user.id,
-      initiator_name: fullName || user.email || "Hospital Admin",
+      initiator_name: fullName ?? user.email ?? null,
       status: "active",
     };
 
@@ -2056,14 +2159,12 @@ export const broadcastEmergencyAlert = createServerFn({ method: "POST" })
       .select()
       .single();
 
-    if (error) {
-      console.warn("Broadcast insert notice:", error.message);
-      return {
-        broadcast_id: `emg-${Date.now()}`,
-        ...newBroadcast,
-        created_at: new Date().toISOString(),
-      };
-    }
+    // A failed insert used to return a FABRICATED broadcast object with a
+    // synthesised broadcast_id, so BroadcastEmergencyDialog toasted
+    // "Code CODE_BLUE dispatched to hospital grid" for a cardiac-arrest call
+    // that RLS had rejected and that exists nowhere. An emergency broadcast that
+    // did not send must fail loudly.
+    if (error) throw new Error(`Emergency broadcast was NOT sent: ${error.message}`);
 
     return resData;
   });
@@ -2211,8 +2312,10 @@ export const getLaboratoryData = createServerFn({ method: "GET" }).handler(async
         order_id: r.order_id,
         patient_did: r.patient_did,
         patient_name: patient?.full_name || r.patient_name || "Registered Patient",
-        patient_mrn:
-          r.patient_mrn || `MRN-${(r.patient_did || "").slice(-5).toUpperCase() || "88421"}`,
+        // `lab_results` has no patient_mrn column, so this fallback ALWAYS
+        // fired: a DID-derived string, or the literal MRN-88421, displayed as
+        // the patient's real record number.
+        patient_mrn: r.patient_mrn ?? null,
         ordered_by: r.ordered_by,
         doctor_name: doctor?.full_name || r.doctor_name || "Attending Physician",
         test_name: r.test_name,
@@ -2224,7 +2327,9 @@ export const getLaboratoryData = createServerFn({ method: "GET" }).handler(async
         is_critical: r.is_critical || r.status === "critical" || false,
         critical_flag: r.critical_flag,
         content_hash: r.content_hash,
-        verified_by: r.verified_by || "Chief Pathologist",
+        // An UNVERIFIED result — including a panic value — displayed as signed
+        // off by the Chief Pathologist.
+        verified_by: r.verified_by ?? null,
         resulted_at: r.resulted_at || r.created_at,
         created_at: r.created_at,
       };
@@ -2238,10 +2343,11 @@ export const getLaboratoryData = createServerFn({ method: "GET" }).handler(async
         order_id: o.order_id,
         patient_did: o.patient_did,
         patient_name: patient?.full_name || o.patient_name || "Registered Patient",
-        patient_mrn:
-          o.patient_mrn || `MRN-${(o.patient_did || "").slice(-5).toUpperCase() || "88421"}`,
+        patient_mrn: o.patient_mrn ?? null,
         ordered_by: o.ordered_by,
-        doctor_name: doctor?.full_name || o.doctor_name || "Dr. Gregory Vance",
+        // `lab_orders` has no doctor_name column, so live orders were attributed
+        // to a physician who does not exist.
+        doctor_name: doctor?.full_name ?? null,
         hospital_id: o.hospital_id,
         test_name: o.test_name,
         test_category: o.test_category || "biochemistry",
@@ -2265,19 +2371,19 @@ export const getLaboratoryData = createServerFn({ method: "GET" }).handler(async
         lab_id: s.lab_id,
         patient_did: s.patient_did,
         patient_name: patient?.full_name || s.patient_name || "Registered Patient",
-        patient_mrn:
-          s.patient_mrn || `MRN-${(s.patient_did || "").slice(-5).toUpperCase() || "88421"}`,
+        patient_mrn: s.patient_mrn ?? null,
         hospital_id: s.hospital_id,
         sample_type: s.sample_type || "blood",
-        barcode: s.barcode || `BC-${(s.sample_id || "").slice(-6)}`,
+        // A synthesised barcode will not scan against the physical tube.
+        barcode: s.barcode ?? null,
         collection_status: s.collection_status || "collected",
-        collected_by: s.collected_by || "Clinical Phlebotomist",
+        collected_by: s.collected_by ?? null,
         collected_at: s.collected_at || s.created_at,
         received_at: s.received_at,
         processed_at: s.processed_at,
         reported_at: s.reported_at,
         temperature_c: s.temperature_c,
-        container_type: s.container_type || "Standard Vial",
+        container_type: s.container_type ?? null,
         notes: s.notes,
         created_at: s.created_at,
       };
@@ -2292,8 +2398,7 @@ export const getLaboratoryData = createServerFn({ method: "GET" }).handler(async
         order_id: r.order_id,
         patient_did: r.patient_did,
         patient_name: patient?.full_name || r.patient_name || "Registered Patient",
-        patient_mrn:
-          r.patient_mrn || `MRN-${(r.patient_did || "").slice(-5).toUpperCase() || "77319"}`,
+        patient_mrn: r.patient_mrn ?? null,
         ordered_by: r.ordered_by,
         doctor_name: doctor?.full_name || r.doctor_name || "Attending Physician",
         hospital_id: r.hospital_id,
@@ -2305,7 +2410,7 @@ export const getLaboratoryData = createServerFn({ method: "GET" }).handler(async
         scheduled_at: r.scheduled_at || r.created_at,
         completed_at: r.completed_at,
         equipment_id: r.equipment_id,
-        equipment_name: eq?.name || r.equipment_name || "Clinical Imaging Scanner",
+        equipment_name: eq?.name ?? r.equipment_name ?? null,
         equipment_room: eq?.assigned_ward || eq?.location || r.equipment_room || "Radiology Suite",
         report_text: r.report_text,
         reported_by: r.reported_by,
@@ -2315,10 +2420,14 @@ export const getLaboratoryData = createServerFn({ method: "GET" }).handler(async
       };
     });
 
-    const orders = mappedOrders.length > 0 ? mappedOrders : _liveLabOrders;
-    const samples = mappedSamples.length > 0 ? mappedSamples : _liveLabSamples;
-    const results = mappedResults.length > 0 ? mappedResults : _liveLabResults;
-    const radiology = mappedRadiology.length > 0 ? mappedRadiology : _liveRadiologyOrders;
+    // `mapped.length > 0 ? mapped : _live…` falls through to a module-level array
+    // that is declared empty and never populated across requests, so the branch
+    // only ever swapped a real empty result for a stale in-process one. Use what
+    // the database returned; empty is a real answer.
+    const orders = mappedOrders;
+    const samples = mappedSamples;
+    const results = mappedResults;
+    const radiology = mappedRadiology;
 
     const pendingTests = orders.filter((o) => o.status === "pending").length;
     const inProgress = orders.filter((o) => o.status === "in_progress").length;
@@ -2344,32 +2453,11 @@ export const getLaboratoryData = createServerFn({ method: "GET" }).handler(async
 
     return { orders, samples, results, radiology, stats };
   } catch (err: any) {
-    console.warn("Laboratory database sync notice:", err?.message);
-
-    const pendingTests = _liveLabOrders.filter((o) => o.status === "pending").length;
-    const inProgress = _liveLabOrders.filter((o) => o.status === "in_progress").length;
-    const completedToday = _liveLabOrders.filter((o) => o.status === "completed").length;
-    const criticalResults = _liveLabResults.filter(
-      (r) => r.is_critical || r.status === "critical",
-    ).length;
-
-    const stats: LabDashboardStats = {
-      pendingTests,
-      inProgress,
-      completedToday,
-      criticalResults,
-      avgTurnaroundTime: averageTurnaround(_liveLabOrders),
-      totalSamplesCollected: _liveLabSamples.length,
-      radiologyScansToday: _liveRadiologyOrders.length,
-    };
-
-    return {
-      orders: _liveLabOrders,
-      samples: _liveLabSamples,
-      results: _liveLabResults,
-      radiology: _liveRadiologyOrders,
-      stats,
-    };
+    // Previously this returned zeroed stats from the empty in-memory arrays, so
+    // a hard query failure was presented to the lab as a quiet, fully-processed
+    // day: 0 pending, 0 critical results. A laboratory dashboard must never
+    // render a failure as an all-clear.
+    throw new Error(`Laboratory data could not be loaded: ${err?.message ?? err}`);
   }
 });
 
@@ -2394,22 +2482,27 @@ export const updateLabOrderStatus = createServerFn({ method: "POST" })
       updatePayload.completed_at = new Date().toISOString();
     }
 
-    try {
-      const { error } = await supabase
-        .from("lab_orders")
-        .update(updatePayload)
-        .eq("order_id", data.orderId);
-      if (error) throw error;
-    } catch {
-      const idx = _liveLabOrders.findIndex((o) => o.order_id === data.orderId);
-      if (idx !== -1) {
-        _liveLabOrders[idx].status = data.status;
-        if (data.status === "completed")
-          _liveLabOrders[idx].completed_at = new Date().toISOString();
-      }
+    // The old version swallowed any failure into a bare `catch {}` that mutated
+    // an in-memory array, then wrote an audit row saying outcome "success" and
+    // authStatus "authorized" and returned ok:true. An RLS denial matches zero
+    // rows WITHOUT raising an error at all, so the commonest failure did not even
+    // reach the catch: the admin saw a green toast, nothing changed, and the
+    // HIPAA audit trail gained a falsified "authorized success" record.
+    //
+    // `.select()` is what turns a zero-row update into a detectable outcome.
+    const { data: updated, error } = await supabase
+      .from("lab_orders")
+      .update(updatePayload)
+      .eq("order_id", data.orderId)
+      .select("order_id");
+
+    if (error) throw new Error(error.message);
+    if (!updated?.length) {
+      throw new Error("Lab order not found, or you do not have permission to update it");
     }
 
-    // Write audit record
+    // Written only after the update actually landed, so the record reflects what
+    // happened rather than what was attempted.
     const auditCaller = await resolveCallerForAudit();
     await tryWriteAudit({
       actorId: auditCaller.userId,
@@ -2619,7 +2712,9 @@ export const orderLabTestDirect = createServerFn({ method: "POST" })
       order_id: orderId,
       patient_did: data.patientDid,
       patient_name: data.patientName || "Registered Patient",
-      patient_mrn: data.patientMrn || `MRN-${Math.floor(10000 + Math.random() * 90000)}`,
+      // A random five-digit MRN generated at order time is a new, unrelated
+      // identifier for a patient who already has one.
+      patient_mrn: data.patientMrn ?? undefined,
       ordered_by: primaryDid || "did:health:admin",
       doctor_name: fullName || "Attending Clinician",
       hospital_id: hospitalId || undefined,
@@ -2645,7 +2740,7 @@ export const orderLabTestDirect = createServerFn({ method: "POST" })
         : "blood",
       barcode: `BC-${Date.now().toString().slice(-7)}`,
       collection_status: "collected",
-      collected_by: fullName || "Clinical Phlebotomist",
+      collected_by: fullName ?? undefined,
       collected_at: nowIso,
       container_type: data.specimenType || "Standard Vacuum Tube",
       notes: data.clinicalNotes,
@@ -2748,7 +2843,7 @@ export const recordLabResult = createServerFn({ method: "POST" })
       order_id: data.orderId,
       patient_did: data.patientDid,
       patient_name: data.patientName || "Registered Patient",
-      patient_mrn: data.patientMrn || "MRN-V",
+      patient_mrn: data.patientMrn ?? undefined,
       test_name: data.testName,
       category: data.category || "biochemistry",
       result_value: data.resultValue,
@@ -2757,7 +2852,9 @@ export const recordLabResult = createServerFn({ method: "POST" })
       status: data.isCritical ? "critical" : "completed",
       is_critical: data.isCritical || false,
       critical_flag: data.criticalFlag,
-      verified_by: fullName || "Dr. Hannah Vance (Chief Pathologist)",
+      // Verification is an attestation by a named person. If the caller's name
+      // is unknown, record nothing rather than a fictitious pathologist.
+      verified_by: fullName ?? undefined,
       resulted_at: nowIso,
       created_at: nowIso,
     };
@@ -2937,14 +3034,16 @@ export const getCafeteriaData = createServerFn({ method: "GET" }).handler(async 
         requirement_id: d.requirement_id,
         hospital_id: d.hospital_id,
         patient_did: d.patient_did,
-        patient_name: patient?.full_name || d.patient_name || "Inpatient",
-        patient_mrn:
-          d.patient_mrn || `MRN-${(d.patient_did || "").slice(-5).toUpperCase() || "55210"}`,
-        room_number: d.room_number || "Ward 3A",
+        patient_name: patient?.full_name ?? d.patient_name ?? null,
+        patient_mrn: d.patient_mrn ?? null,
+        // A therapeutic or allergy diet with no recorded room used to be labelled
+        // for "Ward 3A" — a real ward. That sends a restricted meal to the wrong
+        // patient.
+        room_number: d.room_number ?? null,
         requirements: Array.isArray(d.requirements) ? d.requirements : [],
         allergies: Array.isArray(d.allergies) ? d.allergies : [],
         meal_plan_status: d.meal_plan_status || "active",
-        prescribed_by: d.prescribed_by || "Clinical Nutritionist",
+        prescribed_by: d.prescribed_by ?? null,
         notes: d.notes,
         created_at: d.created_at,
         updated_at: d.updated_at,
@@ -2959,14 +3058,14 @@ export const getCafeteriaData = createServerFn({ method: "GET" }).handler(async 
         hospital_id: dl.hospital_id,
         patient_did: dl.patient_did,
         patient_name: patient?.full_name || dl.patient_name || "Inpatient",
-        room_number: dl.room_number || "Room 204",
+        room_number: dl.room_number ?? null,
         meal_type: dl.meal_type || "lunch",
-        menu_item_name: dl.menu_item_name || "Standard Clinical Meal",
+        menu_item_name: dl.menu_item_name ?? null,
         delivery_status: dl.delivery_status || "preparing",
         scheduled_at: dl.scheduled_at || dl.created_at,
         delivered_at: dl.delivered_at,
         dietary_notes: dl.dietary_notes,
-        assigned_runner: dl.assigned_runner || "Dietary Staff",
+        assigned_runner: dl.assigned_runner ?? null,
         created_at: dl.created_at,
         updated_at: dl.updated_at,
       };
@@ -2984,7 +3083,9 @@ export const getCafeteriaData = createServerFn({ method: "GET" }).handler(async 
       supplied_categories: Array.isArray(v.supplied_categories) ? v.supplied_categories : [],
       last_delivery_at: v.last_delivery_at,
       contract_expiry: v.contract_expiry,
-      rating: Number(v.rating) || 5.0,
+      // `|| 5.0` gave every unrated vendor a perfect 5/5 contract score,
+      // including one rated 0.
+      rating: v.rating == null ? undefined : Number(v.rating),
       address: v.address,
       created_at: v.created_at,
       updated_at: v.updated_at,
@@ -3001,7 +3102,7 @@ export const getCafeteriaData = createServerFn({ method: "GET" }).handler(async 
       unit: w.unit || "kg",
       cost_impact: Number(w.cost_impact) || 0,
       reason: w.reason || "overproduction",
-      logged_by: w.logged_by || "Kitchen Supervisor",
+      logged_by: w.logged_by ?? null,
       created_at: w.created_at,
     }));
 
@@ -3036,37 +3137,17 @@ export const getCafeteriaData = createServerFn({ method: "GET" }).handler(async 
       lowKitchenStockCount,
       todayWastageKg: Math.round(todayWastageKg * 10) / 10,
       activeVendorsCount,
-      averageMealRating: 4.8,
+      // Was the literal 4.8, rendered on the KPI bar as "⭐ 4.8". Nothing
+      // collects meal ratings, so there is no average to report.
+      averageMealRating: null,
     };
 
     return { menu, stock, dietary, deliveries, vendors, wastage, stats };
   } catch (err: any) {
-    console.warn("Cafeteria database sync fallback:", err?.message);
-
-    const stats: CafeteriaDashboardStats = {
-      activeMenuItems: _liveMenuItems.filter((m) => m.status === "active").length,
-      pendingDeliveries: _liveMealDeliveries.filter(
-        (d) => d.delivery_status === "preparing" || d.delivery_status === "dispatched",
-      ).length,
-      deliveredToday: _liveMealDeliveries.filter((d) => d.delivery_status === "delivered").length,
-      activeDietaryPlans: _liveDietaryRequirements.filter((d) => d.meal_plan_status === "active")
-        .length,
-      lowKitchenStockCount: _liveKitchenStock.filter((s) => s.status === "low_stock").length,
-      todayWastageKg: 0,
-      activeVendorsCount: _liveCafeteriaVendors.filter((v) => v.contract_status === "active")
-        .length,
-      averageMealRating: 4.8,
-    };
-
-    return {
-      menu: _liveMenuItems,
-      stock: _liveKitchenStock,
-      dietary: _liveDietaryRequirements,
-      deliveries: _liveMealDeliveries,
-      vendors: _liveCafeteriaVendors,
-      wastage: _liveFoodWastageLogs,
-      stats,
-    };
+    // The fallback returned zeroed stats built from module-level arrays that are
+    // declared empty and never populated, so a failed query rendered as a
+    // functioning kitchen with nothing outstanding.
+    throw new Error(`Cafeteria data could not be loaded: ${err?.message ?? err}`);
   }
 });
 
@@ -3552,7 +3633,7 @@ export const logFoodWastage = createServerFn({ method: "POST" })
       unit: data.unit || "kg",
       cost_impact: data.costImpact || Math.round(data.quantityWasted * 4.5 * 100) / 100,
       reason: data.reason || "overproduction",
-      logged_by: fullName || user.email || "Kitchen Supervisor",
+      logged_by: fullName ?? user.email ?? null,
       created_at: nowIso,
     };
 

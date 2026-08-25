@@ -19,7 +19,7 @@
 
 import { createServerFn } from "@tanstack/react-start";
 import { getSupabaseServerClient, getVerifiedUser } from "./supabase.server";
-import { resolveCallerForAudit, tryWriteAudit, buildPrescriptionAudit } from "./audit.server";
+import { resolveCallerForAudit, tryWriteAudit, buildPrescriptionAudit } from "./audit-write.server";
 
 /** Reject unauthenticated callers before touching the database. */
 /**
@@ -101,7 +101,10 @@ export const getPrescriptions = createServerFn({ method: "GET" }).handler(async 
   const { data, error } = await supabase
     .from("prescriptions")
     .select(
-      "rx_id, patient_did, doctor_did, drugs, diagnosis, notes, status, signed, signed_at, content_hash, created_at",
+      // signed_by, appointment_id and reason all exist on the row and were not
+      // selected, so the records screen fell back to a literal "Doctor" as the
+      // prescriber and could never link a prescription to its appointment.
+      "rx_id, patient_did, doctor_did, drugs, diagnosis, notes, status, signed, signed_by, signed_at, content_hash, appointment_id, created_at",
     )
     .order("created_at", { ascending: false });
 
@@ -121,7 +124,10 @@ export const getPrescriptionsForPatient = createServerFn({ method: "GET" })
     const { data: rows, error } = await supabase
       .from("prescriptions")
       .select(
-        "rx_id, patient_did, doctor_did, drugs, diagnosis, notes, status, signed, signed_at, content_hash, created_at",
+        // signed_by, appointment_id and reason all exist on the row and were not
+        // selected, so the records screen fell back to a literal "Doctor" as the
+        // prescriber and could never link a prescription to its appointment.
+        "rx_id, patient_did, doctor_did, drugs, diagnosis, notes, status, signed, signed_by, signed_at, content_hash, appointment_id, created_at",
       )
       .eq("patient_did", data.patientDid)
       .order("created_at", { ascending: false });
@@ -293,7 +299,17 @@ export const getAppointments = createServerFn({ method: "GET" }).handler(async (
 
 export const bookAppointment = createServerFn({ method: "POST" })
   .inputValidator(
-    (data: { doctorDid: string; slot: string; specialty?: string; mode?: string }) => {
+    (data: {
+      doctorDid: string;
+      slot: string;
+      specialty?: string;
+      mode?: string;
+      // `reason` is the patient's stated symptoms. appointments.reason exists,
+      // but this validator and the insert below both omitted it, so the
+      // "Reason for Visit" textarea was collected and silently discarded — the
+      // clinician never received it, while the patient saw "request sent".
+      reason?: string;
+    }) => {
       if (!data?.doctorDid || !data?.slot) throw new Error("doctorDid and slot are required");
       return data;
     },
@@ -321,9 +337,35 @@ export const bookAppointment = createServerFn({ method: "POST" })
     // still governs access, so a referral keeps working across hospitals.
     const { data: doctorDid } = await supabase
       .from("dids")
-      .select("hospital_id")
+      .select("hospital_id, owner_type, status")
       .eq("did", data.doctorDid)
       .maybeSingle();
+
+    if (!doctorDid) throw new Error("Unknown clinician");
+    if (doctorDid.status !== "active") {
+      throw new Error("That clinician's DID is not active and cannot take bookings");
+    }
+
+    // Enforce the tenant boundary HERE, not just in the picker.
+    //
+    // The booking list was previously the cross-hospital referral directory, so
+    // patients were shown every clinician on the platform. Scoping the list
+    // (getBookableDoctors) fixes what is OFFERED; this fixes what can be
+    // BOOKED. doctorDid arrives in the request body, so a filtered dropdown is
+    // presentation, not a control — without this check the original bug is one
+    // curl away.
+    const { data: me } = await supabase
+      .from("profiles")
+      .select("hospital_id")
+      .eq("id", (await requireSession()).id)
+      .maybeSingle();
+
+    if (!me?.hospital_id) {
+      throw new Error("Your account is not linked to a hospital, so appointments cannot be booked");
+    }
+    if (doctorDid.hospital_id !== me.hospital_id) {
+      throw new Error("You can only book with clinicians at the hospital you are registered with");
+    }
 
     const apptId = `appt_${crypto.randomUUID().slice(0, 8)}`;
     const { error } = await supabase.from("appointments").insert({
@@ -333,8 +375,9 @@ export const bookAppointment = createServerFn({ method: "POST" })
       slot: data.slot,
       mode: data.mode ?? "in-person",
       specialty: data.specialty ?? null,
+      reason: data.reason?.trim() || null,
       status: "pending",
-      hospital_id: doctorDid?.hospital_id ?? null,
+      hospital_id: doctorDid.hospital_id,
     });
 
     if (error) throw new Error(error.message);
@@ -349,8 +392,14 @@ export const getConsents = createServerFn({ method: "GET" }).handler(async () =>
 
   const { data, error } = await supabase
     .from("consents")
+    // `reason` is the doctor's stated justification, written by
+    // requestConsentAccess. It was never selected, so the consent screen fell
+    // back to a hardcoded "Patient Care and Record Access" — the patient
+    // approved access while reading an invented justification. approved_at and
+    // requested_at matter too: the doctor read policies require approved_at to
+    // be non-null, so the UI needs it to show a grant's true state.
     .select(
-      "grant_id, patient_did, doctor_did, resource, status, granted_at, expires_at, revoked_at",
+      "grant_id, patient_did, doctor_did, resource, status, reason, granted_at, expires_at, revoked_at, requested_at, approved_at, rejected_at",
     )
     .order("granted_at", { ascending: false });
 
@@ -587,7 +636,13 @@ export const getAuditEvents = createServerFn({ method: "GET" }).handler(async ()
   // RLS: own trail, or everything for an admin.
   const { data, error } = await supabase
     .from("audit_events")
-    .select("tx_id, actor_did, resource, action, outcome, severity, logged_at")
+    // who_role, who_name, the entity linkage and the anchor columns all exist
+    // and were not selected, so the access-history screen showed a constant
+    // "System Actor" for every row and fabricated per-event hashes from the tx
+    // id rather than displaying the real record_hash.
+    .select(
+      "tx_id, actor_did, resource, action, outcome, severity, logged_at, who_name, who_role, what_entity_id, what_entity_type, record_hash, anchor_status",
+    )
     .order("logged_at", { ascending: false })
     .limit(200);
 
@@ -797,6 +852,18 @@ export const updateOwnProfile = createServerFn({ method: "POST" })
       gender?: string;
       bloodGroup?: string;
       allergies?: string[] | string;
+      department?: string;
+      title?: string;
+      specializations?: string[] | string;
+      employeeId?: string;
+      // Added by 20260825020000. These were accepted by the emergency dialog and
+      // dropped in transit because no column existed.
+      emergencyContact?: { name?: string; relation?: string; phone?: string } | null;
+      organDonor?: boolean | null;
+      conditions?: string[] | string;
+      // Deliberately absent: `role`. That is the authorization role RLS reads,
+      // and profiles_update_own rejects a change to it anyway. The staff form's
+      // "Role / Title" is a job title and maps to `title`.
     }) => data ?? {},
   )
   .handler(async ({ data }) => {
@@ -815,6 +882,40 @@ export const updateOwnProfile = createServerFn({ method: "POST" })
       // for an int column.
       const n = typeof data.age === "number" ? data.age : parseInt(String(data.age ?? ""), 10);
       patch.age = Number.isFinite(n) ? n : null;
+    }
+
+    if (data.department !== undefined) patch.department = data.department || null;
+    if (data.title !== undefined) patch.title = data.title || null;
+    if (data.employeeId !== undefined) patch.employee_id = data.employeeId || null;
+
+    if (data.emergencyContact !== undefined) {
+      const c = data.emergencyContact;
+      patch.emergency_contact_name = c?.name?.trim() || null;
+      patch.emergency_contact_relation = c?.relation?.trim() || null;
+      patch.emergency_contact_phone = c?.phone?.trim() || null;
+    }
+
+    // Tri-state: undefined means "not submitted", null means "not answered".
+    if (data.organDonor !== undefined) patch.organ_donor = data.organDonor;
+
+    if (data.conditions !== undefined) {
+      patch.conditions = Array.isArray(data.conditions)
+        ? data.conditions
+        : String(data.conditions)
+            .split(",")
+            .map((v) => v.trim())
+            .filter(Boolean);
+    }
+
+    if (data.specializations !== undefined) {
+      // Same accommodation as allergies: the dialog sends a comma-separated
+      // string, callers with real data send an array.
+      patch.specializations = Array.isArray(data.specializations)
+        ? data.specializations
+        : String(data.specializations)
+            .split(",")
+            .map((v) => v.trim())
+            .filter(Boolean);
     }
 
     if (data.allergies !== undefined) {
@@ -889,13 +990,27 @@ export const updateAppointmentStatus = createServerFn({ method: "POST" })
 
     const patch: Record<string, unknown> = {
       status,
-      reason: data.reason ?? null,
+      // `reason` is the PATIENT's stated reason for the visit, written at
+      // booking. This used to patch it unconditionally with the caller's
+      // optional note-to-patient — which defaults to "" — so confirming an
+      // appointment silently erased the patient's symptoms. The clinician's note
+      // now has its own column and `reason` is never touched here.
       updated_at: new Date().toISOString(),
     };
 
+    if (data.reason !== undefined) {
+      patch.clinician_note = data.reason;
+    }
+
     // A proposed time is kept separate from the agreed one: until the patient
     // accepts, the slot they originally requested is still the booked time.
-    if (status === "suggested") {
+    //
+    // `rescheduled` is included alongside `suggested`. Both are valid members of
+    // appt_status and staff.schedule.tsx sends `rescheduled` while
+    // staff.appointments.tsx sends `suggest`; only the latter used to reach this
+    // branch, so "Suggest Time" from the schedule view reported "New time
+    // suggested — patient has been notified" and wrote no slot at all.
+    if (status === "suggested" || status === "rescheduled") {
       if (!data.suggestedSlot) {
         throw new Error("A suggested time is required when proposing a reschedule");
       }
@@ -925,7 +1040,11 @@ export const denyConsent = createServerFn({ method: "POST" })
 
     const { data: updated, error } = await supabase
       .from("consents")
-      .update({ status: "revoked", revoked_at: new Date().toISOString() })
+      // Was writing `revoked`, so a request the patient REFUSED became
+      // indistinguishable in the history from access they granted and later
+      // withdrew. The enum has `rejected` and the table has `rejected_at`; both
+      // existed and were unused.
+      .update({ status: "rejected", rejected_at: new Date().toISOString() })
       .eq("grant_id", data.grantId)
       .select("grant_id");
 
@@ -942,11 +1061,17 @@ export const denyConsent = createServerFn({ method: "POST" })
  * has no client INSERT policy — results arrive from the lab, not the browser.
  */
 export const orderLabTest = createServerFn({ method: "POST" })
-  .inputValidator((data: { patientDid: string; testName: string }) => {
+  .inputValidator((data: { patientDid: string; testName: string; priority?: string }) => {
     if (!data?.patientDid || !data?.testName) {
       throw new Error("patientDid and testName are required");
     }
-    return data;
+    // Reject an unknown urgency rather than silently filing it as routine —
+    // quietly downgrading a STAT order is the bug this parameter exists to fix.
+    const priority = data.priority ?? "routine";
+    if (!["stat", "urgent", "routine"].includes(priority)) {
+      throw new Error(`Unknown lab priority: ${priority}`);
+    }
+    return { ...data, priority };
   })
   .handler(async ({ data }) => {
     await requireSession();
@@ -973,6 +1098,7 @@ export const orderLabTest = createServerFn({ method: "POST" })
       patient_did: data.patientDid,
       ordered_by: ownDid?.primary_did ?? null,
       test_name: data.testName,
+      priority: data.priority,
       status: "ordered",
     });
 
@@ -1120,7 +1246,26 @@ export const onboardUser = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     await requireSession();
-    return await invokeEdgeFunction("onboard-user", data);
+    const res = (await invokeEdgeFunction("onboard-user", data)) as { did?: string } | null;
+
+    // onboard-user issues the DID with a `pk_<uuid>` placeholder — it runs in
+    // Deno and cannot reach the Node key service. Provision the real signing key
+    // now so a newly onboarded person is not left with a keyless identity.
+    //
+    // Non-fatal: the account, profile, DID and credential are all created and
+    // usable by this point. A failure here is recoverable by re-running
+    // backend/scripts/provision-did-wallets.js, and failing the whole onboarding
+    // over it would be worse.
+    if (res?.did) {
+      try {
+        const { didWalletService } = await import("./embedded-wallet.server");
+        await didWalletService.getOrCreateWalletForDid(res.did);
+      } catch (err) {
+        console.warn(`Onboarded DID ${res.did} has no signing key yet:`, (err as Error).message);
+      }
+    }
+
+    return res;
   });
 
 /**
@@ -1317,3 +1462,63 @@ export const createMedicalRecord = createServerFn({ method: "POST" })
 
     return { ok: true as const, recordId, contentHash };
   });
+
+/**
+ * Detach the caller's own wallet.
+ *
+ * The counterpart to the admin action in hospitals.server.ts, and the one a
+ * user should reach for first: profiles_update_own already permits a user to
+ * write their own row, so this needs no service-role client and no admin —
+ * only the row-scoped policy that is already in force.
+ *
+ * `role` is untouched, so the policy's `role = private.current_user_role()`
+ * check passes exactly as it does for any other self-service profile edit.
+ */
+export const unlinkOwnWallet = createServerFn({ method: "POST" }).handler(async () => {
+  const user = await requireSession();
+  const supabase = getSupabaseServerClient();
+
+  const { data: before } = await supabase
+    .from("profiles")
+    .select("wallet_address, role, hospital_id, full_name, primary_did")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (!before?.wallet_address) return { ok: true as const, changed: false };
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ wallet_address: null })
+    .eq("id", user.id);
+
+  if (error) throw new Error(error.message);
+
+  const { tryWriteAudit } = await import("./audit-write.server");
+  tryWriteAudit({
+    actorId: user.id,
+    // These were all null, so the row had no tenant — and under the
+    // hospital-scoped read policy an audit entry with no hospital is invisible
+    // to every administrator. The profile is already being read above.
+    actorDid: before.primary_did ?? null,
+    actorName: before.full_name ?? null,
+    actorRole: before.role ?? null,
+    actorHospital: before.hospital_id ?? null,
+    actorEmail: user.email ?? null,
+    action: "WALLET_UNLINKED",
+    outcome: "success",
+    severity: "warning",
+    module: "identity",
+    entityId: user.id,
+    entityType: "profile",
+    resource: `Wallet ${before.wallet_address.slice(0, 4)}…${before.wallet_address.slice(-4)}`,
+    hospital: before.hospital_id ?? null,
+    location: "Profile → Solana Wallet",
+    prevValue: { wallet_address: before.wallet_address },
+    newValue: { wallet_address: null },
+    authStatus: "authorized",
+    authPolicy: "profiles_update_own",
+    metadata: { selfService: true },
+  });
+
+  return { ok: true as const, changed: true, wallet: before.wallet_address };
+});
