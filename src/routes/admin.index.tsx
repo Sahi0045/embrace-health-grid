@@ -791,25 +791,6 @@ function AdminDashboardPage() {
                     </GlowCard>
                   </Link>
 
-                  <Link to="/credential-explorer" className="group">
-                    <GlowCard className="p-5 space-y-3" accent="success">
-                      <div className="flex items-center justify-between">
-                        <div className="h-11 w-11 rounded-xl bg-success/15 text-success flex items-center justify-center group-hover:scale-110 transition-transform">
-                          <FileCheck className="h-5 w-5" />
-                        </div>
-                        <Badge variant="outline" className="text-[10px] font-bold uppercase">
-                          {issuedCredentials.length} Credentials
-                        </Badge>
-                      </div>
-                      <h4 className="font-bold text-foreground text-sm group-hover:text-primary transition-colors">
-                        Verifiable Credentials
-                      </h4>
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        Issue, verify, and revoke cryptographic health credentials across the
-                        hospital.
-                      </p>
-                    </GlowCard>
-                  </Link>
 
                   <Link to="/audit-timeline" className="group">
                     <GlowCard className="p-5 space-y-3" accent="destructive">

@@ -70,12 +70,6 @@ function SuperHome() {
       icon: Fingerprint,
     },
     {
-      title: "Verifiable Credentials",
-      description: "Credentials issued platform-wide, with their issuing hospital.",
-      url: "/credential-explorer" as const,
-      icon: Award,
-    },
-    {
       title: "Security & Audit Trail",
       description: "Audit activity across every tenant.",
       url: "/audit-timeline" as const,
