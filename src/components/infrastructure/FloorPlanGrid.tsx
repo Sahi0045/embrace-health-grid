@@ -60,18 +60,18 @@ const BED_STATUS_CONFIG: Record<
     icon: Activity,
   },
   cleaning: {
-    bg: "bg-blue-500/10 hover:bg-blue-500/20",
-    border: "border-blue-400/30 hover:border-blue-400/50",
-    text: "text-blue-600 dark:text-blue-400",
-    dot: "bg-blue-500",
+    bg: "bg-chart-4/10 hover:bg-chart-4/20",
+    border: "border-chart-4/30 hover:border-chart-4/50",
+    text: "text-chart-4",
+    dot: "bg-chart-4",
     label: "Cleaning",
     icon: Activity,
   },
   maintenance: {
-    bg: "bg-amber-500/10 hover:bg-amber-500/20",
-    border: "border-amber-400/30 hover:border-amber-400/50",
-    text: "text-amber-600 dark:text-amber-400",
-    dot: "bg-amber-500",
+    bg: "bg-chart-3/10 hover:bg-chart-3/20",
+    border: "border-chart-3/30 hover:border-chart-3/50",
+    text: "text-chart-3",
+    dot: "bg-chart-3",
     label: "Maint",
     icon: Wrench,
   },
@@ -84,10 +84,10 @@ const BED_STATUS_CONFIG: Record<
     icon: Ban,
   },
   emergency_reserved: {
-    bg: "bg-rose-500/10 hover:bg-rose-500/20",
-    border: "border-rose-400/30 hover:border-rose-400/50",
-    text: "text-rose-600",
-    dot: "bg-rose-500",
+    bg: "bg-destructive/10 hover:bg-destructive/20",
+    border: "border-destructive/40 hover:border-destructive/60",
+    text: "text-destructive",
+    dot: "bg-destructive",
     label: "Emergency",
     icon: Shield,
   },
@@ -95,15 +95,12 @@ const BED_STATUS_CONFIG: Record<
 
 const ROOM_TYPE_BADGES: Record<string, { bg: string; text: string }> = {
   icu: { bg: "bg-destructive/15 border-destructive/30", text: "text-destructive" },
-  emergency: { bg: "bg-rose-500/15 border-rose-500/30", text: "text-rose-600" },
+  emergency: { bg: "bg-chart-2/15 border-chart-2/30", text: "text-chart-2" },
   general: { bg: "bg-primary/10 border-primary/20", text: "text-primary" },
-  private: {
-    bg: "bg-indigo-500/10 border-indigo-500/20",
-    text: "text-indigo-600 dark:text-indigo-400",
-  },
-  isolation: { bg: "bg-amber-500/15 border-amber-500/30", text: "text-amber-600" },
-  operating: { bg: "bg-teal-500/15 border-teal-500/30", text: "text-teal-600" },
-  recovery: { bg: "bg-cyan-500/15 border-cyan-500/30", text: "text-cyan-600" },
+  private: { bg: "bg-chart-5/15 border-chart-5/30", text: "text-chart-5" },
+  isolation: { bg: "bg-chart-3/15 border-chart-3/30", text: "text-chart-3" },
+  operating: { bg: "bg-chart-4/15 border-chart-4/30", text: "text-chart-4" },
+  recovery: { bg: "bg-chart-6/15 border-chart-6/30", text: "text-chart-6" },
 };
 
 export function FloorPlanGrid({

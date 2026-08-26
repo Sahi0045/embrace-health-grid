@@ -401,7 +401,7 @@ export function CreateEntityDialog({
           <Button
             onClick={handleSubmit}
             disabled={submitting}
-            className="flex-1 rounded-xl h-10 text-xs font-extrabold bg-gradient-to-r from-primary to-blue-600 text-primary-foreground shadow-clinical-md"
+            className="flex-1 rounded-xl h-10 text-xs font-extrabold bg-primary text-primary-foreground shadow-clinical-md"
           >
             {submitting ? "Creating..." : "Create"}
           </Button>

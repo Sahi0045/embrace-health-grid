@@ -44,26 +44,43 @@ function PatientQr() {
   const userMrn = currentUser?.mrn ?? "";
   const userName = currentUser?.name ?? "";
 
-  const matchedPatient =
-    patientsList?.find((p: any) => p.email?.toLowerCase() === userEmail.toLowerCase()) ||
-    patientsList?.[0];
+  /**
+   * This screen produces a credential a hospital desk scans, and the payload is
+   * HMAC-signed by the identity-ops Edge Function — so anything invented here
+   * becomes a cryptographically valid assertion of false data.
+   *
+   * Three fabrications removed:
+   *   - `|| "MRN-100234"` — the same record number for every patient, signed.
+   *   - `|| "O+"` — blood group. The directory row never carries one (it maps
+   *     only {id, did, name, email, status}), so this always fired. The REAL
+   *     value is on currentUser, from profiles.blood_group, and is used below.
+   *   - `|| patientsList[0]` — when the email lookup missed, the page rendered
+   *     and tried to sign ANOTHER patient's DID and name.
+   *
+   * The synthesised `did:hosp:0x<hash of email>` fallback is gone too: it names
+   * no entry in the DID registry, so it can never verify.
+   */
+  const matchedPatient = patientsList?.find(
+    (p: any) => p.email?.toLowerCase() === userEmail.toLowerCase(),
+  );
 
-  const activeDid =
-    matchedPatient?.did || userDid || `did:hosp:0x${simHash(userEmail || "patient").slice(0, 8)}`;
-  const activeName = matchedPatient?.name || userName || "Patient";
-  const activeMrn = matchedPatient?.mrn || userMrn || "MRN-100234";
+  const activeDid = userDid || matchedPatient?.did || "";
+  const activeName = userName || matchedPatient?.name || "";
+  const activeMrn = userMrn ?? "";
 
   const patient = {
     name: activeName,
     mrn: activeMrn,
     did: activeDid,
-    bloodGroup: matchedPatient?.bloodGroup || "O+",
-    age: matchedPatient?.age || 32,
-    gender: matchedPatient?.gender || "F",
-    allergies: matchedPatient?.allergies || [],
+    bloodGroup: currentUser?.bloodGroup ?? "",
+    age: currentUser?.age,
+    gender: currentUser?.gender,
+    allergies: currentUser?.allergies ?? [],
   };
 
   const [payload, setPayload] = useState("");
+  /** False when signing failed and the QR carries an unsigned payload. */
+  const [signed, setSigned] = useState(true);
   const [timeLeft, setTimeLeft] = useState(ROTATION_SECONDS);
   const [refreshKey, setRefreshKey] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -79,7 +96,13 @@ function PatientQr() {
       });
       if (res && res.payload) {
         setPayload(JSON.stringify(res.payload));
+        setSigned(true);
       } else {
+        // An unsigned payload has no `sig`, and the verifier rejects it. Falling
+        // back silently meant the patient was told their credential was
+        // "Verified" and "Signed on Solana Devnet" when it was neither — they
+        // only found out at the desk. Track it so the UI can say so.
+        setSigned(false);
         setPayload(
           JSON.stringify({
             did: activeDid,
@@ -91,6 +114,7 @@ function PatientQr() {
         );
       }
     } catch {
+      setSigned(false);
       setPayload(
         JSON.stringify({
           did: activeDid,
@@ -149,7 +173,7 @@ function PatientQr() {
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
             </span>
-            Valid · On-chain DID
+            {signed ? "Valid · On-chain DID" : "Unsigned — not verifiable"}
           </span>
         </div>
 
@@ -205,18 +229,26 @@ function PatientQr() {
 
         {/* Info chips */}
         <div className="mt-6 flex flex-wrap justify-center gap-2">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-foreground shadow-sm">
-            <Droplets className="h-3.5 w-3.5 text-destructive" />
-            {patient.bloodGroup}
-          </span>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-foreground shadow-sm">
-            <CreditCard className="h-3.5 w-3.5 text-primary" />
-            {patient.mrn}
-          </span>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-success shadow-sm">
-            <BadgeCheck className="h-3.5 w-3.5" />
-            Verified
-          </span>
+          {/* Render a chip only when there is a real value — an empty chip on a
+              check-in credential reads as "unknown", not as a blank. */}
+          {patient.bloodGroup && (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-foreground shadow-sm">
+              <Droplets className="h-3.5 w-3.5 text-destructive" />
+              {patient.bloodGroup}
+            </span>
+          )}
+          {patient.mrn && (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-foreground shadow-sm">
+              <CreditCard className="h-3.5 w-3.5 text-primary" />
+              {patient.mrn}
+            </span>
+          )}
+          {signed && (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-success shadow-sm">
+              <BadgeCheck className="h-3.5 w-3.5" />
+              Verified
+            </span>
+          )}
         </div>
 
         {/* NFC Card Status Section */}
@@ -230,7 +262,9 @@ function PatientQr() {
         {/* Solana badge */}
         <div className="mt-6 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
           <ShieldCheck className="h-3.5 w-3.5" />
-          Signed on Solana Devnet · embrace-health-anchor
+          {signed
+            ? "Signed on Solana Devnet · embrace-health-anchor"
+            : "Signing failed — this code will be rejected at the desk. Refresh to retry."}
         </div>
       </div>
     </RouteGuard>

@@ -292,7 +292,7 @@ function StaffConsentPage() {
                             <Package className="h-3 w-3" /> Resource
                           </div>
                           <div className="font-medium text-foreground">
-                            {g.resource || "Medical Records"}
+                            {g.resource || "Unspecified scope"}
                           </div>
                         </div>
                         <div className="rounded-lg bg-card border border-border px-3 py-2">
@@ -402,7 +402,9 @@ function StaffConsentPage() {
                     <option value="">Select a patient…</option>
                     {myPatients.map((p) => (
                       <option key={p.patientDid} value={p.patientDid}>
-                        {p.patientName} — {p.patientDid.slice(0, 24)}…
+                        {p.patientName
+                          ? `${p.patientName} — ${p.patientDid.slice(0, 24)}…`
+                          : `${p.patientDid.slice(0, 24)}…`}
                       </option>
                     ))}
                   </select>
@@ -625,7 +627,7 @@ function ConsentHistoryCard({
                   : `Request to ${item.patientDid?.slice(0, 20) || "Patient"}…`}
               </div>
               <div className="text-xs text-muted-foreground">
-                {item.resource || "Medical Records"} ·{" "}
+                {item.resource || "Unspecified scope"} ·{" "}
                 {kind === "request"
                   ? item.requestedAt
                     ? new Date(item.requestedAt).toLocaleDateString("en-IN")
@@ -653,7 +655,7 @@ function ConsentHistoryCard({
           <div className="grid grid-cols-2 gap-2 text-xs">
             {[
               ["Patient DID", item.patientDid || "—"],
-              ["Resource", item.resource || "Medical Records"],
+              ["Resource", item.resource || "Unspecified scope"],
               ["Status", sLabel],
               kind === "request"
                 ? [

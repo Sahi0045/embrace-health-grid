@@ -102,7 +102,13 @@ export function AmbulanceDetailPanel({
     },
   };
 
-  const currentBadge = statusBadgeConfig[ambulance.status] || statusBadgeConfig.available;
+  // An unrecorded status must not resolve to "available" — that is the state a
+  // dispatcher reads as ready to send.
+  const currentBadge = (ambulance.status && statusBadgeConfig[ambulance.status]) || {
+    label: "Status not recorded",
+    cls: "border-border/80 bg-muted/40 text-muted-foreground",
+    dot: "bg-muted-foreground",
+  };
 
   return (
     <AnimatePresence>
@@ -141,7 +147,7 @@ export function AmbulanceDetailPanel({
                       variant="outline"
                       className="rounded-full border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-extrabold text-primary uppercase"
                     >
-                      {ambulance.type.toUpperCase()}
+                      {ambulance.type ? ambulance.type.toUpperCase() : "TYPE N/R"}
                     </Badge>
                   </div>
                   <p className="text-xs font-medium text-muted-foreground mt-0.5 flex items-center gap-2">
@@ -456,33 +462,25 @@ export function AmbulanceDetailPanel({
 
             {activeTab === "equipment" && (
               <div className="space-y-4">
-                <div className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
-                  Vehicle Type Standards & Required Medical Kits
-                </div>
+                {/* This tab used to list four kits — "Emergency Life Support System",
+                    "Oxygen Delivery & Airway Support", and two more — each with a green
+                    tick, under the heading "Vehicle Type Standards & Required Medical
+                    Kits". They were literals in JSX: nothing models ambulance equipment
+                    in this schema, so EVERY vehicle in the fleet read as fully equipped
+                    and checked. A dispatcher choosing a unit for a call would be picking
+                    on the strength of four constants.
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {[
-                    {
-                      name: "Emergency Life Support System",
-                      type: "Standard Protocol for " + ambulance.type.toUpperCase(),
-                    },
-                    { name: "Patient Monitoring & Trauma Kit", type: "Certified Asset Standard" },
-                    { name: "Oxygen Delivery & Airway Support", type: "Medical Grade Oxygen" },
-                    { name: "Emergency Stretcher Transport", type: "Hydraulic Rapid Load" },
-                  ].map((eq, i) => (
-                    <div
-                      key={i}
-                      className="rounded-2xl border border-border/80 bg-card p-3.5 shadow-xs flex items-center justify-between gap-2"
-                    >
-                      <div className="space-y-0.5 min-w-0">
-                        <div className="text-xs font-bold text-foreground truncate">{eq.name}</div>
-                        <div className="text-[10px] font-extrabold uppercase tracking-wider text-primary">
-                          {eq.type}
-                        </div>
-                      </div>
-                      <CheckCircle className="h-4 w-4 text-success shrink-0" />
-                    </div>
-                  ))}
+                    Until equipment is actually modelled, the tab says so. */}
+                <div className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
+                  Equipment
+                </div>
+                <div className="rounded-2xl border border-dashed border-border/80 bg-muted/20 p-6 text-center">
+                  <p className="text-xs font-medium text-muted-foreground">
+                    Equipment is not tracked for ambulances yet.
+                  </p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Confirm the vehicle&apos;s kit with the crew before dispatch.
+                  </p>
                 </div>
               </div>
             )}
@@ -497,8 +495,8 @@ export function AmbulanceDetailPanel({
                   <ActivityItem
                     icon={CheckCircle2}
                     severity="success"
-                    title={`Current Status: ${ambulance.status.toUpperCase()}`}
-                    subtitle={`Stationed at: ${ambulance.location || "Base Station"}`}
+                    title={`Current Status: ${ambulance.status?.toUpperCase() ?? "NOT RECORDED"}`}
+                    subtitle={`Stationed at: ${ambulance.location ?? "location not recorded"}`}
                     time={
                       ambulance.updatedAt
                         ? new Date(ambulance.updatedAt).toLocaleTimeString()

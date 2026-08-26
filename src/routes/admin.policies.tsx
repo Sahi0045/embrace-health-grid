@@ -39,7 +39,7 @@ type Policy = {
   id: string;
   name: string;
   category: "Consent" | "Retention" | "Access control" | "Audit";
-  status: "active" | "draft" | "archived";
+  status: "active" | "draft" | "retired";
   updatedAt: string;
   description: string;
 };
@@ -47,10 +47,13 @@ type Policy = {
 const categories = ["All", "Consent", "Access control", "Retention", "Audit"] as const;
 type Category = (typeof categories)[number];
 
+// Keys must match the policy_status enum exactly ('active','draft','retired').
+// "archived" was not a member: the button always failed, and a retired policy
+// rendered with an undefined class.
 const statusTone: Record<Policy["status"], string> = {
   active: "bg-success/15 text-success",
   draft: "bg-warning/20 text-warning-foreground",
-  archived: "bg-muted text-muted-foreground",
+  retired: "bg-muted text-muted-foreground",
 };
 
 function PoliciesPage() {
@@ -75,14 +78,15 @@ function PoliciesPage() {
 
   const filtered = list.filter((p) => {
     const matchesCat = cat === "All" || p.category === cat;
-    const matchesQ = [p.name, p.description].some((f) => f.toLowerCase().includes(q.toLowerCase()));
+    const needle = q.toLowerCase();
+    const matchesQ = [p.name, p.description].some((f) => (f ?? "").toLowerCase().includes(needle));
     return matchesCat && matchesQ;
   });
 
   const toggleArchive = async (id: string) => {
     const policy = list.find((p) => p.id === id);
     if (!policy) return;
-    const newStatus = policy.status === "archived" ? "active" : "archived";
+    const newStatus = policy.status === "retired" ? "active" : "retired";
     try {
       await updatePolicy(id, { status: newStatus });
       toast.success(`Policy updated to ${newStatus}`);
@@ -279,7 +283,7 @@ function PoliciesPage() {
                         className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2.5 py-1 font-medium text-foreground hover:bg-muted"
                       >
                         <Archive className="h-3 w-3" />{" "}
-                        {p.status === "archived" ? "Restore" : "Archive"}
+                        {p.status === "retired" ? "Restore" : "Archive"}
                       </button>
                     </div>
                   </div>

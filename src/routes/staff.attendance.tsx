@@ -19,7 +19,7 @@ import {
 import { toast } from "sonner";
 import { useCurrentUser } from "@/lib/auth-context";
 import { ShieldAlert, ShieldCheck, UserCheck } from "lucide-react";
-import { clockAttendance, createStaffRequest } from "@/lib/api";
+import { clockAttendance, createStaffRequest, getStaffSchedule } from "@/lib/api";
 import { useAttendance, useStaffRequests } from "@/hooks/use-api";
 
 export const Route = createFileRoute("/staff/attendance")({
@@ -52,8 +52,30 @@ function StaffAttendance() {
     refetch: refetchRequests,
   } = useStaffRequests(userEmail);
 
-  const apiHistory = attendanceData?.records ?? [];
-  const leaveRequests = requestsData?.requests ?? [];
+  const apiHistory = useMemo(() => attendanceData?.records ?? [], [attendanceData]);
+  const leaveRequests = useMemo(() => requestsData?.requests ?? [], [requestsData]);
+
+  // The roster, so the per-day "Shift" line reports the shift this person is
+  // actually on. It used to be the constant "08:00–16:00" for everybody.
+  const [shiftByDate, setShiftByDate] = useState<Record<string, string>>({});
+  useEffect(() => {
+    let cancelled = false;
+    getStaffSchedule()
+      .then((res: any) => {
+        if (cancelled) return;
+        const map: Record<string, string> = {};
+        for (const sh of res.schedule ?? []) {
+          if (sh.date && sh.start && sh.end) map[sh.date] = `${sh.start}–${sh.end}`;
+        }
+        setShiftByDate(map);
+      })
+      .catch(() => {
+        // No roster is a legitimate state; the shift line then reads "—".
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Leave request form states
   const [showLeaveForm, setShowLeaveForm] = useState(false);
@@ -175,59 +197,85 @@ function StaffAttendance() {
     }
   };
 
-  const grouped: Record<string, any> = {};
-  apiHistory.forEach((rec: any) => {
-    try {
-      const dt = new Date(rec.timestamp);
-      const dateStr = dt.toISOString().split("T")[0];
-      const dayName = dt.toLocaleDateString("en-IN", { weekday: "short" });
-      const formattedDate = dt.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
-      const timeStr = dt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+  const grouped = useMemo(() => {
+    const acc: Record<string, any> = {};
+    apiHistory.forEach((rec: any) => {
+      try {
+        const dt = new Date(rec.timestamp);
+        const dateStr = dt.toISOString().split("T")[0];
+        const dayName = dt.toLocaleDateString("en-IN", { weekday: "short" });
+        const formattedDate = dt.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+        const timeStr = dt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
 
-      if (!grouped[dateStr]) {
-        grouped[dateStr] = {
-          date: dateStr,
-          day: dayName,
-          dateLabel: formattedDate,
-          shift: "08:00–16:00",
-          checkIn: "–",
-          checkOut: "–",
-          checkInMs: 0,
-          checkOutMs: 0,
-          hours: "–",
-          status: "present",
-        };
+        if (!acc[dateStr]) {
+          acc[dateStr] = {
+            date: dateStr,
+            day: dayName,
+            dateLabel: formattedDate,
+            shift: shiftByDate[dateStr] ?? "—",
+            checkIn: "–",
+            checkOut: "–",
+            checkInMs: 0,
+            checkOutMs: 0,
+            hours: "–",
+            status: "present",
+          };
+        }
+
+        if (rec.action === "in") {
+          acc[dateStr].checkIn = timeStr;
+          acc[dateStr].checkInMs = dt.getTime();
+        } else if (rec.action === "out") {
+          acc[dateStr].checkOut = timeStr;
+          acc[dateStr].checkOutMs = dt.getTime();
+        }
+      } catch (e) {
+        console.error(e);
       }
+    });
 
-      if (rec.action === "in") {
-        grouped[dateStr].checkIn = timeStr;
-        grouped[dateStr].checkInMs = dt.getTime();
-      } else if (rec.action === "out") {
-        grouped[dateStr].checkOut = timeStr;
-        grouped[dateStr].checkOutMs = dt.getTime();
+    // Worked hours per day.
+    Object.values(acc).forEach((day: any) => {
+      if (day.checkInMs > 0 && day.checkOutMs > 0) {
+        const diffMs = day.checkOutMs - day.checkInMs;
+        const hours = Math.floor(diffMs / (1000 * 60 * 60));
+        const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+        day.hours = `${hours}h ${minutes}m`;
       }
-    } catch (e) {
-      console.error(e);
-    }
-  });
+    });
 
-  // Compute actual hours for each day
-  Object.values(grouped).forEach((day: any) => {
-    if (day.checkInMs > 0 && day.checkOutMs > 0) {
-      const diffMs = day.checkOutMs - day.checkInMs;
-      const hours = Math.floor(diffMs / (1000 * 60 * 60));
-      const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-      day.hours = `${hours}h ${minutes}m`;
-    }
-  });
+    return acc;
+  }, [apiHistory, shiftByDate]);
 
   const displayHistory = Object.values(grouped).sort((a: any, b: any) =>
     b.date.localeCompare(a.date),
   );
 
-  const present = displayHistory.filter((d: any) => d.status === "present").length;
-  const absent = displayHistory.filter((d: any) => d.status === "absent").length;
-  const onLeave = displayHistory.filter((d: any) => d.status === "on-leave").length;
+  // Present / Absent / On leave over the last 7 days.
+  //
+  // Every grouped day was stamped status: "present" — a day only appears when it
+  // has an attendance record — so `absent` and `onLeave` filtered for statuses
+  // nothing ever carried and both tiles read 0 permanently. Absence is the
+  // absence of a record, which means it can only be computed by walking the days
+  // themselves rather than the records.
+  const { present, absent, onLeave } = useMemo(() => {
+    const approvedLeave = (leaveRequests as any[]).filter(
+      (l) => l.status === "approved" && l.fromDate && l.toDate,
+    );
+    const today = new Date();
+    let p = 0,
+      a = 0,
+      l = 0;
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const key = d.toISOString().split("T")[0];
+      if (grouped[key]) p++;
+      else if (approvedLeave.some((lv) => key >= lv.fromDate && key <= lv.toDate)) l++;
+      else a++;
+    }
+    return { present: p, absent: a, onLeave: l };
+  }, [grouped, leaveRequests]);
 
   // Compute total hours from actual data
   const totalHoursDisplay = useMemo(() => {
@@ -237,11 +285,12 @@ function StaffAttendance() {
         totalMs += day.checkOutMs - day.checkInMs;
       }
     });
+
     if (totalMs === 0) return "0h 0m";
     const hours = Math.floor(totalMs / (1000 * 60 * 60));
     const minutes = Math.floor((totalMs % (1000 * 60 * 60)) / (1000 * 60));
     return `${hours}h ${minutes}m`;
-  }, [apiHistory]);
+  }, [grouped]);
 
   return (
     <RouteGuard requiredRole="staff">
@@ -285,8 +334,11 @@ function StaffAttendance() {
                 <ShieldCheck className="h-4 w-4 text-primary" />
                 <span>
                   Verified Staff Member:{" "}
-                  <strong className="font-semibold">{currentUser?.name}</strong> (
-                  {employeeId || "EMP-1002"})
+                  <strong className="font-semibold">{currentUser?.name}</strong>
+                  {/* No "EMP-1002" fallback: this line asserts an identity, and
+                      showing an invented staff number next to "Verified" makes
+                      the verification itself look untrustworthy. */}
+                  {employeeId ? ` (${employeeId})` : ""}
                 </span>
               </div>
               <Badge

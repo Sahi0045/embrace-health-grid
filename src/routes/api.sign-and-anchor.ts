@@ -65,7 +65,7 @@ export interface SignAndAnchorResponse {
 export const signAndAnchorWithEmbedded = createServerFn({
   method: "POST",
 })
-  .validator(signAndAnchorRequestSchema)
+  .inputValidator((data: unknown) => signAndAnchorRequestSchema.parse(data))
   .handler(async ({ data }) => {
     const db = getSupabaseServerClient();
     const user = await getVerifiedUser();
@@ -212,7 +212,7 @@ export const signAndAnchorWithEmbedded = createServerFn({
 export const verifyAnchoredRecord = createServerFn({
   method: "GET",
 })
-  .validator(transactionIdSchema)
+  .inputValidator((data: unknown) => transactionIdSchema.parse(data))
   .handler(async ({ data }) => {
     const user = await getVerifiedUser();
     if (!user) {
@@ -253,7 +253,7 @@ export const verifyAnchoredRecord = createServerFn({
 export const getTransactionStatus = createServerFn({
   method: "GET",
 })
-  .validator(transactionIdSchema)
+  .inputValidator((data: unknown) => transactionIdSchema.parse(data))
   .handler(async ({ data }) => {
     const db = getSupabaseServerClient();
     const user = await getVerifiedUser();
@@ -380,7 +380,7 @@ export const getHospitalWalletBalance = createServerFn({
 export const requestHospitalAirdrop = createServerFn({
   method: "POST",
 })
-  .validator(airdropRequestSchema)
+  .inputValidator((data: unknown) => airdropRequestSchema.parse(data))
   .handler(async ({ data }) => {
     const network = process.env.SOLANA_NETWORK || "devnet";
 

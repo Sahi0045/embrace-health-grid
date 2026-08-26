@@ -69,7 +69,7 @@ function getPaginationRange(current: number, total: number) {
 
 function StaffRoomsPage() {
   const { user: currentUser } = useCurrentUser();
-  const { publicKey, connected, signMessage } = useWallet();
+  const { publicKey, connected } = useWallet();
   const isDoctor = (currentUser?.role || "").toLowerCase() === "doctor";
 
   // Doctor identity & verification state
@@ -160,7 +160,11 @@ function StaffRoomsPage() {
         })
         .catch(() => setDidVerified(false));
     } else {
-      setDoctorDid(`did:hosp:0x${email.split("@")[0].substring(0, 8)}`);
+      // Never synthesise a DID. This built one out of the email local-part
+      // (shubhamkush8090@… became did:hosp:0xshubhamk) and displayed it as the
+      // clinician's identity — a decentralised identifier that was never issued,
+      // resolves to nothing, and cannot be verified by anyone reading it.
+      setDoctorDid("");
       setDidVerified(false);
     }
   }, [currentUser]);
@@ -171,8 +175,13 @@ function StaffRoomsPage() {
     try {
       const r = await getRooms();
       setRawRooms(r.rooms ?? []);
-    } catch {
-      toast.error("Could not load room directory");
+    } catch (err: any) {
+      // An empty directory is not a failure. Only report one when the call
+      // actually threw, and say what went wrong rather than "could not load".
+      setRawRooms([]);
+      toast.error("Could not load room directory", {
+        description: err?.message ?? "The room directory request failed.",
+      });
     } finally {
       setLoadingRooms(false);
     }
@@ -335,35 +344,24 @@ function StaffRoomsPage() {
     setPublishing(true);
     setShowConfirm(false);
     try {
-      let txSignature: string | undefined;
-      let walletAddress: string | undefined;
+      // No Phantom signature is collected here any more. The old code popped a
+      // wallet approval, told the user "anchoring proof on Solana devnet", then
+      // handed the signature to publishMerkleRoot — whose parameter is `_txSignature`
+      // and is dropped on the floor. Anchoring is server-side, so the prompt only
+      // ever produced a signature nothing consumed and a claim nothing backed.
+      const r = await publishMerkleRoot(doctorDid);
 
-      if (connected && publicKey && signMessage && dailyRoot) {
-        try {
-          walletAddress = publicKey.toBase58();
-          const message = `Embrace Health Grid — Publish Verification Record\nStaff: ${doctorDid}\nDate: ${
-            dailyDate || new Date().toISOString().split("T")[0]
-          }\nRoot: ${dailyRoot}`;
-          toast.info("Approve the signing request in your Phantom wallet…");
-          const msgBytes = new TextEncoder().encode(message);
-          const sigBytes = await signMessage(msgBytes);
-          txSignature = Buffer.from(sigBytes).toString("base64");
-          toast.success("Signature approved — anchoring proof on Solana devnet…");
-        } catch (sigErr: any) {
-          if (sigErr.message?.includes("User rejected") || sigErr.message?.includes("cancelled")) {
-            toast.error("Signature cancelled. Request must be approved to record on-chain.");
-            setPublishing(false);
-            return;
-          }
-          txSignature = undefined;
-          walletAddress = undefined;
-        }
-      }
-
-      const r = await publishMerkleRoot(doctorDid, txSignature, walletAddress);
+      // The Edge Function returns { ok, publishId, rootHash, eventCount, anchored, note }.
+      // Reading r.merkleRoot threw a TypeError that this handler's own catch turned
+      // into "Publish failed" — for a publish that had already succeeded and been
+      // persisted, so the retry then hit the 409 unique constraint.
       toast.success(
-        r.onChain ? "Verification record anchored on-chain!" : "Verification record logged",
-        { description: `Root: ${r.merkleRoot.slice(0, 16)}…` },
+        r.anchored ? "Verification record anchored on-chain" : "Verification record published",
+        {
+          description: r.rootHash
+            ? `Root: ${String(r.rootHash).slice(0, 16)}…${r.anchored ? "" : " (not yet anchored)"}`
+            : (r.note ?? undefined),
+        },
       );
       await Promise.all([loadDaily(), loadPublished()]);
     } catch (err: any) {
@@ -682,7 +680,7 @@ function StaffRoomsPage() {
                   size="sm"
                   onClick={() => doAction("checkin")}
                   disabled={acting !== null}
-                  className="bg-gradient-to-r from-primary to-blue-600 hover:from-primary/95 hover:to-blue-600/95 text-primary-foreground text-xs font-extrabold gap-2 px-6 h-10 rounded-xl shadow-clinical-md shadow-primary/25 transition-all"
+                  className="bg-primary hover:from-primary/95 hover:to-primary/95 text-primary-foreground text-xs font-extrabold gap-2 px-6 h-10 rounded-xl shadow-clinical-md shadow-primary/25 transition-all"
                 >
                   {acting === "checkin" ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -857,26 +855,33 @@ function StaffRoomsPage() {
 
                         <div>
                           <div className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider mb-1">
-                            Transaction Hash
+                            On-Chain Anchor
                           </div>
+                          {/* This used to read root.txHash — a field the history mapper
+                              never returns — and fall back to the literal string
+                              "0x-devnet-signature", so every row displayed a fabricated
+                              transaction hash beside a copy button. Anchoring is a
+                              separate step and anchor_id is null on every existing row. */}
                           <div className="flex items-center gap-2 rounded-xl bg-background border border-border px-3.5 py-2">
-                            <span className="font-mono text-foreground font-semibold break-all flex-1 text-[11px]">
-                              {root.txHash || "0x-devnet-signature"}
+                            <span className="font-mono break-all flex-1 text-[11px] font-semibold text-muted-foreground">
+                              {root.anchorId ?? "Not anchored"}
                             </span>
-                            <button
-                              type="button"
-                              onClick={() => copyToClipboard(root.txHash)}
-                              className="shrink-0 p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                              title="Copy Tx Hash"
-                            >
-                              <Copy
-                                className={`h-3.5 w-3.5 ${
-                                  copiedText === root.txHash
-                                    ? "text-success"
-                                    : "text-muted-foreground"
-                                }`}
-                              />
-                            </button>
+                            {root.anchorId ? (
+                              <button
+                                type="button"
+                                onClick={() => copyToClipboard(root.anchorId)}
+                                className="shrink-0 p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                                title="Copy anchor id"
+                              >
+                                <Copy
+                                  className={`h-3.5 w-3.5 ${
+                                    copiedText === root.anchorId
+                                      ? "text-success"
+                                      : "text-muted-foreground"
+                                  }`}
+                                />
+                              </button>
+                            ) : null}
                           </div>
                         </div>
                       </div>
@@ -892,7 +897,7 @@ function StaffRoomsPage() {
                         </span>
                         <span>
                           <ExternalLink className="inline h-3 w-3 mr-0.5" />
-                          {root.network || "Solana Devnet"}
+                          {root.anchorId ? "Solana Devnet" : "Off-chain record"}
                         </span>
                       </div>
                     </div>

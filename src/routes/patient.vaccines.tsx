@@ -27,20 +27,50 @@ const statusBadge: Record<string, string> = {
 function VaccinesPage() {
   const { user: currentUser } = useCurrentUser();
   const { patients } = useLivePatients();
-  const patientRecord = patients?.find((p: any) => p.email === currentUser?.email) || patients?.[0];
-  const patientDid = patientRecord?.did || currentUser?.did || "";
+  // `|| patients[0]` showed a DIFFERENT patient's vaccine record when the email
+  // lookup missed. The signed-in user's own DID is authoritative.
+  const patientRecord = patients?.find((p: any) => p.email === currentUser?.email);
+  const patientDid = currentUser?.primaryDid || currentUser?.did || patientRecord?.did || "";
   const { data: vaccineData } = useVaccineRecords(patientDid);
-  const vaccineCredentials = vaccineData?.vaccines ?? [];
   const [selected, setSelected] = useState<any | null>(null);
+
+  /**
+   * getVaccines() returns {id, patientDid, name, doseNumber, administeredOn,
+   * administeredBy, batchNumber, nextDueOn}. This page was reading v.vaccine,
+   * v.issuer, v.status, v.doses, v.lastDose, v.nextDue, v.credential and
+   * v.manufacturer — `id` was the ONLY field of eight that matched, so every
+   * card rendered blank and clicking one threw on selected.issuer.toLowerCase().
+   *
+   * Mapped once here, to the names the API actually returns.
+   */
+  const vaccineCredentials = (vaccineData?.vaccines ?? []).map((v: any) => {
+    const nextDue = v.nextDueOn ? new Date(v.nextDueOn) : null;
+    const soon = nextDue
+      ? nextDue.getTime() - Date.now() < 30 * 24 * 60 * 60 * 1000 && nextDue.getTime() > Date.now()
+      : false;
+    return {
+      id: v.id,
+      vaccine: v.name ?? "Vaccine",
+      issuer: v.administeredBy ?? "",
+      doses: v.doseNumber ?? null,
+      lastDose: v.administeredOn ?? "",
+      nextDue: v.nextDueOn ?? "",
+      batchNo: v.batchNumber ?? "",
+      // Derived from the real next-due date rather than a status column, which
+      // `vaccines` does not have.
+      status: !v.nextDueOn ? "complete" : soon ? "due-soon" : "scheduled",
+    };
+  });
+
   const complete = vaccineCredentials.filter((v: any) => v.status === "complete").length;
   const dueSoon = vaccineCredentials.filter((v: any) => v.status === "due-soon").length;
 
   const timelineEvents = vaccineCredentials.map((v: any, i: number) => ({
     id: `vax_event_${v.id || i}`,
     action: "issued" as const,
-    label: `${v.vaccine} dose issued`,
+    label: v.doses ? `${v.vaccine} · dose ${v.doses}` : `${v.vaccine} issued`,
     issuer: v.issuer,
-    at: v.lastDose || "N/A",
+    at: v.lastDose || "",
   }));
 
   return (
@@ -51,10 +81,9 @@ function VaccinesPage() {
         description="Your complete vaccination history with verifiable credentials"
         actions={
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 rounded-full bg-success/10 px-3 py-1.5 text-xs font-medium text-success">
-              <ShieldCheck className="h-3.5 w-3.5" />
-              WHO Verified
-            </div>
+            {/* Removed an unconditional "WHO Verified" pill. The `vaccines`
+                table has no signature, issuer-authority or verification column,
+                so nothing here was ever verified by anyone. */}
           </div>
         }
       />
@@ -178,10 +207,10 @@ function VaccinesPage() {
             <div className="space-y-4">
               <CredentialIssuerBadge
                 issuer={selected.issuer}
-                did={
-                  selected.issuerDid ||
-                  `did:hosp:issuer:${selected.issuer.toLowerCase().replace(/[^a-z0-9]/g, "")}`
-                }
+                // Was `selected.issuer.toLowerCase()` on a field that never
+                // existed — a TypeError on every card click. And a DID built
+                // from an issuer's name is not a DID: it resolves to nothing.
+                did={selected.issuerDid ?? ""}
               />
 
               <div className="grid grid-cols-2 gap-3 text-sm">
@@ -202,12 +231,8 @@ function VaccinesPage() {
                 ))}
               </div>
 
-              <div className="flex items-center gap-2 rounded-lg bg-success/10 p-3">
-                <ShieldCheck className="h-4 w-4 text-success" />
-                <span className="text-xs font-medium text-success">
-                  Credential cryptographically verified · Ed25519
-                </span>
-              </div>
+              {/* Removed "Credential cryptographically verified · Ed25519" —
+                  there is no signature on a vaccine row to verify. */}
             </div>
           </motion.div>
         </div>

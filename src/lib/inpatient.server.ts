@@ -11,6 +11,7 @@
  */
 
 import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
 import { getSupabaseServerClient, getVerifiedUser } from "./supabase.server";
 
 async function requireSession() {
@@ -152,7 +153,15 @@ export const getInpatientData = createServerFn({ method: "GET" }).handler(async 
     ]);
 
   return {
-    admission: admissions[0] ?? null,
+    /**
+     * The currently-active admission, not just the newest row.
+     *
+     * This was `admissions[0]` off a descending admitted_at order with no
+     * status filter, so a patient discharged months ago was reported as
+     * currently admitted. `discharged_at IS NULL` is what "still admitted"
+     * actually means.
+     */
+    admission: admissions.find((a: any) => !a.discharged_at && a.status !== "discharged") ?? null,
     admissions,
     procedures,
     medications,
@@ -183,23 +192,59 @@ export const getPatientPreferences = createServerFn({ method: "GET" }).handler(a
   };
 });
 
+/**
+ * Update the caller's privacy and reminder preferences.
+ *
+ * The previous version had the same destructive shape as updateInsurancePolicy:
+ * every absent key fell back to a hardcoded default (`?? true` / `?? false`) in
+ * an upsert, so toggling ONE switch silently reset the other three to defaults —
+ * a patient turning off research sharing could have had break-glass access
+ * turned back on. On privacy switches that is the worst possible failure.
+ *
+ * Now: a closed schema (so a misspelled key is rejected rather than ignored),
+ * and a patch built by omitting undefined keys, so a partial update only
+ * touches what was sent.
+ */
+const preferencesSchema = z
+  .object({
+    emergencyAccess: z.boolean().optional(),
+    insuranceVerification: z.boolean().optional(),
+    researchSharing: z.boolean().optional(),
+    crossHospital: z.boolean().optional(),
+    // Added by 20260825020000 — these were component state only and reset on
+    // every page load.
+    reminderWhatsapp: z.boolean().optional(),
+    reminderSms: z.boolean().optional(),
+    reminderEmail: z.boolean().optional(),
+  })
+  .strict();
+
 export const updatePatientPreferences = createServerFn({ method: "POST" })
-  .inputValidator((data: Record<string, unknown>) => data ?? {})
+  .inputValidator((data: unknown) => preferencesSchema.parse(data ?? {}))
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();
     const did = await callerDid();
 
-    const { error } = await supabase.from("patient_preferences").upsert(
-      {
-        patient_did: did,
-        emergency_access: (data.emergencyAccess as boolean) ?? true,
-        insurance_verification: (data.insuranceVerification as boolean) ?? true,
-        research_sharing: (data.researchSharing as boolean) ?? false,
-        cross_hospital: (data.crossHospital as boolean) ?? false,
-      },
-      { onConflict: "patient_did" },
-    );
+    const COLUMN: Record<string, string> = {
+      emergencyAccess: "emergency_access",
+      insuranceVerification: "insurance_verification",
+      researchSharing: "research_sharing",
+      crossHospital: "cross_hospital",
+      reminderWhatsapp: "reminder_whatsapp",
+      reminderSms: "reminder_sms",
+      reminderEmail: "reminder_email",
+    };
+
+    const patch: Record<string, unknown> = { patient_did: did };
+    for (const [key, column] of Object.entries(COLUMN)) {
+      const value = (data as Record<string, unknown>)[key];
+      if (value !== undefined) patch[column] = value;
+    }
+
+    const { error } = await supabase
+      .from("patient_preferences")
+      .upsert(patch, { onConflict: "patient_did" });
 
     if (error) throw new Error(error.message);
     return { ok: true as const };
@@ -247,6 +292,21 @@ export const updateAmbulanceStatus = createServerFn({ method: "POST" })
     (data: { ambulanceId: string; status: string; location?: string; driverName?: string }) => {
       if (!data?.ambulanceId) throw new Error("Ambulance ID is required");
       if (!data?.status) throw new Error("Status is required");
+      // Reject here rather than let Postgres raise a raw enum error at the UI.
+      // The dispatch stages were only added to asset_status in 20260826060000;
+      // before that these three writes always failed.
+      const allowed = [
+        "available",
+        "in-use",
+        "maintenance",
+        "retired",
+        "en-route",
+        "at-scene",
+        "returning",
+      ];
+      if (!allowed.includes(data.status)) {
+        throw new Error(`Unknown ambulance status: ${data.status}`);
+      }
       return data;
     },
   )
@@ -260,176 +320,80 @@ export const updateAmbulanceStatus = createServerFn({ method: "POST" })
     if (data.location !== undefined) updatePayload.current_location = data.location;
     if (data.driverName !== undefined) updatePayload.driver_name = data.driverName;
 
-    const { error } = await supabase
+    // `.select()` so an RLS-filtered update — which matches zero rows WITHOUT
+    // raising an error — is reported as a failure rather than as success.
+    const { data: updated, error } = await supabase
       .from("ambulances")
       .update(updatePayload)
-      .eq("ambulance_id", data.ambulanceId);
+      .eq("ambulance_id", data.ambulanceId)
+      .select("ambulance_id");
 
     if (error) throw new Error(error.message);
+    if (!updated?.length) {
+      throw new Error("Ambulance not found, or you do not have permission to update it");
+    }
     return { ok: true as const, ambulanceId: data.ambulanceId, status: data.status };
   });
 
-// ─── Equipment metadata enricher helper ────────────────────────────────────
+// ─── Equipment metadata ─────────────────────────────────────────────────────
+/**
+ * Derive an equipment TYPE from the device name, and nothing else.
+ *
+ * This function used to invent, per device-name keyword, a manufacturer, model,
+ * serial number, department, floor, utilisation percentage, last-service date,
+ * next-service date, warranty expiry, calibration date, next-calibration date
+ * and assigned ward — e.g. any device whose name contained "ventilator" became
+ * a Hamilton-G5 Pro, serial SN-VNT-55109-H, last serviced 2026-08-01, next
+ * calibration 2026-11-01.
+ *
+ * `/admin/equipment` is subtitled "ISO calibration compliance". Every one of
+ * those invented dates read there as a real service record, so a device that
+ * had never been serviced displayed as in-compliance and one that was overdue
+ * displayed as current. The serial number will not match the asset tag on the
+ * device, so it cannot be used to find it either.
+ *
+ * Type inference from the name is kept: it is a classification of a value that
+ * IS present, not an assertion about a value that is missing. Everything else
+ * now passes through as null, and the UI renders "not recorded".
+ */
 function enrichEquipmentRecord(raw: any): any {
   const name = (raw.name || "").toLowerCase();
-  const cat = (raw.category || "").toLowerCase();
-  const id = raw.equipment_id || "";
 
-  let type = raw.equipment_type || "general";
-  let manufacturer = raw.manufacturer;
-  let model = raw.model;
-  let serialNumber = raw.serial_number;
-  let department = raw.department;
-  let floorNumber = raw.floor_number ?? 1;
-  let utilizationPct = raw.utilization_pct;
-  let lastServicedOn = raw.last_serviced_on;
-  let nextServiceOn = raw.next_service_on;
-  let warrantyExpiry = raw.warranty_expiry;
-  let calibrationDate = raw.calibration_date;
-  let nextCalibration = raw.next_calibration;
-  let assignedWard = raw.assigned_ward;
-
-  // Infer clinical metadata if empty in legacy DB records
-  if (name.includes("mri") || type === "mri") {
-    type = "mri";
-    manufacturer = manufacturer || "Siemens Healthineers";
-    model = model || "MAGNETOM Vida 3T";
-    serialNumber = serialNumber || "SN-MRI-98421-V";
-    department = department || "Radiology & Imaging";
-    floorNumber = floorNumber || 1;
-    utilizationPct = utilizationPct ?? 88;
-    lastServicedOn = lastServicedOn || "2026-06-15";
-    nextServiceOn = nextServiceOn || "2026-09-15";
-    warrantyExpiry = warrantyExpiry || "2029-12-31";
-    calibrationDate = calibrationDate || "2026-06-15";
-    nextCalibration = nextCalibration || "2026-12-15";
-    assignedWard = assignedWard || "Advanced Diagnostic Center";
-  } else if (name.includes("ct") || type === "ct") {
-    type = "ct";
-    manufacturer = manufacturer || "Canon Medical Systems";
-    model = model || "Aquilion ONE GENESIS";
-    serialNumber = serialNumber || "SN-CT-77412-C";
-    department = department || "Radiology & Imaging";
-    floorNumber = floorNumber || 1;
-    utilizationPct = utilizationPct ?? 74;
-    lastServicedOn = lastServicedOn || "2026-07-20";
-    nextServiceOn = nextServiceOn || "2026-10-20";
-    warrantyExpiry = warrantyExpiry || "2028-06-30";
-    calibrationDate = calibrationDate || "2026-07-20";
-    nextCalibration = nextCalibration || "2027-01-20";
-    assignedWard = assignedWard || "Emergency Diagnostic Wing";
-  } else if (name.includes("ventilator") || type === "ventilator") {
-    type = "ventilator";
-    manufacturer = manufacturer || "Hamilton Medical";
-    model = model || "Hamilton-G5 Pro";
-    serialNumber = serialNumber || "SN-VNT-55109-H";
-    department = department || "Intensive Care Unit (ICU)";
-    floorNumber = floorNumber || 3;
-    utilizationPct = utilizationPct ?? 92;
-    lastServicedOn = lastServicedOn || "2026-08-01";
-    nextServiceOn = nextServiceOn || "2026-09-01";
-    warrantyExpiry = warrantyExpiry || "2027-08-15";
-    calibrationDate = calibrationDate || "2026-08-01";
-    nextCalibration = nextCalibration || "2026-11-01";
-    assignedWard = assignedWard || "ICU Ward Alpha";
-  } else if (name.includes("defibrillator") || name.includes("zoll") || type === "defibrillator") {
-    type = "defibrillator";
-    manufacturer = manufacturer || "ZOLL Medical";
-    model = model || "R Series Plus ALS";
-    serialNumber = serialNumber || "SN-DFB-44129-Z";
-    department = department || "Emergency Medicine";
-    floorNumber = floorNumber || 1;
-    utilizationPct = utilizationPct ?? 65;
-    lastServicedOn = lastServicedOn || "2026-08-12";
-    nextServiceOn = nextServiceOn || "2026-09-15";
-    warrantyExpiry = warrantyExpiry || "2028-05-10";
-    calibrationDate = calibrationDate || "2026-08-12";
-    nextCalibration = nextCalibration || "2026-11-12";
-    assignedWard = assignedWard || "Emergency Trauma Bay";
-  } else if (name.includes("ultrasound") || type === "ultrasound") {
-    type = "ultrasound";
-    manufacturer = manufacturer || "Philips Ultrasound";
-    model = model || "EPIQ Elite Matrix";
-    serialNumber = serialNumber || "SN-USG-66289-P";
-    department = department || "Cardiology";
-    floorNumber = floorNumber || 2;
-    utilizationPct = utilizationPct ?? 80;
-    lastServicedOn = lastServicedOn || "2026-06-30";
-    nextServiceOn = nextServiceOn || "2026-09-30";
-    warrantyExpiry = warrantyExpiry || "2028-11-15";
-    calibrationDate = calibrationDate || "2026-06-30";
-    nextCalibration = nextCalibration || "2026-12-30";
-    assignedWard = assignedWard || "Cardiac Diagnostic Suite";
-  } else if (name.includes("ecg") || type === "ecg") {
-    type = "ecg";
-    manufacturer = manufacturer || "GE HealthCare";
-    model = model || "MAC 7 Workstation";
-    serialNumber = serialNumber || "SN-ECG-11983-G";
-    department = department || "Outpatient Services";
-    floorNumber = floorNumber || 1;
-    utilizationPct = utilizationPct ?? 48;
-    lastServicedOn = lastServicedOn || "2026-07-15";
-    nextServiceOn = nextServiceOn || "2026-10-15";
-    warrantyExpiry = warrantyExpiry || "2027-12-01";
-    calibrationDate = calibrationDate || "2026-07-15";
-    nextCalibration = nextCalibration || "2027-01-15";
-    assignedWard = assignedWard || "Cardiology Consultation Clinic";
-  } else if (name.includes("dialysis") || type === "dialysis") {
-    type = "dialysis";
-    manufacturer = manufacturer || "Fresenius Medical Care";
-    model = model || "5008S CorDiax HDF";
-    serialNumber = serialNumber || "SN-DIA-99410-F";
-    department = department || "Nephrology";
-    floorNumber = floorNumber || 4;
-    utilizationPct = utilizationPct ?? 90;
-    lastServicedOn = lastServicedOn || "2026-07-28";
-    nextServiceOn = nextServiceOn || "2026-08-28";
-    warrantyExpiry = warrantyExpiry || "2028-09-10";
-    calibrationDate = calibrationDate || "2026-07-28";
-    nextCalibration = nextCalibration || "2026-10-28";
-    assignedWard = assignedWard || "Hemodialysis Center";
-  } else if (name.includes("infusion") || type === "infusion") {
-    type = "infusion";
-    manufacturer = manufacturer || "BD Medical";
-    model = model || "Alaris CC Plus";
-    serialNumber = serialNumber || "SN-INF-33100-B";
-    department = department || "Surgical Ward";
-    floorNumber = floorNumber || 2;
-    utilizationPct = utilizationPct ?? 75;
-    lastServicedOn = lastServicedOn || "2026-08-02";
-    nextServiceOn = nextServiceOn || "2026-11-02";
-    warrantyExpiry = warrantyExpiry || "2027-04-15";
-    calibrationDate = calibrationDate || "2026-08-02";
-    nextCalibration = nextCalibration || "2027-02-02";
-    assignedWard = assignedWard || "Surgical Step-Down Unit";
-  } else {
-    manufacturer = manufacturer || "Hospital Engineering";
-    model = model || "Standard Clinical Unit";
-    serialNumber = serialNumber || `SN-${id.toUpperCase() || "EQ-9921"}`;
-    department =
-      department || (cat ? cat.charAt(0).toUpperCase() + cat.slice(1) : "General Medicine");
-    utilizationPct = utilizationPct ?? 50;
-    lastServicedOn = lastServicedOn || "2026-07-01";
-    nextServiceOn = nextServiceOn || "2026-10-01";
-    warrantyExpiry = warrantyExpiry || "2028-01-01";
-    assignedWard = assignedWard || "Main Clinical Wing";
-  }
+  const inferredType =
+    raw.equipment_type ||
+    (name.includes("mri")
+      ? "mri"
+      : name.includes("ct")
+        ? "ct"
+        : name.includes("ventilator")
+          ? "ventilator"
+          : name.includes("ultrasound")
+            ? "ultrasound"
+            : name.includes("x-ray") || name.includes("xray")
+              ? "xray"
+              : name.includes("monitor")
+                ? "monitor"
+                : name.includes("defibrillator")
+                  ? "defibrillator"
+                  : name.includes("infusion") || name.includes("pump")
+                    ? "infusion-pump"
+                    : null);
 
   return {
     ...raw,
-    equipment_type: type,
-    manufacturer,
-    model,
-    serial_number: serialNumber,
-    department,
-    floor_number: floorNumber,
-    utilization_pct: utilizationPct,
-    last_serviced_on: lastServicedOn,
-    next_service_on: nextServiceOn,
-    warranty_expiry: warrantyExpiry,
-    calibration_date: calibrationDate,
-    next_calibration: nextCalibration,
-    assigned_ward: assignedWard,
+    equipment_type: inferredType,
+    manufacturer: raw.manufacturer ?? null,
+    model: raw.model ?? null,
+    serial_number: raw.serial_number ?? null,
+    department: raw.department ?? null,
+    floor_number: raw.floor_number ?? null,
+    utilization_pct: raw.utilization_pct ?? null,
+    last_serviced_on: raw.last_serviced_on ?? null,
+    next_service_on: raw.next_service_on ?? null,
+    warranty_expiry: raw.warranty_expiry ?? null,
+    calibration_date: raw.calibration_date ?? null,
+    next_calibration: raw.next_calibration ?? null,
+    assigned_ward: raw.assigned_ward ?? null,
     did: raw.did || `did:hosp:equipment:${raw.equipment_id}`,
   };
 }
@@ -441,78 +405,36 @@ export const getEquipment = createServerFn({ method: "GET" }).handler(async () =
   };
 });
 
-// Fallback in-memory maintenance logs if schema is not yet cached on remote Supabase
-const memoryLogs: Record<string, any[]> = {
-  "SEED-EQ-3": [
-    {
-      log_id: "LOG-DEFIB-001",
-      equipment_id: "SEED-EQ-3",
-      maintenance_type: "corrective",
-      description: "Pacing Circuit Impedance Fault & Battery Pack Reconditioning",
-      performed_by: "Sarah Jenkins (Biomedical Tech Lead)",
-      performed_at: "2026-08-12T10:30:00Z",
-      next_due: "2026-09-15",
-      cost: 620.0,
-      status: "completed",
-      notes: "Replaced internal lithium backup cell and verified pacing energy output at 200J.",
-    },
-    {
-      log_id: "LOG-DEFIB-002",
-      equipment_id: "SEED-EQ-3",
-      maintenance_type: "calibration",
-      description: "Defibrillator Energy Discharge & ECG Lead Sensitivity Calibration",
-      performed_by: "Dr. Klaus Richter (Metrology Specialist)",
-      performed_at: "2026-08-12T14:15:00Z",
-      next_due: "2026-11-12",
-      cost: 250.0,
-      status: "completed",
-      notes: "Measured deliverable energy tolerance within +/- 1.2%. Complies with IEC 60601-2-4.",
-    },
-  ],
-};
-
 export const getEquipmentMaintenanceLog = createServerFn({ method: "GET" })
   .inputValidator((data: { equipmentId?: string }) => data)
   .handler(async ({ data }) => {
     await requireSession();
     const supabase = getSupabaseServerClient();
 
-    try {
-      let query = supabase
-        .from("equipment_maintenance_log")
-        .select("*")
-        .order("performed_at", { ascending: false });
+    // A query failure used to fall back to SYNTHESISED maintenance records: a
+    // "Quarterly Clinical Engineering Inspection & Safety Audit" performed by the
+    // "Biomedical Engineering Service Team" 14 days ago for 320.00, with the note
+    // "Ground resistance and chassis leakage current tested nominal" — plus two
+    // hardcoded entries for SEED-EQ-3 naming a named technician and citing
+    // IEC 60601-2-4 compliance.
+    //
+    // Those are records of electrical-safety tests that were never carried out,
+    // shown in a maintenance history that a biomedical engineer relies on to know
+    // what still needs doing. An error must surface as an error; an empty history
+    // must read as empty.
+    let query = supabase
+      .from("equipment_maintenance_log")
+      .select("*")
+      .order("performed_at", { ascending: false });
 
-      if (data?.equipmentId) {
-        query = query.eq("equipment_id", data.equipmentId);
-      }
-
-      const { data: logs, error } = await query.limit(100);
-      if (error) {
-        // Fallback gracefully without crashing
-        const eqId = data?.equipmentId || "";
-        const fallback = memoryLogs[eqId] || [
-          {
-            log_id: `LOG-${eqId || "DEFAULT"}-001`,
-            equipment_id: eqId,
-            maintenance_type: "preventive",
-            description: "Quarterly Clinical Engineering Inspection & Safety Audit",
-            performed_by: "Biomedical Engineering Service Team",
-            performed_at: new Date(Date.now() - 14 * 86400000).toISOString(),
-            next_due: new Date(Date.now() + 76 * 86400000).toISOString().split("T")[0],
-            cost: 320.0,
-            status: "completed",
-            notes: "Ground resistance and chassis leakage current tested nominal.",
-          },
-        ];
-        return { logs: fallback };
-      }
-      return { logs: logs ?? [] };
-    } catch {
-      const eqId = data?.equipmentId || "";
-      const fallback = memoryLogs[eqId] || [];
-      return { logs: fallback };
+    if (data?.equipmentId) {
+      query = query.eq("equipment_id", data.equipmentId);
     }
+
+    const { data: logs, error } = await query.limit(100);
+    if (error) throw new Error(`Could not load maintenance history: ${error.message}`);
+
+    return { logs: logs ?? [] };
   });
 
 export const updateEquipmentStatus = createServerFn({ method: "POST" })
@@ -537,21 +459,20 @@ export const updateEquipmentStatus = createServerFn({ method: "POST" })
     if (data.assignedWard !== undefined) updatePayload.assigned_ward = data.assignedWard;
     if (data.utilizationPct !== undefined) updatePayload.utilization_pct = data.utilizationPct;
 
-    const { error } = await supabase
+    // The old version retried a narrower update on ANY error and then returned
+    // ok:true regardless of whether either write landed, so the detail panel
+    // toasted "Equipment status & telemetry updated successfully" while nothing
+    // had changed — including when the status was an invalid enum value, which
+    // the UI could produce because its vocabulary did not match asset_status.
+    const { data: updated, error } = await supabase
       .from("equipment")
       .update(updatePayload)
-      .eq("equipment_id", data.equipmentId);
+      .eq("equipment_id", data.equipmentId)
+      .select("equipment_id");
 
-    if (error) {
-      // Fallback update without extended columns if column doesn't exist
-      await supabase
-        .from("equipment")
-        .update({
-          status: data.status,
-          location: data.location,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("equipment_id", data.equipmentId);
+    if (error) throw new Error(error.message);
+    if (!updated?.length) {
+      throw new Error("Equipment not found, or you do not have permission to update it");
     }
     return { ok: true as const, equipmentId: data.equipmentId, status: data.status };
   });
@@ -588,38 +509,40 @@ export const recordEquipmentMaintenance = createServerFn({ method: "POST" })
       notes: data.notes || null,
     };
 
-    // Save in memory cache first
-    if (!memoryLogs[data.equipmentId]) memoryLogs[data.equipmentId] = [];
-    memoryLogs[data.equipmentId].unshift(entry);
+    // Previously the insert was wrapped in try/catch and the entry was also
+    // pushed to a module-level `memoryLogs` map. supabase-js RETURNS `{error}`
+    // rather than throwing, so a rejected insert never reached the catch: the
+    // record existed only in that process's memory, survived until the next
+    // serverless cold start, and the caller was told it had been saved.
+    const { error: logErr } = await supabase.from("equipment_maintenance_log").insert(entry);
+    if (logErr) throw new Error(`Maintenance record could not be saved: ${logErr.message}`);
 
-    try {
-      await supabase.from("equipment_maintenance_log").insert(entry);
-    } catch {
-      // Schema cache not yet synced on cloud - safe fallback
-    }
-
-    try {
-      if (data.maintenanceType === "calibration") {
-        await supabase
-          .from("equipment")
-          .update({
+    // Roll the device's service/calibration dates forward to match the log entry
+    // just written. A failure here leaves the log and the device disagreeing, so
+    // it is reported rather than swallowed — an equipment record that claims it
+    // was calibrated today when it was not is the defect this whole file had.
+    const servicePatch =
+      data.maintenanceType === "calibration"
+        ? {
             calibration_date: new Date().toISOString().split("T")[0],
             next_calibration: data.nextDue || null,
             updated_at: new Date().toISOString(),
-          })
-          .eq("equipment_id", data.equipmentId);
-      } else {
-        await supabase
-          .from("equipment")
-          .update({
+          }
+        : {
             last_serviced_on: new Date().toISOString().split("T")[0],
             next_service_on: data.nextDue || null,
             updated_at: new Date().toISOString(),
-          })
-          .eq("equipment_id", data.equipmentId);
-      }
-    } catch {
-      // Safe fallback
+          };
+
+    const { error: svcErr } = await supabase
+      .from("equipment")
+      .update(servicePatch)
+      .eq("equipment_id", data.equipmentId);
+
+    if (svcErr) {
+      throw new Error(
+        `Maintenance was logged, but the device's service dates were not updated: ${svcErr.message}`,
+      );
     }
 
     return { ok: true as const, logId };
@@ -868,6 +791,52 @@ export const getDoctors = createServerFn({ method: "GET" }).handler(async () => 
 
   if (error) throw new Error(error.message);
   return { doctors: data ?? [] };
+});
+
+/**
+ * Clinicians a patient may actually book with: their OWN hospital's, only.
+ *
+ * `getDoctors` above is deliberately cross-hospital — `dids_select_clinician_directory`
+ * spans tenants so a clinician can request a referral for a patient treated
+ * elsewhere. The patient booking screen used that same unscoped list, so a
+ * patient registered at one hospital was offered every clinician on the
+ * platform: verified against production, a patient at "shubham3" (1 clinician)
+ * was shown 14 clinicians from "KIMS", a hospital they have no relationship
+ * with. Booking one would create an appointment across a tenant boundary.
+ *
+ * The hospital is resolved HERE from the session, never accepted as a parameter.
+ * A client-supplied hospitalId would just move the problem: anyone could pass
+ * another tenant's id and get its roster back.
+ */
+export const getBookableDoctors = createServerFn({ method: "GET" }).handler(async () => {
+  const user = await requireSession();
+  const supabase = getSupabaseServerClient();
+
+  const { data: profile, error: pErr } = await supabase
+    .from("profiles")
+    .select("hospital_id")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (pErr) throw new Error(pErr.message);
+
+  // No hospital means no booking relationship with anyone. Returning the full
+  // directory here would reintroduce exactly the bug this function exists to
+  // fix, so it returns nothing and lets the UI explain why.
+  if (!profile?.hospital_id) {
+    return { doctors: [], hospitalId: null as string | null };
+  }
+
+  const { data, error } = await supabase
+    .from("dids")
+    .select("did, owner_name, owner_type, status, hospital_id")
+    .in("owner_type", ["doctor", "staff"])
+    .eq("is_organisation", false)
+    .eq("status", "active")
+    .eq("hospital_id", profile.hospital_id);
+
+  if (error) throw new Error(error.message);
+  return { doctors: data ?? [], hospitalId: profile.hospital_id as string | null };
 });
 
 /**

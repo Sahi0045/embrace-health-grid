@@ -244,15 +244,18 @@ export function StaffDetailPanel({
                         Active Inpatients Assigned
                       </span>
                       <span className="font-mono font-bold text-foreground">
-                        {staff.workload.activePatients} of {staff.workload.maxCapacity} (
-                        {staff.workload.percentage}%)
+                        {staff.workload.percentage == null
+                          ? "Not tracked"
+                          : `${staff.workload.activePatients} of ${staff.workload.maxCapacity} (${staff.workload.percentage}%)`}
                       </span>
                     </div>
-                    <GradientProgress
-                      value={staff.workload.percentage}
-                      tone={staff.workload.percentage > 85 ? "destructive" : "primary"}
-                      height={8}
-                    />
+                    {staff.workload.percentage != null && (
+                      <GradientProgress
+                        value={staff.workload.percentage}
+                        tone={staff.workload.percentage > 85 ? "destructive" : "primary"}
+                        height={8}
+                      />
+                    )}
                   </div>
 
                   <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border/60 text-center">
@@ -294,7 +297,7 @@ export function StaffDetailPanel({
                       <span className="text-foreground font-medium truncate">{staff.email}</span>
                     </div>
                     <div className="flex items-center gap-2 text-muted-foreground">
-                      <Phone className="h-3.5 w-3.5 text-teal-500 shrink-0" />
+                      <Phone className="h-3.5 w-3.5 text-success shrink-0" />
                       <span className="text-foreground font-medium">
                         {staff.phone || "+1 (555) 019-4832"}
                       </span>
@@ -341,7 +344,7 @@ export function StaffDetailPanel({
                               {shift.startsAt} – {shift.endsAt} • {shift.role}
                             </div>
                             {shift.unit && (
-                              <div className="text-[10px] text-teal-600 dark:text-teal-400 font-semibold mt-0.5">
+                              <div className="text-[10px] text-success dark:text-success font-semibold mt-0.5">
                                 Unit: {shift.unit}
                               </div>
                             )}
@@ -478,7 +481,7 @@ export function StaffDetailPanel({
 
             <Button
               onClick={() => toast.success(`Communication link opened for ${staff.fullName}`)}
-              className="bg-gradient-to-r from-primary to-blue-600 text-primary-foreground font-extrabold rounded-xl shadow-clinical-md shadow-primary/25 text-xs h-10 px-5"
+              className="bg-primary text-primary-foreground font-extrabold rounded-xl shadow-clinical-md shadow-primary/25 text-xs h-10 px-5"
             >
               <Mail className="h-4 w-4 mr-2" />
               Dispatch Alert

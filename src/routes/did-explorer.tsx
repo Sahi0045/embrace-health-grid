@@ -233,15 +233,15 @@ function DIDExplorerPage() {
 
         {/* Pending Clinician DID Requests Section (Admin View) */}
         {isAdmin && pendingRequests.length > 0 && (
-          <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-5 shadow-sm space-y-3">
+          <div className="rounded-2xl border border-warning/30 bg-warning/5 p-5 shadow-sm space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <ShieldCheck className="h-5 w-5 text-amber-500" />
+                <ShieldCheck className="h-5 w-5 text-warning" />
                 <h3 className="text-base font-bold text-foreground">
                   Pending DID Issuance Requests ({pendingRequests.length})
                 </h3>
               </div>
-              <span className="text-xs text-amber-500 font-semibold uppercase tracking-wider bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20">
+              <span className="text-xs text-warning font-semibold uppercase tracking-wider bg-warning/10 px-2.5 py-1 rounded-full border border-warning/20">
                 Requires Admin Approval
               </span>
             </div>
@@ -540,7 +540,6 @@ function DIDExplorerPage() {
                                   const res = await issueNFCCard({
                                     patientDid: selected.did,
                                     patientName: selected.subject,
-                                    mrn: `MRN-${selected.did.slice(-6).toUpperCase()}`,
                                   });
                                   toast.success("NFC Card Issued", {
                                     description: `New Card ${res.card.cardId} registered.`,
@@ -568,7 +567,6 @@ function DIDExplorerPage() {
                                 const res = await issueNFCCard({
                                   patientDid: selected.did,
                                   patientName: selected.subject,
-                                  mrn: `MRN-${selected.did.slice(-6).toUpperCase()}`,
                                 });
                                 toast.success("NFC Card Issued", {
                                   description: `New Card ${res.card.cardId} registered.`,

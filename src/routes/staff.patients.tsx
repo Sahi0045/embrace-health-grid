@@ -141,8 +141,10 @@ function Patients() {
     if (q.trim()) {
       const lq = q.toLowerCase();
       list = list.filter((p: any) =>
-        [p.name, p.mrn, p.did, p.phone || "", ...(p.conditions || [])].some((f) =>
-          f.toLowerCase().includes(lq),
+        [p.name, p.mrn, p.did, p.phone, ...(p.conditions || [])].some((f) =>
+          String(f ?? "")
+            .toLowerCase()
+            .includes(lq),
         ),
       );
     }
@@ -279,7 +281,7 @@ function Patients() {
                           ))}
                           {(p.conditions as string[]).length > 2 && (
                             <span className="text-[10px] text-muted-foreground">
-                              +{p.conditions.length - 2}
+                              +{(p.conditions as string[]).length - 2}
                             </span>
                           )}
                         </div>
@@ -354,7 +356,7 @@ function Patients() {
 
             <div className="p-6 space-y-5">
               {/* Allergy alert */}
-              {selected.allergies.length > 0 && (
+              {(selected.allergies?.length ?? 0) > 0 && (
                 <div className="flex items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
                   <AlertTriangle className="h-5 w-5 text-destructive shrink-0" />
                   <div>
@@ -728,7 +730,7 @@ function PatientChartCards({ patientDid }: { patientDid: string }) {
                 <div key={rx.rxId} className="rounded-lg border p-3 text-xs space-y-2 bg-card">
                   <div className="flex justify-between items-center">
                     <span className="font-bold text-foreground">
-                      {rx.diagnosis || "General Consult"}
+                      {rx.diagnosis || "No diagnosis recorded"}
                     </span>
                     <Badge
                       variant="outline"
@@ -754,7 +756,7 @@ function PatientChartCards({ patientDid }: { patientDid: string }) {
                     )}
                   </div>
                   <div className="text-[10px] text-muted-foreground border-t border-border/40 pt-1.5 flex justify-between">
-                    <span>Issued By: {rx.signedBy || "Staff"}</span>
+                    <span>Issued By: {rx.signedBy || "Not recorded"}</span>
                     <span>
                       Date: {rx.signedAt ? new Date(rx.signedAt).toLocaleDateString("en-IN") : "—"}
                     </span>
@@ -822,7 +824,9 @@ function PatientChartCards({ patientDid }: { patientDid: string }) {
                 className="flex items-center justify-between rounded-lg border p-2 text-sm"
               >
                 <div>
-                  <span className="font-medium">{test.testName || test.type || "Lab Test"}</span>
+                  <span className="font-medium">
+                    {test.testName || test.type || test.checkupType || "Unnamed entry"}
+                  </span>
                   <span className="text-muted-foreground ml-2 text-xs">
                     {test.orderedDate || test.date}
                   </span>

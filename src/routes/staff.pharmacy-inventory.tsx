@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { RouteGuard } from "@/components/RouteGuard";
 import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,7 +53,6 @@ import {
   dispensePrescriptionMedications,
   getItemMovements,
 } from "@/lib/pharmacy.server";
-import { useTableRefresh } from "@/lib/hooks/useTableRefresh";
 
 export const Route = createFileRoute("/staff/pharmacy-inventory")({
   component: StaffPharmacyInventory,
@@ -62,40 +63,50 @@ function StaffPharmacyInventory() {
   const [searchTerm, setSearchTerm] = useState("");
 
   // Refresh triggers for real-time updates
-  const refreshInventory = useTableRefresh();
+  const queryClient = useQueryClient();
+  /**
+   * Force the pharmacy queries to refetch.
+   *
+   * This replaces `useTableRefresh()`, which returned a FUNCTION that callers put
+   * into their React Query keys. React Query hashes keys with JSON.stringify,
+   * which serialises a function to `null` — so the key was constant and nothing
+   * ever refetched. Dispensing, receiving and transferring all succeeded and the
+   * screen kept showing the old quantities until a full page reload.
+   */
+  const refreshInventory = () => queryClient.invalidateQueries();
 
   // ─── Queries ────────────────────────────────────────────────────────────
 
   // Pending prescriptions for dispensing
   const { data: prescriptionsData } = useQuery({
-    queryKey: ["pending-dispensing-rx", refreshInventory],
+    queryKey: ["pending-dispensing-rx"],
     queryFn: () => getPendingDispensingPrescriptions({ data: { limit: 20 } }),
     enabled: activeTab === "dispense",
   });
 
   // Inventory items
   const { data: inventoryData } = useQuery({
-    queryKey: ["inventory-items-staff", searchTerm, refreshInventory],
+    queryKey: ["inventory-items-staff", searchTerm],
     queryFn: () => getInventoryItems({ data: { search: searchTerm || undefined, limit: 100 } }),
     enabled: activeTab === "inventory",
   });
 
   // All batches
   const { data: batchesData } = useQuery({
-    queryKey: ["batches-staff", refreshInventory],
+    queryKey: ["batches-staff"],
     queryFn: () => getBatches({ data: { limit: 100 } }),
     enabled: activeTab === "receive" || activeTab === "inventory",
   });
 
   // Low-stock items
   const { data: lowStockData } = useQuery({
-    queryKey: ["low-stock-alerts-staff", refreshInventory],
+    queryKey: ["low-stock-alerts-staff"],
     queryFn: () => getLowStockItems({ data: { resolved: false, limit: 10 } }),
   });
 
   // Near-expiry items
   const { data: nearExpiryData } = useQuery({
-    queryKey: ["near-expiry-staff", refreshInventory],
+    queryKey: ["near-expiry-staff"],
     queryFn: () =>
       getNearExpiryItems({ data: { status: "near_expiry", resolved: false, limit: 10 } }),
   });
@@ -103,240 +114,243 @@ function StaffPharmacyInventory() {
   // ─── Render ─────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50 p-6">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Pharmacy Stock Operations</h1>
-          <p className="text-gray-600">
-            Dispense medications, receive stock, track movements, and manage alerts
-          </p>
-        </div>
+    <RouteGuard requiredRole="staff">
+      <div className="min-h-screen bg-background p-6">
+        <div className="max-w-6xl mx-auto">
+          {/* Header */}
+          <div className="mb-8">
+            <h1 className="text-4xl font-bold text-foreground mb-2">Pharmacy Stock Operations</h1>
+            <p className="text-muted-foreground">
+              Dispense medications, receive stock, track movements, and manage alerts
+            </p>
+          </div>
 
-        {/* Alert Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <Card className="border-yellow-200 bg-yellow-50">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                <TrendingDown className="w-4 h-4 text-yellow-600" />
-                Low Stock Items
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-yellow-700">
-                {lowStockData?.alerts?.length || 0}
-              </div>
-              <p className="text-xs text-yellow-600 mt-1">Items below threshold</p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-orange-200 bg-orange-50">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                <Clock className="w-4 h-4 text-orange-600" />
-                Near-Expiry Items
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-orange-700">
-                {nearExpiryData?.alerts?.length || 0}
-              </div>
-              <p className="text-xs text-orange-600 mt-1">Within 30 days</p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-blue-200 bg-blue-50">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                <Package className="w-4 h-4 text-blue-600" />
-                Pending Dispenses
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-700">
-                {prescriptionsData?.prescriptions?.filter((rx: any) => rx.readyToDispense).length ||
-                  0}
-              </div>
-              <p className="text-xs text-blue-600 mt-1">Ready to dispense</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-5 bg-white border">
-            <TabsTrigger value="dispense">Dispense</TabsTrigger>
-            <TabsTrigger value="receive">Receive Stock</TabsTrigger>
-            <TabsTrigger value="movements">Movements</TabsTrigger>
-            <TabsTrigger value="transfer">Transfer</TabsTrigger>
-            <TabsTrigger value="inventory">Inventory</TabsTrigger>
-          </TabsList>
-
-          {/* Dispense Tab */}
-          <TabsContent value="dispense" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Pending Prescription Dispenses</CardTitle>
-                <CardDescription>Prescriptions ready for medication dispensing</CardDescription>
+          {/* Alert Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <Card className="border-warning/30 bg-warning/10">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                  <TrendingDown className="w-4 h-4 text-warning" />
+                  Low Stock Items
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                {prescriptionsData?.prescriptions && prescriptionsData.prescriptions.length > 0 ? (
-                  <div className="space-y-4">
-                    {prescriptionsData.prescriptions
-                      .filter((rx: any) => rx.readyToDispense)
-                      .map((rx: any) => (
-                        <DispenseCard
-                          key={rx.rx_id}
-                          prescription={rx}
-                          onSuccess={() => refreshInventory()}
-                        />
-                      ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12 text-gray-500">
-                    <Package className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                    <p>No prescriptions ready for dispensing</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Receive Stock Tab */}
-          <TabsContent value="receive" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Receive Stock</CardTitle>
-                <CardDescription>Record incoming shipments</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ReceiveStockForm onSuccess={() => refreshInventory()} />
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Active Batches</CardTitle>
-                <CardDescription>Current inventory by batch</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {batchesData?.batches && batchesData.batches.length > 0 ? (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b">
-                          <th className="text-left py-3 px-3 font-medium">Batch Number</th>
-                          <th className="text-left py-3 px-3 font-medium">Available</th>
-                          <th className="text-left py-3 px-3 font-medium">Expiry</th>
-                          <th className="text-left py-3 px-3 font-medium">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {batchesData.batches.map((batch: any) => (
-                          <tr key={batch.batch_id} className="border-b hover:bg-gray-50">
-                            <td className="py-3 px-3 font-medium">{batch.batch_number}</td>
-                            <td className="py-3 px-3">{batch.quantity_available}</td>
-                            <td className="py-3 px-3">
-                              {batch.expiry_date
-                                ? new Date(batch.expiry_date).toLocaleDateString()
-                                : "—"}
-                            </td>
-                            <td className="py-3 px-3">
-                              <Badge
-                                variant={batch.quantity_available > 0 ? "default" : "secondary"}
-                              >
-                                {batch.quantity_available > 0 ? "In Stock" : "Depleted"}
-                              </Badge>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <p className="text-center py-8 text-gray-500">No batches found</p>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Movements Tab */}
-          <TabsContent value="movements" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Stock Movement History</CardTitle>
-                <CardDescription>Track all inventory movements</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <MovementsTable onRefresh={() => refreshInventory()} />
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Transfer Tab */}
-          <TabsContent value="transfer" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Transfer & Adjust Stock</CardTitle>
-                <CardDescription>Move stock between locations or record wastage</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <TransferForm onSuccess={() => refreshInventory()} />
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Inventory Tab */}
-          <TabsContent value="inventory" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Inventory Items</CardTitle>
-                <CardDescription>Current stock levels</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="mb-4">
-                  <Input
-                    placeholder="Search items..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
+                <div className="text-2xl font-bold text-warning">
+                  {lowStockData?.alerts?.length || 0}
                 </div>
-                {inventoryData?.items && inventoryData.items.length > 0 ? (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b">
-                          <th className="text-left py-3 px-3 font-medium">Item</th>
-                          <th className="text-left py-3 px-3 font-medium">Code</th>
-                          <th className="text-left py-3 px-3 font-medium">Type</th>
-                          <th className="text-left py-3 px-3 font-medium">Unit</th>
-                          <th className="text-left py-3 px-3 font-medium">Reorder Level</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {inventoryData.items.map((item: any) => (
-                          <tr key={item.item_id} className="border-b hover:bg-gray-50">
-                            <td className="py-3 px-3 font-medium">{item.item_name}</td>
-                            <td className="py-3 px-3">{item.item_code}</td>
-                            <td className="py-3 px-3">
-                              <Badge variant="outline">{item.item_type}</Badge>
-                            </td>
-                            <td className="py-3 px-3">{item.unit_of_measure}</td>
-                            <td className="py-3 px-3">{item.reorder_level}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <p className="text-center py-8 text-gray-500">No items found</p>
-                )}
+                <p className="text-xs text-warning mt-1">Items below threshold</p>
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
+
+            <Card className="border-warning/30 bg-warning/10">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                  <Clock className="w-4 h-4 text-warning" />
+                  Near-Expiry Items
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-warning">
+                  {nearExpiryData?.alerts?.length || 0}
+                </div>
+                <p className="text-xs text-warning mt-1">Within 30 days</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-primary/30 bg-primary/10">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                  <Package className="w-4 h-4 text-primary" />
+                  Pending Dispenses
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-primary">
+                  {prescriptionsData?.prescriptions?.filter((rx: any) => rx.readyToDispense)
+                    .length || 0}
+                </div>
+                <p className="text-xs text-primary mt-1">Ready to dispense</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Tabs */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-5 bg-white border">
+              <TabsTrigger value="dispense">Dispense</TabsTrigger>
+              <TabsTrigger value="receive">Receive Stock</TabsTrigger>
+              <TabsTrigger value="movements">Movements</TabsTrigger>
+              <TabsTrigger value="transfer">Transfer</TabsTrigger>
+              <TabsTrigger value="inventory">Inventory</TabsTrigger>
+            </TabsList>
+
+            {/* Dispense Tab */}
+            <TabsContent value="dispense" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Pending Prescription Dispenses</CardTitle>
+                  <CardDescription>Prescriptions ready for medication dispensing</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {prescriptionsData?.prescriptions &&
+                  prescriptionsData.prescriptions.length > 0 ? (
+                    <div className="space-y-4">
+                      {prescriptionsData.prescriptions
+                        .filter((rx: any) => rx.readyToDispense)
+                        .map((rx: any) => (
+                          <DispenseCard
+                            key={rx.rx_id}
+                            prescription={rx}
+                            onSuccess={() => refreshInventory()}
+                          />
+                        ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <Package className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                      <p>No prescriptions ready for dispensing</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Receive Stock Tab */}
+            <TabsContent value="receive" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Receive Stock</CardTitle>
+                  <CardDescription>Record incoming shipments</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ReceiveStockForm onSuccess={() => refreshInventory()} />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Active Batches</CardTitle>
+                  <CardDescription>Current inventory by batch</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {batchesData?.batches && batchesData.batches.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="text-left py-3 px-3 font-medium">Batch Number</th>
+                            <th className="text-left py-3 px-3 font-medium">Available</th>
+                            <th className="text-left py-3 px-3 font-medium">Expiry</th>
+                            <th className="text-left py-3 px-3 font-medium">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {batchesData.batches.map((batch: any) => (
+                            <tr key={batch.batch_id} className="border-b hover:bg-muted">
+                              <td className="py-3 px-3 font-medium">{batch.batch_number}</td>
+                              <td className="py-3 px-3">{batch.quantity_available}</td>
+                              <td className="py-3 px-3">
+                                {batch.expiry_date
+                                  ? new Date(batch.expiry_date).toLocaleDateString()
+                                  : "—"}
+                              </td>
+                              <td className="py-3 px-3">
+                                <Badge
+                                  variant={batch.quantity_available > 0 ? "default" : "secondary"}
+                                >
+                                  {batch.quantity_available > 0 ? "In Stock" : "Depleted"}
+                                </Badge>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p className="text-center py-8 text-muted-foreground">No batches found</p>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Movements Tab */}
+            <TabsContent value="movements" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Stock Movement History</CardTitle>
+                  <CardDescription>Track all inventory movements</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <MovementsTable onRefresh={() => refreshInventory()} />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Transfer Tab */}
+            <TabsContent value="transfer" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Transfer & Adjust Stock</CardTitle>
+                  <CardDescription>Move stock between locations or record wastage</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <TransferForm onSuccess={() => refreshInventory()} />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Inventory Tab */}
+            <TabsContent value="inventory" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Inventory Items</CardTitle>
+                  <CardDescription>Current stock levels</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="mb-4">
+                    <Input
+                      placeholder="Search items..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </div>
+                  {inventoryData?.items && inventoryData.items.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="text-left py-3 px-3 font-medium">Item</th>
+                            <th className="text-left py-3 px-3 font-medium">Code</th>
+                            <th className="text-left py-3 px-3 font-medium">Type</th>
+                            <th className="text-left py-3 px-3 font-medium">Unit</th>
+                            <th className="text-left py-3 px-3 font-medium">Reorder Level</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {inventoryData.items.map((item: any) => (
+                            <tr key={item.item_id} className="border-b hover:bg-muted">
+                              <td className="py-3 px-3 font-medium">{item.item_name}</td>
+                              <td className="py-3 px-3">{item.item_code}</td>
+                              <td className="py-3 px-3">
+                                <Badge variant="outline">{item.item_type}</Badge>
+                              </td>
+                              <td className="py-3 px-3">{item.unit_of_measure}</td>
+                              <td className="py-3 px-3">{item.reorder_level}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p className="text-center py-8 text-muted-foreground">No items found</p>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
-    </div>
+    </RouteGuard>
   );
 }
 
@@ -346,10 +360,24 @@ function DispenseCard({ prescription, onSuccess }: { prescription: any; onSucces
   const [isOpen, setIsOpen] = useState(false);
   const mutation = useMutation({
     mutationFn: dispensePrescriptionMedications,
-    onSuccess: () => {
+    onSuccess: (res: any) => {
       setIsOpen(false);
       onSuccess();
+      // A partial dispense used to close the dialog silently, so a pharmacist
+      // could hand over 2 of 3 medications believing all three were done.
+      const failed = res?.failedCount ?? 0;
+      if (failed > 0) {
+        toast.warning(`${res?.dispensedCount ?? 0} dispensed, ${failed} failed`, {
+          description: (res?.errors ?? []).join("; ") || "Check stock for the remaining items.",
+        });
+      } else {
+        toast.success(`Dispensed ${res?.dispensedCount ?? ""}`.trim());
+      }
     },
+    onError: (err: unknown) =>
+      toast.error("Dispense failed", {
+        description: err instanceof Error ? err.message : String(err),
+      }),
   });
 
   const handleDispense = async () => {
@@ -375,16 +403,16 @@ function DispenseCard({ prescription, onSuccess }: { prescription: any; onSucces
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <div className="border rounded-lg p-4 bg-white hover:bg-blue-50 transition-colors cursor-pointer">
+      <div className="border rounded-lg p-4 bg-white hover:bg-primary/10 transition-colors cursor-pointer">
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
-              <h3 className="font-semibold text-gray-900">Prescription {prescription.rx_id}</h3>
+              <h3 className="font-semibold text-foreground">Prescription {prescription.rx_id}</h3>
               {prescription.allMedicationsAvailable && (
-                <Badge className="bg-green-100 text-green-800">All in stock</Badge>
+                <Badge className="bg-success/10 text-success">All in stock</Badge>
               )}
             </div>
-            <p className="text-sm text-gray-600">Patient: {prescription.patient_did}</p>
+            <p className="text-sm text-muted-foreground">Patient: {prescription.patient_did}</p>
           </div>
           <DialogTrigger asChild>
             <Button
@@ -399,18 +427,18 @@ function DispenseCard({ prescription, onSuccess }: { prescription: any; onSucces
         </div>
 
         {/* Medications List */}
-        <div className="space-y-2 bg-gray-50 p-3 rounded">
+        <div className="space-y-2 bg-muted p-3 rounded">
           {prescription.medicationDetails?.map((med: any, idx: number) => (
             <div key={idx} className="flex justify-between items-center text-sm">
-              <span className="text-gray-700">
+              <span className="text-foreground">
                 {med.name} x{med.quantity}
               </span>
               <Badge
                 variant={med.isAvailable ? "outline" : "destructive"}
                 className={
                   med.isAvailable
-                    ? "bg-green-50 text-green-700 border-green-200"
-                    : "bg-red-50 text-red-700"
+                    ? "bg-success/10 text-success border-success/30"
+                    : "bg-destructive/10 text-destructive"
                 }
               >
                 {med.isAvailable
@@ -435,7 +463,7 @@ function DispenseCard({ prescription, onSuccess }: { prescription: any; onSucces
           {prescription.medicationDetails?.map((med: any, idx: number) => (
             <div key={idx} className="flex justify-between items-center p-3 border rounded-lg">
               <span className="font-medium">{med.name}</span>
-              <span className="text-sm text-gray-600">x{med.quantity}</span>
+              <span className="text-sm text-muted-foreground">x{med.quantity}</span>
             </div>
           ))}
         </div>
@@ -454,11 +482,20 @@ function ReceiveStockForm({ onSuccess }: { onSuccess: () => void }) {
   const [itemId, setItemId] = useState("");
   const [batchNumber, setBatchNumber] = useState("");
   const [quantity, setQuantity] = useState("");
-  const [expiryDate, setExpiryDate] = useState("");
 
   const { data: items } = useQuery({
     queryKey: ["items-receive"],
     queryFn: () => getInventoryItems({ data: { limit: 100 } }),
+  });
+
+  // Batches for the chosen item. The form previously held `batchNumber` state
+  // with NO input rendered for it, so it always submitted batchId: "" and
+  // addStock's validator threw "batchId is required" — every single time, with
+  // no onError to surface it. "Receive Stock" was a button that did nothing.
+  const { data: batches } = useQuery({
+    queryKey: ["batches-receive", itemId],
+    queryFn: () => getBatches({ data: { itemId, limit: 100 } }),
+    enabled: Boolean(itemId),
   });
 
   const mutation = useMutation({
@@ -467,13 +504,23 @@ function ReceiveStockForm({ onSuccess }: { onSuccess: () => void }) {
       setItemId("");
       setBatchNumber("");
       setQuantity("");
-      setExpiryDate("");
       onSuccess();
+      toast.success("Stock received");
     },
+    // Without this every failure was silent — the button simply stopped
+    // spinning and nothing changed.
+    onError: (err: unknown) =>
+      toast.error("Could not receive stock", {
+        description: err instanceof Error ? err.message : String(err),
+      }),
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!itemId || !batchNumber) {
+      toast.error("Choose an item and a batch");
+      return;
+    }
     mutation.mutate({
       data: {
         itemId,
@@ -503,6 +550,23 @@ function ReceiveStockForm({ onSuccess }: { onSuccess: () => void }) {
             {items?.items?.map((item: any) => (
               <SelectItem key={item.item_id} value={item.item_id}>
                 {item.item_name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div>
+        <label className="text-sm font-medium">Batch *</label>
+        <Select value={batchNumber} onValueChange={setBatchNumber} disabled={!itemId}>
+          <SelectTrigger>
+            <SelectValue placeholder={itemId ? "Select batch" : "Choose an item first"} />
+          </SelectTrigger>
+          <SelectContent>
+            {(batches?.batches ?? []).map((b: any) => (
+              <SelectItem key={b.batch_id} value={b.batch_id}>
+                {b.batch_number}
+                {b.expiry_date ? ` · expires ${b.expiry_date}` : ""} · {b.quantity_available} left
               </SelectItem>
             ))}
           </SelectContent>
@@ -696,7 +760,9 @@ function MovementsTable({ onRefresh }: { onRefresh: () => void }) {
             ))}
           </SelectContent>
         </Select>
-        <div className="text-center py-8 text-gray-500">Select an item to view movements</div>
+        <div className="text-center py-8 text-muted-foreground">
+          Select an item to view movements
+        </div>
       </div>
     );
   }
@@ -730,15 +796,15 @@ function MovementsTable({ onRefresh }: { onRefresh: () => void }) {
           </thead>
           <tbody>
             {data.movements.map((mov: any) => (
-              <tr key={mov.movement_id} className="border-b hover:bg-gray-50">
+              <tr key={mov.movement_id} className="border-b hover:bg-muted">
                 <td className="py-3 px-3 font-mono text-xs">{mov.movement_id}</td>
                 <td className="py-3 px-3">
                   <Badge variant="outline">{mov.movement_type}</Badge>
                 </td>
                 <td className="py-3 px-3 font-medium">{mov.quantity_moved}</td>
-                <td className="py-3 px-3 text-gray-600">{mov.quantity_before}</td>
-                <td className="py-3 px-3 text-gray-600">{mov.quantity_after}</td>
-                <td className="py-3 px-3 text-xs text-gray-500">
+                <td className="py-3 px-3 text-muted-foreground">{mov.quantity_before}</td>
+                <td className="py-3 px-3 text-muted-foreground">{mov.quantity_after}</td>
+                <td className="py-3 px-3 text-xs text-muted-foreground">
                   {new Date(mov.movement_timestamp).toLocaleString()}
                 </td>
               </tr>

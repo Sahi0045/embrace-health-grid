@@ -18,7 +18,7 @@ import {
   Shield,
 } from "lucide-react";
 import { useState, useEffect } from "react";
-import { getBilling, payBill } from "@/lib/api";
+import { getBilling, payBill, getInsurancePolicy } from "@/lib/api";
 import { useCurrentUser } from "@/lib/auth-context";
 import { toast } from "sonner";
 
@@ -35,6 +35,28 @@ export const Route = createFileRoute("/patient/billing")({
 function PatientBilling() {
   const [billingData, setBillingData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+
+  // Real policy for the sidebar (see insuranceInfo below).
+  const [realInsurance, setRealInsurance] = useState<any | null>(null);
+  useEffect(() => {
+    getInsurancePolicy()
+      .then((r: any) =>
+        setRealInsurance(
+          r?.policy
+            ? {
+                provider: r.policy.provider ?? "—",
+                policyNumber: r.policy.policyNumber ?? "—",
+                coveragePercentage: r.policy.coveragePercentage ?? 0,
+                deductibleMet: 0,
+                deductible: r.policy.deductible ?? 1,
+                outOfPocketMet: 0,
+                outOfPocketMax: 1,
+              }
+            : null,
+        ),
+      )
+      .catch(() => setRealInsurance(null));
+  }, []);
 
   const { user: currentUser } = useCurrentUser();
   const patientDid = currentUser?.primaryDid ?? "";
@@ -71,9 +93,13 @@ function PatientBilling() {
           return true;
         })(),
         {
-          loading: "Processing secure digital signature payment...",
-          success: "Payment settled successfully! Transaction recorded on Solana ledger.",
-          error: "Payment failed",
+          loading: "Recording your payment…",
+          // recordPayment inserts with status 'pending' — RLS forbids a client
+          // marking a payment paid, and nothing here touches Solana. The old
+          // copy said "settled successfully" and "recorded on Solana ledger",
+          // neither of which happened; the outstanding balance is unchanged.
+          success: "Payment recorded and awaiting settlement. Your balance updates once confirmed.",
+          error: "Could not record the payment",
         },
       );
     } catch (err: any) {
@@ -129,12 +155,8 @@ function PatientBilling() {
 =========================================
 Patient DID: ${patientDid}
 Date: ${new Date().toLocaleDateString()}
-Status: ${billSummary?.status?.toUpperCase()}
-
 TOTAL CHARGES: ${fmt(billSummary?.totalCharges ?? 0)}
-INSURANCE PAID: ${fmt(billSummary?.insurancePaid ?? 0)}
-PATIENT RESPONSIBILITY: ${fmt(billSummary?.patientResponsibility ?? 0)}
-PATIENT PAID: ${fmt(billSummary?.patientPaid ?? 0)}
+AMOUNT PAID: ${fmt(billSummary?.amountPaid ?? 0)}
 BALANCE DUE: ${fmt(billSummary?.balanceDue ?? 0)}
 
 Itemized breakdown:
@@ -160,10 +182,11 @@ Thank you for choosing Embrace Health.
   };
 
   const handleEmailBill = () => {
-    toast.promise(new Promise((resolve) => setTimeout(resolve, 1200)), {
-      loading: "Sending bill receipt via encrypted email...",
-      success: `Bill sent to ${currentUser?.email || "user@example.com"}`,
-      error: "Failed to send email",
+    // Was a 1200 ms setTimeout that claimed the bill had been emailed. There is
+    // no mail path in this codebase, so nothing was ever sent. Offer the
+    // download, which does work, rather than a success that did not happen.
+    toast.info("Emailing bills is not available yet", {
+      description: "Use Download to save a copy you can forward.",
     });
   };
 
@@ -182,7 +205,13 @@ Thank you for choosing Embrace Health.
   };
   const billItems = billingData?.billItems || [];
   const dailyCharges = billingData?.dailyCharges || [];
-  const insuranceInfo = billingData?.insuranceInfo || {
+  /**
+   * getBilling() returns no `insuranceInfo` key at all, so this fallback fired
+   * for every patient: the whole insurance sidebar rendered "—" for provider
+   * and policy, "0% after deductible", and two progress bars at 0/1 = 0%.
+   * insurance_policies is real and RLS-scoped; read it instead.
+   */
+  const insuranceInfo = realInsurance || {
     provider: "—",
     policyNumber: "—",
     coveragePercentage: 0,
@@ -372,39 +401,45 @@ Thank you for choosing Embrace Health.
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      {(billSummary.categoryTotals ?? []).map((cat: any) => {
-                        const items = billItems.filter((i: any) => i.category === cat.category);
-                        return (
-                          <div key={cat.category} className="space-y-2">
-                            <div className="flex items-center justify-between rounded-lg bg-muted px-3 py-2">
-                              <span className="font-medium capitalize">{cat.category}</span>
-                              <span className="font-semibold">{fmt(cat.amount)}</span>
-                            </div>
-                            {items.map((item: any) => (
-                              <div
-                                key={item.id}
-                                className="ml-3 flex items-start justify-between border-l-2 border-muted pl-3 text-sm"
-                              >
-                                <div className="flex-1">
-                                  <div className="font-medium">{item.description}</div>
-                                  <div className="text-xs text-muted-foreground">
-                                    {new Date(item.date).toLocaleDateString()} • Qty:{" "}
-                                    {item.quantity}
+                      {/* categoryTotals is a Record, not an array, and is
+                          currently always null — `.map()` on it would throw the
+                          day it is populated. Normalised to entries. */}
+                      {Object.entries(billSummary.categoryTotals ?? {}).map(
+                        ([category, amount]) => {
+                          const cat = { category, amount: Number(amount) };
+                          const items = billItems.filter((i: any) => i.category === cat.category);
+                          return (
+                            <div key={cat.category} className="space-y-2">
+                              <div className="flex items-center justify-between rounded-lg bg-muted px-3 py-2">
+                                <span className="font-medium capitalize">{cat.category}</span>
+                                <span className="font-semibold">{fmt(cat.amount)}</span>
+                              </div>
+                              {items.map((item: any) => (
+                                <div
+                                  key={item.id}
+                                  className="ml-3 flex items-start justify-between border-l-2 border-muted pl-3 text-sm"
+                                >
+                                  <div className="flex-1">
+                                    <div className="font-medium">{item.description}</div>
+                                    <div className="text-xs text-muted-foreground">
+                                      {new Date(item.date).toLocaleDateString()} • Qty:{" "}
+                                      {item.quantity}
+                                    </div>
+                                  </div>
+                                  <div className="text-right">
+                                    <div className="font-medium">{fmt(item.totalPrice)}</div>
+                                    {item.coveredByInsurance && (
+                                      <div className="text-xs text-muted-foreground">
+                                        You pay: {fmt(item.patientResponsibility)}
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
-                                <div className="text-right">
-                                  <div className="font-medium">{fmt(item.totalPrice)}</div>
-                                  {item.coveredByInsurance && (
-                                    <div className="text-xs text-muted-foreground">
-                                      You pay: {fmt(item.patientResponsibility)}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        );
-                      })}
+                              ))}
+                            </div>
+                          );
+                        },
+                      )}
                     </CardContent>
                   </Card>
                 </TabsContent>

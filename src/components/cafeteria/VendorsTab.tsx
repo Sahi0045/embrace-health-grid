@@ -24,18 +24,18 @@ interface VendorsTabProps {
 const CONTRACT_CONFIGS: Record<ContractStatus, { label: string; color: string; border: string }> = {
   active: {
     label: "Active Contract",
-    color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-    border: "border-emerald-500/20",
+    color: "bg-success/10 text-success dark:text-success",
+    border: "border-success/20",
   },
   pending: {
     label: "Pending Renewal",
-    color: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-    border: "border-amber-500/20",
+    color: "bg-warning/10 text-warning dark:text-warning",
+    border: "border-warning/20",
   },
   expired: {
     label: "Contract Expired",
-    color: "bg-rose-500/10 text-rose-600 dark:text-rose-400",
-    border: "border-rose-500/20",
+    color: "bg-destructive/10 text-destructive dark:text-destructive",
+    border: "border-destructive/20",
   },
   terminated: {
     label: "Terminated",
@@ -139,7 +139,7 @@ export function VendorsTab({ vendors, onUpdateStatus }: VendorsTabProps) {
             <div className="pt-3 border-t border-border/60 flex items-center justify-between text-xs">
               <div className="text-[11px] text-muted-foreground">
                 {vendor.contract_expiry ? (
-                  <span className={isExpiringSoon ? "text-amber-500 font-bold" : ""}>
+                  <span className={isExpiringSoon ? "text-warning font-bold" : ""}>
                     Expiry: {vendor.contract_expiry}
                   </span>
                 ) : (
@@ -153,7 +153,7 @@ export function VendorsTab({ vendors, onUpdateStatus }: VendorsTabProps) {
                     size="sm"
                     variant="outline"
                     onClick={() => onUpdateStatus(vendor.vendor_id, "pending")}
-                    className="h-7 px-2 text-[10px] font-bold rounded-lg border-amber-500/30 text-amber-600 hover:bg-amber-500/10 cursor-pointer"
+                    className="h-7 px-2 text-[10px] font-bold rounded-lg border-warning/30 text-warning hover:bg-warning/10 cursor-pointer"
                   >
                     Flag Renewal
                   </Button>
@@ -162,7 +162,7 @@ export function VendorsTab({ vendors, onUpdateStatus }: VendorsTabProps) {
                     size="sm"
                     variant="outline"
                     onClick={() => onUpdateStatus(vendor.vendor_id, "active")}
-                    className="h-7 px-2 text-[10px] font-bold rounded-lg border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10 cursor-pointer"
+                    className="h-7 px-2 text-[10px] font-bold rounded-lg border-success/30 text-success hover:bg-success/10 cursor-pointer"
                   >
                     Renew
                   </Button>

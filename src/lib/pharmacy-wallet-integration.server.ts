@@ -156,6 +156,10 @@ export async function dispensePrescriptionMedicationsWithBlockchain(
           },
         });
 
+        if (!signingResult) {
+          throw new Error("No signing result returned");
+        }
+
         console.log(`✅ Blockchain signing successful`);
         console.log(`   TX ID: ${signingResult.txId}`);
         console.log(`   Wallet: ${signingResult.walletUsed}`);

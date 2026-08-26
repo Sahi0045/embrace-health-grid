@@ -136,7 +136,7 @@ export function InventoryFilterBar({
             onClick={() => onStatusFilterChange("near_expiry")}
             className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider transition-all shrink-0 cursor-pointer ${
               statusFilter === "near_expiry"
-                ? "bg-amber-600 text-white border-amber-600 shadow-xs"
+                ? "bg-warning text-white border-warning shadow-xs"
                 : "border-border/80 text-muted-foreground hover:border-border bg-background"
             }`}
           >

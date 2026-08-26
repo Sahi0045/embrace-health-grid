@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ShieldCheck, ShieldX } from "lucide-react";
 
@@ -17,7 +17,20 @@ export function ConsentToggle({
   onToggle,
   disabled,
 }: ConsentToggleProps) {
+  /**
+   * useState only reads its argument on the FIRST render. The consent page
+   * seeds its preferences with hardcoded literals and fetches the real values
+   * asynchronously, so every switch captured the placeholder and never updated:
+   * a patient who had disabled "Emergency Access (Break-Glass)" was shown it
+   * ON, and one who had enabled research sharing was shown it OFF. For privacy
+   * switches, telling someone the wrong state of their own setting is the whole
+   * failure. Sync when the loaded value arrives.
+   */
   const [enabled, setEnabled] = useState(defaultEnabled);
+
+  useEffect(() => {
+    setEnabled(defaultEnabled);
+  }, [defaultEnabled]);
 
   const handleToggle = () => {
     if (disabled) return;

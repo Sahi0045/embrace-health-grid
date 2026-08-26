@@ -27,7 +27,6 @@ env:
 #  JOBS
 # ══════════════════════════════════════════════════════════════════════════════
 jobs:
-
   # ────────────────────────────────────────────────────────────────────────────
   #  1. Frontend — Lint, Format, Type-check
   # ────────────────────────────────────────────────────────────────────────────
@@ -319,7 +318,7 @@ jobs:
       - name: cargo clippy
         working-directory: anchor-program
         run: cargo clippy --all-targets --all-features -- -D warnings
-        continue-on-error: true  # Advisory — does not block merge
+        continue-on-error: true # Advisory — does not block merge
 
       - name: cargo build (verify compilation)
         working-directory: anchor-program

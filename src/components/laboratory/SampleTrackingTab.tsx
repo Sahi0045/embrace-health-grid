@@ -107,7 +107,7 @@ export function SampleTrackingTab({ samples, onAdvanceStage }: SampleTrackingTab
               {/* Progress track line */}
               <div className="absolute top-1/2 left-4 right-4 -translate-y-1/2 h-1 bg-border/80 rounded-full z-0">
                 <div
-                  className="h-full bg-gradient-to-r from-primary to-blue-600 rounded-full transition-all duration-500"
+                  className="h-full bg-primary rounded-full transition-all duration-500"
                   style={{
                     width: `${(currentIdx / (PIPELINE_STAGES.length - 1)) * 100}%`,
                   }}
@@ -171,7 +171,7 @@ export function SampleTrackingTab({ samples, onAdvanceStage }: SampleTrackingTab
 
               <div className="space-y-0.5">
                 <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                  <Thermometer className="h-3 w-3 text-cyan-500" />
+                  <Thermometer className="h-3 w-3 text-primary" />
                   Storage Temp
                 </span>
                 <p className="font-semibold text-foreground">

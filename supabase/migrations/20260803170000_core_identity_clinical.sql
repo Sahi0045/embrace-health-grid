@@ -29,7 +29,21 @@ create type user_role as enum ('patient', 'doctor', 'staff', 'admin');
 
 create type did_status as enum ('active', 'suspended', 'revoked');
 
-create type consent_status as enum ('active', 'revoked', 'expired', 'pending');
+-- 'requested' and 'rejected' were added to the live enum out of band and no
+-- migration ever created them, so the repo could not rebuild its own database:
+-- 20260820120000_reconcile_consent_drift.sql casts to 'requested' and would
+-- fail on a fresh replay. Adding them here rather than in a later migration is
+-- deliberate — a label has to exist before the migration that references it,
+-- and this file is the only place ordered ahead of it. Already-applied
+-- databases are unaffected: db push tracks migrations by version, so this one
+-- does not re-run.
+--
+-- 'rejected' is live: denyConsentRequest() writes it, so a request the patient
+-- refused stays distinguishable from access they granted and later withdrew.
+-- 'requested' is vestigial — nothing writes it — but it exists in the deployed
+-- enum and dropping an enum label is not a safe online operation.
+create type consent_status as enum
+  ('active', 'revoked', 'expired', 'pending', 'requested', 'rejected');
 
 -- ─── profiles ───────────────────────────────────────────────────────────────
 -- One row per authenticated user. auth.users holds credentials (Supabase Auth

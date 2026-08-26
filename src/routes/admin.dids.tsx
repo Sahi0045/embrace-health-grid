@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { RouteGuard } from "@/components/RouteGuard";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { useAdminDIDs as useDIDs } from "@/hooks/use-admin";
 import { createDID } from "@/lib/api";
-import { Plus, Upload, Search, X } from "lucide-react";
+import { getLinkedWallets, unlinkWallet } from "@/lib/hospitals.server";
+import { Plus, Search, X, Wallet, Unlink } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -33,6 +34,57 @@ export const Route = createFileRoute("/admin/dids")({
 
 function DIDManagement() {
   const { data: didsData, refetch } = useDIDs();
+
+  /**
+   * Linked wallets.
+   *
+   * profiles_wallet_address_key allows one wallet per account, so a wallet left
+   * on a disused account can never be linked again. The app already tells users
+   * to "unlink it from the other account first" — this is where that happens.
+   */
+  const [wallets, setWallets] = useState<any[]>([]);
+  const [walletsLoading, setWalletsLoading] = useState(true);
+  const [unlinking, setUnlinking] = useState<string | null>(null);
+
+  const loadWallets = useCallback(async () => {
+    setWalletsLoading(true);
+    try {
+      const res = (await getLinkedWallets()) as unknown as { wallets: any[] };
+      setWallets(res.wallets ?? []);
+    } catch {
+      // Non-admins never reach this route, so a failure here is a real fault
+      // rather than a permission boundary; leave the panel empty and quiet.
+      setWallets([]);
+    } finally {
+      setWalletsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadWallets();
+  }, [loadWallets]);
+
+  const handleUnlink = async (profileId: string, email: string) => {
+    setUnlinking(profileId);
+    try {
+      const res = (await unlinkWallet({ data: { profileId } })) as unknown as {
+        changed: boolean;
+        wallet?: string;
+      };
+      if (res.changed) {
+        toast.success("Wallet unlinked", {
+          description: `${res.wallet?.slice(0, 4)}…${res.wallet?.slice(-4)} is free to link to another account.`,
+        });
+      } else {
+        toast.info(`${email} has no wallet linked.`);
+      }
+      await loadWallets();
+    } catch (err: any) {
+      toast.error(err?.message || "Could not unlink that wallet");
+    } finally {
+      setUnlinking(null);
+    }
+  };
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -142,9 +194,9 @@ function DIDManagement() {
         description="Issue, revoke, and audit decentralized identifiers across the hospital."
         actions={
           <>
-            <button className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-muted">
-              <Upload className="h-4 w-4" /> Bulk CSV
-            </button>
+            {/* "Bulk CSV" had no onClick anywhere in the file — clicking it
+                did nothing at all, with no picker and no error. Removed rather
+                than left as a control that appears to work. */}
             <button
               onClick={() => setIsModalOpen(true)}
               className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-clinical hover:bg-primary/90 cursor-pointer"
@@ -225,6 +277,57 @@ function DIDManagement() {
               )}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {/* ─── Linked wallets ─────────────────────────────────────────────── */}
+      <div className="rounded-lg border border-border bg-card">
+        <div className="flex items-center justify-between border-b border-border px-5 py-4">
+          <div className="flex items-center gap-2.5">
+            <Wallet className="h-4 w-4 text-primary" />
+            <div>
+              <h2 className="text-sm font-semibold text-foreground">Linked wallets</h2>
+              <p className="text-xs text-muted-foreground">
+                One wallet may belong to only one account. Unlink to free it.
+              </p>
+            </div>
+          </div>
+          <span className="text-xs text-muted-foreground">
+            {walletsLoading ? "Loading…" : `${wallets.length} linked`}
+          </span>
+        </div>
+
+        <div className="divide-y divide-border">
+          {!walletsLoading && wallets.length === 0 && (
+            <p className="px-5 py-8 text-center text-sm text-muted-foreground">
+              No wallets are linked in this hospital.
+            </p>
+          )}
+          {wallets.map((w) => (
+            <div key={w.id} className="flex items-center justify-between gap-4 px-5 py-3.5">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="truncate text-sm font-medium text-foreground">
+                    {w.full_name || w.email}
+                  </span>
+                  <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    {w.role}
+                  </span>
+                </div>
+                <div className="mt-0.5 truncate font-mono text-xs text-muted-foreground">
+                  {w.wallet_address}
+                </div>
+              </div>
+              <button
+                onClick={() => handleUnlink(w.id, w.email)}
+                disabled={unlinking === w.id}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/15 disabled:opacity-50 cursor-pointer"
+              >
+                <Unlink className="h-3.5 w-3.5" />
+                {unlinking === w.id ? "Unlinking…" : "Unlink"}
+              </button>
+            </div>
+          ))}
         </div>
       </div>
 

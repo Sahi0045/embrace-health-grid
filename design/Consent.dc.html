@@ -1,0 +1,247 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #0F7A62; text-decoration: none; }
+    a:hover { color: #0B5C4A; }
+    ::-webkit-scrollbar { width: 0; height: 0; }
+    .chip { font-size: 10px; font-weight: 500; padding: 3px 8px; border-radius: 999px; background: #EDE8DE; color: #635D53; }
+    .cap { font-size: 10px; font-weight: 600; letter-spacing: 0.11em; text-transform: uppercase; color: #938C80; }
+    .av { width: 38px; height: 38px; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: #FDFBF7; flex-shrink: 0; }
+  </style>
+</helmet>
+
+<div style="width: 390px; height: 844px; background: #F7F4EE; color: #26221C; display: flex; flex-direction: column; overflow: hidden;">
+
+  <div style="display: flex; align-items: center; gap: 14px; padding: 18px 20px 10px 20px; flex-shrink: 0;">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#26221C" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg>
+    <span style="font-size: 13px; font-weight: 500; color: #635D53;">Back</span>
+  </div>
+
+  <div style="flex: 1; overflow: hidden; padding: 0 20px; display: flex; flex-direction: column; gap: 16px;">
+
+    <div style="display: flex; flex-direction: column; gap: 7px;">
+      <h1 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 32px; font-weight: 400; line-height: 1.1; letter-spacing: -0.01em;">Access</h1>
+      <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #635D53; text-wrap: pretty;">You decide who reads your record. Every grant is signed with your key, time-boxed, and revocable the moment you change your mind.</p>
+    </div>
+
+    <div style="display: flex; gap: 4px; background: #EDE8DE; border-radius: 6px; padding: 3px;">
+      <button onClick="{{ showActive }}" style="{{ activeTab }}">Active · {{ activeCount }}</button>
+      <button onClick="{{ showRequests }}" style="{{ requestsTab }}">Requests · 2</button>
+      <button onClick="{{ showHistory }}" style="{{ historyTab }}">History</button>
+    </div>
+
+    <sc-if value="{{ isActive }}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <sc-for list="{{ grants }}" as="g" hint-placeholder-count="3">
+          <div style="{{ g.cardStyle }}">
+            <div style="display: flex; align-items: flex-start; gap: 12px;">
+              <div class="av" style="{{ g.avStyle }}">{{ g.initials }}</div>
+              <div style="display: flex; flex-direction: column; gap: 3px; flex-grow: 1;">
+                <span style="font-size: 15px; font-weight: 500;">{{ g.name }}</span>
+                <span style="font-size: 12px; color: #938C80;">{{ g.role }}</span>
+              </div>
+              <button onClick="{{ g.toggle }}" style="{{ g.btnStyle }}">{{ g.btnLabel }}</button>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+              <div style="display: flex; gap: 5px;">
+                <span class="chip">{{ g.scopeA }}</span>
+                <span class="chip">{{ g.scopeB }}</span>
+              </div>
+              <span style="font-size: 11px; color: {{ g.expiryColor }};">{{ g.expiry }}</span>
+            </div>
+          </div>
+        </sc-for>
+
+        <div style="display: flex; align-items: center; gap: 9px; padding: 12px 14px; border: 1px dashed #D6CFC2; border-radius: 6px;">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#938C80" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4M12 16h.01"></path></svg>
+          <span style="font-size: 11.5px; line-height: 1.45; color: #938C80; text-wrap: pretty;">Revoking takes effect immediately and is written to the ledger. Past reads stay in your audit trail.</span>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isRequests }}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+
+        <div style="background: #FDFBF7; border: 1px solid #E2DCD1; border-left: 3px solid #A8543A; border-radius: 6px; padding: 14px 15px; display: flex; flex-direction: column; gap: 12px;">
+          <div style="display: flex; align-items: flex-start; gap: 12px;">
+            <div class="av" style="background: #A8543A;">SV</div>
+            <div style="display: flex; flex-direction: column; gap: 3px; flex-grow: 1;">
+              <span style="font-size: 15px; font-weight: 500;">Dr Sanjay Verma</span>
+              <span style="font-size: 12px; color: #938C80;">Radiology · Fortis Bengaluru</span>
+            </div>
+            <span style="font-size: 10px; color: #938C80; margin-top: 3px;">4h ago</span>
+          </div>
+          <p style="margin: 0; font-size: 12.5px; line-height: 1.5; color: #635D53;">Requests <strong style="font-weight: 600;">Medical Records</strong> for 14 days to report on your chest CT.</p>
+          <div style="display: flex; gap: 8px;">
+            <button style="flex: 1; height: 44px; border: none; border-radius: 5px; background: {{accent}}; color: #FDFBF7; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;">Approve</button>
+            <button style="flex: 1; height: 44px; border: 1px solid #E2DCD1; border-radius: 5px; background: transparent; color: #635D53; font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer;">Decline</button>
+          </div>
+        </div>
+
+        <div style="background: #FDFBF7; border: 1px solid #E2DCD1; border-left: 3px solid #A8543A; border-radius: 6px; padding: 14px 15px; display: flex; flex-direction: column; gap: 12px;">
+          <div style="display: flex; align-items: flex-start; gap: 12px;">
+            <div class="av" style="background: #635D53;">NB</div>
+            <div style="display: flex; flex-direction: column; gap: 3px; flex-grow: 1;">
+              <span style="font-size: 15px; font-weight: 500;">Nurse Neha Bhat</span>
+              <span style="font-size: 12px; color: #938C80;">Ward B · Apollo Chennai</span>
+            </div>
+            <span style="font-size: 10px; color: #938C80; margin-top: 3px;">Yesterday</span>
+          </div>
+          <p style="margin: 0; font-size: 12.5px; line-height: 1.5; color: #635D53;">Requests <strong style="font-weight: 600;">Vitals &amp; Medication</strong> for the length of your admission.</p>
+          <div style="display: flex; gap: 8px;">
+            <button style="flex: 1; height: 44px; border: none; border-radius: 5px; background: {{accent}}; color: #FDFBF7; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;">Approve</button>
+            <button style="flex: 1; height: 44px; border: 1px solid #E2DCD1; border-radius: 5px; background: transparent; color: #635D53; font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer;">Decline</button>
+          </div>
+        </div>
+
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isHistory }}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; flex-direction: column;">
+
+        <div style="display: flex; gap: 13px; padding: 14px 0; border-bottom: 1px solid #E8E2D7;">
+          <div style="width: 8px; height: 8px; border-radius: 999px; background: #A8543A; margin-top: 6px; flex-shrink: 0;"></div>
+          <div style="display: flex; flex-direction: column; gap: 3px; flex-grow: 1;">
+            <span style="font-size: 14px; font-weight: 500;">Revoked · Dr Arjun Nair</span>
+            <span style="font-size: 12px; color: #938C80;">Orthopaedics · held 62 days</span>
+          </div>
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: #938C80; margin-top: 4px;">c92e…40b7</span>
+        </div>
+
+        <div style="display: flex; gap: 13px; padding: 14px 0; border-bottom: 1px solid #E8E2D7;">
+          <div style="width: 8px; height: 8px; border-radius: 999px; background: #938C80; margin-top: 6px; flex-shrink: 0;"></div>
+          <div style="display: flex; flex-direction: column; gap: 3px; flex-grow: 1;">
+            <span style="font-size: 14px; font-weight: 500;">Expired · Apollo Labs</span>
+            <span style="font-size: 12px; color: #938C80;">Lab results · 7 day grant</span>
+          </div>
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: #938C80; margin-top: 4px;">1f47…88aa</span>
+        </div>
+
+        <div style="display: flex; gap: 13px; padding: 14px 0; border-bottom: 1px solid #E8E2D7;">
+          <div style="width: 8px; height: 8px; border-radius: 999px; background: #938C80; margin-top: 6px; flex-shrink: 0;"></div>
+          <div style="display: flex; flex-direction: column; gap: 3px; flex-grow: 1;">
+            <span style="font-size: 14px; font-weight: 500;">Declined · Star Health</span>
+            <span style="font-size: 12px; color: #938C80;">Insurer · full profile request</span>
+          </div>
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: #938C80; margin-top: 4px;">73dc…2c15</span>
+        </div>
+
+        <div style="display: flex; gap: 13px; padding: 14px 0;">
+          <div style="width: 8px; height: 8px; border-radius: 999px; background: #0F7A62; margin-top: 6px; flex-shrink: 0;"></div>
+          <div style="display: flex; flex-direction: column; gap: 3px; flex-grow: 1;">
+            <span style="font-size: 14px; font-weight: 500;">Granted · Dr Rhea Kapoor</span>
+            <span style="font-size: 12px; color: #938C80;">Cardiology · renewed twice</span>
+          </div>
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: #938C80; margin-top: 4px;">2b91…7ee0</span>
+        </div>
+
+      </div>
+    </sc-if>
+
+  </div>
+
+  <div style="flex-shrink: 0; border-top: 1px solid #E2DCD1; background: #FDFBF7; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 9px 8px 22px 8px;">
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 6px 0;">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#938C80" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.2L12 3l9 7.2V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg>
+      <span style="font-size: 10px; color: #938C80;">Home</span>
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 6px 0;">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#938C80" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h11l3.5 3.5V21H5z"></path><path d="M8.5 12h7M8.5 16h5"></path></svg>
+      <span style="font-size: 10px; color: #938C80;">Record</span>
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 6px 0;">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="{{accent}}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7.5 3v5.6c0 4.6-3.1 8.2-7.5 9.4-4.4-1.2-7.5-4.8-7.5-9.4V6z"></path></svg>
+      <span style="font-size: 10px; font-weight: 600; color: {{accent}};">Access</span>
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 6px 0;">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#938C80" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="8.5" cy="12" r="4"></circle><path d="M12.5 12H21l-2 2.5M17 12v3"></path></svg>
+      <span style="font-size: 10px; color: #938C80;">Keys</span>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"accent":{"editor":"color","default":"#0F7A62","options":["#0F7A62","#A8543A","#3B5FA8","#6B4A8F"],"section":"Theme"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { seg: 'active', revoked: {} };
+  }
+
+  tabStyle(on) {
+    var base = 'flex: 1; height: 34px; border: none; border-radius: 4px; font-family: inherit; font-size: 12px; font-weight: 500; cursor: pointer; ';
+    return on
+      ? base + 'background: #FDFBF7; color: #26221C; box-shadow: 0 1px 2px rgba(38,34,28,0.07);'
+      : base + 'background: transparent; color: #938C80;';
+  }
+
+  renderVals() {
+    var self = this;
+    var accent = this.props.accent ?? '#0F7A62';
+
+    var source = [
+      { id: 'rk', initials: 'RK', name: 'Dr Rhea Kapoor',  role: 'Cardiology · Apollo Chennai', avStyle: 'background: #0F7A62;', scopeA: 'Records',  scopeB: 'Labs',          expiry: 'Expires in 24 days' },
+      { id: 'mp', initials: 'MP', name: 'Dr Meera Pillai', role: 'General Medicine · Apollo',   avStyle: 'background: #A8543A;', scopeA: 'Records',  scopeB: 'Prescriptions', expiry: 'Expires in 6 days'  },
+      { id: 'al', initials: 'AL', name: 'Apollo Labs',     role: 'Diagnostics · lab results',   avStyle: 'background: #635D53;', scopeA: 'Labs',     scopeB: 'Imaging',       expiry: 'Expires tomorrow'   }
+    ];
+
+    var grants = source.map(function (c) {
+      var rev = !!self.state.revoked[c.id];
+      var card = 'background: #FDFBF7; border: 1px solid #E2DCD1; border-radius: 6px; padding: 14px 15px; display: flex; flex-direction: column; gap: 12px;';
+      var btn  = 'height: 32px; padding: 0 13px; border-radius: 5px; font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0; ';
+
+      return {
+        initials: c.initials,
+        name: c.name,
+        role: c.role,
+        avStyle: rev ? 'background: #C4BDB0;' : c.avStyle,
+        scopeA: c.scopeA,
+        scopeB: c.scopeB,
+        expiry: rev ? 'Revoked just now' : c.expiry,
+        expiryColor: rev ? '#A8543A' : '#938C80',
+        cardStyle: rev ? card + ' opacity: 0.62;' : card,
+        btnLabel: rev ? 'Restore' : 'Revoke',
+        btnStyle: rev
+          ? btn + 'border: 1px solid #E2DCD1; background: transparent; color: #635D53;'
+          : btn + 'border: 1px solid #E8D3CA; background: #F5E7E0; color: #A8543A;',
+        toggle: function () {
+          var next = Object.assign({}, self.state.revoked);
+          next[c.id] = !next[c.id];
+          self.setState({ revoked: next });
+        }
+      };
+    });
+
+    var live = source.filter(function (c) { return !self.state.revoked[c.id]; }).length;
+
+    return {
+      accent: accent,
+      grants: grants,
+      activeCount: live,
+      isActive: this.state.seg === 'active',
+      isRequests: this.state.seg === 'requests',
+      isHistory: this.state.seg === 'history',
+      activeTab: this.tabStyle(this.state.seg === 'active'),
+      requestsTab: this.tabStyle(this.state.seg === 'requests'),
+      historyTab: this.tabStyle(this.state.seg === 'history'),
+      showActive: () => this.setState({ seg: 'active' }),
+      showRequests: () => this.setState({ seg: 'requests' }),
+      showHistory: () => this.setState({ seg: 'history' })
+    };
+  }
+}
+</script>
+</body>
+</html>

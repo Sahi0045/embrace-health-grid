@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader } from "@/components/PageHeader";
 import { RouteGuard } from "@/components/RouteGuard";
+import { verifyAuditRecord } from "@/lib/audit.server";
 import { StaggerList, StaggerItem } from "@/components/Motion";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -77,26 +78,55 @@ function History() {
       resource?: string;
       action?: string;
       loggedAt?: string;
+      // Now selected and mapped by getAuditEvents.
+      actorName?: string | null;
+      actorRole?: string | null;
+      entityId?: string | null;
+      recordHash?: string | null;
+      anchorStatus?: string | null;
     }>
   ).map((e, i) => ({
     id: e.txId ?? `evt_${i}`,
     actor: e.actor ?? "System",
-    actorRole: "System Actor",
+    // Was the constant "System Actor" on every row; who_role is now selected.
+    actorRole: e.actorRole ?? "Unknown role",
     resource: e.resource ?? "—",
     action: (e.action?.split(" ")[0]?.toLowerCase() ?? "viewed") as AccessAction,
     at: e.loggedAt ? new Date(e.loggedAt).toLocaleString("en-IN") : "—",
+    // Carried through so the detail panel can show real values instead of
+    // strings manufactured from the tx id.
+    actorDid: e.actor ?? null,
+    actorName: e.actorName ?? null,
+    entityId: e.entityId ?? null,
+    recordHash: e.recordHash ?? null,
+    anchorStatus: e.anchorStatus ?? null,
   }));
 
   // Filter to events relevant to the current patient (by DID or email)
   // If no patient identity is resolved, show all events
-  const allHistory =
-    patientDid || patientEmail
-      ? auditEntries.filter(
-          (e) =>
-            (patientDid && (e.actor.includes(patientDid) || e.resource.includes(patientDid))) ||
-            (patientEmail && (e.actor.includes(patientEmail) || e.resource.includes(patientEmail))),
-        )
-      : auditEntries;
+  /**
+   * Matching is best-effort, and deliberately not presented as complete.
+   *
+   * `e.actor` is the ACCESSOR's DID, so it only ever matched the patient's own
+   * actions. `e.resource` is a human label and the audit writer stores just the
+   * last 8 characters of the patient DID in it, so a full-DID substring match
+   * could never hit. Both are widened here — including a short-DID match and
+   * the entity linkage — but the underlying audit rows do not reliably record
+   * WHOSE record was touched (actor_did, who_role and who_name are null on real
+   * rows), so this cannot yet be a complete "who accessed my data" list. That
+   * is a gap in what is written, not something the UI can filter its way out
+   * of, and the page says so rather than implying completeness.
+   */
+  const shortDid = patientDid ? patientDid.slice(-8) : "";
+  const matches = (e: any) => {
+    const hay = `${e.actor ?? ""} ${e.resource ?? ""} ${e.entityId ?? ""}`;
+    if (patientDid && (hay.includes(patientDid) || (shortDid && hay.includes(shortDid))))
+      return true;
+    if (patientEmail && hay.includes(patientEmail)) return true;
+    return false;
+  };
+
+  const allHistory = patientDid || patientEmail ? auditEntries.filter(matches) : auditEntries;
 
   // Dynamic stats from merged data
   const summaryStats = [
@@ -143,15 +173,27 @@ function History() {
 
   const reportUnauthorized = async (e: (typeof allHistory)[0]) => {
     try {
-      await logAuditEvent(
+      // logAuditEvent swallows every error and returns {success:false} rather
+      // than throwing, so the catch below never fired and a failed write was
+      // indistinguishable from a successful one — the patient was always told
+      // their dispute had been filed. Check the return value.
+      const res = (await logAuditEvent(
         "Patient Portal",
         e.resource,
         `dispute-access: ${e.id}`,
         "flagged",
         "warning",
-      );
-      toast.success("Dispute filed successfully", {
-        description: "Security team will investigate.",
+      )) as unknown as { success: boolean };
+
+      if (!res?.success) {
+        toast.error("Could not file the dispute", {
+          description: "Nothing was recorded. Please try again, or contact your hospital.",
+        });
+        return;
+      }
+
+      toast.success("Dispute recorded", {
+        description: "Flagged in the audit trail for your hospital to review.",
       });
       refetch();
     } catch (err: any) {
@@ -159,20 +201,64 @@ function History() {
     }
   };
 
-  const handleVerifyChain = async () => {
-    toast.promise(new Promise((resolve) => setTimeout(resolve, 1500)), {
-      loading: "Verifying Merkle proof tree on Solana Devnet...",
-      success: "Audit chain successfully verified! 0 discrepancies found.",
-      error: "Verification failed",
-    });
+  /**
+   * Both of these were `setTimeout` theatre.
+   *
+   * handleVerifyChain waited 1500 ms and then reported "Audit chain
+   * successfully verified! 0 discrepancies found" without reading a Merkle
+   * tree or making any RPC call. handleVerifyEventOnLedger waited 1200 ms and
+   * reported "Transaction hash matched state DB anchor! Validated" without
+   * looking anything up. On a page whose purpose is proving the audit trail has
+   * not been tampered with, a hardcoded success is worse than no button.
+   *
+   * verifyAuditRecord() calls the verify_audit_record() Postgres function,
+   * which recomputes the record's SHA-256 server-side and compares it with the
+   * stored hash and the on-chain anchor. That is the real check.
+   */
+  const handleVerifyEventOnLedger = async (txId: string) => {
+    try {
+      const res = (await verifyAuditRecord({ data: { txId } })) as unknown as {
+        verified: boolean;
+        dbIntegrity: string;
+        chainIntegrity: string;
+        anchorStatus: string | null;
+      };
+      if (res.verified) {
+        toast.success("Record verified", {
+          description: `Hash matches (${res.dbIntegrity}) · anchor ${res.anchorStatus ?? "not queued"}`,
+        });
+      } else {
+        toast.error("Verification failed", {
+          description: `This record does not match its stored hash (${res.dbIntegrity}, chain ${res.chainIntegrity}).`,
+        });
+      }
+    } catch (err: any) {
+      toast.error("Could not verify this record", { description: err?.message });
+    }
   };
 
-  const handleVerifyEventOnLedger = async (eventId: string) => {
-    toast.promise(new Promise((resolve) => setTimeout(resolve, 1200)), {
-      loading: `Locating tx 0x${eventId.slice(0, 8)}... on ledger...`,
-      success: "Transaction hash matched state DB anchor! Validated.",
-      error: "Failed to verify transaction",
-    });
+  const handleVerifyChain = async () => {
+    const ids = filtered.map((e: any) => e.id).filter(Boolean);
+    if (!ids.length) {
+      toast.info("There are no records to verify.");
+      return;
+    }
+    const results = await Promise.allSettled(
+      ids.map((txId: string) => verifyAuditRecord({ data: { txId } })),
+    );
+    const checked = results.filter((r: any) => r.status === "fulfilled");
+    const bad = checked.filter((r: any) => !r.value?.verified).length;
+    const failed = results.length - checked.length;
+
+    if (bad === 0 && failed === 0) {
+      toast.success(`All ${checked.length} records verified`, {
+        description: "Every hash matches the value recomputed server-side.",
+      });
+    } else {
+      toast.error("Verification found problems", {
+        description: `${bad} record(s) did not match${failed ? `, ${failed} could not be checked` : ""}.`,
+      });
+    }
   };
 
   return (
@@ -191,7 +277,9 @@ function History() {
               className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold ${online ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"}`}
             >
               {online ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
-              {online ? "Solana Live" : "Local Sim"}
+              {/* `online` only means the Supabase query succeeded — it has
+                  nothing to do with Solana. */}
+              {online ? "Connected" : "Offline"}
             </span>
             <button
               onClick={refetch}
@@ -360,7 +448,10 @@ function History() {
                                       DID Verified
                                     </div>
                                     <div className="font-mono text-[10px] text-primary">
-                                      did:hosp:0x8f4a…{e.id.slice(-4)}
+                                      {/* Was `did:hosp:0x8f4a…{id.slice(-4)}` —
+                                          a string built from the tx id and
+                                          labelled "DID Verified". */}
+                                      {e.actorDid || e.actorName || "Not recorded"}
                                     </div>
                                   </div>
                                   <div className="space-y-1.5 text-xs">
@@ -369,7 +460,12 @@ function History() {
                                       Ledger Hash
                                     </div>
                                     <div className="font-mono text-[10px] text-muted-foreground">
-                                      0x{e.id.padEnd(4, "0")}…c8f1
+                                      {/* Was `0x{id.padEnd(4,"0")}…c8f1`, again
+                                          manufactured from the tx id. The real
+                                          record_hash is now selected. */}
+                                      {e.recordHash
+                                        ? `${e.recordHash.slice(0, 10)}…${e.recordHash.slice(-6)}`
+                                        : "Not anchored"}
                                     </div>
                                   </div>
                                   <div className="col-span-2 flex gap-2 pt-1">

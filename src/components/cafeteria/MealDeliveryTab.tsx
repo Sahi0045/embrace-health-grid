@@ -25,23 +25,23 @@ const STAGE_ORDER: DeliveryStatus[] = ["preparing", "dispatched", "delivered"];
 const STATUS_CONFIGS: Record<DeliveryStatus, { label: string; color: string; border: string }> = {
   preparing: {
     label: "Kitchen Prep",
-    color: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-    border: "border-amber-500/20",
+    color: "bg-warning/10 text-warning dark:text-warning",
+    border: "border-warning/20",
   },
   dispatched: {
     label: "In Transit",
-    color: "bg-sky-500/10 text-sky-600 dark:text-sky-400",
-    border: "border-sky-500/20",
+    color: "bg-primary/10 text-primary dark:text-primary",
+    border: "border-primary/20",
   },
   delivered: {
     label: "Delivered",
-    color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-    border: "border-emerald-500/20",
+    color: "bg-success/10 text-success dark:text-success",
+    border: "border-success/20",
   },
   cancelled: {
     label: "Cancelled",
-    color: "bg-rose-500/10 text-rose-600 dark:text-rose-400",
-    border: "border-rose-500/20",
+    color: "bg-destructive/10 text-destructive dark:text-destructive",
+    border: "border-destructive/20",
   },
 };
 
@@ -119,7 +119,7 @@ export function MealDeliveryTab({ deliveries, onAdvanceStage }: MealDeliveryTabP
                           isCurrent
                             ? "bg-primary text-primary-foreground border-primary shadow-xs"
                             : isCompleted
-                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                              ? "bg-success/10 text-success dark:text-success border-success/20"
                               : "bg-muted/40 text-muted-foreground/60 border-border/40"
                         }`}
                       >
@@ -153,7 +153,7 @@ export function MealDeliveryTab({ deliveries, onAdvanceStage }: MealDeliveryTabP
                     </span>
                   </div>
                   {delivery.delivered_at && (
-                    <p className="text-emerald-500 font-bold">
+                    <p className="text-success font-bold">
                       Delivered:{" "}
                       {new Date(delivery.delivered_at).toLocaleTimeString([], {
                         hour: "2-digit",
@@ -175,7 +175,7 @@ export function MealDeliveryTab({ deliveries, onAdvanceStage }: MealDeliveryTabP
                 )}
 
                 {delivery.delivery_status === "delivered" && (
-                  <span className="inline-flex items-center gap-1 text-xs font-black text-emerald-500">
+                  <span className="inline-flex items-center gap-1 text-xs font-black text-success">
                     <CheckCircle2 className="h-4 w-4" /> Completed
                   </span>
                 )}

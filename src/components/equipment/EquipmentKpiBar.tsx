@@ -16,10 +16,10 @@ import type { EquipmentRecord } from "@/lib/types";
 
 export interface EquipmentKpiStats {
   total: number;
-  operational: number;
+  available: number;
   inUse: number;
   maintenance: number;
-  offline: number;
+  retired: number;
   avgUtilization: number;
 }
 
@@ -39,7 +39,7 @@ export function EquipmentKpiBar({
   className = "",
 }: EquipmentKpiBarProps) {
   const operationalRate =
-    stats.total > 0 ? Math.round(((stats.operational + stats.inUse) / stats.total) * 100) : 0;
+    stats.total > 0 ? Math.round(((stats.available + stats.inUse) / stats.total) * 100) : 0;
 
   const sparklineHistorical = [
     stats.total - 2,
@@ -63,15 +63,15 @@ export function EquipmentKpiBar({
       active: activeFilter === "all",
     },
     {
-      id: "operational",
+      id: "available",
       label: "Operational",
-      value: stats.operational,
+      value: stats.available,
       subValue: "Standby & Available",
       icon: CheckCircle2,
       tone: "success" as const,
       sparklineTone: "success" as const,
-      data: [stats.operational - 1, stats.operational, stats.operational + 1, stats.operational],
-      active: activeFilter === "operational",
+      data: [stats.available - 1, stats.available, stats.available + 1, stats.available],
+      active: activeFilter === "available",
     },
     {
       id: "in-use",
@@ -96,15 +96,15 @@ export function EquipmentKpiBar({
       active: activeFilter === "maintenance",
     },
     {
-      id: "offline",
+      id: "retired",
       label: "Offline / Decommissioned",
-      value: stats.offline,
+      value: stats.retired,
       subValue: "Awaiting Biomedical Inspection",
       icon: XCircle,
       tone: "destructive" as const,
       sparklineTone: "destructive" as const,
-      data: [stats.offline + 1, stats.offline, stats.offline],
-      active: activeFilter === "offline",
+      data: [stats.retired + 1, stats.retired, stats.retired],
+      active: activeFilter === "retired",
     },
   ];
 
@@ -132,14 +132,14 @@ export function EquipmentKpiBar({
               valueText: "text-foreground",
             },
             cyan: {
-              iconBg: "bg-cyan-500/15 text-cyan-600 dark:text-cyan-400",
+              iconBg: "bg-primary/15 text-primary dark:text-primary",
               border: isSelected
-                ? "border-cyan-500 ring-2 ring-cyan-500/30 bg-cyan-500/5"
-                : "border-border/80 hover:border-cyan-500/40",
+                ? "border-primary ring-2 ring-primary/30 bg-primary/5"
+                : "border-border/80 hover:border-primary/40",
               valueText: "text-foreground",
             },
             warning: {
-              iconBg: "bg-warning/15 text-warning-foreground dark:text-amber-400",
+              iconBg: "bg-warning/15 text-warning-foreground dark:text-warning",
               border: isSelected
                 ? "border-warning ring-2 ring-warning/30 bg-warning/5"
                 : "border-border/80 hover:border-warning/40",

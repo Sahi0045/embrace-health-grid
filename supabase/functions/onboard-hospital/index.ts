@@ -286,6 +286,7 @@ Deno.serve(async (req) => {
     }
 
     await audit(db, {
+      caller,
       actor_id: caller.userId,
       resource: hospitalDid,
       action: "HOSPITAL_ONBOARDED",
@@ -369,6 +370,7 @@ Deno.serve(async (req) => {
 
     if (caller) {
       await audit(db, {
+        caller,
         actor_id: caller.userId,
         action: "HOSPITAL_ONBOARD_FAILED",
         outcome: "failure",

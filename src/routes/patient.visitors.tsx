@@ -109,10 +109,23 @@ function PatientVisitors() {
       });
 
       if (reqRes && reqRes.request) {
-        // 2. Pre-approve it automatically since the patient created it themselves
-        await approveVisitorRequest(reqRes.request.id, true);
-        toast.success("Visitor pre-approved successfully", {
-          description: `${visitorName} added to the authorized access logs.`,
+        /**
+         * No auto-approve step.
+         *
+         * This used to call approveVisitorRequest() straight after creating the
+         * row. The only UPDATE policy on `visitors` is visitors_update_staff —
+         * doctor, staff or admin only, and the policy comment states plainly
+         * that only staff resolve a visit request. So the approve always threw,
+         * the catch fired, and the user was told "Failed to pre-approve visitor"
+         * while the request row sat in the database. Re-submitting duplicated
+         * it. The insert itself is permitted (visitors_insert_involved) and
+         * always worked.
+         *
+         * Creating the request is what a patient is actually allowed to do, so
+         * that is what this now reports.
+         */
+        toast.success("Visitor request submitted", {
+          description: `${visitorName} is pending approval by ward staff.`,
         });
 
         // Reset form
@@ -124,8 +137,8 @@ function PatientVisitors() {
         fetchVisitors();
       }
     } catch (err: any) {
-      toast.error("Failed to pre-approve visitor", {
-        description: err.message || "Error executing transaction on ledger.",
+      toast.error("Could not submit visitor request", {
+        description: err.message,
       });
     } finally {
       setSubmitting(false);
@@ -242,19 +255,18 @@ function PatientVisitors() {
                             <span>Scheduled: {new Date(req.visitDate).toLocaleDateString()}</span>
                           </div>
 
-                          <div className="mt-4 grid grid-cols-2 gap-2">
-                            <button
-                              onClick={() => handleAction(req.id, false)}
-                              className="inline-flex justify-center items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-xs font-medium text-destructive hover:bg-destructive/5 transition-colors"
-                            >
-                              <XCircle className="h-4 w-4" /> Deny Access
-                            </button>
-                            <button
-                              onClick={() => handleAction(req.id, true)}
-                              className="inline-flex justify-center items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/95 transition-colors"
-                            >
-                              <CheckCircle className="h-4 w-4" /> Approve
-                            </button>
+                          {/* Approve / Deny removed.
+                              visitors_update_staff restricts resolving a request
+                              to doctor, staff or admin — the policy comment says
+                              "Only staff approve or deny a visit request." This
+                              route is patient-guarded, so both buttons threw
+                              "Visit request not found, or you cannot resolve it"
+                              on every click. Rather than widen RLS, the page now
+                              reflects what a patient may actually do: raise the
+                              request and watch its status. */}
+                          <div className="mt-4 flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                            <Clock className="h-3.5 w-3.5 shrink-0" />
+                            Awaiting approval by ward staff.
                           </div>
                         </div>
                       </StaggerItem>

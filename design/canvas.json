@@ -1,0 +1,69 @@
+{
+  "pages": [
+    { "id": "page-1", "name": "Screens" },
+    { "id": "page-2", "name": "System" }
+  ],
+  "artboards": [
+    { "file": "WebHome.dc.html",   "title": "Web · Home",       "page": "page-1", "x": 0,    "y": 0,    "w": 1440, "h": 900 },
+    { "file": "WebAccess.dc.html", "title": "Web · Access",     "page": "page-1", "x": 1560, "y": 0,    "w": 1440, "h": 900 },
+    { "file": "WebRecord.dc.html", "title": "Web · Record",     "page": "page-1", "x": 3120, "y": 0,    "w": 1440, "h": 900 },
+
+    { "file": "Main.dc.html",      "title": "Phone · Home",     "page": "page-1", "x": 0,    "y": 1060, "w": 390,  "h": 844 },
+    { "file": "Consent.dc.html",   "title": "Phone · Access",   "page": "page-1", "x": 470,  "y": 1060, "w": 390,  "h": 844 },
+    { "file": "Records.dc.html",   "title": "Phone · Record",   "page": "page-1", "x": 940,  "y": 1060, "w": 390,  "h": 844 },
+    { "file": "Wallet.dc.html",    "title": "Phone · Keys",     "page": "page-1", "x": 1410, "y": 1060, "w": 390,  "h": 844 },
+
+    { "file": "System.dc.html",    "title": "Design system",    "page": "page-2", "x": 0,    "y": 0,    "w": 760,  "h": 1000 }
+  ],
+  "annotations": [
+    {
+      "id": "concept",
+      "page": "page-1",
+      "x": 0,
+      "y": -250,
+      "w": 460,
+      "text": "Direction: THE ARCHIVE\n\nA health record is a document you own, not a dashboard you visit. Parchment ground, warm ink, editorial serif for voice, monospace for anything cryptographic — so proof always looks like proof.\n\nDeliberately not medical-blue: that convention says \"hospital software\". This says \"your record\"."
+    },
+    {
+      "id": "clickable",
+      "page": "page-1",
+      "x": 520,
+      "y": -250,
+      "w": 460,
+      "text": "These are live, not pictures.\n\nAccess (both sizes) — hit Revoke on any grant and watch it seal, fade and drop out of the live count.\n\nWeb · Record — click any row to load it into the detail pane; the filter chips filter.\n\nPhone · Home — Overview / Activity swap.\nPhone · Keys — the two custody modes swap the key card."
+    },
+    {
+      "id": "responsive",
+      "page": "page-1",
+      "x": 1040,
+      "y": -250,
+      "w": 460,
+      "text": "Web is not the phone stretched.\n\nHome puts the access table and the activity feed side by side instead of behind a tab.\n\nAccess shows pending requests in a right rail, so approving does not mean navigating away.\n\nRecord becomes list + detail — the one pattern a phone genuinely cannot do."
+    },
+    {
+      "id": "gaps",
+      "page": "page-1",
+      "x": 1560,
+      "y": -250,
+      "w": 440,
+      "text": "Not yet drawn: onboarding / DID provisioning, present-QR-to-clinician, emergency break-glass, insurance, telemedicine. Web · Keys is phone-only so far.\n\nAll names, dates, DIDs and hashes are sample data."
+    },
+    {
+      "id": "weblabel",
+      "page": "page-1",
+      "x": -480,
+      "y": 40,
+      "w": 380,
+      "text": "WEB — 1440 × 900\n\nSidebar shell, 248px. Same tokens and components as the phone, denser rhythm and a search affordance."
+    },
+    {
+      "id": "phonelabel",
+      "page": "page-1",
+      "x": -480,
+      "y": 1100,
+      "w": 380,
+      "text": "PHONE — 390 × 844\n\nFour-tab bar. No fake status bar: on a real device the OS draws its own over this."
+    }
+  ],
+  "launch": { "view": "canvas", "page": "page-1" }
+}

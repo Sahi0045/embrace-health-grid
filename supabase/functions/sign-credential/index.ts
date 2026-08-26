@@ -127,6 +127,7 @@ Deno.serve(async (req) => {
     if (iErr) throw new HttpError(500, `Could not persist credential: ${iErr.message}`);
 
     await audit(db, {
+      caller,
       actor_id: caller.userId,
       actor_did: caller.dids[0] ?? null,
       resource: credentialId,
@@ -147,6 +148,7 @@ Deno.serve(async (req) => {
   } catch (err) {
     if (caller) {
       await audit(db, {
+        caller,
         actor_id: caller.userId,
         action: "CREDENTIAL_ISSUE_FAILED",
         outcome: "failure",

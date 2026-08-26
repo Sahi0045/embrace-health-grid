@@ -129,7 +129,7 @@ function PatientProfilePage() {
                 <Button
                   onClick={() => setIsDischargeOpen(true)}
                   size="sm"
-                  className="bg-gradient-to-r from-primary to-blue-600 text-primary-foreground font-extrabold rounded-xl shadow-clinical-md shadow-primary/25 text-xs"
+                  className="bg-primary text-primary-foreground font-extrabold rounded-xl shadow-clinical-md shadow-primary/25 text-xs"
                 >
                   <LogOut className="h-4 w-4 mr-2" />
                   Process Discharge

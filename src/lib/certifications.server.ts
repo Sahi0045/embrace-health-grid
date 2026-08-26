@@ -11,7 +11,11 @@
 
 import { createServerFn } from "@tanstack/react-start";
 import { getSupabaseServerClient, getVerifiedUser } from "./supabase.server";
-import { resolveCallerForAudit, tryWriteAudit, buildCertificationAudit } from "./audit.server";
+import {
+  resolveCallerForAudit,
+  tryWriteAudit,
+  buildCertificationAudit,
+} from "./audit-helpers.server";
 
 /** Reject unauthenticated callers */
 async function requireSession() {

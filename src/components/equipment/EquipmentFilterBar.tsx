@@ -52,10 +52,10 @@ export function EquipmentFilterBar({
 }: EquipmentFilterBarProps) {
   const statusPills: { id: EquipmentStatusFilter; label: string; icon: any; countKey: string }[] = [
     { id: "all", label: "All Units", icon: Layers, countKey: "all" },
-    { id: "operational", label: "Operational", icon: CheckCircle2, countKey: "operational" },
+    { id: "available", label: "Operational", icon: CheckCircle2, countKey: "available" },
     { id: "in-use", label: "In Use", icon: Activity, countKey: "in-use" },
     { id: "maintenance", label: "Maintenance", icon: AlertTriangle, countKey: "maintenance" },
-    { id: "offline", label: "Offline", icon: XCircle, countKey: "offline" },
+    { id: "retired", label: "Retired", icon: XCircle, countKey: "retired" },
   ];
 
   return (

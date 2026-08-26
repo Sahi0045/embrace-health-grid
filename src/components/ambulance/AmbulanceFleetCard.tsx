@@ -75,22 +75,29 @@ const typeLabels: Record<string, { label: string; tone: string }> = {
   },
   bls: {
     label: "BLS · Basic Life Support",
-    tone: "text-blue-600 dark:text-blue-400 border-blue-500/20 bg-blue-500/10",
+    tone: "text-chart-4 border-chart-4/20 bg-chart-4/10",
   },
   neonatal: {
     label: "NICU · Neonatal Critical Care",
-    tone: "text-pink-600 dark:text-pink-400 border-pink-500/20 bg-pink-500/10",
+    tone: "text-chart-5 border-chart-5/20 bg-chart-5/10",
   },
   air: {
     label: "Air Ambulance · Helicopter",
-    tone: "text-purple-600 dark:text-purple-400 border-purple-500/20 bg-purple-500/10",
+    tone: "text-chart-6 border-chart-6/20 bg-chart-6/10",
   },
 };
 
 export function AmbulanceFleetCard({ ambulance, onSelect }: AmbulanceFleetCardProps) {
-  const cfg = statusConfig[ambulance.status] || statusConfig.available;
-  const typeMeta = typeLabels[ambulance.type] || {
-    label: ambulance.type.toUpperCase(),
+  // An ambulance with no recorded status is NOT "available" — falling back to
+  // the dispatchable state is how an unknown vehicle ended up offered to a
+  // dispatcher as ready to roll.
+  const cfg = (ambulance.status && statusConfig[ambulance.status]) || {
+    ...statusConfig.available,
+    label: "Status unknown",
+    accent: undefined,
+  };
+  const typeMeta = (ambulance.type && typeLabels[ambulance.type]) || {
+    label: ambulance.type ? ambulance.type.toUpperCase() : "Type not recorded",
     tone: "text-muted-foreground border-border/80 bg-muted/30",
   };
 

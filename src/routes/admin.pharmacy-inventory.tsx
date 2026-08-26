@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { RouteGuard } from "@/components/RouteGuard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,9 +45,17 @@ import {
   createSupplier,
   createBatch,
 } from "@/lib/pharmacy.server";
-import { useTableRefresh } from "@/lib/hooks/useTableRefresh";
 
 export const Route = createFileRoute("/admin/pharmacy-inventory")({
+  head: () => ({
+    meta: [
+      { title: "Pharmacy Inventory — Admin Console" },
+      {
+        name: "description",
+        content: "Manage medicines, stock levels, suppliers, batch tracking, and expiry alerts",
+      },
+    ],
+  }),
   component: AdminPharmacyInventory,
 });
 
@@ -57,14 +66,24 @@ function AdminPharmacyInventory() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
   // Refresh triggers for real-time updates
-  const refreshInventory = useTableRefresh();
-  const refreshMovements = useTableRefresh();
+  const queryClient = useQueryClient();
+  /**
+   * Force the pharmacy queries to refetch.
+   *
+   * This replaces `useTableRefresh()`, which returned a FUNCTION that callers put
+   * into their React Query keys. React Query hashes keys with JSON.stringify,
+   * which serialises a function to `null` — so the key was constant and nothing
+   * ever refetched. Dispensing, receiving and transferring all succeeded and the
+   * screen kept showing the old quantities until a full page reload.
+   */
+  const refreshInventory = () => queryClient.invalidateQueries();
+  const refreshMovements = refreshInventory;
 
   // ─── Queries ────────────────────────────────────────────────────────────
 
   // Inventory items
   const { data: inventoryData, isLoading: inventoryLoading } = useQuery({
-    queryKey: ["inventory-items", searchTerm, statusFilter, refreshInventory],
+    queryKey: ["inventory-items", searchTerm, statusFilter],
     queryFn: () =>
       getInventoryItems({
         data: {
@@ -76,37 +95,37 @@ function AdminPharmacyInventory() {
   });
 
   // Low-stock alerts
-  const { data: lowStockData } = useQuery({
-    queryKey: ["low-stock-alerts", refreshInventory],
+  const { data: lowStockData, isError: lowStockError } = useQuery({
+    queryKey: ["low-stock-alerts"],
     queryFn: () => getLowStockItems({ data: { resolved: false, limit: 10 } }),
     enabled: activeTab === "overview" || activeTab === "alerts",
   });
 
   // Near-expiry items
-  const { data: nearExpiryData } = useQuery({
-    queryKey: ["near-expiry-alerts", refreshInventory],
+  const { data: nearExpiryData, isError: nearExpiryError } = useQuery({
+    queryKey: ["near-expiry-alerts"],
     queryFn: () =>
       getNearExpiryItems({ data: { status: "near_expiry", resolved: false, limit: 10 } }),
     enabled: activeTab === "overview" || activeTab === "alerts",
   });
 
   // Expired stock
-  const { data: expiredData } = useQuery({
-    queryKey: ["expired-stock", refreshInventory],
+  const { data: expiredData, isError: expiredError } = useQuery({
+    queryKey: ["expired-stock"],
     queryFn: () => getExpiredStock({ data: { limit: 5 } }),
     enabled: activeTab === "alerts",
   });
 
   // Suppliers
   const { data: suppliersData } = useQuery({
-    queryKey: ["suppliers", refreshInventory],
+    queryKey: ["suppliers"],
     queryFn: () => getSuppliers({ data: { active: true } }),
     enabled: activeTab === "suppliers" || activeTab === "overview",
   });
 
   // Purchase orders
   const { data: purchaseOrdersData } = useQuery({
-    queryKey: ["purchase-orders", refreshInventory],
+    queryKey: ["purchase-orders"],
     queryFn: () => getPurchaseOrders({ data: { limit: 20 } }),
     enabled: activeTab === "purchase-orders",
   });
@@ -136,60 +155,80 @@ function AdminPharmacyInventory() {
 
   // ─── Render ─────────────────────────────────────────────────────────────
 
-  const lowStockCount = lowStockData?.alerts?.length || 0;
-  const nearExpiryCount = nearExpiryData?.alerts?.length || 0;
-  const expiredCount = expiredData?.alerts?.length || 0;
+  // null means the query FAILED, which is not the same as zero alerts. A
+  // pharmacy must never be told its shelves are fine because the query broke.
+  const lowStockCount = lowStockError ? null : (lowStockData?.alerts?.length ?? 0);
+  const nearExpiryCount = nearExpiryError ? null : (nearExpiryData?.alerts?.length ?? 0);
+  const expiredCount = expiredError ? null : (expiredData?.alerts?.length ?? 0);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-6">
-      <div className="max-w-7xl mx-auto">
+    <RouteGuard requiredRole="admin">
+      <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-8 pb-24">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Pharmacy Inventory Management</h1>
-          <p className="text-gray-600">Manage medicines, stock levels, suppliers, and alerts</p>
+          <h1 className="text-4xl font-bold text-foreground mb-2">Pharmacy Inventory Management</h1>
+          <p className="text-muted-foreground">
+            Manage medicines, stock levels, suppliers, and alerts
+          </p>
         </div>
 
         {/* Alert Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           {/* Low Stock Alert */}
-          <Card className={lowStockCount > 0 ? "border-yellow-200 bg-yellow-50" : ""}>
+          <Card
+            className={
+              lowStockCount != null && lowStockCount > 0 ? "border-warning/30 bg-warning/10" : ""
+            }
+          >
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                <TrendingDown className="w-4 h-4 text-yellow-600" />
+                <TrendingDown className="w-4 h-4 text-warning" />
                 Low Stock Items
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-yellow-700">{lowStockCount}</div>
-              <p className="text-xs text-yellow-600 mt-1">Items below reorder level</p>
+              <div className="text-2xl font-bold text-warning">{lowStockCount ?? "—"}</div>
+              <p className="text-xs text-muted-foreground mt-1">Items below reorder level</p>
             </CardContent>
           </Card>
 
           {/* Near-Expiry Alert */}
-          <Card className={nearExpiryCount > 0 ? "border-orange-200 bg-orange-50" : ""}>
+          <Card
+            className={
+              nearExpiryCount != null && nearExpiryCount > 0
+                ? "border-warning/30 bg-warning/10"
+                : ""
+            }
+          >
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                <Clock className="w-4 h-4 text-orange-600" />
+                <Clock className="w-4 h-4 text-warning" />
                 Near-Expiry Items
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-orange-700">{nearExpiryCount}</div>
-              <p className="text-xs text-orange-600 mt-1">Items within 30 days of expiry</p>
+              <div className="text-2xl font-bold text-warning">{nearExpiryCount ?? "—"}</div>
+              <p className="text-xs text-muted-foreground mt-1">Items within 30 days of expiry</p>
             </CardContent>
           </Card>
 
           {/* Expired Alert */}
-          <Card className={expiredCount > 0 ? "border-red-200 bg-red-50" : ""}>
+          <Card
+            className={
+              expiredCount != null && expiredCount > 0
+                ? "border-destructive/30 bg-destructive/10"
+                : ""
+            }
+          >
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                <AlertTriangle className="w-4 h-4 text-red-600" />
+                <AlertTriangle className="w-4 h-4 text-destructive" />
                 Expired Stock
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-red-700">{expiredCount}</div>
-              <p className="text-xs text-red-600 mt-1">
+              <div className="text-2xl font-bold text-destructive">{expiredCount ?? "—"}</div>
+              <p className="text-xs text-muted-foreground mt-1">
                 {expiredData?.totalQuantityExpired || 0} units total
               </p>
             </CardContent>
@@ -198,7 +237,7 @@ function AdminPharmacyInventory() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-5 bg-white border">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="inventory">Inventory</TabsTrigger>
             <TabsTrigger value="batches">Batches</TabsTrigger>
@@ -219,24 +258,24 @@ function AdminPharmacyInventory() {
                     {lowStockData.alerts.slice(0, 5).map((alert: any) => (
                       <div
                         key={alert.alert_id}
-                        className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50"
+                        className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50"
                       >
                         <div className="flex-1">
-                          <p className="font-medium text-gray-900">
-                            {alert.inventory_items?.item_name || "Unknown Item"}
+                          <p className="font-medium text-foreground">
+                            {alert.pharmacy_items?.item_name || "Unknown Item"}
                           </p>
-                          <p className="text-sm text-gray-500">
+                          <p className="text-sm text-muted-foreground">
                             Current: {alert.current_quantity} | Reorder: {alert.reorder_level}
                           </p>
                         </div>
-                        <Badge variant="outline" className="bg-yellow-50">
+                        <Badge variant="outline" className="bg-warning/10">
                           Short by {alert.quantity_short}
                         </Badge>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-gray-500 text-center py-6">All items well-stocked</p>
+                  <p className="text-muted-foreground text-center py-6">All items well-stocked</p>
                 )}
               </CardContent>
             </Card>
@@ -252,27 +291,29 @@ function AdminPharmacyInventory() {
                     {nearExpiryData.alerts.slice(0, 5).map((alert: any) => (
                       <div
                         key={alert.alert_id}
-                        className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50"
+                        className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50"
                       >
                         <div className="flex-1">
-                          <p className="font-medium text-gray-900">
-                            {alert.inventory_items?.item_name || "Unknown Item"}
+                          <p className="font-medium text-foreground">
+                            {alert.pharmacy_items?.item_name || "Unknown Item"}
                           </p>
-                          <p className="text-sm text-gray-500">
+                          <p className="text-sm text-muted-foreground">
                             Batch: {alert.inventory_batches?.batch_number}
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm font-medium text-orange-600">
+                          <p className="text-sm font-medium text-warning">
                             {alert.days_until_expiry} days
                           </p>
-                          <p className="text-xs text-gray-500">Qty: {alert.quantity_affected}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Qty: {alert.quantity_affected}
+                          </p>
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-gray-500 text-center py-6">No items near expiry</p>
+                  <p className="text-muted-foreground text-center py-6">No items near expiry</p>
                 )}
               </CardContent>
             </Card>
@@ -316,25 +357,37 @@ function AdminPharmacyInventory() {
 
                 {/* Items Table */}
                 {inventoryLoading ? (
-                  <div className="text-center py-8 text-gray-500">Loading...</div>
+                  <div className="text-center py-8 text-muted-foreground">Loading...</div>
                 ) : inventoryData?.items && inventoryData.items.length > 0 ? (
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b">
-                          <th className="text-left py-3 px-3 font-medium">Name</th>
-                          <th className="text-left py-3 px-3 font-medium">Code</th>
-                          <th className="text-left py-3 px-3 font-medium">Type</th>
-                          <th className="text-left py-3 px-3 font-medium">Unit</th>
-                          <th className="text-left py-3 px-3 font-medium">Reorder Level</th>
-                          <th className="text-left py-3 px-3 font-medium">Status</th>
+                          <th className="text-left py-3 px-3 font-medium text-muted-foreground">
+                            Name
+                          </th>
+                          <th className="text-left py-3 px-3 font-medium text-muted-foreground">
+                            Code
+                          </th>
+                          <th className="text-left py-3 px-3 font-medium text-muted-foreground">
+                            Type
+                          </th>
+                          <th className="text-left py-3 px-3 font-medium text-muted-foreground">
+                            Unit
+                          </th>
+                          <th className="text-left py-3 px-3 font-medium text-muted-foreground">
+                            Reorder Level
+                          </th>
+                          <th className="text-left py-3 px-3 font-medium text-muted-foreground">
+                            Status
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
                         {inventoryData.items.map((item: any) => (
-                          <tr key={item.item_id} className="border-b hover:bg-gray-50">
+                          <tr key={item.item_id} className="border-b hover:bg-muted/50">
                             <td className="py-3 px-3">{item.item_name}</td>
-                            <td className="py-3 px-3 text-gray-600">{item.item_code}</td>
+                            <td className="py-3 px-3 text-muted-foreground">{item.item_code}</td>
                             <td className="py-3 px-3">
                               <Badge variant="outline">{item.item_type}</Badge>
                             </td>
@@ -351,7 +404,9 @@ function AdminPharmacyInventory() {
                     </table>
                   </div>
                 ) : (
-                  <div className="text-center py-8 text-gray-500">No inventory items found</div>
+                  <div className="text-center py-8 text-muted-foreground">
+                    No inventory items found
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -392,13 +447,13 @@ function AdminPharmacyInventory() {
                       {lowStockData.alerts.map((alert: any) => (
                         <div
                           key={alert.alert_id}
-                          className="flex items-center justify-between p-4 border rounded-lg bg-yellow-50"
+                          className="flex items-center justify-between p-4 border rounded-lg bg-warning/10"
                         >
                           <div className="flex-1">
-                            <p className="font-medium text-gray-900">
-                              {alert.inventory_items?.item_name}
+                            <p className="font-medium text-foreground">
+                              {alert.pharmacy_items?.item_name}
                             </p>
-                            <p className="text-sm text-gray-600">
+                            <p className="text-sm text-muted-foreground">
                               Current: {alert.current_quantity} | Threshold: {alert.reorder_level}
                             </p>
                           </div>
@@ -418,7 +473,7 @@ function AdminPharmacyInventory() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-gray-500 text-center py-6">No low stock alerts</p>
+                    <p className="text-muted-foreground text-center py-6">No low stock alerts</p>
                   )}
                 </CardContent>
               </Card>
@@ -437,28 +492,28 @@ function AdminPharmacyInventory() {
                       {nearExpiryData.alerts.map((alert: any) => (
                         <div
                           key={alert.alert_id}
-                          className="flex items-center justify-between p-4 border rounded-lg bg-orange-50"
+                          className="flex items-center justify-between p-4 border rounded-lg bg-warning/10"
                         >
                           <div className="flex-1">
-                            <p className="font-medium text-gray-900">
-                              {alert.inventory_items?.item_name}
+                            <p className="font-medium text-foreground">
+                              {alert.pharmacy_items?.item_name}
                             </p>
-                            <p className="text-sm text-gray-600">
+                            <p className="text-sm text-muted-foreground">
                               Batch: {alert.inventory_batches?.batch_number} | Qty:{" "}
                               {alert.quantity_affected}
                             </p>
                           </div>
                           <div className="text-right">
-                            <p className="font-medium text-orange-600">
+                            <p className="font-medium text-warning">
                               {alert.days_until_expiry} days
                             </p>
-                            <p className="text-xs text-gray-500">to expiry</p>
+                            <p className="text-xs text-muted-foreground">to expiry</p>
                           </div>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-gray-500 text-center py-6">No near-expiry items</p>
+                    <p className="text-muted-foreground text-center py-6">No near-expiry items</p>
                   )}
                 </CardContent>
               </Card>
@@ -477,16 +532,16 @@ function AdminPharmacyInventory() {
                       {expiredData.alerts.map((alert: any) => (
                         <div
                           key={alert.alert_id}
-                          className="flex items-center justify-between p-4 border rounded-lg bg-red-50"
+                          className="flex items-center justify-between p-4 border rounded-lg bg-destructive/10"
                         >
                           <div className="flex-1">
-                            <p className="font-medium text-gray-900">
-                              {alert.inventory_items?.item_name}
+                            <p className="font-medium text-foreground">
+                              {alert.pharmacy_items?.item_name}
                             </p>
-                            <p className="text-sm text-gray-600">{alert.action_notes}</p>
+                            <p className="text-sm text-muted-foreground">{alert.action_notes}</p>
                           </div>
                           <div className="text-right">
-                            <p className="text-xs text-gray-600">
+                            <p className="text-xs text-muted-foreground">
                               {new Date(alert.action_taken_at).toLocaleDateString()}
                             </p>
                           </div>
@@ -494,7 +549,9 @@ function AdminPharmacyInventory() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-gray-500 text-center py-6">No expired stock records</p>
+                    <p className="text-muted-foreground text-center py-6">
+                      No expired stock records
+                    </p>
                   )}
                 </CardContent>
               </Card>
@@ -525,7 +582,7 @@ function AdminPharmacyInventory() {
           </TabsContent>
         </Tabs>
       </div>
-    </div>
+    </RouteGuard>
   );
 }
 
@@ -748,7 +805,7 @@ function BatchesTable({ onRefresh }: { onRefresh: () => void }) {
   });
 
   if (!data?.batches || data.batches.length === 0) {
-    return <div className="text-center py-8 text-gray-500">No batches found</div>;
+    return <div className="text-center py-8 text-muted-foreground">No batches found</div>;
   }
 
   return (
@@ -756,21 +813,23 @@ function BatchesTable({ onRefresh }: { onRefresh: () => void }) {
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b">
-            <th className="text-left py-3 px-3 font-medium">Batch Number</th>
-            <th className="text-left py-3 px-3 font-medium">Item</th>
-            <th className="text-left py-3 px-3 font-medium">Available</th>
-            <th className="text-left py-3 px-3 font-medium">Expiry Date</th>
-            <th className="text-left py-3 px-3 font-medium">Status</th>
+            <th className="text-left py-3 px-3 font-medium text-muted-foreground">Batch Number</th>
+            <th className="text-left py-3 px-3 font-medium text-muted-foreground">Item</th>
+            <th className="text-left py-3 px-3 font-medium text-muted-foreground">Available</th>
+            <th className="text-left py-3 px-3 font-medium text-muted-foreground">Expiry Date</th>
+            <th className="text-left py-3 px-3 font-medium text-muted-foreground">Status</th>
           </tr>
         </thead>
         <tbody>
           {data.batches.map((batch: any) => (
-            <tr key={batch.batch_id} className="border-b hover:bg-gray-50">
+            <tr key={batch.batch_id} className="border-b hover:bg-muted/50">
               <td className="py-3 px-3 font-medium">{batch.batch_number}</td>
-              <td className="py-3 px-3">{batch.item_id}</td>
+              <td className="py-3 px-3 text-muted-foreground">{batch.item_id}</td>
               <td className="py-3 px-3">
                 <span className="font-medium">{batch.quantity_available}</span>
-                <span className="text-gray-500 text-xs ml-1">/ {batch.quantity_received}</span>
+                <span className="text-muted-foreground text-xs ml-1">
+                  / {batch.quantity_received}
+                </span>
               </td>
               <td className="py-3 px-3">
                 {batch.expiry_date ? new Date(batch.expiry_date).toLocaleDateString() : "—"}
@@ -790,7 +849,7 @@ function BatchesTable({ onRefresh }: { onRefresh: () => void }) {
 
 function PurchaseOrdersTable({ orders, onRefresh }: { orders: any[]; onRefresh: () => void }) {
   if (!orders || orders.length === 0) {
-    return <div className="text-center py-8 text-gray-500">No purchase orders</div>;
+    return <div className="text-center py-8 text-muted-foreground">No purchase orders</div>;
   }
 
   return (
@@ -798,16 +857,16 @@ function PurchaseOrdersTable({ orders, onRefresh }: { orders: any[]; onRefresh: 
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b">
-            <th className="text-left py-3 px-3 font-medium">Order ID</th>
-            <th className="text-left py-3 px-3 font-medium">Supplier</th>
-            <th className="text-left py-3 px-3 font-medium">Status</th>
-            <th className="text-left py-3 px-3 font-medium">Total</th>
-            <th className="text-left py-3 px-3 font-medium">Expected</th>
+            <th className="text-left py-3 px-3 font-medium text-muted-foreground">Order ID</th>
+            <th className="text-left py-3 px-3 font-medium text-muted-foreground">Supplier</th>
+            <th className="text-left py-3 px-3 font-medium text-muted-foreground">Status</th>
+            <th className="text-left py-3 px-3 font-medium text-muted-foreground">Total</th>
+            <th className="text-left py-3 px-3 font-medium text-muted-foreground">Expected</th>
           </tr>
         </thead>
         <tbody>
           {orders.map((order: any) => (
-            <tr key={order.order_id} className="border-b hover:bg-gray-50">
+            <tr key={order.order_id} className="border-b hover:bg-muted/50">
               <td className="py-3 px-3 font-medium">{order.order_id}</td>
               <td className="py-3 px-3">{order.suppliers?.supplier_name || "—"}</td>
               <td className="py-3 px-3">

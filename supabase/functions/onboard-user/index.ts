@@ -39,6 +39,7 @@ import {
   errorResponse,
   HttpError,
 } from "../_shared/deps.ts";
+import { provisionDidWallet } from "../_shared/wallet.ts";
 
 type Role = "patient" | "doctor" | "staff" | "admin";
 
@@ -182,8 +183,27 @@ Deno.serve(async (req) => {
       full_name: fullName,
       role: role as Role,
       hospital_id: targetHospitalId,
+      // The MRN, department and specialty collected by /admin/onboard used to go
+      // ONLY into the credential claims below. profiles.mrn, .department and
+      // .specializations are real columns, so nothing read those values back:
+      // the new user's profile showed a blank MRN and blank department right
+      // after an onboarding that reported success.
+      mrn: mrn?.trim() || null,
+      department: department?.trim() || null,
+      specializations: specialty?.trim() ? [specialty.trim()] : [],
     });
-    if (profErr) throw new HttpError(500, `Profile creation failed: ${profErr.message}`);
+    if (profErr) {
+      // profiles_hospital_mrn_key: an MRN must be unique within a hospital.
+      // Reported plainly so the administrator can correct the number rather than
+      // seeing a raw constraint name.
+      if (/profiles_hospital_mrn_key/.test(profErr.message)) {
+        throw new HttpError(
+          409,
+          `Medical record number "${mrn}" is already in use at this hospital`,
+        );
+      }
+      throw new HttpError(500, `Profile creation failed: ${profErr.message}`);
+    }
 
     // ── 3. DID ──────────────────────────────────────────────────────────────
     const did = `did:hosp:0x${crypto.randomUUID().replace(/-/g, "").slice(0, 8)}`;
@@ -208,6 +228,17 @@ Deno.serve(async (req) => {
       .eq("id", createdUserId);
     if (linkErr)
       throw new HttpError(500, `Could not link the DID to the profile: ${linkErr.message}`);
+
+    // Give the DID a real signing key straight away. Previously this happened
+    // only in the Node wrapper that calls this function, so any caller reaching
+    // onboard-user directly produced a DID carrying a `pk_<uuid>` placeholder
+    // and no key material at all.
+    //
+    // Non-fatal by design: the account, profile, DID and credential are all
+    // created by now, and a keyless DID is recoverable with
+    // backend/scripts/provision-did-wallets.js. Reported in the response so the
+    // caller is not left assuming a key exists.
+    const wallet = await provisionDidWallet(db, did);
 
     // ── 4. identity credential ──────────────────────────────────────────────
     const credentialId = `vc_${crypto.randomUUID()}`;
@@ -265,6 +296,7 @@ Deno.serve(async (req) => {
     }
 
     await audit(db, {
+      caller,
       actor_id: caller.userId,
       actor_did: caller.dids[0] ?? null,
       resource: did,
@@ -293,6 +325,11 @@ Deno.serve(async (req) => {
       signature,
       hospitalId: targetHospitalId,
       issuerDid,
+      // The DID's Solana public key. null means no signing key could be minted
+      // (no hospital on the DID, or MASTER_ENCRYPTION_KEY is not configured for
+      // this function) — the account is still usable, but say so rather than let
+      // the caller assume one exists.
+      publicKey: wallet?.publicKey ?? null,
     });
   } catch (err) {
     // ── Roll back partial state ─────────────────────────────────────────────
@@ -328,6 +365,7 @@ Deno.serve(async (req) => {
 
     if (caller) {
       await audit(db, {
+        caller,
         actor_id: caller.userId,
         action: "USER_ONBOARD_FAILED",
         outcome: "failure",

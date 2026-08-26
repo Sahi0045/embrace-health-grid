@@ -124,7 +124,7 @@ export function CreateMenuItemDialog({ open, onOpenChange, onSuccess }: CreateMe
             {/* Meal Name */}
             <div>
               <label className="block text-xs font-bold text-foreground mb-1.5">
-                Meal Name <span className="text-rose-500">*</span>
+                Meal Name <span className="text-destructive">*</span>
               </label>
               <input
                 type="text"

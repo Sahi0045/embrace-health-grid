@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect, useMemo } from "react";
+import { getPatientPreferences, updatePatientPreferences } from "@/lib/inpatient.server";
 import { StaggerList, StaggerItem } from "@/components/Motion";
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
-import { useVerifiedDoctors, useAppointmentsByPatient } from "@/hooks/use-api";
+import { useBookableDoctors, useAppointmentsByPatient } from "@/hooks/use-api";
 import {
   bookAppointment,
   getMedicalRecords,
@@ -74,15 +75,13 @@ const TIME_SLOTS = [
   "04:30 PM",
 ];
 
-const SPECIALTIES = [
-  "All",
-  "Cardiology",
-  "General Medicine",
-  "Radiology",
-  "Emergency Medicine",
-  "Pediatrics",
-  "Orthopedics",
-];
+/**
+ * Filtering by specialty is disabled until `dids` (or a staff table) actually
+ * stores one. These chips filtered on equality against a field that is always
+ * empty, so every selection returned zero doctors and rendered the misleading
+ * "No verified doctors found — ask the administrator to issue a DID".
+ */
+const SPECIALTIES = ["All"];
 
 const STATUS_CONFIG: Record<string, { label: string; cls: string; icon: React.ElementType }> = {
   pending: { label: "Awaiting Doctor", cls: "bg-warning/15 text-warning-foreground", icon: Clock },
@@ -90,6 +89,11 @@ const STATUS_CONFIG: Record<string, { label: string; cls: string; icon: React.El
   rejected: { label: "Rejected", cls: "bg-destructive/15 text-destructive", icon: XCircle },
   cancelled: { label: "Cancelled", cls: "bg-muted text-muted-foreground", icon: X },
   suggested: { label: "New Time Offered", cls: "bg-primary/15 text-primary", icon: Info },
+  // `completed` and `rescheduled` are both valid appt_status values and had no
+  // entry, so they fell back to `pending` — a finished visit sat in the list
+  // labelled "Awaiting Doctor" indefinitely.
+  completed: { label: "Completed", cls: "bg-success/15 text-success", icon: CheckCircle2 },
+  rescheduled: { label: "Rescheduled", cls: "bg-primary/15 text-primary", icon: Info },
 };
 
 function AppointmentsPage() {
@@ -97,7 +101,12 @@ function AppointmentsPage() {
   const patientDid = currentUser?.did ?? "";
 
   // ── server data ──────────────────────────────────────────────────────────
-  const { data: doctorsData, loading: doctorsLoading } = useVerifiedDoctors();
+  // Scoped to the patient's own hospital. This used to be useVerifiedDoctors(),
+  // which wraps the CROSS-HOSPITAL referral directory, so the booking list
+  // offered clinicians from every tenant on the platform — a patient registered
+  // at one hospital was shown another hospital's entire roster and could book
+  // across the boundary.
+  const { data: doctorsData, loading: doctorsLoading } = useBookableDoctors();
   const { data: apptData, refetch: refetchAppts } = useAppointmentsByPatient(patientDid);
 
   // ── side-panel health data ───────────────────────────────────────────────
@@ -158,13 +167,28 @@ function AppointmentsPage() {
         id: d.did,
         did: d.did,
         name: d.name,
-        specialty: d.specialty ?? "General Medicine",
+        /**
+         * `dids` has no specialty, rating or availability column, and getDoctors
+         * selects only did/owner_name/owner_type/status/hospital_id. So these
+         * defaults fired for EVERY clinician: specialty "General Medicine",
+         * rating 4.5 ("★ 4.5 · DID Verified" on every card), and a status of
+         * "active" that, being !== "Available", painted everyone amber-busy.
+         *
+         * The knock-on effects were worse than the display: the specialty chips
+         * filter on equality, so every filter returned zero doctors and showed
+         * "No verified doctors found — ask the administrator to issue a DID";
+         * emergency triage looked for specialty "Emergency Medicine", never
+         * matched, and silently routed every emergency to allDoctors[0].
+         */
+        specialty: d.specialty ?? "",
         // The real hospital this clinician practises at. Was a constant
         // "Embrace Health Grid · OPD Block" for everyone, which hid the fact that
         // the directory spans hospitals.
         hospital: d.hospitalName ?? d.hospital ?? "Unaffiliated",
-        status: (d.status ?? "Available") as "Available" | "Busy" | "Off Duty",
-        rating: d.rating ?? 4.5,
+        // getDoctors already filters .eq("status","active"), so a listed
+        // clinician is available; anything else is not knowable from `dids`.
+        status: "Available" as "Available" | "Busy" | "Off Duty",
+        rating: null as number | null,
       })),
     [doctorsData],
   );
@@ -196,11 +220,19 @@ function AppointmentsPage() {
     [apptData],
   );
 
-  const active = appointments.filter((a) => !["cancelled", "rejected"].includes(a.status));
-  const past = appointments.filter(
-    (a) =>
-      ["cancelled", "rejected", "confirmed"].includes(a.status) && new Date(a.date) < new Date(),
-  );
+  /**
+   * Split on STATUS, not on a parsed date.
+   *
+   * `past` compared `new Date(a.date)` against now, but `a.date` is the slot
+   * string ("Wed · 09:00 AM"), which parses to Invalid Date — and every
+   * comparison with Invalid Date is false. So `past` was always empty and the
+   * "Past & Rejected" section never rendered. Combined with `active` excluding
+   * cancelled and rejected, a cancelled appointment vanished from the UI
+   * entirely and a doctor's rejection was invisible.
+   */
+  const TERMINAL = ["cancelled", "rejected", "completed"];
+  const active = appointments.filter((a) => !TERMINAL.includes(a.status));
+  const past = appointments.filter((a) => TERMINAL.includes(a.status));
 
   // ── search / filter ───────────────────────────────────────────────────────
   const [searchQuery, setSearchQuery] = useState("");
@@ -236,7 +268,42 @@ function AppointmentsPage() {
   const [showEmergencyModal, setShowEmergencyModal] = useState(false);
 
   // ── notification preview ──────────────────────────────────────────────────
+  /**
+   * Reminder channels, now persisted.
+   *
+   * These were local state only: every toggle reset on page load, so a patient
+   * who turned SMS off saw it back on next visit. Columns added in
+   * 20260825020000; updatePatientPreferences writes only the keys it is given,
+   * so flipping one channel no longer disturbs the privacy switches.
+   */
   const [notifChannels, setNotifChannels] = useState({ sms: true, email: true, whatsapp: true });
+
+  useEffect(() => {
+    getPatientPreferences()
+      .then((r: any) => {
+        const p = r?.preferences;
+        if (!p) return;
+        setNotifChannels({
+          whatsapp: p.reminder_whatsapp ?? true,
+          sms: p.reminder_sms ?? true,
+          email: p.reminder_email ?? true,
+        });
+      })
+      .catch(() => {
+        /* Keep the defaults; a failed read must not look like a saved setting. */
+      });
+  }, []);
+
+  const persistChannel = async (ch: "whatsapp" | "sms" | "email", on: boolean) => {
+    const key = { whatsapp: "reminderWhatsapp", sms: "reminderSms", email: "reminderEmail" }[ch];
+    try {
+      await updatePatientPreferences({ data: { [key]: on } });
+    } catch (err: any) {
+      toast.error("Could not save that preference", { description: err?.message });
+      // Put the switch back rather than showing a state that was not stored.
+      setNotifChannels((prev) => ({ ...prev, [ch]: !on }));
+    }
+  };
   const [notifMsg, setNotifMsg] = useState("");
   const [showNotif, setShowNotif] = useState(false);
 
@@ -252,7 +319,23 @@ function AppointmentsPage() {
   const confirmBooking = async () => {
     if (!selectedDoc || !selectedDate || !selectedSlot) return;
     setBooking(true);
-    const slotStr = `${new Date(selectedDate).toLocaleDateString("en-IN", { weekday: "short" })} · ${selectedSlot}`;
+    /**
+     * Keep the actual date in the slot string.
+     *
+     * This stored only the weekday name — "Wed · 09:00 AM" — so booking the 3rd
+     * and the 31st produced identical rows, indistinguishable to the patient and
+     * to the clinician. `appointments` has no date column and `slot` is free
+     * text, so the date belongs in the slot until a column exists.
+     *
+     * It also made every downstream `new Date(a.date)` an Invalid Date, which is
+     * why the "Past & Rejected" section could never render.
+     */
+    const slotStr = `${new Date(selectedDate).toLocaleDateString("en-IN", {
+      weekday: "short",
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    })} · ${selectedSlot}`;
     try {
       await bookAppointment({
         patientDid: currentUser?.did ?? "did:hosp:unknown",
@@ -260,11 +343,12 @@ function AppointmentsPage() {
         doctorDid: selectedDoc.did,
         doctorName: selectedDoc.name,
         slot: slotStr,
-        date: selectedDate,
         mode: consultMode,
         specialty: selectedDoc.specialty,
         reason,
-        consentGranted: grantConsent,
+        // `date` and `consentGranted` are no longer passed: neither has a
+        // column, and the consent toggle wrote no consents row in either
+        // position — sending them implied a persistence that never happened.
       });
       toast.success("Appointment request sent", {
         description: `${selectedDate} at ${selectedSlot} — awaiting doctor confirmation.`,
@@ -293,24 +377,35 @@ function AppointmentsPage() {
   };
 
   const triggerEmergency = async () => {
-    const erDoc = allDoctors.find((d) => d.specialty === "Emergency Medicine") ?? allDoctors[0];
+    /**
+     * Specialty is not stored, so `find(d => d.specialty === "Emergency
+     * Medicine")` never matched and every emergency silently fell through to
+     * allDoctors[0] — an arbitrary clinician, possibly a radiologist, with the
+     * patient told to "report to ER desk immediately". Routing an emergency to
+     * whoever happens to be first in a list is worse than not routing it.
+     *
+     * Until a specialty exists to match on, this raises the request against the
+     * first available clinician *and says so*, rather than implying triage.
+     */
+    const erDoc = allDoctors[0];
     if (!erDoc) {
-      toast.error("No emergency doctor available");
+      toast.error("No clinician is available to receive an emergency request");
       return;
     }
     try {
       await bookAppointment({
-        patientDid: currentUser?.did ?? "did:hosp:unknown",
-        patientName: currentUser?.name ?? "Patient",
         doctorDid: erDoc.did,
-        doctorName: erDoc.name,
-        slot: "Immediate Triage Priority",
-        date: new Date().toISOString().split("T")[0],
+        slot: `Immediate Triage Priority · ${new Date().toLocaleDateString("en-IN", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        })}`,
         mode: "in-person",
-        specialty: "Emergency Medicine",
         reason: "Emergency triage",
       });
-      toast.error("Emergency consult requested — report to ER desk immediately.");
+      toast.error("Emergency request sent — go to the ER desk now, do not wait for a reply.", {
+        description: `Raised with ${erDoc.name}. This app does not dispatch emergency care.`,
+      });
       refetchAppts();
     } catch (err: any) {
       toast.error("Emergency request failed", { description: err.message });
@@ -341,9 +436,23 @@ function AppointmentsPage() {
           <div className="lg:col-span-2 space-y-6">
             {/* Search & Filter */}
             <div className="rounded-xl border border-border bg-card p-4 shadow-clinical space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-foreground">Book an Appointment</span>
-                <span className="text-xs text-muted-foreground">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <span className="text-sm font-semibold text-foreground">Book an Appointment</span>
+                  {/* Say which hospital the list is drawn from. Without it, a
+                      short (or empty) list reads as a fault rather than as the
+                      correct consequence of where this account is registered. */}
+                  {!doctorsLoading && (
+                    <div className="text-xs text-muted-foreground mt-0.5 truncate">
+                      {doctorsData?.hospitalName
+                        ? `Clinicians at ${doctorsData.hospitalName}`
+                        : doctorsData?.hospitalId
+                          ? "Clinicians at your hospital"
+                          : "Your account is not linked to a hospital"}
+                    </div>
+                  )}
+                </div>
+                <span className="text-xs text-muted-foreground shrink-0">
                   {doctorsLoading ? "Loading…" : `${filteredDoctors.length} verified doctors`}
                 </span>
               </div>
@@ -387,8 +496,20 @@ function AppointmentsPage() {
             ) : filteredDoctors.length === 0 ? (
               <EmptyState
                 icon={User}
-                title="No verified doctors found"
-                description="Only doctors with an active DID issued by admin appear here. Ask the administrator to issue a DID."
+                title={
+                  doctorsData?.hospitalId
+                    ? "No doctors available at your hospital"
+                    : "Your account is not linked to a hospital"
+                }
+                description={
+                  // Three genuinely different situations, and the old copy
+                  // blamed the same cause for all of them.
+                  !doctorsData?.hospitalId
+                    ? "Appointments are booked with clinicians at the hospital you are registered with. Ask your administrator to link your account to a hospital."
+                    : (doctorsData?.total ?? 0) === 0
+                      ? `No clinician at ${doctorsData?.hospitalName ?? "your hospital"} has an active DID yet. Ask the administrator to issue one.`
+                      : "No doctor matches your search or filter."
+                }
               />
             ) : (
               <div className="grid gap-4 sm:grid-cols-2">
@@ -422,8 +543,10 @@ function AppointmentsPage() {
                       <p className="text-xs text-muted-foreground mt-1">{doc.hospital}</p>
                     </div>
                     <div className="flex items-center justify-between pt-2 border-t border-border">
-                      <span className="text-xs font-semibold text-yellow-500">
-                        ★ {doc.rating} · DID Verified
+                      <span className="text-xs font-semibold text-warning">
+                        {/* Was "★ 4.5" on every clinician — `dids` has no
+                            rating column. Only the DID claim is real. */}
+                        DID Verified
                       </span>
                       <button
                         onClick={() => openBooking(doc)}
@@ -499,7 +622,10 @@ function AppointmentsPage() {
                             )}
                             {a.status === "confirmed" && a.mode === "tele" && (
                               <button className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-success text-success-foreground py-2 text-xs font-bold hover:bg-success/90">
-                                <Video className="h-3.5 w-3.5" /> Launch Telehealth
+                                {/* No onClick. Telemedicine has no video stack
+                                    in this codebase, so there is nothing to
+                                    launch. */}
+                                <Video className="h-3.5 w-3.5" /> Telehealth (not available)
                               </button>
                             )}
                             {a.status === "confirmed" && a.mode === "in-person" && (
@@ -663,9 +789,11 @@ function AppointmentsPage() {
                       <input
                         type="checkbox"
                         checked={notifChannels[ch]}
-                        onChange={(e) =>
-                          setNotifChannels((p) => ({ ...p, [ch]: e.target.checked }))
-                        }
+                        onChange={(e) => {
+                          const on = e.target.checked;
+                          setNotifChannels((p) => ({ ...p, [ch]: on }));
+                          void persistChannel(ch, on);
+                        }}
                         className="sr-only peer"
                       />
                       <div className="w-9 h-5 bg-muted rounded-full peer peer-checked:bg-primary peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-card after:border after:rounded-full after:h-4 after:w-4 after:transition-all" />

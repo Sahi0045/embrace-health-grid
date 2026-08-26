@@ -48,10 +48,29 @@ const labTests = [
   "ECG Interpretation",
 ];
 
+// Keyed on the values lab_results.status actually holds.
+//
+// This used to list only pending / in-progress / completed / cancelled, none of
+// which the table stores. Every row fell through to the `pending` fallback, so
+// all five live results — a critical cardiac troponin among them — displayed as
+// "Pending" on the lab queue.
 const statusConfig = {
   pending: { label: "Pending", icon: Clock, badge: "bg-muted text-muted-foreground" },
   "in-progress": { label: "In Progress", icon: FlaskConical, badge: "bg-primary/10 text-primary" },
   completed: { label: "Completed", icon: CheckCircle, badge: "bg-success/10 text-success" },
+  // Reported results.
+  normal: { label: "Normal", icon: CheckCircle, badge: "bg-success/10 text-success" },
+  final: { label: "Final", icon: CheckCircle, badge: "bg-success/10 text-success" },
+  abnormal: {
+    label: "Abnormal",
+    icon: AlertTriangle,
+    badge: "bg-warning/10 text-warning-foreground",
+  },
+  critical: {
+    label: "Critical",
+    icon: AlertTriangle,
+    badge: "bg-destructive/10 text-destructive",
+  },
   cancelled: {
     label: "Cancelled",
     icon: AlertTriangle,
@@ -132,13 +151,18 @@ function LabsPage() {
   const displayOrders = ((labsData?.labs ?? []) as any[]).map((lab: any) => {
     const pt = (patientsList || []).find((p) => p.did === lab.patientDid);
     return {
-      id: lab.labId ?? lab.id ?? String(Math.random()),
-      patient: pt?.name ?? lab.patientName ?? lab.patientDid ?? "Unknown Patient",
-      mrn: pt?.mrn ?? lab.mrn ?? "—",
-      tests: lab.tests || [],
-      urgency: lab.priority || "routine",
+      // `String(Math.random())` as a React key remounts the row on every render.
+      id: lab.labId ?? lab.id ?? lab.patientDid,
+      patient: pt?.name ?? lab.patientDid ?? "Unknown Patient",
+      mrn: pt?.mrn ?? "—",
+      // getLabs returns a single `testName`, not a `tests` array — reading
+      // `lab.tests` meant every order card listed no tests at all.
+      tests: lab.tests ?? (lab.testName ? [lab.testName] : []),
+      urgency: lab.priority ?? "routine",
       status: lab.status || "pending",
-      ordered: lab.orderedAt ? new Date(lab.orderedAt).toLocaleString("en-IN") : "—",
+      // There is no `orderedAt`; `resultedAt` is when the lab reported back, so
+      // it is labelled as such rather than passed off as the order time.
+      resulted: lab.resultedAt ? new Date(lab.resultedAt).toLocaleString("en-IN") : "—",
     };
   });
 
@@ -227,7 +251,7 @@ function LabsPage() {
                           ))}
                         </div>
                         <div className="mt-2 text-[11px] text-muted-foreground">
-                          Ordered: {o.ordered}
+                          Resulted: {o.resulted}
                         </div>
                         {o.status === "completed" && (
                           <div className="mt-2 flex items-center gap-1.5">

@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { getProfiles } from "@/lib/clinical.server";
 import { getStaffSchedule, getAttendance } from "@/lib/operations.server";
 import { useTableRefresh } from "@/hooks/use-realtime";
+import { exportToCsv } from "@/lib/csv-export";
 
 import { StaffKpiBar, StaffKpiStats } from "@/components/staff/StaffKpiBar";
 import {
@@ -140,10 +141,10 @@ function StaffAvailabilityDashboard() {
         shiftId: s.shift_id || s.id || `shift-${Math.random()}`,
         staffId: s.staff_id || s.staffId || "",
         shiftDate: s.shift_date || s.date || new Date().toISOString().split("T")[0],
-        role: s.role || "General Duty",
+        role: s.role || "",
         startsAt: s.starts_at || s.start || "08:00",
         endsAt: s.ends_at || s.end || "16:00",
-        unit: s.unit || "Main Wing",
+        unit: s.unit || "",
         patientCount: s.patient_count ?? s.patients,
         confirmed: s.confirmed ?? true,
         notes: s.notes,
@@ -160,19 +161,36 @@ function StaffAvailabilityDashboard() {
 
           const isDoctor = p.role === "doctor" || (p.full_name || "").toLowerCase().includes("dr.");
           const memberRole: StaffMember["role"] = isDoctor ? "doctor" : "nurse";
-          const patientCount = userShifts[0]?.patientCount ?? (latestAtt?.action === "in" ? 2 : 0);
-          const maxCap = isDoctor ? 8 : 10;
-          const weeklyHours =
-            userShifts.reduce((acc, s) => acc + 8, 0) || (latestAtt?.action === "in" ? 36 : 0);
+          // Caseload, capacity and hours are the numbers used to judge overtime
+          // and fatigue, and all three were constants: anyone clocked in got a
+          // hardcoded 2 patients, capacity was a flat 8 or 10, and weekly hours
+          // was `reduce((acc) => acc + 8, 0) || 36` — which ignores the real
+          // starts_at/ends_at on every shift. Null now means not measured.
+          const patientCount = userShifts[0]?.patientCount ?? null;
+          const maxCap: number | null = null;
+          // Real shift durations, when the schedule rows carry them.
+          const weeklyHours = userShifts.length
+            ? userShifts.reduce((acc, sh) => {
+                const start = sh.startsAt ? new Date(sh.startsAt).getTime() : NaN;
+                const end = sh.endsAt ? new Date(sh.endsAt).getTime() : NaN;
+                return Number.isFinite(start) && Number.isFinite(end) && end > start
+                  ? acc + (end - start) / 3_600_000
+                  : acc;
+              }, 0)
+            : null;
 
           staffList.push({
             id: p.id,
             fullName: p.full_name || p.email?.split("@")[0] || "Staff Member",
             email: p.email || "",
             role: memberRole,
-            department:
-              (p as any).department || (isDoctor ? "Emergency & Trauma" : "General Medicine"),
-            specialty: (p as any).specialty || (isDoctor ? "Clinical Specialist" : "Staff Nursing"),
+            // These fallbacks labelled EVERY doctor "Emergency & Trauma" /
+            // "Clinical Specialist" and every other staffer "General Medicine" /
+            // "Staff Nursing" — and those invented values then drove the
+            // department filter and the Department Workload Heatmap. `department`
+            // is a real column; `specialty` is not, but `specializations` is.
+            department: (p as any).department || undefined,
+            specialty: ((p as any).specializations ?? [])[0] || undefined,
             primaryDid: (p as any).primary_did || undefined,
             phone: (p as any).phone_number || (p as any).phone || undefined,
             availability:
@@ -191,8 +209,11 @@ function StaffAvailabilityDashboard() {
             workload: {
               activePatients: patientCount,
               maxCapacity: maxCap,
-              percentage: Math.min(100, Math.round((patientCount / maxCap) * 100)),
-              hoursThisWeek: weeklyHours,
+              percentage:
+                patientCount != null && maxCap != null && maxCap > 0
+                  ? Math.min(100, Math.round((patientCount / maxCap) * 100))
+                  : null,
+              hoursThisWeek: weeklyHours == null ? null : Math.round(weeklyHours),
             },
             attendance: latestAtt
               ? {
@@ -304,7 +325,8 @@ function StaffAvailabilityDashboard() {
       })
       .sort((a, b) => {
         if (sortBy === "name-asc") return a.fullName.localeCompare(b.fullName);
-        if (sortBy === "workload-desc") return b.workload.percentage - a.workload.percentage;
+        if (sortBy === "workload-desc")
+          return (b.workload.percentage ?? -1) - (a.workload.percentage ?? -1);
         if (sortBy === "department") return a.department.localeCompare(b.department);
         if (sortBy === "status") return a.availability.localeCompare(b.availability);
         return 0;
@@ -336,6 +358,42 @@ function StaffAvailabilityDashboard() {
     setViewMode("grid");
   };
 
+  const handleExportRoster = useCallback(() => {
+    if (!staffMembers || staffMembers.length === 0) {
+      toast.error("No staff roster data to export");
+      return;
+    }
+
+    const exported = exportToCsv(
+      `embrace-staff-roster-${new Date().toISOString().split("T")[0]}.csv`,
+      staffMembers,
+      [
+        { header: "Staff ID", accessor: "id" },
+        { header: "Primary DID", accessor: (s) => s.primaryDid || "" },
+        { header: "Full Name", accessor: "fullName" },
+        { header: "Role", accessor: "role" },
+        { header: "Department", accessor: "department" },
+        // Blank, not "General Medicine" — an invented specialty in an exported
+        // roster is indistinguishable from a recorded one.
+        { header: "Specialty", accessor: (s) => s.specialty || "" },
+        { header: "Availability Status", accessor: "availability" },
+        { header: "Current Shift", accessor: (s) => s.currentShift?.shiftName || "" },
+        { header: "Assigned Unit", accessor: (s) => s.currentShift?.unit || "" },
+        { header: "Contact Email", accessor: "email" },
+        { header: "Contact Phone", accessor: (s) => s.phone || "" },
+        // Caseload is not measured; `|| 0` would export "0 patients" for
+        // "not tracked", which reads as a real figure.
+        { header: "Active Patients", accessor: (s) => s.workload?.activePatients ?? "" },
+      ],
+    );
+
+    if (exported) {
+      toast.success("Roster attendance exported and downloaded (CSV)", {
+        description: `${staffMembers.length} personnel records included in the export`,
+      });
+    }
+  }, [staffMembers]);
+
   return (
     <RouteGuard requiredRole="admin">
       <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-8 pb-24">
@@ -356,9 +414,9 @@ function StaffAvailabilityDashboard() {
                 Sync Telemetry
               </Button>
               <Button
-                onClick={() => toast.success("Roster attendance export generated (CSV)")}
+                onClick={handleExportRoster}
                 size="sm"
-                className="bg-gradient-to-r from-primary to-blue-600 text-primary-foreground font-extrabold rounded-xl shadow-clinical-md shadow-primary/25 text-xs"
+                className="bg-primary text-primary-foreground font-extrabold rounded-xl shadow-clinical-md shadow-primary/25 text-xs cursor-pointer"
               >
                 <FileSpreadsheet className="h-4 w-4 mr-2" />
                 Export Roster

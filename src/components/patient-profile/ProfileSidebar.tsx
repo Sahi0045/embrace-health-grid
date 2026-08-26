@@ -45,7 +45,7 @@ export function ProfileSidebar({
     .toUpperCase();
 
   const patientDid = did?.did || "N/A";
-  const mrn = did?.claims?.mrn || `MRN-${patientDid.slice(-6).toUpperCase()}`;
+  const mrn = did?.claims?.mrn ?? null;
 
   const handleCopyDid = () => {
     if (!patientDid || patientDid === "N/A") return;
@@ -62,7 +62,7 @@ export function ProfileSidebar({
         {/* Header Avatar & Name */}
         <div className="flex flex-col items-center text-center space-y-3">
           <div className="relative">
-            <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-blue-600/10 text-primary font-display font-extrabold text-2xl shadow-inner border border-primary/20">
+            <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-display font-extrabold text-2xl shadow-inner border border-primary/20">
               {initials}
             </div>
             <span
@@ -78,7 +78,7 @@ export function ProfileSidebar({
             </h2>
             <div className="flex items-center justify-center gap-2 mt-1">
               <span className="inline-flex items-center rounded-md bg-primary/10 border border-primary/20 px-2 py-0.5 text-[10px] font-extrabold text-primary uppercase">
-                {mrn}
+                {mrn ?? "No MRN"}
               </span>
               <span
                 className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-extrabold uppercase ${
@@ -123,20 +123,26 @@ export function ProfileSidebar({
         {/* Quick Stats Metric Group */}
         <div className="flex items-center divide-x divide-border/60 rounded-xl border border-border/70 bg-background/80 py-2.5 px-1 shadow-xs">
           <div className="px-3 text-center flex-1">
-            <div className="text-lg font-extrabold font-display text-foreground">34</div>
+            <div className="text-lg font-extrabold font-display text-foreground">
+              {profile?.age ?? "—"}
+            </div>
             <div className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider mt-0.5">
               Age
             </div>
           </div>
           <div className="px-3 text-center flex-1">
-            <div className="text-lg font-extrabold font-display text-foreground">O+</div>
+            {/* Never guess this one. An unrecorded blood group must read as
+                unrecorded, not as the commonest type. */}
+            <div className="text-lg font-extrabold font-display text-foreground">
+              {profile?.blood_group ?? "—"}
+            </div>
             <div className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider mt-0.5">
               Blood
             </div>
           </div>
           <div className="px-3 text-center flex-1">
             <div className="text-lg font-extrabold font-display text-primary">
-              ${billing?.outstanding ? Number(billing.outstanding).toLocaleString() : "0"}
+              ₹{billing?.outstanding ? Number(billing.outstanding).toLocaleString() : "0"}
             </div>
             <div className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider mt-0.5">
               Due
@@ -162,16 +168,14 @@ export function ProfileSidebar({
                   Ward
                 </span>
                 <span className="font-extrabold text-foreground">
-                  {activeAdmission.ward || "General"}
+                  {activeAdmission.ward || "—"}
                 </span>
               </div>
               <div>
                 <span className="text-muted-foreground block text-[10px] uppercase font-bold">
                   Bed
                 </span>
-                <span className="font-extrabold text-primary">
-                  {activeAdmission.bed || "B-101"}
-                </span>
+                <span className="font-extrabold text-primary">{activeAdmission.bed || "—"}</span>
               </div>
             </div>
             {activeAdmission.admitting_doctor && (
@@ -192,7 +196,7 @@ export function ProfileSidebar({
           {activeAdmission && (
             <Button
               onClick={onOpenDischarge}
-              className="w-full bg-gradient-to-r from-primary to-blue-600 text-primary-foreground font-extrabold rounded-xl shadow-clinical-md shadow-primary/25 h-10 text-xs"
+              className="w-full bg-primary text-primary-foreground font-extrabold rounded-xl shadow-clinical-md shadow-primary/25 h-10 text-xs"
             >
               <LogOut className="h-4 w-4 mr-2" />
               Process Patient Checkout / Discharge
@@ -238,7 +242,9 @@ export function ProfileSidebar({
             <div className="flex justify-between">
               <span className="text-muted-foreground font-medium">Coverage:</span>
               <span className="font-extrabold text-success">
-                {insurancePolicy.coverage_percentage || 80}%
+                {insurancePolicy.coverage_percentage != null
+                  ? `${insurancePolicy.coverage_percentage}%`
+                  : "Not recorded"}
               </span>
             </div>
           </div>

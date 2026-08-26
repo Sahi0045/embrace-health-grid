@@ -283,7 +283,7 @@ function CentralAlertsPage() {
               <Button
                 size="sm"
                 onClick={() => setBroadcastOpen(true)}
-                className="h-9 rounded-xl text-xs font-extrabold gap-2 bg-gradient-to-r from-destructive to-red-600 text-destructive-foreground shadow-clinical-md shadow-destructive/25"
+                className="h-9 rounded-xl text-xs font-extrabold gap-2 bg-destructive text-destructive-foreground shadow-clinical-md shadow-destructive/25"
               >
                 <Siren className="h-4 w-4 animate-pulse" />
                 <span>Broadcast Emergency</span>

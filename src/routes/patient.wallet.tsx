@@ -29,13 +29,28 @@ function Wallet() {
   const rawCredentials = credentialsData?.credentials ?? [];
 
   const liveCredentials = rawCredentials.map((c: any) => ({
-    id: c.id ?? c.txId ?? String(Math.random()),
+    // A random key remounts the row on every render; the credential type
+    // plus its issue time identifies it when no id is present.
+    id: c.id ?? c.txId ?? `${c.type ?? "vc"}-${c.issuedAt ?? c.timestamp ?? ""}`,
     type: c.type ?? "Verifiable Credential",
     issuer: c.issuer ?? "Embrace Health Consortium",
-    issuedAt: c.issuedAt ?? c.timestamp ?? new Date().toISOString().split("T")[0],
-    expiresAt:
-      c.expiresAt ?? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-    status: (c.status === "revoked" ? "revoked" : "active") as "active" | "revoked" | "expired",
+    issuedAt: c.issuedAt ?? c.timestamp ?? "",
+    // credentials.expires_at is nullable. Defaulting to exactly one year out
+    // printed a specific, invented expiry date on credentials that have none.
+    expiresAt: c.expiresAt ?? "",
+    /**
+     * Was `c.status === "revoked" ? "revoked" : "active"`, so ANY other value —
+     * expired, suspended, anything — rendered as active with a green badge. And
+     * expires_at was never compared against now, so a lapsed credential showed
+     * "active" beside its own past expiry date.
+     */
+    status: (c.status === "revoked"
+      ? "revoked"
+      : c.expiresAt && new Date(c.expiresAt).getTime() < Date.now()
+        ? "expired"
+        : c.status === "valid" || c.status === "active"
+          ? "active"
+          : (c.status ?? "unknown")) as "active" | "revoked" | "expired",
     claims: c.claims || {},
   }));
 
@@ -68,11 +83,15 @@ function Wallet() {
         eyebrow="Patient app"
         title="Credentials Wallet"
         description={`${list.length} verifiable credentials · secured by Ed25519`}
+        // Was an unconditional "All credentials verified" — shown even when one
+        // was revoked, and when the list was empty.
         actions={
-          <div className="flex items-center gap-2 rounded-full bg-success/10 px-3 py-1.5 text-xs font-medium text-success">
-            <ShieldCheck className="h-3.5 w-3.5" />
-            All credentials verified
-          </div>
+          list.length > 0 && list.every((c: any) => c.status === "active") ? (
+            <div className="flex items-center gap-2 rounded-full bg-success/10 px-3 py-1.5 text-xs font-medium text-success">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              All credentials active
+            </div>
+          ) : null
         }
       />
 

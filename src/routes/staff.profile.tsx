@@ -14,22 +14,17 @@ import {
   Edit,
   Award,
   Building2,
-  Wallet,
   CheckCircle2,
-  AlertTriangle,
   Loader2,
 } from "lucide-react";
 import { RouteGuard } from "@/components/RouteGuard";
-import { useWallet } from "@solana/wallet-adapter-react";
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import { DidKeypairCard } from "@/components/DidKeypairCard";
 import { useCurrentUser } from "@/lib/auth-context";
 import {
   updateProfile,
   API_BASE_URL,
   requestDID,
-  getDIDRequests,
-  requestWalletChallenge,
-  verifyAndLinkWallet,
+  getStaffRequests,
   getMe,
   getCertificationsByStaffDid,
 } from "@/lib/api";
@@ -60,40 +55,20 @@ export const Route = createFileRoute("/staff/profile")({
   component: StaffProfile,
 });
 
-const staffData = {
-  name: "Dr. Ravi Menon",
-  did: "did:hosp:0xd103…99aa",
-  employeeId: "EMP-2847",
-  email: "ravi.menon@apollohospitals.com",
-  phone: "+91 98765 43210",
-  department: "Cardiology",
-  role: "Senior Cardiologist",
-  joinDate: "2018-03-15",
-  specializations: ["Interventional Cardiology", "Echocardiography", "Heart Failure Management"],
-  certifications: [
-    { name: "MD Cardiology", issuer: "AIIMS Delhi", year: "2015" },
-    { name: "FESC", issuer: "European Society of Cardiology", year: "2019" },
-    { name: "Advanced Cardiac Life Support", issuer: "American Heart Association", year: "2023" },
-  ],
-};
-
 function StaffProfile() {
   const { staff } = useLiveStaff();
   const { user: currentUser, refresh: refreshUser } = useCurrentUser();
-  const { publicKey, connected, signMessage } = useWallet();
-  const [verifying, setVerifying] = useState(false);
   const [adminDid, setAdminDid] = useState<string | null>(null);
   const [didLoading, setDidLoading] = useState(true);
   const [certifications, setCertifications] = useState<any[]>([]);
   const [certificationsLoading, setCertificationsLoading] = useState(true);
 
   const userEmail = currentUser?.email || "";
-  const walletVerified = (currentUser as any)?.walletVerified === true;
 
   const [requestingDid, setRequestingDid] = useState(false);
   const [pendingReq, setPendingReq] = useState<any>(null);
 
-  // Refresh session from backend (picks up walletVerified)
+  // Refresh session from backend
   const refreshSession = useCallback(async () => {
     try {
       const res = await getMe();
@@ -106,82 +81,44 @@ function StaffProfile() {
   }, []);
 
   const checkPendingRequest = useCallback(async () => {
-    if (!userEmail) return;
     try {
-      const res = await getDIDRequests();
-      if (res?.requests) {
-        const match = res.requests.find(
-          (r: any) =>
-            r.ownerEmail?.toLowerCase() === userEmail.toLowerCase() && r.status === "pending",
-        );
-        setPendingReq(match || null);
-      }
+      // getStaffRequests, not getDIDRequests.
+      //
+      // getDIDRequests calls the identity-ops "list-did-requests" op, which is
+      // gated on caller.role === "admin" — so for the staff member whose profile
+      // this is, it threw 403 every time and the empty catch below swallowed it.
+      // It then matched on `ownerEmail`, which that mapper does not return
+      // either. Between the two, a pending DID request was never detected and
+      // the page kept offering "Request DID" to someone who already had one
+      // waiting.
+      //
+      // getStaffRequests is RLS-scoped to the caller's own rows, which is
+      // exactly the question being asked here.
+      const res = await getStaffRequests();
+      const match = (res?.requests ?? []).find(
+        (r: any) => r.type === "did-issuance" && r.status === "pending",
+      );
+      setPendingReq(match || null);
     } catch {
       /* ignore */
     }
-  }, [userEmail]);
-
-  // ── Full wallet verification flow: challenge → signMessage → verify ──────
-  const handleVerifyWallet = async () => {
-    if (!publicKey || !signMessage) {
-      toast.error("Please connect your Phantom wallet first");
-      return;
-    }
-    setVerifying(true);
-    try {
-      const address = publicKey.toBase58();
-
-      // Step 1: get challenge message from backend
-      // Keep the whole challenge: the Edge Function verifies that the nonce and
-      // token were issued to THIS session, which is what binds the wallet to the
-      // account. Destructuring only `message` dropped them and every link attempt
-      // failed with "walletAddress, nonce and token are required".
-      const challenge = await requestWalletChallenge(address);
-      const message = challenge.message;
-
-      // Step 2: ask the wallet to sign it
-      toast.info("Please approve the signature request in your wallet…");
-      const msgBytes = new TextEncoder().encode(message);
-      const sigBytes = await signMessage(msgBytes);
-      const sigBase64 = Buffer.from(sigBytes).toString("base64");
-
-      // Step 3: send signature to backend — verifies ownership + links wallet
-      const res = await verifyAndLinkWallet(address, sigBase64, {
-        nonce: challenge.nonce,
-        expiresAt: challenge.expiresAt,
-        token: challenge.token,
-      });
-      if (res.success && res.verified && res.user) {
-        await refreshUser();
-        toast.success("Wallet verified and linked!", {
-          description: `${address.slice(0, 8)}…${address.slice(-6)} is now permanently associated with your account.`,
-        });
-      }
-    } catch (err: any) {
-      // "User rejected" from Phantom → friendly message
-      if (err.message?.includes("User rejected") || err.message?.includes("cancelled")) {
-        toast.error("Signature cancelled", {
-          description: "You must approve the signing request in your wallet to verify ownership.",
-        });
-      } else {
-        toast.error(err.message || "Wallet verification failed");
-      }
-    } finally {
-      setVerifying(false);
-    }
-  };
+  }, []);
 
   const handleRequestDIDClick = async () => {
-    if (!walletVerified) {
-      toast.error("Verify your Solana wallet first before requesting a DID.");
+    // A DID is an identity credential. Falling back to the demo record here
+    // would submit the request under a fictional clinician's name and
+    // department, and the admin issuing it has no way to know. Refuse instead.
+    if (!currentUser?.name) {
+      toast.error("Add your full name to your profile before requesting a DID.");
       return;
     }
+
     setRequestingDid(true);
     try {
       const res = await requestDID({
-        ownerName: currentUser?.name || staffData.name,
-        ownerType: currentUser?.role || "doctor",
-        department: currentUser?.department || staffData.department,
+        ownerName: currentUser.name,
+        ownerType: currentUser.role || "doctor",
+        department: currentUser.department || "",
       });
       if (res.success) {
         toast.success("DID Request Submitted to Admin!", {
@@ -252,35 +189,67 @@ function StaffProfile() {
   // Re-fetch whenever admin updates the certifications table
   useTableRefresh("staff_certifications", loadCertifications);
 
+  /**
+   * Never fall back to `staffData`.
+   *
+   * That demo record is a fictional cardiologist, and falling back to it meant a
+   * real user with an incomplete profile was shown someone else's name, phone,
+   * department and specialisations — then, if they opened Edit and pressed Save
+   * without touching anything, wrote that stranger's details onto their own row.
+   * An empty field is honest; a plausible wrong one is not.
+   */
   const staffRecord = staff?.find((s: any) => s.email === userEmail) || {
-    name: currentUser?.name || staffData.name,
+    name: currentUser?.name ?? "",
     did: adminDid || currentUser?.did || "",
-    employeeId: currentUser?.employeeId || staffData.employeeId,
-    email: currentUser?.email || staffData.email,
-    phone: currentUser?.phone || staffData.phone,
-    department: currentUser?.department || staffData.department,
-    role: currentUser?.role || staffData.role,
-    joinDate: staffData.joinDate,
-    specializations: currentUser?.specializations || staffData.specializations,
-    certifications: staffData.certifications,
+    employeeId: currentUser?.employeeId ?? "",
+    email: currentUser?.email ?? "",
+    phone: currentUser?.phone ?? "",
+    department: currentUser?.department ?? "",
+    role: currentUser?.role ?? "",
+    joinDate: "",
+    specializations: currentUser?.specializations ?? [],
+    certifications: [] as { name: string; issuer: string; year: string }[],
   };
 
-  const name = currentUser?.name || staffRecord.name;
+  const name = currentUser?.name || staffRecord.name || "";
+  /** Authorization role (admin / doctor / staff) — displayed, never editable. */
   const role = currentUser?.role || staffRecord.role || "Staff";
-  const phone = currentUser?.phone || staffRecord.phone || "+91 98765 43210";
-  const department = currentUser?.department || staffRecord.department || "General Medicine";
+  /** Job title ("Senior Cardiologist"). Separate column, freely editable. */
+  const title = currentUser?.title ?? "";
+  const phone = currentUser?.phone || staffRecord.phone || "";
+  const department = currentUser?.department || staffRecord.department || "";
   const specializations =
     currentUser?.specializations || (staffRecord as any).specializations || [];
 
   const employeeId = currentUser?.employeeId || staffRecord.employeeId;
+  const joinDate = currentUser?.joinDate || staffRecord.joinDate || "";
 
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [editName, setEditName] = useState(name);
-  const [editPhone, setEditPhone] = useState(phone);
-  const [editDepartment, setEditDepartment] = useState(department);
-  const [editRole, setEditRole] = useState(role);
-  const [editSpecializations, setEditSpecializations] = useState(specializations.join(", "));
+  const [editName, setEditName] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editDepartment, setEditDepartment] = useState("");
+  const [editTitle, setEditTitle] = useState("");
+  const [editSpecializations, setEditSpecializations] = useState("");
   const [updating, setUpdating] = useState(false);
+
+  /**
+   * Seed the form when the dialog opens, not at first render.
+   *
+   * `useState(name)` reads its argument once, on the very first render — which
+   * happens before `currentUser` has resolved. The initial values were therefore
+   * captured from the demo record and never updated, which is why the header
+   * showed the real user while the dialog underneath it showed "Dr. Ravi Menon".
+   * Seeding on open also means Cancel-then-reopen discards a half-finished edit
+   * rather than resurrecting it.
+   */
+  useEffect(() => {
+    if (!isEditOpen) return;
+    setEditName(name);
+    setEditPhone(phone);
+    setEditDepartment(department);
+    setEditTitle(title);
+    setEditSpecializations(specializations.join(", "));
+  }, [isEditOpen, name, phone, department, title, specializations]);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -290,7 +259,9 @@ function StaffProfile() {
         name: editName,
         phone: editPhone,
         department: editDepartment,
-        role: editRole,
+        // `title`, not `role`: the auth role is not self-editable, and RLS
+        // (profiles_update_own) rejects a change to it regardless.
+        title: editTitle,
         specializations: editSpecializations,
       });
       if (res.success && res.user) {
@@ -330,9 +301,13 @@ function StaffProfile() {
                     <Stethoscope className="h-8 w-8" />
                   </div>
                   <div>
-                    <CardTitle className="text-2xl">{name}</CardTitle>
+                    <CardTitle className="text-2xl">{name || "Your profile"}</CardTitle>
                     <CardDescription className="mt-1">
-                      {role} • {employeeId}
+                      {/* Job title leads when set — it is what a colleague
+                          recognises. The sign-in role and staff number follow,
+                          and each is dropped when absent rather than rendered as
+                          a stray bullet. */}
+                      {[title, role, employeeId].filter(Boolean).join(" • ")}
                     </CardDescription>
                   </div>
                 </div>
@@ -360,10 +335,14 @@ function StaffProfile() {
                   <div>
                     <div className="text-sm text-muted-foreground">Joined</div>
                     <div className="font-medium">
-                      {new Date(staffData.joinDate).toLocaleDateString("en-US", {
-                        month: "short",
-                        year: "numeric",
-                      })}
+                      {/* Was reading staffData.joinDate — a hardcoded 2018 date
+                          shown to every user regardless of when they joined. */}
+                      {joinDate
+                        ? new Date(joinDate).toLocaleDateString("en-US", {
+                            month: "short",
+                            year: "numeric",
+                          })
+                        : "—"}
                     </div>
                   </div>
                 </div>
@@ -426,7 +405,7 @@ function StaffProfile() {
                 ) : pendingReq ? (
                   <Badge
                     variant="outline"
-                    className="bg-amber-500/15 text-amber-500 border-amber-500/30 text-[10px] font-bold"
+                    className="bg-warning/15 text-warning border-warning/30 text-[10px] font-bold"
                   >
                     🟡 Request Pending Admin Review
                   </Badge>
@@ -456,7 +435,7 @@ function StaffProfile() {
                   </div>
                 ) : pendingReq ? (
                   <div className="space-y-1 font-sans">
-                    <div className="text-amber-500 font-semibold text-sm">
+                    <div className="text-warning font-semibold text-sm">
                       🟡 DID Request Pending Admin Approval
                     </div>
                     <p className="text-xs text-muted-foreground font-normal">
@@ -481,18 +460,11 @@ function StaffProfile() {
                     </div>
                     <Button
                       onClick={handleRequestDIDClick}
-                      disabled={requestingDid || !walletVerified}
+                      disabled={requestingDid}
                       className="bg-primary text-primary-foreground text-xs font-bold px-4 py-2"
-                      title={!walletVerified ? "Verify your Solana wallet first" : undefined}
                     >
                       {requestingDid ? "Submitting Request..." : "Request Official DID from Admin"}
                     </Button>
-                    {!walletVerified && (
-                      <div className="flex items-center gap-2 rounded-lg border border-warning/30 bg-warning/5 px-3 py-2 text-xs text-warning-foreground">
-                        <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-                        You must verify your Solana wallet before requesting a DID.
-                      </div>
-                    )}
                   </div>
                 )}
               </div>
@@ -505,123 +477,9 @@ function StaffProfile() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <Wallet className="h-5 w-5 text-primary" />
-                  <CardTitle>Solana Wallet</CardTitle>
-                </div>
-                {walletVerified ? (
-                  <Badge className="bg-success/15 text-success border border-success/30 text-[10px] font-bold flex items-center gap-1">
-                    <CheckCircle2 className="h-3 w-3" /> Ownership Verified
-                  </Badge>
-                ) : currentUser?.walletAddress ? (
-                  <Badge
-                    variant="outline"
-                    className="bg-warning/10 text-warning-foreground border-warning/30 text-[10px]"
-                  >
-                    Linked — Unverified
-                  </Badge>
-                ) : (
-                  <Badge variant="outline" className="text-[10px]">
-                    Not Linked
-                  </Badge>
-                )}
-              </div>
-              <CardDescription>
-                Connect and verify one Solana wallet. Wallet verification is required before
-                requesting a DID.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Workflow steps */}
-              <div className="grid grid-cols-3 gap-2 text-center text-[10px]">
-                {[
-                  { step: "1", label: "Connect Wallet", done: connected },
-                  { step: "2", label: "Verify Ownership", done: walletVerified },
-                  { step: "3", label: "Request DID", done: !!adminDid },
-                ].map((s) => (
-                  <div
-                    key={s.step}
-                    className={`rounded-lg border px-2 py-2 space-y-1 ${s.done ? "border-success/30 bg-success/5" : "border-border bg-muted/30"}`}
-                  >
-                    <div
-                      className={`text-base font-black ${s.done ? "text-success" : "text-muted-foreground"}`}
-                    >
-                      {s.done ? "✓" : s.step}
-                    </div>
-                    <div
-                      className={s.done ? "text-success font-semibold" : "text-muted-foreground"}
-                    >
-                      {s.label}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Linked address display */}
-              {currentUser?.walletAddress ? (
-                <div
-                  className={`rounded-lg border p-4 space-y-2 ${walletVerified ? "border-success/25 bg-success/5" : "border-warning/25 bg-warning/5"}`}
-                >
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                    <span
-                      className={`text-xs font-semibold uppercase tracking-wider ${walletVerified ? "text-success" : "text-warning-foreground"}`}
-                    >
-                      {walletVerified ? "Verified Wallet Address" : "Wallet Address (Unverified)"}
-                    </span>
-                  </div>
-                  <div className="font-mono text-xs text-foreground select-all break-all">
-                    {currentUser.walletAddress}
-                  </div>
-                  {connected && publicKey?.toBase58() !== currentUser.walletAddress && (
-                    <div className="flex items-center gap-2 text-xs text-destructive font-medium mt-1">
-                      <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-                      Connected wallet differs from linked address. Switch to your registered
-                      wallet.
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="rounded-lg border border-warning/20 bg-warning/5 p-4 text-xs text-muted-foreground">
-                  No wallet linked. Connect your Phantom wallet and verify ownership to continue.
-                </div>
-              )}
-
-              {/* Action buttons */}
-              <div className="flex flex-col sm:flex-row gap-3 pt-1">
-                <WalletMultiButton className="!bg-primary hover:!bg-primary/90 !rounded-lg !h-10 !text-sm !font-semibold !px-4" />
-                {connected && !walletVerified && (
-                  <Button
-                    onClick={handleVerifyWallet}
-                    disabled={verifying}
-                    className="h-10 text-sm font-semibold gap-2"
-                  >
-                    {verifying ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" /> Verifying…
-                      </>
-                    ) : (
-                      <>
-                        <Shield className="h-4 w-4" /> Verify & Link Wallet
-                      </>
-                    )}
-                  </Button>
-                )}
-                {walletVerified && (
-                  <div className="flex items-center gap-2 rounded-xl border border-success/30 bg-success/5 px-4 h-10 text-xs font-semibold text-success">
-                    <CheckCircle2 className="h-4 w-4" /> Wallet ownership confirmed
-                  </div>
-                )}
-              </div>
-
-              <p className="text-[11px] text-muted-foreground">
-                Each account may link only one wallet, and each wallet may belong to only one
-                account.
-              </p>
-            </CardContent>
-          </Card>
+          {/* Clinicians hold an embedded signing key, same as patients and
+              admins. Only super-admins use an external wallet. */}
+          <DidKeypairCard />
 
           <Card>
             <CardHeader>
@@ -775,8 +633,8 @@ function StaffProfile() {
               <DialogHeader>
                 <DialogTitle>Edit Profile</DialogTitle>
                 <DialogDescription>
-                  Update your professional and department details. Some parameters are synced
-                  on-chain.
+                  Update your professional details. Your sign-in role and DID are issued by your
+                  hospital and cannot be changed here.
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleUpdateProfile} className="space-y-4 py-4">
@@ -791,21 +649,21 @@ function StaffProfile() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <Label htmlFor="role">Role / Title</Label>
+                    <Label htmlFor="title">Job Title</Label>
                     <Input
-                      id="role"
-                      value={editRole}
-                      onChange={(e) => setEditRole(e.target.value)}
-                      required
+                      id="title"
+                      placeholder="e.g. Senior Cardiologist"
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
                     />
                   </div>
                   <div className="space-y-1">
                     <Label htmlFor="dept">Department</Label>
                     <Input
                       id="dept"
+                      placeholder="e.g. Cardiology"
                       value={editDepartment}
                       onChange={(e) => setEditDepartment(e.target.value)}
-                      required
                     />
                   </div>
                 </div>
@@ -813,9 +671,10 @@ function StaffProfile() {
                   <Label htmlFor="phone">Phone</Label>
                   <Input
                     id="phone"
+                    type="tel"
+                    placeholder="+91 98765 43210"
                     value={editPhone}
                     onChange={(e) => setEditPhone(e.target.value)}
-                    required
                   />
                 </div>
                 <div className="space-y-1">

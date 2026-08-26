@@ -44,13 +44,13 @@ const STATUS_OPTIONS = [
   {
     id: "cleaning",
     label: "Cleaning",
-    color: "text-blue-600 bg-blue-500/10 border-blue-200",
+    color: "text-primary bg-primary/10 border-primary/30",
     icon: Activity,
   },
   {
     id: "maintenance",
     label: "Maintenance",
-    color: "text-amber-600 bg-amber-500/10 border-amber-200",
+    color: "text-warning bg-warning/10 border-warning/30",
     icon: Wrench,
   },
   {
@@ -62,7 +62,7 @@ const STATUS_OPTIONS = [
   {
     id: "emergency_reserved",
     label: "Emergency",
-    color: "text-red-600 bg-red-500/10 border-red-200",
+    color: "text-destructive bg-destructive/10 border-destructive/30",
     icon: Shield,
   },
 ];
