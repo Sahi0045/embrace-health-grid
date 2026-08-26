@@ -189,9 +189,9 @@ export function RoomVerificationPanel({
           </div>
         ) : (
           <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
-            {publishedRoots.map((root) => (
+            {publishedRoots.map((root, idx) => (
               <div
-                key={root.rootId}
+                key={root.rootId ?? root.txHash ?? root.merkleRoot ?? idx}
                 className="rounded-xl border border-border/80 bg-muted/20 p-4 space-y-2"
               >
                 <div className="flex items-center justify-between text-xs">

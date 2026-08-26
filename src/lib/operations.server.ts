@@ -108,16 +108,27 @@ async function callerHospitalId(): Promise<string> {
 // ─── Attendance ─────────────────────────────────────────────────────────────
 
 export const getAttendance = createServerFn({ method: "GET" }).handler(async () => {
-  await requireSession();
+  const user = await requireSession();
   const supabase = getSupabaseServerClient();
 
-  // RLS: own rows, or all rows for an admin.
-  const { data, error } = await supabase
+  const { data: profile } = await supabase
+    .from("profiles").select("hospital_id, role").eq("id", user.id).maybeSingle();
+
+  let query = supabase
     .from("attendance")
-    .select("attendance_id, staff_id, action, location, recorded_at")
+    .select("attendance_id, staff_id, action, location, recorded_at, hospital_id")
     .order("recorded_at", { ascending: false })
     .limit(200);
 
+  // Own rows always visible (RLS). Admins see hospital-scoped; super_admin sees all
+  if (profile?.role === "admin" && profile?.hospital_id) {
+    query = query.eq("hospital_id", profile.hospital_id);
+  } else if (profile?.role === "super_admin") {
+    // no extra filter
+  }
+  // staff/doctor: RLS returns own rows only
+
+  const { data, error } = await query;
   if (error) throw new Error(error.message);
   return { attendance: data ?? [] };
 });
@@ -150,16 +161,22 @@ export const clockAttendance = createServerFn({ method: "POST" })
 // ─── Staff schedule ─────────────────────────────────────────────────────────
 
 export const getStaffSchedule = createServerFn({ method: "GET" }).handler(async () => {
-  await requireSession();
+  const user = await requireSession();
   const supabase = getSupabaseServerClient();
 
-  const { data, error } = await supabase
+  const { data: profile } = await supabase
+    .from("profiles").select("hospital_id, role").eq("id", user.id).maybeSingle();
+
+  let query = supabase
     .from("staff_schedule")
-    .select(
-      "shift_id, staff_id, shift_date, role, starts_at, ends_at, unit, patient_count, notes, confirmed",
-    )
+    .select("shift_id, staff_id, shift_date, role, starts_at, ends_at, unit, patient_count, notes, confirmed, hospital_id")
     .order("shift_date", { ascending: true });
 
+  if (profile?.role !== "super_admin" && profile?.hospital_id) {
+    query = query.eq("hospital_id", profile.hospital_id);
+  }
+
+  const { data, error } = await query;
   if (error) throw new Error(error.message);
   return { schedule: data ?? [] };
 });
@@ -313,16 +330,25 @@ export const getDailyRoomEvents = createServerFn({ method: "GET" })
 // ─── Visitors ───────────────────────────────────────────────────────────────
 
 export const getVisitors = createServerFn({ method: "GET" }).handler(async () => {
-  await requireSession();
+  const user = await requireSession();
   const supabase = getSupabaseServerClient();
 
-  const { data, error } = await supabase
+  const { data: profile } = await supabase
+    .from("profiles").select("hospital_id, role").eq("id", user.id).maybeSingle();
+
+  let query = supabase
     .from("visitors")
-    .select(
-      "visitor_id, patient_did, visitor_name, relation, visit_date, purpose, status, requested_at, resolved_at",
-    )
+    .select("visitor_id, patient_did, visitor_name, relation, visit_date, purpose, status, requested_at, resolved_at, hospital_id")
     .order("requested_at", { ascending: false });
 
+  // Patients see their own; staff see hospital-scoped; super_admin sees all
+  if (profile?.role === "patient") {
+    // RLS handles own-visitor scoping
+  } else if (profile?.role !== "super_admin" && profile?.hospital_id) {
+    query = query.eq("hospital_id", profile.hospital_id);
+  }
+
+  const { data, error } = await query;
   if (error) throw new Error(error.message);
   return { visitors: data ?? [] };
 });
@@ -357,6 +383,7 @@ export const createVisitorRequest = createServerFn({ method: "POST" })
       purpose: data.purpose ?? null,
       status: "pending",
       requested_by: user.id,
+      hospital_id: await callerHospitalId().catch(() => null),
     });
 
     if (error) throw new Error(error.message);
@@ -390,14 +417,22 @@ export const resolveVisitorRequest = createServerFn({ method: "POST" })
 // ─── NFC cards ──────────────────────────────────────────────────────────────
 
 export const getNfcCards = createServerFn({ method: "GET" }).handler(async () => {
-  await requireSession();
+  const user = await requireSession();
   const supabase = getSupabaseServerClient();
 
-  const { data, error } = await supabase
+  const { data: profile } = await supabase
+    .from("profiles").select("hospital_id, role").eq("id", user.id).maybeSingle();
+
+  let query = supabase
     .from("nfc_cards")
-    .select("card_id, patient_did, card_type, status, issued_at, revoked_at")
+    .select("card_id, patient_did, card_type, status, issued_at, revoked_at, hospital_id")
     .order("issued_at", { ascending: false });
 
+  if (profile?.role !== "super_admin" && profile?.hospital_id) {
+    query = query.eq("hospital_id", profile.hospital_id);
+  }
+
+  const { data, error } = await query;
   if (error) throw new Error(error.message);
   return { cards: data ?? [] };
 });
@@ -471,14 +506,38 @@ export const updateInsurancePolicy = createServerFn({ method: "POST" })
   });
 
 export const getInsuranceClaims = createServerFn({ method: "GET" }).handler(async () => {
-  await requireSession();
+  const user = await requireSession();
   const supabase = getSupabaseServerClient();
 
-  const { data, error } = await supabase
+  const { data: profile } = await supabase
+    .from("profiles").select("hospital_id, role, primary_did").eq("id", user.id).maybeSingle();
+
+  let query = supabase
     .from("insurance_claims")
     .select("claim_id, patient_did, amount, description, status, submitted_at, resolved_at")
     .order("submitted_at", { ascending: false });
 
+  // Patients see their own claims (RLS); staff/admin see hospital-scoped claims
+  // Insurance claims don't have hospital_id so we join via patient DID → profile
+  // For admin use: filter by patients in their hospital
+  if (profile?.role === "patient") {
+    // RLS handles this
+  } else if (profile?.role !== "super_admin" && profile?.hospital_id) {
+    // Get patient DIDs in this hospital
+    const { data: hospitalPatients } = await supabase
+      .from("dids")
+      .select("did")
+      .eq("hospital_id", profile.hospital_id)
+      .eq("owner_type", "patient");
+    const patientDids = (hospitalPatients ?? []).map((p) => p.did);
+    if (patientDids.length > 0) {
+      query = query.in("patient_did", patientDids);
+    } else {
+      return { claims: [] };
+    }
+  }
+
+  const { data, error } = await query;
   if (error) throw new Error(error.message);
   return { claims: data ?? [] };
 });
@@ -509,15 +568,25 @@ export const createInsuranceClaim = createServerFn({ method: "POST" })
 // ─── Staff requests ─────────────────────────────────────────────────────────
 
 export const getStaffRequests = createServerFn({ method: "GET" }).handler(async () => {
-  await requireSession();
+  const user = await requireSession();
   const supabase = getSupabaseServerClient();
 
-  // RLS: own requests, or all of them for an admin.
-  const { data, error } = await supabase
+  const { data: profile } = await supabase
+    .from("profiles").select("hospital_id, role").eq("id", user.id).maybeSingle();
+
+  let query = supabase
     .from("staff_requests")
-    .select("request_id, staff_id, request_type, subject, details, status, created_at, resolved_at")
+    .select("request_id, staff_id, request_type, subject, details, status, created_at, resolved_at, hospital_id")
     .order("created_at", { ascending: false });
 
+  // Staff see their own; admins see hospital-scoped; super_admin sees all
+  if (profile?.role !== "super_admin" && profile?.role !== "admin" && profile?.role !== "doctor") {
+    // staff/patient see own rows via RLS
+  } else if (profile?.role !== "super_admin" && profile?.hospital_id) {
+    query = query.eq("hospital_id", profile.hospital_id);
+  }
+
+  const { data, error } = await query;
   if (error) throw new Error(error.message);
   return { requests: data ?? [] };
 });
@@ -575,17 +644,25 @@ export const resolveStaffRequest = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
-/** Attendance rollup for admins. RLS returns only own rows to non-admins. */
+/** Attendance rollup for admins — hospital-scoped. RLS returns only own rows to non-admins. */
 export const getAttendanceSummary = createServerFn({ method: "GET" }).handler(async () => {
-  await requireSession();
+  const user = await requireSession();
   const supabase = getSupabaseServerClient();
 
-  const { data, error } = await supabase
+  const { data: callerProfile } = await supabase
+    .from("profiles").select("hospital_id, role").eq("id", user.id).maybeSingle();
+
+  let query = supabase
     .from("attendance")
-    .select("staff_id, action, location, recorded_at")
+    .select("staff_id, action, location, recorded_at, hospital_id")
     .order("recorded_at", { ascending: false })
     .limit(500);
 
+  if (callerProfile?.role !== "super_admin" && callerProfile?.hospital_id) {
+    query = query.eq("hospital_id", callerProfile.hospital_id);
+  }
+
+  const { data, error } = await query;
   if (error) throw new Error(error.message);
 
   // Collapse the event log into per-staff totals for the dashboard.

@@ -248,27 +248,45 @@ export const getLabResults = createServerFn({ method: "GET" }).handler(async () 
 // ─── Appointments ───────────────────────────────────────────────────────────
 
 export const getAppointments = createServerFn({ method: "GET" }).handler(async () => {
-  await requireSession();
+  const user = await requireSession();
   const supabase = getSupabaseServerClient();
 
-  const { data, error } = await supabase
+  // Get caller's hospital and role to scope appointment list
+  const { data: callerProfile } = await supabase
+    .from("profiles")
+    .select("hospital_id, role, primary_did")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  let query = supabase
     .from("appointments")
     .select(
       "appt_id, patient_did, doctor_did, slot, mode, specialty, status, reason, booked_at, suggested_slot, hospital_id",
     )
     .order("booked_at", { ascending: false });
 
+  // Patients see their own appointments (RLS handles this)
+  // Doctors see appointments where they are the doctor
+  // Staff/admin see only their hospital's appointments
+  // Super admin sees all
+  if (callerProfile?.role === "patient") {
+    // RLS already scopes to own appointments via appointments_select_involved
+    // No extra filter needed
+  } else if (callerProfile?.role === "doctor") {
+    // Doctor sees appointments for their patients and their own appointments
+    // hospital_id filter gives them their hospital's scope
+    if (callerProfile.hospital_id) {
+      query = query.eq("hospital_id", callerProfile.hospital_id);
+    }
+  } else if (callerProfile?.role !== "super_admin" && callerProfile?.hospital_id) {
+    query = query.eq("hospital_id", callerProfile.hospital_id);
+  }
+
+  const { data, error } = await query;
   if (error) throw new Error(error.message);
 
   const rows = data ?? [];
 
-  // The appointments table stores DIDs only, so a caller that renders a name had
-  // to resolve it itself — and none did, which is why confirming an appointment
-  // reported "Appointment with undefined confirmed."
-  //
-  // Resolve here, once, from the DID registry: dids is readable by any
-  // authenticated user and already carries owner_name, so this needs no extra
-  // privilege and no PHI is involved.
   const dids = [
     ...new Set(rows.flatMap((r) => [r.patient_did, r.doctor_did]).filter(Boolean)),
   ] as string[];
@@ -276,7 +294,6 @@ export const getAppointments = createServerFn({ method: "GET" }).handler(async (
   const names = new Map<string, string>();
   if (dids.length) {
     const { data: didRows } = await supabase.from("dids").select("did, owner_name").in("did", dids);
-
     for (const d of didRows ?? []) {
       if (d.did && d.owner_name) names.set(d.did, d.owner_name);
     }
@@ -303,7 +320,6 @@ export const bookAppointment = createServerFn({ method: "POST" })
     const supabase = getSupabaseServerClient();
 
     // The caller's own DID, so a patient cannot book on someone else's behalf.
-    // appointments_insert_patient enforces this in RLS regardless.
     const profile = { primary_did: await callerPrimaryDid() };
 
     if (!profile?.primary_did) throw new Error("No DID associated with this account");
@@ -340,6 +356,100 @@ export const bookAppointment = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true as const, apptId };
   });
+
+/**
+ * Patients who have booked an appointment with the calling doctor.
+ *
+ * This is what drives the Sign & Prescribe patient list. A doctor should only
+ * be able to prescribe to patients who have an appointment with them — not to
+ * any patient in the system or any consent-holder.
+ *
+ * Returns patients de-duplicated by DID, with all their appointments included
+ * so the prescribe form can show the appointment context and let the doctor
+ * pick a specific appointment.
+ */
+export const getMyAppointmentPatients = createServerFn({ method: "GET" }).handler(async () => {
+  await requireSession();
+  const supabase = getSupabaseServerClient();
+
+  // Get the calling doctor's primary DID
+  const myDid = await callerPrimaryDid();
+  if (!myDid) return { patients: [] };
+
+  // Fetch all appointments where doctor_did = my DID
+  // RLS (appointments_select_involved) already scopes this to appointments the
+  // caller is a party to, so this is doubly safe.
+  const { data: appts, error } = await supabase
+    .from("appointments")
+    .select("appt_id, patient_did, doctor_did, slot, mode, specialty, status, reason, booked_at, hospital_id")
+    .eq("doctor_did", myDid)
+    .order("booked_at", { ascending: false });
+
+  if (error) throw new Error(error.message);
+  if (!appts?.length) return { patients: [] };
+
+  // Resolve patient names from the DID registry
+  const patientDids = [...new Set(appts.map((a) => a.patient_did).filter(Boolean))] as string[];
+  const nameMap = new Map<string, string>();
+
+  if (patientDids.length) {
+    const { data: didRows } = await supabase
+      .from("dids")
+      .select("did, owner_name")
+      .in("did", patientDids);
+    for (const d of didRows ?? []) {
+      if (d.did && d.owner_name) nameMap.set(d.did, d.owner_name);
+    }
+  }
+
+  // Group appointments by patient DID
+  const byPatient = new Map<string, {
+    patientDid: string;
+    patientName: string;
+    appointments: Array<{
+      apptId: string;
+      slot: string;
+      status: string;
+      reason: string | null;
+      date: string | null;
+    }>;
+    latestAppt: {
+      apptId: string;
+      slot: string;
+      status: string;
+      reason: string | null;
+      date: string | null;
+    } | null;
+  }>();
+
+  for (const a of appts) {
+    const existing = byPatient.get(a.patient_did) ?? {
+      patientDid: a.patient_did,
+      patientName: nameMap.get(a.patient_did) ?? a.patient_did,
+      appointments: [],
+      latestAppt: null,
+    };
+
+    const apptEntry = {
+      apptId: a.appt_id,
+      slot: a.slot ?? "",
+      status: a.status ?? "pending",
+      reason: a.reason ?? null,
+      date: a.slot ? String(a.slot).slice(0, 10) : null,
+    };
+
+    existing.appointments.push(apptEntry);
+
+    // Latest = first in the list (already ordered newest first)
+    if (!existing.latestAppt) {
+      existing.latestAppt = apptEntry;
+    }
+
+    byPatient.set(a.patient_did, existing);
+  }
+
+  return { patients: [...byPatient.values()] };
+});
 
 // ─── Consents ───────────────────────────────────────────────────────────────
 
@@ -508,18 +618,30 @@ export const revokeConsent = createServerFn({ method: "POST" })
 // ─── DIDs and credentials ───────────────────────────────────────────────────
 
 export const getAllDIDs = createServerFn({ method: "GET" }).handler(async () => {
-  await requireSession();
+  const user = await requireSession();
   const supabase = getSupabaseServerClient();
 
-  const { data, error } = await supabase
+  // Get caller's hospital and role
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("hospital_id, role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  let query = supabase
     .from("dids")
     .select(
-      // hospital_id is required so callers can tell an own-hospital DID from one
-      // visible only through the cross-hospital clinician directory.
       "did, owner_name, owner_type, public_key, controller, status, created_at, is_organisation, hospital_id",
     )
     .order("created_at", { ascending: false });
 
+  // Super admin sees all; everyone else sees only their hospital's DIDs
+  // (plus org DIDs which are public-facing)
+  if (profile?.role !== "super_admin" && profile?.hospital_id) {
+    query = query.or(`hospital_id.eq.${profile.hospital_id},is_organisation.eq.true`);
+  }
+
+  const { data, error } = await query;
   if (error) throw new Error(error.message);
   return { dids: data ?? [], total: data?.length ?? 0 };
 });
@@ -643,33 +765,59 @@ export const getPlatformHealth = createServerFn({ method: "GET" }).handler(async
 });
 
 /**
- * Dashboard counters.
+ * Dashboard counters — hospital-scoped for admins, global for super_admin.
  *
- * Replaces getStats(), which returned hardcoded mock data from Express — the
- * README listed that as a known issue. These are real counts.
- *
- * Note the numbers are RLS-scoped: a patient sees counts over rows they may
- * read, an admin sees more. That is intentional; a count is still data.
+ * RLS already limits what the anon client sees per session, but COUNT(*)
+ * across an entire table ignores the hospital filter unless we add it
+ * explicitly — so an admin at a 5-person hospital saw the same numbers as
+ * the super admin.
  */
 export const getPlatformStats = createServerFn({ method: "GET" }).handler(async () => {
-  await requireSession();
+  const user = await requireSession();
   const supabase = getSupabaseServerClient();
 
-  const counted = async (table: string) => {
-    const { count, error } = await supabase.from(table).select("*", { count: "exact", head: true });
+  // Determine the caller's hospital scope
+  const { data: callerProfile } = await supabase
+    .from("profiles")
+    .select("hospital_id, role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const hospitalId = callerProfile?.hospital_id ?? null;
+  const isSuperAdmin = callerProfile?.role === "super_admin";
+
+  // Count rows in a table, optionally scoped to the caller's hospital
+  const counted = async (table: string, hospitalColumn = "hospital_id") => {
+    let q = supabase.from(table).select("*", { count: "exact", head: true });
+    if (!isSuperAdmin && hospitalId) {
+      q = (q as any).eq(hospitalColumn, hospitalId);
+    }
+    const { count, error } = await q;
     return error ? 0 : (count ?? 0);
   };
 
-  const [dids, credentials, anchors, roots, records, audits] = await Promise.all([
+  // These tables have hospital_id — count only own-hospital rows
+  const [dids, records, audits] = await Promise.all([
     counted("dids"),
-    counted("credentials"),
-    counted("solana_anchors"),
-    counted("merkle_roots"),
-    counted("medical_records"),
+    counted("medical_records"),   // hospital_id = provenance, still useful for display
     counted("audit_events"),
   ]);
 
-  // Latest confirmed anchor stands in for "chain tip" in the old UI.
+  // Blockchain tables are global verification infrastructure — not hospital-gated
+  const countGlobal = async (table: string) => {
+    const { count, error } = await supabase
+      .from(table)
+      .select("*", { count: "exact", head: true });
+    return error ? 0 : (count ?? 0);
+  };
+
+  const [credentials, anchors, roots] = await Promise.all([
+    countGlobal("credentials"),
+    countGlobal("solana_anchors"),
+    countGlobal("merkle_roots"),
+  ]);
+
+  // Latest confirmed anchor (global — verification is chain-wide)
   const { data: latestAnchor } = await supabase
     .from("solana_anchors")
     .select("slot, confirmed_at")
@@ -691,18 +839,31 @@ export const getPlatformStats = createServerFn({ method: "GET" }).handler(async 
 });
 
 /**
- * Directory of user profiles. Admin-scoped by RLS (profiles_select_staff), so a
- * patient calling this receives only their own row.
+ * Directory of user profiles — hospital-scoped for admins.
+ * Admin-scoped by RLS (profiles_select_staff) AND by explicit hospital filter.
+ * Super admin sees all profiles; a hospital admin sees only their hospital's.
  */
 export const getProfiles = createServerFn({ method: "GET" }).handler(async () => {
-  await requireSession();
+  const user = await requireSession();
   const supabase = getSupabaseServerClient();
 
-  const { data, error } = await supabase
+  const { data: callerProfile } = await supabase
     .from("profiles")
-    .select("id, email, full_name, role, primary_did, created_at")
+    .select("hospital_id, role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  let query = supabase
+    .from("profiles")
+    .select("id, email, full_name, role, primary_did, hospital_id, created_at")
     .order("created_at", { ascending: false });
 
+  // Scope to caller's hospital unless super_admin
+  if (callerProfile?.role !== "super_admin" && callerProfile?.hospital_id) {
+    query = query.eq("hospital_id", callerProfile.hospital_id);
+  }
+
+  const { data, error } = await query;
   if (error) throw new Error(error.message);
   return { profiles: data ?? [] };
 });

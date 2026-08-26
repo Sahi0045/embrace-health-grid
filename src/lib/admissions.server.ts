@@ -133,6 +133,10 @@ export const admitPatient = createServerFn({ method: "POST" })
     const admissionId = newAdmissionId();
     const now = new Date().toISOString();
 
+    // hospital_id is derived from the bed (most reliable) or the caller's
+    // profile. Never from the request body — a client cannot change their tenant.
+    const admissionHospitalId = bed.hospital_id ?? profile?.hospital_id ?? null;
+
     const { error: admErr } = await supabase.from("admissions").insert({
       admission_id: admissionId,
       patient_did: data.patientDid,
@@ -144,6 +148,7 @@ export const admitPatient = createServerFn({ method: "POST" })
       bed: data.bedId,
       admitting_doctor: data.admittingDoctorDid ?? profile?.primary_did ?? null,
       diagnosis: data.diagnosis ?? null,
+      hospital_id: admissionHospitalId,
     });
 
     if (admErr) {
@@ -189,6 +194,7 @@ export const admitPatient = createServerFn({ method: "POST" })
     await supabase.from("billing_accounts").upsert(
       {
         patient_did: data.patientDid,
+        hospital_id: admissionHospitalId,
         total_billed: prevBilled + fee,
         outstanding: prevOut + fee,
         total_paid: billingRow ? undefined : 0,
@@ -514,14 +520,20 @@ export const transferPatient = createServerFn({ method: "POST" })
 
 // ─── getAdmissionEvents ──────────────────────────────────────────────────────
 
-/** Fetch the audit trail for a single admission or all admissions. */
+/** Fetch the audit trail for a single admission or all admissions — hospital-scoped. */
 export const getAdmissionEvents = createServerFn({ method: "GET" })
   .inputValidator(
     (data: { admissionId?: string; patientDid?: string; limit?: number }) => data ?? {},
   )
   .handler(async ({ data }) => {
-    await requireSession();
+    const user = await requireSession();
     const supabase = getSupabaseServerClient();
+
+    const { data: callerProfile } = await supabase
+      .from("profiles")
+      .select("hospital_id, role")
+      .eq("id", user.id)
+      .maybeSingle();
 
     let query = supabase
       .from("admission_events")
@@ -537,6 +549,11 @@ export const getAdmissionEvents = createServerFn({ method: "GET" })
     if (data.admissionId) query = query.eq("admission_id", data.admissionId);
     if (data.patientDid) query = query.eq("patient_did", data.patientDid);
 
+    // Scope to caller's hospital unless super_admin
+    if (callerProfile?.role !== "super_admin" && callerProfile?.hospital_id) {
+      query = query.eq("hospital_id", callerProfile.hospital_id);
+    }
+
     const { data: events, error } = await query;
     if (error) throw new Error(error.message);
     return { events: events ?? [] };
@@ -544,22 +561,34 @@ export const getAdmissionEvents = createServerFn({ method: "GET" })
 
 // ─── getAllAdmissions ────────────────────────────────────────────────────────
 
-/** Hospital-wide admissions list (staff/admin see all via RLS). */
+/** Hospital-wide admissions list — scoped to the caller's hospital. */
 export const getAllAdmissions = createServerFn({ method: "GET" })
   .inputValidator((data: { status?: string }) => data ?? {})
   .handler(async ({ data }) => {
-    await requireSession();
+    const user = await requireSession();
     const supabase = getSupabaseServerClient();
+
+    // Resolve caller's hospital and role
+    const { data: callerProfile } = await supabase
+      .from("profiles")
+      .select("hospital_id, role")
+      .eq("id", user.id)
+      .maybeSingle();
 
     let query = supabase
       .from("admissions")
       .select(
         "admission_id, patient_did, admitted_at, expected_discharge, " +
-          "discharged_at, status, ward, room, bed, admitting_doctor, diagnosis",
+          "discharged_at, status, ward, room, bed, admitting_doctor, diagnosis, hospital_id",
       )
       .order("admitted_at", { ascending: false });
 
     if (data.status) query = query.eq("status", data.status);
+
+    // Scope to caller's hospital unless super_admin
+    if (callerProfile?.role !== "super_admin" && callerProfile?.hospital_id) {
+      query = query.eq("hospital_id", callerProfile.hospital_id);
+    }
 
     const { data: rows, error } = await query;
     if (error) throw new Error(error.message);
@@ -577,6 +606,7 @@ export const getAllAdmissions = createServerFn({ method: "GET" })
         bed: string | null;
         admitting_doctor: string | null;
         diagnosis: string | null;
+        hospital_id: string | null;
       }>) ?? [];
 
     // Resolve patient names from dids table.
@@ -603,15 +633,27 @@ export const getAllAdmissions = createServerFn({ method: "GET" })
 
 // ─── getWardOccupancy ────────────────────────────────────────────────────────
 
-/** Live ward occupancy from the ward_occupancy view. */
+/** Live ward occupancy — scoped to the caller's hospital. */
 export const getWardOccupancy = createServerFn({ method: "GET" }).handler(async () => {
-  await requireSession();
+  const user = await requireSession();
   const supabase = getSupabaseServerClient();
 
-  const { data, error } = await supabase
-    .from("ward_occupancy")
-    .select("ward, total_admitted, currently_admitted, discharged, transferred");
+  const { data: callerProfile } = await supabase
+    .from("profiles")
+    .select("hospital_id, role")
+    .eq("id", user.id)
+    .maybeSingle();
 
+  let query = supabase
+    .from("ward_occupancy")
+    .select("ward, hospital_id, total_admitted, currently_admitted, discharged, transferred");
+
+  // Filter by hospital unless super_admin
+  if (callerProfile?.role !== "super_admin" && callerProfile?.hospital_id) {
+    query = query.eq("hospital_id", callerProfile.hospital_id);
+  }
+
+  const { data, error } = await query;
   if (error) throw new Error(error.message);
   return { occupancy: data ?? [] };
 });

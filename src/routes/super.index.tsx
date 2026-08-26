@@ -5,8 +5,9 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Hospital, Users, Fingerprint, Award, GitBranch, Link2, Plus } from "lucide-react";
+import { Hospital, Users, Fingerprint, Award, GitBranch, Link2, Plus, UserCog, Activity } from "lucide-react";
 import { getHospitals } from "@/lib/hospitals.server";
+import { getSystemStats } from "@/lib/super-admin.server";
 
 export const Route = createFileRoute("/super/")({
   head: () => ({ meta: [{ title: "Platform — Embrace Health Grid" }] }),
@@ -22,14 +23,25 @@ interface HospitalRow {
   patient_count?: number;
 }
 
+interface SystemStats {
+  platform: { totalHospitals: number; activeHospitals: number; suspendedHospitals: number; totalDids: number };
+  users: { totalAdmins: number; totalDoctors: number; totalStaff: number; totalPatients: number; total: number };
+  operations: { totalAppointments: number; pendingAppointments: number; activeAdmissions: number };
+}
+
 function SuperHome() {
   const [hospitals, setHospitals] = useState<HospitalRow[]>([]);
+  const [stats, setStats] = useState<SystemStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     try {
-      const res = (await getHospitals()) as unknown as { hospitals: HospitalRow[] };
-      setHospitals(res.hospitals ?? []);
+      const [hospRes, statsRes] = await Promise.all([
+        getHospitals() as unknown as Promise<{ hospitals: HospitalRow[] }>,
+        getSystemStats() as unknown as Promise<SystemStats>,
+      ]);
+      setHospitals(hospRes.hospitals ?? []);
+      setStats(statsRes);
     } catch {
       // The hub should still render if the count query fails.
     } finally {
@@ -41,19 +53,15 @@ function SuperHome() {
     load();
   }, [load]);
 
-  const active = hospitals.filter((h) => h.status === "active").length;
-  const suspended = hospitals.filter((h) => h.status !== "active").length;
-  const anchored = hospitals.filter((h) => h.onchain_tx).length;
-  const staff = hospitals.reduce((n, h) => n + (h.staff_count ?? 0), 0);
-  const patients = hospitals.reduce((n, h) => n + (h.patient_count ?? 0), 0);
-
-  const stats = [
-    { label: "Hospitals", value: hospitals.length, icon: Hospital },
-    { label: "Active", value: active, icon: Hospital },
-    { label: "Suspended", value: suspended, icon: Hospital },
-    { label: "On chain", value: anchored, icon: Link2 },
-    { label: "Staff", value: staff, icon: Users },
-    { label: "Patients", value: patients, icon: Users },
+  const statCards = [
+    { label: "Hospitals",   value: stats?.platform.totalHospitals    ?? hospitals.length, icon: Hospital },
+    { label: "Active",      value: stats?.platform.activeHospitals   ?? hospitals.filter(h => h.status === "active").length, icon: Hospital },
+    { label: "Admins",      value: stats?.users.totalAdmins          ?? "—", icon: UserCog },
+    { label: "Doctors",     value: stats?.users.totalDoctors         ?? "—", icon: Users },
+    { label: "Staff",       value: stats?.users.totalStaff           ?? "—", icon: Users },
+    { label: "Patients",    value: stats?.users.totalPatients        ?? "—", icon: Users },
+    { label: "Appointments",value: stats?.operations.totalAppointments ?? "—", icon: Activity },
+    { label: "Admissions",  value: stats?.operations.activeAdmissions  ?? "—", icon: Activity },
   ];
 
   const tools = [
@@ -62,6 +70,12 @@ function SuperHome() {
       description: "Admit a hospital, issue its DID, suspend or reinstate it.",
       url: "/super/hospitals" as const,
       icon: Hospital,
+    },
+    {
+      title: "Hospital Admins",
+      description: "Create and assign administrators to each hospital.",
+      url: "/super/admins" as const,
+      icon: UserCog,
     },
     {
       title: "DID Registry",
@@ -99,8 +113,8 @@ function SuperHome() {
         }
       />
 
-      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        {stats.map(({ label, value, icon: Icon }) => (
+      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
+        {statCards.map(({ label, value, icon: Icon }) => (
           <Card key={label}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-2 text-xs text-muted-foreground">

@@ -1530,14 +1530,40 @@ export async function getPatientOnChainHistory(patientDid?: string) {
   };
 }
 
-/** Patients visible to the calling clinician — i.e. those who granted consent. */
+/** Patients visible to the calling doctor — those who booked an appointment with them.
+ *
+ * Previously this returned only consent-based patients, which meant the
+ * Sign & Prescribe page was empty unless patients had explicitly granted
+ * consent. Now it returns all patients with appointments, which is the
+ * correct clinical workflow: book appointment → doctor can prescribe.
+ *
+ * Falls back to consent-based patients if no appointment patients exist,
+ * so existing consent relationships still work.
+ */
 export async function getMyPatients() {
+  const { getMyAppointmentPatients: apptFn } = await import("./clinical.server");
+  const apptRes = await apptFn();
+  const apptPatients = apptRes.patients ?? [];
+
+  // If the doctor has appointment patients, use those
+  if (apptPatients.length > 0) {
+    return { patients: apptPatients, total: apptPatients.length };
+  }
+
+  // Fall back to consent-based patients (legacy / cross-hospital referrals)
   const { getConsents: fn } = await import("./clinical.server");
   const res = await fn();
-  const patients = (res.consents ?? [])
+  const consentPatients = (res.consents ?? [])
     .filter((c: any) => c.status === "active")
-    .map((c: any) => ({ did: c.patient_did, patientDid: c.patient_did, resource: c.resource }));
-  return { patients, total: patients.length };
+    .map((c: any) => ({
+      did: c.patient_did,
+      patientDid: c.patient_did,
+      patientName: c.patient_did,
+      resource: c.resource,
+      appointments: [],
+      latestAppt: null,
+    }));
+  return { patients: consentPatients, total: consentPatients.length };
 }
 
 // ─── Inpatient / facility / billing (task 4 migration) ──────────────────────

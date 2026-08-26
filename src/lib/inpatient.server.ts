@@ -43,17 +43,48 @@ async function callerDid(): Promise<string> {
  * Every one of these applies the identical RLS gate, so a single helper avoids
  * fifteen near-identical handlers. The table name is a closed set chosen by the
  * caller in this module — never a client-supplied string.
+ *
+ * For tables that carry hospital_id, an explicit filter is added on top of RLS
+ * so admin rosters never silently show cross-hospital data even if an RLS policy
+ * has a gap. Super admin bypasses the filter.
  */
-async function selectAll(table: string, orderColumn: string, ascending = false) {
-  await requireSession();
+async function selectAll(
+  table: string,
+  orderColumn: string,
+  ascending = false,
+  hospitalColumn = "hospital_id",
+) {
+  const user = await requireSession();
   const supabase = getSupabaseServerClient();
 
-  const { data, error } = await supabase
+  // Resolve caller's hospital + role once
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("hospital_id, role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  let q = supabase
     .from(table)
     .select("*")
     .order(orderColumn, { ascending })
     .limit(300);
 
+  // Tables known NOT to carry hospital_id — skip the filter for them
+  const noHospitalTables = new Set([
+    "patient_preferences",
+    "feedback",
+    "solana_anchors",
+    "merkle_roots",
+    "credentials",
+    "audit_events",
+  ]);
+
+  if (!noHospitalTables.has(table) && profile?.role !== "super_admin" && profile?.hospital_id) {
+    q = (q as any).eq(hospitalColumn, profile.hospital_id);
+  }
+
+  const { data, error } = await q;
   if (error) throw new Error(error.message);
   return data ?? [];
 }
@@ -651,14 +682,24 @@ export const recordPayment = createServerFn({ method: "POST" })
 // ─── Governance policies ────────────────────────────────────────────────────
 
 export const getPolicies = createServerFn({ method: "GET" }).handler(async () => {
-  await requireSession();
+  const user = await requireSession();
   const supabase = getSupabaseServerClient();
 
-  const { data, error } = await supabase
+  const { data: profile } = await supabase
+    .from("profiles").select("hospital_id, role").eq("id", user.id).maybeSingle();
+
+  let query = supabase
     .from("governance_policies")
-    .select("policy_id, name, category, status, description, updated_at")
+    .select("policy_id, name, category, status, description, updated_at, hospital_id")
     .order("updated_at", { ascending: false });
 
+  // Platform-wide policies (hospital_id IS NULL) are visible to everyone;
+  // hospital-specific policies are scoped. Super admin sees all.
+  if (profile?.role !== "super_admin" && profile?.hospital_id) {
+    query = query.or(`hospital_id.eq.${profile.hospital_id},hospital_id.is.null`);
+  }
+
+  const { data, error } = await query;
   if (error) throw new Error(error.message);
   return { policies: data ?? [] };
 });
@@ -793,10 +834,12 @@ export const getHospitalDirectory = createServerFn({ method: "GET" }).handler(as
 });
 
 export const getDoctors = createServerFn({ method: "GET" }).handler(async () => {
-  await requireSession();
+  const user = await requireSession();
   const supabase = getSupabaseServerClient();
 
-  const { data, error } = await supabase
+  // Build query with hospital_id filtering for non-super_admin users
+  // Super admin can see all doctors across hospitals, others see only their own hospital
+  let query = supabase
     .from("dids")
     // hospital_id so a patient can see WHICH hospital a clinician belongs to
     // before booking. The clinician directory is cross-hospital by design, so
@@ -808,6 +851,20 @@ export const getDoctors = createServerFn({ method: "GET" }).handler(async () => 
     // as clinicians with an "Approve & Issue DID" button beside them.
     .eq("is_organisation", false)
     .eq("status", "active");
+
+  // Get current user's hospital context
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("hospital_id, role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  // Filter by hospital_id unless user is super_admin
+  if (profile?.role !== "super_admin" && profile?.hospital_id) {
+    query = query.eq("hospital_id", profile.hospital_id);
+  }
+
+  const { data, error } = await query;
 
   if (error) throw new Error(error.message);
   return { doctors: data ?? [] };
@@ -825,15 +882,30 @@ export const getDoctors = createServerFn({ method: "GET" }).handler(async () => 
  * names.
  */
 export const getPatientDirectory = createServerFn({ method: "GET" }).handler(async () => {
-  await requireSession();
+  const user = await requireSession();
   const supabase = getSupabaseServerClient();
 
-  const { data, error } = await supabase
+  // Build query with hospital_id filtering for non-super_admin users
+  let query = supabase
     .from("dids")
-    .select("did, owner_name, owner_type, status")
+    .select("did, owner_name, owner_type, status, hospital_id")
     .eq("owner_type", "patient")
     .eq("is_organisation", false)
     .eq("status", "active");
+
+  // Get current user's hospital context
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("hospital_id, role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  // Filter by hospital_id unless user is super_admin
+  if (profile?.role !== "super_admin" && profile?.hospital_id) {
+    query = query.eq("hospital_id", profile.hospital_id);
+  }
+
+  const { data, error } = await query;
 
   if (error) throw new Error(error.message);
 

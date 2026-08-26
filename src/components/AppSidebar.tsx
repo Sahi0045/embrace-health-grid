@@ -56,6 +56,7 @@ import {
   Ambulance,
   Package,
   UtensilsCrossed,
+  UserCog,
 } from "lucide-react";
 import {
   Sidebar,
@@ -128,7 +129,6 @@ const staffNav: Item[] = [
   { title: "My Profile", url: "/staff/profile", icon: User },
   { title: "My Attendance", url: "/staff/attendance", icon: Clock },
   { title: "Verify Patient", url: "/staff/verify", icon: ScanLine },
-  { title: "Patients", url: "/staff/patients", icon: Users },
   { title: "Schedule", url: "/staff/schedule", icon: Calendar },
   { title: "Sign & Prescribe", url: "/staff/sign", icon: FileSignature },
   { title: "Prescriptions", url: "/staff/prescriptions", icon: Pill },
@@ -144,7 +144,11 @@ const staffNav: Item[] = [
  * see these at all: admitting or suspending a tenant is not a hospital's
  * business. RouteGuard and RLS enforce it; this only avoids offering the link.
  */
-const superNav: Item[] = [{ title: "Hospitals", url: "/super/hospitals", icon: Hospital }];
+const superNav: Item[] = [
+  { title: "Platform Hub", url: "/super", icon: LayoutDashboard },
+  { title: "Hospitals", url: "/super/hospitals", icon: Hospital },
+  { title: "Hospital Admins", url: "/super/admins", icon: UserCog },
+];
 
 const adminNav: Item[] = [
   { title: "Admin Portal Hub", url: "/admin", icon: LayoutDashboard },
