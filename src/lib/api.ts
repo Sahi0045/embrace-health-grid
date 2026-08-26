@@ -1772,13 +1772,18 @@ export async function getPatientOnChainHistory(patientDid?: string) {
  * so existing consent relationships still work.
  */
 export async function getMyPatients() {
-  const { getMyAppointmentPatients: apptFn } = await import("./clinical.server");
-  const apptRes = await apptFn();
-  const apptPatients = apptRes.patients ?? [];
-
-  // If the doctor has appointment patients, use those
-  if (apptPatients.length > 0) {
-    return { patients: apptPatients, total: apptPatients.length };
+  // Primary: appointment-based — doctors see only patients who booked with them.
+  // Wrapped in try/catch so a server error falls through to the consent fallback
+  // rather than returning an empty list with no explanation.
+  try {
+    const { getMyAppointmentPatients: apptFn } = await import("./clinical.server");
+    const apptRes = await apptFn();
+    const apptPatients = apptRes.patients ?? [];
+    if (apptPatients.length > 0) {
+      return { patients: apptPatients, total: apptPatients.length };
+    }
+  } catch {
+    // Falls through to consent-based fallback below
   }
 
   // Fall back to consent-based patients (legacy / cross-hospital referrals)
@@ -1808,6 +1813,7 @@ export async function getMyPatients() {
       latestAppt: null,
     }));
   return { patients: consentPatients, total: consentPatients.length };
+}
 
 // ─── Inpatient / facility / billing (task 4 migration) ──────────────────────
 // The last group of Express reads. All now resolve against Postgres with RLS

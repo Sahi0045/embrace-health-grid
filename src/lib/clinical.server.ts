@@ -916,11 +916,13 @@ export const getPlatformStats = createServerFn({ method: "GET" }).handler(async 
   };
 
   // These tables have hospital_id — count only own-hospital rows
-  const [dids, records, audits] = await Promise.all([
+  const [dids, records] = await Promise.all([
     counted("dids"),
     counted("medical_records"),   // hospital_id = provenance, still useful for display
-    counted("audit_events"),
   ]);
+
+  // audit_events uses who_hospital_id, not hospital_id
+  const audits = await counted("audit_events", "who_hospital_id");
 
   // Blockchain tables are global verification infrastructure — not hospital-gated
   const countGlobal = async (table: string) => {

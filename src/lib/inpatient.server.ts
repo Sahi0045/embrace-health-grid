@@ -71,14 +71,34 @@ async function selectAll(
     .order(orderColumn, { ascending })
     .limit(300);
 
-  // Tables known NOT to carry hospital_id — skip the filter for them
+  // Tables known NOT to carry hospital_id — skip the filter for them.
+  // Clinical PHI tables follow the patient (consent-based), not the hospital.
+  // The inpatient tables below are patient-linked and RLS-gated per patient/consent.
   const noHospitalTables = new Set([
+    // Blockchain / audit — global infrastructure
     "patient_preferences",
     "feedback",
     "solana_anchors",
     "merkle_roots",
     "credentials",
     "audit_events",
+    // Clinical PHI — patient-linked, no hospital_id column
+    "admissions",        // has hospital_id but handled by its own scoped function
+    "procedures",
+    "medications",
+    "nursing_notes",
+    "daily_checkups",
+    "diet_orders",
+    "rehab_sessions",
+    "surgeries",
+    "pharmacy_orders",
+    "vaccines",
+    "medical_records",
+    "prescriptions",
+    "lab_results",
+    "lab_orders",
+    "lab_samples",
+    "radiology_orders",
   ]);
 
   if (!noHospitalTables.has(table) && profile?.role !== "super_admin" && profile?.hospital_id) {
