@@ -20,6 +20,7 @@ import {
   getAppointmentsByDoctor,
   getDIDVerifiedDoctors,
   getBookableDoctors,
+  getBookedSlots,
   getVerifiedDoctors,
   getDoctorAppointmentRequests,
   getDoctorAppointments,
@@ -294,6 +295,15 @@ export function useBookableDoctors() {
     }),
     "did:created",
     [],
+  );
+}
+
+export function useBookedSlots(doctorDid: string) {
+  return useApiData(
+    () => (doctorDid ? getBookedSlots(doctorDid) : Promise.resolve({ bookedSlots: [] })),
+    () => ({ bookedSlots: [] as string[] }),
+    "appointment:booked",
+    [doctorDid],
   );
 }
 

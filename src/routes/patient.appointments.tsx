@@ -1,10 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { getPatientPreferences, updatePatientPreferences } from "@/lib/inpatient.server";
 import { StaggerList, StaggerItem } from "@/components/Motion";
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
-import { useBookableDoctors, useAppointmentsByPatient } from "@/hooks/use-api";
+import {
+  useBookableDoctors,
+  useAppointmentsByPatient,
+  useBookedSlots,
+} from "@/hooks/use-api";
 import {
   bookAppointment,
   getMedicalRecords,
@@ -58,6 +62,18 @@ function offsetDate(days: number): string {
 /** Returns the next N available dates starting from tomorrow */
 function getAvailableDates(count = 14): string[] {
   return Array.from({ length: count }, (_, i) => offsetDate(i + 1));
+}
+
+function buildSlotString(dateStr: string, timeSlot: string): string {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  const dt = new Date(year, month - 1, day);
+  const formattedDate = dt.toLocaleDateString("en-IN", {
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+  return `${formattedDate} · ${timeSlot}`;
 }
 
 const TIME_SLOTS = [
@@ -250,7 +266,6 @@ function AppointmentsPage() {
     [allDoctors, searchQuery, selectedSpecialty],
   );
 
-  // ── booking modal state ───────────────────────────────────────────────────
   const [selectedDoc, setSelectedDoc] = useState<(typeof allDoctors)[0] | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [selectedSlot, setSelectedSlot] = useState<string>("");
@@ -258,6 +273,22 @@ function AppointmentsPage() {
   const [reason, setReason] = useState("");
   const [grantConsent, setGrantConsent] = useState(true);
   const [booking, setBooking] = useState(false);
+
+  const { data: bookedSlotsData, refetch: refetchBookedSlots } = useBookedSlots(
+    selectedDoc?.did ?? "",
+  );
+  const bookedSlots = useMemo(
+    () => new Set(bookedSlotsData?.bookedSlots ?? []),
+    [bookedSlotsData],
+  );
+
+  const isSlotBooked = useCallback(
+    (timeSlot: string) => {
+      if (!selectedDate) return false;
+      return bookedSlots.has(buildSlotString(selectedDate, timeSlot));
+    },
+    [selectedDate, bookedSlots],
+  );
 
   // calendar pages (show 7 dates at a time)
   const [datePageStart, setDatePageStart] = useState(0);
@@ -318,24 +349,14 @@ function AppointmentsPage() {
 
   const confirmBooking = async () => {
     if (!selectedDoc || !selectedDate || !selectedSlot) return;
+    if (isSlotBooked(selectedSlot)) {
+      toast.error("Slot unavailable", {
+        description: "This time slot is already booked for this doctor. Please select another slot.",
+      });
+      return;
+    }
     setBooking(true);
-    /**
-     * Keep the actual date in the slot string.
-     *
-     * This stored only the weekday name — "Wed · 09:00 AM" — so booking the 3rd
-     * and the 31st produced identical rows, indistinguishable to the patient and
-     * to the clinician. `appointments` has no date column and `slot` is free
-     * text, so the date belongs in the slot until a column exists.
-     *
-     * It also made every downstream `new Date(a.date)` an Invalid Date, which is
-     * why the "Past & Rejected" section could never render.
-     */
-    const slotStr = `${new Date(selectedDate).toLocaleDateString("en-IN", {
-      weekday: "short",
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    })} · ${selectedSlot}`;
+    const slotStr = buildSlotString(selectedDate, selectedSlot);
     try {
       await bookAppointment({
         patientDid: currentUser?.did ?? "did:hosp:unknown",
@@ -346,9 +367,6 @@ function AppointmentsPage() {
         mode: consultMode,
         specialty: selectedDoc.specialty,
         reason,
-        // `date` and `consentGranted` are no longer passed: neither has a
-        // column, and the consent toggle wrote no consents row in either
-        // position — sending them implied a persistence that never happened.
       });
       toast.success("Appointment request sent", {
         description: `${selectedDate} at ${selectedSlot} — awaiting doctor confirmation.`,
@@ -358,11 +376,13 @@ function AppointmentsPage() {
       );
       setShowNotif(true);
       refetchAppts();
+      refetchBookedSlots();
+      setSelectedDoc(null);
     } catch (err: any) {
       toast.error("Booking failed", { description: err.message });
+      refetchBookedSlots();
     } finally {
       setBooking(false);
-      setSelectedDoc(null);
     }
   };
 
@@ -371,6 +391,7 @@ function AppointmentsPage() {
       await updateAppointmentStatus(id, "cancelled");
       toast.success("Appointment cancelled");
       refetchAppts();
+      refetchBookedSlots();
     } catch (err: any) {
       toast.error("Could not cancel", { description: err.message });
     }
@@ -913,19 +934,40 @@ function AppointmentsPage() {
                 {/* Time slots */}
                 {selectedDate && (
                   <div>
-                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide block mb-1.5">
-                      Available Time Slots
-                    </label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+                        Available Time Slots
+                      </label>
+                      <span className="text-[11px] text-muted-foreground">
+                        {TIME_SLOTS.filter((s) => !isSlotBooked(s)).length} / {TIME_SLOTS.length} available
+                      </span>
+                    </div>
                     <div className="grid grid-cols-3 gap-2">
-                      {TIME_SLOTS.map((s) => (
-                        <button
-                          key={s}
-                          onClick={() => setSelectedSlot(s)}
-                          className={`p-2 rounded-lg border text-xs font-medium transition-all ${selectedSlot === s ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted text-foreground"}`}
-                        >
-                          {s}
-                        </button>
-                      ))}
+                      {TIME_SLOTS.map((s) => {
+                        const booked = isSlotBooked(s);
+                        return (
+                          <button
+                            key={s}
+                            type="button"
+                            disabled={booked}
+                            onClick={() => setSelectedSlot(s)}
+                            className={`flex flex-col items-center justify-center p-2.5 rounded-lg border text-xs font-medium transition-all ${
+                              booked
+                                ? "border-border/60 bg-muted/40 text-muted-foreground/40 cursor-not-allowed"
+                                : selectedSlot === s
+                                  ? "bg-primary text-primary-foreground border-primary font-bold shadow-sm"
+                                  : "border-border hover:border-primary/50 hover:bg-muted text-foreground"
+                            }`}
+                          >
+                            <span className={booked ? "line-through opacity-70" : ""}>{s}</span>
+                            {booked && (
+                              <span className="text-[9px] font-semibold text-destructive uppercase tracking-wider mt-0.5">
+                                Booked
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 )}

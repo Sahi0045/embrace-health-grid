@@ -1078,14 +1078,10 @@ export async function bookAppointment(payload: {
   slot: string;
   specialty?: string;
   mode?: string;
-  /** Patient's stated symptoms. Persists to appointments.reason. */
   reason?: string;
   [key: string]: unknown;
 }) {
   const { bookAppointment: fn } = await import("./clinical.server");
-  // Forward an explicit shape rather than the whole payload: the route also
-  // sends `date` and `consentGranted`, neither of which has a column, and
-  // passing them through implied they were being stored.
   const res = await fn({
     data: {
       doctorDid: payload.doctorDid,
@@ -1096,6 +1092,12 @@ export async function bookAppointment(payload: {
     },
   });
   return { success: true as const, apptId: res.apptId };
+}
+
+export async function getBookedSlots(doctorDid: string) {
+  const { getBookedSlots: fn } = await import("./clinical.server");
+  const res = await fn({ data: { doctorDid } });
+  return { bookedSlots: res.bookedSlots ?? [] };
 }
 
 export async function createMedicalRecord(

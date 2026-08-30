@@ -721,14 +721,8 @@ export const getDoctors = createServerFn({ method: "GET" }).handler(async () => 
 
   const { data, error } = await supabase
     .from("dids")
-    // hospital_id so a patient can see WHICH hospital a clinician belongs to
-    // before booking. The clinician directory is cross-hospital by design, so
-    // without it every doctor looked like they came from the same place.
     .select("did, owner_name, owner_type, status, hospital_id")
-    .in("owner_type", ["doctor", "staff"])
-    // A hospital's own DID is stored with owner_type 'staff' because user_role has
-    // no organisation member, so without this the admin roster listed hospitals
-    // as clinicians with an "Approve & Issue DID" button beside them.
+    .eq("owner_type", "doctor")
     .eq("is_organisation", false)
     .eq("status", "active");
 
@@ -736,21 +730,6 @@ export const getDoctors = createServerFn({ method: "GET" }).handler(async () => 
   return { doctors: data ?? [] };
 });
 
-/**
- * Clinicians a patient may actually book with: their OWN hospital's, only.
- *
- * `getDoctors` above is deliberately cross-hospital — `dids_select_clinician_directory`
- * spans tenants so a clinician can request a referral for a patient treated
- * elsewhere. The patient booking screen used that same unscoped list, so a
- * patient registered at one hospital was offered every clinician on the
- * platform: verified against production, a patient at "shubham3" (1 clinician)
- * was shown 14 clinicians from "KIMS", a hospital they have no relationship
- * with. Booking one would create an appointment across a tenant boundary.
- *
- * The hospital is resolved HERE from the session, never accepted as a parameter.
- * A client-supplied hospitalId would just move the problem: anyone could pass
- * another tenant's id and get its roster back.
- */
 export const getBookableDoctors = createServerFn({ method: "GET" }).handler(async () => {
   const user = await requireSession();
   const supabase = getSupabaseServerClient();
@@ -763,9 +742,6 @@ export const getBookableDoctors = createServerFn({ method: "GET" }).handler(asyn
 
   if (pErr) throw new Error(pErr.message);
 
-  // No hospital means no booking relationship with anyone. Returning the full
-  // directory here would reintroduce exactly the bug this function exists to
-  // fix, so it returns nothing and lets the UI explain why.
   if (!profile?.hospital_id) {
     return { doctors: [], hospitalId: null as string | null };
   }
@@ -773,7 +749,7 @@ export const getBookableDoctors = createServerFn({ method: "GET" }).handler(asyn
   const { data, error } = await supabase
     .from("dids")
     .select("did, owner_name, owner_type, status, hospital_id")
-    .in("owner_type", ["doctor", "staff"])
+    .eq("owner_type", "doctor")
     .eq("is_organisation", false)
     .eq("status", "active")
     .eq("hospital_id", profile.hospital_id);
