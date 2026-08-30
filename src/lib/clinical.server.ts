@@ -357,6 +357,9 @@ export const bookAppointment = createServerFn({ method: "POST" })
     if (doctorDid.status !== "active") {
       throw new Error("That clinician's DID is not active and cannot take bookings");
     }
+    if (doctorDid.owner_type !== "doctor") {
+      throw new Error("Appointments can only be booked with verified doctors");
+    }
 
     // Enforce the tenant boundary HERE, not just in the picker.
     //
@@ -379,12 +382,26 @@ export const bookAppointment = createServerFn({ method: "POST" })
       throw new Error("You can only book with clinicians at the hospital you are registered with");
     }
 
+    const normalizedSlot = data.slot.trim();
+    const serviceClient = getSupabaseServiceRoleClient();
+    const { data: existingAppt } = await serviceClient
+      .from("appointments")
+      .select("appt_id")
+      .eq("doctor_did", data.doctorDid)
+      .eq("slot", normalizedSlot)
+      .not("status", "in", '("cancelled","rejected")')
+      .maybeSingle();
+
+    if (existingAppt) {
+      throw new Error("This time slot has already been booked for this clinician. Please select another slot.");
+    }
+
     const apptId = `appt_${crypto.randomUUID().slice(0, 8)}`;
     const { error } = await supabase.from("appointments").insert({
       appt_id: apptId,
       patient_did: profile.primary_did,
       doctor_did: data.doctorDid,
-      slot: data.slot,
+      slot: normalizedSlot,
       mode: data.mode ?? "in-person",
       specialty: data.specialty ?? null,
       reason: data.reason?.trim() || null,
@@ -392,8 +409,35 @@ export const bookAppointment = createServerFn({ method: "POST" })
       hospital_id: doctorDid.hospital_id,
     });
 
-    if (error) throw new Error(error.message);
+    if (error) {
+      if (
+        error.message.includes("appointments_doctor_slot_active_idx") ||
+        error.message.includes("duplicate key")
+      ) {
+        throw new Error("This time slot has already been booked for this clinician. Please select another slot.");
+      }
+      throw new Error(error.message);
+    }
     return { ok: true as const, apptId };
+  });
+
+export const getBookedSlots = createServerFn({ method: "GET" })
+  .inputValidator((data: { doctorDid: string }) => {
+    if (!data?.doctorDid) throw new Error("doctorDid is required");
+    return data;
+  })
+  .handler(async ({ data }) => {
+    await requireSession();
+    const serviceClient = getSupabaseServiceRoleClient();
+
+    const { data: appts, error } = await serviceClient
+      .from("appointments")
+      .select("slot")
+      .eq("doctor_did", data.doctorDid)
+      .not("status", "in", '("cancelled","rejected")');
+
+    if (error) throw new Error(error.message);
+    return { bookedSlots: (appts ?? []).map((a) => a.slot).filter(Boolean) };
   });
 
 // ─── Consents ───────────────────────────────────────────────────────────────
