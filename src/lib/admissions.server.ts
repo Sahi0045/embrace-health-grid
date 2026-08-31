@@ -180,13 +180,14 @@ export const admitPatient = createServerFn({ method: "POST" })
       // Non-fatal by design: the bed is the authoritative location and it is
       // already set. A room-level rollup that fails must not fail the admission,
       // but it must not pass silently either.
-      const { error: roomErr } = await supabase
+      // Best-effort only. `rooms_update_admin` restricts this table to admins,
+      // so a doctor admitting a patient cannot write it — which is why getRooms
+      // derives room occupancy from the room's beds instead of trusting this
+      // column. Kept so an admin-led admission still updates it directly.
+      await supabase
         .from("rooms")
         .update({ status: "occupied", updated_at: now })
         .eq("room_id", roomId);
-      if (roomErr) {
-        console.warn(`Room ${roomId} not marked occupied: ${roomErr.message}`);
-      }
     }
 
     // ── Step 6: Upsert billing account ──────────────────────────────────────
@@ -343,13 +344,12 @@ export const dischargePatient = createServerFn({ method: "POST" })
           .eq("status", "occupied");
 
         if (!otherBeds?.length) {
-          const { error: roomErr } = await supabase
+          // Best-effort; see the note in admitPatient. Room occupancy is
+          // derived from beds at read time.
+          await supabase
             .from("rooms")
             .update({ status: "available", updated_at: now })
             .eq("room_id", bedRow.room_id);
-          if (roomErr) {
-            console.warn(`Room ${bedRow.room_id} not marked available: ${roomErr.message}`);
-          }
         }
       }
     }
@@ -556,13 +556,11 @@ export const transferPatient = createServerFn({ method: "POST" })
           .eq("status", "occupied");
 
         if (!occupied?.length) {
-          const { error: oldRoomErr } = await supabase
+          // Best-effort; room occupancy is derived from beds at read time.
+          await supabase
             .from("rooms")
             .update({ status: "available", updated_at: now })
             .eq("room_id", oldBedRow.room_id);
-          if (oldRoomErr) {
-            console.warn(`Room ${oldBedRow.room_id} not marked available: ${oldRoomErr.message}`);
-          }
         }
       }
     }
@@ -570,13 +568,11 @@ export const transferPatient = createServerFn({ method: "POST" })
     // Mark new room as occupied.
     const newRoomId = data.newRoomId ?? newBed.room_id ?? null;
     if (newRoomId) {
-      const { error: newRoomErr } = await supabase
+      // Best-effort; room occupancy is derived from beds at read time.
+      await supabase
         .from("rooms")
         .update({ status: "occupied", updated_at: now })
         .eq("room_id", newRoomId);
-      if (newRoomErr) {
-        console.warn(`Room ${newRoomId} not marked occupied: ${newRoomErr.message}`);
-      }
     }
 
     // ── Step 7: Rich audit record + blockchain proof ─────────────────────────

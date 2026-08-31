@@ -248,7 +248,50 @@ export const getRooms = createServerFn({ method: "GET" }).handler(async () => {
     .order("room_name", { ascending: true });
 
   if (error) throw new Error(error.message);
-  return { rooms: data ?? [] };
+
+  // Occupancy is derived from the room's beds, not read from rooms.status.
+  //
+  // The admission flow writes rooms.status, but `rooms_update_admin` restricts
+  // that table to admins — deliberately, since creating and renaming rooms is an
+  // administrative act. The consequence was that a doctor admitting a patient
+  // updated the bed and silently failed to update the room (PostgREST returns no
+  // error for an RLS-filtered update that matches nothing), so room occupancy
+  // never tracked reality for any doctor-led admission. Verified live: room 204
+  // held an occupied bed while reading "available".
+  //
+  // Deriving it removes the denormalised field that could drift at all, and
+  // needs no widening of write access.
+  const rooms = data ?? [];
+  const roomIds = rooms.map((r) => r.room_id).filter(Boolean);
+
+  const occupiedRooms = new Set<string>();
+  const roomsWithBeds = new Set<string>();
+  if (roomIds.length) {
+    const { data: beds } = await supabase
+      .from("beds")
+      .select("room_id, status")
+      .in("room_id", roomIds);
+
+    for (const b of beds ?? []) {
+      if (!b.room_id) continue;
+      roomsWithBeds.add(b.room_id as string);
+      if (b.status === "occupied") occupiedRooms.add(b.room_id as string);
+    }
+  }
+
+  return {
+    rooms: rooms.map((r) => ({
+      ...r,
+      // Only rooms that actually have beds are derived. A room with none keeps
+      // whatever status an admin set on it — there is nothing to derive from,
+      // and overriding it would be inventing an answer.
+      status: roomsWithBeds.has(r.room_id)
+        ? occupiedRooms.has(r.room_id)
+          ? "occupied"
+          : "available"
+        : r.status,
+    })),
+  };
 });
 
 /** Current clinician locations. Staff-only by policy. */
