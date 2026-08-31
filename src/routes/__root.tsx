@@ -21,6 +21,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { Toaster } from "@/components/ui/sonner";
 import { NotificationBell } from "@/components/NotificationBell";
 import { SolanaWalletProvider } from "@/components/SolanaWalletProvider";
+import { SolanaStatusBadge } from "@/components/SolanaStatusBadge";
 import { AuthProvider } from "@/lib/auth-context";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
@@ -149,14 +150,7 @@ function RootComponent() {
               <div className="flex flex-1 flex-col">
                 <header className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-border bg-background/95 px-4 shadow-xs backdrop-blur-md">
                   <SidebarTrigger />
-                  <div className="flex items-center gap-2 rounded-full bg-muted/50 px-3 py-1 text-xs text-muted-foreground">
-                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
-                    <span>
-                      Solana{" "}
-                      {(import.meta.env.VITE_SOLANA_NETWORK || "devnet").replace("-beta", "")} —
-                      Live
-                    </span>
-                  </div>
+                  <SolanaStatusBadge />
                   <span className="ml-auto" />
                   <ThemeToggle />
                   <NotificationBell />
