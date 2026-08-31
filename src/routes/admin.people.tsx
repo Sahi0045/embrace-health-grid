@@ -209,7 +209,7 @@ function PeopleManagement() {
             <StatCard
               label="Total Patients"
               value={totalPatients.toLocaleString()}
-              delta={`Live on-chain`}
+              delta="Registered"
               icon={Users}
             />
             <StatCard
@@ -300,7 +300,10 @@ function PeopleManagement() {
                       <div>
                         <CardTitle className="text-lg">{patient.name}</CardTitle>
                         <CardDescription className="mt-1">
-                          MRN: {patient.mrn} • DID: {patient.did}
+                          {/* An unset MRN left a dangling "MRN: •" and an unset
+                              age left a bare "years", because both were
+                              interpolated unguarded beside their separators. */}
+                          {patient.mrn ? `MRN: ${patient.mrn} • ` : ""}DID: {patient.did}
                         </CardDescription>
                       </div>
                       <Badge className={getStatusColor(patient.status ?? "unknown")}>
@@ -313,7 +316,8 @@ function PeopleManagement() {
                       <div>
                         <div className="text-sm text-muted-foreground">Age / Gender</div>
                         <div className="font-medium">
-                          {patient.age} years • {patient.gender === "M" ? "Male" : "Female"}
+                          {patient.age ? `${patient.age} years` : "Age not recorded"}
+                          {patient.gender ? ` • ${patient.gender === "M" ? "Male" : "Female"}` : ""}
                         </div>
                       </div>
                       <div>
@@ -353,7 +357,9 @@ function PeopleManagement() {
                       <div className="mt-3 rounded-lg bg-primary/5 p-3">
                         <div className="text-sm font-medium">Current Admission</div>
                         <div className="mt-1 text-xs text-muted-foreground">
-                          {patient.ward} • Bed {patient.bed}
+                          {[patient.ward, patient.bed ? `Bed ${patient.bed}` : null]
+                            .filter(Boolean)
+                            .join(" • ") || "Location not recorded"}
                         </div>
                         <div className="text-xs text-muted-foreground">
                           Admitted: {new Date(patient.admitDate ?? Date.now()).toLocaleDateString()}
@@ -433,7 +439,7 @@ function PeopleManagement() {
                   <CardContent className="p-4">
                     <div className="text-sm text-muted-foreground">Active Department</div>
                     <div className="text-2xl font-semibold">
-                      {new Set(doctorsList.map((d) => d.department)).size}
+                      {new Set(doctorsList.map((d) => d.department).filter(Boolean)).size}
                     </div>
                   </CardContent>
                 </Card>
@@ -460,7 +466,8 @@ function PeopleManagement() {
                       <div>
                         <CardTitle className="text-lg">{doctor.name}</CardTitle>
                         <CardDescription className="mt-1">
-                          Role: Doctor • ID: {doctor.employeeId} • DID: {doctor.did}
+                          Role: Doctor{doctor.employeeId ? ` • ID: ${doctor.employeeId}` : ""} •
+                          DID: {doctor.did}
                         </CardDescription>
                       </div>
                       <div className="text-right">
@@ -475,16 +482,21 @@ function PeopleManagement() {
                       <div>
                         <div className="text-sm text-muted-foreground">Specialty / Dept</div>
                         <div className="font-medium">
-                          {doctor.specialty} • {doctor.department}
+                          {[doctor.specialty, doctor.department].filter(Boolean).join(" • ") ||
+                            "Not recorded"}
                         </div>
                       </div>
                       <div>
                         <div className="text-sm text-muted-foreground">Active Shift</div>
-                        <div className="font-medium capitalize">{doctor.shift}</div>
+                        <div className="font-medium capitalize">
+                          {doctor.shift || "Not rostered"}
+                        </div>
                       </div>
                       <div>
-                        <div className="text-sm text-muted-foreground">Blockchain Credentials</div>
-                        <div className="font-medium">{doctor.credentials} VC</div>
+                        <div className="text-sm text-muted-foreground">Credentials</div>
+                        <div className="font-medium">
+                          {doctor.credentials ? `${doctor.credentials} VC` : "None issued"}
+                        </div>
                       </div>
                     </div>
 
@@ -529,7 +541,7 @@ function PeopleManagement() {
                   <CardContent className="p-4">
                     <div className="text-sm text-muted-foreground">Active Shift</div>
                     <div className="text-2xl font-semibold">
-                      {new Set(nursesList.map((n) => n.shift)).size}
+                      {new Set(nursesList.map((n) => n.shift).filter(Boolean)).size}
                     </div>
                   </CardContent>
                 </Card>
@@ -556,7 +568,8 @@ function PeopleManagement() {
                       <div>
                         <CardTitle className="text-lg">{nurse.name}</CardTitle>
                         <CardDescription className="mt-1">
-                          Role: Nurse • ID: {nurse.employeeId} • DID: {nurse.did}
+                          Role: Nurse{nurse.employeeId ? ` • ID: ${nurse.employeeId}` : ""} • DID:{" "}
+                          {nurse.did}
                         </CardDescription>
                       </div>
                       <Badge className={getStatusColor(nurse.status ?? "unknown")}>
@@ -575,8 +588,10 @@ function PeopleManagement() {
                         <div className="font-medium capitalize">{nurse.shift}</div>
                       </div>
                       <div>
-                        <div className="text-sm text-muted-foreground">Blockchain Credentials</div>
-                        <div className="font-medium">{nurse.credentials} VC</div>
+                        <div className="text-sm text-muted-foreground">Credentials</div>
+                        <div className="font-medium">
+                          {nurse.credentials ? `${nurse.credentials} VC` : "None issued"}
+                        </div>
                       </div>
                     </div>
 
@@ -648,7 +663,8 @@ function PeopleManagement() {
                       <div>
                         <CardTitle className="text-lg">{staff.name}</CardTitle>
                         <CardDescription className="mt-1">
-                          Role: {staff.role} • ID: {staff.employeeId} • DID: {staff.did}
+                          Role: {staff.role}
+                          {staff.employeeId ? ` • ID: ${staff.employeeId}` : ""} • DID: {staff.did}
                         </CardDescription>
                       </div>
                       <Badge className={getStatusColor(staff.status ?? "unknown")}>
@@ -667,8 +683,10 @@ function PeopleManagement() {
                         <div className="font-medium capitalize">{staff.shift}</div>
                       </div>
                       <div>
-                        <div className="text-sm text-muted-foreground">Blockchain Credentials</div>
-                        <div className="font-medium">{staff.credentials} VC</div>
+                        <div className="text-sm text-muted-foreground">Credentials</div>
+                        <div className="font-medium">
+                          {staff.credentials ? `${staff.credentials} VC` : "None issued"}
+                        </div>
                       </div>
                     </div>
 

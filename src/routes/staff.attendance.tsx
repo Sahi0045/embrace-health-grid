@@ -36,6 +36,13 @@ function StaffAttendance() {
   const employeeId = currentUser?.employeeId || null;
   const hasDid = Boolean(userDid);
 
+  // Where the clock-in is recorded. Both handlers used to hardcode
+  // "Cardiology OPD", so every attendance row in the database claims that ward
+  // regardless of who clocked in or where they work. The clinician's own
+  // department is the real answer; undefined when their profile has none, which
+  // records no location rather than someone else's ward.
+  const workLocation = currentUser?.department || undefined;
+
   const [clockedIn, setClockedIn] = useState(false);
   const [checkInTime, setCheckInTime] = useState("08:00");
   const [isClocking, setIsClocking] = useState(false);
@@ -111,7 +118,7 @@ function StaffAttendance() {
     const timeStr = now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
     setIsClocking(true);
     try {
-      const res = await clockAttendance({ action: "in", location: "Cardiology OPD" });
+      const res = await clockAttendance({ action: "in", location: workLocation });
       if (res.success || res.record) {
         setClockedIn(true);
         setCheckInTime(timeStr);
@@ -137,11 +144,11 @@ function StaffAttendance() {
     const timeStr = now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
     setIsClocking(true);
     try {
-      const res = await clockAttendance({ action: "out", location: "Cardiology OPD" });
+      const res = await clockAttendance({ action: "out", location: workLocation });
       if (res.success || res.record) {
         setClockedIn(false);
         toast.success("Clocked out successfully!", {
-          description: `${timeStr} — Recorded on blockchain ledger.`,
+          description: `${timeStr} — Recorded in the attendance log.`,
         });
         refetchAttendance();
       }
@@ -371,7 +378,11 @@ function StaffAttendance() {
                   {clockedIn && (
                     <div className="mt-2 flex items-center gap-2 text-sm text-success">
                       <CheckCircle2 className="h-4 w-4" />
-                      Clocked in at {checkInTime} — Shift: 08:00–16:00 · Cardiology OPD
+                      Clocked in at {checkInTime}
+                      {shiftByDate[new Date().toISOString().split("T")[0]]
+                        ? ` — Shift: ${shiftByDate[new Date().toISOString().split("T")[0]]}`
+                        : ""}
+                      {workLocation ? ` · ${workLocation}` : ""}
                     </div>
                   )}
                 </div>

@@ -195,7 +195,8 @@ Deno.serve(async (req) => {
         if (!["staff", "admin"].includes(caller.role)) {
           throw new HttpError(403, "Only staff may issue DIDs");
         }
-        const { ownerName, ownerType, ownerId, publicKey, mrn, employeeId } = body;
+        const { ownerName, ownerType, ownerId, publicKey, mrn, employeeId, department, specialty } =
+          body;
         if (!ownerName || !ownerType) {
           throw new HttpError(400, "ownerName and ownerType are required");
         }
@@ -272,6 +273,19 @@ Deno.serve(async (req) => {
           }
           if (ownerType !== "patient" && typeof employeeId === "string" && employeeId.trim()) {
             patch.employee_id = employeeId.trim();
+          }
+          // Department and specialisation, same story as the employee id above:
+          // the "Issue DID" dialog collects both for a clinician, and they were
+          // dropped between the form and here. profiles.department and
+          // profiles.specializations are real columns, and the Doctor Locator
+          // renders both plus a specialty filter — all of which stayed empty on
+          // every clinician because nothing ever wrote them.
+          if (ownerType !== "patient" && typeof department === "string" && department.trim()) {
+            patch.department = department.trim();
+          }
+          if (ownerType !== "patient" && typeof specialty === "string" && specialty.trim()) {
+            // The column is an array; the dialog collects one label.
+            patch.specializations = [specialty.trim()];
           }
 
           const { error: linkErr } = await db.from("profiles").update(patch).eq("id", ownerId);

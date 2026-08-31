@@ -733,7 +733,46 @@ export const getDoctors = createServerFn({ method: "GET" }).handler(async () => 
     .eq("status", "active");
 
   if (error) throw new Error(error.message);
-  return { doctors: data ?? [] };
+
+  // Department, specialisation and employee number live on `profiles`, keyed by
+  // primary_did. The Doctor Locator renders all three and offers a specialty
+  // filter, and nothing was ever supplying them, so those columns were blank on
+  // every row and the filter had one option. profiles_select_staff scopes this,
+  // so a caller who may not read a profile simply gets no extras for that row.
+  const rows = data ?? [];
+  const dids = rows.map((d) => d.did).filter(Boolean);
+
+  let extras = new Map<
+    string,
+    { department: string | null; specialty: string | null; employeeId: string | null }
+  >();
+  if (dids.length) {
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("primary_did, department, specializations, employee_id")
+      .in("primary_did", dids);
+
+    extras = new Map(
+      (profiles ?? []).map((p) => [
+        p.primary_did as string,
+        {
+          department: p.department ?? null,
+          // `specializations` is an array; the directory shows one label.
+          specialty: Array.isArray(p.specializations) ? (p.specializations[0] ?? null) : null,
+          employeeId: p.employee_id ?? null,
+        },
+      ]),
+    );
+  }
+
+  const doctors = rows.map((d) => ({
+    ...d,
+    department: extras.get(d.did)?.department ?? null,
+    specialty: extras.get(d.did)?.specialty ?? null,
+    employee_id: extras.get(d.did)?.employeeId ?? null,
+  }));
+
+  return { doctors };
 });
 
 /**

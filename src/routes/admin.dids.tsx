@@ -159,7 +159,7 @@ function DIDManagement() {
 
     try {
       const res = await createDID(name, role, undefined, email, extraFields);
-      toast.success("DID issued successfully on blockchain", { description: res.did });
+      toast.success("DID issued", { description: res.did });
       setIsModalOpen(false);
       // Reset form
       setFormData({
@@ -179,7 +179,7 @@ function DIDManagement() {
       });
       refetch();
     } catch (err: any) {
-      toast.error(err.message || "Failed to issue DID on blockchain");
+      toast.error(err.message || "Failed to issue DID");
     }
   };
 

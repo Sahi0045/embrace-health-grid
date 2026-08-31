@@ -787,7 +787,8 @@ function StaffRoomsPage() {
                     </h3>
                     <p className="text-xs text-muted-foreground">
                       {doctorName} · {publishedRoots.length} publication
-                      {publishedRoots.length !== 1 ? "s" : ""} on-chain
+                      {publishedRoots.length !== 1 ? "s" : ""} ·{" "}
+                      {publishedRoots.filter((r: any) => r.anchorId).length} anchored
                     </p>
                   </div>
                 </div>

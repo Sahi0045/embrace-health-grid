@@ -108,14 +108,12 @@ function DoctorLocatorPage() {
           did: d.did, // Strictly the Admin-issued W3C DID
           name: d.owner || apiMatch?.name || pres?.doctorName || "Unnamed clinician",
           // No synthesised `EMP-<did slice>`: it looks like a hospital staff
-          // number and is not one. getAllDIDs returns no employeeId at all, so
-          // this stays blank until the registry carries one.
-          employeeId: "",
+          // number and is not one. Blank when the profile has none.
+          employeeId: apiMatch?.employeeId ?? "",
           role: d.ownerType === "staff" ? "Staff Nurse" : "Doctor",
-          // getAllDIDs returns no extraFields and getDoctors no department, so
-          // neither was ever populated; left blank rather than invented.
-          department: "",
-          specialty: "",
+          // From the clinician's profile via getDoctors.
+          department: apiMatch?.department ?? "",
+          specialty: apiMatch?.specialty ?? "",
           currentLocation: liveLocation,
           roomStatus: checkedIn ? "enter" : "exit",
           // Beacon telemetry is not collected anywhere in this system.
@@ -126,7 +124,7 @@ function DoctorLocatorPage() {
               ? new Date(pres.checkedOutAt).toLocaleTimeString()
               : "",
           onDuty: Boolean(checkedIn),
-          isOnChain: true,
+          publicKey: d.publicKey ?? null,
           // Was `d.credentials || [{type: "DID Verified Physician"}]` — getAllDIDs
           // never returns credentials, so the fallback always won and every
           // clinician displayed an identical credential nobody had issued.
@@ -145,10 +143,10 @@ function DoctorLocatorPage() {
             id: a.did,
             did: a.did, // Strictly the Admin-issued W3C DID
             name: a.name || pres?.doctorName || "Unnamed clinician",
-            employeeId: "",
+            employeeId: a.employeeId ?? "",
             role: "Doctor",
-            department: "",
-            specialty: "",
+            department: a.department ?? "",
+            specialty: a.specialty ?? "",
             currentLocation: liveLocation,
             roomStatus: liveCheckedIn ? "enter" : "exit",
             beaconStrength: "",
@@ -160,7 +158,7 @@ function DoctorLocatorPage() {
                 ? new Date(pres.checkedOutAt).toLocaleTimeString()
                 : "",
             onDuty: Boolean(liveCheckedIn),
-            isOnChain: true,
+            publicKey: null,
             activeCredentials: [],
           });
         }
@@ -515,7 +513,14 @@ function DoctorLocatorPage() {
                       ["Department", selected.department],
                       ["Employee ID", selected.employeeId],
                       ["Last Check-in", selected.lastSignal],
-                      ["Solana Devnet", selected.isOnChain ? "Anchored (PDA)" : "Pending Anchor"],
+                      // Was ["Solana Devnet", isOnChain ? "Anchored (PDA)" : …]
+                      // with isOnChain hardcoded true at both construction
+                      // sites, so every clinician was reported as anchored on
+                      // devnet. No DID is anchored — solana_anchors holds no
+                      // row of that record type and the dids table has no
+                      // anchor column. The signing key is the real, checkable
+                      // fact about a DID here.
+                      ["Signing key", selected.publicKey ? "Issued" : "Not issued"],
                     ].map(([k, v]) => (
                       <div key={k} className="flex justify-between border-b border-border/40 pb-1">
                         <span className="text-muted-foreground">{k}:</span>

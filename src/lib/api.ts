@@ -2271,6 +2271,11 @@ export async function getDoctors() {
     status: d.status,
     hospitalId: d.hospital_id ?? null,
     hospitalName: d.hospital_id ? (hospitalName[d.hospital_id] ?? null) : null,
+    // Resolved from the clinician's profile. The Doctor Locator reads all three
+    // and had nothing to read.
+    department: d.department ?? null,
+    specialty: d.specialty ?? null,
+    employeeId: d.employee_id ?? null,
   }));
   return { doctors, total: doctors.length };
 }
@@ -2443,7 +2448,13 @@ export async function createDID(
   ownerTypeArg?: string,
   publicKey?: string,
   _email?: string,
-  extraFields?: { mrn?: string; employeeId?: string; ownerId?: string } | null,
+  extraFields?: {
+    mrn?: string;
+    employeeId?: string;
+    ownerId?: string;
+    department?: string;
+    specialty?: string;
+  } | null,
 ) {
   // Legacy positional form: createDID(ownerName, ownerType).
   const ownerName = typeof arg1 === "string" ? arg1 : String(arg1.ownerName ?? arg1.owner ?? "");
@@ -2467,6 +2478,11 @@ export async function createDID(
     publicKey,
     mrn: extras.mrn,
     employeeId: extras.employeeId,
+    // /admin/dids collects these two for a clinician and they were dropped here
+    // alongside the employee id, which is why profiles.department was NULL and
+    // specializations empty on every clinician in the directory.
+    department: extras.department,
+    specialty: extras.specialty,
   });
 
   // Give the new DID a real signing key. identity-ops issues it with a
