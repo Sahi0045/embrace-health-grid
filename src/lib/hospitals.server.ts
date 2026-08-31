@@ -298,12 +298,16 @@ export const unlinkWallet = createServerFn({ method: "POST" })
 
     const freed = target.wallet_address;
 
-    const { error } = await admin
+    const { data: unlinked, error } = await admin
       .from("profiles")
       .update({ wallet_address: null })
-      .eq("id", data.profileId);
+      .eq("id", data.profileId)
+      .select("id");
 
     if (error) throw new Error(error.message);
+    // An audit record claiming the wallet was detached is written below, so a
+    // zero-row match has to stop here rather than be recorded as a detachment.
+    if (!unlinked?.length) throw new Error("No such profile; the wallet was not detached");
 
     // Detaching a wallet severs the key that signs consents and anchors records,
     // so it is an identity event and belongs in the audit trail.

@@ -177,11 +177,26 @@ export const processAuditAnchorQueue = createServerFn({ method: "POST" })
       failed = 0;
 
     for (const job of queue) {
-      // Increment attempt count first so a crash mid-way doesn't loop forever
-      await supabase
+      // Increment attempt count first so a crash mid-way doesn't loop forever.
+      //
+      // That only holds if the increment actually lands. Unchecked, a rejected
+      // update leaves `attempts` where it was and the job is picked up again on
+      // every pass — the exact runaway this line exists to prevent. Skip the
+      // job rather than retry it unbounded.
+      const { data: bumped, error: bumpErr } = await supabase
         .from("audit_anchor_queue")
         .update({ attempts: job.attempts + 1 })
-        .eq("queue_id", job.queue_id);
+        .eq("queue_id", job.queue_id)
+        .select("queue_id");
+
+      if (bumpErr || !bumped?.length) {
+        console.warn(
+          `Skipping anchor job ${job.queue_id}: attempt counter could not be advanced` +
+            (bumpErr ? ` (${bumpErr.message})` : ""),
+        );
+        failed++;
+        continue;
+      }
 
       try {
         // Call the existing anchor-record Edge Function
@@ -212,26 +227,36 @@ export const processAuditAnchorQueue = createServerFn({ method: "POST" })
           throw new Error(body?.error ?? `Anchor failed: HTTP ${res.status}`);
         }
 
-        // Update audit_events with the anchor reference
-        await supabase.rpc("mark_audit_anchored", {
+        // Update audit_events with the anchor reference. If this does not land
+        // the record is anchored on-chain but the trail still says pending, so
+        // it must not be counted as anchored.
+        const { error: markErr } = await supabase.rpc("mark_audit_anchored", {
           p_tx_id: job.tx_id,
           p_anchor_id: body.anchorId,
           p_status: "anchored",
         });
+        if (markErr) throw new Error(`Anchored, but not recorded: ${markErr.message}`);
 
         anchored++;
       } catch (err) {
         // Mark failed if max attempts reached
         if (job.attempts + 1 >= 3) {
-          await supabase.rpc("mark_audit_anchored", {
+          const { error: failMarkErr } = await supabase.rpc("mark_audit_anchored", {
             p_tx_id: job.tx_id,
             p_anchor_id: null,
             p_status: "failed",
           });
-          await supabase
+          if (failMarkErr) {
+            console.warn(`Could not mark ${job.tx_id} as failed: ${failMarkErr.message}`);
+          }
+
+          const { error: noteErr } = await supabase
             .from("audit_anchor_queue")
             .update({ last_error: (err as Error).message })
             .eq("queue_id", job.queue_id);
+          if (noteErr) {
+            console.warn(`Could not record the failure reason: ${noteErr.message}`);
+          }
         }
         failed++;
       }

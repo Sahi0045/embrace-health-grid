@@ -606,15 +606,21 @@ export const addStock = createServerFn({ method: "POST" })
     const quantityAfter = quantityBefore + data.quantityToAdd;
 
     // Update batch
-    const { error: batchError } = await supabase
+    const { data: batchUpdated, error: batchError } = await supabase
       .from("inventory_batches")
       .update({
         quantity_available: quantityAfter,
         quantity_received: batch.quantity_received + data.quantityToAdd,
       })
-      .eq("batch_id", data.batchId);
+      .eq("batch_id", data.batchId)
+      .select("batch_id");
 
     if (batchError) throw new Error(`Batch update failed: ${batchError.message}`);
+    if (!batchUpdated?.length) {
+      // A movement row is written next; recording one for a quantity change
+      // that did not happen is how the ledger and the batch drift apart.
+      throw new Error("Batch not found, or you do not have permission to update it");
+    }
 
     // Create movement
     const { movement } = await createStockMovement(supabase, {
@@ -729,12 +735,16 @@ export const removeStock = createServerFn({ method: "POST" })
       batchUpdate.quantity_expired = (batch.quantity_expired || 0) + data.quantityToRemove;
     }
 
-    const { error: batchError } = await supabase
+    const { data: batchUpdated, error: batchError } = await supabase
       .from("inventory_batches")
       .update(batchUpdate)
-      .eq("batch_id", data.batchId);
+      .eq("batch_id", data.batchId)
+      .select("batch_id");
 
     if (batchError) throw new Error(`Batch update failed: ${batchError.message}`);
+    if (!batchUpdated?.length) {
+      throw new Error("Batch not found, or you do not have permission to update it");
+    }
 
     // Create movement
     const { movement } = await createStockMovement(supabase, {
@@ -945,12 +955,16 @@ export const consumeStock = createServerFn({ method: "POST" })
     const quantityAfter = quantityBefore - data.quantityToConsume;
 
     // Update batch
-    const { error: batchError } = await supabase
+    const { data: batchUpdated, error: batchError } = await supabase
       .from("inventory_batches")
       .update({ quantity_available: quantityAfter })
-      .eq("batch_id", data.batchId);
+      .eq("batch_id", data.batchId)
+      .select("batch_id");
 
     if (batchError) throw new Error(`Batch update failed: ${batchError.message}`);
+    if (!batchUpdated?.length) {
+      throw new Error("Batch not found, or you do not have permission to update it");
+    }
 
     // Create movement
     const { movement } = await createStockMovement(supabase, {
@@ -1051,12 +1065,16 @@ export const adjustStock = createServerFn({ method: "POST" })
     }
 
     // Update batch
-    const { error: batchError } = await supabase
+    const { data: batchUpdated, error: batchError } = await supabase
       .from("inventory_batches")
       .update({ quantity_available: quantityAfter })
-      .eq("batch_id", data.batchId);
+      .eq("batch_id", data.batchId)
+      .select("batch_id");
 
     if (batchError) throw new Error(`Batch update failed: ${batchError.message}`);
+    if (!batchUpdated?.length) {
+      throw new Error("Batch not found, or you do not have permission to update it");
+    }
 
     // Create movement
     const { movement } = await createStockMovement(supabase, {
@@ -1730,13 +1748,20 @@ export const dispensePrescriptionMedications = createServerFn({ method: "POST" }
         const quantityAfter = quantityBefore - med.quantityToDispense;
 
         // Update batch
-        const { error: batchError } = await supabase
+        const { data: batchUpdated, error: batchError } = await supabase
           .from("inventory_batches")
           .update({ quantity_available: quantityAfter })
-          .eq("batch_id", med.batchId);
+          .eq("batch_id", med.batchId)
+          .select("batch_id");
 
         if (batchError) {
           errors.push(`Failed to update batch ${med.batchId}: ${batchError.message}`);
+          continue;
+        }
+        if (!batchUpdated?.length) {
+          // Without this the medication counts as dispensed and a movement is
+          // logged, while the batch still holds the full quantity.
+          errors.push(`Batch ${med.batchId} could not be updated (not found or not permitted)`);
           continue;
         }
 

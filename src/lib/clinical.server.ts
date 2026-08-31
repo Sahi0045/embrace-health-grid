@@ -528,14 +528,20 @@ async function attachConsentSignature(grantId: string, decision: string, decided
     // not depend on the caller still satisfying a policy that the trigger guard
     // deliberately narrows after a terminal transition.
     const db = getSupabaseServiceRoleClient();
-    await db
+    const { data: signedRows, error: signErr } = await db
       .from("consents")
       .update({
         patient_signature: signed.signature,
         signed_payload: signed.payload,
         signing_public_key: signed.publicKey,
       })
-      .eq("grant_id", grantId);
+      .eq("grant_id", grantId)
+      .select("grant_id");
+
+    if (signErr) throw new Error(signErr.message);
+    if (!signedRows?.length) {
+      throw new Error(`No consent row ${grantId} to attach the signature to`);
+    }
   } catch (err) {
     console.warn(`Consent ${grantId} left unsigned:`, (err as Error).message);
   }
@@ -997,8 +1003,16 @@ export const updateOwnProfile = createServerFn({ method: "POST" })
 
     // RLS restricts this to the caller's own row; the id filter makes that
     // explicit rather than relying on the policy alone.
-    const { error } = await supabase.from("profiles").update(patch).eq("id", user.id);
+    const { data: updated, error } = await supabase
+      .from("profiles")
+      .update(patch)
+      .eq("id", user.id)
+      .select("id");
+
     if (error) throw new Error(error.message);
+    // An RLS-filtered update matches zero rows without erroring, which would
+    // report a saved profile that was never written.
+    if (!updated?.length) throw new Error("Your profile could not be updated");
     return { ok: true as const, changed: true };
   });
 
@@ -1577,12 +1591,16 @@ export const unlinkOwnWallet = createServerFn({ method: "POST" }).handler(async 
 
   if (!before?.wallet_address) return { ok: true as const, changed: false };
 
-  const { error } = await supabase
+  const { data: unlinked, error } = await supabase
     .from("profiles")
     .update({ wallet_address: null })
-    .eq("id", user.id);
+    .eq("id", user.id)
+    .select("id");
 
   if (error) throw new Error(error.message);
+  // An audit record saying the wallet was unlinked is written next; it must not
+  // claim an unlink that did not happen.
+  if (!unlinked?.length) throw new Error("Your wallet could not be unlinked");
 
   const { tryWriteAudit } = await import("./audit-helpers.server");
   tryWriteAudit({

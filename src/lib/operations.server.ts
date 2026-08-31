@@ -2901,11 +2901,17 @@ export const recordLabResult = createServerFn({ method: "POST" })
     if (resultErr) throw new Error(resultErr.message);
 
     if (data.orderId) {
-      const { error: orderUpdErr } = await supabase
+      const { data: orderClosed, error: orderUpdErr } = await supabase
         .from("lab_orders")
         .update({ status: "completed", completed_at: nowIso, lab_id: labId })
-        .eq("order_id", data.orderId);
+        .eq("order_id", data.orderId)
+        .select("order_id");
       if (orderUpdErr) throw new Error(orderUpdErr.message);
+      // The result is filed; leaving the order open would keep it in the
+      // pending queue for someone else to run again.
+      if (!orderClosed?.length) {
+        throw new Error("The result was filed but its lab order could not be closed");
+      }
     }
 
     // Write audit record

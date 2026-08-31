@@ -154,25 +154,39 @@ export const admitPatient = createServerFn({ method: "POST" })
     }
 
     // ── Step 4: Mark bed as occupied ────────────────────────────────────────
-    const { error: bedUpdateErr } = await supabase
+    //
+    // .select() is what makes an RLS rejection visible here. An update the
+    // policy filters out matches zero rows and returns NO error, so without it
+    // the admission would be written while the bed stayed "available" — and the
+    // bed board would go on offering an occupied bed to the next patient.
+    const { data: bedUpdated, error: bedUpdateErr } = await supabase
       .from("beds")
       .update({
         status: "occupied",
         patient_did: data.patientDid,
         updated_at: now,
       })
-      .eq("bed_id", data.bedId);
+      .eq("bed_id", data.bedId)
+      .select("bed_id");
 
     if (bedUpdateErr) throw new Error(`Bed update failed: ${bedUpdateErr.message}`);
+    if (!bedUpdated?.length) {
+      throw new Error("Bed not found, or you do not have permission to assign it");
+    }
 
     // ── Step 5: Mark room as occupied (if room_id known) ────────────────────
     const roomId = data.roomId ?? bed.room_id ?? null;
     if (roomId) {
-      await supabase
+      // Non-fatal by design: the bed is the authoritative location and it is
+      // already set. A room-level rollup that fails must not fail the admission,
+      // but it must not pass silently either.
+      const { error: roomErr } = await supabase
         .from("rooms")
         .update({ status: "occupied", updated_at: now })
         .eq("room_id", roomId);
-      // Non-fatal if rooms table lacks a status column on older schemas.
+      if (roomErr) {
+        console.warn(`Room ${roomId} not marked occupied: ${roomErr.message}`);
+      }
     }
 
     // ── Step 6: Upsert billing account ──────────────────────────────────────
@@ -275,7 +289,7 @@ export const dischargePatient = createServerFn({ method: "POST" })
     const now = new Date().toISOString();
 
     // ── Step 2: Update admission to discharged ───────────────────────────────
-    const { error: admErr } = await supabase
+    const { data: dischargedRows, error: admErr } = await supabase
       .from("admissions")
       .update({
         status: "discharged",
@@ -285,18 +299,31 @@ export const dischargePatient = createServerFn({ method: "POST" })
         // admitting diagnosis irreversibly.
         discharge_summary: data.dischargeSummary ?? null,
       })
-      .eq("admission_id", data.admissionId);
+      .eq("admission_id", data.admissionId)
+      .select("admission_id");
 
     if (admErr) throw new Error(admErr.message);
+    if (!dischargedRows?.length) {
+      throw new Error("Admission not found, or you do not have permission to discharge it");
+    }
 
     // ── Step 3: Free the bed ─────────────────────────────────────────────────
     if (admission.bed) {
-      await supabase
-        .from("beds")
-        .update({ status: "cleaning", patient_did: null, updated_at: now })
-        .eq("bed_id", admission.bed);
       // Set to 'cleaning' after discharge (standard hospital workflow).
       // Staff can move it to 'available' once cleaned.
+      //
+      // A bed left marked occupied after the patient has gone is a bed the ward
+      // cannot fill, so a silent no-op here has to surface.
+      const { data: freed, error: freeErr } = await supabase
+        .from("beds")
+        .update({ status: "cleaning", patient_did: null, updated_at: now })
+        .eq("bed_id", admission.bed)
+        .select("bed_id");
+
+      if (freeErr) throw new Error(`Could not release the bed: ${freeErr.message}`);
+      if (!freed?.length) {
+        throw new Error("The patient was discharged but their bed could not be released");
+      }
     }
 
     // ── Step 4: Free the room (look up by bed's room_id) ────────────────────
@@ -316,10 +343,13 @@ export const dischargePatient = createServerFn({ method: "POST" })
           .eq("status", "occupied");
 
         if (!otherBeds?.length) {
-          await supabase
+          const { error: roomErr } = await supabase
             .from("rooms")
             .update({ status: "available", updated_at: now })
             .eq("room_id", bedRow.room_id);
+          if (roomErr) {
+            console.warn(`Room ${bedRow.room_id} not marked available: ${roomErr.message}`);
+          }
         }
       }
     }
@@ -447,7 +477,7 @@ export const transferPatient = createServerFn({ method: "POST" })
     const oldBedId = admission.bed;
 
     // ── Step 3: Update admission to new location (triggers event log) ────────
-    const { error: admErr } = await supabase
+    const { data: movedRows, error: admErr } = await supabase
       .from("admissions")
       .update({
         status: "transferred",
@@ -455,36 +485,59 @@ export const transferPatient = createServerFn({ method: "POST" })
         room: data.newRoom ?? null,
         bed: data.newBedId,
       })
-      .eq("admission_id", data.admissionId);
+      .eq("admission_id", data.admissionId)
+      .select("admission_id");
 
     if (admErr) throw new Error(admErr.message);
+    if (!movedRows?.length) {
+      throw new Error("Admission not found, or you do not have permission to transfer it");
+    }
 
     // Re-admit into new location immediately (transfer = discharge + re-admit
     // in a single operation; the admission record stays the same)
-    const { error: reAdmitErr } = await supabase
+    const { data: reAdmitted, error: reAdmitErr } = await supabase
       .from("admissions")
       .update({ status: "admitted" })
-      .eq("admission_id", data.admissionId);
+      .eq("admission_id", data.admissionId)
+      .select("admission_id");
 
     if (reAdmitErr) throw new Error(reAdmitErr.message);
+    if (!reAdmitted?.length) {
+      // The row moved but never came back to 'admitted', which would leave the
+      // patient parked in the transient 'transferred' state.
+      throw new Error("The transfer did not complete: the admission is still marked transferred");
+    }
 
     // ── Step 4: Free old bed ─────────────────────────────────────────────────
     if (oldBedId) {
-      await supabase
+      const { data: oldFreed, error: oldFreeErr } = await supabase
         .from("beds")
         .update({ status: "cleaning", patient_did: null, updated_at: now })
-        .eq("bed_id", oldBedId);
+        .eq("bed_id", oldBedId)
+        .select("bed_id");
+
+      if (oldFreeErr) throw new Error(`Could not release the previous bed: ${oldFreeErr.message}`);
+      if (!oldFreed?.length) {
+        // Leaving the old bed occupied would show the patient in two beds.
+        throw new Error("The patient was moved but their previous bed could not be released");
+      }
     }
 
     // ── Step 5: Occupy new bed ───────────────────────────────────────────────
-    await supabase
+    const { data: newBedTaken, error: newBedUpdErr } = await supabase
       .from("beds")
       .update({
         status: "occupied",
         patient_did: admission.patient_did,
         updated_at: now,
       })
-      .eq("bed_id", data.newBedId);
+      .eq("bed_id", data.newBedId)
+      .select("bed_id");
+
+    if (newBedUpdErr) throw new Error(`Could not occupy the target bed: ${newBedUpdErr.message}`);
+    if (!newBedTaken?.length) {
+      throw new Error("The target bed could not be assigned; the transfer is incomplete");
+    }
 
     // ── Step 6: Update rooms ─────────────────────────────────────────────────
     // Free old room if no other occupied beds remain.
@@ -503,10 +556,13 @@ export const transferPatient = createServerFn({ method: "POST" })
           .eq("status", "occupied");
 
         if (!occupied?.length) {
-          await supabase
+          const { error: oldRoomErr } = await supabase
             .from("rooms")
             .update({ status: "available", updated_at: now })
             .eq("room_id", oldBedRow.room_id);
+          if (oldRoomErr) {
+            console.warn(`Room ${oldBedRow.room_id} not marked available: ${oldRoomErr.message}`);
+          }
         }
       }
     }
@@ -514,10 +570,13 @@ export const transferPatient = createServerFn({ method: "POST" })
     // Mark new room as occupied.
     const newRoomId = data.newRoomId ?? newBed.room_id ?? null;
     if (newRoomId) {
-      await supabase
+      const { error: newRoomErr } = await supabase
         .from("rooms")
         .update({ status: "occupied", updated_at: now })
         .eq("room_id", newRoomId);
+      if (newRoomErr) {
+        console.warn(`Room ${newRoomId} not marked occupied: ${newRoomErr.message}`);
+      }
     }
 
     // ── Step 7: Rich audit record + blockchain proof ─────────────────────────

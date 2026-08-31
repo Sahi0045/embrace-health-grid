@@ -503,14 +503,22 @@ export const recordEquipmentMaintenance = createServerFn({ method: "POST" })
             updated_at: new Date().toISOString(),
           };
 
-    const { error: svcErr } = await supabase
+    const { data: serviced, error: svcErr } = await supabase
       .from("equipment")
       .update(servicePatch)
-      .eq("equipment_id", data.equipmentId);
+      .eq("equipment_id", data.equipmentId)
+      .select("equipment_id");
 
     if (svcErr) {
       throw new Error(
         `Maintenance was logged, but the device's service dates were not updated: ${svcErr.message}`,
+      );
+    }
+    // Same failure, without an error: the log says the device was serviced while
+    // its next-service date still points at the old schedule.
+    if (!serviced?.length) {
+      throw new Error(
+        "Maintenance was logged, but the device's service dates were not updated: equipment not found or not permitted",
       );
     }
 

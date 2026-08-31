@@ -218,11 +218,17 @@ export class HospitalWalletService {
     // user's identity and hospital before reaching this service.
     const db = getSupabaseServiceRoleClient();
 
-    await db
+    const { error: deactivateErr } = await db
       .from("embedded_wallets")
       .update({ is_active: false })
       .eq("hospital_id", hospitalId)
       .eq("owner_type", "hospital");
+
+    // If the old wallet is still active when the new one is minted, the hospital
+    // has two active signing keys and which one signs becomes arbitrary.
+    if (deactivateErr) {
+      throw new Error(`Could not retire the previous wallet: ${deactivateErr.message}`);
+    }
 
     const newWallet = await this.getOrCreateHospitalWallet(hospitalId);
 
@@ -356,10 +362,17 @@ export class DidWalletService {
 
     // Publish the real public key onto the DID. Until now every DID carried a
     // `pk_<uuid>` placeholder, so nothing could verify a signature against it.
-    const { error: pubErr } = await db
+    const { data: pubUpdated, error: pubErr } = await db
       .from("dids")
       .update({ public_key: keypair.publicKey.toBase58() })
-      .eq("did", did);
+      .eq("did", did)
+      .select("did");
+
+    if (!pubErr && !pubUpdated?.length) {
+      // No such DID: the key would exist with nothing advertising it.
+      await db.from("embedded_wallets").delete().eq("wallet_id", walletId);
+      throw new Error(`Could not publish public key: no DID ${did}`);
+    }
 
     if (pubErr) {
       // The key exists but the DID still advertises the placeholder, which would
@@ -459,10 +472,16 @@ export class DidWalletService {
     // signs from the seed half.
     const signature = ed25519.sign(message, keypair.secretKey.slice(0, 32));
 
-    await db
+    const { error: touchErr } = await db
       .from("embedded_wallets")
       .update({ last_used_at: new Date().toISOString() })
       .eq("wallet_id", data.wallet_id);
+
+    // Telemetry only: the signature is already produced and must not be failed
+    // for a bookkeeping write.
+    if (touchErr) {
+      console.warn(`Could not stamp last_used_at on ${data.wallet_id}: ${touchErr.message}`);
+    }
 
     return {
       signature: Buffer.from(signature).toString("base64"),
