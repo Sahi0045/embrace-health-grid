@@ -318,9 +318,18 @@ function AdminPrescriptionsPage() {
                 }`}
               >
                 {/* ── Summary row ── */}
-                <button
+                <div
+                  role="button"
+                  tabIndex={0}
+                  aria-expanded={isExp}
                   className="w-full text-left p-4 cursor-pointer hover:bg-muted/30 transition-colors"
                   onClick={() => setExpandedId(isExp ? null : cx.rxId)}
+                  onKeyDown={(ev) => {
+                    if (ev.key === "Enter" || ev.key === " ") {
+                      ev.preventDefault();
+                      setExpandedId(isExp ? null : cx.rxId);
+                    }
+                  }}
                 >
                   <div className="flex items-start justify-between gap-3 flex-wrap">
                     <div className="flex items-center gap-3">
@@ -379,7 +388,7 @@ function AdminPrescriptionsPage() {
                       </div>
                     </div>
                   </div>
-                </button>
+                </div>
 
                 {/* ── Expanded: prescription + linked report — GPU CSS Grid transition ── */}
                 <div

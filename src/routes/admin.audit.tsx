@@ -433,10 +433,18 @@ function AdminAuditPage() {
                     className="rounded-2xl border border-border/80 bg-card shadow-clinical-xs transition-all hover:shadow-clinical-sm overflow-hidden"
                   >
                     {/* Summary Row */}
-                    <button
-                      type="button"
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      aria-expanded={isExp}
                       className="w-full text-left p-4.5 cursor-pointer hover:bg-muted/20 transition-colors"
                       onClick={() => setExpandedId(isExp ? null : event.tx_id)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setExpandedId(isExp ? null : event.tx_id);
+                        }
+                      }}
                     >
                       <div className="flex items-start justify-between gap-3 flex-wrap">
                         <div className="flex items-start gap-3.5">
@@ -513,7 +521,7 @@ function AdminAuditPage() {
                           )}
                         </div>
                       </div>
-                    </button>
+                    </div>
 
                     {/* Expanded Details */}
                     {isExp && (

@@ -395,8 +395,17 @@ function History() {
                         <Icon className="h-3 w-3" />
                       </span>
 
-                      <button
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        aria-expanded={isExpanded}
                         onClick={() => setExpanded(isExpanded ? null : e.id)}
+                        onKeyDown={(ev) => {
+                          if (ev.key === "Enter" || ev.key === " ") {
+                            ev.preventDefault();
+                            setExpanded(isExpanded ? null : e.id);
+                          }
+                        }}
                         className="w-full text-left"
                       >
                         <div
@@ -487,7 +496,7 @@ function History() {
                             )}
                           </AnimatePresence>
                         </div>
-                      </button>
+                      </div>
                     </li>
                   </StaggerItem>
                 );

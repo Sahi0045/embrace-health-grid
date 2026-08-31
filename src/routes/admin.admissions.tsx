@@ -456,9 +456,18 @@ function AdminAdmissionsPage() {
                 className="rounded-xl border border-border bg-card shadow-clinical overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-clinical-md hover:border-primary/40"
               >
                 {/* Row */}
-                <button
+                <div
+                  role="button"
+                  tabIndex={0}
+                  aria-expanded={isExp}
                   className="w-full text-left p-4 cursor-pointer hover:bg-muted/30 transition-colors"
                   onClick={() => setExpandedId(isExp ? null : adm.admission_id)}
+                  onKeyDown={(ev) => {
+                    if (ev.key === "Enter" || ev.key === " ") {
+                      ev.preventDefault();
+                      setExpandedId(isExp ? null : adm.admission_id);
+                    }
+                  }}
                 >
                   <div className="flex items-start justify-between gap-3 flex-wrap">
                     <div className="flex items-center gap-3">
@@ -532,7 +541,7 @@ function AdminAdmissionsPage() {
                       </div>
                     </div>
                   </div>
-                </button>
+                </div>
 
                 {/* Expanded details — GPU-accelerated CSS Grid transition (0fr -> 1fr) */}
                 <div
