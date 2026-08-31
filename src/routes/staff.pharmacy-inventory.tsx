@@ -189,26 +189,64 @@ function StaffPharmacyInventory() {
               <Card>
                 <CardHeader>
                   <CardTitle>Pending Prescription Dispenses</CardTitle>
-                  <CardDescription>Prescriptions ready for medication dispensing</CardDescription>
+                  <CardDescription>
+                    Prescriptions awaiting dispensing, and what is blocking them
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
+                  {/* The list used to be filtered to readyToDispense, so a
+                      prescription whose medication is out of stock vanished and
+                      the queue read "No prescriptions ready for dispensing".
+                      That is the one case a pharmacist most needs to see: with
+                      no stock at all, four waiting prescriptions showed as an
+                      empty queue and nothing prompted a reorder. Blocked
+                      prescriptions are now listed and labelled. */}
                   {prescriptionsData?.prescriptions &&
                   prescriptionsData.prescriptions.length > 0 ? (
                     <div className="space-y-4">
-                      {prescriptionsData.prescriptions
-                        .filter((rx: any) => rx.readyToDispense)
-                        .map((rx: any) => (
+                      {prescriptionsData.prescriptions.map((rx: any) =>
+                        rx.readyToDispense ? (
                           <DispenseCard
                             key={rx.rx_id}
                             prescription={rx}
                             onSuccess={() => refreshInventory()}
                           />
-                        ))}
+                        ) : (
+                          <div
+                            key={rx.rx_id}
+                            className="rounded-lg border border-warning/30 bg-warning/5 p-4"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className="font-semibold text-sm">
+                                  {rx.patient_name || rx.patient_did}
+                                </div>
+                                <div className="text-xs text-muted-foreground mt-0.5">
+                                  {rx.diagnosis || "No diagnosis recorded"} · {rx.rx_id}
+                                </div>
+                              </div>
+                              <span className="shrink-0 rounded-full bg-warning/15 px-2.5 py-0.5 text-[10px] font-bold uppercase text-warning-foreground">
+                                Cannot dispense
+                              </span>
+                            </div>
+                            <ul className="mt-2 space-y-0.5 text-xs text-muted-foreground">
+                              {(rx.medicationDetails ?? []).map((m: any, i: number) => (
+                                <li key={m.item_id ?? `${rx.rx_id}-${i}`}>
+                                  {m.name}
+                                  {m.isAvailable
+                                    ? " — in stock"
+                                    : ` — out of stock (need ${m.quantity ?? "?"}, have ${m.available ?? 0})`}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ),
+                      )}
                     </div>
                   ) : (
                     <div className="text-center py-12 text-muted-foreground">
                       <Package className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                      <p>No prescriptions ready for dispensing</p>
+                      <p>No prescriptions awaiting dispensing</p>
                     </div>
                   )}
                 </CardContent>
