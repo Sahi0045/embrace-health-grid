@@ -2238,6 +2238,24 @@ export const getCentralAlertStats = createServerFn({ method: "GET" }).handler(
  * ordered_at -> completed_at on completed orders, and returns an explicit
  * placeholder when there is nothing finished to measure rather than inventing one.
  */
+/**
+ * Mean order-to-result time in minutes, or null when nothing has completed.
+ *
+ * Returned alongside the formatted string because the lab console renders an
+ * SLA badge beside it, and that badge used to read "(SLA Met)" unconditionally
+ * — in success green, next to a "—" turnaround, on a hospital with no completed
+ * lab orders at all.
+ */
+function averageTurnaroundMinutes(orders: LabOrderRecord[]): number | null {
+  const spans = orders
+    .filter((o) => o.status === "completed" && o.completed_at && o.ordered_at)
+    .map((o) => new Date(o.completed_at as string).getTime() - new Date(o.ordered_at).getTime())
+    .filter((ms) => Number.isFinite(ms) && ms >= 0);
+
+  if (spans.length === 0) return null;
+  return Math.round(spans.reduce((a, b) => a + b, 0) / spans.length / 60000);
+}
+
 function averageTurnaround(orders: LabOrderRecord[]): string {
   const spans = orders
     .filter((o) => o.status === "completed" && o.completed_at && o.ordered_at)
@@ -2464,6 +2482,7 @@ export const getLaboratoryData = createServerFn({ method: "GET" }).handler(async
       completedToday,
       criticalResults,
       avgTurnaroundTime: averageTurnaround(orders),
+      avgTurnaroundMinutes: averageTurnaroundMinutes(orders),
       totalSamplesCollected: samples.length,
       radiologyScansToday: radiology.filter(
         (r) => r.status === "completed" || r.status === "in_progress",

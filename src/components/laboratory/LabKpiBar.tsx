@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 import { GlowCard } from "@/components/dashboard/GlowCard";
 import { DonutChart, DonutDataItem } from "@/components/dashboard/MiniChart";
-import { Sparkline } from "@/components/dashboard/Sparkline";
 import type { LabDashboardStats, LabOrderRecord, LabSampleRecord } from "@/lib/types";
 
 interface LabKpiBarProps {
@@ -168,9 +167,22 @@ export function LabKpiBar({
                   <span className="text-sm font-extrabold text-foreground font-display">
                     {stats.avgTurnaroundTime}
                   </span>
-                  <span className="text-[10px] font-extrabold text-success bg-success/15 px-2 py-0.5 rounded-full border border-success/30">
-                    Target &lt; 45m (SLA Met)
-                  </span>
+                  {/* Was a fixed "(SLA Met)" in success green, shown even when
+                      the turnaround itself read "—". Derived from the real
+                      average now, and neutral when nothing has completed. */}
+                  {stats.avgTurnaroundMinutes == null ? (
+                    <span className="text-[10px] font-extrabold text-muted-foreground bg-muted px-2 py-0.5 rounded-full border border-border">
+                      Target &lt; 45m (no completed orders)
+                    </span>
+                  ) : stats.avgTurnaroundMinutes < 45 ? (
+                    <span className="text-[10px] font-extrabold text-success bg-success/15 px-2 py-0.5 rounded-full border border-success/30">
+                      Target &lt; 45m (SLA met)
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-extrabold text-warning-foreground bg-warning/15 px-2 py-0.5 rounded-full border border-warning/30">
+                      Target &lt; 45m (SLA missed)
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -217,11 +229,6 @@ export function LabKpiBar({
               {stats.pendingTests > 0 ? "Awaiting accession" : "Queue clear"}
             </span>
           </div>
-
-          {/* Sparkline */}
-          <div className="relative z-10 pt-2 border-t border-border/40">
-            <Sparkline data={[8, 12, 10, 15, 9, stats.pendingTests]} tone="warning" height={32} />
-          </div>
         </motion.div>
 
         {/* Card 2: Active Processing */}
@@ -254,11 +261,6 @@ export function LabKpiBar({
               Active analyzers
             </span>
           </div>
-
-          {/* Sparkline */}
-          <div className="relative z-10 pt-2 border-t border-border/40">
-            <Sparkline data={[5, 8, 11, 7, 9, stats.inProgress]} tone="primary" height={32} />
-          </div>
         </motion.div>
 
         {/* Card 3: Completed Today */}
@@ -290,15 +292,6 @@ export function LabKpiBar({
             <span className="inline-flex items-center rounded-full bg-success/15 border border-success/30 px-2.5 py-0.5 text-[10px] font-extrabold text-success">
               Verified & signed
             </span>
-          </div>
-
-          {/* Sparkline */}
-          <div className="relative z-10 pt-2 border-t border-border/40">
-            <Sparkline
-              data={[14, 18, 22, 28, 32, stats.completedToday]}
-              tone="success"
-              height={32}
-            />
           </div>
         </motion.div>
 
@@ -361,15 +354,6 @@ export function LabKpiBar({
             >
               {stats.criticalResults > 0 ? "Immediate notify" : "Zero panic flags"}
             </span>
-          </div>
-
-          {/* Sparkline */}
-          <div className="relative z-10 pt-2 border-t border-border/40">
-            <Sparkline
-              data={[1, 0, 2, 1, 0, stats.criticalResults]}
-              tone={stats.criticalResults > 0 ? "destructive" : "success"}
-              height={32}
-            />
           </div>
         </motion.div>
       </div>

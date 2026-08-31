@@ -157,8 +157,7 @@ export function InventoryKpiBar({
           value={stats.lowStockCount}
           tone="warning"
           icon={AlertTriangle}
-          delta={stats.lowStockCount > 0 ? "Needs Reorder" : "Stock Healthy"}
-          sparklineData={[4, 6, 8, 7, 10, stats.lowStockCount]}
+          delta={stats.lowStockCount > 0 ? "Needs Reorder" : "None below threshold"}
           className="h-full"
         />
 
@@ -167,8 +166,7 @@ export function InventoryKpiBar({
           value={stats.criticalCount}
           tone="destructive"
           icon={ShieldAlert}
-          delta={stats.criticalCount > 0 ? "Urgent Replenish" : "Zero Stockout"}
-          sparklineData={[1, 3, 2, 4, 3, stats.criticalCount]}
+          delta={stats.criticalCount > 0 ? "Urgent Replenish" : "None at zero"}
           className="h-full"
         />
 
@@ -177,8 +175,7 @@ export function InventoryKpiBar({
           value={stats.nearExpiryCount}
           tone={stats.nearExpiryCount > 0 ? "warning" : "default"}
           icon={Clock}
-          delta={stats.nearExpiryCount > 0 ? "Batch Rotation" : "All Batches Valid"}
-          sparklineData={[2, 4, 3, 5, 4, stats.nearExpiryCount]}
+          delta={stats.nearExpiryCount > 0 ? "Batch Rotation" : "None expiring"}
           className="h-full"
         />
 
@@ -187,8 +184,7 @@ export function InventoryKpiBar({
           value={formatCurrency(stats.totalStockValuation)}
           tone="success"
           icon={CircleDollarSign}
-          delta="Audited Live"
-          sparklineData={[18000, 19500, 21000, 23000, 24000, stats.totalStockValuation]}
+          delta="Stock on hand"
           className="h-full"
         />
       </div>

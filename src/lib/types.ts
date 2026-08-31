@@ -585,6 +585,7 @@ export type LabDashboardStats = {
   completedToday: number;
   criticalResults: number;
   avgTurnaroundTime: string;
+  avgTurnaroundMinutes?: number | null;
   totalSamplesCollected: number;
   radiologyScansToday: number;
 };
